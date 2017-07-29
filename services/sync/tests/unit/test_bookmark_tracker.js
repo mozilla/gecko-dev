@@ -1,11 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const {
-  // `fetchGuidsWithAnno` isn't exported, but we can still access it here via a
-  // backstage pass.
-  fetchGuidsWithAnno,
-} = Cu.import("resource://gre/modules/PlacesSyncUtils.jsm", {});
 Cu.import("resource://gre/modules/PlacesSyncUtils.jsm");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines/bookmarks.js");
@@ -45,7 +40,7 @@ async function resetTracker() {
 
 async function cleanup() {
   engine.lastSync = 0;
-  engine._needWeakReupload.clear()
+  engine._needWeakUpload.clear()
   await store.wipe();
   await resetTracker();
   await stopTracking();
@@ -361,17 +356,15 @@ add_task(async function test_batch_tracking() {
       PlacesUtils.bookmarks.createFolder(
         PlacesUtils.bookmarks.bookmarksMenuFolder,
         "Test Folder", PlacesUtils.bookmarks.DEFAULT_INDEX);
-      // `runBatched` runs within a transaction that commits when
-      // `runInBatchMode` returns. Since `promiseChangedIDs` uses a read-only
-      // connection to fetch changes, it won't see the folder or its parent
-      // until we're out of batch mode.
-      Async.promiseSpinningly(verifyTrackedCount(0));
+      // We should be tracking the new folder and its parent (and need to jump
+      // through blocking hoops...)
+      Async.promiseSpinningly(verifyTrackedCount(2));
+      // But not have bumped the score.
       do_check_eq(tracker.score, 0);
     }
   }, null);
 
-  // Out of batch mode - now we should be tracking the new folder and its
-  // parent, and the score should be up.
+  // Out of batch mode - tracker should be the same, but score should be up.
   await verifyTrackedCount(2);
   do_check_eq(tracker.score, SCORE_INCREMENT_XLARGE);
   await cleanup();
@@ -390,19 +383,21 @@ add_task(async function test_nested_batch_tracking() {
           PlacesUtils.bookmarks.createFolder(
             PlacesUtils.bookmarks.bookmarksMenuFolder,
             "Test Folder", PlacesUtils.bookmarks.DEFAULT_INDEX);
-          Async.promiseSpinningly(verifyTrackedCount(0));
+          // We should be tracking the new folder and its parent (and need to jump
+          // through blocking hoops...)
+          Async.promiseSpinningly(verifyTrackedCount(2));
+          // But not have bumped the score.
           do_check_eq(tracker.score, 0);
         }
       }, null);
       _("inner batch complete.");
       // should still not have a score as the outer batch is pending.
-      Async.promiseSpinningly(verifyTrackedCount(0));
+      Async.promiseSpinningly(verifyTrackedCount(2));
       do_check_eq(tracker.score, 0);
     }
   }, null);
 
-  // Out of both batches - now we should be tracking the new folder and its
-  // parent, and the score should be up.
+  // Out of both batches - tracker should be the same, but score should be up.
   await verifyTrackedCount(2);
   do_check_eq(tracker.score, SCORE_INCREMENT_XLARGE);
   await cleanup();
@@ -1692,77 +1687,6 @@ add_task(async function test_onItemDeleted_tree() {
 
     await verifyTrackedItems([fx_guid, tb_guid, folder1_guid, folder2_guid]);
     do_check_eq(tracker.score, SCORE_INCREMENT_XLARGE * 3);
-  } finally {
-    _("Clean up.");
-    await cleanup();
-  }
-});
-
-add_task(async function test_mobile_query() {
-  _("Ensure we correctly create the mobile query");
-
-  try {
-    await startTracking();
-
-    // Creates the organizer queries as a side effect.
-    let leftPaneId = PlacesUIUtils.leftPaneFolderId;
-    _(`Left pane root ID: ${leftPaneId}`);
-
-    let allBookmarksGuids = await fetchGuidsWithAnno("PlacesOrganizer/OrganizerQuery",
-                                                     "AllBookmarks");
-    equal(allBookmarksGuids.length, 1, "Should create folder with all bookmarks queries");
-    let allBookmarkGuid = allBookmarksGuids[0];
-
-    _("Try creating query after organizer is ready");
-    tracker._ensureMobileQuery();
-    let queryGuids = await fetchGuidsWithAnno("PlacesOrganizer/OrganizerQuery",
-                                              "MobileBookmarks");
-    equal(queryGuids.length, 0, "Should not create query without any mobile bookmarks");
-
-    _("Insert mobile bookmark, then create query");
-    let mozBmk = await PlacesUtils.bookmarks.insert({
-      parentGuid: PlacesUtils.bookmarks.mobileGuid,
-      url: "https://mozilla.org",
-    });
-    tracker._ensureMobileQuery();
-    queryGuids = await fetchGuidsWithAnno("PlacesOrganizer/OrganizerQuery",
-                                          "MobileBookmarks");
-    equal(queryGuids.length, 1, "Should create query once mobile bookmarks exist");
-
-    let queryGuid = queryGuids[0];
-
-    let queryInfo = await PlacesUtils.bookmarks.fetch(queryGuid);
-    equal(queryInfo.url, `place:folder=${PlacesUtils.mobileFolderId}`, "Query should point to mobile root");
-    equal(queryInfo.title, "Mobile Bookmarks", "Query title should be localized");
-    equal(queryInfo.parentGuid, allBookmarkGuid, "Should append mobile query to all bookmarks queries");
-
-    _("Rename root and query, then recreate");
-    await PlacesUtils.bookmarks.update({
-      guid: PlacesUtils.bookmarks.mobileGuid,
-      title: "renamed root",
-    });
-    await PlacesUtils.bookmarks.update({
-      guid: queryGuid,
-      title: "renamed query",
-    });
-    tracker._ensureMobileQuery();
-    let rootInfo = await PlacesUtils.bookmarks.fetch(PlacesUtils.bookmarks.mobileGuid);
-    equal(rootInfo.title, "Mobile Bookmarks", "Should fix root title");
-    queryInfo = await PlacesUtils.bookmarks.fetch(queryGuid);
-    equal(queryInfo.title, "Mobile Bookmarks", "Should fix query title");
-
-    _("Point query to different folder");
-    await PlacesUtils.bookmarks.update({
-      guid: queryGuid,
-      url: "place:folder=BOOKMARKS_MENU",
-    });
-    tracker._ensureMobileQuery();
-    queryInfo = await PlacesUtils.bookmarks.fetch(queryGuid);
-    equal(queryInfo.url.href, `place:folder=${PlacesUtils.mobileFolderId}`,
-      "Should fix query URL to point to mobile root");
-
-    _("We shouldn't track the query or the left pane root");
-    await verifyTrackedItems([mozBmk.guid, "mobile"]);
   } finally {
     _("Clean up.");
     await cleanup();

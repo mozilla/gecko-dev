@@ -850,11 +850,14 @@ private:
    * |GetCurrentAsyncTransform(eForCompositing)| and similar functions reflect
    * the async scroll offset and zoom stored in |mFrameMetrics|.
    *
+   * Returns true if the newly sampled value is different from the previously
+   * sampled value.
+   *
    * (This is only relevant when |gfxPrefs::APZFrameDelayEnabled() == true|.
    * Otherwise, GetCurrentAsyncTransform() always reflects what's stored in
    * |mFrameMetrics| immediately, without any delay.)
    */
-  void SampleCompositedAsyncTransform();
+  bool SampleCompositedAsyncTransform();
 
   /*
    * Helper functions to query the async scroll offset and zoom either
@@ -1213,6 +1216,14 @@ private:
    */
 public:
   /**
+   * Gets whether this APZC has performed async key scrolling.
+   */
+  bool TestHasAsyncKeyScrolled() const
+  {
+    return mTestHasAsyncKeyScrolled;
+  }
+
+  /**
    * Set an extra offset for testing async scrolling.
    */
   void SetTestAsyncScrollOffset(const CSSPoint& aPoint)
@@ -1249,8 +1260,9 @@ private:
   LayerToParentLayerScale mTestAsyncZoom;
   // Flag to track whether or not the APZ transform is not used. This
   // flag is recomputed for every composition frame.
-  bool mAsyncTransformAppliedToContent;
-
+  bool mAsyncTransformAppliedToContent : 1;
+  // Flag to track whether or not this APZC has ever async key scrolled.
+  bool mTestHasAsyncKeyScrolled : 1;
 
   /* ===================================================================
    * The functions and members in this section are used for checkerboard

@@ -270,6 +270,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     friend bool (::JS::dbg::GetDebuggeeGlobals)(JSContext*, JSObject&, AutoObjectVector&);
     friend void JS::dbg::onNewPromise(JSContext* cx, HandleObject promise);
     friend void JS::dbg::onPromiseSettled(JSContext* cx, HandleObject promise);
+    friend bool JS::dbg::FireOnGarbageCollectionHookRequired(JSContext* cx);
     friend bool JS::dbg::FireOnGarbageCollectionHook(JSContext* cx,
                                                      JS::dbg::GarbageCollectionEvent::Ptr&& data);
 
@@ -1479,6 +1480,8 @@ class DebuggerObject : public NativeObject
     bool isDebuggeeFunction() const;
     bool isBoundFunction() const;
     bool isArrowFunction() const;
+    bool isAsyncFunction() const;
+    bool isGeneratorFunction() const;
     bool isGlobal() const;
     bool isScriptedProxy() const;
     bool isPromise() const;
@@ -1518,6 +1521,8 @@ class DebuggerObject : public NativeObject
     static MOZ_MUST_USE bool callableGetter(JSContext* cx, unsigned argc, Value* vp);
     static MOZ_MUST_USE bool isBoundFunctionGetter(JSContext* cx, unsigned argc, Value* vp);
     static MOZ_MUST_USE bool isArrowFunctionGetter(JSContext* cx, unsigned argc, Value* vp);
+    static MOZ_MUST_USE bool isAsyncFunctionGetter(JSContext* cx, unsigned argc, Value* vp);
+    static MOZ_MUST_USE bool isGeneratorFunctionGetter(JSContext* cx, unsigned argc, Value* vp);
     static MOZ_MUST_USE bool protoGetter(JSContext* cx, unsigned argc, Value* vp);
     static MOZ_MUST_USE bool classGetter(JSContext* cx, unsigned argc, Value* vp);
     static MOZ_MUST_USE bool nameGetter(JSContext* cx, unsigned argc, Value* vp);

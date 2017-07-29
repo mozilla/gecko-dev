@@ -5,7 +5,6 @@
 
 #include "MediaStreamGraphImpl.h"
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Unused.h"
 
 #include "AudioSegment.h"
@@ -117,12 +116,12 @@ MediaStreamGraphImpl::AddStreamGraphThread(MediaStream* aStream)
   } else {
     mStreams.AppendElement(aStream);
     LOG(LogLevel::Debug,
-        ("Adding media stream %p to graph %p, count %" PRIuSIZE,
+        ("Adding media stream %p to graph %p, count %zu",
          aStream,
          this,
          mStreams.Length()));
     LOG(LogLevel::Debug,
-        ("Adding media stream %p to graph %p, count %" PRIuSIZE,
+        ("Adding media stream %p to graph %p, count %zu",
          aStream,
          this,
          mStreams.Length()));
@@ -156,12 +155,12 @@ MediaStreamGraphImpl::RemoveStreamGraphThread(MediaStream* aStream)
   }
 
   LOG(LogLevel::Debug,
-      ("Removed media stream %p from graph %p, count %" PRIuSIZE,
+      ("Removed media stream %p from graph %p, count %zu",
        aStream,
        this,
        mStreams.Length()));
   LOG(LogLevel::Debug,
-      ("Removed media stream %p from graph %p, count %" PRIuSIZE,
+      ("Removed media stream %p from graph %p, count %zu",
        aStream,
        this,
        mStreams.Length()));
@@ -1532,6 +1531,12 @@ MediaStreamGraphImpl::Notify(nsITimer* aTimer)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+MediaStreamGraphImpl::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("MediaStreamGraphImpl");
+  return NS_OK;
+}
 
 /* static */ StaticRefPtr<nsIAsyncShutdownBlocker> gMediaStreamGraphShutdownBlocker;
 
@@ -1772,7 +1777,7 @@ MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
         // It's not safe to Shutdown() a thread from StableState, and
         // releasing this may shutdown a SystemClockDriver thread.
         // Proxy the release to outside of StableState.
-        NS_ReleaseOnMainThread(
+        NS_ReleaseOnMainThreadSystemGroup(
           "MediaStreamGraphImpl::CurrentDriver", driver.forget(),
           true); // always proxy
       }
@@ -3624,7 +3629,8 @@ MediaStreamGraph::DestroyNonRealtimeInstance(MediaStreamGraph* aGraph)
   graph->ForceShutDown(nullptr);
 }
 
-NS_IMPL_ISUPPORTS(MediaStreamGraphImpl, nsIMemoryReporter, nsITimerCallback)
+NS_IMPL_ISUPPORTS(MediaStreamGraphImpl, nsIMemoryReporter, nsITimerCallback,
+                  nsINamed)
 
 NS_IMETHODIMP
 MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
@@ -3908,7 +3914,7 @@ MediaStreamGraphImpl::SuspendOrResumeStreams(AudioContextOperation aAudioContext
   }
   LOG(LogLevel::Debug,
       ("Moving streams between suspended and running"
-       "state: mStreams: %" PRIuSIZE ", mSuspendedStreams: %" PRIuSIZE,
+       "state: mStreams: %zu, mSuspendedStreams: %zu",
        mStreams.Length(),
        mSuspendedStreams.Length()));
 #ifdef DEBUG

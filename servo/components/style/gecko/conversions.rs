@@ -15,13 +15,13 @@ use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElem
 use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
+use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
 use values::generics::grid::TrackSize;
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 use values::generics::rect::Rect;
-use values::specified::length::Percentage;
 use values::specified::url::SpecifiedUrl;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
@@ -138,7 +138,7 @@ impl Angle {
 
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
-    pub fn set(&mut self, image: Image, cacheable: &mut bool) {
+    pub fn set(&mut self, image: Image) {
         match image {
             GenericImage::Gradient(gradient) => {
                 self.set_gradient(gradient)
@@ -146,29 +146,12 @@ impl nsStyleImage {
             GenericImage::Url(ref url) => {
                 unsafe {
                     Gecko_SetLayerImageImageValue(self, url.image_value.clone().unwrap().get());
-                    // We unfortunately must make any url() value uncacheable, since
-                    // the applicable declarations cache is not per document, but
-                    // global, and the imgRequestProxy objects we store in the style
-                    // structs don't like to be tracked by more than one document.
-                    //
-                    // FIXME(emilio): With the scoped TLS thing this is no longer
-                    // true, remove this line in a follow-up!
-                    *cacheable = false;
                 }
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
                     Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.clone().unwrap().get());
                     Gecko_InitializeImageCropRect(self);
-
-                    // We unfortunately must make any url() value uncacheable, since
-                    // the applicable declarations cache is not per document, but
-                    // global, and the imgRequestProxy objects we store in the style
-                    // structs don't like to be tracked by more than one document.
-                    //
-                    // FIXME(emilio): With the scoped TLS thing this is no longer
-                    // true, remove this line in a follow-up!
-                    *cacheable = false;
 
                     // Set CropRect
                     let ref mut rect = *self.mCropRect.mPtr;
@@ -215,10 +198,35 @@ impl nsStyleImage {
 
                 match direction {
                     LineDirection::Angle(angle) => {
+                        // PI radians (180deg) is ignored because it is the default value.
+                        if angle.radians() != PI {
+                            unsafe {
+                                (*gecko_gradient).mAngle.set(angle);
+                            }
+                        }
+                    },
+                    LineDirection::Horizontal(x) => {
+                        let x = match x {
+                            X::Left => 0.0,
+                            X::Right => 1.0,
+                        };
+
                         unsafe {
-                            (*gecko_gradient).mAngle.set(angle);
-                            (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                            (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+                            (*gecko_gradient).mBgPosX
+                                             .set_value(CoordDataValue::Percent(x));
+                            (*gecko_gradient).mBgPosY
+                                             .set_value(CoordDataValue::Percent(0.5));
+                        }
+                    },
+                    LineDirection::Vertical(y) => {
+                        // Y::Bottom (to bottom) is ignored because it is the default value.
+                        if y == Y::Top {
+                            unsafe {
+                                (*gecko_gradient).mBgPosX
+                                                 .set_value(CoordDataValue::Percent(0.5));
+                                (*gecko_gradient).mBgPosY
+                                                 .set_value(CoordDataValue::Percent(0.0));
+                            }
                         }
                     },
                     LineDirection::Corner(horiz, vert) => {
@@ -232,7 +240,6 @@ impl nsStyleImage {
                         };
 
                         unsafe {
-                            (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
                             (*gecko_gradient).mBgPosX
                                              .set_value(CoordDataValue::Percent(percent_x));
                             (*gecko_gradient).mBgPosY
@@ -245,14 +252,9 @@ impl nsStyleImage {
                             if let Some(position) = position {
                                 (*gecko_gradient).mBgPosX.set(position.horizontal);
                                 (*gecko_gradient).mBgPosY.set(position.vertical);
-                            } else {
-                                (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                                (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
                             }
                             if let Some(angle) = angle {
                                 (*gecko_gradient).mAngle.set(angle);
-                            } else {
-                                (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
                             }
                         }
                     },
@@ -304,12 +306,7 @@ impl nsStyleImage {
                 unsafe {
                     if let Some(angle) = angle {
                         (*gecko_gradient).mAngle.set(angle);
-                    } else {
-                        (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
                     }
-
-                    (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                    (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
                 }
 
                 // Setting radius values depending shape

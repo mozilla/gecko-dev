@@ -16,7 +16,9 @@
 #ifdef XP_WIN
 #include "CompositorD3D11.h"
 #include "TextureD3D11.h"
-#endif // XP_WIN
+#elif defined(XP_MACOSX)
+#include "mozilla/gfx/MacIOSurface.h"
+#endif
 
 #include "gfxVROpenVR.h"
 #include "VRManager.h"
@@ -203,9 +205,10 @@ VRDisplayOpenVR::GetSensorState()
 {
   PollEvents();
 
-  ::vr::TrackedDevicePose_t poses[::vr::k_unMaxTrackedDeviceCount];
-  // Note: We *must* call WaitGetPoses in order for any rendering to happen at all
-  mVRCompositor->WaitGetPoses(poses, ::vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+  const uint32_t posesSize = ::vr::k_unTrackedDeviceIndex_Hmd + 1;
+  ::vr::TrackedDevicePose_t poses[posesSize];
+  // Note: We *must* call WaitGetPoses in order for any rendering to happen at all.
+  mVRCompositor->WaitGetPoses(nullptr, 0, poses, posesSize);
 
   VRHMDSensorState result;
 
@@ -279,22 +282,20 @@ VRDisplayOpenVR::StopPresentation()
   mIsPresenting = false;
 }
 
-
-#if defined(XP_WIN)
-
 bool
-VRDisplayOpenVR::SubmitFrame(TextureSourceD3D11* aSource,
-  const IntSize& aSize,
-  const gfx::Rect& aLeftEyeRect,
-  const gfx::Rect& aRightEyeRect)
+VRDisplayOpenVR::SubmitFrame(void* aTextureHandle,
+                             ::vr::ETextureType aTextureType,
+                             const IntSize& aSize,
+                             const gfx::Rect& aLeftEyeRect,
+                             const gfx::Rect& aRightEyeRect)
 {
   if (!mIsPresenting) {
     return false;
   }
 
   ::vr::Texture_t tex;
-  tex.handle = (void *)aSource->GetD3D11Texture();
-  tex.eType = ::vr::ETextureType::TextureType_DirectX;
+  tex.handle = aTextureHandle;
+  tex.eType = aTextureType;
   tex.eColorSpace = ::vr::EColorSpace::ColorSpace_Auto;
 
   ::vr::VRTextureBounds_t bounds;
@@ -324,6 +325,39 @@ VRDisplayOpenVR::SubmitFrame(TextureSourceD3D11* aSource,
   return true;
 }
 
+#if defined(XP_WIN)
+
+bool
+VRDisplayOpenVR::SubmitFrame(TextureSourceD3D11* aSource,
+                             const IntSize& aSize,
+                             const gfx::Rect& aLeftEyeRect,
+                             const gfx::Rect& aRightEyeRect)
+{
+  return SubmitFrame((void *)aSource->GetD3D11Texture(),
+                     ::vr::ETextureType::TextureType_DirectX,
+                     aSize, aLeftEyeRect, aRightEyeRect);
+}
+
+#elif defined(XP_MACOSX)
+
+bool
+VRDisplayOpenVR::SubmitFrame(MacIOSurface* aMacIOSurface,
+                             const IntSize& aSize,
+                             const gfx::Rect& aLeftEyeRect,
+                             const gfx::Rect& aRightEyeRect)
+{
+  const void* ioSurface = aMacIOSurface->GetIOSurfacePtr();
+  bool result = false;
+  if (ioSurface == nullptr) {
+    NS_WARNING("VRDisplayOpenVR::SubmitFrame() could not get an IOSurface");
+  } else {
+    result = SubmitFrame((void *)ioSurface,
+                         ::vr::ETextureType::TextureType_IOSurface,
+                         aSize, aLeftEyeRect, aRightEyeRect);
+  }
+  return result;
+}
+
 #endif
 
 void
@@ -338,9 +372,10 @@ VRDisplayOpenVR::NotifyVSync()
   VRDisplayHost::NotifyVSync();
 }
 
-VRControllerOpenVR::VRControllerOpenVR(dom::GamepadHand aHand, uint32_t aNumButtons,
-                                       uint32_t aNumAxes, ::vr::ETrackedDeviceClass aDeviceType)
-  : VRControllerHost(VRDeviceType::OpenVR)
+VRControllerOpenVR::VRControllerOpenVR(dom::GamepadHand aHand, uint32_t aDisplayID,
+                                       uint32_t aNumButtons, uint32_t aNumAxes,
+                                       ::vr::ETrackedDeviceClass aDeviceType)
+  : VRControllerHost(VRDeviceType::OpenVR, aHand, aDisplayID)
   , mTrigger(0)
   , mAxisMove(aNumAxes)
   , mVibrateThread(nullptr)
@@ -361,8 +396,6 @@ VRControllerOpenVR::VRControllerOpenVR(dom::GamepadHand aHand, uint32_t aNumButt
   }
 
   mAxisMove.SetLengthAndRetainStorage(aNumAxes);
-  mControllerInfo.mMappingType = GamepadMappingType::_empty;
-  mControllerInfo.mHand = aHand;
   mControllerInfo.mNumButtons = aNumButtons;
   mControllerInfo.mNumAxes = aNumAxes;
   mControllerInfo.mNumHaptics = kNumOpenVRHaptcs;
@@ -549,7 +582,7 @@ VRSystemManagerOpenVR::Shutdown()
   mVRSystem = nullptr;
 }
 
-void
+bool
 VRSystemManagerOpenVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
 {
   if (!::vr::VR_IsHmdPresent() ||
@@ -563,23 +596,23 @@ VRSystemManagerOpenVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
 
     ::vr::VR_Init(&err, ::vr::EVRApplicationType::VRApplication_Scene);
     if (err) {
-      return;
+      return false;
     }
 
     ::vr::IVRSystem *system = (::vr::IVRSystem *)::vr::VR_GetGenericInterface(::vr::IVRSystem_Version, &err);
     if (err || !system) {
       ::vr::VR_Shutdown();
-      return;
+      return false;
     }
     ::vr::IVRChaperone *chaperone = (::vr::IVRChaperone *)::vr::VR_GetGenericInterface(::vr::IVRChaperone_Version, &err);
     if (err || !chaperone) {
       ::vr::VR_Shutdown();
-      return;
+      return false;
     }
     ::vr::IVRCompositor *compositor = (::vr::IVRCompositor*)::vr::VR_GetGenericInterface(::vr::IVRCompositor_Version, &err);
     if (err || !compositor) {
       ::vr::VR_Shutdown();
-      return;
+      return false;
     }
 
     mVRSystem = system;
@@ -588,7 +621,9 @@ VRSystemManagerOpenVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
 
   if (mOpenVRHMD) {
     aHMDResult.AppendElement(mOpenVRHMD);
+    return true;
   }
+  return false;
 }
 
 bool
@@ -1010,7 +1045,8 @@ VRSystemManagerOpenVR::ScanForControllers()
       }
 
       RefPtr<VRControllerOpenVR> openVRController =
-        new VRControllerOpenVR(hand, numButtons, numAxes, deviceType);
+        new VRControllerOpenVR(hand, mOpenVRHMD->GetDisplayInfo().GetDisplayID(),
+                               numButtons, numAxes, deviceType);
       openVRController->SetTrackedIndex(trackedDevice);
       mOpenVRController.AppendElement(openVRController);
 

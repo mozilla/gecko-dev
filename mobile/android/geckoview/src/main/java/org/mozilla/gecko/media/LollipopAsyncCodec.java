@@ -65,21 +65,29 @@ import java.nio.ByteBuffer;
             }
 
             private void onInput(final int index) {
-                sendMessage(obtainMessage(MSG_INPUT_BUFFER_AVAILABLE, index, 0));
+                notify(obtainMessage(MSG_INPUT_BUFFER_AVAILABLE, index, 0));
+            }
+
+            private void notify(final Message msg) {
+                if (Looper.myLooper() == getLooper()) {
+                    handleMessage(msg);
+                } else {
+                    sendMessage(msg);
+                }
             }
 
             private void onOutput(final int index, final MediaCodec.BufferInfo info) {
                 final Message msg = obtainMessage(MSG_OUTPUT_BUFFER_AVAILABLE, index, 0, info);
-                sendMessage(msg);
+                notify(msg);
             }
 
             private void onOutputFormatChanged(final MediaFormat format) {
-                sendMessage(obtainMessage(MSG_OUTPUT_FORMAT_CHANGE, format));
+                notify(obtainMessage(MSG_OUTPUT_FORMAT_CHANGE, format));
             }
 
             private void onError(final MediaCodec.CodecException e) {
                 e.printStackTrace();
-                sendMessage(obtainMessage(MSG_ERROR, e.getErrorCode()));
+                notify(obtainMessage(MSG_ERROR, e.getErrorCode()));
             }
         }
 
@@ -188,6 +196,11 @@ import java.nio.ByteBuffer;
     @Override
     public void queueInputBuffer(final int index, final int offset, final int size,
             final long presentationTimeUs, final int flags) {
+        if ((flags & MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0) {
+            Bundle params = new Bundle();
+            params.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0);
+            mCodec.setParameters(params);
+        }
         mCodec.queueInputBuffer(index, offset, size, presentationTimeUs, flags);
     }
 

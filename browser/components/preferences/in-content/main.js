@@ -50,9 +50,9 @@ var gMainPane = {
     let defaultPerformancePref =
       document.getElementById("browser.preferences.defaultPerformanceSettings.enabled");
     defaultPerformancePref.addEventListener("change", () => {
-      this.updatePerformanceSettingsBox();
+      this.updatePerformanceSettingsBox({duringChangeEvent: true});
     });
-    this.updatePerformanceSettingsBox();
+    this.updatePerformanceSettingsBox({duringChangeEvent: false});
 
     let performanceSettingsLink = document.getElementById("performanceSettingsLearnMore");
     let performanceSettingsUrl = Services.urlFormatter.formatURLPref("app.support.baseURL") + "performance";
@@ -425,17 +425,27 @@ var gMainPane = {
     }
   },
 
-  updatePerformanceSettingsBox() {
+  updatePerformanceSettingsBox({duringChangeEvent}) {
     let defaultPerformancePref =
       document.getElementById("browser.preferences.defaultPerformanceSettings.enabled");
     let performanceSettings = document.getElementById("performanceSettings");
+    let processCountPref = document.getElementById("dom.ipc.processCount");
     if (defaultPerformancePref.value) {
-      let processCountPref = document.getElementById("dom.ipc.processCount");
       let accelerationPref = document.getElementById("layers.acceleration.disabled");
+      // Unset the value so process count will be decided by e10s rollout.
       processCountPref.value = processCountPref.defaultValue;
       accelerationPref.value = accelerationPref.defaultValue;
       performanceSettings.hidden = true;
     } else {
+      let e10sRolloutProcessCountPref =
+        document.getElementById("dom.ipc.processCount.web");
+      // Take the e10s rollout value as the default value (if it exists),
+      // but don't overwrite the user set value.
+      if (duringChangeEvent &&
+          e10sRolloutProcessCountPref.value &&
+          processCountPref.value == processCountPref.defaultValue) {
+        processCountPref.value = e10sRolloutProcessCountPref.value;
+      }
       performanceSettings.hidden = false;
     }
   },
@@ -443,12 +453,16 @@ var gMainPane = {
   buildContentProcessCountMenuList() {
     if (gMainPane.isE10SEnabled()) {
       let processCountPref = document.getElementById("dom.ipc.processCount");
+      let e10sRolloutProcessCountPref =
+        document.getElementById("dom.ipc.processCount.web");
+      let defaultProcessCount =
+        e10sRolloutProcessCountPref.value || processCountPref.defaultValue;
       let bundlePreferences = document.getElementById("bundlePreferences");
       let label = bundlePreferences.getFormattedString("defaultContentProcessCount",
-        [processCountPref.defaultValue]);
+        [defaultProcessCount]);
       let contentProcessCount =
         document.querySelector(`#contentProcessCount > menupopup >
-                                menuitem[value="${processCountPref.defaultValue}"]`);
+                                menuitem[value="${defaultProcessCount}"]`);
       contentProcessCount.label = label;
 
       document.getElementById("limitContentProcess").disabled = false;

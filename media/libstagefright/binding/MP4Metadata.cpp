@@ -12,7 +12,6 @@
 #include "mozilla/EndianUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "VideoUtils.h"
@@ -466,7 +465,7 @@ ConvertIndex(FallibleTArray<Index::Indice>& aDest,
 {
   if (!aDest.SetCapacity(aIndex.Length(), mozilla::fallible)) {
     return MediaResult{NS_ERROR_OUT_OF_MEMORY,
-                       RESULT_DETAIL("Could not resize to %" PRIuSIZE " indices",
+                       RESULT_DETAIL("Could not resize to %zu indices",
                                      aIndex.Length())};
   }
   for (size_t i = 0; i < aIndex.Length(); i++) {
@@ -768,7 +767,7 @@ MP4MetadataRust::Init()
   MOZ_LOG(sLog, LogLevel::Debug, ("rust parser returned %d\n", rv));
   Telemetry::Accumulate(Telemetry::MEDIA_RUST_MP4PARSE_SUCCESS,
                         rv == mp4parse_status_OK);
-  if (rv != mp4parse_status_OK) {
+  if (rv != mp4parse_status_OK && rv != mp4parse_status_TABLE_TOO_LARGE) {
     MOZ_LOG(sLog, LogLevel::Info, ("Rust mp4 parser fails to parse this stream."));
     MOZ_ASSERT(rv > 0);
     Telemetry::Accumulate(Telemetry::MEDIA_RUST_MP4PARSE_ERROR_CODE, rv);
@@ -829,9 +828,7 @@ MP4MetadataRust::GetNumberTracks(mozilla::TrackInfo::TrackType aType) const
     if (rv != mp4parse_status_OK) {
       continue;
     }
-    // JPEG 'video' decoder is not supported in media stack yet.
-    if (track_info.codec == mp4parse_codec::mp4parse_codec_JPEG ||
-        track_info.codec == mp4parse_codec::mp4parse_codec_UNKNOWN) {
+    if (track_info.codec == mp4parse_codec::mp4parse_codec_UNKNOWN) {
       continue;
     }
     if (TrackTypeEqual(aType, track_info.track_type)) {

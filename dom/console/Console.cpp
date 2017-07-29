@@ -583,7 +583,7 @@ private:
         innerID = NS_LITERAL_STRING("ServiceWorker");
         // Use scope as ID so the webconsole can decide if the message should
         // show up per tab
-        id.AssignWithConversion(mWorkerPrivate->ServiceWorkerScope());
+        CopyASCIItoUTF16(mWorkerPrivate->ServiceWorkerScope(), id);
       } else {
         innerID = NS_LITERAL_STRING("Worker");
       }
@@ -886,10 +886,8 @@ Console::Shutdown()
     }
   }
 
-  NS_ReleaseOnMainThread(
-    "Console::mStorage", mStorage.forget());
-  NS_ReleaseOnMainThread(
-    "Console::mSandbox", mSandbox.forget());
+  NS_ReleaseOnMainThreadSystemGroup("Console::mStorage", mStorage.forget());
+  NS_ReleaseOnMainThreadSystemGroup("Console::mSandbox", mSandbox.forget());
 
   mTimerRegistry.Clear();
   mCounterRegistry.Clear();

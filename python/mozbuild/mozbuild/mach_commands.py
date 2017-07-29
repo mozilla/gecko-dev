@@ -7,6 +7,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import argparse
 import collections
 import errno
+import hashlib
 import itertools
 import json
 import logging
@@ -38,6 +39,7 @@ from mozbuild.base import (
     MozconfigLoadException,
     ObjdirMismatchException,
 )
+from mozbuild.util import ensureParentDir
 
 from mozbuild.backend import (
     backends,
@@ -1325,6 +1327,8 @@ class RunProgram(MachCommandBase):
 
         extra_env = {
             'MOZ_DEVELOPER_REPO_DIR': self.topsrcdir,
+            'MOZ_DEVELOPER_OBJ_DIR': self.topobjdir,
+            'RUST_BACKTRACE': '1',
         }
 
         if not enable_crash_reporter:
@@ -1627,24 +1631,16 @@ class PackageFrontend(MachCommandBase):
         state_dir = self._mach_context.state_dir
         cache_dir = os.path.join(state_dir, 'package-frontend')
 
-        import which
-
         here = os.path.abspath(os.path.dirname(__file__))
         build_obj = MozbuildObject.from_environment(cwd=here)
 
         hg = None
         if conditions.is_hg(build_obj):
-            if self._is_windows():
-                hg = which.which('hg.exe')
-            else:
-                hg = which.which('hg')
+            hg = build_obj.substs['HG']
 
         git = None
         if conditions.is_git(build_obj):
-            if self._is_windows():
-                git = which.which('git.exe')
-            else:
-                git = which.which('git')
+            git = build_obj.substs['GIT']
 
         from mozbuild.artifacts import Artifacts
         artifacts = Artifacts(tree, self.substs, self.defines, job,
@@ -1697,13 +1693,16 @@ class PackageFrontend(MachCommandBase):
         help='Do not unpack any downloaded file')
     @CommandArgument('--retry', type=int, default=0,
         help='Number of times to retry failed downloads')
+    @CommandArgument('--artifact-manifest', metavar='FILE',
+        help='Store a manifest about the downloaded taskcluster artifacts')
     @CommandArgument('files', nargs='*',
-        help='Only download the given file names (you may use file name stems)')
+        help='A list of files to download, in the form path@task-id, in '
+             'addition to the files listed in the tooltool manifest.')
     def artifact_toolchain(self, verbose=False, cache_dir=None,
                           skip_cache=False, from_build=(),
                           tooltool_manifest=None, authentication_file=None,
                           tooltool_url=None, no_unpack=False, retry=None,
-                          files=()):
+                          artifact_manifest=None, files=()):
         '''Download, cache and install pre-built toolchains.
         '''
         from mozbuild.artifacts import ArtifactCache
@@ -1830,30 +1829,31 @@ class PackageFrontend(MachCommandBase):
                     return 1
 
                 task_id = optimize_task(task, {})
-                if task_id in (True, False):
+                artifact_name = task.attributes.get('toolchain-artifact')
+                if task_id in (True, False) or not artifact_name:
                     self.log(logging.ERROR, 'artifact', {'build': user_value},
                              'Could not find artifacts for a toolchain build '
                              'named `{build}`')
                     return 1
 
-                for artifact in list_artifacts(task_id):
-                    name = artifact['name']
-                    if not name.startswith('public/'):
-                        continue
-                    name = name[len('public/'):]
-                    if name.startswith('logs/'):
-                        continue
-                    name = os.path.basename(name)
-                    records[name] = DownloadRecord(
-                        get_artifact_url(task_id, artifact['name']),
-                        name, None, None, None, unpack=True)
+                name = os.path.basename(artifact_name)
+                records[name] = DownloadRecord(
+                    get_artifact_url(task_id, artifact_name),
+                    name, None, None, None, unpack=True)
+
+        # Handle the list of files of the form path@task-id on the command
+        # line. Each of those give a path to an artifact to download.
+        for f in files:
+            if '@' not in f:
+                self.log(logging.ERROR, 'artifact', {},
+                         'Expected a list of files of the form path@task-id')
+                return 1
+            name, task_id = f.rsplit('@', 1)
+            records[name] = DownloadRecord(
+                get_artifact_url(task_id, name), os.path.basename(name),
+                None, None, None, unpack=True)
 
         for record in records.itervalues():
-            if files and not any(record.basename == f or
-                                      record.basename.startswith('%s.' % f)
-                                      for f in files):
-                continue
-
             self.log(logging.INFO, 'artifact', {'name': record.basename},
                      'Downloading {name}')
             valid = False
@@ -1863,6 +1863,7 @@ class PackageFrontend(MachCommandBase):
                 try:
                     record.fetch_with(cache)
                 except (requests.exceptions.HTTPError,
+                        requests.exceptions.ChunkedEncodingError,
                         requests.exceptions.ConnectionError) as e:
 
                     if isinstance(e, requests.exceptions.ConnectionError):
@@ -1905,6 +1906,8 @@ class PackageFrontend(MachCommandBase):
                          'Failed to download {name}')
                 return 1
 
+        artifacts = {} if artifact_manifest else None
+
         for record in downloaded:
             local = os.path.join(os.getcwd(), record.basename)
             if os.path.exists(local):
@@ -1917,6 +1920,19 @@ class PackageFrontend(MachCommandBase):
                 os.link(record.filename, local)
             except Exception:
                 shutil.copy(record.filename, local)
+            # Keep a sha256 of each downloaded file, for the chain-of-trust
+            # validation.
+            if artifact_manifest is not None:
+                with open(local) as fh:
+                    h = hashlib.sha256()
+                    while True:
+                        data = fh.read(1024 * 1024)
+                        if not data:
+                            break
+                        h.update(data)
+                artifacts[record.url] = {
+                    'sha256': h.hexdigest(),
+                }
             if record.unpack and not no_unpack:
                 unpack_file(local, record.setup)
                 os.unlink(local)
@@ -1925,6 +1941,11 @@ class PackageFrontend(MachCommandBase):
             self.log(logging.ERROR, 'artifact', {}, 'Nothing to download')
             if files:
                 return 1
+
+        if artifacts:
+            ensureParentDir(artifact_manifest)
+            with open(artifact_manifest, 'w') as fh:
+                json.dump(artifacts, fh, indent=4, sort_keys=True)
 
         return 0
 

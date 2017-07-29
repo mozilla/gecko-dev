@@ -877,7 +877,9 @@ public:
   }
 
   explicit RecordedFontData(UnscaledFont *aUnscaledFont)
-    : RecordedEventDerived(FONTDATA), mData(nullptr)
+    : RecordedEventDerived(FONTDATA)
+    , mType(aUnscaledFont->GetType())
+    , mData(nullptr)
   {
     mGetFontFileDataSucceeded = aUnscaledFont->GetFontFileData(&FontDataProc, this);
   }
@@ -901,6 +903,7 @@ public:
 private:
   friend class RecordedEvent;
 
+  FontType mType;
   uint8_t* mData;
   RecordedFontDetails mFontDetails;
 
@@ -1200,9 +1203,6 @@ private:
   template<class S>
   MOZ_IMPLICIT RecordedFilterNodeSetInput(S &aStream);
 };
-
-
-using namespace std;
 
 static std::string NameFromBackend(BackendType aType)
 {
@@ -1513,7 +1513,7 @@ RecordedDrawTargetCreation::RecordedDrawTargetCreation(S &aStream)
 }
 
 inline void
-RecordedDrawTargetCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedDrawTargetCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] DrawTarget Creation (Type: " << NameFromBackend(mBackendType) << ", Size: " << mSize.width << "x" << mSize.height << ")";
 }
@@ -1541,7 +1541,7 @@ RecordedDrawTargetDestruction::RecordedDrawTargetDestruction(S &aStream)
 }
 
 inline void
-RecordedDrawTargetDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedDrawTargetDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] DrawTarget Destruction";
 }
@@ -1581,7 +1581,7 @@ RecordedCreateSimilarDrawTarget::RecordedCreateSimilarDrawTarget(S &aStream)
 }
 
 inline void
-RecordedCreateSimilarDrawTarget::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedCreateSimilarDrawTarget::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] CreateSimilarDrawTarget (Size: " << mSize.width << "x" << mSize.height << ")";
 }
@@ -1680,7 +1680,7 @@ RecordedFillRect::RecordedFillRect(S &aStream)
 }
 
 inline void
-RecordedFillRect::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFillRect::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] FillRect (" << mRect.x << ", " << mRect.y << " - " << mRect.width << " x " << mRect.height << ") ";
   OutputSimplePatternInfo(mPattern, aStringStream);
@@ -1715,7 +1715,7 @@ RecordedStrokeRect::RecordedStrokeRect(S &aStream)
 }
 
 inline void
-RecordedStrokeRect::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedStrokeRect::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] StrokeRect (" << mRect.x << ", " << mRect.y << " - " << mRect.width << " x " << mRect.height
                 << ") LineWidth: " << mStrokeOptions.mLineWidth << "px ";
@@ -1753,7 +1753,7 @@ RecordedStrokeLine::RecordedStrokeLine(S &aStream)
 }
 
 inline void
-RecordedStrokeLine::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedStrokeLine::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] StrokeLine (" << mBegin.x << ", " << mBegin.y << " - " << mEnd.x << ", " << mEnd.y
                 << ") LineWidth: " << mStrokeOptions.mLineWidth << "px ";
@@ -1787,7 +1787,7 @@ RecordedFill::Record(S &aStream) const
 }
 
 inline void
-RecordedFill::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFill::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] Fill (" << mPath << ") ";
   OutputSimplePatternInfo(mPattern, aStringStream);
@@ -1834,7 +1834,7 @@ RecordedFillGlyphs::Record(S &aStream) const
 }
 
 inline void
-RecordedFillGlyphs::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFillGlyphs::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] FillGlyphs (" << mScaledFont << ") ";
   OutputSimplePatternInfo(mPattern, aStringStream);
@@ -1867,7 +1867,7 @@ RecordedMask::Record(S &aStream) const
 }
 
 inline void
-RecordedMask::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedMask::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] Mask (Source: ";
   OutputSimplePatternInfo(mSource, aStringStream);
@@ -1904,7 +1904,7 @@ RecordedStroke::RecordedStroke(S &aStream)
 }
 
 inline void
-RecordedStroke::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedStroke::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] Stroke ("<< mPath << ") LineWidth: " << mStrokeOptions.mLineWidth << "px ";
   OutputSimplePatternInfo(mPattern, aStringStream);
@@ -1933,7 +1933,7 @@ RecordedClearRect::RecordedClearRect(S &aStream)
 }
 
 inline void
-RecordedClearRect::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedClearRect::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT<< "] ClearRect (" << mRect.x << ", " << mRect.y << " - " << mRect.width << " x " << mRect.height << ") ";
 }
@@ -1966,7 +1966,7 @@ RecordedCopySurface::RecordedCopySurface(S &aStream)
 }
 
 inline void
-RecordedCopySurface::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedCopySurface::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT<< "] CopySurface (" << mSourceSurface << ")";
 }
@@ -1994,7 +1994,7 @@ RecordedPushClip::RecordedPushClip(S &aStream)
 }
 
 inline void
-RecordedPushClip::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPushClip::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] PushClip (" << mPath << ") ";
 }
@@ -2022,7 +2022,7 @@ RecordedPushClipRect::RecordedPushClipRect(S &aStream)
 }
 
 inline void
-RecordedPushClipRect::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPushClipRect::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] PushClipRect (" << mRect.x << ", " << mRect.y << " - " << mRect.width << " x " << mRect.height << ") ";
 }
@@ -2048,7 +2048,7 @@ RecordedPopClip::RecordedPopClip(S &aStream)
 }
 
 inline void
-RecordedPopClip::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPopClip::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] PopClip";
 }
@@ -2089,7 +2089,7 @@ RecordedPushLayer::RecordedPushLayer(S &aStream)
 }
 
 inline void
-RecordedPushLayer::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPushLayer::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] PushPLayer (Opaque=" << mOpaque <<
     ", Opacity=" << mOpacity << ", Mask Ref=" << mMask << ") ";
@@ -2116,7 +2116,7 @@ RecordedPopLayer::RecordedPopLayer(S &aStream)
 }
 
 inline void
-RecordedPopLayer::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPopLayer::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] PopLayer";
 }
@@ -2144,7 +2144,7 @@ RecordedSetTransform::RecordedSetTransform(S &aStream)
 }
 
 inline void
-RecordedSetTransform::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedSetTransform::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] SetTransform [ " << mTransform._11 << " " << mTransform._12 << " ; " <<
     mTransform._21 << " " << mTransform._22 << " ; " << mTransform._31 << " " << mTransform._32 << " ]";
@@ -2183,7 +2183,7 @@ RecordedDrawSurface::RecordedDrawSurface(S &aStream)
 }
 
 inline void
-RecordedDrawSurface::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedDrawSurface::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] DrawSurface (" << mRefSource << ")";
 }
@@ -2219,7 +2219,7 @@ RecordedDrawFilter::RecordedDrawFilter(S &aStream)
 }
 
 inline void
-RecordedDrawFilter::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedDrawFilter::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] DrawFilter (" << mNode << ")";
 }
@@ -2259,7 +2259,7 @@ RecordedDrawSurfaceWithShadow::RecordedDrawSurfaceWithShadow(S &aStream)
 }
 
 inline void
-RecordedDrawSurfaceWithShadow::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedDrawSurfaceWithShadow::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] DrawSurfaceWithShadow (" << mRefSource << ") Color: (" <<
     mColor.r << ", " << mColor.g << ", " << mColor.b << ", " << mColor.a << ")";
@@ -2360,7 +2360,7 @@ RecordedPathCreation::RecordedPathCreation(S &aStream)
 }
 
 inline void
-RecordedPathCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPathCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] Path created (OpCount: " << mPathOps.size() << ")";
 }
@@ -2386,7 +2386,7 @@ RecordedPathDestruction::RecordedPathDestruction(S &aStream)
 }
 
 inline void
-RecordedPathDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedPathDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] Path Destroyed";
 }
@@ -2441,7 +2441,7 @@ RecordedSourceSurfaceCreation::RecordedSourceSurfaceCreation(S &aStream)
 }
 
 inline void
-RecordedSourceSurfaceCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedSourceSurfaceCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] SourceSurface created (Size: " << mSize.width << "x" << mSize.height << ")";
 }
@@ -2468,7 +2468,7 @@ RecordedSourceSurfaceDestruction::RecordedSourceSurfaceDestruction(S &aStream)
 }
 
 inline void
-RecordedSourceSurfaceDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedSourceSurfaceDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] SourceSurface Destroyed";
 }
@@ -2504,7 +2504,7 @@ RecordedFilterNodeCreation::RecordedFilterNodeCreation(S &aStream)
 }
 
 inline void
-RecordedFilterNodeCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFilterNodeCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] FilterNode created (Type: " << int(mType) << ")";
 }
@@ -2531,7 +2531,7 @@ RecordedFilterNodeDestruction::RecordedFilterNodeDestruction(S &aStream)
 }
 
 inline void
-RecordedFilterNodeDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFilterNodeDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] FilterNode Destroyed";
 }
@@ -2576,7 +2576,7 @@ RecordedGradientStopsCreation::RecordedGradientStopsCreation(S &aStream)
 }
 
 inline void
-RecordedGradientStopsCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedGradientStopsCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] GradientStops created (Stops: " << mNumStops << ")";
 }
@@ -2603,7 +2603,7 @@ RecordedGradientStopsDestruction::RecordedGradientStopsDestruction(S &aStream)
 }
 
 inline void
-RecordedGradientStopsDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedGradientStopsDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] GradientStops Destroyed";
 }
@@ -2637,7 +2637,7 @@ RecordedIntoLuminanceSource::RecordedIntoLuminanceSource(S &aStream)
 }
 
 inline void
-RecordedIntoLuminanceSource::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedIntoLuminanceSource::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] Into Luminance Source (DT: " << mDT << ")";
 }
@@ -2667,7 +2667,7 @@ RecordedSnapshot::RecordedSnapshot(S &aStream)
 }
 
 inline void
-RecordedSnapshot::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedSnapshot::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] Snapshot Created (DT: " << mDT << ")";
 }
@@ -2683,8 +2683,8 @@ RecordedFontData::PlayEvent(Translator *aTranslator) const
 {
   RefPtr<NativeFontResource> fontResource =
     Factory::CreateNativeFontResource(mData, mFontDetails.size,
-                                      aTranslator->GetDesiredFontType(),
-                                      aTranslator->GetFontContext());
+                                      aTranslator->GetReferenceDrawTarget()->GetBackendType(),
+                                      mType, aTranslator->GetFontContext());
   if (!fontResource) {
     return false;
   }
@@ -2699,13 +2699,14 @@ RecordedFontData::Record(S &aStream) const
 {
   MOZ_ASSERT(mGetFontFileDataSucceeded);
 
+  WriteElement(aStream, mType);
   WriteElement(aStream, mFontDetails.fontDataKey);
   WriteElement(aStream, mFontDetails.size);
   aStream.write((const char*)mData, mFontDetails.size);
 }
 
 inline void
-RecordedFontData::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFontData::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "Font Data of size " << mFontDetails.size;
 }
@@ -2737,8 +2738,10 @@ RecordedFontData::GetFontDetails(RecordedFontDetails& fontDetails)
 template<class S>
 RecordedFontData::RecordedFontData(S &aStream)
   : RecordedEventDerived(FONTDATA)
+  , mType(FontType::SKIA)
   , mData(nullptr)
 {
+  ReadElement(aStream, mType);
   ReadElement(aStream, mFontDetails.fontDataKey);
   ReadElement(aStream, mFontDetails.size);
   mData = new uint8_t[mFontDetails.size];
@@ -2777,7 +2780,7 @@ RecordedFontDescriptor::Record(S &aStream) const
 }
 
 inline void
-RecordedFontDescriptor::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFontDescriptor::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] Font Descriptor";
 }
@@ -2829,7 +2832,7 @@ RecordedUnscaledFontCreation::Record(S &aStream) const
 }
 
 inline void
-RecordedUnscaledFontCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedUnscaledFontCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] UnscaledFont Created";
 }
@@ -2876,7 +2879,7 @@ RecordedUnscaledFontDestruction::RecordedUnscaledFontDestruction(S &aStream)
 }
 
 inline void
-RecordedUnscaledFontDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedUnscaledFontDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] UnscaledFont Destroyed";
 }
@@ -2909,7 +2912,7 @@ RecordedScaledFontCreation::Record(S &aStream) const
 }
 
 inline void
-RecordedScaledFontCreation::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedScaledFontCreation::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] ScaledFont Created";
 }
@@ -2956,7 +2959,7 @@ RecordedScaledFontDestruction::RecordedScaledFontDestruction(S &aStream)
 }
 
 inline void
-RecordedScaledFontDestruction::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedScaledFontDestruction::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mRefPtr << "] ScaledFont Destroyed";
 }
@@ -2993,7 +2996,7 @@ RecordedMaskSurface::RecordedMaskSurface(S &aStream)
 }
 
 inline void
-RecordedMaskSurface::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedMaskSurface::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mDT << "] MaskSurface (" << mRefMask << ")  Offset: (" << mOffset.x << "x" << mOffset.y << ") Pattern: ";
   OutputSimplePatternInfo(mPattern, aStringStream);
@@ -3064,7 +3067,7 @@ RecordedFilterNodeSetAttribute::RecordedFilterNodeSetAttribute(S &aStream)
 }
 
 inline void
-RecordedFilterNodeSetAttribute::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFilterNodeSetAttribute::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mNode << "] SetAttribute (" << mIndex << ")";
 }
@@ -3104,7 +3107,7 @@ RecordedFilterNodeSetInput::RecordedFilterNodeSetInput(S &aStream)
 }
 
 inline void
-RecordedFilterNodeSetInput::OutputSimpleEventInfo(stringstream &aStringStream) const
+RecordedFilterNodeSetInput::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 {
   aStringStream << "[" << mNode << "] SetAttribute (" << mIndex << ", ";
 

@@ -43,12 +43,14 @@ JS::Zone::Zone(JSRuntime* rt, ZoneGroup* group)
     markedAtoms_(group),
     atomCache_(group),
     externalStringCache_(group),
+    functionToStringCache_(group),
     usage(&rt->gc.usage),
     threshold(),
     gcDelayBytes(0),
     propertyTree_(group, this),
     baseShapes_(group, this),
     initialShapes_(group, this),
+    nurseryShapes_(group),
     data(group, nullptr),
     isSystem(group, false),
 #ifdef DEBUG
@@ -86,7 +88,8 @@ Zone::~Zone()
 #endif
 }
 
-bool Zone::init(bool isSystemArg)
+bool
+Zone::init(bool isSystemArg)
 {
     isSystem = isSystemArg;
     return uniqueIds().init() &&
@@ -162,7 +165,7 @@ Zone::sweepBreakpoints(FreeOp* fop)
                 // live.
                 MOZ_ASSERT_IF(isGCSweeping() && dbgobj->zone()->isCollecting(),
                               dbgobj->zone()->isGCSweeping() ||
-                              (!scriptGone && dbgobj->asTenured().isMarked()));
+                              (!scriptGone && dbgobj->asTenured().isMarkedAny()));
 
                 bool dying = scriptGone || IsAboutToBeFinalized(&dbgobj);
                 MOZ_ASSERT_IF(!dying, !IsAboutToBeFinalized(&bp->getHandlerRef()));
@@ -373,6 +376,21 @@ Zone::addTypeDescrObject(JSContext* cx, HandleObject obj)
     }
 
     return true;
+}
+
+void
+Zone::deleteEmptyCompartment(JSCompartment* comp)
+{
+    MOZ_ASSERT(comp->zone() == this);
+    MOZ_ASSERT(arenas.checkEmptyArenaLists());
+    for (auto& i : compartments()) {
+        if (i == comp) {
+            compartments().erase(&i);
+            comp->destroy(runtimeFromActiveCooperatingThread()->defaultFreeOp());
+            return;
+        }
+    }
+    MOZ_CRASH("Compartment not found");
 }
 
 ZoneList::ZoneList()

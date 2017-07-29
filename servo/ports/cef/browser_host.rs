@@ -8,7 +8,7 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_brows
 use types::cef_event_flags_t::{EVENTFLAG_ALT_DOWN, EVENTFLAG_CONTROL_DOWN, EVENTFLAG_SHIFT_DOWN};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
-use webrender_traits::ScrollLocation;
+use webrender_api::ScrollLocation;
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
@@ -486,8 +486,7 @@ full_cef_class_impl! {
             this.downcast().send_window_event(WindowEvent::PinchZoom((new_zoom_level / old_zoom_level) as f32))
         }}
 
-        fn initialize_compositing(&this,) -> () {{
-            this.downcast().send_window_event(WindowEvent::InitializeCompositing);
+        fn initialize_compositing(&_this,) -> () {{
         }}
 
         fn composite(&this,) -> () {{

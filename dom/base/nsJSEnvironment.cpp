@@ -62,7 +62,6 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "nsAXPCNativeCallContext.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/SystemGroup.h"
 #include "nsRefreshDriver.h"
@@ -203,9 +202,6 @@ static PRTime sFirstCollectionTime;
 static bool sIsInitialized;
 static bool sDidShutdown;
 static bool sShuttingDown;
-static int32_t sContextCount;
-
-static nsIScriptSecurityManager *sSecurityManager;
 
 // nsJSEnvironmentObserver observes the memory-pressure notifications
 // and forces a garbage collection and cycle collection when it happens, if
@@ -288,24 +284,12 @@ public:
 
   void SetTimer(uint32_t aDelay, nsIEventTarget* aTarget) override
   {
-    if (mTimerActive) {
-      return;
-    }
-
-    mTarget = aTarget;
-    if (!mTimer) {
-      mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
-    } else {
-      mTimer->Cancel();
-    }
-
-    if (mTimer) {
-      mTimer->SetTarget(mTarget);
-      mTimer->InitWithNamedFuncCallback(TimedOut, this, aDelay,
-                                        nsITimer::TYPE_ONE_SHOT,
-                                        "CollectorRunner");
-      mTimerActive = true;
-    }
+    MOZ_ASSERT(NS_IsMainThread());
+    // aTarget is always the main thread event target provided from
+    // NS_IdleDispatchToCurrentThread(). We ignore aTarget here to ensure that
+    // CollectorRunner a(ways run specifically on SystemGroup::EventTargetFor(
+    // TaskCategory::GarbageCollection) of the main thread.
+    SetTimerInternal(aDelay);
   }
 
   nsresult Cancel() override
@@ -342,19 +326,20 @@ public:
       // RefreshDriver is ticking, let it schedule the idle dispatch.
       nsRefreshDriver::DispatchIdleRunnableAfterTick(this, mDelay);
       // Ensure we get called at some point, even if RefreshDriver is stopped.
-      SetTimer(mDelay, mTarget);
+      SetTimerInternal(mDelay);
     } else {
       // RefreshDriver doesn't seem to be running.
       if (aAllowIdleDispatch) {
         nsCOMPtr<nsIRunnable> runnable = this;
-        NS_IdleDispatchToCurrentThread(runnable.forget(), mDelay);
-        SetTimer(mDelay, mTarget);
+        SetTimerInternal(mDelay);
+        NS_IdleDispatchToCurrentThread(runnable.forget());
       } else {
         if (!mScheduleTimer) {
           mScheduleTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
           if (!mScheduleTimer) {
             return;
           }
+          mScheduleTimer->SetTarget(SystemGroup::EventTargetFor(TaskCategory::GarbageCollection));
         } else {
           mScheduleTimer->Cancel();
         }
@@ -395,9 +380,29 @@ private:
     mTimerActive = false;
   }
 
+  void SetTimerInternal(uint32_t aDelay)
+  {
+    if (mTimerActive) {
+      return;
+    }
+
+    if (!mTimer) {
+      mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    } else {
+      mTimer->Cancel();
+    }
+
+    if (mTimer) {
+      mTimer->SetTarget(SystemGroup::EventTargetFor(TaskCategory::GarbageCollection));
+      mTimer->InitWithNamedFuncCallback(TimedOut, this, aDelay,
+                                        nsITimer::TYPE_ONE_SHOT,
+                                        "CollectorRunner");
+      mTimerActive = true;
+    }
+  }
+
   nsCOMPtr<nsITimer> mTimer;
   nsCOMPtr<nsITimer> mScheduleTimer;
-  nsCOMPtr<nsIEventTarget> mTarget;
   CollectorRunnerCallback mCallback;
   uint32_t mDelay;
   TimeStamp mDeadline;
@@ -770,8 +775,6 @@ nsJSContext::nsJSContext(bool aGCOnDestruction,
 {
   EnsureStatics();
 
-  ++sContextCount;
-
   mIsInitialized = false;
   mProcessingScriptTag = false;
   HoldJSObjects(this);
@@ -782,15 +785,6 @@ nsJSContext::~nsJSContext()
   mGlobalObjectRef = nullptr;
 
   Destroy();
-
-  --sContextCount;
-
-  if (!sContextCount && sDidShutdown) {
-    // The last context is being deleted, and we're already in the
-    // process of shutting down, release the security manager.
-
-    NS_IF_RELEASE(sSecurityManager);
-  }
 }
 
 void
@@ -2096,10 +2090,15 @@ CCRunnerFired(TimeStamp aDeadline, void* aData)
         // Our efforts to avoid a CC have failed, so we return to let the
         // timer fire once more to trigger a CC.
 
-        // Clear content unbinder before the first CC slice.
-        Element::ClearContentUnbinder();
-        // And trigger deferred deletion too.
-        nsCycleCollector_doDeferredDeletion();
+        if (!aDeadline.IsNull() && TimeStamp::Now() < aDeadline) {
+          // Clear content unbinder before the first CC slice.
+          Element::ClearContentUnbinder();
+
+          if (TimeStamp::Now() < aDeadline) {
+            // And trigger deferred deletion too.
+            nsCycleCollector_doDeferredDeletion();
+          }
+        }
         return didDoWork;
       }
     } else {
@@ -2452,7 +2451,7 @@ DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress, const JS::GCDescrip
           nsString json;
           json.Adopt(aDesc.formatJSON(aCx, PR_Now()));
           RefPtr<NotifyGCEndRunnable> notify = new NotifyGCEndRunnable(json);
-          NS_DispatchToMainThread(notify);
+          SystemGroup::Dispatch(TaskCategory::GarbageCollection, notify.forget());
         }
       }
 
@@ -2579,8 +2578,6 @@ mozilla::dom::StartupJSEnvironment()
   sIsInitialized = false;
   sDidShutdown = false;
   sShuttingDown = false;
-  sContextCount = 0;
-  sSecurityManager = nullptr;
   gCCStats.Init();
   sExpensiveCollectorPokes = 0;
 }
@@ -2606,8 +2603,18 @@ SetMemoryMaxPrefChangedCallback(const char* aPrefName, void* aClosure)
 {
   int32_t pref = Preferences::GetInt(aPrefName, -1);
   // handle overflow and negative pref values
-  uint32_t max = (pref <= 0 || pref >= 0x1000) ? -1 : (uint32_t)pref * 1024 * 1024;
-  SetGCParameter(JSGC_MAX_BYTES, max);
+  CheckedInt<uint32_t> max = CheckedInt<uint32_t>(pref) * 1024 * 1024;
+  SetGCParameter(JSGC_MAX_BYTES, max.isValid() ? max.value() : -1);
+}
+
+static void
+SetMemoryNurseryMaxPrefChangedCallback(const char* aPrefName, void* aClosure)
+{
+  int32_t pref = Preferences::GetInt(aPrefName, -1);
+  // handle overflow and negative pref values
+  CheckedInt<uint32_t> max = CheckedInt<uint32_t>(pref) * 1024;
+  SetGCParameter(JSGC_MAX_NURSERY_BYTES,
+    max.isValid() ? max.value() : JS::DefaultNurseryBytes);
 }
 
 static void
@@ -2775,12 +2782,6 @@ nsJSContext::EnsureStatics()
     return;
   }
 
-  nsresult rv = CallGetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID,
-                               &sSecurityManager);
-  if (NS_FAILED(rv)) {
-    MOZ_CRASH();
-  }
-
   // Let's make sure that our main thread is the same as the xpcom main thread.
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -2806,6 +2807,8 @@ nsJSContext::EnsureStatics()
 
   Preferences::RegisterCallbackAndCall(SetMemoryMaxPrefChangedCallback,
                                        "javascript.options.mem.max");
+  Preferences::RegisterCallbackAndCall(SetMemoryNurseryMaxPrefChangedCallback,
+                                       "javascript.options.mem.nursery.max_kb");
 
   Preferences::RegisterCallbackAndCall(SetMemoryGCModePrefChangedCallback,
                                        "javascript.options.mem.gc_per_zone");
@@ -2928,12 +2931,6 @@ mozilla::dom::ShutdownJSEnvironment()
   KillTimers();
 
   NS_IF_RELEASE(gNameSpaceManager);
-
-  if (!sContextCount) {
-    // We're being shutdown, and there are no more contexts
-    // alive, release the security manager.
-    NS_IF_RELEASE(sSecurityManager);
-  }
 
   sShuttingDown = true;
   sDidShutdown = true;

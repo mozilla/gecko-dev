@@ -48,6 +48,14 @@ var gSmallTests = [
   { name:"bogus.duh", type:"bogus/duh" }
 ];
 
+var gFrameCountTests = [
+  { name:"bipbop.mp4", type:"video/mp4", totalFrameCount:297},
+  { name:"gizmo.mp4", type:"video/mp4", totalFrameCount:166},
+  { name:"seek-short.webm", type:"video/webm", totalFrameCount:8},
+  { name:"seek.webm", type:"video/webm", totalFrameCount:120},
+  { name:"320x240.ogv", type:"video/ogg", totalFrameCount:8},
+];
+
 if (SpecialPowers.Services.appinfo.name != "B2G") {
   // We only run mochitests on b2g desktop and b2g emulator. The 3gp codecs
   // aren't present on desktop, and the emulator codecs (which are different
@@ -1550,13 +1558,10 @@ function getMajorMimeType(mimetype) {
 // Force releasing decoder to avoid timeout in waiting for decoding resource.
 function removeNodeAndSource(n) {
   n.remove();
-  // Clearing srcObject and/or src will actually set them to some default
-  // URI that will fail to load, so make sure we don't produce a spurious
-  // bailing error.
-  n.onerror = null;
   // reset |srcObject| first since it takes precedence over |src|.
   n.srcObject = null;
-  n.src = "";
+  n.removeAttribute("src");
+  n.load();
   while (n.firstChild) {
     n.firstChild.remove();
   }

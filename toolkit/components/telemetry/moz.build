@@ -63,6 +63,7 @@ SOURCES += [
     'TelemetryCommon.cpp',
     'TelemetryEvent.cpp',
     'TelemetryHistogram.cpp',
+    'TelemetryIOInterposeObserver.cpp',
     'TelemetryScalar.cpp',
     'ThreadHangStats.cpp',
     'WebrtcTelemetry.cpp',
@@ -84,6 +85,7 @@ EXTRA_JS_MODULES += [
     'TelemetryArchive.jsm',
     'TelemetryController.jsm',
     'TelemetryEnvironment.jsm',
+    'TelemetryHealthPing.jsm',
     'TelemetryLog.jsm',
     'TelemetryModules.jsm',
     'TelemetryReportingPolicy.jsm',
@@ -95,10 +97,15 @@ EXTRA_JS_MODULES += [
     'TelemetryUtils.jsm',
     'ThirdPartyCookieProbe.jsm',
     'UITelemetry.jsm',
+    'UpdatePing.jsm',
 ]
 
 TESTING_JS_MODULES += [
   'tests/unit/TelemetryArchiveTesting.jsm',
+]
+
+PYTHON_UNITTEST_MANIFESTS += [
+    'tests/python/python.ini',
 ]
 
 GENERATED_FILES = [

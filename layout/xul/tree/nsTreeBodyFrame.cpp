@@ -2174,15 +2174,16 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
     listener->AddCell(aRowIndex, aCol);
     nsCOMPtr<imgINotificationObserver> imgNotificationObserver = listener;
 
+    nsIDocument* doc = mContent->GetComposedDoc();
+    if (!doc)
+      // The page is currently being torn down.  Why bother.
+      return NS_ERROR_FAILURE;
+
     RefPtr<imgRequestProxy> imageRequest;
     if (styleRequest) {
-      styleRequest->Clone(imgNotificationObserver, getter_AddRefs(imageRequest));
+      styleRequest->SyncClone(imgNotificationObserver, doc,
+                              getter_AddRefs(imageRequest));
     } else {
-      nsIDocument* doc = mContent->GetComposedDoc();
-      if (!doc)
-        // The page is currently being torn down.  Why bother.
-        return NS_ERROR_FAILURE;
-
       nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
 
       nsCOMPtr<nsIURI> srcURI;
@@ -4779,13 +4780,12 @@ nsTreeBodyFrame::PostScrollEvent()
     return;
 
   RefPtr<ScrollEvent> event = new ScrollEvent(this);
-  nsresult rv = mContent->OwnerDoc()->Dispatch("ScrollEvent",
-                                               TaskCategory::Other,
+  nsresult rv = mContent->OwnerDoc()->Dispatch(TaskCategory::Other,
                                                do_AddRef(event));
   if (NS_FAILED(rv)) {
     NS_WARNING("failed to dispatch ScrollEvent");
   } else {
-    mScrollEvent = event;
+    mScrollEvent = Move(event);
   }
 }
 
@@ -4976,8 +4976,7 @@ nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation)
   if (!mCheckingOverflow) {
     nsContentUtils::AddScriptRunner(checker);
   } else {
-    mContent->OwnerDoc()->Dispatch("nsOverflowChecker",
-                                   TaskCategory::Other,
+    mContent->OwnerDoc()->Dispatch(TaskCategory::Other,
                                    checker.forget());
   }
   return weakFrame.IsAlive();

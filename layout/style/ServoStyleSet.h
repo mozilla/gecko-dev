@@ -39,7 +39,6 @@ class ServoStyleRuleMap;
 class nsCSSCounterStyleRule;
 class nsIContent;
 class nsIDocument;
-class nsStyleContext;
 class nsPresContext;
 struct nsTimingFunction;
 struct RawServoRuleNode;
@@ -116,7 +115,7 @@ public:
     return StylistNeedsUpdate();
   }
 
-  bool MediumFeaturesChanged() const;
+  nsRestyleHint MediumFeaturesChanged(bool aViewportChanged) const;
 
   void InvalidateStyleForCSSRuleChanges();
 
@@ -131,9 +130,9 @@ public:
   void BeginUpdate();
   nsresult EndUpdate();
 
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolveStyleFor(dom::Element* aElement,
-                  nsStyleContext* aParentContext,
+                  ServoStyleContext* aParentContext,
                   LazyComputeBehavior aMayCompute);
 
   // Get a style context for a text node (which no rules will match).
@@ -143,9 +142,9 @@ public:
   // (Perhaps mozText should go away and we shouldn't even create style
   // contexts for such content nodes, when text-combine-upright is not
   // present.  However, not doing any rule matching for them is a first step.)
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolveStyleForText(nsIContent* aTextNode,
-                      nsStyleContext* aParentContext);
+                      ServoStyleContext* aParentContext);
 
   // Get a style context for a first-letter continuation (which no rules will
   // match).
@@ -157,8 +156,8 @@ public:
   // shouldn't even create style contexts for such frames.  However, not doing
   // any rule matching for them is a first step.  And right now we do use this
   // style context for some things)
-  already_AddRefed<nsStyleContext>
-  ResolveStyleForFirstLetterContinuation(nsStyleContext* aParentContext);
+  already_AddRefed<ServoStyleContext>
+  ResolveStyleForFirstLetterContinuation(ServoStyleContext* aParentContext);
 
   // Get a style context for a placeholder frame (which no rules will match).
   //
@@ -168,7 +167,7 @@ public:
   // (Perhaps nsCSSAnonBoxes::oofPaceholder should go away and we shouldn't even
   // create style contexts for placeholders.  However, not doing any rule
   // matching for them is a first step.)
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolveStyleForPlaceholder();
 
   // Get a style context for a pseudo-element.  aParentElement must be
@@ -176,28 +175,29 @@ public:
   // pseudo-element.  aPseudoElement must be non-null if the pseudo-element
   // type is one that allows user action pseudo-classes after it or allows
   // style attributes; otherwise, it is ignored.
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolvePseudoElementStyle(dom::Element* aOriginatingElement,
                             CSSPseudoElementType aType,
-                            nsStyleContext* aParentContext,
+                            ServoStyleContext* aParentContext,
                             dom::Element* aPseudoElement);
 
   // Resolves style for a (possibly-pseudo) Element without assuming that the
   // style has been resolved, and without worrying about setting the style
   // context up to live in the style context tree (a null parent is used).
   // |aPeudoTag| and |aPseudoType| must match.
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolveTransientStyle(dom::Element* aElement,
-                        nsIAtom* aPseudoTag,
                         CSSPseudoElementType aPseudoType,
+                        nsIAtom* aPseudoTag,
                         StyleRuleInclusion aRules =
                           StyleRuleInclusion::All);
 
-  // Similar to ResolveTransientStyle() but returns ServoComputedValues.
+  // Similar to ResolveTransientStyle() but doesn't update the context state
   // Unlike ResolveServoStyle() this function calls PreTraverseSync().
-  already_AddRefed<ServoComputedValues>
+  already_AddRefed<ServoStyleContext>
   ResolveTransientServoStyle(dom::Element* aElement,
-                             CSSPseudoElementType aPseudoTag,
+                             CSSPseudoElementType aPseudoType,
+                             nsIAtom* aPseudoTag,
                              StyleRuleInclusion aRules =
                                StyleRuleInclusion::All);
 
@@ -206,12 +206,12 @@ public:
   // inherits style from the given aParentContext.
   already_AddRefed<ServoStyleContext>
   ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
-                                     nsStyleContext* aParentContext);
+                                     ServoStyleContext* aParentContext);
 
   // Get a style context for an anonymous box that does not inherit style from
   // anything.  aPseudoTag is the pseudo-tag to use and must be non-null.  It
   // must be an anon box, and must be a non-inheriting one.
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolveNonInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag);
 
   // manage the set of style sheets in the style set
@@ -245,10 +245,10 @@ public:
   nsresult AddDocStyleSheet(ServoStyleSheet* aSheet, nsIDocument* aDocument);
 
   // check whether there is ::before/::after style for an element
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ProbePseudoElementStyle(dom::Element* aOriginatingElement,
                           mozilla::CSSPseudoElementType aType,
-                          nsStyleContext* aParentContext);
+                          ServoStyleContext* aParentContext);
 
   // Test if style is dependent on content state
   nsRestyleHint HasStateDependentStyle(dom::Element* aElement,
@@ -264,23 +264,13 @@ public:
    * This will traverse all of the document's style roots (that is, its document
    * element, and the roots of the document-level native anonymous content).
    *
-   * |aRestyleBehavior| should be `Normal` or `ForCSSRuleChanges`.
-   * We need to specify |ForCSSRuleChanges| to try to update all CSS animations
+   * We specify |ForCSSRuleChanges| to try to update all CSS animations
    * when we call this function due to CSS rule changes since @keyframes rules
    * may have changed.
    *
    * Returns true if a post-traversal is required.
    */
-  bool StyleDocument(TraversalRestyleBehavior aRestyleBehavior);
-
-  /**
-   * Performs a Servo animation-only traversal to compute style for all nodes
-   * with the animation-only dirty bit in the document.
-   *
-   * This will traverse all of the document's style roots (that is, its document
-   * element, and the roots of the document-level native anonymous content).
-   */
-  bool StyleDocumentForAnimationOnly();
+  bool StyleDocument(ServoTraversalFlags aFlags);
 
   /**
    * Eagerly styles a subtree of unstyled nodes that was just appended to the
@@ -339,6 +329,15 @@ public:
    */
   void MaybeGCRuleTree();
 
+  /**
+   * Returns true if the given element may be used as the root of a style
+   * traversal. Reasons for false include having an unstyled parent, or having
+   * a parent that is display:none.
+   *
+   * Most traversal callsites don't need to check this, but some do.
+   */
+  bool MayTraverseFrom(dom::Element* aElement);
+
 #ifdef DEBUG
   void AssertTreeIsClean();
 #else
@@ -359,9 +358,12 @@ public:
 
   /**
    * Resolve style for the given element, and return it as a
-   * ServoComputedValues, not an nsStyleContext.
+   * ServoStyleContext.
+   *
+   * FIXME(emilio): Is there a point in this after bug 1367904?
    */
-  already_AddRefed<ServoComputedValues> ResolveServoStyle(dom::Element* aElement);
+  already_AddRefed<ServoStyleContext>
+  ResolveServoStyle(dom::Element* aElement, ServoTraversalFlags aFlags);
 
   bool GetKeyframesForName(const nsString& aName,
                            const nsTimingFunction& aTimingFunction,
@@ -370,36 +372,39 @@ public:
   nsTArray<ComputedKeyframeValues>
   GetComputedKeyframeValuesFor(const nsTArray<Keyframe>& aKeyframes,
                                dom::Element* aElement,
-                               ServoComputedValuesBorrowed aComputedValues);
+                               const ServoStyleContext* aContext);
 
   void
   GetAnimationValues(RawServoDeclarationBlock* aDeclarations,
                      dom::Element* aElement,
-                     ServoComputedValuesBorrowed aComputedValues,
+                     const ServoStyleContext* aContext,
                      nsTArray<RefPtr<RawServoAnimationValue>>& aAnimationValues);
 
   bool AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray);
 
   nsCSSCounterStyleRule* CounterStyleRuleForName(nsIAtom* aName);
 
-  already_AddRefed<ServoComputedValues>
-  GetBaseComputedValuesForElement(dom::Element* aElement,
-                                  CSSPseudoElementType aPseudoType,
-                                  ServoComputedValuesBorrowed aStyle);
+  already_AddRefed<ServoStyleContext>
+  GetBaseContextForElement(dom::Element* aElement,
+                           ServoStyleContext* aParentContext,
+                           nsPresContext* aPresContext,
+                           nsIAtom* aPseudoTag,
+                           CSSPseudoElementType aPseudoType,
+                           const ServoStyleContext* aStyle);
 
   /**
    * Resolve style for a given declaration block with/without the parent style.
    * If the parent style is not specified, the document default computed values
    * is used.
    */
-  already_AddRefed<ServoComputedValues>
-  ResolveForDeclarations(ServoComputedValuesBorrowedOrNull aParentOrNull,
+  already_AddRefed<ServoStyleContext>
+  ResolveForDeclarations(const ServoStyleContext* aParentOrNull,
                          RawServoDeclarationBlockBorrowed aDeclarations);
 
   already_AddRefed<RawServoAnimationValue>
   ComputeAnimationValue(dom::Element* aElement,
                         RawServoDeclarationBlock* aDeclaration,
-                        ServoComputedValuesBorrowed aComputedValues);
+                        const ServoStyleContext* aContext);
 
   void AppendTask(PostTraversalTask aTask)
   {
@@ -474,18 +479,6 @@ private:
     ServoStyleSet* mSet;
   };
 
-  already_AddRefed<ServoStyleContext> GetContext(already_AddRefed<ServoComputedValues>,
-                                                 nsStyleContext* aParentContext,
-                                                 nsIAtom* aPseudoTag,
-                                                 CSSPseudoElementType aPseudoType,
-                                                 dom::Element* aElementForAnimation);
-
-  already_AddRefed<ServoStyleContext> GetContext(nsIContent* aContent,
-                                                 nsStyleContext* aParentContext,
-                                                 nsIAtom* aPseudoTag,
-                                                 CSSPseudoElementType aPseudoType,
-                                                 LazyComputeBehavior aMayCompute);
-
   /**
    * Rebuild the style data. This will force a stylesheet flush, and also
    * recompute the default computed styles.
@@ -512,8 +505,7 @@ private:
    * Returns whether a post-traversal is required.
    */
   bool PrepareAndTraverseSubtree(RawGeckoElementBorrowed aRoot,
-                                 TraversalRootBehavior aRootBehavior,
-                                 TraversalRestyleBehavior aRestyleBehavior);
+                                 ServoTraversalFlags aFlags);
 
   /**
    * Clear our cached mNonInheritingStyleContexts.
@@ -556,9 +548,11 @@ private:
    */
   void UpdateStylist();
 
-  already_AddRefed<ServoComputedValues>
+  already_AddRefed<ServoStyleContext>
     ResolveStyleLazily(dom::Element* aElement,
                        CSSPseudoElementType aPseudoType,
+                       nsIAtom* aPseudoTag,
+                       const ServoStyleContext* aParentContext,
                        StyleRuleInclusion aRules =
                          StyleRuleInclusion::All);
 
@@ -584,6 +578,7 @@ private:
   bool mAuthorStyleDisabled;
   StylistState mStylistState;
   uint64_t mUserFontSetUpdateGeneration;
+  uint32_t mUserFontCacheUpdateGeneration;
 
   bool mNeedsRestyleAfterEnsureUniqueInner;
 
@@ -591,7 +586,7 @@ private:
   // boxes.
   EnumeratedArray<nsCSSAnonBoxes::NonInheriting,
                   nsCSSAnonBoxes::NonInheriting::_Count,
-                  RefPtr<nsStyleContext>> mNonInheritingStyleContexts;
+                  RefPtr<ServoStyleContext>> mNonInheritingStyleContexts;
 
   // Tasks to perform after a traversal, back on the main thread.
   //

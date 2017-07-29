@@ -4,14 +4,14 @@
 
 #![deny(unsafe_code)]
 
-use StyleArc;
+use ServoArc;
 use app_units::{Au, MIN_AU};
 use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
+use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, MutableFlowUtils};
 use flow::OpaqueFlow;
 use flow_ref::FlowRef;
@@ -33,7 +33,7 @@ use std::sync::Arc;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{longhands, ServoComputedValues};
+use style::properties::{longhands, ComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi as bidi;
@@ -1106,7 +1106,7 @@ impl InlineFlow {
     /// Computes the minimum metrics for each line. This is done during flow construction.
     ///
     /// `style` is the style of the block.
-    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ServoComputedValues)
+    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ComputedValues)
                                 -> LineMetrics {
         InlineFlow::minimum_line_metrics_for_fragments(&self.fragments.fragments,
                                                        font_context,
@@ -1119,7 +1119,7 @@ impl InlineFlow {
     /// `style` is the style of the block that these fragments belong to.
     pub fn minimum_line_metrics_for_fragments(fragments: &[Fragment],
                                               font_context: &mut FontContext,
-                                              style: &ServoComputedValues)
+                                              style: &ComputedValues)
                                               -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
         // flow is hypothetical and takes up no space. See CSS 2.1 § 10.3.7.
@@ -1420,6 +1420,8 @@ impl Flow for InlineFlow {
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
+    /// Note that we do not need to do in-order traversal becase the children
+    /// are always block formatting context.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("inline::assign_block_size {:x}",
                                          self.base.debug_id());
@@ -1482,19 +1484,6 @@ impl Flow for InlineFlow {
             // the next iteration of the loop. We're no longer on the first
             // line, so set indentation to zero.
             indentation = Au(0)
-        }
-
-        // Assign block sizes for any inline-block descendants.
-        let thread_id = self.base.thread_id;
-        for kid in self.base.child_iter_mut() {
-            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-                    flow::base(kid).flags.is_float() {
-                continue
-            }
-            let content_box = flow::base(kid).position;
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                 thread_id,
-                                                                 content_box);
         }
 
         if self.contains_positioned_fragments() {
@@ -1676,7 +1665,7 @@ impl Flow for InlineFlow {
         self.build_display_list_for_inline(state);
     }
 
-    fn repair_style(&mut self, _: &StyleArc<ServoComputedValues>) {}
+    fn repair_style(&mut self, _: &ServoArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         let mut overflow = Overflow::new();
@@ -1765,8 +1754,8 @@ impl fmt::Debug for InlineFlow {
 #[derive(Clone)]
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
-    pub style: StyleArc<ServoComputedValues>,
-    pub selected_style: StyleArc<ServoComputedValues>,
+    pub style: ServoArc<ComputedValues>,
+    pub selected_style: ServoArc<ComputedValues>,
     pub pseudo: PseudoElementType<()>,
     pub flags: InlineFragmentNodeFlags,
 }

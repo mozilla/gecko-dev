@@ -1996,9 +1996,6 @@ nsBlockFrame::PrepareResizeReflow(BlockReflowInput& aState)
     nscoord newAvailISize =
       aState.mReflowInput.ComputedLogicalBorderPadding().IStart(wm) +
       aState.mReflowInput.ComputedISize();
-    NS_ASSERTION(NS_UNCONSTRAINEDSIZE != aState.mReflowInput.ComputedLogicalBorderPadding().IStart(wm) &&
-                 NS_UNCONSTRAINEDSIZE != aState.mReflowInput.ComputedISize(),
-                 "math on NS_UNCONSTRAINEDSIZE");
 
 #ifdef DEBUG
     if (gNoisyReflow) {
@@ -3820,6 +3817,9 @@ nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
           // and we have page-break-inside:avoid, then we need to be pushed to
           // our parent's next-in-flow.
           aState.mReflowStatus.SetInlineLineBreakBeforeAndReset();
+          // When we reflow in the new position, we need to reflow this
+          // line again.
+          aLine->MarkDirty();
         } else {
           // Push the line that didn't fit and any lines that follow it
           // to our next-in-flow.
@@ -4711,6 +4711,9 @@ nsBlockFrame::PlaceLine(BlockReflowInput& aState,
       ShouldAvoidBreakInside(aState.mReflowInput)) {
     aLine->AppendFloats(aState.mCurrentLineFloats);
     aState.mReflowStatus.SetInlineLineBreakBeforeAndReset();
+    // Reflow the line again when we reflow at our new position.
+    aLine->MarkDirty();
+    *aKeepReflowGoing = false;
     return true;
   }
 
@@ -4722,6 +4725,7 @@ nsBlockFrame::PlaceLine(BlockReflowInput& aState,
     if (ShouldAvoidBreakInside(aState.mReflowInput)) {
       // All our content doesn't fit, start on the next page.
       aState.mReflowStatus.SetInlineLineBreakBeforeAndReset();
+      *aKeepReflowGoing = false;
     } else {
       // Push aLine and all of its children and anything else that
       // follows to our next-in-flow.
@@ -4730,6 +4734,10 @@ nsBlockFrame::PlaceLine(BlockReflowInput& aState,
     return true;
   }
 
+  // Note that any early return before this update of aState.mBCoord
+  // must either (a) return false or (b) set aKeepReflowGoing to false.
+  // Otherwise we'll keep reflowing later lines at an incorrect
+  // position, and we might not come back and clean up the damage later.
   aState.mBCoord = newBCoord;
 
   // Add the already placed current-line floats to the line
@@ -5642,7 +5650,7 @@ nsBlockFrame::UpdateFirstLetterStyle(ServoRestyleState& aRestyleState)
   nsIFrame* styleParent =
     CorrectStyleParentFrame(inFlowFrame->GetParent(),
                             nsCSSPseudoElements::firstLetter);
-  nsStyleContext* parentStyle = styleParent->StyleContext();
+  ServoStyleContext* parentStyle = styleParent->StyleContext()->AsServo();
   RefPtr<nsStyleContext> firstLetterStyle =
     aRestyleState.StyleSet()
                  .ResolvePseudoElementStyle(mContent->AsElement(),
@@ -5662,7 +5670,7 @@ nsBlockFrame::UpdateFirstLetterStyle(ServoRestyleState& aRestyleState)
   nsIFrame* textFrame = letterFrame->PrincipalChildList().FirstChild();
   RefPtr<nsStyleContext> firstTextStyle =
     aRestyleState.StyleSet().ResolveStyleForText(textFrame->GetContent(),
-                                                 firstLetterStyle);
+                                                 firstLetterStyle->AsServo());
   textFrame->SetStyleContext(firstTextStyle);
 
   // We don't need to update style for textFrame's continuations: it's already
@@ -6748,8 +6756,8 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   aBuilder->MarkFramesForDisplayList(this, mFloats, aDirtyRect);
 
   // Prepare for text-overflow processing.
-  UniquePtr<TextOverflow> textOverflow(
-    TextOverflow::WillProcessLines(aBuilder, this));
+  UniquePtr<TextOverflow> textOverflow =
+    TextOverflow::WillProcessLines(aBuilder, this);
 
   // We'll collect our lines' display items here, & then append this to aLists.
   nsDisplayListCollection linesDisplayListCollection;

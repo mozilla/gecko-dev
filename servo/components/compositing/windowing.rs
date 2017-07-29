@@ -8,27 +8,23 @@ use compositor_thread::EventLoopWaker;
 use euclid::{Point2D, Size2D};
 use euclid::{TypedPoint2D, TypedRect, ScaleFactor, TypedSize2D};
 use gleam::gl;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
+use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
-use script_traits::{DevicePixel, LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
+use script_traits::{LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
+use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
-use webrender_traits::ScrollLocation;
+use webrender_api::ScrollLocation;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
     Click(MouseButton, TypedPoint2D<f32, DevicePixel>),
     MouseDown(MouseButton, TypedPoint2D<f32, DevicePixel>),
     MouseUp(MouseButton, TypedPoint2D<f32, DevicePixel>),
-}
-
-#[derive(Clone)]
-pub enum WindowNavigateMsg {
-    Forward,
-    Back,
 }
 
 /// Events that the windowing system sends to Servo.
@@ -44,9 +40,6 @@ pub enum WindowEvent {
     /// Sent when part of the window is marked dirty and needs to be redrawn. Before sending this
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
-    /// Sent to initialize the GL context. The windowing system must have a valid, current GL
-    /// context when this message is sent.
-    InitializeCompositing,
     /// Sent when the window is resized.
     Resize(TypedSize2D<u32, DevicePixel>),
     /// Touchpad Pressure
@@ -69,7 +62,7 @@ pub enum WindowEvent {
     /// Sent when the user resets zoom to default.
     ResetZoom,
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
-    Navigation(WindowNavigateMsg),
+    Navigation(TraversalDirection),
     /// Sent when the user quits the application
     Quit,
     /// Sent when a key input state changes
@@ -85,7 +78,6 @@ impl Debug for WindowEvent {
         match *self {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),
-            WindowEvent::InitializeCompositing => write!(f, "InitializeCompositing"),
             WindowEvent::Resize(..) => write!(f, "Resize"),
             WindowEvent::TouchpadPressure(..) => write!(f, "TouchpadPressure"),
             WindowEvent::KeyEvent(..) => write!(f, "Key"),
@@ -141,7 +133,7 @@ pub trait WindowMethods {
     /// Called when the browser encounters an error while loading a URL
     fn load_error(&self, code: NetError, url: String);
     /// Wether or not to follow a link
-    fn allow_navigation(&self, url: ServoUrl) -> bool;
+    fn allow_navigation(&self, url: ServoUrl, IpcSender<bool>);
     /// Called when the <head> tag has finished parsing
     fn head_parsed(&self);
     /// Called when the history state has changed.

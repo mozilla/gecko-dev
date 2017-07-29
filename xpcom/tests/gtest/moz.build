@@ -32,6 +32,7 @@ UNIFIED_SOURCES += [
     'TestPLDHash.cpp',
     'TestPriorityQueue.cpp',
     'TestRacingServiceManager.cpp',
+    'TestRecursiveMutex.cpp',
     'TestRWLock.cpp',
     'TestSlicedInputStream.cpp',
     'TestSnappyStreams.cpp',
@@ -68,9 +69,6 @@ if CONFIG['WRAP_STL_INCLUDES'] and not CONFIG['CLANG_CL']:
     UNIFIED_SOURCES += [
         'TestSTLWrappers.cpp',
     ]
-
-if CONFIG['MOZ_CODE_COVERAGE']:
-    DEFINES['MOZ_CODE_COVERAGE'] = True
 
 # Compile TestAllocReplacement separately so Windows headers don't pollute
 # the global namespace for other files.

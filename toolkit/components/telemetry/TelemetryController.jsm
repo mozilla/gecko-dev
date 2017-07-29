@@ -26,20 +26,11 @@ const Utils = TelemetryUtils;
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryController::";
 
-const PREF_BRANCH = "toolkit.telemetry.";
-const PREF_BRANCH_LOG = PREF_BRANCH + "log.";
-const PREF_SERVER = PREF_BRANCH + "server";
-const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
-const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
-const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
-const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
-const PREF_UNIFIED = PREF_BRANCH + "unified";
-const PREF_NEWPROFILE_PING_ENABLED = PREF_BRANCH + "newProfilePing.enabled";
-const PREF_NEWPROFILE_PING_DELAY = PREF_BRANCH + "newProfilePing.delay";
+const PREF_BRANCH_LOG = "toolkit.telemetry.log.";
 
 // Whether the FHR/Telemetry unification features are enabled.
 // Changing this pref requires a restart.
-const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
+const IS_UNIFIED_TELEMETRY = Preferences.get(TelemetryUtils.Preferences.Unified, false);
 
 const PING_FORMAT_VERSION = 4;
 
@@ -85,6 +76,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryReportingPolicy",
                                   "resource://gre/modules/TelemetryReportingPolicy.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryModules",
                                   "resource://gre/modules/TelemetryModules.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "UpdatePing",
+                                  "resource://gre/modules/UpdatePing.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryHealthPing",
+                                  "resource://gre/modules/TelemetryHealthPing.jsm");
 
 /**
  * Setup Telemetry logging. This function also gets called when loggin related
@@ -104,10 +99,10 @@ function configureLogging() {
   }
 
   // Make sure the logger keeps up with the logging level preference.
-  gLogger.level = Log.Level[Preferences.get(PREF_LOG_LEVEL, "Warn")];
+  gLogger.level = Log.Level[Preferences.get(TelemetryUtils.Preferences.LogLevel, "Warn")];
 
   // If enabled in the preferences, add a dump appender.
-  let logDumping = Preferences.get(PREF_LOG_DUMP, false);
+  let logDumping = Preferences.get(TelemetryUtils.Preferences.LogDump, false);
   if (logDumping != !!gLogAppenderDump) {
     if (logDumping) {
       gLogAppenderDump = new Log.DumpAppender(new Log.BasicFormatter());
@@ -131,12 +126,6 @@ var Policy = {
 this.EXPORTED_SYMBOLS = ["TelemetryController"];
 
 this.TelemetryController = Object.freeze({
-  Constants: Object.freeze({
-    PREF_LOG_LEVEL,
-    PREF_LOG_DUMP,
-    PREF_SERVER,
-  }),
-
   /**
    * Used only for testing purposes.
    */
@@ -710,6 +699,10 @@ var Impl = {
     // lead to some stale client ids.
     this._clientID = ClientID.getCachedClientID();
 
+    // Init the update ping telemetry as early as possible. This won't have
+    // an impact on startup.
+    UpdatePing.earlyInit();
+
     // Delay full telemetry initialization to give the browser time to
     // run various late initializers. Otherwise our gathered memory
     // footprint and other numbers would be too optimistic.
@@ -728,7 +721,7 @@ var Impl = {
         // Perform TelemetrySession delayed init.
         await TelemetrySession.delayedInit();
 
-        if (Preferences.get(PREF_NEWPROFILE_PING_ENABLED, false) &&
+        if (Preferences.get(TelemetryUtils.Preferences.NewProfilePingEnabled, false) &&
             !TelemetrySession.newProfilePingSent) {
           // Kick off the scheduling of the new-profile ping.
           this.scheduleNewProfilePing();
@@ -796,12 +789,17 @@ var Impl = {
         await this._delayedNewPingTask.finalize();
       }
 
+      UpdatePing.shutdown();
+
       // Stop the datachoices infobar display.
       TelemetryReportingPolicy.shutdown();
       TelemetryEnvironment.shutdown();
 
       // Stop any ping sending.
       await TelemetrySend.shutdown();
+
+      // Send latest data.
+      await TelemetryHealthPing.shutdown();
 
       await TelemetrySession.shutdown();
 
@@ -892,7 +890,7 @@ var Impl = {
    * the preferences panel), this triggers sending the deletion ping.
    */
   _onUploadPrefChange() {
-    const uploadEnabled = Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
+    const uploadEnabled = Preferences.get(TelemetryUtils.Preferences.FhrUploadEnabled, false);
     if (uploadEnabled) {
       // There's nothing we should do if we are enabling upload.
       return;
@@ -921,7 +919,7 @@ var Impl = {
   _attachObservers() {
     if (IS_UNIFIED_TELEMETRY) {
       // Watch the FHR upload setting to trigger deletion pings.
-      Preferences.observe(PREF_FHR_UPLOAD_ENABLED, this._onUploadPrefChange, this);
+      Preferences.observe(TelemetryUtils.Preferences.FhrUploadEnabled, this._onUploadPrefChange, this);
     }
   },
 
@@ -930,7 +928,7 @@ var Impl = {
    */
   _detachObservers() {
     if (IS_UNIFIED_TELEMETRY) {
-      Preferences.ignore(PREF_FHR_UPLOAD_ENABLED, this._onUploadPrefChange, this);
+      Preferences.ignore(TelemetryUtils.Preferences.FhrUploadEnabled, this._onUploadPrefChange, this);
     }
   },
 
@@ -992,7 +990,7 @@ var Impl = {
     this._log.trace("scheduleNewProfilePing");
 
     const sendDelay =
-      Preferences.get(PREF_NEWPROFILE_PING_DELAY, NEWPROFILE_PING_DEFAULT_DELAY);
+      Preferences.get(TelemetryUtils.Preferences.NewProfilePingDelay, NEWPROFILE_PING_DEFAULT_DELAY);
 
     this._delayedNewPingTask = new DeferredTask(async () => {
       try {

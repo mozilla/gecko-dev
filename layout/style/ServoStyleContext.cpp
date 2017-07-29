@@ -8,23 +8,28 @@
 #include "nsStyleConsts.h"
 #include "nsStyleStruct.h"
 #include "nsPresContext.h"
+#include "nsCSSRuleProcessor.h"
+#include "mozilla/dom/HTMLBodyElement.h"
 
 #include "mozilla/ServoBindings.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-ServoStyleContext::ServoStyleContext(nsStyleContext* aParent,
-                               nsPresContext* aPresContext,
-                               nsIAtom* aPseudoTag,
-                               CSSPseudoElementType aPseudoType,
-                               already_AddRefed<ServoComputedValues> aComputedValues)
-  : nsStyleContext(aParent, aPseudoTag, aPseudoType),
-  mSource(Move(aComputedValues))
+ServoStyleContext::ServoStyleContext(
+    nsStyleContext* aParent,
+    nsPresContext* aPresContext,
+    nsIAtom* aPseudoTag,
+    CSSPseudoElementType aPseudoType,
+    ServoComputedDataForgotten aComputedValues)
+  : nsStyleContext(aParent, aPseudoTag, aPseudoType)
+  , mPresContext(aPresContext)
+  , mSource(aComputedValues)
 {
-  mPresContext = aPresContext;
-
+  AddStyleBit(Servo_ComputedValues_GetStyleBits(this));
   FinishConstruction();
 
   // No need to call ApplyStyleFixups here, since fixups are handled by Servo when
-  // producing the ServoComputedValues.
+  // producing the ServoComputedData.
 }
+
+} // namespace mozilla

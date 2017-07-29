@@ -15,6 +15,7 @@ import os
 import time
 from copy import deepcopy
 
+from taskgraph.util.attributes import TRUNK_PROJECTS
 from taskgraph.util.treeherder import split_symbol
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import validate_schema, Schema
@@ -214,7 +215,6 @@ task_description_schema = Schema({
 
         # the exit status code that indicates the task should be retried
         Optional('retry-exit-status'): int,
-
     }, {
         Required('implementation'): 'generic-worker',
         Required('os'): Any('windows', 'macosx'),
@@ -443,6 +443,8 @@ GROUP_NAMES = {
     'tc-R-e10s': 'Reftests executed by TaskCluster with e10s',
     'tc-T': 'Talos performance tests executed by TaskCluster',
     'tc-T-e10s': 'Talos performance tests executed by TaskCluster with e10s',
+    'tc-tt-c': 'Telemetry client marionette tests',
+    'tc-tt-c-e10s': 'Telemetry client marionette tests with e10s',
     'tc-SY-e10s': 'Are we slim yet tests by TaskCluster with e10s',
     'tc-VP': 'VideoPuppeteer tests executed by TaskCluster',
     'tc-W': 'Web platform tests executed by TaskCluster',
@@ -472,7 +474,14 @@ UNKNOWN_GROUP_NAME = "Treeherder group {} has no name; add it to " + __file__
 V2_ROUTE_TEMPLATES = [
     "index.gecko.v2.{project}.latest.{product}.{job-name}",
     "index.gecko.v2.{project}.pushdate.{build_date_long}.{product}.{job-name}",
+    "index.gecko.v2.{project}.pushlog-id.{pushlog_id}.{product}.{job-name}",
     "index.gecko.v2.{project}.revision.{head_rev}.{product}.{job-name}",
+]
+
+# {central, inbound, autoland} write to a "trunk" index prefix. This facilitates
+# walking of tasks with similar configurations.
+V2_TRUNK_ROUTE_TEMPLATES = [
+    "index.gecko.v2.trunk.revision.{head_rev}.{product}.{job-name}",
 ]
 
 V2_NIGHTLY_TEMPLATES = [
@@ -819,8 +828,16 @@ def add_generic_index_routes(config, task):
                                             time.gmtime(config.params['build_date']))
     subs['product'] = index['product']
 
+    project = config.params.get('project')
+
     for tpl in V2_ROUTE_TEMPLATES:
         routes.append(tpl.format(**subs))
+
+    # Additionally alias all tasks for "trunk" repos into a common
+    # namespace.
+    if project and project in TRUNK_PROJECTS:
+        for tpl in V2_TRUNK_ROUTE_TEMPLATES:
+            routes.append(tpl.format(**subs))
 
     return task
 
@@ -1066,6 +1083,7 @@ def check_v2_routes():
                 ('{build_product}', '{product}'),
                 ('{build_name}-{build_type}', '{job-name}'),
                 ('{year}.{month}.{day}.{pushdate}', '{build_date_long}'),
+                ('{pushid}', '{pushlog_id}'),
                 ('{year}.{month}.{day}', '{build_date}')]:
             routes = [r.replace(mh, tg) for r in routes]
 

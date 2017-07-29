@@ -708,8 +708,7 @@ nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
                                    type,
                                    nullptr,
                                    &decision,
-                                   nsContentUtils::GetContentPolicy(),
-                                   nsContentUtils::GetSecurityManager());
+                                   nsContentUtils::GetContentPolicy());
 
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1099,8 +1098,7 @@ nsXMLContentSink::HandleEndElement(const char16_t *aName,
   if (content->IsSVGElement(nsGkAtoms::svg)) {
     FlushTags();
     nsCOMPtr<nsIRunnable> event = new nsHtml5SVGLoadDispatcher(content);
-    if (NS_FAILED(content->OwnerDoc()->Dispatch("nsHtml5SVGLoadDispatcher",
-                                                TaskCategory::Other,
+    if (NS_FAILED(content->OwnerDoc()->Dispatch(TaskCategory::Other,
                                                 event.forget()))) {
       NS_WARNING("failed to dispatch svg load dispatcher");
     }

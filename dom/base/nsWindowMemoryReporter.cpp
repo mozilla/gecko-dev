@@ -52,18 +52,18 @@ AddNonJSSizeOfWindowAndItsDescendents(nsGlobalWindow* aWindow,
                                       nsTabSizes* aSizes)
 {
   // Measure the window.
-  nsWindowSizes windowSizes(moz_malloc_size_of);
+  SizeOfState state(moz_malloc_size_of);
+  nsWindowSizes windowSizes(state);
   aWindow->AddSizeOfIncludingThis(&windowSizes);
-  windowSizes.addToTabSizes(aSizes);
 
   // Measure the inner window, if there is one.
-  nsWindowSizes innerWindowSizes(moz_malloc_size_of);
   nsGlobalWindow* inner = aWindow->IsOuterWindow() ? aWindow->GetCurrentInnerWindowInternal()
                                                    : nullptr;
   if (inner) {
-    inner->AddSizeOfIncludingThis(&innerWindowSizes);
-    innerWindowSizes.addToTabSizes(aSizes);
+    inner->AddSizeOfIncludingThis(&windowSizes);
   }
+
+  windowSizes.addToTabSizes(aSizes);
 
   nsCOMPtr<nsIDOMWindowCollection> frames = aWindow->GetFrames();
 
@@ -309,7 +309,10 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   ReportCount(censusWindowPath, _pathTail, _amount, NS_LITERAL_CSTRING(_desc), \
               aHandleReport, aData);
 
-  nsWindowSizes windowSizes(WindowsMallocSizeOf);
+  // This SizeOfState contains the SeenPtrs used for all memory reporting of
+  // this window.
+  SizeOfState state(WindowsMallocSizeOf);
+  nsWindowSizes windowSizes(state);
   aWindow->AddSizeOfIncludingThis(&windowSizes);
 
   REPORT_SIZE("/dom/element-nodes", windowSizes.mDOMElementNodesSize,
@@ -405,6 +408,18 @@ CollectWindowReports(nsGlobalWindow *aWindow,
          "within a window.");
   aWindowTotalSizes->mLayoutFramePropertiesSize +=
     windowSizes.mLayoutFramePropertiesSize;
+
+  REPORT_SIZE("/dom/performance/user-entries",
+              windowSizes.mDOMPerformanceUserEntries,
+              "Memory used for performance user entries.");
+  aWindowTotalSizes->mDOMPerformanceUserEntries +=
+    windowSizes.mDOMPerformanceUserEntries;
+
+  REPORT_SIZE("/dom/performance/resource-entries",
+              windowSizes.mDOMPerformanceResourceEntries,
+              "Memory used for performance resource entries.");
+  aWindowTotalSizes->mDOMPerformanceResourceEntries +=
+    windowSizes.mDOMPerformanceResourceEntries;
 
   // There are many different kinds of frames, but it is very likely
   // that only a few matter.  Implement a cutoff so we don't bloat
@@ -506,7 +521,8 @@ nsWindowMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
   WindowPaths topWindowPaths;
 
   // Collect window memory usage.
-  nsWindowSizes windowTotalSizes(nullptr);
+  SizeOfState fakeState(nullptr);   // this won't be used
+  nsWindowSizes windowTotalSizes(fakeState);
   nsCOMPtr<amIAddonManager> addonManager;
   if (XRE_IsParentProcess()) {
     // Only try to access the service from the main process.
@@ -825,9 +841,9 @@ nsWindowMemoryReporter::CheckForGhostWindows(
       } else if ((now - timeStamp).ToSeconds() > ghostTimeout) {
         // This definitely is a ghost window, so add it to aOutGhostIDs, if
         // that is not null.
+        mGhostWindowCount++;
         if (aOutGhostIDs && window) {
           aOutGhostIDs->PutEntry(window->WindowID());
-          mGhostWindowCount++;
         }
       }
     }

@@ -17,8 +17,8 @@
 
 class nsIGlobalObject;
 class nsStyleContext;
+class ServoComputedData;
 struct nsStyleDisplay;
-struct ServoComputedValues;
 
 namespace mozilla {
 namespace css {
@@ -29,6 +29,8 @@ class KeyframeEffectReadOnly;
 class Promise;
 } /* namespace dom */
 
+class GeckoStyleContext;
+class ServoStyleContext;
 enum class CSSPseudoElementType : uint8_t;
 struct NonOwningAnimationTarget;
 
@@ -323,7 +325,7 @@ public:
    * aStyleContext may be a style context for aElement or for its
    * :before or :after pseudo-element.
    */
-  void UpdateAnimations(nsStyleContext* aStyleContext,
+  void UpdateAnimations(mozilla::GeckoStyleContext* aStyleContext,
                         mozilla::dom::Element* aElement);
 
   /**
@@ -333,7 +335,7 @@ public:
   void UpdateAnimations(
     mozilla::dom::Element* aElement,
     mozilla::CSSPseudoElementType aPseudoType,
-    const ServoComputedValues* aComputedValues);
+    const mozilla::ServoStyleContext* aComputedValues);
 
   /**
    * Add a pending event.

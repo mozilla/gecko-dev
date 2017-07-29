@@ -29,6 +29,7 @@ overrider.set({
   Preferences: FakePrefs,
   Services: {
     locale: {getRequestedLocale() {}},
+    urlFormatter: {formatURL: str => str},
     mm: {
       addMessageListener: (msg, cb) => cb(),
       removeMessageListener() {}
@@ -39,7 +40,10 @@ overrider.set({
       removeObserver() {}
     },
     prefs: {
+      addObserver() {},
+      removeObserver() {},
       getStringPref() {},
+      getBoolPref() {},
       getDefaultBranch() {
         return {
           setBoolPref() {},
@@ -48,7 +52,8 @@ overrider.set({
           clearUserPref() {}
         };
       }
-    }
+    },
+    tm: {dispatchToMainThread: cb => cb()}
   },
   XPCOMUtils: {
     defineLazyModuleGetter() {},

@@ -118,6 +118,7 @@ use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -137,14 +138,13 @@ use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RES
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
-use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -960,7 +960,7 @@ impl Document {
             let line = click_pos - last_pos;
             let dist = (line.dot(line) as f64).sqrt();
 
-            if  now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
+            if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
                 dist < DBL_CLICK_DIST_THRESHOLD as f64 {
                 // A double click has occurred if this click is within a certain time and dist. of previous click.
                 let click_count = 2;
@@ -3498,7 +3498,7 @@ impl DocumentMethods for Document {
                 if elements.peek().is_none() {
                     // TODO: Step 2.
                     // Step 3.
-                    return Some(NonZero::new(first.reflector().get_jsobject().get()));
+                    return Some(NonZero::new_unchecked(first.reflector().get_jsobject().get()));
                 }
             } else {
                 return None;
@@ -3509,7 +3509,7 @@ impl DocumentMethods for Document {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, box filter);
-        Some(NonZero::new(collection.reflector().get_jsobject().get()))
+        Some(NonZero::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -3658,6 +3658,8 @@ impl DocumentMethods for Document {
 
         // Step 10.
         // TODO: prompt to unload.
+
+        window_from_node(self).set_navigation_start();
 
         // Step 11.
         // TODO: unload.

@@ -18,7 +18,8 @@ use properties::longhands::display::computed_value as display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
-use stylearc::Arc;
+use servo_arc::{Arc, ArcBorrow};
+use traversal_flags;
 
 /// Represents the result of comparing an element's old and new style.
 pub struct StyleDifference {
@@ -172,7 +173,7 @@ trait PrivateMatchMethods: TElement {
             // running or not.
             // TODO: We should check which @keyframes changed/added/deleted
             // and update only animations corresponding to those @keyframes.
-            (context.shared.traversal_flags.for_css_rule_changes() &&
+            (context.shared.traversal_flags.contains(traversal_flags::ForCSSRuleChanges) &&
              has_new_animation_style) ||
             !old_box_style.animations_equals(&new_box_style) ||
              (old_display_style == display::T::none &&
@@ -301,9 +302,8 @@ trait PrivateMatchMethods: TElement {
                              new_values: &Arc<ComputedValues>,
                              pseudo: Option<&PseudoElement>)
                              -> ChildCascadeRequirement {
-        use properties::computed_value_flags::*;
-        // Don't accumulate damage if we're in a restyle for reconstruction.
-        if shared_context.traversal_flags.for_reconstruct() {
+        // Don't accumulate damage if we're in a forgetful traversal.
+        if shared_context.traversal_flags.contains(traversal_flags::Forgetful) {
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
@@ -327,10 +327,8 @@ trait PrivateMatchMethods: TElement {
         match difference.change {
             StyleChange::Unchanged => {
                 // We need to cascade the children in order to ensure the
-                // correct propagation of text-decoration-line, which is a reset
-                // property.
-                if old_values.flags.contains(HAS_TEXT_DECORATION_LINE) !=
-                    new_values.flags.contains(HAS_TEXT_DECORATION_LINE) {
+                // correct propagation of computed value flags.
+                if old_values.flags != new_values.flags {
                     return ChildCascadeRequirement::MustCascadeChildren;
                 }
                 ChildCascadeRequirement::CanSkipCascade
@@ -482,11 +480,6 @@ pub trait MatchMethods : TElement {
             }
         }
 
-        // Don't accumulate damage if we're in a restyle for reconstruction.
-        if context.shared.traversal_flags.for_reconstruct() {
-            return ChildCascadeRequirement::MustCascadeChildren;
-        }
-
         let new_primary_style = data.styles.primary.as_ref().unwrap();
 
         let mut cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
@@ -504,6 +497,11 @@ pub trait MatchMethods : TElement {
                     cascade_requirement = ChildCascadeRequirement::MustCascadeDescendants;
                 }
             }
+        }
+
+        // Don't accumulate damage if we're in a forgetful traversal.
+        if context.shared.traversal_flags.contains(traversal_flags::Forgetful) {
+            return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         // Also, don't do anything if there was no style.
@@ -650,14 +648,12 @@ pub trait MatchMethods : TElement {
             CascadeVisitedMode::Unvisited,
             cascade_inputs,
         );
-        if !context.shared.traversal_flags.for_animation_only() {
-            result |= self.replace_rules_internal(
-                replacements,
-                context,
-                CascadeVisitedMode::Visited,
-                cascade_inputs
-            );
-        }
+        result |= self.replace_rules_internal(
+            replacements,
+            context,
+            CascadeVisitedMode::Visited,
+            cascade_inputs
+        );
         result
     }
 
@@ -693,7 +689,7 @@ pub trait MatchMethods : TElement {
         };
 
         let replace_rule_node = |level: CascadeLevel,
-                                 pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                 pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
                                  path: &mut StrongRuleNode| -> bool {
             let new_node = stylist.rule_tree()
                                   .update_rule_at_level(level, pdb, path, guards);
@@ -740,7 +736,7 @@ pub trait MatchMethods : TElement {
                                                    primary_rules: &mut StrongRuleNode| {
                 let animation_rule = self.get_animation_rule_by_cascade(level);
                 replace_rule_node(level,
-                                  animation_rule.as_ref(),
+                                  animation_rule.as_ref().map(|a| a.borrow_arc()),
                                   primary_rules);
             };
 
@@ -771,7 +767,7 @@ pub trait MatchMethods : TElement {
     ) -> StyleDifference {
         debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
         if let Some(source) = self.existing_style_for_restyle_damage(old_values, pseudo) {
-            return RestyleDamage::compute_style_difference(source, new_values)
+            return RestyleDamage::compute_style_difference(source, old_values, new_values)
         }
 
         let new_display = new_values.get_box().clone_display();
@@ -786,8 +782,11 @@ pub trait MatchMethods : TElement {
         // This happens with display:none elements, and not-yet-existing
         // pseudo-elements.
         if new_style_is_display_none && old_style_is_display_none {
-            // The style remains display:none. No need for damage.
-            return StyleDifference::new(RestyleDamage::empty(), StyleChange::Unchanged)
+            // The style remains display:none.  The only case we need to care
+            // about is if -moz-binding changed, and to generate a reconstruct
+            // so that we can start the binding load.  Otherwise, there is no
+            // need for damage.
+            return RestyleDamage::compute_undisplayed_style_difference(old_values, new_values);
         }
 
         if pseudo.map_or(false, |p| p.is_before_or_after()) {

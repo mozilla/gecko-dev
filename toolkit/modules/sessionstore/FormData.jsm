@@ -76,6 +76,22 @@ function isValidCCNumber(value) {
   return total % 10 == 0;
 }
 
+// For a comprehensive list of all available <INPUT> types see
+// https://dxr.mozilla.org/mozilla-central/search?q=kInputTypeTable&redirect=false
+const IGNORE_ATTRIBUTES = [
+  ["type", new Set(["password", "hidden", "button", "image", "submit", "reset"])],
+  ["autocomplete", new Set(["off"])]
+];
+function shouldIgnoreNode(node) {
+  for (let i = 0; i < IGNORE_ATTRIBUTES.length; ++i) {
+    let [attrName, attrValues] = IGNORE_ATTRIBUTES[i];
+    if (node.hasAttribute(attrName) && attrValues.has(node.getAttribute(attrName).toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * The public API exported by this module that allows to collect
  * and restore form data for a document and its subframes.
@@ -118,27 +134,11 @@ var FormDataInternal = {
    * @returns an XPath query to all savable form field nodes
    */
   get restorableFormNodesXPath() {
-    // for a comprehensive list of all available <INPUT> types see
-    // https://dxr.mozilla.org/mozilla-central/search?q=kInputTypeTable&redirect=false
-    let ignoreInputs = new Map([
-      ["type", ["password", "hidden", "button", "image", "submit", "reset"]],
-      ["autocomplete", ["off"]]
-    ]);
-    // XXXzeniko work-around until lower-case has been implemented (bug 398389)
-    let toLowerCase = '"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"';
-    let ignores = [];
-    for (let [attrName, attrValues] of ignoreInputs) {
-      for (let attrValue of attrValues)
-        ignores.push(`translate(@${attrName}, ${toLowerCase})='${attrValue}'`);
-    }
-    let ignore = `not(${ignores.join(" or ")})`;
-
-    let formNodesXPath = `//textarea[${ignore}]|//xhtml:textarea[${ignore}]|` +
-      `//select[${ignore}]|//xhtml:select[${ignore}]|` +
-      `//input[${ignore}]|//xhtml:input[${ignore}]`;
-
-    // Special case for about:config's search field.
-    formNodesXPath += '|/xul:window[@id="config"]//xul:textbox[@id="textbox"]';
+    let formNodesXPath = "//textarea|//xhtml:textarea|" +
+      "//select|//xhtml:select|" +
+      "//input|//xhtml:input" +
+      // Special case for about:config's search field.
+      "|/xul:window[@id='config']//xul:textbox[@id='textbox']";
 
     delete this.restorableFormNodesXPath;
     return (this.restorableFormNodesXPath = formNodesXPath);
@@ -184,6 +184,9 @@ var FormDataInternal = {
     let generatedCount = 0;
 
     while ((node = formNodes.iterateNext())) {
+      if (shouldIgnoreNode(node)) {
+        continue;
+      }
       let hasDefaultValue = true;
       let value;
 
@@ -310,7 +313,7 @@ var FormDataInternal = {
       if (doc.body && doc.designMode == "on") {
       // eslint-disable-next-line no-unsanitized/property
         doc.body.innerHTML = data.innerHTML;
-        this.fireEvent(doc.body, "input");
+        this.fireInputEvent(doc.body);
       }
     }
   },
@@ -345,7 +348,7 @@ var FormDataInternal = {
    *         Value to set form element to.
    */
   restoreSingleInputValue(aNode, aValue) {
-    let eventType;
+    let fireEvent = false;
 
     if (typeof aValue == "string" && aNode.type != "file") {
       // Don't dispatch an input event if there is no change.
@@ -354,7 +357,7 @@ var FormDataInternal = {
       }
 
       aNode.value = aValue;
-      eventType = "input";
+      fireEvent = true;
     } else if (typeof aValue == "boolean") {
       // Don't dispatch a change event for no change.
       if (aNode.checked == aValue) {
@@ -362,7 +365,7 @@ var FormDataInternal = {
       }
 
       aNode.checked = aValue;
-      eventType = "change";
+      fireEvent = true;
     } else if (aValue && aValue.selectedIndex >= 0 && aValue.value) {
       // Don't dispatch a change event for no change
       if (aNode.options[aNode.selectedIndex].value == aValue.value) {
@@ -373,7 +376,7 @@ var FormDataInternal = {
       for (let i = 0; i < aNode.options.length; i++) {
         if (aNode.options[i].value == aValue.value) {
           aNode.selectedIndex = i;
-          eventType = "change";
+          fireEvent = true;
           break;
         }
       }
@@ -385,7 +388,7 @@ var FormDataInternal = {
       } catch (e) {
         Cu.reportError("mozSetFileNameArray: " + e);
       }
-      eventType = "input";
+      fireEvent = true;
     } else if (Array.isArray(aValue) && aNode.options) {
       Array.forEach(aNode.options, function(opt, index) {
         // don't worry about malformed options with same values
@@ -393,27 +396,26 @@ var FormDataInternal = {
 
         // Only fire the event here if this wasn't selected by default
         if (!opt.defaultSelected) {
-          eventType = "change";
+          fireEvent = true;
         }
       });
     }
 
     // Fire events for this node if applicable
-    if (eventType) {
-      this.fireEvent(aNode, eventType);
+    if (fireEvent) {
+      this.fireInputEvent(aNode);
     }
   },
 
   /**
-   * Dispatches an event of type |type| to the given |node|.
+   * Dispatches an event of type "input" to the given |node|.
    *
    * @param node (DOMNode)
-   * @param type (string)
    */
-  fireEvent(node, type) {
+  fireInputEvent(node) {
     let doc = node.ownerDocument;
     let event = doc.createEvent("UIEvents");
-    event.initUIEvent(type, true, true, doc.defaultView, 0);
+    event.initUIEvent("input", true, true, doc.defaultView, 0);
     node.dispatchEvent(event);
   },
 

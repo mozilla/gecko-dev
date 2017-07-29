@@ -128,7 +128,7 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
-use webrender_traits;
+use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -230,7 +230,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to send messages to the
     /// Webrender thread.
-    webrender_api_sender: webrender_traits::RenderApiSender,
+    webrender_api_sender: webrender_api::RenderApiSender,
 
     /// The set of all event loops in the browser. We generate a new
     /// event loop for each registered domain name (aka eTLD+1) in
@@ -326,7 +326,7 @@ pub struct InitialConstellationState {
     pub mem_profiler_chan: mem::ProfilerChan,
 
     /// Webrender API.
-    pub webrender_api_sender: webrender_traits::RenderApiSender,
+    pub webrender_api_sender: webrender_api::RenderApiSender,
 
     /// Whether the constellation supports the clipboard.
     /// TODO: this field is not used, remove it?
@@ -1572,22 +1572,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         // Create the new pipeline, attached to the parent and push to pending changes
-        self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
-            browsing_context_id: load_info.info.browsing_context_id,
-            new_pipeline_id: load_info.info.new_pipeline_id,
-            load_data: load_data.clone(),
-            replace_instant: replace_instant,
-        });
-
         self.new_pipeline(load_info.info.new_pipeline_id,
                           load_info.info.browsing_context_id,
                           load_info.info.top_level_browsing_context_id,
                           Some((load_info.info.parent_pipeline_id, load_info.info.frame_type)),
                           window_size,
-                          load_data,
+                          load_data.clone(),
                           load_info.sandbox,
                           is_private);
+        self.add_pending_change(SessionHistoryChange {
+            top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
+            browsing_context_id: load_info.info.browsing_context_id,
+            new_pipeline_id: load_info.info.new_pipeline_id,
+            load_data: load_data,
+            replace_instant: replace_instant,
+        });
     }
 
     fn handle_script_new_iframe(&mut self,
@@ -1788,21 +1787,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let replace_instant = if replace { Some(timestamp) } else { None };
-                self.add_pending_change(SessionHistoryChange {
-                    top_level_browsing_context_id: top_level_id,
-                    browsing_context_id: browsing_context_id,
-                    new_pipeline_id: new_pipeline_id,
-                    load_data: load_data.clone(),
-                    replace_instant: replace_instant,
-                });
                 self.new_pipeline(new_pipeline_id,
                                   browsing_context_id,
                                   top_level_id,
                                   None,
                                   window_size,
-                                  load_data,
+                                  load_data.clone(),
                                   sandbox,
                                   false);
+                self.add_pending_change(SessionHistoryChange {
+                    top_level_browsing_context_id: top_level_id,
+                    browsing_context_id: browsing_context_id,
+                    new_pipeline_id: new_pipeline_id,
+                    load_data: load_data,
+                    replace_instant: replace_instant,
+                });
                 Some(new_pipeline_id)
             }
         }
@@ -2038,7 +2037,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
                                                                                  browsing_context_id,
                                                                                  visibility);
-            let  result = match self.pipelines.get(&parent_pipeline_id) {
+            let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Parent pipeline {:?} closed", parent_pipeline_id),
                 Some(parent_pipeline) => parent_pipeline.event_loop.send(visibility_msg),
             };

@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
+use euclid::ScaleFactor;
 use euclid::TypedSize2D;
 use html5ever::LocalName;
+use selectors::parser::{AncestorHashes, Selector};
 use selectors::parser::LocalName as LocalNameSelector;
-use selectors::parser::Selector;
+use servo_arc::Arc;
 use servo_atoms::Atom;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
@@ -16,7 +18,6 @@ use style::rule_tree::CascadeLevel;
 use style::selector_map::{self, SelectorMap};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
-use style::stylearc::Arc;
 use style::stylesheets::StyleRule;
 use style::stylist::{Stylist, Rule};
 use style::stylist::needs_revalidation;
@@ -45,7 +46,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule::new(s.selector.clone(), s.hashes.clone(), locked.clone(), i as u32)
+            Rule::new(s.clone(), AncestorHashes::new(s, QuirksMode::NoQuirks), locked.clone(), i as u32)
         }).collect()
     }).collect(), shared_lock)
 }
@@ -68,7 +69,7 @@ fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
              .map(|x| SelectorParser::parse_author_origin_no_namespace(x).unwrap().0
                                                                          .into_iter()
                                                                          .nth(0)
-                                                                         .unwrap().selector)
+                                                                         .unwrap())
              .collect()
 }
 
@@ -235,7 +236,7 @@ fn test_get_universal_rules() {
 }
 
 fn mock_stylist() -> Stylist {
-    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32));
+    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32), ScaleFactor::new(1.0));
     Stylist::new(device, QuirksMode::NoQuirks)
 }
 

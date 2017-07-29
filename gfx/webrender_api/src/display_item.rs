@@ -5,7 +5,7 @@
 use app_units::Au;
 use euclid::SideOffsets2D;
 use {ColorF, FontKey, ImageKey, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
-use {LayoutVector2D, PipelineId, PropertyBinding, WebGLContextId};
+use {GlyphOptions, LayoutVector2D, PipelineId, PropertyBinding, WebGLContextId};
 
 // NOTE: some of these structs have an "IMPLICIT" comment.
 // This indicates that the BuiltDisplayList will have serialized
@@ -49,8 +49,9 @@ pub struct DisplayItem {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum SpecificDisplayItem {
     Clip(ClipDisplayItem),
-    ScrollFrame(ClipDisplayItem),
+    ScrollFrame(ScrollFrameDisplayItem),
     Rectangle(RectangleDisplayItem),
+    Line(LineDisplayItem),
     Text(TextDisplayItem),
     Image(ImageDisplayItem),
     YuvImage(YuvImageDisplayItem),
@@ -65,6 +66,8 @@ pub enum SpecificDisplayItem {
     SetGradientStops,
     PushNestedDisplayList,
     PopNestedDisplayList,
+    PushTextShadow(TextShadow),
+    PopTextShadow,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -75,8 +78,49 @@ pub struct ClipDisplayItem {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ScrollSensitivity {
+    ScriptAndInputEvents,
+    Script,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ScrollFrameDisplayItem {
+    pub id: ClipId,
+    pub parent_id: ClipId,
+    pub image_mask: Option<ImageMask>,
+    pub scroll_sensitivity: ScrollSensitivity,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct RectangleDisplayItem {
     pub color: ColorF,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LineDisplayItem {
+    pub baseline: f32, // LayerPixel
+    pub start: f32,
+    pub end: f32,
+    pub orientation: LineOrientation, // toggles whether above values are interpreted as x/y values
+    pub width: f32,
+    pub color: ColorF,
+    pub style: LineStyle,
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum LineOrientation {
+    Vertical,
+    Horizontal,
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum LineStyle {
+    Solid,
+    Dotted,
+    Dashed,
+    Wavy,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -84,22 +128,13 @@ pub struct TextDisplayItem {
     pub font_key: FontKey,
     pub size: Au,
     pub color: ColorF,
-    pub blur_radius: f32,
     pub glyph_options: Option<GlyphOptions>,
 } // IMPLICIT: glyphs: Vec<GlyphInstance>
-
-#[derive(Clone, Copy, Debug, Deserialize, Hash, Eq, PartialEq, PartialOrd, Ord, Serialize)]
-pub struct GlyphOptions {
-    // These are currently only used on windows for dwrite fonts.
-    pub use_embedded_bitmap: bool,
-    pub force_gdi_rendering: bool,
-}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WebGLDisplayItem {
     pub context_id: WebGLContextId,
 }
-
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NormalBorder {
@@ -224,6 +259,14 @@ pub struct BoxShadowDisplayItem {
     pub clip_mode: BoxShadowClipMode,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct TextShadow {
+    pub offset: LayoutVector2D,
+    pub color: ColorF,
+    pub blur_radius: f32,
+}
+
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Ord, PartialOrd)]
 pub enum ExtendMode {
@@ -321,9 +364,9 @@ pub enum MixBlendMode {
     Luminosity  = 15,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub enum FilterOp {
-    Blur(Au),
+    Blur(f32),
     Brightness(f32),
     Contrast(f32),
     Grayscale(f32),
@@ -337,7 +380,7 @@ pub enum FilterOp {
 impl FilterOp {
     pub fn is_noop(&self) -> bool {
         match *self {
-            FilterOp::Blur(length) if length == Au(0) => true,
+            FilterOp::Blur(length) if length == 0.0 => true,
             FilterOp::Brightness(amount) if amount == 1.0 => true,
             FilterOp::Contrast(amount) if amount == 1.0 => true,
             FilterOp::Grayscale(amount) if amount == 0.0 => true,
@@ -466,6 +509,19 @@ impl LocalClip {
             LocalClip::RoundedRect(ref rect, _) => &rect,
         }
     }
+
+    pub fn create_with_offset(&self, offset: &LayoutVector2D) -> LocalClip {
+        match *self {
+            LocalClip::Rect(rect) => LocalClip::from(rect.translate(offset)),
+            LocalClip::RoundedRect(rect, complex) => {
+                LocalClip::RoundedRect(rect.translate(offset),
+                                       ComplexClipRegion {
+                                            rect: complex.rect.translate(offset),
+                                            radii: complex.radii,
+                                        })
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -528,30 +584,6 @@ impl BorderRadius {
         } else {
             false
         }
-    }
-}
-
-impl ColorF {
-    pub fn new(r: f32, g: f32, b: f32, a: f32) -> ColorF {
-        ColorF {
-            r,
-            g,
-            b,
-            a,
-        }
-    }
-
-    pub fn scale_rgb(&self, scale: f32) -> ColorF {
-        ColorF {
-            r: self.r * scale,
-            g: self.g * scale,
-            b: self.b * scale,
-            a: self.a,
-        }
-    }
-
-    pub fn to_array(&self) -> [f32; 4] {
-        [self.r, self.g, self.b, self.a]
     }
 }
 
@@ -637,3 +669,4 @@ define_empty_heap_size_of!(ImageKey);
 define_empty_heap_size_of!(MixBlendMode);
 define_empty_heap_size_of!(TransformStyle);
 define_empty_heap_size_of!(LocalClip);
+define_empty_heap_size_of!(ScrollSensitivity);

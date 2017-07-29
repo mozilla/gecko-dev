@@ -323,7 +323,7 @@ GC(JSContext* cx, unsigned argc, Value* vp)
 
     char buf[256] = { '\0' };
 #ifndef JS_MORE_DETERMINISTIC
-    SprintfLiteral(buf, "before %" PRIuSIZE ", after %" PRIuSIZE "\n",
+    SprintfLiteral(buf, "before %zu, after %zu\n",
                    preBytes, cx->runtime()->gc.usage.gcBytes());
 #endif
     JSString* str = JS_NewStringCopyZ(cx, buf);
@@ -338,7 +338,7 @@ MinorGC(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.get(0) == BooleanValue(true))
-        cx->zone()->group()->storeBuffer().setAboutToOverflow();
+        cx->zone()->group()->storeBuffer().setAboutToOverflow(JS::gcreason::FULL_GENERIC_BUFFER);
 
     cx->minorGC(JS::gcreason::API);
     args.rval().setUndefined();

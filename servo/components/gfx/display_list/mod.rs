@@ -33,7 +33,8 @@ use style::values::computed::Filter;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ClipId, ColorF, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
+use webrender_api::{self, ClipId, ColorF, GradientStop, LocalClip, MixBlendMode, ScrollPolicy};
+use webrender_api::{ScrollSensitivity, TransformStyle, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -556,6 +557,12 @@ impl fmt::Debug for StackingContext {
     }
 }
 
+#[derive(Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+pub enum ScrollRootType {
+    ScrollFrame(ScrollSensitivity),
+    Clip,
+}
+
 /// Defines a stacking context.
 #[derive(Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct ScrollRoot {
@@ -571,6 +578,9 @@ pub struct ScrollRoot {
 
     /// The rect of the contents that can be scrolled inside of the scroll root.
     pub content_rect: Rect<Au>,
+
+    /// The type of this ScrollRoot.
+    pub root_type: ScrollRootType
 }
 
 impl ScrollRoot {
@@ -595,6 +605,8 @@ pub enum DisplayItem {
     RadialGradient(Box<RadialGradientDisplayItem>),
     Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
+    PushTextShadow(Box<PushTextShadowDisplayItem>),
+    PopTextShadow(Box<PopTextShadowDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
@@ -610,8 +622,8 @@ pub struct BaseDisplayItem {
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
 
-    /// The region to clip to.
-    pub clip: ClippingRegion,
+    /// The local clip for this item.
+    pub local_clip: LocalClip,
 
     /// The section of the display list that this item belongs to.
     pub section: DisplayListSection,
@@ -627,22 +639,15 @@ impl BaseDisplayItem {
     #[inline(always)]
     pub fn new(bounds: &Rect<Au>,
                metadata: DisplayItemMetadata,
-               clip: &ClippingRegion,
+               local_clip: LocalClip,
                section: DisplayListSection,
                stacking_context_id: StackingContextId,
                scroll_root_id: ClipId)
                -> BaseDisplayItem {
-        // Detect useless clipping regions here and optimize them to `ClippingRegion::max()`.
-        // The painting backend may want to optimize out clipping regions and this makes it easier
-        // for it to do so.
         BaseDisplayItem {
             bounds: *bounds,
             metadata: metadata,
-            clip: if clip.does_not_clip_rect(&bounds) {
-                ClippingRegion::max()
-            } else {
-                (*clip).clone()
-            },
+            local_clip: local_clip,
             section: section,
             stacking_context_id: stacking_context_id,
             scroll_root_id: scroll_root_id,
@@ -657,7 +662,7 @@ impl BaseDisplayItem {
                 node: OpaqueNode(0),
                 pointing: None,
             },
-            clip: ClippingRegion::max(),
+            local_clip: LocalClip::from(max_rect().to_rectf()),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
             scroll_root_id: pipeline_id.root_scroll_node(),
@@ -892,9 +897,6 @@ pub struct TextDisplayItem {
 
     /// The orientation of the text: upright or sideways left/right.
     pub orientation: TextOrientation,
-
-    /// The blur radius for this text. If zero, this text is not blurred.
-    pub blur_radius: Au,
 }
 
 #[derive(Clone, Eq, PartialEq, HeapSizeOf, Deserialize, Serialize)]
@@ -1023,10 +1025,10 @@ pub struct ImageBorder {
     pub fill: bool,
 
     /// How to repeat or stretch horizontal edges (border-image-repeat).
-    pub repeat_horizontal: webrender_traits::RepeatMode,
+    pub repeat_horizontal: webrender_api::RepeatMode,
 
     /// How to repeat or stretch vertical edges (border-image-repeat).
-    pub repeat_vertical: webrender_traits::RepeatMode,
+    pub repeat_vertical: webrender_api::RepeatMode,
 }
 
 /// A border that is made of linear gradient
@@ -1144,7 +1146,8 @@ pub struct LineDisplayItem {
     pub color: ColorF,
 
     /// The line segment style.
-    pub style: border_style::T
+    #[ignore_heap_size_of = "enum type in webrender"]
+    pub style: webrender_api::LineStyle,
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
@@ -1175,6 +1178,29 @@ pub struct BoxShadowDisplayItem {
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,
+}
+
+/// Defines a text shadow that affects all items until the paired PopTextShadow.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct PushTextShadowDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+
+    /// The offset of this shadow from the text.
+    pub offset: Vector2D<Au>,
+
+    /// The color of this shadow.
+    pub color: ColorF,
+
+    /// The blur radius for this shadow.
+    pub blur_radius: Au,
+}
+
+/// Defines a text shadow that affects all items until the next PopTextShadow.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct PopTextShadowDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
 }
 
 /// Defines a stacking context.
@@ -1230,6 +1256,8 @@ impl DisplayItem {
             DisplayItem::RadialGradient(ref gradient) => &gradient.base,
             DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
+            DisplayItem::PushTextShadow(ref push_text_shadow) => &push_text_shadow.base,
+            DisplayItem::PopTextShadow(ref pop_text_shadow) => &pop_text_shadow.base,
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
@@ -1273,7 +1301,7 @@ impl DisplayItem {
         let point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
                                  point.y - Au::from_f32_px(scroll_offset.y));
 
-        if !base_item.clip.might_intersect_point(&point) {
+        if !base_item.local_clip.clip_rect().contains(&point.to_pointf()) {
             // Clipped out.
             return None;
         }
@@ -1350,13 +1378,15 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::RadialGradient(_) => "RadialGradient".to_owned(),
                 DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
+                DisplayItem::PushTextShadow(_) => "PushTextShadow".to_owned(),
+                DisplayItem::PopTextShadow(_) => "PopTextShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
                 DisplayItem::PopStackingContext(_) |
                 DisplayItem::DefineClip(_) => "".to_owned(),
             },
             self.bounds(),
-            self.base().clip
+            self.base().local_clip
         )
     }
 }
@@ -1366,7 +1396,7 @@ pub struct WebRenderImageInfo {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    pub key: Option<webrender_traits::ImageKey>,
+    pub key: Option<webrender_api::ImageKey>,
 }
 
 impl WebRenderImageInfo {
@@ -1397,5 +1427,31 @@ impl SimpleMatrixDetection for Transform3D<f32> {
         self.m21 == _0 && self.m22 == _1 && self.m23 == _0 && self.m24 == _0 &&
         self.m31 == _0 && self.m32 == _0 && self.m33 == _1 && self.m34 == _0 &&
         self.m44 == _1
+    }
+}
+
+trait ToPointF {
+    fn to_pointf(&self) -> webrender_api::LayoutPoint;
+}
+
+impl ToPointF for Point2D<Au> {
+    fn to_pointf(&self) -> webrender_api::LayoutPoint {
+        webrender_api::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
+    }
+}
+
+trait ToRectF {
+    fn to_rectf(&self) -> webrender_api::LayoutRect;
+}
+
+impl ToRectF for Rect<Au> {
+    fn to_rectf(&self) -> webrender_api::LayoutRect {
+        let x = self.origin.x.to_f32_px();
+        let y = self.origin.y.to_f32_px();
+        let w = self.size.width.to_f32_px();
+        let h = self.size.height.to_f32_px();
+        let point = webrender_api::LayoutPoint::new(x, y);
+        let size = webrender_api::LayoutSize::new(w, h);
+        webrender_api::LayoutRect::new(point, size)
     }
 }

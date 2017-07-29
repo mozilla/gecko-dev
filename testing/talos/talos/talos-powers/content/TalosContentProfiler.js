@@ -7,6 +7,9 @@
  * performance profiles while running within content. If your test
  * is running in the parent process, you should use
  * TalosParentProfiler.js instead to avoid the messaging overhead.
+ *
+ * This file can be loaded directly into a test page, or can be loaded
+ * as a frame script into a browser by the parent process.
  */
 
 var TalosContentProfiler;
@@ -51,6 +54,23 @@ var TalosContentProfiler;
    *        on this document.
    */
   function sendEventAndWait(name, data = {}) {
+    // If we're running as a frame script, we can send messages directly to
+    // the parent, rather than going through the talos-powers-content.js
+    // mediator, which ends up being more complicated.
+    if (typeof(sendAsyncMessage) !== "undefined") {
+      return new Promise(resolve => {
+        sendAsyncMessage("TalosContentProfiler:Command", { name, data });
+        addMessageListener("TalosContentProfiler:Response", function onMsg(msg) {
+          if (msg.data.name != name) {
+            return;
+          }
+
+          removeMessageListener("TalosContentProfiler:Response", onMsg);
+          resolve(msg.data);
+        });
+      });
+    }
+
     return new Promise((resolve) => {
       var event = new CustomEvent("TalosContentProfilerCommand", {
         bubbles: true,
@@ -198,11 +218,17 @@ var TalosContentProfiler;
     /**
      * Resumes the Gecko Profiler sampler. Can also simultaneously set a marker.
      *
+     * @param marker (string, optional)
+     *        If non-empty, will set a marker immediately after resuming.
+     * @param inittedInParent (bool, optional)
+     *        If true, it is assumed that the parent has already started profiling
+     *        for us, and we can skip the initialization check. This is usually
+     *        true for pageloader tests.
      * @returns Promise
      *          Resolves once the Gecko Profiler has resumed.
      */
-    resume(marker = "") {
-      if (initted) {
+    resume(marker = "", inittedInParent = false) {
+      if (initted || inittedInParent) {
         return sendEventAndWait("Profiler:Resume", { marker });
       }
       return Promise.resolve();
@@ -211,11 +237,17 @@ var TalosContentProfiler;
     /**
      * Pauses the Gecko Profiler sampler. Can also simultaneously set a marker.
      *
+     * @param marker (string, optional)
+     *        If non-empty, will set a marker immediately before pausing.
+     * @param inittedInParent (bool, optional)
+     *        If true, it is assumed that the parent has already started profiling
+     *        for us, and we can skip the initialization check. This is usually
+     *        true for pageloader tests.
      * @returns Promise
      *          Resolves once the Gecko Profiler has paused.
      */
-    pause(marker = "") {
-      if (initted) {
+    pause(marker = "", inittedInParent = false) {
+      if (initted || inittedInParent) {
         return sendEventAndWait("Profiler:Pause", { marker });
       }
 
@@ -249,4 +281,11 @@ var TalosContentProfiler;
       Services.profiler.AddMarker(marker);
     },
   };
+
+  // sendAsyncMessage is a hack-y mechanism to determine whether or not
+  // we're running as a frame script. If we are, jam TalosContentProfiler
+  // into the content scope.
+  if (typeof(sendAsyncMessage) !== "undefined") {
+    content.wrappedJSObject.TalosContentProfiler = TalosContentProfiler;
+  }
 })();

@@ -10,7 +10,7 @@
 use computed_values::display;
 use heapsize::HeapSizeOf;
 use matching::{StyleChange, StyleDifference};
-use properties::ServoComputedValues;
+use properties::ComputedValues;
 use std::fmt;
 
 bitflags! {
@@ -60,12 +60,24 @@ impl HeapSizeOf for ServoRestyleDamage {
 impl ServoRestyleDamage {
     /// Compute the `StyleDifference` (including the appropriate restyle damage)
     /// for a given style change between `old` and `new`.
-    pub fn compute_style_difference(old: &ServoComputedValues,
-                                    new: &ServoComputedValues)
+    pub fn compute_style_difference(_source: &ComputedValues,
+                                    old: &ComputedValues,
+                                    new: &ComputedValues)
                                     -> StyleDifference {
         let damage = compute_damage(old, new);
         let change = if damage.is_empty() { StyleChange::Unchanged } else { StyleChange::Changed };
         StyleDifference::new(damage, change)
+    }
+
+    /// Computes the `StyleDifference` between the two `ComputedValues` objects
+    /// for the case where the old and new style are both `display: none`.
+    ///
+    /// For Servo we never need to generate any damage for such elements.
+    pub fn compute_undisplayed_style_difference(
+        _old_style: &ComputedValues,
+        _new_style: &ComputedValues,
+    ) -> StyleDifference {
+        StyleDifference::new(Self::empty(), StyleChange::Unchanged)
     }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
@@ -182,11 +194,11 @@ macro_rules! add_if_not_equal(
     })
 );
 
-fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> ServoRestyleDamage {
+fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDamage {
     let mut damage = ServoRestyleDamage::empty();
 
     // This should check every CSS property, as enumerated in the fields of
-    // http://doc.servo.org/style/properties/struct.ServoComputedValues.html
+    // http://doc.servo.org/style/properties/struct.ComputedValues.html
 
     // FIXME: Test somehow that every property is included.
 

@@ -14,13 +14,14 @@ use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, DevicePixel, DiscardBrowsingContext};
+use script_traits::{ConstellationControlMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
@@ -37,7 +38,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
-use webrender_traits;
+use style_traits::DevicePixel;
+use webrender_api;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
@@ -74,9 +76,6 @@ pub struct Pipeline {
     /// Note that this URL can change, for example if the page navigates
     /// to a hash URL.
     pub url: ServoUrl,
-
-    /// The title of the most recently-loaded page.
-    pub title: Option<String>,
 
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
@@ -164,7 +163,7 @@ pub struct InitialPipelineState {
     pub prev_visibility: Option<bool>,
 
     /// Webrender api.
-    pub webrender_api_sender: webrender_traits::RenderApiSender,
+    pub webrender_api_sender: webrender_api::RenderApiSender,
 
     /// Whether this pipeline is considered private.
     pub is_private: bool,
@@ -316,7 +315,6 @@ impl Pipeline {
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
             url: url,
-            title: None,
             children: vec!(),
             running_animations: false,
             visible: visible,
@@ -465,7 +463,7 @@ pub struct UnprivilegedPipelineContent {
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
     script_content_process_shutdown_port: IpcReceiver<()>,
-    webrender_api_sender: webrender_traits::RenderApiSender,
+    webrender_api_sender: webrender_api::RenderApiSender,
     webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
@@ -475,6 +473,7 @@ impl UnprivilegedPipelineContent {
               STF: ScriptThreadFactory<Message=Message>
     {
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
+        let paint_time_metrics = PaintTimeMetrics::new(self.time_profiler_chan.clone());
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             browsing_context_id: self.browsing_context_id,
@@ -494,7 +493,7 @@ impl UnprivilegedPipelineContent {
             window_size: self.window_size,
             pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan,
-            webvr_thread: self.webvr_thread
+            webvr_thread: self.webvr_thread,
         }, self.load_data.clone());
 
         LTF::create(self.id,
@@ -512,7 +511,8 @@ impl UnprivilegedPipelineContent {
                     Some(self.layout_content_process_shutdown_chan),
                     self.webrender_api_sender,
                     self.prefs.get("layout.threads").expect("exists").value()
-                        .as_u64().expect("count") as usize);
+                        .as_u64().expect("count") as usize,
+                    paint_time_metrics);
 
         if wait_for_completion {
             let _ = self.script_content_process_shutdown_port.recv();

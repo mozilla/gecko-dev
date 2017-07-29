@@ -296,10 +296,8 @@ nsHTMLDocument::TryHintCharset(nsIContentViewer* aCv,
         aCharsetSource = requestCharsetSource;
         aEncoding = WrapNotNull(requestCharset);
       }
-      return;
     }
   }
-  return;
 }
 
 
@@ -812,7 +810,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     NS_ASSERTION(NS_SUCCEEDED(rv) && bundle, "chrome://global/locale/browser.properties could not be loaded");
     nsXPIDLString title;
     if (bundle) {
-      bundle->GetStringFromName(u"plainText.wordWrap", getter_Copies(title));
+      bundle->GetStringFromName("plainText.wordWrap", getter_Copies(title));
     }
     SetSelectedStyleSheetSet(title);
   }
@@ -836,7 +834,6 @@ nsHTMLDocument::StopDocumentLoad()
 
   nsDocument::StopDocumentLoad();
   UnblockOnload(false);
-  return;
 }
 
 void
@@ -881,6 +878,15 @@ nsHTMLDocument::SetCompatibilityMode(nsCompatibility aMode)
       pc->CompatibilityModeChanged();
     }
   }
+}
+
+nsIContent*
+nsHTMLDocument::GetUnfocusedKeyEventTarget()
+{
+  if (nsGenericHTMLElement* body = GetBody()) {
+    return body;
+  }
+  return nsDocument::GetUnfocusedKeyEventTarget();
 }
 
 //
@@ -2032,6 +2038,11 @@ nsHTMLDocument::MatchNameAttribute(Element* aElement, int32_t aNamespaceID,
                                    nsIAtom* aAtom, void* aData)
 {
   NS_PRECONDITION(aElement, "Must have element to work with!");
+
+  if (!aElement->HasName()) {
+    return false;
+  }
+
   nsString* elementName = static_cast<nsString*>(aData);
   return
     aElement->GetNameSpaceID() == kNameSpaceID_XHTML &&

@@ -12,12 +12,13 @@ use dom::TElement;
 use log::LogLevel::Trace;
 use matching::{CascadeVisitedMode, MatchMethods};
 use properties::{AnimationRules, CascadeFlags, ComputedValues};
-use properties::{IS_ROOT_ELEMENT, PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
+use properties::{IS_LINK, IS_ROOT_ELEMENT, IS_VISITED_LINK};
+use properties::{PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
-use stylearc::Arc;
+use servo_arc::Arc;
 use stylist::RuleInclusion;
 
 /// A struct that takes care of resolving the style of a given element.
@@ -51,17 +52,7 @@ where
 {
     let parent_el = element.inheritance_parent();
     let parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| {
-        // Sometimes Gecko eagerly styles things without processing
-        // pending restyles first. In general we'd like to avoid this,
-        // but there can be good reasons (for example, needing to
-        // construct a frame for some small piece of newly-added
-        // content in order to do something specific with that frame,
-        // but not wanting to flush all of layout).
-        debug_assert!(cfg!(feature = "gecko") ||
-                      parent_el.unwrap().has_current_styles(d));
-        d.styles.primary()
-    });
+    let parent_style = parent_data.as_ref().map(|d| d.styles.primary());
 
     let mut layout_parent_el = parent_el.clone();
     let layout_parent_data;
@@ -72,7 +63,7 @@ where
         layout_parent_style = Some(layout_parent_data.styles.primary());
     }
 
-    f(parent_style.map(|s| &**s), layout_parent_style.map(|s| &**s))
+    f(parent_style.map(|x| &**x), layout_parent_style.map(|s| &**s))
 }
 
 impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>
@@ -119,24 +110,24 @@ where
             relevant_link_found ||
             parent_style.and_then(|s| s.get_visited_style()).is_some();
 
+        let pseudo = self.element.implemented_pseudo_element();
         if should_compute_visited_style {
             visited_style = Some(self.cascade_style(
-                visited_rules.as_ref(),
+                visited_rules.as_ref().or(Some(&primary_results.rule_node)),
                 /* style_if_visited = */ None,
                 parent_style,
                 layout_parent_style,
                 CascadeVisitedMode::Visited,
-                /* pseudo = */ None,
+                /* pseudo = */ pseudo.as_ref(),
             ));
         }
-
         let style = self.cascade_style(
             Some(&primary_results.rule_node),
             visited_style,
             parent_style,
             layout_parent_style,
             CascadeVisitedMode::Unvisited,
-            /* pseudo = */ None,
+            /* pseudo = */ pseudo.as_ref(),
         );
 
         PrimaryStyle { style, }
@@ -149,19 +140,10 @@ where
         parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
     ) -> ElementStyles {
-        use properties::longhands::display::computed_value::T as display;
-
         let primary_style =
             self.resolve_primary_style(parent_style, layout_parent_style);
 
         let mut pseudo_styles = EagerPseudoStyles::default();
-        if primary_style.style.get_box().clone_display() == display::none {
-            return ElementStyles {
-                // FIXME(emilio): Remove the Option<>.
-                primary: Some(primary_style.style),
-                pseudos: pseudo_styles,
-            }
-        }
 
         if self.element.implemented_pseudo_element().is_none() {
             let layout_parent_style_for_pseudo =
@@ -223,7 +205,7 @@ where
         if parent_style.map_or(false, |s| s.get_visited_style().is_some()) ||
             inputs.visited_rules.is_some() {
             style_if_visited = Some(self.cascade_style(
-                inputs.visited_rules.as_ref(),
+                inputs.visited_rules.as_ref().or(inputs.rules.as_ref()),
                 /* style_if_visited = */ None,
                 parent_style,
                 layout_parent_style,
@@ -246,7 +228,6 @@ where
         &mut self,
         inputs: ElementCascadeInputs,
     ) -> ElementStyles {
-        use properties::longhands::display::computed_value::T as display;
         with_default_parent_styles(self.element, move |parent_style, layout_parent_style| {
             let primary_style = PrimaryStyle {
                 style: self.cascade_style_and_visited(
@@ -258,16 +239,7 @@ where
             };
 
             let mut pseudo_styles = EagerPseudoStyles::default();
-            let pseudo_array = inputs.pseudos.into_array();
-            if pseudo_array.is_none() ||
-                primary_style.style.get_box().clone_display() == display::none {
-                return ElementStyles {
-                    primary: Some(primary_style.style),
-                    pseudos: pseudo_styles,
-                }
-            }
-
-            {
+            if let Some(mut pseudo_array) = inputs.pseudos.into_array() {
                 let layout_parent_style_for_pseudo =
                     if primary_style.style.is_display_contents() {
                         layout_parent_style
@@ -275,7 +247,7 @@ where
                         Some(&*primary_style.style)
                     };
 
-                for (i, mut inputs) in pseudo_array.unwrap().iter_mut().enumerate() {
+                for (i, mut inputs) in pseudo_array.iter_mut().enumerate() {
                     if let Some(inputs) = inputs.take() {
                         let pseudo = PseudoElement::from_eager_index(i);
                         pseudo_styles.set(
@@ -473,10 +445,24 @@ where
         if self.element.skip_root_and_item_based_display_fixup() {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
+
+        if pseudo.is_none() && self.element.is_link() {
+            cascade_flags.insert(IS_LINK);
+            if self.element.is_visited_link() &&
+                self.context.shared.visited_styles_enabled {
+                cascade_flags.insert(IS_VISITED_LINK);
+            }
+        }
+
         if cascade_visited.visited_dependent_only() {
-            parent_style = parent_style.map(|s| {
-                s.get_visited_style().map(|s| &**s).unwrap_or(s)
-            });
+            // If this element is a link, we want its visited style to inherit
+            // from the regular style of its parent, because only the
+            // visitedness of the relevant link should influence style.
+            if pseudo.is_some() || !self.element.is_link() {
+                parent_style = parent_style.map(|s| {
+                    s.get_visited_style().unwrap_or(s)
+                });
+            }
             cascade_flags.insert(VISITED_DEPENDENT_ONLY);
         }
         if self.element.is_native_anonymous() || pseudo.is_some() {
@@ -485,11 +471,14 @@ where
             cascade_flags.insert(IS_ROOT_ELEMENT);
         }
 
+        let implemented_pseudo = self.element.implemented_pseudo_element();
         let values =
-            Arc::new(cascade(
+            cascade(
                 self.context.shared.stylist.device(),
+                pseudo.or(implemented_pseudo.as_ref()),
                 rules.unwrap_or(self.context.shared.stylist.rule_tree().root()),
                 &self.context.shared.guards,
+                parent_style,
                 parent_style,
                 layout_parent_style,
                 style_if_visited,
@@ -497,9 +486,10 @@ where
                 &self.context.thread_local.font_metrics_provider,
                 cascade_flags,
                 self.context.shared.quirks_mode
-            ));
+            );
 
         cascade_info.finish(&self.element.as_node());
+
         values
     }
 }

@@ -23,8 +23,7 @@ function Damp() {
   // HeapSnapshot instance. Set by readHeapSnapshot, used by takeCensus.
   this._snapshot = null;
 
-  // Use the old console for now: https://bugzilla.mozilla.org/show_bug.cgi?id=1306780
-  Services.prefs.setBoolPref("devtools.webconsole.new-frontend-enabled", false);
+  Services.prefs.setBoolPref("devtools.webconsole.new-frontend-enabled", true);
 }
 
 Damp.prototype = {
@@ -496,7 +495,7 @@ Damp.prototype = {
 
   startTest(doneCallback, config) {
     this._onTestComplete = function(results) {
-      Profiler.mark("DAMP - end", true);
+      TalosParentProfiler.pause("DAMP - end");
       doneCallback(results);
     };
     this._config = config;
@@ -507,7 +506,7 @@ Damp.prototype = {
     this._dampTab = this._win.gBrowser.selectedTab;
     this._win.gBrowser.selectedBrowser.focus(); // Unfocus the URL bar to avoid caret blink
 
-    Profiler.mark("DAMP - start", true);
+    TalosParentProfiler.resume("DAMP - start");
 
     let tests = [];
     tests = tests.concat(this._getToolLoadingTests(SIMPLE_URL, "simple"));

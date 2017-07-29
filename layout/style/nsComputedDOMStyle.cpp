@@ -354,7 +354,7 @@ nsComputedDOMStyle::GetLength(uint32_t* aLength)
   UpdateCurrentStyleSources(false);
   if (mStyleContext) {
     length += mStyleContext->IsServo()
-      ? Servo_GetCustomPropertiesCount(mStyleContext->ComputedValues())
+      ? Servo_GetCustomPropertiesCount(mStyleContext->AsServo())
       : StyleVariables()->mVariables.Count();
   }
 
@@ -455,18 +455,18 @@ public:
     }
   }
 
-  already_AddRefed<nsStyleContext>
-  ResolveWithAnimation(StyleSetHandle aStyleSet,
+  already_AddRefed<GeckoStyleContext>
+  ResolveWithAnimation(nsStyleSet* aStyleSet,
                        Element* aElement,
                        CSSPseudoElementType aType,
-                       nsStyleContext* aParentContext,
+                       GeckoStyleContext* aParentContext,
                        nsComputedDOMStyle::StyleType aStyleType,
                        bool aInDocWithShell)
   {
     MOZ_ASSERT(mAnimationFlag == nsComputedDOMStyle::eWithAnimation,
       "AnimationFlag should be eWithAnimation");
 
-    RefPtr<nsStyleContext> result;
+    RefPtr<GeckoStyleContext> result;
 
     if (aType != CSSPseudoElementType::NotPseudo) {
       nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
@@ -500,39 +500,35 @@ public:
         rules[i].swap(rules[length - i - 1]);
       }
 
-      result = aStyleSet->AsGecko()->ResolveStyleForRules(aParentContext,
-                                                          rules);
+      result = aStyleSet->ResolveStyleForRules(aParentContext, rules);
     }
     return result.forget();
   }
 
-  already_AddRefed<nsStyleContext>
-  ResolveWithoutAnimation(StyleSetHandle aStyleSet,
+  already_AddRefed<GeckoStyleContext>
+  ResolveWithoutAnimation(nsStyleSet* aStyleSet,
                           Element* aElement,
                           CSSPseudoElementType aType,
-                          nsStyleContext* aParentContext,
+                          GeckoStyleContext* aParentContext,
                           bool aInDocWithShell)
   {
-    MOZ_ASSERT(!aStyleSet->IsServo(),
-      "Servo backend should not use this function");
     MOZ_ASSERT(mAnimationFlag == nsComputedDOMStyle::eWithoutAnimation,
       "AnimationFlag should be eWithoutAnimation");
 
-    RefPtr<nsStyleContext> result;
+    RefPtr<GeckoStyleContext> result;
 
     if (aType != CSSPseudoElementType::NotPseudo) {
       nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
       Element* pseudoElement =
         frame && aInDocWithShell ? frame->GetPseudoElement(aType) : nullptr;
       result =
-        aStyleSet->AsGecko()->ResolvePseudoElementStyleWithoutAnimation(
+        aStyleSet->ResolvePseudoElementStyleWithoutAnimation(
           aElement, aType,
           aParentContext,
           pseudoElement);
     } else {
       result =
-        aStyleSet->AsGecko()->ResolveStyleWithoutAnimation(aElement,
-                                                           aParentContext);
+        aStyleSet->ResolveStyleWithoutAnimation(aElement, aParentContext);
     }
     return result.forget();
   }
@@ -638,14 +634,12 @@ nsComputedDOMStyle::DoGetStyleContextNoFlush(Element* aElement,
           if (presContext && presContext->StyleSet()->IsGecko()) {
             nsStyleSet* styleSet = presContext->StyleSet()->AsGecko();
             return styleSet->ResolveStyleByRemovingAnimation(
-                     aElement, result, eRestyle_AllHintsWithAnimations);
+                     aElement, result->AsGecko(),
+                     eRestyle_AllHintsWithAnimations);
           } else {
-            RefPtr<ServoComputedValues> baseComputedValues =
-              presContext->StyleSet()->AsServo()->
-                GetBaseComputedValuesForElement(
-                    aElement, pseudoType, result->ComputedValues());
-            return ServoStyleContext::Create(nullptr, presContext, aPseudo,
-                                             pseudoType, baseComputedValues.forget());
+            return presContext->StyleSet()->AsServo()->
+              GetBaseContextForElement(aElement, nullptr, presContext,
+                                       aPseudo, pseudoType, result->AsServo());
           }
         }
 
@@ -671,38 +665,38 @@ nsComputedDOMStyle::DoGetStyleContextNoFlush(Element* aElement,
     StyleRuleInclusion rules = aStyleType == eDefaultOnly
                                ? StyleRuleInclusion::DefaultOnly
                                : StyleRuleInclusion::All;
-    RefPtr<nsStyleContext> result =
-       servoSet->ResolveTransientStyle(aElement, aPseudo, pseudoType, rules);
+    RefPtr<ServoStyleContext> result =
+       servoSet->ResolveTransientStyle(aElement, pseudoType, aPseudo, rules);
     if (aAnimationFlag == eWithAnimation) {
       return result.forget();
     }
 
-    RefPtr<ServoComputedValues> baseComputedValues =
-      servoSet->GetBaseComputedValuesForElement(
-          aElement, pseudoType, result->ComputedValues());
-    return ServoStyleContext::Create(nullptr, presContext, aPseudo,
-                                     pseudoType, baseComputedValues.forget());
+    return servoSet->GetBaseContextForElement(aElement, nullptr, presContext,
+                                              aPseudo, pseudoType, result);
   }
 
-  RefPtr<nsStyleContext> parentContext;
+  RefPtr<GeckoStyleContext> parentContext;
   nsIContent* parent = aPseudo ? aElement : aElement->GetParent();
   // Don't resolve parent context for document fragments.
   if (parent && parent->IsElement()) {
-    parentContext = GetStyleContextNoFlush(parent->AsElement(), nullptr,
-                                           aPresShell, aStyleType);
+    RefPtr<nsStyleContext> p =
+      GetStyleContextNoFlush(parent->AsElement(), nullptr,
+                             aPresShell, aStyleType);
+    MOZ_ASSERT(p && p->IsGecko());
+    parentContext = GeckoStyleContext::TakeRef(p.forget());
   }
 
   StyleResolver styleResolver(presContext, aAnimationFlag);
 
   if (aAnimationFlag == eWithAnimation) {
-    return styleResolver.ResolveWithAnimation(styleSet,
+    return styleResolver.ResolveWithAnimation(styleSet->AsGecko(),
                                               aElement, pseudoType,
                                               parentContext,
                                               aStyleType,
                                               inDocWithShell);
   }
 
-  return styleResolver.ResolveWithoutAnimation(styleSet,
+  return styleResolver.ResolveWithoutAnimation(styleSet->AsGecko(),
                                                aElement, pseudoType,
                                                parentContext,
                                                inDocWithShell);
@@ -946,7 +940,8 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
     nsStyleSet* styleSet = mPresShell->StyleSet()->AsGecko();
     RefPtr<nsStyleContext> unanimatedStyleContext =
       styleSet->ResolveStyleByRemovingAnimation(
-        mContent->AsElement(), mStyleContext, eRestyle_AllHintsWithAnimations);
+        mContent->AsElement(), mStyleContext->AsGecko(),
+        eRestyle_AllHintsWithAnimations);
     SetResolvedStyleContext(Move(unanimatedStyleContext), currentGeneration);
   }
 
@@ -965,16 +960,17 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
 void
 nsComputedDOMStyle::ClearCurrentStyleSources()
 {
+  // Release the current style context if we got it off the frame.
+  // For a style context we resolved, keep it around so that we
+  // can re-use it next time this object is queried, but not if it-s a
+  // re-resolved style context because we were inside a pseudo-element.
+  if (!mResolvedStyleContext || mOuterFrame) {
+    ClearStyleContext();
+  }
+
   mOuterFrame = nullptr;
   mInnerFrame = nullptr;
   mPresShell = nullptr;
-
-  // Release the current style context if we got it off the frame.
-  // For a style context we resolved, keep it around so that we
-  // can re-use it next time this object is queried.
-  if (!mResolvedStyleContext) {
-    mStyleContext = nullptr;
-  }
 }
 
 already_AddRefed<CSSValue>
@@ -1100,7 +1096,7 @@ nsComputedDOMStyle::IndexedGetter(uint32_t   aIndex,
     : StyleVariables();
 
   const uint32_t count = isServo
-    ? Servo_GetCustomPropertiesCount(mStyleContext->ComputedValues())
+    ? Servo_GetCustomPropertiesCount(mStyleContext->AsServo())
     : variables->mVariables.Count();
 
   const uint32_t index = aIndex - length;
@@ -1108,8 +1104,7 @@ nsComputedDOMStyle::IndexedGetter(uint32_t   aIndex,
     aFound = true;
     nsString varName;
     if (isServo) {
-      Servo_GetCustomPropertyNameAt(mStyleContext->ComputedValues(),
-                                    index, &varName);
+      Servo_GetCustomPropertyNameAt(mStyleContext->AsServo(), index, &varName);
     } else {
       variables->mVariables.GetVariableAt(index, varName);
     }
@@ -5409,7 +5404,6 @@ nsComputedDOMStyle::GetStickyOffset(mozilla::Side aSide)
 
 already_AddRefed<CSSValue>
 nsComputedDOMStyle::GetStaticOffset(mozilla::Side aSide)
-
 {
   RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
   SetValueToCoord(val, StylePosition()->mOffset.Get(aSide), false);
@@ -5452,7 +5446,7 @@ nsComputedDOMStyle::GetLineHeightCoord(nscoord& aCoord)
   // lie about font size inflation since we lie about font size (since
   // the inflation only applies to text)
   aCoord = ReflowInput::CalcLineHeight(mContent, mStyleContext,
-                                             blockHeight, 1.0f);
+                                       blockHeight, 1.0f);
 
   // CalcLineHeight uses font->mFont.size, but we want to use
   // font->mSize as the font size.  Adjust for that.  Also adjust for
@@ -6955,8 +6949,7 @@ nsComputedDOMStyle::DoGetCustomProperty(const nsAString& aPropertyName)
   const nsAString& name = Substring(aPropertyName,
                                     CSS_CUSTOM_NAME_PREFIX_LENGTH);
   bool present = mStyleContext->IsServo()
-    ? Servo_GetCustomPropertyValue(mStyleContext->ComputedValues(),
-                                   &name, &variableValue)
+    ? Servo_GetCustomPropertyValue(mStyleContext->AsServo(), &name, &variableValue)
     : StyleVariables()->mVariables.Get(name, variableValue);
   if (!present) {
     return nullptr;

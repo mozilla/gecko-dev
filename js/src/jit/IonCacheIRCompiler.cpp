@@ -106,6 +106,12 @@ class MOZ_RAII IonCacheIRCompiler : public CacheIRCompiler
     JSCompartment* compartmentStubField(uint32_t offset) {
         return (JSCompartment*)readStubWord(offset, StubField::Type::RawWord);
     }
+    const Class* classStubField(uintptr_t offset) {
+        return (const Class*)readStubWord(offset, StubField::Type::RawWord);
+    }
+    const void* proxyHandlerStubField(uintptr_t offset) {
+        return (const void*)readStubWord(offset, StubField::Type::RawWord);
+    }
     jsid idStubField(uint32_t offset) {
         return mozilla::BitwiseCast<jsid>(readStubWord(offset, StubField::Type::Id));
     }
@@ -440,6 +446,21 @@ IonCacheIRCompiler::init()
         allocator.initInputLocation(0, ic->environment(), JSVAL_TYPE_OBJECT);
         break;
       }
+      case CacheKind::GetIterator: {
+        IonGetIteratorIC* ic = ic_->asGetIteratorIC();
+        Register output = ic->output();
+
+        available.add(output);
+        available.add(ic->temp1());
+        available.add(ic->temp2());
+
+        liveRegs_.emplace(ic->liveRegs());
+        outputUnchecked_.emplace(TypedOrValueRegister(MIRType::Object, AnyRegister(output)));
+
+        MOZ_ASSERT(numInputs == 1);
+        allocator.initInputLocation(0, ic->value());
+        break;
+      }
       case CacheKind::In: {
         IonInIC* ic = ic_->asInIC();
         Register output = ic->output();
@@ -633,6 +654,37 @@ IonCacheIRCompiler::emitGuardCompartment()
 }
 
 bool
+IonCacheIRCompiler::emitGuardAnyClass()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    AutoScratchRegister scratch(allocator, masm);
+
+    const Class* clasp = classStubField(reader.stubOffset());
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure))
+        return false;
+
+    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch, clasp, failure->label());
+    return true;
+}
+
+bool
+IonCacheIRCompiler::emitGuardHasProxyHandler()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    const void* handler = proxyHandlerStubField(reader.stubOffset());
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure))
+        return false;
+
+    Address handlerAddr(obj, ProxyObject::offsetOfHandler());
+    masm.branchPtr(Assembler::NotEqual, handlerAddr, ImmPtr(handler), failure->label());
+    return true;
+}
+
+bool
 IonCacheIRCompiler::emitGuardSpecificObject()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
@@ -706,6 +758,55 @@ IonCacheIRCompiler::emitGuardSpecificSymbol()
 }
 
 bool
+IonCacheIRCompiler::emitGuardXrayExpandoShapeAndDefaultProto()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    bool hasExpando = reader.readBool();
+    JSObject* shapeWrapper = objectStubField(reader.stubOffset());
+    MOZ_ASSERT(hasExpando == !!shapeWrapper);
+
+    AutoScratchRegister scratch(allocator, masm);
+    Maybe<AutoScratchRegister> scratch2;
+    if (hasExpando)
+        scratch2.emplace(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure))
+        return false;
+
+    masm.loadPtr(Address(obj, ProxyObject::offsetOfReservedSlots()), scratch);
+    Address holderAddress(scratch, sizeof(Value) * GetXrayJitInfo()->xrayHolderSlot);
+    Address expandoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->holderExpandoSlot));
+
+    if (hasExpando) {
+        masm.branchTestObject(Assembler::NotEqual, holderAddress, failure->label());
+        masm.unboxObject(holderAddress, scratch);
+        masm.branchTestObject(Assembler::NotEqual, expandoAddress, failure->label());
+        masm.unboxObject(expandoAddress, scratch);
+
+        // Unwrap the expando before checking its shape.
+        masm.loadPtr(Address(scratch, ProxyObject::offsetOfReservedSlots()), scratch);
+        masm.unboxObject(Address(scratch, detail::ProxyReservedSlots::offsetOfPrivateSlot()), scratch);
+
+        masm.movePtr(ImmGCPtr(shapeWrapper), scratch2.ref());
+        LoadShapeWrapperContents(masm, scratch2.ref(), scratch2.ref(), failure->label());
+        masm.branchTestObjShape(Assembler::NotEqual, scratch, scratch2.ref(), failure->label());
+
+        // The reserved slots on the expando should all be in fixed slots.
+        Address protoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->expandoProtoSlot));
+        masm.branchTestUndefined(Assembler::NotEqual, protoAddress, failure->label());
+    } else {
+        Label done;
+        masm.branchTestObject(Assembler::NotEqual, holderAddress, &done);
+        masm.unboxObject(holderAddress, scratch);
+        masm.branchTestObject(Assembler::Equal, expandoAddress, failure->label());
+        masm.bind(&done);
+    }
+
+    return true;
+}
+
+bool
 IonCacheIRCompiler::emitLoadFixedSlotResult()
 {
     AutoOutputRegister output(*this);
@@ -744,6 +845,11 @@ IonCacheIRCompiler::emitMegamorphicLoadSlotResult()
     FailurePath* failure;
     if (!addFailurePath(&failure))
         return false;
+
+    // The object must be Native.
+    masm.loadObjClass(obj, scratch3);
+    masm.branchTest32(Assembler::NonZero, Address(scratch3, Class::offsetOfFlags()),
+                      Imm32(Class::NON_NATIVE), failure->label());
 
     masm.Push(UndefinedValue());
     masm.moveStackPtrTo(scratch3.get());
@@ -1682,6 +1788,13 @@ IonCacheIRCompiler::emitStoreDenseElementHole()
 }
 
 bool
+IonCacheIRCompiler::emitArrayPush()
+{
+    MOZ_ASSERT_UNREACHABLE("emitArrayPush not supported for IonCaches.");
+    return false;
+}
+
+bool
 IonCacheIRCompiler::emitStoreTypedElement()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
@@ -2004,6 +2117,52 @@ IonCacheIRCompiler::emitLoadStackValue()
 {
     MOZ_ASSERT_UNREACHABLE("emitLoadStackValue not supported for IonCaches.");
     return false;
+}
+
+bool
+IonCacheIRCompiler::emitGuardAndGetIterator()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+
+    AutoScratchRegister scratch1(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+    AutoScratchRegister niScratch(allocator, masm);
+
+    PropertyIteratorObject* iterobj =
+        &objectStubField(reader.stubOffset())->as<PropertyIteratorObject>();
+    NativeIterator** enumerators = rawWordStubField<NativeIterator**>(reader.stubOffset());
+
+    Register output = allocator.defineRegister(masm, reader.objOperandId());
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure))
+        return false;
+
+    // Load our PropertyIteratorObject* and its NativeIterator.
+    masm.movePtr(ImmGCPtr(iterobj), output);
+    masm.loadObjPrivate(output, JSObject::ITER_CLASS_NFIXED_SLOTS, niScratch);
+
+    // Ensure the |active| and |unreusable| bits are not set.
+    masm.branchTest32(Assembler::NonZero, Address(niScratch, offsetof(NativeIterator, flags)),
+                      Imm32(JSITER_ACTIVE|JSITER_UNREUSABLE), failure->label());
+
+    // Pre-write barrier for store to 'obj'.
+    Address iterObjAddr(niScratch, offsetof(NativeIterator, obj));
+    EmitPreBarrier(masm, iterObjAddr, MIRType::Object);
+
+    // Mark iterator as active.
+    Address iterFlagsAddr(niScratch, offsetof(NativeIterator, flags));
+    masm.storePtr(obj, iterObjAddr);
+    masm.or32(Imm32(JSITER_ACTIVE), iterFlagsAddr);
+
+    // Post-write barrier for stores to 'obj'.
+    emitPostBarrierSlot(output, TypedOrValueRegister(MIRType::Object, AnyRegister(obj)), scratch1);
+
+    // Chain onto the active iterator stack.
+    masm.loadPtr(AbsoluteAddress(enumerators), scratch1);
+    emitRegisterEnumerator(scratch1, niScratch, scratch2);
+
+    return true;
 }
 
 bool

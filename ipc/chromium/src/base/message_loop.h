@@ -112,8 +112,15 @@ public:
   // The MessageLoop takes ownership of the Task, and deletes it after it has
   // been Run().
   //
+  // New tasks should not be posted after the invocation of a MessageLoop's
+  // Run method. Otherwise, they may fail to actually run. Callers should check
+  // if the MessageLoop is processing tasks if necessary by calling
+  // IsAcceptingTasks().
+  //
   // NOTE: These methods may be called on any thread.  The Task will be invoked
   // on the thread that executes MessageLoop::Run().
+
+  bool IsAcceptingTasks() const { return !shutting_down_; }
 
   void PostTask(already_AddRefed<nsIRunnable> task);
 
@@ -211,6 +218,8 @@ public:
 
   // Returns the MessageLoop object for the current thread, or null if none.
   static MessageLoop* current();
+
+  static void set_current(MessageLoop* loop);
 
   // Enables or disables the recursive task processing. This happens in the case
   // of recursive message loops. Some unwanted message loop may occurs when
@@ -429,6 +438,7 @@ public:
 
   RunState* state_;
   int run_depth_base_;
+  bool shutting_down_;
 
 #if defined(OS_WIN)
   // Should be set to true before calling Windows APIs like TrackPopupMenu, etc

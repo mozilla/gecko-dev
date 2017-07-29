@@ -7,7 +7,7 @@ user_pref("browser.firstrun.show.uidiscovery", false);
 user_pref("browser.startup.page", 0); // use about:blank, not browser.startup.homepage
 user_pref("browser.search.suggest.timeout", 10000); // use a 10s suggestion timeout in tests
 user_pref("browser.ui.layout.tablet", 0); // force tablet UI off
-user_pref("browser.urlbar.speculativeConnection.enabled", false);
+user_pref("browser.urlbar.speculativeConnect.enabled", false);
 user_pref("dom.allow_scripts_to_close_windows", true);
 user_pref("dom.disable_open_during_load", false);
 user_pref("dom.experimental_forms", true); // on for testing
@@ -33,6 +33,9 @@ user_pref("javascript.options.showInConsole", true);
 user_pref("devtools.browsertoolbox.panel", "jsdebugger");
 user_pref("devtools.debugger.remote-port", 6023);
 user_pref("devtools.devedition.promo.enabled", false);
+user_pref("devtools.chrome.enabled", false);
+user_pref("devtools.debugger.remote-enabled", false);
+user_pref("devtools.debugger.prompt-connection", true);
 user_pref("browser.EULA.override", true);
 user_pref("gfx.color_management.force_srgb", true);
 user_pref("gfx.logging.level", 1);
@@ -248,9 +251,15 @@ user_pref("browser.contentHandlers.types.5.uri", "http://test1.example.org/rss?u
 
 // We want to collect telemetry, but we don't want to send in the results.
 user_pref("toolkit.telemetry.server", "https://%(server)s/telemetry-dummy/");
-// Don't new-profile' ping on new profiles during tests, otherwise the testing framework
+// Don't send 'new-profile' ping on new profiles during tests, otherwise the testing framework
 // might wait on the pingsender to finish and slow down tests.
 user_pref("toolkit.telemetry.newProfilePing.enabled", false);
+// Don't send the 'shutdown' ping using the pingsender on the first session using
+// the 'pingsender' process. Valgrind marks the process as leaky (e.g. see bug 1364068
+// for the 'new-profile' ping) but does not provide enough information
+// to suppress the leak. Running locally does not reproduce the issue,
+// so disable this until we rewrite the pingsender in Rust (bug 1339035).
+user_pref("toolkit.telemetry.shutdownPingSender.enabledFirstSession", false);
 
 // A couple of preferences with default values to test that telemetry preference
 // watching is working.
@@ -294,6 +303,8 @@ user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
 
 // Use an empty list of sites to avoid fetching
 user_pref("browser.newtabpage.activity-stream.default.sites", "");
+user_pref("browser.newtabpage.activity-stream.telemetry", false);
+user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
 
 // Don't fetch directory tiles data from real servers
 user_pref("browser.newtabpage.directory.source", 'data:application/json,{"testing":1}');
@@ -377,3 +388,8 @@ user_pref("marionette.prefs.recommended", false);
 
 // Disable Screenshots by default for now
 user_pref("extensions.screenshots.system-disabled", true);
+
+// Set places maintenance far in the future to avoid it kicking in during tests.
+// The maintenance can take a relatively long time which may cause unnecessary
+// intermittents and slow down tests.
+user_pref("places.database.lastMaintenance", 7258114800);

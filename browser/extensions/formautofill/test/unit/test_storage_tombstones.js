@@ -62,6 +62,27 @@ add_storage_task(async function test_simple_tombstone(storage, record) {
   // and getAll should also not return it.
   Assert.equal(storage.getAll().length, 0);
 
+  // but getAll allows us to access deleted items - but we didn't create
+  // a tombstone here, so even that will not get it.
+  let all = storage.getAll({includeDeleted: true});
+  Assert.equal(all.length, 0);
+});
+
+add_storage_task(async function test_simple_synctombstone(storage, record) {
+  do_print("check simple tombstone semantics for synced records");
+
+  let guid = storage.add(record);
+  do_check_eq(storage.getAll().length, 1);
+
+  storage.pullSyncChanges(); // force sync metadata, which triggers tombstone behaviour.
+
+  storage.remove(guid);
+
+  // should be unable to get it normally.
+  Assert.equal(storage.get(guid), null);
+  // and getAll should also not return it.
+  Assert.equal(storage.getAll().length, 0);
+
   // but getAll allows us to access deleted items.
   let all = storage.getAll({includeDeleted: true});
   Assert.equal(all.length, 1);
@@ -79,7 +100,7 @@ add_storage_task(async function test_add_tombstone(storage, record) {
   Assert.equal(storage.getAll().length, 0);
 
   // but getAll allows us to access deleted items.
-  let all = storage.getAll({includeDeleted: true});
+  let all = storage.getAll({rawData: true, includeDeleted: true});
   Assert.equal(all.length, 1);
 
   do_check_tombstone_record(all[0]);
@@ -112,7 +133,7 @@ add_storage_task(async function test_remove_existing_tombstone(storage, record) 
   let guid = storage.add({guid: "test-guid-1", deleted: true, timeLastModified: 1234});
 
   storage.remove(guid);
-  let all = storage.getAll({includeDeleted: true});
+  let all = storage.getAll({rawData: true, includeDeleted: true});
   Assert.equal(all.length, 1);
 
   do_check_tombstone_record(all[0]);

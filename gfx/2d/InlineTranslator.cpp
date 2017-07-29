@@ -30,7 +30,7 @@ InlineTranslator::TranslateRecording(char *aData, size_t aLen)
   // an istream like class for reading from memory
   struct MemReader {
     MemReader(char *aData, size_t aLen) : mData(aData), mEnd(aData + aLen) {}
-    void read(char* s, streamsize n) {
+    void read(char* s, std::streamsize n) {
       if (n <= (mEnd - mData)) {
         memcpy(s, mData, n);
         mData += n;
@@ -100,21 +100,6 @@ InlineTranslator::CreateDrawTarget(ReferencePtr aRefPtr,
   RefPtr<DrawTarget> drawTarget = mBaseDT;
   AddDrawTarget(aRefPtr, drawTarget);
   return drawTarget.forget();
-}
-
-FontType
-InlineTranslator::GetDesiredFontType()
-{
-  switch (mBaseDT->GetBackendType()) {
-    case BackendType::DIRECT2D:
-      return FontType::DWRITE;
-    case BackendType::CAIRO:
-      return FontType::CAIRO;
-    case BackendType::SKIA:
-      return FontType::SKIA;
-    default:
-      return FontType::CAIRO;
-  }
 }
 
 } // namespace gfx

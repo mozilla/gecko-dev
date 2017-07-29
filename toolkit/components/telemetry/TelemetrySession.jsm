@@ -40,13 +40,6 @@ const REASON_TEST_PING = "test-ping";
 const REASON_ENVIRONMENT_CHANGE = "environment-change";
 const REASON_SHUTDOWN = "shutdown";
 
-const HISTOGRAM_SUFFIXES = {
-  PARENT: "",
-  CONTENT: "#content",
-  GPU: "#gpu",
-  EXTENSION: "#extension",
-};
-
 const ENVIRONMENT_CHANGE_LISTENER = "TelemetrySession::onEnvironmentChange";
 
 const MS_IN_ONE_HOUR  = 60 * 60 * 1000;
@@ -54,12 +47,6 @@ const MIN_SUBSESSION_LENGTH_MS = Preferences.get("toolkit.telemetry.minSubsessio
 
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetrySession" + (Utils.isContentProcess ? "#content::" : "::");
-
-const PREF_BRANCH = "toolkit.telemetry.";
-const PREF_PREVIOUS_BUILDID = PREF_BRANCH + "previousBuildID";
-const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
-const PREF_UNIFIED = PREF_BRANCH + "unified";
-const PREF_SHUTDOWN_PINGSENDER = PREF_BRANCH + "shutdownPingSender.enabled";
 
 const MESSAGE_TELEMETRY_PAYLOAD = "Telemetry:Payload";
 const MESSAGE_TELEMETRY_THREAD_HANGS = "Telemetry:ChildThreadHangs";
@@ -72,7 +59,7 @@ const ABORTED_SESSION_FILE_NAME = "aborted-session-ping";
 
 // Whether the FHR/Telemetry unification features are enabled.
 // Changing this pref requires a restart.
-const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
+const IS_UNIFIED_TELEMETRY = Preferences.get(TelemetryUtils.Preferences.Unified, false);
 
 // Maximum number of content payloads that we are willing to store.
 const MAX_NUM_CONTENT_PAYLOADS = 10;
@@ -538,9 +525,6 @@ var TelemetryScheduler = {
 this.EXPORTED_SYMBOLS = ["TelemetrySession"];
 
 this.TelemetrySession = Object.freeze({
-  Constants: Object.freeze({
-    PREF_PREVIOUS_BUILDID,
-  }),
   /**
    * Send a ping to a test server. Used only for testing.
    */
@@ -936,13 +920,11 @@ var Impl = {
                          : Telemetry.histogramSnapshots;
     let ret = {};
 
-    for (let name of registered) {
-      for (let suffix of Object.values(HISTOGRAM_SUFFIXES)) {
-        if (name + suffix in hls) {
-          if (!(suffix in ret)) {
-            ret[suffix] = {};
-          }
-          ret[suffix][name] = this.packHistogram(hls[name + suffix]);
+    for (let [process, histograms] of Object.entries(hls)) {
+      ret[process] = {};
+      for (let [name, value] of Object.entries(histograms)) {
+        if (registered.includes(name)) {
+          ret[process][name] = this.packHistogram(value);
         }
       }
     }
@@ -957,31 +939,24 @@ var Impl = {
       // Omit telemetry test histograms outside of tests.
       registered = registered.filter(id => !id.startsWith("TELEMETRY_TEST_"));
     }
+
+    let khs = subsession ? Telemetry.snapshotSubsessionKeyedHistograms(clearSubsession)
+                         : Telemetry.keyedHistogramSnapshots;
     let ret = {};
 
-    for (let id of registered) {
-      for (let suffix of Object.values(HISTOGRAM_SUFFIXES)) {
-        let keyed = Telemetry.getKeyedHistogramById(id + suffix);
-        let snapshot = null;
-        if (subsession) {
-          snapshot = clearSubsession ? keyed.snapshotSubsessionAndClear()
-                                     : keyed.subsessionSnapshot();
-        } else {
-          snapshot = keyed.snapshot();
-        }
-
-        let keys = Object.keys(snapshot);
-        if (keys.length == 0) {
-          // Skip empty keyed histogram.
-          continue;
-        }
-
-        if (!(suffix in ret)) {
-          ret[suffix] = {};
-        }
-        ret[suffix][id] = {};
-        for (let key of keys) {
-          ret[suffix][id][key] = this.packHistogram(snapshot[key]);
+    for (let [process, histograms] of Object.entries(khs)) {
+      ret[process] = {};
+      for (let [name, value] of Object.entries(histograms)) {
+        if (registered.includes(name)) {
+          let keys = Object.keys(value);
+          if (keys.length == 0) {
+            // Skip empty keyed histogram
+            continue;
+          }
+          ret[process][name] = {};
+          for (let [key, hgram] of Object.entries(value)) {
+            ret[process][name][key] = this.packHistogram(hgram);
+          }
         }
       }
     }
@@ -1326,8 +1301,8 @@ var Impl = {
     let keyedScalars = protect(() => this.getScalars(isSubsession, clearSubsession, true), {});
     let events = protect(() => this.getEvents(isSubsession, clearSubsession))
 
-    payloadObj.histograms = histograms[HISTOGRAM_SUFFIXES.PARENT] || {};
-    payloadObj.keyedHistograms = keyedHistograms[HISTOGRAM_SUFFIXES.PARENT] || {};
+    payloadObj.histograms = histograms.parent || {};
+    payloadObj.keyedHistograms = keyedHistograms.parent || {};
     payloadObj.processes = {
       parent: {
         scalars: scalars["parent"] || {},
@@ -1337,29 +1312,29 @@ var Impl = {
       content: {
         scalars: scalars["content"],
         keyedScalars: keyedScalars["content"],
-        histograms: histograms[HISTOGRAM_SUFFIXES.CONTENT],
-        keyedHistograms: keyedHistograms[HISTOGRAM_SUFFIXES.CONTENT],
+        histograms: histograms["content"],
+        keyedHistograms: keyedHistograms["content"],
         events: events["content"] || [],
       },
       extension: {
         scalars: scalars["extension"],
         keyedScalars: keyedScalars["extension"],
-        histograms: histograms[HISTOGRAM_SUFFIXES.EXTENSION],
-        keyedHistograms: keyedHistograms[HISTOGRAM_SUFFIXES.EXTENSION],
+        histograms: histograms["extension"],
+        keyedHistograms: keyedHistograms["extension"],
         events: events["extension"] || [],
       },
     };
 
     // Only include the GPU process if we've accumulated data for it.
-    if (HISTOGRAM_SUFFIXES.GPU in histograms ||
-        HISTOGRAM_SUFFIXES.GPU in keyedHistograms ||
+    if ("gpu" in histograms ||
+        "gpu" in keyedHistograms ||
         "gpu" in scalars ||
         "gpu" in keyedScalars) {
       payloadObj.processes.gpu = {
         scalars: scalars["gpu"],
         keyedScalars: keyedScalars["gpu"],
-        histograms: histograms[HISTOGRAM_SUFFIXES.GPU],
-        keyedHistograms: keyedHistograms[HISTOGRAM_SUFFIXES.GPU],
+        histograms: histograms["gpu"],
+        keyedHistograms: keyedHistograms["gpu"],
         events: events["gpu"] || [],
       };
     }
@@ -1532,12 +1507,12 @@ var Impl = {
 
     // Record old value and update build ID preference if this is the first
     // run with a new build ID.
-    let previousBuildId = Preferences.get(PREF_PREVIOUS_BUILDID, null);
+    let previousBuildId = Preferences.get(TelemetryUtils.Preferences.PreviousBuildID, null);
     let thisBuildID = Services.appinfo.appBuildID;
     // If there is no previousBuildId preference, we send null to the server.
     if (previousBuildId != thisBuildID) {
       this._previousBuildId = previousBuildId;
-      Preferences.set(PREF_PREVIOUS_BUILDID, thisBuildID);
+      Preferences.set(TelemetryUtils.Preferences.PreviousBuildID, thisBuildID);
     }
 
     this.attachEarlyObservers();
@@ -1825,10 +1800,11 @@ var Impl = {
 
       // Only send the shutdown ping using the pingsender from the second
       // browsing session on, to mitigate issues with "bot" profiles (see bug 1354482).
-      // Note: sending the "shutdown" ping using the pingsender is currently disabled
-      // due to a crash happening on OSX platforms. See bug 1357745 for context.
-      let sendWithPingsender = Preferences.get(PREF_SHUTDOWN_PINGSENDER, false) &&
-                               !TelemetryReportingPolicy.isFirstRun();
+      const sendOnThisSession =
+        Preferences.get(Utils.Preferences.ShutdownPingSenderFirstSession, false) ||
+        !TelemetryReportingPolicy.isFirstRun();
+      let sendWithPingsender = Preferences.get(TelemetryUtils.Preferences.ShutdownPingSender, false) &&
+                               sendOnThisSession;
 
       let options = {
         addClientId: true,
@@ -1968,6 +1944,7 @@ var Impl = {
     // inactivity, because it is just the start of this active tick.
     if (needsUpdate) {
       this._sessionActiveTicks++;
+      Telemetry.scalarAdd("browser.engagement.active_ticks", 1);
     }
   },
 

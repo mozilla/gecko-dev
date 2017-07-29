@@ -151,17 +151,20 @@ impl<T: Parse> Parse for FontSettingTag<T> {
         use byteorder::{ReadBytesExt, BigEndian};
         use std::io::Cursor;
 
-        let tag = input.expect_string()?;
-
-        // allowed strings of length 4 containing chars: <U+20, U+7E>
-        if tag.len() != 4 ||
-           tag.chars().any(|c| c < ' ' || c > '~')
+        let u_tag;
         {
-            return Err(StyleParseError::UnspecifiedError.into())
-        }
+            let tag = input.expect_string()?;
 
-        let mut raw = Cursor::new(tag.as_bytes());
-        let u_tag = raw.read_u32::<BigEndian>().unwrap();
+            // allowed strings of length 4 containing chars: <U+20, U+7E>
+            if tag.len() != 4 ||
+               tag.chars().any(|c| c < ' ' || c > '~')
+            {
+                return Err(StyleParseError::UnspecifiedError.into())
+            }
+
+            let mut raw = Cursor::new(tag.as_bytes());
+            u_tag = raw.read_u32::<BigEndian>().unwrap();
+        }
 
         Ok(FontSettingTag { tag: u_tag, value: T::parse(context, input)? })
     }
@@ -255,7 +258,7 @@ impl ToCss for FontSettingTagFloat {
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType>,
@@ -269,7 +272,7 @@ pub struct SVGPaint<ColorType> {
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGPaintKind<ColorType> {
     /// `none`
     None,
@@ -281,35 +284,6 @@ pub enum SVGPaintKind<ColorType> {
     ContextFill,
     /// `context-stroke`
     ContextStroke,
-}
-
-impl<ColorType> SVGPaintKind<ColorType> {
-    /// Convert to a value with a different kind of color
-    pub fn convert<F, OtherColor>(&self, f: F) -> SVGPaintKind<OtherColor>
-        where F: Fn(&ColorType) -> OtherColor {
-            match *self {
-                SVGPaintKind::None => SVGPaintKind::None,
-                SVGPaintKind::ContextStroke => SVGPaintKind::ContextStroke,
-                SVGPaintKind::ContextFill => SVGPaintKind::ContextFill,
-                SVGPaintKind::Color(ref color) => {
-                    SVGPaintKind::Color(f(color))
-                }
-                SVGPaintKind::PaintServer(ref server) => {
-                    SVGPaintKind::PaintServer(server.clone())
-                }
-            }
-    }
-}
-
-impl<ColorType> SVGPaint<ColorType> {
-    /// Convert to a value with a different kind of color
-    pub fn convert<F, OtherColor>(&self, f: F) -> SVGPaint<OtherColor>
-        where F: Fn(&ColorType) -> OtherColor {
-        SVGPaint {
-            kind: self.kind.convert(&f),
-            fallback: self.fallback.as_ref().map(|color| f(color))
-        }
-    }
 }
 
 impl<ColorType> SVGPaintKind<ColorType> {
@@ -365,15 +339,3 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
         }
     }
 }
-
-impl<ColorType: ToCss> ToCss for SVGPaint<ColorType> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.kind.to_css(dest)?;
-        if let Some(ref fallback) = self.fallback {
-            fallback.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
-

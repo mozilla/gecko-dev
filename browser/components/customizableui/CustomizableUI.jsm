@@ -330,6 +330,7 @@ var CustomizableUIInternal = {
       this.registerArea(CustomizableUI.AREA_FIXED_OVERFLOW_PANEL, {
         type: CustomizableUI.TYPE_MENU_PANEL,
         defaultPlacements: [],
+        anchor: "nav-bar-overflow-button",
       }, true);
     } else {
       if (gAreas.has(CustomizableUI.AREA_FIXED_OVERFLOW_PANEL)) {
@@ -784,7 +785,7 @@ var CustomizableUIInternal = {
 
         this.ensureButtonContextMenu(node, aAreaNode);
         if (node.localName == "toolbarbutton") {
-          if (areaIsPanel) {
+          if (areaIsPanel && !gPhotonStructure) {
             node.setAttribute("wrap", "true");
           } else {
             node.removeAttribute("wrap");
@@ -970,7 +971,9 @@ var CustomizableUIInternal = {
         continue;
       }
       this.ensureButtonContextMenu(child, aPanelContents, true);
-      child.setAttribute("wrap", "true");
+      if (!gPhotonStructure) {
+        child.setAttribute("wrap", "true");
+      }
     }
 
     this.registerBuildArea(aArea, aPanelContents);
@@ -1519,6 +1522,14 @@ var CustomizableUIInternal = {
   handleWidgetCommand(aWidget, aNode, aEvent) {
     log.debug("handleWidgetCommand");
 
+    if (aWidget.onBeforeCommand) {
+      try {
+        aWidget.onBeforeCommand.call(null, aEvent);
+      } catch (e) {
+        log.error(e);
+      }
+    }
+
     if (aWidget.type == "button") {
       if (aWidget.onCommand) {
         try {
@@ -1546,7 +1557,8 @@ var CustomizableUIInternal = {
           anchor = wrapper.anchor;
         }
       }
-      ownerWindow.PanelUI.showSubView(aWidget.viewId, anchor, area);
+
+      ownerWindow.PanelUI.showSubView(aWidget.viewId, anchor, area, aEvent);
     }
   },
 
@@ -2411,6 +2423,10 @@ var CustomizableUIInternal = {
     this.wrapWidgetEventHandler("onClick", widget);
     this.wrapWidgetEventHandler("onCreated", widget);
     this.wrapWidgetEventHandler("onDestroyed", widget);
+
+    if (typeof aData.onBeforeCommand == "function") {
+      widget.onBeforeCommand = aData.onBeforeCommand;
+    }
 
     if (widget.type == "button") {
       widget.onCommand = typeof aData.onCommand == "function" ?
@@ -3289,6 +3305,12 @@ this.CustomizableUI = {
    *                  passing the document from which it was removed. This is
    *                  useful especially for 'view' type widgets that need to
    *                  cleanup after views that were constructed on the fly.
+   * - onBeforeCommand(aEvt): A function that will be invoked when the user
+   *                          activates the button but before the command
+   *                          is evaluated. Useful if code needs to run to
+   *                          change the button's icon in preparation to the
+   *                          pending command action. Called for both type=button
+   *                          and type=view.
    * - onCommand(aEvt): Only useful for button widgets; a function that will be
    *                    invoked when the user activates the button.
    * - onClick(aEvt): Attached to all widgets; a function that will be invoked
@@ -4209,7 +4231,7 @@ OverflowableToolbar.prototype = {
     return new Promise(resolve => {
       let doc = this._panel.ownerDocument;
       this._panel.hidden = false;
-      let photonView = this._panel.querySelector("panelmultiview");
+      let photonView = this._panel.querySelector("photonpanelmultiview");
       let contextMenu;
       if (photonView) {
         let mainViewId = photonView.getAttribute("mainViewId");
@@ -4240,7 +4262,6 @@ OverflowableToolbar.prototype = {
       this._chevron.open = false;
     } else if (this._panel.state != "hiding") {
       this.show();
-      this._chevron.removeAttribute("animate");
     }
   },
 

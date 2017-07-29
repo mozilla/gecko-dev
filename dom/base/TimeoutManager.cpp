@@ -10,6 +10,8 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/ThrottledEventQueue.h"
 #include "mozilla/TimeStamp.h"
+#include "nsIDocShell.h"
+#include "nsINamed.h"
 #include "nsITimeoutHandler.h"
 #include "mozilla/dom/TabGroup.h"
 #include "OrderedTimeoutIterator.h"
@@ -107,10 +109,6 @@ TimeoutManager::IsActive() const
   // A window is considered active if:
   // * It is a chrome window
   // * It is playing audio
-  // * If it is using user media
-  // * If it is using WebRTC
-  // * If it has open WebSockets
-  // * If it has active IndexedDB databases
   //
   // Note that a window can be considered active if it is either in the
   // foreground or in the background.
@@ -121,45 +119,6 @@ TimeoutManager::IsActive() const
 
   // Check if we're playing audio
   if (mWindow.AsInner()->IsPlayingAudio()) {
-    return true;
-  }
-
-  // Check if there are any active IndexedDB databases
-  if (mWindow.AsInner()->HasActiveIndexedDBDatabases()) {
-    return true;
-  }
-
-  // Check if we have active GetUserMedia
-  if (MediaManager::Exists() &&
-      MediaManager::Get()->IsWindowStillActive(mWindow.WindowID())) {
-    return true;
-  }
-
-  bool active = false;
-#if 0
-  // Check if we have active PeerConnections This doesn't actually
-  // work, since we sometimes call IsActive from Resume, which in turn
-  // is sometimes called from nsGlobalWindow::LeaveModalState. The
-  // problem here is that LeaveModalState can be called with pending
-  // exeptions on the js context, and the following call to
-  // HasActivePeerConnection is a JS call, which will assert on that
-  // exception. Also, calling JS is expensive so we should try to fix
-  // this in some other way.
-  nsCOMPtr<IPeerConnectionManager> pcManager =
-    do_GetService(IPEERCONNECTION_MANAGER_CONTRACTID);
-
-  if (pcManager && NS_SUCCEEDED(pcManager->HasActivePeerConnection(
-                     mWindow.WindowID(), &active)) &&
-      active) {
-    return true;
-  }
-#endif // MOZ_WEBRTC
-
-  // Check if we have web sockets
-  RefPtr<WebSocketEventService> eventService = WebSocketEventService::Get();
-  if (eventService &&
-      NS_SUCCEEDED(eventService->HasListenerFor(mWindow.WindowID(), &active)) &&
-      active) {
     return true;
   }
 
@@ -246,7 +205,8 @@ TimeoutManager::MinSchedulingDelay() const
   TimeDuration unthrottled =
     isBackground ? TimeDuration::FromMilliseconds(gMinBackgroundTimeoutValue)
                  : TimeDuration();
-  if (mBudgetThrottleTimeouts && mExecutionBudget < TimeDuration()) {
+  if (BudgetThrottlingEnabled(isBackground) &&
+      mExecutionBudget < TimeDuration()) {
     // Only throttle if execution budget is less than 0
     double factor = 1.0 / GetRegenerationFactor(mWindow.IsBackgroundInternal());
     return TimeDuration::Min(
@@ -309,15 +269,14 @@ TimeoutManager::IsInvalidFiringId(uint32_t aFiringId) const
 
 // The number of nested timeouts before we start clamping. HTML5 says 1, WebKit
 // uses 5.
-#define DOM_CLAMP_TIMEOUT_NESTING_LEVEL 5
+#define DOM_CLAMP_TIMEOUT_NESTING_LEVEL 5u
 
 TimeDuration
 TimeoutManager::CalculateDelay(Timeout* aTimeout) const {
   MOZ_DIAGNOSTIC_ASSERT(aTimeout);
   TimeDuration result = aTimeout->mInterval;
 
-  if (aTimeout->mIsInterval ||
-      aTimeout->mNestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
+  if (aTimeout->mNestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
     result = TimeDuration::Max(
       result, TimeDuration::FromMilliseconds(gMinClampTimeoutValue));
   }
@@ -374,8 +333,8 @@ TimeoutManager::UpdateBudget(const TimeStamp& aNow, const TimeDuration& aDuratio
   // window is active or not. If throttling is enabled and the window
   // is active and then becomes inactive, an overdrawn budget will
   // still be counted against the minimum delay.
-  if (mBudgetThrottleTimeouts) {
-    bool isBackground = mWindow.IsBackgroundInternal();
+  bool isBackground = mWindow.IsBackgroundInternal();
+  if (BudgetThrottlingEnabled(isBackground)) {
     double factor = GetRegenerationFactor(isBackground);
     TimeDuration regenerated = (aNow - mLastBudgetUpdate).MultDouble(factor);
     // Clamp the budget to the maximum allowed budget.
@@ -533,9 +492,8 @@ TimeoutManager::SetTimeout(nsITimeoutHandler* aHandler,
     return NS_OK;
   }
 
-  // Disallow negative intervals.  If aIsInterval also disallow 0,
-  // because we use that as a "don't repeat" flag.
-  interval = std::max(aIsInterval ? 1 : 0, interval);
+  // Disallow negative intervals.
+  interval = std::max(0, interval);
 
   // Make sure we don't proceed with an interval larger than our timer
   // code can handle. (Note: we already forced |interval| to be non-negative,
@@ -592,10 +550,8 @@ TimeoutManager::SetTimeout(nsITimeoutHandler* aHandler,
     break;
   }
 
-  uint32_t nestingLevel = sNestingLevel + 1;
-  if (!aIsInterval) {
-    timeout->mNestingLevel = nestingLevel;
-  }
+  timeout->mNestingLevel = sNestingLevel < DOM_CLAMP_TIMEOUT_NESTING_LEVEL
+                         ? sNestingLevel + 1 : sNestingLevel;
 
   // Now clamp the actual interval we will use for the timer based on
   TimeDuration realInterval = CalculateDelay(timeout);
@@ -986,6 +942,12 @@ TimeoutManager::RescheduleTimeout(Timeout* aTimeout,
     return false;
   }
 
+  // Automatically increase the nesting level when a setInterval()
+  // is rescheduled just as if it was using a chained setTimeout().
+  if (aTimeout->mNestingLevel < DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
+    aTimeout->mNestingLevel += 1;
+  }
+
   // Compute time to next timeout for interval timer.
   // Make sure nextInterval is at least CalculateDelay().
   TimeDuration nextInterval = CalculateDelay(aTimeout);
@@ -1182,6 +1144,8 @@ TimeoutManager::Thaw()
 void
 TimeoutManager::UpdateBackgroundState()
 {
+  mExecutionBudget = GetMaxBudget(mWindow.IsBackgroundInternal());
+
   // When the window moves to the background or foreground we should
   // reschedule the TimeoutExecutor in case the MinSchedulingDelay()
   // changed.  Only do this if the window is not suspended and we
@@ -1207,6 +1171,7 @@ TimeoutManager::IsTimeoutTracking(uint32_t aTimeoutId)
 namespace {
 
 class ThrottleTimeoutsCallback final : public nsITimerCallback
+                                     , public nsINamed
 {
 public:
   explicit ThrottleTimeoutsCallback(nsGlobalWindow* aWindow)
@@ -1218,6 +1183,12 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
 
+  NS_IMETHOD GetName(nsACString& aName) override
+  {
+    aName.AssignLiteral("ThrottleTimeoutsCallback");
+    return NS_OK;
+  }
+
 private:
   ~ThrottleTimeoutsCallback() {}
 
@@ -1227,7 +1198,7 @@ private:
   RefPtr<nsGlobalWindow> mWindow;
 };
 
-NS_IMPL_ISUPPORTS(ThrottleTimeoutsCallback, nsITimerCallback)
+NS_IMPL_ISUPPORTS(ThrottleTimeoutsCallback, nsITimerCallback, nsINamed)
 
 NS_IMETHODIMP
 ThrottleTimeoutsCallback::Notify(nsITimer* aTimer)
@@ -1237,6 +1208,70 @@ ThrottleTimeoutsCallback::Notify(nsITimer* aTimer)
   return NS_OK;
 }
 
+}
+
+bool
+TimeoutManager::BudgetThrottlingEnabled(bool aIsBackground) const
+{
+  // A window can be throttled using budget if
+  // * It isn't active
+  // * If it isn't using user media
+  // * If it isn't using WebRTC
+  // * If it hasn't got open WebSockets
+  // * If it hasn't got active IndexedDB databases
+
+  // Note that we allow both foreground and background to be
+  // considered for budget throttling. What determines if they are if
+  // budget throttling is enabled is the max budget.
+  if ((aIsBackground ? gBackgroundThrottlingMaxBudget
+       : gForegroundThrottlingMaxBudget) < 0) {
+    return false;
+  }
+
+  if (!mBudgetThrottleTimeouts || IsActive()) {
+    return false;
+  }
+
+  // Check if there are any active IndexedDB databases
+  if (mWindow.AsInner()->HasActiveIndexedDBDatabases()) {
+    return false;
+  }
+
+  // Check if we have active GetUserMedia
+  if (MediaManager::Exists() &&
+      MediaManager::Get()->IsWindowStillActive(mWindow.WindowID())) {
+    return false;
+  }
+
+  bool active = false;
+#if 0
+  // Check if we have active PeerConnections This doesn't actually
+  // work, since we sometimes call IsActive from Resume, which in turn
+  // is sometimes called from nsGlobalWindow::LeaveModalState. The
+  // problem here is that LeaveModalState can be called with pending
+  // exeptions on the js context, and the following call to
+  // HasActivePeerConnection is a JS call, which will assert on that
+  // exception. Also, calling JS is expensive so we should try to fix
+  // this in some other way.
+  nsCOMPtr<IPeerConnectionManager> pcManager =
+    do_GetService(IPEERCONNECTION_MANAGER_CONTRACTID);
+
+  if (pcManager && NS_SUCCEEDED(pcManager->HasActivePeerConnection(
+                     mWindow.WindowID(), &active)) &&
+      active) {
+    return false;
+  }
+#endif // MOZ_WEBRTC
+
+  // Check if we have web sockets
+  RefPtr<WebSocketEventService> eventService = WebSocketEventService::Get();
+  if (eventService &&
+      NS_SUCCEEDED(eventService->HasListenerFor(mWindow.WindowID(), &active)) &&
+      active) {
+    return false;
+  }
+
+  return true;
 }
 
 void
@@ -1288,6 +1323,8 @@ TimeoutManager::MaybeStartThrottleTimeout()
 
   nsCOMPtr<nsITimerCallback> callback =
     new ThrottleTimeoutsCallback(&mWindow);
+
+  mThrottleTimeoutsTimer->SetTarget(EventTarget());
 
   mThrottleTimeoutsTimer->InitWithCallback(
     callback, gTimeoutThrottlingDelay, nsITimer::TYPE_ONE_SHOT);

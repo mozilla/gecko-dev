@@ -114,8 +114,7 @@ FireImageDOMEvent(nsIContent* aContent, EventMessage aMessage)
                "invalid message");
 
   nsCOMPtr<nsIRunnable> event = new nsImageBoxFrameEvent(aContent, aMessage);
-  nsresult rv = aContent->OwnerDoc()->Dispatch("nsImageBoxFrameEvent",
-                                               TaskCategory::Other,
+  nsresult rv = aContent->OwnerDoc()->Dispatch(TaskCategory::Other,
                                                event.forget());
   if (NS_FAILED(rv)) {
     NS_WARNING("failed to dispatch image event");
@@ -270,7 +269,9 @@ nsImageBoxFrame::UpdateImage()
       // get the list-style-image
       imgRequestProxy *styleRequest = StyleList()->GetListStyleImage();
       if (styleRequest) {
-        styleRequest->Clone(mListener, getter_AddRefs(mImageRequest));
+        styleRequest->SyncClone(mListener,
+                                mContent->GetComposedDoc(),
+                                getter_AddRefs(mImageRequest));
       }
     }
   }

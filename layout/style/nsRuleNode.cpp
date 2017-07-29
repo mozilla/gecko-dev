@@ -344,11 +344,13 @@ struct CalcLengthCalcOps : public css::BasicCoordCalcOps,
   {
   }
 
-  result_type ComputeLeafValue(const nsCSSValue& aValue)
+  bool ComputeLeafValue(result_type& aResult, const nsCSSValue& aValue)
   {
-    return CalcLengthWith(aValue, mFontSize, mStyleFont,
-                          mStyleContext, mPresContext, mUseProvidedRootEmSize,
-                          mUseUserFontSet, mConditions);
+    aResult = CalcLengthWith(aValue, mFontSize, mStyleFont,
+                             mStyleContext, mPresContext,
+                             mUseProvidedRootEmSize, mUseUserFontSet,
+                             mConditions);
+    return true;
   }
 };
 
@@ -469,10 +471,14 @@ nsRuleNode::ApplyMinFontSize(nsStyleFont* aFont,
 
 static nsSize CalcViewportUnitsScale(nsPresContext* aPresContext)
 {
-  // The caller is making use of viewport units, so notify the pres context
+  // The caller is making use of viewport units, so notify the style set
   // that it will need to rebuild the rule tree if the size of the viewport
   // changes.
-  aPresContext->SetUsesViewportUnits(true);
+  // It is possible for this to be called on a Servo-styled document,from
+  // media query evaluation outside stylesheets.
+  if (nsStyleSet* styleSet = aPresContext->StyleSet()->GetAsGecko()) {
+    styleSet->SetUsesViewportUnits(true);
+  }
 
   // The default (when we have 'overflow: auto' on the root element, or
   // trivially for 'overflow: hidden' since we never have scrollbars in that
@@ -552,7 +558,11 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
                           aStyleContext, aPresContext,
                           aUseProvidedRootEmSize, aUseUserFontSet,
                           aConditions);
-    return css::ComputeCalc(aValue, ops);
+    nscoord result;
+    if (!css::ComputeCalc(result, aValue, ops)) {
+      MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+    }
+    return result;
   }
   switch (aValue.GetUnit()) {
     // nsPresContext::SetVisibleArea and
@@ -746,15 +756,17 @@ struct LengthPercentPairCalcOps : public css::FloatCoeffsAlreadyNormalizedOps
   RuleNodeCacheConditions& mConditions;
   bool mHasPercent;
 
-  result_type ComputeLeafValue(const nsCSSValue& aValue)
+  bool ComputeLeafValue(result_type& aResult, const nsCSSValue& aValue)
   {
     if (aValue.GetUnit() == eCSSUnit_Percent) {
       mHasPercent = true;
-      return result_type(0, aValue.GetPercentValue());
+      aResult = result_type(0, aValue.GetPercentValue());
+      return true;
     }
-    return result_type(CalcLength(aValue, mContext, mPresContext,
-                                  mConditions),
-                       0.0f);
+    aResult = result_type(CalcLength(aValue, mContext, mPresContext,
+                                     mConditions),
+                          0.0f);
+    return true;
   }
 
   result_type
@@ -806,7 +818,10 @@ SpecifiedCalcToComputedCalc(const nsCSSValue& aValue, nsStyleCoord& aCoord,
 {
   LengthPercentPairCalcOps ops(aStyleContext, aStyleContext->PresContext(),
                                aConditions);
-  nsRuleNode::ComputedCalc vals = ComputeCalc(aValue, ops);
+  nsRuleNode::ComputedCalc vals;
+  if (!ComputeCalc(vals, aValue, ops)) {
+    MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+  }
 
   nsStyleCoord::Calc* calcObj = new nsStyleCoord::Calc;
 
@@ -825,7 +840,11 @@ nsRuleNode::SpecifiedCalcToComputedCalc(const nsCSSValue& aValue,
 {
   LengthPercentPairCalcOps ops(aStyleContext, aPresContext,
                                aConditions);
-  return ComputeCalc(aValue, ops);
+  nsRuleNode::ComputedCalc result;
+  if (!ComputeCalc(result, aValue, ops)) {
+    MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+  }
+  return result;
 }
 
 // This is our public API for handling calc() expressions that involve
@@ -3399,7 +3418,7 @@ struct SetFontSizeCalcOps : public css::BasicCoordCalcOps,
   {
   }
 
-  result_type ComputeLeafValue(const nsCSSValue& aValue)
+  bool ComputeLeafValue(result_type& aResult, const nsCSSValue& aValue)
   {
     nscoord size;
     if (aValue.IsLengthUnit()) {
@@ -3426,7 +3445,8 @@ struct SetFontSizeCalcOps : public css::BasicCoordCalcOps,
       size = mParentSize;
     }
 
-    return size;
+    aResult = size;
+    return true;
   }
 };
 
@@ -3492,7 +3512,9 @@ nsRuleNode::SetFontSize(nsPresContext* aPresContext,
                            aPresContext, aContext,
                            aAtRoot,
                            aConditions);
-    *aSize = css::ComputeCalc(*sizeValue, ops);
+    if (!css::ComputeCalc(*aSize, *sizeValue, ops)) {
+      MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+    }
     if (*aSize < 0) {
       MOZ_ASSERT(sizeValue->IsCalcUnit(),
                  "negative lengths and percents should be rejected by parser");
@@ -3672,13 +3694,16 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, GeckoStyleContext* aContext,
     "LookAndFeel.h system-font constants out of sync with nsStyleConsts.h");
 
   // Fall back to defaultVariableFont.
-  nsFont systemFont = *defaultVariableFont;
+  Maybe<nsFont> lazySystemFont;
   const nsCSSValue* systemFontValue = aRuleData->ValueForSystemFont();
   if (eCSSUnit_Enumerated == systemFontValue->GetUnit()) {
+    lazySystemFont.emplace(*defaultVariableFont);
     LookAndFeel::FontID fontID =
       (LookAndFeel::FontID)systemFontValue->GetIntValue();
-    ComputeSystemFont(&systemFont, fontID, aPresContext, defaultVariableFont);
+    ComputeSystemFont(lazySystemFont.ptr(), fontID, aPresContext,
+                      defaultVariableFont);
   }
+  const nsFont& systemFont = lazySystemFont.refOr(*defaultVariableFont);
 
   // font-family: font family list, enum, inherit
   const nsCSSValue* familyValue = aRuleData->ValueForFontFamily();
@@ -4635,24 +4660,23 @@ struct LengthNumberCalcOps : public css::FloatCoeffsAlreadyNormalizedOps
     return result;
   }
 
-  result_type ComputeLeafValue(const nsCSSValue& aValue)
+  bool ComputeLeafValue(result_type& aResult, const nsCSSValue& aValue)
   {
-    LengthNumberCalcObj result;
     if (aValue.IsLengthUnit()) {
-      result.mIsNumber = false;
-      result.mValue = CalcLength(aValue, mStyleContext,
+      aResult.mIsNumber = false;
+      aResult.mValue = CalcLength(aValue, mStyleContext,
                                       mPresContext, mConditions);
     }
     else if (eCSSUnit_Number == aValue.GetUnit()) {
-      result.mIsNumber = true;
-      result.mValue = aValue.GetFloatValue();
+      aResult.mIsNumber = true;
+      aResult.mValue = aValue.GetFloatValue();
     } else {
       MOZ_ASSERT(false, "unexpected value");
-      result.mIsNumber = true;
-      result.mValue = 1.0f;
+      aResult.mIsNumber = true;
+      aResult.mValue = 1.0f;
     }
 
-    return result;
+    return true;
   }
 };
 
@@ -4665,30 +4689,29 @@ struct SetLineHeightCalcOps : public LengthNumberCalcOps
   {
   }
 
-  result_type ComputeLeafValue(const nsCSSValue& aValue)
+  bool ComputeLeafValue(result_type& aResult, const nsCSSValue& aValue)
   {
-    LengthNumberCalcObj result;
     if (aValue.IsLengthUnit()) {
-      result.mIsNumber = false;
-      result.mValue = CalcLength(aValue, mStyleContext,
+      aResult.mIsNumber = false;
+      aResult.mValue = CalcLength(aValue, mStyleContext,
                                       mPresContext, mConditions);
     }
     else if (eCSSUnit_Percent == aValue.GetUnit()) {
       mConditions.SetUncacheable();
-      result.mIsNumber = false;
+      aResult.mIsNumber = false;
       nscoord fontSize = mStyleContext->StyleFont()->mFont.size;
-      result.mValue = fontSize * aValue.GetPercentValue();
+      aResult.mValue = fontSize * aValue.GetPercentValue();
     }
     else if (eCSSUnit_Number == aValue.GetUnit()) {
-      result.mIsNumber = true;
-      result.mValue = aValue.GetFloatValue();
+      aResult.mIsNumber = true;
+      aResult.mValue = aValue.GetFloatValue();
     } else {
       MOZ_ASSERT(false, "unexpected value");
-      result.mIsNumber = true;
-      result.mValue = 1.0f;
+      aResult.mIsNumber = true;
+      aResult.mValue = 1.0f;
     }
 
-    return result;
+    return true;
   }
 };
 
@@ -4715,7 +4738,10 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
     text->mTabSize = nsStyleCoord(float(NS_STYLE_TABSIZE_INITIAL), eStyleUnit_Factor);
   } else if (eCSSUnit_Calc == tabSizeValue->GetUnit()) {
     LengthNumberCalcOps ops(aContext, mPresContext, conditions);
-    LengthNumberCalcObj obj = css::ComputeCalc(*tabSizeValue, ops);
+    LengthNumberCalcObj obj;
+    if (!css::ComputeCalc(obj, *tabSizeValue, ops)) {
+      MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+    }
     float value = obj.mValue < 0 ? 0 : obj.mValue;
     if (obj.mIsNumber) {
       text->mTabSize.SetFactorValue(value);
@@ -4770,7 +4796,10 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
   }
   else if (eCSSUnit_Calc == lineHeightValue->GetUnit()) {
     SetLineHeightCalcOps ops(aContext, mPresContext, conditions);
-    LengthNumberCalcObj obj = css::ComputeCalc(*lineHeightValue, ops);
+    LengthNumberCalcObj obj;
+    if (!css::ComputeCalc(obj, *lineHeightValue, ops)) {
+      MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+    }
     if (obj.mIsNumber) {
       text->mLineHeight.SetFactorValue(obj.mValue);
     } else {
@@ -6912,7 +6941,10 @@ ComputePositionCoord(GeckoStyleContext* aStyleContext,
     LengthPercentPairCalcOps ops(aStyleContext,
                                  aStyleContext->PresContext(),
                                  aConditions);
-    nsRuleNode::ComputedCalc vals = ComputeCalc(aOffset, ops);
+    nsRuleNode::ComputedCalc vals;
+    if (!ComputeCalc(vals, aOffset, ops)) {
+      MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+    }
     aResult->mLength = vals.mLength;
     aResult->mPercent = vals.mPercent;
     aResult->mHasPercent = ops.mHasPercent;
@@ -7085,7 +7117,10 @@ struct BackgroundItemComputer<nsCSSValuePairList, nsStyleImageLayers::Size>
         LengthPercentPairCalcOps ops(aStyleContext,
                                      aStyleContext->PresContext(),
                                      aConditions);
-        nsRuleNode::ComputedCalc vals = ComputeCalc(specified, ops);
+        nsRuleNode::ComputedCalc vals;
+        if (!ComputeCalc(vals, specified, ops)) {
+          MOZ_ASSERT_UNREACHABLE("unexpected ComputeCalc failure");
+        }
         (size.*(axis->result)).mLength = vals.mLength;
         (size.*(axis->result)).mPercent = vals.mPercent;
         (size.*(axis->result)).mHasPercent = ops.mHasPercent;
@@ -8626,7 +8661,7 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
   if (MOZ_UNLIKELY(justifyItemsValue.GetUnit() == eCSSUnit_Inherit)) {
     if (MOZ_LIKELY(parentContext)) {
       pos->mJustifyItems =
-        parentPos->ComputedJustifyItems(parentContext->GetParentAllowServo());
+        parentPos->ComputedJustifyItems(parentContext->GetParent());
     } else {
       pos->mJustifyItems = NS_STYLE_JUSTIFY_NORMAL;
     }

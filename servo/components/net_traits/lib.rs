@@ -23,7 +23,7 @@ extern crate servo_config;
 extern crate servo_url;
 extern crate url;
 extern crate uuid;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
@@ -228,10 +228,8 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 
     fn process_response_eof(&mut self, response: &Response) {
-        if response.is_network_error() {
-            // todo: finer grained errors
-            let _ =
-                self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Network error".into()))));
+        if let Some(e) = response.get_network_error() {
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
         } else {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
         }

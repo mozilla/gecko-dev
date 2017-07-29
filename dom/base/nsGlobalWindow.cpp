@@ -24,11 +24,12 @@
 #include "mozilla/dom/StorageEvent.h"
 #include "mozilla/dom/StorageEventBinding.h"
 #include "mozilla/dom/StorageNotifierService.h"
+#include "mozilla/dom/StorageUtils.h"
 #include "mozilla/dom/Timeout.h"
 #include "mozilla/dom/TimeoutHandler.h"
 #include "mozilla/dom/TimeoutManager.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
 #include "mozilla/dom/WindowOrientationObserver.h"
 #endif
 #include "nsDOMOfflineResourceList.h"
@@ -313,6 +314,8 @@ int32_t gTimeoutCnt                                    = 0;
 
 #define DOM_TOUCH_LISTENER_ADDED "dom-touch-listener-added"
 
+#define MEMORY_PRESSURE_OBSERVER_TOPIC "memory-pressure"
+
 // The interval at which we execute idle callbacks
 static uint32_t gThrottledIdlePeriodLength;
 
@@ -498,7 +501,19 @@ public:
     }
   }
 
-  virtual nsIEventTarget*
+  nsIPrincipal*
+  GetPrincipal() const override
+  {
+    return mWindow ? mWindow->GetPrincipal() : nullptr;
+  }
+
+  bool
+  IsPrivateBrowsing() const override
+  {
+    return mWindow ? mWindow->IsPrivateBrowsing() : false;
+  }
+
+  nsIEventTarget*
   GetEventTarget() const override
   {
     return mWindow ? mWindow->EventTargetFor(TaskCategory::Other) : nullptr;
@@ -678,12 +693,6 @@ IdleRequestExecutor::GetName(nsACString& aName)
 {
     aName.AssignASCII("IdleRequestExecutor");
     return NS_OK;
-}
-
-NS_IMETHODIMP
-IdleRequestExecutor::SetName(const char* aName)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -1650,6 +1659,8 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
         // a strong reference.
         os->AddObserver(mObserver, NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
                         false);
+
+        os->AddObserver(mObserver, MEMORY_PRESSURE_OBSERVER_TOPIC, false);
       }
 
       Preferences::AddStrongObserver(mObserver, "intl.accept_languages");
@@ -1955,6 +1966,7 @@ nsGlobalWindow::CleanUp()
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (os) {
       os->RemoveObserver(mObserver, NS_IOSERVICE_OFFLINE_STATUS_TOPIC);
+      os->RemoveObserver(mObserver, MEMORY_PRESSURE_OBSERVER_TOPIC);
     }
 
     RefPtr<StorageNotifierService> sns = StorageNotifierService::GetOrCreate();
@@ -2012,7 +2024,7 @@ nsGlobalWindow::CleanUp()
   mSpeechSynthesis = nullptr;
 #endif
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
   mOrientationChangeObserver = nullptr;
 #endif
 
@@ -2150,7 +2162,7 @@ nsGlobalWindow::FreeInnerObjects()
     mScreen = nullptr;
   }
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
   mOrientationChangeObserver = nullptr;
 #endif
 
@@ -4422,6 +4434,11 @@ nsPIDOMWindowInner::SyncStateFromParentWindow()
 bool
 nsPIDOMWindowInner::IsPlayingAudio()
 {
+  for (uint32_t i = 0; i < mAudioContexts.Length(); i++) {
+    if (mAudioContexts[i]->IsRunning()) {
+      return true;
+    }
+  }
   RefPtr<AudioChannelService> acs = AudioChannelService::Get();
   if (!acs) {
     return false;
@@ -4892,7 +4909,6 @@ nsGlobalWindow::GetContentOuter(JSContext* aCx,
   }
 
   aRetval.set(nullptr);
-  return;
 }
 
 void
@@ -9238,7 +9254,7 @@ nsGlobalWindow::PostMessageMozOuter(JSContext* aCx, JS::Handle<JS::Value> aMessa
     return;
   }
 
-  aError = Dispatch("PostMessageEvent", TaskCategory::Other, event.forget());
+  aError = Dispatch(TaskCategory::Other, event.forget());
 }
 
 void
@@ -9290,7 +9306,7 @@ public:
   PostCloseEvent(nsGlobalWindow* aWindow, bool aIndirect) {
     nsCOMPtr<nsIRunnable> ev = new nsCloseEvent(aWindow, aIndirect);
     nsresult rv =
-      aWindow->Dispatch("nsCloseEvent", TaskCategory::Other, ev.forget());
+      aWindow->Dispatch(TaskCategory::Other, ev.forget());
     if (NS_SUCCEEDED(rv))
       aWindow->MaybeForgiveSpamCount();
     return rv;
@@ -9821,8 +9837,7 @@ void
 nsGlobalWindow::NotifyWindowIDDestroyed(const char* aTopic)
 {
   nsCOMPtr<nsIRunnable> runnable = new WindowDestroyedEvent(this, mWindowID, aTopic);
-  nsresult rv =
-    Dispatch("WindowDestroyedEvent", TaskCategory::Other, runnable.forget());
+  nsresult rv = Dispatch(TaskCategory::Other, runnable.forget());
   if (NS_SUCCEEDED(rv)) {
     mNotifiedIDDestroyed = true;
   }
@@ -11090,7 +11105,7 @@ nsGlobalWindow::DispatchAsyncHashchange(nsIURI *aOldURI, nsIURI *aNewURI)
 
   nsCOMPtr<nsIRunnable> callback =
     new HashchangeCallback(oldWideSpec, newWideSpec, this);
-  return Dispatch("HashchangeCallback", TaskCategory::Other, callback.forget());
+  return Dispatch(TaskCategory::Other, callback.forget());
 }
 
 nsresult
@@ -11690,8 +11705,7 @@ nsGlobalWindow::NotifyIdleObserver(IdleObserverHolder* aIdleObserverHolder,
     new NotifyIdleObserverRunnable(aIdleObserverHolder->mIdleObserver,
                                    aIdleObserverHolder->mTimeInS,
                                    aCallOnidle, this);
-  if (NS_FAILED(Dispatch("NotifyIdleObserverRunnable", TaskCategory::Other,
-                         caller.forget()))) {
+  if (NS_FAILED(Dispatch(TaskCategory::Other, caller.forget()))) {
     NS_WARNING("Failed to dispatch thread for idle observer notification.");
   }
 }
@@ -12057,15 +12071,14 @@ nsGlobalWindow::ShowSlowScriptDialog()
   if (showDebugButton)
     buttonFlags += nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_2;
 
-  // Null out the operation callback while we're re-entering JS here.
-  bool old = JS_DisableInterruptCallback(cx);
-
-  // Open the dialog.
-  rv = prompt->ConfirmEx(title, msg, buttonFlags, waitButton, stopButton,
-                         debugButton, neverShowDlg, &neverShowDlgChk,
-                         &buttonPressed);
-
-  JS_ResetInterruptCallback(cx, old);
+  {
+    // Null out the operation callback while we're re-entering JS here.
+    AutoDisableJSInterruptCallback disabler(cx);
+    // Open the dialog.
+    rv = prompt->ConfirmEx(title, msg, buttonFlags, waitButton, stopButton,
+                          debugButton, neverShowDlg, &neverShowDlgChk,
+                          &buttonPressed);
+  }
 
   if (NS_SUCCEEDED(rv) && (buttonPressed == 0)) {
     return neverShowDlgChk ? AlwaysContinueSlowScript : ContinueSlowScript;
@@ -12269,6 +12282,13 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
+  if (!nsCRT::strcmp(aTopic, MEMORY_PRESSURE_OBSERVER_TOPIC)) {
+    if (mPerformance) {
+      mPerformance->MemoryPressure();
+    }
+    return NS_OK;
+  }
+
   if (!nsCRT::strcmp(aTopic, OBSERVER_TOPIC_IDLE)) {
     mCurrentlyIdle = true;
     if (IsFrozen()) {
@@ -12369,14 +12389,10 @@ nsGlobalWindow::ObserveStorageNotification(StorageEvent* aEvent,
 {
   MOZ_ASSERT(aEvent);
 
-  // Enforce that the source storage area's private browsing state matches
-  // this window's state.  These flag checks and their maintenance independent
-  // from the principal's OriginAttributes matter because chrome docshells
-  // that are part of private browsing windows can be private browsing without
-  // having their OriginAttributes set (because they have the system
-  // principal).
-  bool isPrivateBrowsing = IsPrivateBrowsing();
-  if (isPrivateBrowsing != aPrivateBrowsing) {
+  // The private browsing check must be done here again because this window
+  // could have changed its state before the notification check and now. This
+  // happens in case this window did have a docShell at that time.
+  if (aPrivateBrowsing != IsPrivateBrowsing()) {
     return;
   }
 
@@ -12430,18 +12446,9 @@ nsGlobalWindow::ObserveStorageNotification(StorageEvent* aEvent,
 
   else {
     MOZ_ASSERT(!NS_strcmp(aStorageType, u"localStorage"));
-    nsIPrincipal* storagePrincipal = aEvent->GetPrincipal();
-    if (!storagePrincipal) {
-      return;
-    }
 
-    bool equals = false;
-    nsresult rv = storagePrincipal->Equals(principal, &equals);
-    NS_ENSURE_SUCCESS_VOID(rv);
-
-    if (!equals) {
-      return;
-    }
+    MOZ_DIAGNOSTIC_ASSERT(StorageUtils::PrincipalsEqual(aEvent->GetPrincipal(),
+                                                        principal));
 
     fireMozStorageChanged = mLocalStorage == aEvent->GetStorageArea();
 
@@ -12893,8 +12900,7 @@ public:
     void (nsGlobalWindow::*run)() = &nsGlobalWindow::UnblockScriptedClosing;
     nsCOMPtr<nsIRunnable> caller = NewRunnableMethod(
       "AutoUnblockScriptClosing::~AutoUnblockScriptClosing", mWin, run);
-    mWin->Dispatch("nsGlobalWindow::UnblockScriptedClosing",
-                   TaskCategory::Other, caller.forget());
+    mWin->Dispatch(TaskCategory::Other, caller.forget());
   }
 };
 
@@ -13641,7 +13647,7 @@ nsGlobalWindow::DisableDeviceSensor(uint32_t aType)
   }
 }
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
 void
 nsGlobalWindow::EnableOrientationChangeListener()
 {
@@ -13772,13 +13778,13 @@ nsGlobalWindow::DisableTimeChangeNotifications()
 void
 nsGlobalWindow::AddSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
 {
-  aWindowSizes->mDOMOtherSize += aWindowSizes->mMallocSizeOf(this);
+  aWindowSizes->mDOMOtherSize += aWindowSizes->mState.mMallocSizeOf(this);
 
   if (IsInnerWindow()) {
     EventListenerManager* elm = GetExistingListenerManager();
     if (elm) {
       aWindowSizes->mDOMOtherSize +=
-        elm->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf);
+        elm->SizeOfIncludingThis(aWindowSizes->mState.mMallocSizeOf);
       aWindowSizes->mDOMEventListenersCount +=
         elm->ListenerCount();
     }
@@ -13795,22 +13801,31 @@ nsGlobalWindow::AddSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
 
   if (mNavigator) {
     aWindowSizes->mDOMOtherSize +=
-      mNavigator->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf);
+      mNavigator->SizeOfIncludingThis(aWindowSizes->mState.mMallocSizeOf);
   }
 
   aWindowSizes->mDOMEventTargetsSize +=
-    mEventTargetObjects.ShallowSizeOfExcludingThis(aWindowSizes->mMallocSizeOf);
+    mEventTargetObjects.ShallowSizeOfExcludingThis(
+      aWindowSizes->mState.mMallocSizeOf);
 
   for (auto iter = mEventTargetObjects.ConstIter(); !iter.Done(); iter.Next()) {
     DOMEventTargetHelper* et = iter.Get()->GetKey();
     if (nsCOMPtr<nsISizeOfEventTarget> iSizeOf = do_QueryObject(et)) {
       aWindowSizes->mDOMEventTargetsSize +=
-        iSizeOf->SizeOfEventTargetIncludingThis(aWindowSizes->mMallocSizeOf);
+        iSizeOf->SizeOfEventTargetIncludingThis(
+          aWindowSizes->mState.mMallocSizeOf);
     }
     if (EventListenerManager* elm = et->GetExistingListenerManager()) {
       aWindowSizes->mDOMEventListenersCount += elm->ListenerCount();
     }
     ++aWindowSizes->mDOMEventTargetsCount;
+  }
+
+  if (IsInnerWindow() && mPerformance) {
+    aWindowSizes->mDOMPerformanceUserEntries =
+      mPerformance->SizeOfUserEntries(aWindowSizes->mState.mMallocSizeOf);
+    aWindowSizes->mDOMPerformanceResourceEntries =
+      mPerformance->SizeOfResourceEntries(aWindowSizes->mState.mMallocSizeOf);
   }
 }
 
@@ -14794,7 +14809,7 @@ nsGlobalWindow::IsModalContentWindow(JSContext* aCx, JSObject* aGlobal)
   return xpc::WindowOrNull(aGlobal)->IsModalContentWindow();
 }
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
 int16_t
 nsGlobalWindow::Orientation(CallerType aCallerType) const
 {
@@ -15397,15 +15412,14 @@ nsPIDOMWindow<T>::GetDocGroup() const
 }
 
 nsresult
-nsGlobalWindow::Dispatch(const char* aName,
-                         TaskCategory aCategory,
+nsGlobalWindow::Dispatch(TaskCategory aCategory,
                          already_AddRefed<nsIRunnable>&& aRunnable)
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   if (GetDocGroup()) {
-    return GetDocGroup()->Dispatch(aName, aCategory, Move(aRunnable));
+    return GetDocGroup()->Dispatch(aCategory, Move(aRunnable));
   }
-  return DispatcherTrait::Dispatch(aName, aCategory, Move(aRunnable));
+  return DispatcherTrait::Dispatch(aCategory, Move(aRunnable));
 }
 
 nsISerialEventTarget*
@@ -15494,13 +15508,13 @@ nsGlobalWindow::GetPaintWorklet(ErrorResult& aRv)
 }
 
 void
-nsGlobalWindow::GetAppLocalesAsBCP47(nsTArray<nsString>& aLocales)
+nsGlobalWindow::GetRegionalPrefsLocales(nsTArray<nsString>& aLocales)
 {
-  nsTArray<nsCString> appLocales;
-  mozilla::intl::LocaleService::GetInstance()->GetAppLocalesAsBCP47(appLocales);
+  AutoTArray<nsCString, 10> rpLocales;
+  mozilla::intl::LocaleService::GetInstance()->GetRegionalPrefsLocales(rpLocales);
 
-  for (uint32_t i = 0; i < appLocales.Length(); i++) {
-    aLocales.AppendElement(NS_ConvertUTF8toUTF16(appLocales[i]));
+  for (const auto& loc : rpLocales) {
+    aLocales.AppendElement(NS_ConvertUTF8toUTF16(loc));
   }
 }
 

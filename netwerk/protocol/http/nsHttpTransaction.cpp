@@ -173,13 +173,19 @@ void nsHttpTransaction::ResumeReading()
     }
 }
 
+bool nsHttpTransaction::EligibleForThrottling()
+{
+  return (mClassOfService & (nsIClassOfService::Throttleable |
+                             nsIClassOfService::Leader |
+                             nsIClassOfService::Unblocked)) ==
+    nsIClassOfService::Throttleable;
+}
+
 void nsHttpTransaction::SetClassOfService(uint32_t cos)
 {
-    bool wasThrottling = mClassOfService & nsIClassOfService::Throttleable;
-
+    bool wasThrottling = EligibleForThrottling();
     mClassOfService = cos;
-
-    bool isThrottling = mClassOfService & nsIClassOfService::Throttleable;
+    bool isThrottling = EligibleForThrottling();
 
     if (mConnection && wasThrottling != isThrottling) {
         // Do nothing until we are actually activated.  For now
@@ -242,6 +248,7 @@ nsHttpTransaction::Init(uint32_t caps,
     MOZ_ASSERT(NS_IsMainThread());
 
     mTopLevelOuterContentWindowId = topLevelOuterContentWindowId;
+    LOG(("  window-id = %" PRIx64, mTopLevelOuterContentWindowId));
 
     mActivityDistributor = services::GetActivityDistributor();
     if (!mActivityDistributor) {
@@ -577,6 +584,14 @@ nsHttpTransaction::OnTransportStatus(nsITransport* transport,
         } else if (status == NS_NET_STATUS_CONNECTED_TO) {
             SetConnectEnd(TimeStamp::Now(), true);
         } else if (status == NS_NET_STATUS_TLS_HANDSHAKE_ENDED) {
+            {
+                // before overwriting connectEnd, copy it to secureConnectionStart
+                MutexAutoLock lock(mLock);
+                if (mTimings.secureConnectionStart.IsNull() &&
+                    !mTimings.connectEnd.IsNull()) {
+                    mTimings.secureConnectionStart = mTimings.connectEnd;
+                }
+            }
             SetConnectEnd(TimeStamp::Now(), false);
         } else if (status == NS_NET_STATUS_SENDING_TO) {
             // Set the timestamp to Now(), only if it null
@@ -829,8 +844,7 @@ bool nsHttpTransaction::ShouldStopReading()
         return false;
     }
 
-    if (!gHttpHandler->ConnMgr()->ShouldStopReading(
-            this, mClassOfService & nsIClassOfService::Throttleable)) {
+    if (!gHttpHandler->ConnMgr()->ShouldStopReading(this, EligibleForThrottling())) {
         // We are not obligated to throttle
         return false;
     }
@@ -1837,8 +1851,11 @@ nsHttpTransaction::DispatchedAsBlocking()
 void
 nsHttpTransaction::RemoveDispatchedAsBlocking()
 {
-    if (!mRequestContext || !mDispatchedAsBlocking)
+    if (!mRequestContext || !mDispatchedAsBlocking) {
+        LOG(("nsHttpTransaction::RemoveDispatchedAsBlocking this=%p not blocking",
+             this));
         return;
+    }
 
     uint32_t blockers = 0;
     nsresult rv = mRequestContext->RemoveBlockingTransaction(&blockers);
@@ -1944,6 +1961,13 @@ nsHttpTransaction::Timings()
 }
 
 void
+nsHttpTransaction::BootstrapTimings(TimingStruct times)
+{
+    mozilla::MutexAutoLock lock(mLock);
+    mTimings = times;
+}
+
+void
 nsHttpTransaction::SetDomainLookupStart(mozilla::TimeStamp timeStamp, bool onlyIfNull)
 {
     mozilla::MutexAutoLock lock(mLock);
@@ -2032,6 +2056,13 @@ nsHttpTransaction::GetConnectStart()
 {
     mozilla::MutexAutoLock lock(mLock);
     return mTimings.connectStart;
+}
+
+mozilla::TimeStamp
+nsHttpTransaction::GetSecureConnectionStart()
+{
+    mozilla::MutexAutoLock lock(mLock);
+    return mTimings.secureConnectionStart;
 }
 
 mozilla::TimeStamp

@@ -18,6 +18,7 @@
 #include "mozilla/net/WebSocketChannelParent.h"
 #include "mozilla/net/WebSocketEventListenerParent.h"
 #include "mozilla/net/DataChannelParent.h"
+#include "mozilla/net/SimpleChannelParent.h"
 #include "mozilla/net/AltDataOutputStreamParent.h"
 #include "mozilla/Unused.h"
 #include "mozilla/net/FileChannelParent.h"
@@ -530,6 +531,29 @@ NeckoParent::RecvPDataChannelConstructor(PDataChannelParent* actor,
   return IPC_OK();
 }
 
+PSimpleChannelParent*
+NeckoParent::AllocPSimpleChannelParent(const uint32_t &channelId)
+{
+  RefPtr<SimpleChannelParent> p = new SimpleChannelParent();
+  return p.forget().take();
+}
+
+bool
+NeckoParent::DeallocPSimpleChannelParent(PSimpleChannelParent* actor)
+{
+  RefPtr<SimpleChannelParent> p = dont_AddRef(actor).downcast<SimpleChannelParent>();
+  return true;
+}
+
+mozilla::ipc::IPCResult
+NeckoParent::RecvPSimpleChannelConstructor(PSimpleChannelParent* actor,
+                                           const uint32_t& channelId)
+{
+  SimpleChannelParent* p = static_cast<SimpleChannelParent*>(actor);
+  MOZ_ALWAYS_TRUE(p->Init(channelId));
+  return IPC_OK();
+}
+
 PFileChannelParent*
 NeckoParent::AllocPFileChannelParent(const uint32_t &channelId)
 {
@@ -951,29 +975,11 @@ NeckoParent::RecvRemoveRequestContext(const uint64_t& rcid)
 }
 
 mozilla::ipc::IPCResult
-NeckoParent::RecvNotifyCurrentTopLevelOuterContentWindowId(const uint64_t& aWindowId)
-{
-  if (NS_FAILED(NS_NotifyCurrentTopLevelOuterContentWindowId(aWindowId))) {
-    NS_WARNING("NS_NotifyCurrentTopLevelOuterContentWindowId failed!");
-  }
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
 NeckoParent::RecvGetExtensionStream(const URIParams& aURI,
-                                    const LoadInfoArgs& aLoadInfo,
                                     GetExtensionStreamResolver&& aResolve)
 {
   nsCOMPtr<nsIURI> deserializedURI = DeserializeURI(aURI);
   if (!deserializedURI) {
-    return IPC_FAIL_NO_REASON(this);
-  }
-
-  nsCOMPtr<nsILoadInfo> deserializedLoadInfo;
-  nsresult rv;
-  rv = LoadInfoArgsToLoadInfo(aLoadInfo, getter_AddRefs(deserializedLoadInfo));
-  if (NS_FAILED(rv)) {
     return IPC_FAIL_NO_REASON(this);
   }
 
@@ -991,9 +997,7 @@ NeckoParent::RecvGetExtensionStream(const URIParams& aURI,
   AutoIPCStream autoStream;
   nsCOMPtr<nsIInputStream> inputStream;
   bool terminateSender = true;
-  auto inputStreamOrReason = ph->NewStream(deserializedURI,
-                                           deserializedLoadInfo,
-                                           &terminateSender);
+  auto inputStreamOrReason = ph->NewStream(deserializedURI, &terminateSender);
   if (inputStreamOrReason.isOk()) {
     inputStream = inputStreamOrReason.unwrap();
     ContentParent* contentParent = static_cast<ContentParent*>(Manager());
@@ -1014,18 +1018,10 @@ NeckoParent::RecvGetExtensionStream(const URIParams& aURI,
 
 mozilla::ipc::IPCResult
 NeckoParent::RecvGetExtensionFD(const URIParams& aURI,
-                                const OptionalLoadInfoArgs& aLoadInfo,
                                 GetExtensionFDResolver&& aResolve)
 {
   nsCOMPtr<nsIURI> deserializedURI = DeserializeURI(aURI);
   if (!deserializedURI) {
-    return IPC_FAIL_NO_REASON(this);
-  }
-
-  nsCOMPtr<nsILoadInfo> deserializedLoadInfo;
-  nsresult rv;
-  rv = LoadInfoArgsToLoadInfo(aLoadInfo, getter_AddRefs(deserializedLoadInfo));
-  if (NS_FAILED(rv)) {
     return IPC_FAIL_NO_REASON(this);
   }
 
@@ -1041,8 +1037,7 @@ NeckoParent::RecvGetExtensionFD(const URIParams& aURI,
   // an extension is allowed to access via moz-extension URI's should be
   // accepted.
   bool terminateSender = true;
-  auto result = ph->NewFD(deserializedURI, deserializedLoadInfo,
-                          &terminateSender, aResolve);
+  auto result = ph->NewFD(deserializedURI, &terminateSender, aResolve);
 
   if (result.isErr() && terminateSender) {
     return IPC_FAIL_NO_REASON(this);

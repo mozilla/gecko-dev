@@ -14,7 +14,6 @@ extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
-extern crate core;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
@@ -37,6 +36,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 #[macro_use] extern crate serde;
 extern crate serde_json;
+extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_geometry;
@@ -46,7 +46,7 @@ extern crate style;
 extern crate style_traits;
 extern crate unicode_bidi;
 extern crate unicode_script;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 #[macro_use]
 pub mod layout_debug;
@@ -55,7 +55,7 @@ pub mod animation;
 mod block;
 pub mod construct;
 pub mod context;
-mod data;
+pub mod data;
 pub mod display_list_builder;
 mod flex;
 mod floats;
@@ -92,6 +92,6 @@ pub use fragment::Fragment;
 pub use fragment::SpecificFragmentInfo;
 pub use self::data::LayoutData;
 
-// We can't use stylearc for everything in layout, because the Flow stuff uses
+// We can't use servo_arc for everything in layout, because the Flow stuff uses
 // weak references.
-use style::stylearc::Arc as StyleArc;
+use servo_arc::Arc as ServoArc;

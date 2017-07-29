@@ -100,6 +100,7 @@ UNITTEST_ALIASES = {
     'reftests': alias_matches(r'^(plain-)?reftest.*$'),
     'reftests-e10s': alias_matches(r'^(plain-)?reftest-e10s.*$'),
     'reftest-stylo': alias_matches(r'^(plain-)?reftest-stylo.*$'),
+    'reftest-gpu': alias_matches(r'^(plain-)?reftest-gpu.*$'),
     'robocop': alias_prefix('robocop'),
     'web-platform-test': alias_prefix('web-platform-tests'),
     'web-platform-tests': alias_prefix('web-platform-tests'),
@@ -126,9 +127,10 @@ UNITTEST_PLATFORM_PRETTY_NAMES = {
     # '10.6': [..TODO..],
     # '10.8': [..TODO..],
     # 'Android 2.3 API9': [..TODO..],
-    # 'Windows 7':  [..TODO..],
-    # 'Windows 7 VM': [..TODO..],
-    # 'Windows 8':  [..TODO..],
+    'Windows 7':  ['windows7-32'],
+    'Windows 7 VM':  ['windows7-32-vm'],
+    'Windows 8':  ['windows8-64'],
+    'Windows 10':  ['windows10-64'],
     # 'Windows XP': [..TODO..],
     # 'win32': [..TODO..],
     # 'win64': [..TODO..],
@@ -572,13 +574,14 @@ class TryOptionSyntax(object):
                     break
             else:
                 return False
-            if 'platforms' in test:
-                platform = attr('test_platform', '').split('/')[0]
-                if platform not in test['platforms']:
-                    return False
             if 'only_chunks' in test and attr('test_chunk') not in test['only_chunks']:
                 return False
-            return True
+            if 'platforms' in test:
+                platform = attr('test_platform', '').split('/')[0]
+                # Platforms can be forced by syntax like "-u xpcshell[Windows 8]"
+                return platform in test['platforms']
+            else:
+                return check_run_on_projects()
 
         job_try_name = attr('job_try_name')
         if job_try_name:

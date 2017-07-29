@@ -3942,7 +3942,7 @@ JS::ReadOnlyCompileOptions::copyPODOptions(const ReadOnlyCompileOptions& rhs)
     copyPODTransitiveOptions(rhs);
     lineno = rhs.lineno;
     column = rhs.column;
-    sourceStartColumn = rhs.sourceStartColumn;
+    scriptSourceOffset = rhs.scriptSourceOffset;
     isRunOnce = rhs.isRunOnce;
     noScriptRval = rhs.noScriptRval;
 }
@@ -4188,11 +4188,16 @@ JS::CompileForNonSyntacticScope(JSContext* cx, const ReadOnlyCompileOptions& opt
     return ::Compile(cx, options, ScopeKind::NonSyntactic, filename, script);
 }
 
-JS_PUBLIC_API(bool)
-JS::CanCompileOffThread(JSContext* cx, const ReadOnlyCompileOptions& options, size_t length)
+enum class OffThread {
+    Compile, Decode,
+};
+
+static bool
+CanDoOffThread(JSContext* cx, const ReadOnlyCompileOptions& options, size_t length, OffThread what)
 {
     static const size_t TINY_LENGTH = 5 * 1000;
-    static const size_t HUGE_LENGTH = 100 * 1000;
+    static const size_t HUGE_SRC_LENGTH = 100 * 1000;
+    static const size_t HUGE_BC_LENGTH = 367 * 1000;
 
     // These are heuristics which the caller may choose to ignore (e.g., for
     // testing purposes).
@@ -4205,11 +4210,27 @@ JS::CanCompileOffThread(JSContext* cx, const ReadOnlyCompileOptions& options, si
         // If the parsing task would have to wait for GC to complete, it'll probably
         // be faster to just start it synchronously on the active thread unless the
         // script is huge.
-        if (OffThreadParsingMustWaitForGC(cx->runtime()) && length < HUGE_LENGTH)
-            return false;
+        if (OffThreadParsingMustWaitForGC(cx->runtime())) {
+            if (what == OffThread::Compile && length < HUGE_SRC_LENGTH)
+                return false;
+            if (what == OffThread::Decode && length < HUGE_BC_LENGTH)
+                return false;
+        }
     }
 
     return cx->runtime()->canUseParallelParsing() && CanUseExtraThreads();
+}
+
+JS_PUBLIC_API(bool)
+JS::CanCompileOffThread(JSContext* cx, const ReadOnlyCompileOptions& options, size_t length)
+{
+    return CanDoOffThread(cx, options, length, OffThread::Compile);
+}
+
+JS_PUBLIC_API(bool)
+JS::CanDecodeOffThread(JSContext* cx, const ReadOnlyCompileOptions& options, size_t length)
+{
+    return CanDoOffThread(cx, options, length, OffThread::Decode);
 }
 
 JS_PUBLIC_API(bool)
@@ -4268,7 +4289,7 @@ JS::DecodeOffThreadScript(JSContext* cx, const ReadOnlyCompileOptions& options,
                           OffThreadCompileCallback callback, void* callbackData)
 {
     JS::TranscodeRange range(buffer.begin() + cursor, buffer.length() - cursor);
-    MOZ_ASSERT(CanCompileOffThread(cx, options, range.length()));
+    MOZ_ASSERT(CanDecodeOffThread(cx, options, range.length()));
     return StartOffThreadDecodeScript(cx, options, range, callback, callbackData);
 }
 
@@ -4277,7 +4298,7 @@ JS::DecodeOffThreadScript(JSContext* cx, const ReadOnlyCompileOptions& options,
                           const mozilla::Range<uint8_t>& range /* TranscodeRange& */,
                           OffThreadCompileCallback callback, void* callbackData)
 {
-    MOZ_ASSERT(CanCompileOffThread(cx, options, range.length()));
+    MOZ_ASSERT(CanDecodeOffThread(cx, options, range.length()));
     return StartOffThreadDecodeScript(cx, options, range, callback, callbackData);
 }
 
@@ -4578,7 +4599,7 @@ JS::CompileFunction(JSContext* cx, AutoObjectVector& envChain,
 }
 
 JS_PUBLIC_API(JSString*)
-JS_DecompileScript(JSContext* cx, HandleScript script, const char* name, unsigned indent)
+JS_DecompileScript(JSContext* cx, HandleScript script)
 {
     MOZ_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
 
@@ -4587,7 +4608,7 @@ JS_DecompileScript(JSContext* cx, HandleScript script, const char* name, unsigne
     script->ensureNonLazyCanonicalFunction();
     RootedFunction fun(cx, script->functionNonDelazifying());
     if (fun)
-        return JS_DecompileFunction(cx, fun, indent);
+        return JS_DecompileFunction(cx, fun);
     bool haveSource = script->scriptSource()->hasSourceData();
     if (!haveSource && !JSScript::loadSource(cx, script->scriptSource(), &haveSource))
         return nullptr;
@@ -4596,13 +4617,13 @@ JS_DecompileScript(JSContext* cx, HandleScript script, const char* name, unsigne
 }
 
 JS_PUBLIC_API(JSString*)
-JS_DecompileFunction(JSContext* cx, HandleFunction fun, unsigned indent)
+JS_DecompileFunction(JSContext* cx, HandleFunction fun)
 {
     MOZ_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, fun);
-    return FunctionToString(cx, fun, !(indent & JS_DONT_PRETTY_PRINT));
+    return FunctionToString(cx, fun, /* isToSource = */ false);
 }
 
 MOZ_NEVER_INLINE static bool
@@ -5431,7 +5452,7 @@ JS_StringHasLatin1Chars(JSString* str)
 }
 
 JS_PUBLIC_API(const JS::Latin1Char*)
-JS_GetLatin1StringCharsAndLength(JSContext* cx, const JS::AutoCheckCannotGC& nogc, JSString* str,
+JS_GetLatin1StringCharsAndLength(JSContext* cx, const JS::AutoRequireNoGC& nogc, JSString* str,
                                  size_t* plength)
 {
     MOZ_ASSERT(plength);
@@ -5446,7 +5467,7 @@ JS_GetLatin1StringCharsAndLength(JSContext* cx, const JS::AutoCheckCannotGC& nog
 }
 
 JS_PUBLIC_API(const char16_t*)
-JS_GetTwoByteStringCharsAndLength(JSContext* cx, const JS::AutoCheckCannotGC& nogc, JSString* str,
+JS_GetTwoByteStringCharsAndLength(JSContext* cx, const JS::AutoRequireNoGC& nogc, JSString* str,
                                   size_t* plength)
 {
     MOZ_ASSERT(plength);
@@ -5504,7 +5525,7 @@ JS_CopyStringChars(JSContext* cx, mozilla::Range<char16_t> dest, JSString* str)
 }
 
 JS_PUBLIC_API(const Latin1Char*)
-JS_GetLatin1InternedStringChars(const JS::AutoCheckCannotGC& nogc, JSString* str)
+JS_GetLatin1InternedStringChars(const JS::AutoRequireNoGC& nogc, JSString* str)
 {
     MOZ_ASSERT(str->isAtom());
     JSFlatString* flat = str->ensureFlat(nullptr);
@@ -5514,7 +5535,7 @@ JS_GetLatin1InternedStringChars(const JS::AutoCheckCannotGC& nogc, JSString* str
 }
 
 JS_PUBLIC_API(const char16_t*)
-JS_GetTwoByteInternedStringChars(const JS::AutoCheckCannotGC& nogc, JSString* str)
+JS_GetTwoByteInternedStringChars(const JS::AutoRequireNoGC& nogc, JSString* str)
 {
     MOZ_ASSERT(str->isAtom());
     JSFlatString* flat = str->ensureFlat(nullptr);
@@ -5536,13 +5557,13 @@ JS_FlattenString(JSContext* cx, JSString* str)
 }
 
 extern JS_PUBLIC_API(const Latin1Char*)
-JS_GetLatin1FlatStringChars(const JS::AutoCheckCannotGC& nogc, JSFlatString* str)
+JS_GetLatin1FlatStringChars(const JS::AutoRequireNoGC& nogc, JSFlatString* str)
 {
     return str->latin1Chars(nogc);
 }
 
 extern JS_PUBLIC_API(const char16_t*)
-JS_GetTwoByteFlatStringChars(const JS::AutoCheckCannotGC& nogc, JSFlatString* str)
+JS_GetTwoByteFlatStringChars(const JS::AutoRequireNoGC& nogc, JSFlatString* str)
 {
     return str->twoByteChars(nogc);
 }

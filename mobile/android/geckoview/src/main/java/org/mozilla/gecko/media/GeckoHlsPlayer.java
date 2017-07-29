@@ -48,7 +48,7 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
     private static final String LOGTAG = "GeckoHlsPlayer";
     private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
     private static final int MAX_TIMELINE_ITEM_LINES = 3;
-    private static boolean DEBUG = AppConstants.NIGHTLY_BUILD || AppConstants.DEBUG_BUILD;
+    private static final boolean DEBUG = AppConstants.NIGHTLY_BUILD || AppConstants.DEBUG_BUILD;
 
     private static AtomicInteger sPlayerId = new AtomicInteger(0);
     /*
@@ -60,7 +60,8 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
      *  mPlayerId is a token used for Gecko media pipeline to obtain corresponding player.
      */
     private final int mPlayerId;
-
+    private boolean mExoplayerSuspended = false;
+    private boolean mMediaElementSuspended = false;
     private DataSource.Factory mMediaDataSourceFactory;
 
     private Handler mMainHandler;
@@ -312,6 +313,9 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
     public synchronized void onLoadingChanged(boolean isLoading) {
         if (DEBUG) { Log.d(LOGTAG, "loading [" + isLoading + "]"); }
         if (!isLoading) {
+            if (mMediaElementSuspended) {
+                suspendExoplayer();
+            }
             // To update buffered position.
             mComponentEventDispatcher.onDataArrived(C.TRACK_TYPE_DEFAULT);
         }
@@ -321,8 +325,8 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
     @Override
     public synchronized void onPlayerStateChanged(boolean playWhenReady, int state) {
         if (DEBUG) { Log.d(LOGTAG, "state [" + playWhenReady + ", " + getStateString(state) + "]"); }
-        if (state == ExoPlayer.STATE_READY) {
-            mPlayer.setPlayWhenReady(true);
+        if (state == ExoPlayer.STATE_READY && !mExoplayerSuspended && !mMediaElementSuspended) {
+            resumeExoplayer();
         }
     }
 
@@ -594,7 +598,7 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
     // =======================================================================
     // Called on HLSDemuxer's TaskQueue
     @Override
-    public ConcurrentLinkedQueue<GeckoHLSSample> getSamples(TrackType trackType,
+    public synchronized ConcurrentLinkedQueue<GeckoHLSSample> getSamples(TrackType trackType,
                                                             int number) {
         if (trackType == TrackType.VIDEO) {
             return mVRenderer != null ? mVRenderer.getQueuedSamples(number) :
@@ -679,6 +683,12 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
     // Called on HLSDemuxer's TaskQueue
     @Override
     public synchronized boolean seek(long positionUs) {
+        // Need to temporarily resume Exoplayer to download the chunks for getting the demuxed
+        // keyframe sample when HTMLMediaElement is paused. Suspend Exoplayer when collecting enough
+        // samples in onLoadingChanged.
+        if (mExoplayerSuspended) {
+            resumeExoplayer();
+        }
         // positionUs : microseconds.
         // NOTE : 1) It's not possible to seek media by tracktype via ExoPlayer Interface.
         //        2) positionUs is samples PTS from MFR, we need to re-adjust it
@@ -712,13 +722,78 @@ public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
 
     // Called on HLSDemuxer's TaskQueue
     @Override
-    public long getNextKeyFrameTime() {
+    public synchronized long getNextKeyFrameTime() {
         long nextKeyFrameTime = mVRenderer != null
             ? mVRenderer.getNextKeyFrameTime()
             : Long.MAX_VALUE;
         return nextKeyFrameTime;
     }
 
+    // Called on Gecko's main thread.
+    @Override
+    public synchronized void suspend() {
+        if (mExoplayerSuspended) {
+            return;
+        }
+        if (mMediaElementSuspended) {
+            if (DEBUG) {
+                Log.d(LOGTAG, "suspend player id : " + mPlayerId);
+            }
+            suspendExoplayer();
+        }
+    }
+
+    // Called on Gecko's main thread.
+    @Override
+    public synchronized void resume() {
+        if (!mExoplayerSuspended) {
+          return;
+        }
+        if (!mMediaElementSuspended) {
+            if (DEBUG) {
+                Log.d(LOGTAG, "resume player id : " + mPlayerId);
+            }
+            resumeExoplayer();
+        }
+    }
+
+    // Called on Gecko's main thread.
+    @Override
+    public synchronized void play() {
+        if (!mMediaElementSuspended) {
+            return;
+        }
+        if (DEBUG) { Log.d(LOGTAG, "mediaElement played."); }
+        mMediaElementSuspended = false;
+        resumeExoplayer();
+    }
+
+    // Called on Gecko's main thread.
+    @Override
+    public synchronized void pause() {
+        if (mMediaElementSuspended) {
+            return;
+        }
+        if (DEBUG) { Log.d(LOGTAG, "mediaElement paused."); }
+        mMediaElementSuspended = true;
+        suspendExoplayer();
+    }
+
+    private synchronized void suspendExoplayer() {
+        if (mPlayer != null) {
+            mExoplayerSuspended = true;
+            if (DEBUG) { Log.d(LOGTAG, "suspend Exoplayer"); }
+            mPlayer.setPlayWhenReady(false);
+        }
+    }
+
+    private synchronized void resumeExoplayer() {
+        if (mPlayer != null) {
+            mExoplayerSuspended = false;
+            if (DEBUG) { Log.d(LOGTAG, "resume Exoplayer"); }
+            mPlayer.setPlayWhenReady(true);
+        }
+    }
     // Called on Gecko's main thread, when HLSDemuxer or HLSResource destructs.
     @Override
     public synchronized void release() {

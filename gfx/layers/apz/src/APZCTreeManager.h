@@ -25,13 +25,12 @@
 #include "mozilla/layers/AndroidDynamicToolbarAnimator.h"
 #endif // defined(MOZ_WIDGET_ANDROID)
 
-struct WrTransformProperty;
-
 namespace mozilla {
 class MultiTouchInput;
 
 namespace wr {
 class WebRenderAPI;
+struct WrTransformProperty;
 }
 
 namespace layers {
@@ -179,7 +178,7 @@ public:
    */
   bool PushStateToWR(wr::WebRenderAPI* aWrApi,
                      const TimeStamp& aSampleTime,
-                     nsTArray<WrTransformProperty>& aTransformArray);
+                     nsTArray<wr::WrTransformProperty>& aTransformArray);
 
   /**
    * Walk the tree of APZCs and flushes the repaint requests for all the APZCS
@@ -481,7 +480,7 @@ public:
   RefPtr<HitTestingTreeNode> GetRootNode() const;
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
                                                          HitTestResult* aOutHitResult,
-                                                         HitTestingTreeNode** aOutScrollbarNode = nullptr);
+                                                         RefPtr<HitTestingTreeNode>* aOutScrollbarNode = nullptr);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const uint64_t& aLayersId,
                                                          const FrameMetrics::ViewID& aScrollId);
   ScreenToParentLayerMatrix4x4 GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) const;

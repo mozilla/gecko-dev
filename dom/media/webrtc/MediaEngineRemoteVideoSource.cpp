@@ -36,9 +36,9 @@ MediaEngineRemoteVideoSource::MediaEngineRemoteVideoSource(
     mScary(aScary)
 {
   MOZ_ASSERT(aMediaSource != dom::MediaSourceEnum::Other);
-  mSettings.mWidth.Construct(0);
-  mSettings.mHeight.Construct(0);
-  mSettings.mFrameRate.Construct(0);
+  mSettings->mWidth.Construct(0);
+  mSettings->mHeight.Construct(0);
+  mSettings->mFrameRate.Construct(0);
   Init();
 }
 
@@ -61,8 +61,6 @@ MediaEngineRemoteVideoSource::Init()
   SetUUID(uniqueId);
 
   mInitDone = true;
-
-  return;
 }
 
 void
@@ -99,7 +97,6 @@ MediaEngineRemoteVideoSource::Shutdown()
 
   MOZ_ASSERT(mState == kReleased);
   mInitDone = false;
-  return;
 }
 
 nsresult
@@ -328,12 +325,12 @@ MediaEngineRemoteVideoSource::SetLastCapability(
     default:
       break;
   }
-  RefPtr<MediaEngineRemoteVideoSource> that = this;
+  auto settings = mSettings;
 
-  NS_DispatchToMainThread(media::NewRunnableFrom([that, cap]() mutable {
-    that->mSettings.mWidth.Value() = cap.width;
-    that->mSettings.mHeight.Value() = cap.height;
-    that->mSettings.mFrameRate.Value() = cap.maxFPS;
+  NS_DispatchToMainThread(media::NewRunnableFrom([settings, cap]() mutable {
+    settings->mWidth.Value() = cap.width;
+    settings->mHeight.Value() = cap.height;
+    settings->mFrameRate.Value() = cap.maxFPS;
     return NS_OK;
   }));
 }
@@ -362,19 +359,16 @@ MediaEngineRemoteVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 void
 MediaEngineRemoteVideoSource::FrameSizeChange(unsigned int w, unsigned int h)
 {
-#if defined(MOZ_WIDGET_GONK)
-  mMonitor.AssertCurrentThreadOwns(); // mWidth and mHeight are protected...
-#endif
   if ((mWidth < 0) || (mHeight < 0) ||
       (w !=  (unsigned int) mWidth) || (h != (unsigned int) mHeight)) {
     LOG(("MediaEngineRemoteVideoSource Video FrameSizeChange: %ux%u was %ux%u", w, h, mWidth, mHeight));
     mWidth = w;
     mHeight = h;
 
-    RefPtr<MediaEngineRemoteVideoSource> that = this;
-    NS_DispatchToMainThread(media::NewRunnableFrom([that, w, h]() mutable {
-      that->mSettings.mWidth.Value() = w;
-      that->mSettings.mHeight.Value() = h;
+    auto settings = mSettings;
+    NS_DispatchToMainThread(media::NewRunnableFrom([settings, w, h]() mutable {
+      settings->mWidth.Value() = w;
+      settings->mHeight.Value() = h;
       return NS_OK;
     }));
   }

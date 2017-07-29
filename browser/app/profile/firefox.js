@@ -268,10 +268,10 @@ pref("browser.defaultbrowser.notificationbar", false);
 pref("browser.startup.page",                1);
 pref("browser.startup.homepage",            "chrome://branding/locale/browserconfig.properties");
 // Whether we should skip the homepage when opening the first-run page
-pref("browser.startup.firstrunSkipsHomepage", false);
+pref("browser.startup.firstrunSkipsHomepage", true);
 
 pref("browser.slowStartup.notificationDisabled", false);
-pref("browser.slowStartup.timeThreshold", 40000);
+pref("browser.slowStartup.timeThreshold", 30000);
 pref("browser.slowStartup.maxSamples", 5);
 
 // This url, if changed, MUST continue to point to an https url. Pulling arbitrary content to inject into
@@ -914,6 +914,14 @@ pref("browser.sessionstore.dom_storage_limit", 2048);
 // allow META refresh by default
 pref("accessibility.blockautorefresh", false);
 
+// Whether useAsyncTransactions is enabled or not.
+// Currently we only enable them for nightly.
+#ifdef NIGHTLY_BUILD
+pref("browser.places.useAsyncTransactions", true);
+#else
+pref("browser.places.useAsyncTransactions", false);
+#endif
+
 // Whether history is enabled or not.
 pref("places.history.enabled", true);
 
@@ -980,6 +988,10 @@ pref("browser.zoom.updateBackgroundTabs", true);
 // The breakpad report server to link to in about:crashes
 pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
 
+// URL for "Learn More" for DataCollection
+pref("toolkit.datacollection.infoURL",
+     "https://www.mozilla.org/legal/privacy/firefox.html");
+
 // URL for "Learn More" for Crash Reporter
 pref("toolkit.crashreporter.infoURL",
      "https://www.mozilla.org/legal/privacy/firefox.html#crash-reporter");
@@ -997,6 +1009,8 @@ pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/firefo
 pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/%APP%/%VERSION%/");
 #endif
 
+// base URL for web-based marketing pages
+pref("app.productInfo.baseURL", "https://www.mozilla.org/firefox/features/");
 
 // Name of alternate about: page for certificate errors (when undefined, defaults to about:neterror)
 pref("security.alternate_certificate_error_page", "certerror");
@@ -1044,7 +1058,7 @@ pref("dom.ipc.plugins.sandbox-level.flash", 0);
 // See - security/sandbox/win/src/sandboxbroker/sandboxBroker.cpp
 // SetSecurityLevelForContentProcess() for what the different settings mean.
 #if defined(NIGHTLY_BUILD)
-pref("security.sandbox.content.level", 2);
+pref("security.sandbox.content.level", 3);
 #else
 pref("security.sandbox.content.level", 1);
 #endif
@@ -1079,11 +1093,7 @@ pref("security.sandbox.gpu.level", 0);
 // This setting is read when the content process is started. On Mac the content
 // process is killed when all windows are closed, so a change will take effect
 // when the 1st window is opened.
-#if defined(NIGHTLY_BUILD)
 pref("security.sandbox.content.level", 3);
-#else
-pref("security.sandbox.content.level", 1);
-#endif
 #endif
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX) && defined(MOZ_CONTENT_SANDBOX)
@@ -1091,7 +1101,8 @@ pref("security.sandbox.content.level", 1);
 // its Windows/Mac counterpart, but on Linux it's an integer which means:
 // 0 -> "no sandbox"
 // 1 -> "content sandbox using seccomp-bpf when available"
-// 2 -> "seccomp-bpf + file broker"
+// 2 -> "seccomp-bpf + write file broker"
+// 3 -> "seccomp-bpf + read/write file brokering"
 // Content sandboxing on Linux is currently in the stage of
 // 'just getting it enabled', which includes a very permissive whitelist. We
 // enable seccomp-bpf on nightly to see if everything is running, or if we need
@@ -1103,8 +1114,9 @@ pref("security.sandbox.content.level", 1);
 //
 // This setting may not be required anymore once we decide to permanently
 // enable the content sandbox.
-pref("security.sandbox.content.level", 2);
+pref("security.sandbox.content.level", 3);
 pref("security.sandbox.content.write_path_whitelist", "");
+pref("security.sandbox.content.read_path_whitelist", "");
 pref("security.sandbox.content.syscall_whitelist", "");
 #endif
 
@@ -1120,7 +1132,7 @@ pref("security.sandbox.content.tempDirSuffix", "");
 #if defined(MOZ_SANDBOX)
 // This pref determines if messages relevant to sandbox violations are
 // logged.
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(XP_MACOSX)
 pref("security.sandbox.logging.enabled", false);
 #else
 pref("security.sandbox.logging.enabled", true);
@@ -1276,7 +1288,11 @@ pref("browser.newtabpage.columns", 5);
 pref("browser.newtabpage.directory.source", "https://tiles.services.mozilla.com/v3/links/fetch/%LOCALE%/%CHANNEL%");
 
 // activates Activity Stream
+#ifdef NIGHTLY_BUILD
+pref("browser.newtabpage.activity-stream.enabled", true);
+#else
 pref("browser.newtabpage.activity-stream.enabled", false);
+#endif
 
 // Enable the DOM fullscreen API.
 pref("full-screen-api.enabled", true);
@@ -1494,8 +1510,12 @@ pref("browser.translation.engine", "bing");
 pref("toolkit.telemetry.archive.enabled", true);
 // Enables sending the shutdown ping when Firefox shuts down.
 pref("toolkit.telemetry.shutdownPingSender.enabled", true);
+// Enables sending the shutdown ping using the pingsender from the first session.
+pref("toolkit.telemetry.shutdownPingSender.enabledFirstSession", false);
 // Enables sending the 'new-profile' ping on new profiles.
 pref("toolkit.telemetry.newProfilePing.enabled", true);
+// Enables sending 'update' pings on Firefox updates.
+pref("toolkit.telemetry.updatePing.enabled", true);
 
 // Telemetry experiments settings.
 pref("experiments.enabled", true);
@@ -1619,13 +1639,12 @@ pref("browser.esedbreader.loglevel", "Error");
 
 pref("browser.laterrun.enabled", false);
 
-pref("dom.ipc.processPrelaunch.enabled", true);
+// Disable prelaunch in the same way activity-stream is enabled addressing
+// bug 1381804 memory usage until bug 1376895 is fixed.
+// Because of frequent crashes on Beta, it is turned off on all channels, see: bug 1363601.
+pref("dom.ipc.processPrelaunch.enabled", false);
 
-#ifdef EARLY_BETA_OR_EARLIER
-pref("browser.migrate.automigrate.enabled", true);
-#else
 pref("browser.migrate.automigrate.enabled", false);
-#endif
 // 4 here means the suggestion notification will be automatically
 // hidden the 4th day, so it will actually be shown on 3 different days.
 pref("browser.migrate.automigrate.daysToOfferUndo", 4);

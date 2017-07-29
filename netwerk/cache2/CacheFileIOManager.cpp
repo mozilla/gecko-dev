@@ -1192,7 +1192,7 @@ public:
 
 StaticRefPtr<CacheFileIOManager> CacheFileIOManager::gInstance;
 
-NS_IMPL_ISUPPORTS(CacheFileIOManager, nsITimerCallback)
+NS_IMPL_ISUPPORTS(CacheFileIOManager, nsITimerCallback, nsINamed)
 
 CacheFileIOManager::CacheFileIOManager()
   : mShuttingDown(false)
@@ -1297,6 +1297,11 @@ CacheFileIOManager::ShutdownInternal()
 
   // No new handles can be created after this flag is set
   mShuttingDown = true;
+
+  if (mTrashTimer) {
+    mTrashTimer->Cancel();
+    mTrashTimer = nullptr;
+  }
 
   // close all handles and delete all associated files
   nsTArray<RefPtr<CacheFileHandle> > handles;
@@ -1618,6 +1623,13 @@ CacheFileIOManager::Notify(nsITimer * aTimer)
     file->WriteMetadataIfNeeded();
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+CacheFileIOManager::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("CacheFileIOManager");
   return NS_OK;
 }
 

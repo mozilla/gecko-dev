@@ -4762,8 +4762,8 @@ static bool
 CheckSignatureAgainstExisting(ModuleValidator& m, ParseNode* usepn, const Sig& sig, const Sig& existing)
 {
     if (sig.args().length() != existing.args().length()) {
-        return m.failf(usepn, "incompatible number of arguments (%" PRIuSIZE
-                       " here vs. %" PRIuSIZE " before)",
+        return m.failf(usepn, "incompatible number of arguments (%zu"
+                       " here vs. %zu before)",
                        sig.args().length(), existing.args().length());
     }
 
@@ -8494,9 +8494,10 @@ StoreAsmJSModuleInCache(AsmJSParser& parser, Module& module, JSContext* cx)
     if (!moduleChars.init(parser))
         return JS::AsmJSCache_InternalError;
 
-    size_t bytecodeSize, compiledSize;
-    module.serializedSize(&bytecodeSize, &compiledSize);
+    size_t bytecodeSize = module.bytecodeSerializedSize();
     MOZ_RELEASE_ASSERT(bytecodeSize == 0);
+
+    size_t compiledSize = module.compiledSerializedSize();
     MOZ_RELEASE_ASSERT(compiledSize <= UINT32_MAX);
 
     size_t serializedSize = sizeof(uint32_t) +
@@ -8524,7 +8525,7 @@ StoreAsmJSModuleInCache(AsmJSParser& parser, Module& module, JSContext* cx)
     // afterwards.)
     cursor = WriteScalar<uint32_t>(cursor, compiledSize);
 
-    module.serialize(/* bytecodeBegin = */ nullptr, /* bytecodeSize = */ 0, cursor, compiledSize);
+    module.compiledSerialize(cursor, compiledSize);
     cursor += compiledSize;
 
     cursor = moduleChars.serialize(cursor);
@@ -8896,7 +8897,7 @@ js::IsAsmJSModuleLoadedFromCache(JSContext* cx, unsigned argc, Value* vp)
 // asm.js toString/toSource support
 
 JSString*
-js::AsmJSModuleToString(JSContext* cx, HandleFunction fun, bool addParenToLambda)
+js::AsmJSModuleToString(JSContext* cx, HandleFunction fun, bool isToSource)
 {
     MOZ_ASSERT(IsAsmJSModule(fun));
 
@@ -8907,7 +8908,7 @@ js::AsmJSModuleToString(JSContext* cx, HandleFunction fun, bool addParenToLambda
 
     StringBuffer out(cx);
 
-    if (addParenToLambda && fun->isLambda() && !out.append("("))
+    if (isToSource && fun->isLambda() && !out.append("("))
         return nullptr;
 
     bool haveSource = source->hasSourceData();
@@ -8930,7 +8931,7 @@ js::AsmJSModuleToString(JSContext* cx, HandleFunction fun, bool addParenToLambda
             return nullptr;
     }
 
-    if (addParenToLambda && fun->isLambda() && !out.append(")"))
+    if (isToSource && fun->isLambda() && !out.append(")"))
         return nullptr;
 
     return out.finishString();

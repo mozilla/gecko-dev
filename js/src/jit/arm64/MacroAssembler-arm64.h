@@ -359,10 +359,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
     void moveValue(const Value& src, const ValueOperand& dest) {
         moveValue(src, dest.valueReg());
     }
-    void moveValue(const ValueOperand& src, const ValueOperand& dest) {
-        if (src.valueReg() != dest.valueReg())
-            movePtr(src.valueReg(), dest.valueReg());
-    }
 
     CodeOffset pushWithPatch(ImmWord imm) {
         vixl::UseScratchRegisterScope temps(this);
@@ -1304,7 +1300,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
         MOZ_CRASH("branchNegativeZeroFloat32");
     }
 
-    void boxDouble(FloatRegister src, const ValueOperand& dest) {
+    void boxDouble(FloatRegister src, const ValueOperand& dest, FloatRegister) {
         Fmov(ARMRegister(dest.valueReg(), 64), ARMFPRegister(src, 64));
     }
     void boxNonDouble(JSValueType type, Register src, const ValueOperand& dest) {

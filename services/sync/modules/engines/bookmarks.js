@@ -463,6 +463,7 @@ BookmarksEngine.prototype = {
         throw ex;
       }
       this._log.warn("Error while building GUID map, skipping all other incoming items", ex);
+      // eslint-disable-next-line no-throw-literal
       throw {code: Engine.prototype.eEngineAbortApplyIncoming,
              cause: ex};
     }
@@ -522,7 +523,7 @@ BookmarksEngine.prototype = {
 
   async _syncFinish() {
     await SyncEngine.prototype._syncFinish.call(this);
-    this._tracker._ensureMobileQuery();
+    await PlacesSyncUtils.bookmarks.ensureMobileQuery();
   },
 
   async _syncCleanup() {
@@ -549,33 +550,6 @@ BookmarksEngine.prototype = {
       this._modified.setTombstone(record.id);
     }
     return record;
-  },
-
-  async buildWeakReuploadMap(idSet) {
-    // We want to avoid uploading records which have changed, since that could
-    // cause an inconsistent state on the server.
-    //
-    // Strictly speaking, it would be correct to just call getChangedIds() after
-    // building the initial weak reupload map, however this is quite slow, since
-    // we might end up doing createRecord() (which runs at least one, and
-    // sometimes multiple database queries) for a potentially large number of
-    // items.
-    //
-    // Since the call to getChangedIds is relatively cheap, we do it once before
-    // building the weakReuploadMap (which is where the calls to createRecord()
-    // occur) as an optimization, and once after for correctness, to handle the
-    // unlikely case that a record was modified while we were building the map.
-    let initialChanges = await PlacesSyncUtils.bookmarks.getChangedIds();
-    for (let changed of initialChanges) {
-      idSet.delete(changed);
-    }
-
-    let map = await SyncEngine.prototype.buildWeakReuploadMap.call(this, idSet);
-    let changes = await PlacesSyncUtils.bookmarks.getChangedIds();
-    for (let id of changes) {
-      map.delete(id);
-    }
-    return map;
   },
 
   async _findDupe(item) {
@@ -704,7 +678,8 @@ BookmarksStore.prototype = {
     // Figure out the local id of the parent GUID if available
     let parentGUID = record.parentid;
     if (!parentGUID) {
-      throw "Record " + record.id + " has invalid parentid: " + parentGUID;
+      throw new Error(
+          `Record ${record.id} has invalid parentid: ${parentGUID}`);
     }
     this._log.debug("Remote parent is " + parentGUID);
 
@@ -726,7 +701,7 @@ BookmarksStore.prototype = {
       this._log.trace(`Created ${item.kind} ${item.syncId} under ${
         item.parentSyncId}`, item);
       if (item.dateAdded != record.dateAdded) {
-        this.engine._needWeakReupload.add(item.syncId);
+        this.engine.addForWeakUpload(item.syncId);
       }
     }
   },
@@ -743,7 +718,7 @@ BookmarksStore.prototype = {
       this._log.trace(`Updated ${item.kind} ${item.syncId} under ${
         item.parentSyncId}`, item);
       if (item.dateAdded != record.dateAdded) {
-        this.engine._needWeakReupload.add(item.syncId);
+        this.engine.addForWeakUpload(item.syncId);
       }
     }
   },
@@ -1048,52 +1023,6 @@ BookmarksTracker.prototype = {
     this._upScore();
   },
 
-  _ensureMobileQuery: function _ensureMobileQuery() {
-    Services.prefs.setBoolPref("browser.bookmarks.showMobileBookmarks", true);
-    let find = val =>
-      PlacesUtils.annotations.getItemsWithAnnotation(ORGANIZERQUERY_ANNO, {}).filter(
-        id => PlacesUtils.annotations.getItemAnnotation(id, ORGANIZERQUERY_ANNO) == val
-      );
-
-    // Don't continue if the Library isn't ready
-    let all = find(ALLBOOKMARKS_ANNO);
-    if (all.length == 0)
-      return;
-
-    let mobile = find(MOBILE_ANNO);
-    let queryURI = Utils.makeURI("place:folder=" + PlacesUtils.mobileFolderId);
-    let title = PlacesBundle.GetStringFromName("MobileBookmarksFolderTitle");
-
-    // Don't add OR remove the mobile bookmarks if there's nothing.
-    if (PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.mobileFolderId, 0) == -1) {
-      if (mobile.length != 0)
-        PlacesUtils.bookmarks.removeItem(mobile[0], SOURCE_SYNC);
-    } else if (mobile.length == 0) {
-      // Add the mobile bookmarks query if it doesn't exist
-      let query = PlacesUtils.bookmarks.insertBookmark(all[0], queryURI, -1, title, /* guid */ null, SOURCE_SYNC);
-      PlacesUtils.annotations.setItemAnnotation(query, ORGANIZERQUERY_ANNO, MOBILE_ANNO, 0,
-                                  PlacesUtils.annotations.EXPIRE_NEVER, SOURCE_SYNC);
-      PlacesUtils.annotations.setItemAnnotation(query, PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO, 1, 0,
-                                  PlacesUtils.annotations.EXPIRE_NEVER, SOURCE_SYNC);
-    } else {
-      // Make sure the existing query URL and title are correct
-      if (!PlacesUtils.bookmarks.getBookmarkURI(mobile[0]).equals(queryURI)) {
-        PlacesUtils.bookmarks.changeBookmarkURI(mobile[0], queryURI,
-                                                SOURCE_SYNC);
-      }
-      let queryTitle = PlacesUtils.bookmarks.getItemTitle(mobile[0]);
-      if (queryTitle != title) {
-        PlacesUtils.bookmarks.setItemTitle(mobile[0], title, SOURCE_SYNC);
-      }
-      let rootTitle =
-        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.mobileFolderId);
-      if (rootTitle != title) {
-        PlacesUtils.bookmarks.setItemTitle(PlacesUtils.mobileFolderId, title,
-                                           SOURCE_SYNC);
-      }
-    }
-  },
-
   // This method is oddly structured, but the idea is to return as quickly as
   // possible -- this handler gets called *every time* a bookmark changes, for
   // *each change*.
@@ -1144,12 +1073,6 @@ BookmarksTracker.prototype = {
 };
 
 class BookmarksChangeset extends Changeset {
-  constructor() {
-    super();
-    // Weak changes are part of the changeset, but don't bump the change
-    // counter, and aren't persisted anywhere.
-    this.weakChanges = {};
-  }
 
   getStatus(id) {
     let change = this.changes[id];
@@ -1166,16 +1089,7 @@ class BookmarksChangeset extends Changeset {
       // reconciled it.
       return change.synced ? Number.NaN : change.modified;
     }
-    if (this.weakChanges[id]) {
-      // For weak changes, we use a timestamp from long ago to ensure we always
-      // prefer the remote version in case of conflicts.
-      return 0;
-    }
     return Number.NaN;
-  }
-
-  setWeak(id, { tombstone = false } = {}) {
-    this.weakChanges[id] = { tombstone };
   }
 
   has(id) {
@@ -1183,19 +1097,13 @@ class BookmarksChangeset extends Changeset {
     if (change) {
       return !change.synced;
     }
-    return !!this.weakChanges[id];
+    return false;
   }
 
   setTombstone(id) {
     let change = this.changes[id];
     if (change) {
       change.tombstone = true;
-    }
-    let weakChange = this.weakChanges[id];
-    if (weakChange) {
-      // Not strictly necessary, since we never persist weak changes, but may
-      // be useful for bookkeeping.
-      weakChange.tombstone = true;
     }
   }
 
@@ -1206,13 +1114,6 @@ class BookmarksChangeset extends Changeset {
       // so that we can update Places in `trackRemainingChanges`.
       change.synced = true;
     }
-    delete this.weakChanges[id];
-  }
-
-  changeID(oldID, newID) {
-    super.changeID(oldID, newID);
-    this.weakChanges[newID] = this.weakChanges[oldID];
-    delete this.weakChanges[oldID];
   }
 
   ids() {
@@ -1222,25 +1123,13 @@ class BookmarksChangeset extends Changeset {
         results.add(id);
       }
     }
-    for (let id in this.weakChanges) {
-      results.add(id);
-    }
     return [...results];
-  }
-
-  clear() {
-    super.clear();
-    this.weakChanges = {};
   }
 
   isTombstone(id) {
     let change = this.changes[id];
     if (change) {
       return change.tombstone;
-    }
-    let weakChange = this.weakChanges[id];
-    if (weakChange) {
-      return weakChange.tombstone;
     }
     return false;
   }

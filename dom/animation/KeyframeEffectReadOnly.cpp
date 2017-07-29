@@ -186,12 +186,22 @@ KeyframeEffectReadOnly::SetKeyframes(JSContext* aContext,
   }
 
   RefPtr<nsStyleContext> styleContext = GetTargetStyleContext();
-  SetKeyframes(Move(keyframes), styleContext);
+  if (styleContext) {
+    if (auto gecko = styleContext->GetAsGecko()) {
+      SetKeyframes(Move(keyframes), gecko);
+    } else {
+      SetKeyframes(Move(keyframes), styleContext->AsServo());
+    }
+  } else {
+    // SetKeyframes has the same behavior for null StyleType* for
+    // both backends, just pick one and use it.
+    SetKeyframes(Move(keyframes), (GeckoStyleContext*) nullptr);
+  }
 }
 
 void
 KeyframeEffectReadOnly::SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
-                                     nsStyleContext* aStyleContext)
+                                     GeckoStyleContext* aStyleContext)
 {
   DoSetKeyframes(Move(aKeyframes), Move(aStyleContext));
 }
@@ -199,7 +209,7 @@ KeyframeEffectReadOnly::SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
 void
 KeyframeEffectReadOnly::SetKeyframes(
   nsTArray<Keyframe>&& aKeyframes,
-  const ServoComputedValues* aComputedValues)
+  const ServoStyleContext* aComputedValues)
 {
   DoSetKeyframes(Move(aKeyframes), aComputedValues);
 }
@@ -209,10 +219,10 @@ void
 KeyframeEffectReadOnly::DoSetKeyframes(nsTArray<Keyframe>&& aKeyframes,
                                        StyleType* aStyle)
 {
-  static_assert(IsSame<StyleType, nsStyleContext>::value ||
-                IsSame<StyleType, const ServoComputedValues>::value,
-                "StyleType should be nsStyleContext* or "
-                "const ServoComputedValues*");
+  static_assert(IsSame<StyleType, GeckoStyleContext>::value ||
+                IsSame<StyleType, const ServoStyleContext>::value,
+                "StyleType should be GeckoStyleContext* or "
+                "const ServoStyleContext*");
 
   if (KeyframesEqualIgnoringComputedOffsets(aKeyframes, mKeyframes)) {
     return;
@@ -296,21 +306,19 @@ KeyframeEffectReadOnly::UpdateProperties(nsStyleContext* aStyleContext)
 {
   MOZ_ASSERT(aStyleContext);
 
-  if (!mDocument->IsStyledByServo()) {
-    DoUpdateProperties(Move(aStyleContext));
+  if (auto gecko = aStyleContext->GetAsGecko()) {
+    DoUpdateProperties(Move(gecko));
     return;
   }
 
-  const ServoComputedValues* currentStyle = aStyleContext->ComputedValues();
-
-  DoUpdateProperties(currentStyle);
+  UpdateProperties(aStyleContext->AsServo());
 }
 
 void
 KeyframeEffectReadOnly::UpdateProperties(
-  const ServoComputedValues* aComputedValues)
+  const ServoStyleContext* aStyleContext)
 {
-  DoUpdateProperties(aComputedValues);
+  DoUpdateProperties(aStyleContext);
 }
 
 template<typename StyleType>
@@ -440,7 +448,7 @@ KeyframeEffectReadOnly::CompositeValue(
 
 void
 KeyframeEffectReadOnly::EnsureBaseStyles(
-  nsStyleContext* aStyleContext,
+  GeckoStyleContext* aStyleContext,
   const nsTArray<AnimationProperty>& aProperties)
 {
   if (!mTarget) {
@@ -449,7 +457,7 @@ KeyframeEffectReadOnly::EnsureBaseStyles(
 
   mBaseStyleValues.Clear();
 
-  RefPtr<nsStyleContext> cachedBaseStyleContext;
+  RefPtr<GeckoStyleContext> cachedBaseStyleContext;
 
   for (const AnimationProperty& property : aProperties) {
     for (const AnimationPropertySegment& segment : property.mSegments) {
@@ -468,8 +476,8 @@ KeyframeEffectReadOnly::EnsureBaseStyles(
 void
 KeyframeEffectReadOnly::EnsureBaseStyle(
   nsCSSPropertyID aProperty,
-  nsStyleContext* aStyleContext,
-  RefPtr<nsStyleContext>& aCachedBaseStyleContext)
+  GeckoStyleContext* aStyleContext,
+  RefPtr<GeckoStyleContext>& aCachedBaseStyleContext)
 {
   if (mBaseStyleValues.Contains(aProperty)) {
     return;
@@ -497,7 +505,7 @@ KeyframeEffectReadOnly::EnsureBaseStyle(
 
 void
 KeyframeEffectReadOnly::EnsureBaseStyles(
-  const ServoComputedValues* aComputedValues,
+  const ServoStyleContext* aComputedValues,
   const nsTArray<AnimationProperty>& aProperties)
 {
   if (!mTarget) {
@@ -513,13 +521,13 @@ KeyframeEffectReadOnly::EnsureBaseStyles(
              "supposed to be called right after getting computed values with "
              "a valid nsPresContext");
 
-  RefPtr<const ServoComputedValues> baseComputedValues;
+  RefPtr<ServoStyleContext> baseStyleContext;
   for (const AnimationProperty& property : aProperties) {
     EnsureBaseStyle(property,
                     mTarget->mPseudoType,
                     presContext,
                     aComputedValues,
-                    baseComputedValues);
+                    baseStyleContext);
   }
 }
 
@@ -528,8 +536,8 @@ KeyframeEffectReadOnly::EnsureBaseStyle(
   const AnimationProperty& aProperty,
   CSSPseudoElementType aPseudoType,
   nsPresContext* aPresContext,
-  const ServoComputedValues* aComputedStyle,
-  RefPtr<const ServoComputedValues>& aBaseComputedValues)
+  const ServoStyleContext* aComputedStyle,
+ RefPtr<ServoStyleContext>& aBaseStyleContext)
 {
   bool hasAdditiveValues = false;
 
@@ -544,15 +552,18 @@ KeyframeEffectReadOnly::EnsureBaseStyle(
     return;
   }
 
-  if (!aBaseComputedValues) {
-    aBaseComputedValues =
-      aPresContext->StyleSet()->AsServo()->GetBaseComputedValuesForElement(
+  if (!aBaseStyleContext) {
+    aBaseStyleContext =
+      aPresContext->StyleSet()->AsServo()->GetBaseContextForElement(
           mTarget->mElement,
+          nullptr,
+          aPresContext,
+          nullptr,
           aPseudoType,
           aComputedStyle);
   }
   RefPtr<RawServoAnimationValue> baseValue =
-    Servo_ComputedValues_ExtractAnimationValue(aBaseComputedValues,
+    Servo_ComputedValues_ExtractAnimationValue(aBaseStyleContext,
                                                aProperty.mProperty).Consume();
   mBaseStyleValuesForServo.Put(aProperty.mProperty, baseValue);
 }
@@ -906,10 +917,10 @@ template<typename StyleType>
 nsTArray<AnimationProperty>
 KeyframeEffectReadOnly::BuildProperties(StyleType* aStyle)
 {
-  static_assert(IsSame<StyleType, nsStyleContext>::value ||
-                IsSame<StyleType, const ServoComputedValues>::value,
-                "StyleType should be nsStyleContext* or "
-                "const ServoComputedValues*");
+  static_assert(IsSame<StyleType, GeckoStyleContext>::value ||
+                IsSame<StyleType, const ServoStyleContext>::value,
+                "StyleType should be GeckoStyleContext* or "
+                "const ServoStyleContext*");
 
   MOZ_ASSERT(aStyle);
 
@@ -1165,8 +1176,7 @@ KeyframeEffectReadOnly::GetProperties(
       // a) this is the last segment, or
       // b) the next segment's from-value differs.
       if (segmentIdx == segmentLen - 1 ||
-          property.mSegments[segmentIdx + 1].mFromValue.mGecko !=
-            segment.mToValue.mGecko) {
+          property.mSegments[segmentIdx + 1].mFromValue != segment.mToValue) {
         binding_detail::FastAnimationPropertyValueDetails toValue;
         CreatePropertyValue(property.mProperty, segment.mToKey,
                             Nothing(), segment.mToValue,
@@ -1631,10 +1641,10 @@ KeyframeEffectReadOnly::RecordFrameSizeTelemetry(uint32_t aPixelArea) {
   }
 }
 
-static already_AddRefed<nsStyleContext>
+static already_AddRefed<GeckoStyleContext>
 CreateStyleContextForAnimationValue(nsCSSPropertyID aProperty,
                                     const StyleAnimationValue& aValue,
-                                    nsStyleContext* aBaseStyleContext)
+                                    GeckoStyleContext* aBaseStyleContext)
 {
   MOZ_ASSERT(aBaseStyleContext,
              "CreateStyleContextForAnimationValue needs to be called "
@@ -1651,19 +1661,19 @@ CreateStyleContextForAnimationValue(nsCSSPropertyID aProperty,
   nsStyleSet* styleSet =
     aBaseStyleContext->PresContext()->StyleSet()->AsGecko();
 
-  RefPtr<nsStyleContext> styleContext =
+  RefPtr<GeckoStyleContext> styleContext =
     styleSet->ResolveStyleByAddingRules(aBaseStyleContext, rules);
 
   // We need to call StyleData to generate cached data for the style context.
   // Otherwise CalcStyleDifference returns no meaningful result.
-  styleContext->AsGecko()->StyleData(nsCSSProps::kSIDTable[aProperty]);
+  styleContext->StyleData(nsCSSProps::kSIDTable[aProperty]);
 
   return styleContext.forget();
 }
 
 void
 KeyframeEffectReadOnly::CalculateCumulativeChangeHint(
-  nsStyleContext *aStyleContext)
+  nsStyleContext* aStyleContext)
 {
   if (mDocument->IsStyledByServo()) {
     // FIXME (bug 1303235): Do this for Servo too
@@ -1671,6 +1681,7 @@ KeyframeEffectReadOnly::CalculateCumulativeChangeHint(
   }
   mCumulativeChangeHint = nsChangeHint(0);
 
+  auto* geckoContext = aStyleContext ? aStyleContext->AsGecko() : nullptr;
   for (const AnimationProperty& property : mProperties) {
     for (const AnimationPropertySegment& segment : property.mSegments) {
       // In case composite operation is not 'replace' or value is null,
@@ -1681,15 +1692,15 @@ KeyframeEffectReadOnly::CalculateCumulativeChangeHint(
         mCumulativeChangeHint = ~nsChangeHint_Hints_CanIgnoreIfNotVisible;
         return;
       }
-      RefPtr<nsStyleContext> fromContext =
+      RefPtr<GeckoStyleContext> fromContext =
         CreateStyleContextForAnimationValue(property.mProperty,
                                             segment.mFromValue.mGecko,
-                                            aStyleContext);
+                                            geckoContext);
 
-      RefPtr<nsStyleContext> toContext =
+      RefPtr<GeckoStyleContext> toContext =
         CreateStyleContextForAnimationValue(property.mProperty,
                                             segment.mToValue.mGecko,
-                                            aStyleContext);
+                                            geckoContext);
 
       uint32_t equalStructs = 0;
       uint32_t samePointerStructs = 0;

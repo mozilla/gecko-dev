@@ -135,6 +135,7 @@ public:
     uint32_t       RequestTokenBucketBurst() {return mRequestTokenBucketBurst; }
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
+    bool           IsUrgentStartEnabled() { return mUrgentStartEnabled; }
 
     // TCP Keepalive configuration values.
 
@@ -384,6 +385,11 @@ public:
         return mFocusedWindowTransactionRatio;
     }
 
+    bool ActiveTabPriority() const
+    {
+        return mActiveTabPriority;
+    }
+
 private:
     virtual ~nsHttpHandler();
 
@@ -454,6 +460,8 @@ private:
     uint32_t mThrottleSuspendFor;
     uint32_t mThrottleResumeFor;
     uint32_t mThrottleResumeIn;
+
+    bool mUrgentStartEnabled;
 
     uint8_t  mRedirectionLimit;
 
@@ -605,6 +613,9 @@ private:
     Atomic<bool, Relaxed> mFastOpenSupported;
     uint32_t mFastOpenConsecutiveFailureLimit;
     uint32_t mFastOpenConsecutiveFailureCounter;
+
+    // If true, the transactions from active tab will be dispatched first.
+    bool mActiveTabPriority;
 
 private:
     // For Rate Pacing Certain Network Events. Only assign this pointer on

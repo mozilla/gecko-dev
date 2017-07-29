@@ -490,6 +490,9 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   direction: rtl;
 }
 
+#appMenu_historyMenu > .bookmark-item,
+#appMenu-library-recentlyClosedTabs > .panel-subview-body > .bookmark-item,
+#appMenu-library-recentlyClosedWindows > .panel-subview-body > .bookmark-item,
 #panelMenu_bookmarksMenu > .bookmark-item {
   max-width: none;
 }
@@ -589,6 +592,12 @@ html|input.urlbar-input[textoverflow]:not([focused]) {
 .ac-url[actiontype],
 .ac-action:not([actiontype]) {
   display: none;
+}
+
+/* Never show a scrollbar for the Location Bar popup.  This overrides the
+   richlistbox inline overflow: auto style.*/
+#PopupAutoCompleteRichResult > richlistbox > scrollbox {
+  overflow: hidden !important;
 }
 
 /* For action items in a noactions popup, show the URL text and hide the action
@@ -1271,6 +1280,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 #customization-container:not([photon]) #customization-panelHolder {
@@ -1485,8 +1495,6 @@ toolbarpaletteitem[place="palette"][hidden] {
 }
 
 /* Page action menu */
-#page-action-sendToDeviceView-body:not([state="notsignedin"]) > #page-action-sendToDevice-fxa-button,
-#page-action-sendToDeviceView-body:not([state="nodevice"]) > #page-action-no-devices-button,
 #page-action-sendToDeviceView-body:not([state="notready"]) > #page-action-sync-not-ready-button {
   display: none;
 }

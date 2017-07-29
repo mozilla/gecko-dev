@@ -1431,7 +1431,7 @@ PaintRowGroupBackgroundByColIdx(nsTableRowGroupFrame* aRowGroup,
         }
         nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder, aFrame, cellRect,
                                                              aLists.BorderBackground(),
-                                                             true, nullptr,
+                                                             false, nullptr,
                                                              aFrame->GetRectRelativeToSelf(),
                                                              cell);
       }
@@ -2062,6 +2062,7 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
   if (NS_SUBTREE_DIRTY(this) ||
       aReflowInput.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
+      isPaginated ||
       aReflowInput.IsBResize()) {
 
     if (aReflowInput.ComputedBSize() != NS_UNCONSTRAINEDSIZE ||
@@ -2080,16 +2081,21 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
       SetGeometryDirty();
     }
 
-    bool needToInitiateSpecialReflow =
-      HasAnyStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
-    // see if an extra reflow will be necessary in pagination mode
-    // when there is a specified table bsize
-    if (isPaginated && !GetPrevInFlow() && (NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableBSize())) {
-      nscoord tableSpecifiedBSize = CalcBorderBoxBSize(aReflowInput);
-      if ((tableSpecifiedBSize > 0) &&
-          (tableSpecifiedBSize != NS_UNCONSTRAINEDSIZE)) {
-        needToInitiateSpecialReflow = true;
+    bool needToInitiateSpecialReflow = false;
+    if (isPaginated) {
+      // see if an extra reflow will be necessary in pagination mode
+      // when there is a specified table bsize
+      if (!GetPrevInFlow() &&
+          NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableBSize()) {
+        nscoord tableSpecifiedBSize = CalcBorderBoxBSize(aReflowInput);
+        if ((tableSpecifiedBSize > 0) &&
+            (tableSpecifiedBSize != NS_UNCONSTRAINEDSIZE)) {
+          needToInitiateSpecialReflow = true;
+        }
       }
+    } else {
+      needToInitiateSpecialReflow =
+        HasAnyStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
     }
     nsIFrame* lastChildReflowed = nullptr;
 
@@ -2729,7 +2735,6 @@ nsTableFrame::HomogenousInsertFrames(ChildListID     aListID,
   printf("=== TableFrame::InsertFrames\n");
   Dump(true, true, true);
 #endif
-  return;
 }
 
 void
@@ -3238,6 +3243,21 @@ nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
   bool isPaginated = presContext->IsPaginated() &&
                        NS_UNCONSTRAINEDSIZE != aReflowInput.availSize.BSize(wm) &&
                        aReflowInput.reflowInput.mFlags.mTableIsSplittable;
+
+  // Tables currently (though we ought to fix this) only fragment in
+  // paginated contexts, not in multicolumn contexts.  (See bug 888257.)
+  // This is partly because they don't correctly handle incremental
+  // layout when paginated.
+  //
+  // Since we propagate NS_FRAME_IS_DIRTY from parent to child at the
+  // start of the parent's reflow (behavior that's new as of bug
+  // 1308876), we can do things that are effectively incremental reflow
+  // during paginated layout.  Since the table code doesn't handle this
+  // correctly, we need to set the flag that says to reflow everything
+  // within the table structure.
+  if (presContext->IsPaginated()) {
+    SetGeometryDirty();
+  }
 
   aOverflowAreas.Clear();
 
@@ -5092,8 +5112,7 @@ nsTableFrame::BCRecalcNeeded(nsStyleContext* aOldStyleContext,
     // introduces a unwanted cellmap data dependence on color
     nsCOMPtr<nsIRunnable> evt = new nsDelayedCalcBCBorders(this);
     nsresult rv =
-      GetContent()->OwnerDoc()->Dispatch("nsDelayedCalcBCBorders",
-                                         TaskCategory::Other, evt.forget());
+      GetContent()->OwnerDoc()->Dispatch(TaskCategory::Other, evt.forget());
     return NS_SUCCEEDED(rv);
   }
   return false;
@@ -7423,23 +7442,23 @@ BCBlockDirSeg::CreateWebRenderCommands(BCPaintBorderIterator& aIter,
 
   LayoutDeviceRect borderRect = LayoutDeviceRect::FromUnknownRect(NSRectToRect(param->mBorderRect + aOffset,
                                                                                param->mAppUnitsPerDevPixel));
-  WrRect transformedRect = aSc.ToRelativeWrRect(borderRect);
-  WrBorderSide wrSide[4];
+  wr::LayoutRect transformedRect = aSc.ToRelativeLayoutRect(borderRect);
+  wr::BorderSide wrSide[4];
   NS_FOR_CSS_SIDES(i) {
-    wrSide[i] = wr::ToWrBorderSide(ToDeviceColor(param->mBorderColor), NS_STYLE_BORDER_STYLE_NONE);
+    wrSide[i] = wr::ToBorderSide(ToDeviceColor(param->mBorderColor), NS_STYLE_BORDER_STYLE_NONE);
   }
-  wrSide[eSideLeft] = wr::ToWrBorderSide(ToDeviceColor(param->mBorderColor), param->mBorderStyle);
+  wrSide[eSideLeft] = wr::ToBorderSide(ToDeviceColor(param->mBorderColor), param->mBorderStyle);
 
-  WrBorderRadius borderRadii = wr::ToWrBorderRadius( {0, 0}, {0, 0}, {0, 0}, {0, 0} );
+  wr::BorderRadius borderRadii = wr::ToBorderRadius( {0, 0}, {0, 0}, {0, 0}, {0, 0} );
 
   // All border style is set to none except left side. So setting the widths of
   // each side to width of rect is fine.
-  WrBorderWidths borderWidths = wr::ToWrBorderWidths(transformedRect.width,
-                                                     transformedRect.width,
-                                                     transformedRect.width,
-                                                     transformedRect.width);
-  transformedRect.width *= 2.0f;
-  Range<const WrBorderSide> wrsides(wrSide, 4);
+  wr::BorderWidths borderWidths = wr::ToBorderWidths(transformedRect.size.width,
+                                                     transformedRect.size.width,
+                                                     transformedRect.size.width,
+                                                     transformedRect.size.width);
+  transformedRect.size.width *= 2.0f;
+  Range<const wr::BorderSide> wrsides(wrSide, 4);
   aBuilder.PushBorder(transformedRect,
                       transformedRect,
                       borderWidths,
@@ -7681,23 +7700,23 @@ BCInlineDirSeg::CreateWebRenderCommands(BCPaintBorderIterator& aIter,
 
   LayoutDeviceRect borderRect = LayoutDeviceRect::FromUnknownRect(NSRectToRect(param->mBorderRect + aPt,
                                                                                param->mAppUnitsPerDevPixel));
-  WrRect transformedRect = aSc.ToRelativeWrRect(borderRect);
-  WrBorderSide wrSide[4];
+  wr::LayoutRect transformedRect = aSc.ToRelativeLayoutRect(borderRect);
+  wr::BorderSide wrSide[4];
   NS_FOR_CSS_SIDES(i) {
-    wrSide[i] = wr::ToWrBorderSide(ToDeviceColor(param->mBorderColor), NS_STYLE_BORDER_STYLE_NONE);
+    wrSide[i] = wr::ToBorderSide(ToDeviceColor(param->mBorderColor), NS_STYLE_BORDER_STYLE_NONE);
   }
-  wrSide[eSideTop] = wr::ToWrBorderSide(ToDeviceColor(param->mBorderColor), param->mBorderStyle);
+  wrSide[eSideTop] = wr::ToBorderSide(ToDeviceColor(param->mBorderColor), param->mBorderStyle);
 
-  WrBorderRadius borderRadii = wr::ToWrBorderRadius( {0, 0}, {0, 0}, {0, 0}, {0, 0} );
+  wr::BorderRadius borderRadii = wr::ToBorderRadius( {0, 0}, {0, 0}, {0, 0}, {0, 0} );
 
   // All border style is set to none except top side. So setting the widths of
   // each side to height of rect is fine.
-  WrBorderWidths borderWidths = wr::ToWrBorderWidths(transformedRect.height,
-                                                     transformedRect.height,
-                                                     transformedRect.height,
-                                                     transformedRect.height);
-  transformedRect.height *= 2.0f;
-  Range<const WrBorderSide> wrsides(wrSide, 4);
+  wr::BorderWidths borderWidths = wr::ToBorderWidths(transformedRect.size.height,
+                                                     transformedRect.size.height,
+                                                     transformedRect.size.height,
+                                                     transformedRect.size.height);
+  transformedRect.size.height *= 2.0f;
+  Range<const wr::BorderSide> wrsides(wrSide, 4);
   aBuilder.PushBorder(transformedRect,
                       transformedRect,
                       borderWidths,
@@ -8024,9 +8043,9 @@ nsTableFrame::UpdateStyleOfOwnedAnonBoxesForTableWrapper(
                nsCSSAnonBoxes::tableWrapper,
              "What happened to our parent?");
 
-  RefPtr<nsStyleContext> newContext =
+  RefPtr<ServoStyleContext> newContext =
     aRestyleState.StyleSet().ResolveInheritingAnonymousBoxStyle(
-      nsCSSAnonBoxes::tableWrapper, aOwningFrame->StyleContext());
+      nsCSSAnonBoxes::tableWrapper, aOwningFrame->StyleContext()->AsServo());
 
   // Figure out whether we have an actual change.  It's important that we do
   // this, even though all the wrapper's changes are due to properties it
@@ -8046,6 +8065,14 @@ nsTableFrame::UpdateStyleOfOwnedAnonBoxesForTableWrapper(
     newContext,
     &equalStructs,
     &samePointerStructs);
+
+  // CalcStyleDifference will handle caching structs on the new style context,
+  // but only if we're not on a style worker thread.
+  MOZ_ASSERT(!ServoStyleSet::IsInServoTraversal(),
+             "if we can get in here from style worker threads, then we need "
+             "a ResolveSameStructsAs call to ensure structs are cached on "
+             "aNewStyleContext");
+
   if (wrapperHint) {
     aRestyleState.ChangeList().AppendChange(
       aWrapperFrame, aWrapperFrame->GetContent(), wrapperHint);

@@ -2028,11 +2028,10 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight, nscoord a
     } else {
       RefPtr<nsRunnableMethod<PresShell>> event = NewRunnableMethod(
         "PresShell::FireResizeEvent", this, &PresShell::FireResizeEvent);
-      nsresult rv = mDocument->Dispatch("PresShell::FireResizeEvent",
-                                        TaskCategory::Other,
+      nsresult rv = mDocument->Dispatch(TaskCategory::Other,
                                         do_AddRef(event));
       if (NS_SUCCEEDED(rv)) {
-        mResizeEvent = event;
+        mResizeEvent = Move(event);
         SetNeedStyleFlush();
       }
     }
@@ -2840,24 +2839,26 @@ PresShell::FrameNeedsToContinueReflow(nsIFrame *aFrame)
 already_AddRefed<nsIContent>
 nsIPresShell::GetContentForScrolling() const
 {
-  nsCOMPtr<nsIContent> focusedContent;
-  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm && mDocument) {
-    nsCOMPtr<nsIDOMElement> focusedElement;
-    fm->GetFocusedElementForWindow(mDocument->GetWindow(), false, nullptr,
-                                   getter_AddRefs(focusedElement));
-    focusedContent = do_QueryInterface(focusedElement);
+  if (nsCOMPtr<nsIContent> focused = GetFocusedContentInOurWindow()) {
+    return focused.forget();
   }
-  if (!focusedContent && mSelection) {
+  return GetSelectedContentForScrolling();
+}
+
+already_AddRefed<nsIContent>
+nsIPresShell::GetSelectedContentForScrolling() const
+{
+  nsCOMPtr<nsIContent> selectedContent;
+  if (mSelection) {
     nsISelection* domSelection =
       mSelection->GetSelection(SelectionType::eNormal);
     if (domSelection) {
       nsCOMPtr<nsIDOMNode> focusedNode;
       domSelection->GetFocusNode(getter_AddRefs(focusedNode));
-      focusedContent = do_QueryInterface(focusedNode);
+      selectedContent = do_QueryInterface(focusedNode);
     }
   }
-  return focusedContent.forget();
+  return selectedContent.forget();
 }
 
 nsIScrollableFrame*
@@ -4793,9 +4794,11 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
         frame->GetOffsets(frameStartOffset, frameEndOffset);
 
         int32_t hilightStart =
-          atStart ? std::max(aRange->StartOffset(), frameStartOffset) : frameStartOffset;
+          atStart ? std::max(static_cast<int32_t>(aRange->StartOffset()),
+                             frameStartOffset) : frameStartOffset;
         int32_t hilightEnd =
-          atEnd ? std::min(aRange->EndOffset(), frameEndOffset) : frameEndOffset;
+          atEnd ? std::min(static_cast<int32_t>(aRange->EndOffset()),
+                           frameEndOffset) : frameEndOffset;
         if (hilightStart < hilightEnd) {
           // determine the location of the start and end edges of the range.
           nsPoint startPoint, endPoint;
@@ -5544,7 +5547,7 @@ void PresShell::SynthesizeMouseMove(bool aFromScroll)
       return;
     }
 
-    mSynthMouseMoveEvent = ev;
+    mSynthMouseMoveEvent = Move(ev);
   }
 }
 
@@ -6222,12 +6225,10 @@ PresShell::ScheduleApproximateFrameVisibilityUpdateNow()
                       this,
                       &PresShell::UpdateApproximateFrameVisibility);
   nsresult rv =
-    mDocument->Dispatch("PresShell::UpdateApproximateFrameVisibility",
-                        TaskCategory::Other,
-                        do_AddRef(event));
+    mDocument->Dispatch(TaskCategory::Other, do_AddRef(event));
 
   if (NS_SUCCEEDED(rv)) {
-    mUpdateApproximateFrameVisibilityEvent = event;
+    mUpdateApproximateFrameVisibilityEvent = Move(event);
   }
 }
 
@@ -6785,6 +6786,20 @@ PresShell::GetFocusedDOMWindowInOurWindow()
   return focusedWindow.forget();
 }
 
+already_AddRefed<nsIContent>
+nsIPresShell::GetFocusedContentInOurWindow() const
+{
+  nsCOMPtr<nsIContent> focusedContent;
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm && mDocument) {
+    nsCOMPtr<nsIDOMElement> focusedElement;
+    fm->GetFocusedElementForWindow(mDocument->GetWindow(), false, nullptr,
+                                   getter_AddRefs(focusedElement));
+    focusedContent = do_QueryInterface(focusedElement);
+  }
+  return focusedContent.forget();
+}
+
 already_AddRefed<nsIPresShell>
 PresShell::GetParentPresShellForEventHandling()
 {
@@ -7170,6 +7185,9 @@ PresShell::HandleEvent(nsIFrame* aFrame,
   // Update the latest focus sequence number with this new sequence number
   if (mAPZFocusSequenceNumber < aEvent->mFocusSequenceNumber) {
     mAPZFocusSequenceNumber = aEvent->mFocusSequenceNumber;
+
+    // Schedule an empty transaction to transmit this focus update
+    aFrame->SchedulePaint(nsIFrame::PAINT_COMPOSITE_ONLY);
   }
 
   if (sPointerEventEnabled) {
@@ -7761,17 +7779,7 @@ PresShell::HandleEvent(nsIFrame* aFrame,
       // still get sent to the window properly if nothing is focused or if a
       // frame goes away while it is focused.
       if (!eventTarget || !eventTarget->GetPrimaryFrame()) {
-        nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
-        if (htmlDoc) {
-          nsCOMPtr<nsIDOMHTMLElement> body;
-          htmlDoc->GetBody(getter_AddRefs(body));
-          eventTarget = do_QueryInterface(body);
-          if (!eventTarget) {
-            eventTarget = mDocument->GetRootElement();
-          }
-        } else {
-          eventTarget = mDocument->GetRootElement();
-        }
+        eventTarget = mDocument->GetUnfocusedKeyEventTarget();
       }
 
       if (aEvent->mMessage == eKeyDown) {
@@ -8150,7 +8158,19 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent,
       if (aEvent->mClass == eKeyboardEventClass) {
         nsContentUtils::SetIsHandlingKeyBoardEvent(true);
       }
-      if (aEvent->IsAllowedToDispatchDOMEvent()) {
+      // If EventStateManager or something wants reply from remote process and
+      // needs to win any other event listeners in chrome, the event is both
+      // stopped its propagation and marked as "waiting reply from remote
+      // process".  In this case, PresShell shouldn't dispatch the event into
+      // the DOM tree because they don't have a chance to stop propagation in
+      // the system event group.  On the other hand, if its propagation is not
+      // stopped, that means that the event may be reserved by chrome.  If it's
+      // reserved by chrome, the event shouldn't be sent to any remote
+      // processes.  In this case, PresShell needs to dispatch the event to
+      // the DOM tree for checking if it's reserved.
+      if (aEvent->IsAllowedToDispatchDOMEvent() &&
+          !(aEvent->PropagationStopped() &&
+            aEvent->IsWaitingReplyFromRemoteProcess())) {
         MOZ_ASSERT(nsContentUtils::IsSafeToRunScript(),
           "Somebody changed aEvent to cause a DOM event!");
         nsPresShellEventCB eventCB(this);

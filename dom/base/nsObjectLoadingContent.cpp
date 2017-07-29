@@ -1562,8 +1562,7 @@ nsObjectLoadingContent::CheckLoadPolicy(int16_t *aContentPolicy)
                                           mContentType,
                                           nullptr, //extra
                                           aContentPolicy,
-                                          nsContentUtils::GetContentPolicy(),
-                                          nsContentUtils::GetSecurityManager());
+                                          nsContentUtils::GetContentPolicy());
   NS_ENSURE_SUCCESS(rv, false);
   if (NS_CP_REJECTED(*aContentPolicy)) {
     LOG(("OBJLC [%p]: Content policy denied load of %s",
@@ -1616,8 +1615,7 @@ nsObjectLoadingContent::CheckProcessPolicy(int16_t *aContentPolicy)
                                  mContentType,
                                  nullptr, //extra
                                  aContentPolicy,
-                                 nsContentUtils::GetContentPolicy(),
-                                 nsContentUtils::GetSecurityManager());
+                                 nsContentUtils::GetContentPolicy());
   NS_ENSURE_SUCCESS(rv, false);
 
   if (NS_CP_REJECTED(*aContentPolicy)) {
@@ -3119,8 +3117,11 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
        aType == eFallbackBlocklisted ||
        aType == eFallbackAlternate))
   {
-    for (nsIContent* child = thisContent->GetFirstChild(); child;
-         child = child->GetNextNode(thisContent)) {
+    for (nsIContent* child = thisContent->GetFirstChild(); child; ) {
+      // When we advance to our next child, we don't want to traverse subtrees
+      // under descendant <object> and <embed> elements; those will handle
+      // those subtrees themselves if they end up falling back.
+      bool skipChildDescendants = false;
       if (aType != eFallbackAlternate &&
           !child->IsHTMLElement(nsGkAtoms::param) &&
           nsStyleUtil::IsSignificantChild(child, true, false)) {
@@ -3130,9 +3131,17 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
         if (child->IsHTMLElement(nsGkAtoms::embed)) {
           HTMLSharedObjectElement* embed = static_cast<HTMLSharedObjectElement*>(child);
           embed->StartObjectLoad(true, true);
+          skipChildDescendants = true;
         } else if (auto object = HTMLObjectElement::FromContent(child)) {
           object->StartObjectLoad(true, true);
+          skipChildDescendants = true;
         }
+      }
+
+      if (skipChildDescendants) {
+        child = child->GetNextNonChildNode(thisContent);
+      } else {
+        child = child->GetNextNode(thisContent);
       }
     }
   }

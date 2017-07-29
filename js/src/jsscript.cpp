@@ -1834,9 +1834,7 @@ ScriptSource::appendSubstring(JSContext* cx, StringBuffer& buf, size_t start, si
     PinnedChars chars(cx, this, holder, start, len);
     if (!chars.get())
         return false;
-    // Sources can be large and we don't want to check "is this char Latin1"
-    // for each source code character, so inflate the buffer here.
-    if (len > 100 && !buf.ensureTwoByteChars())
+    if (len > SourceDeflateLimit && !buf.ensureTwoByteChars())
         return false;
     return buf.append(chars.get(), len);
 }
@@ -2326,7 +2324,6 @@ ScriptSource::initFromOptions(JSContext* cx, const ReadOnlyCompileOptions& optio
 
     introductionType_ = options.introductionType;
     setIntroductionOffset(options.introductionOffset);
-    startColumn_ = options.sourceStartColumn;
     parameterListEnd_ = parameterListEnd.isSome() ? parameterListEnd.value() : 0;
 
     if (options.hasIntroductionInfo) {
@@ -3287,7 +3284,7 @@ js::PCToLineNumber(unsigned startLine, jssrcnote* notes, jsbytecode* code, jsbyt
         if (offset > target)
             break;
 
-        SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
+        SrcNoteType type = SN_TYPE(sn);
         if (type == SRC_SETLINE) {
             lineno = unsigned(GetSrcNoteOffset(sn, 0));
             column = 0;
@@ -3339,7 +3336,7 @@ js::LineNumberToPC(JSScript* script, unsigned target)
             }
         }
         offset += SN_DELTA(sn);
-        SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
+        SrcNoteType type = SN_TYPE(sn);
         if (type == SRC_SETLINE) {
             lineno = unsigned(GetSrcNoteOffset(sn, 0));
         } else if (type == SRC_NEWLINE) {
@@ -3358,7 +3355,7 @@ js::GetScriptLineExtent(JSScript* script)
     unsigned lineno = script->lineno();
     unsigned maxLineNo = lineno;
     for (jssrcnote* sn = script->notes(); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
-        SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
+        SrcNoteType type = SN_TYPE(sn);
         if (type == SRC_SETLINE)
             lineno = unsigned(GetSrcNoteOffset(sn, 0));
         else if (type == SRC_NEWLINE)
@@ -3486,7 +3483,7 @@ js::detail::CopyScript(JSContext* cx, HandleScript src, HandleScript dst,
     /* NB: Keep this in sync with XDRScript. */
 
     /* Some embeddings are not careful to use ExposeObjectToActiveJS as needed. */
-    MOZ_ASSERT(!src->sourceObject()->asTenured().isMarked(gc::GRAY));
+    MOZ_ASSERT(!src->sourceObject()->isMarkedGray());
 
     uint32_t nconsts   = src->hasConsts()   ? src->consts()->length   : 0;
     uint32_t nobjects  = src->hasObjects()  ? src->objects()->length  : 0;
@@ -4202,24 +4199,27 @@ JSScript::argumentsOptimizationFailed(JSContext* cx, HandleScript script)
      *    assumption of !script->needsArgsObj();
      *  - type inference data for the script assuming script->needsArgsObj
      */
-    for (AllScriptFramesIter i(cx); !i.done(); ++i) {
-        /*
-         * We cannot reliably create an arguments object for Ion activations of
-         * this script.  To maintain the invariant that "script->needsArgsObj
-         * implies fp->hasArgsObj", the Ion bail mechanism will create an
-         * arguments object right after restoring the BaselineFrame and before
-         * entering Baseline code (in jit::FinishBailoutToBaseline).
-         */
-        if (i.isIon())
-            continue;
-        AbstractFramePtr frame = i.abstractFramePtr();
-        if (frame.isFunctionFrame() && frame.script() == script) {
-            /* We crash on OOM since cleaning up here would be complicated. */
-            AutoEnterOOMUnsafeRegion oomUnsafe;
-            ArgumentsObject* argsobj = ArgumentsObject::createExpected(cx, frame);
-            if (!argsobj)
-                oomUnsafe.crash("JSScript::argumentsOptimizationFailed");
-            SetFrameArgumentsObject(cx, frame, script, argsobj);
+    JSRuntime::AutoProhibitActiveContextChange apacc(cx->runtime());
+    for (const CooperatingContext& target : cx->runtime()->cooperatingContexts()) {
+        for (AllScriptFramesIter i(cx, target); !i.done(); ++i) {
+            /*
+             * We cannot reliably create an arguments object for Ion activations of
+             * this script.  To maintain the invariant that "script->needsArgsObj
+             * implies fp->hasArgsObj", the Ion bail mechanism will create an
+             * arguments object right after restoring the BaselineFrame and before
+             * entering Baseline code (in jit::FinishBailoutToBaseline).
+             */
+            if (i.isIon())
+                continue;
+            AbstractFramePtr frame = i.abstractFramePtr();
+            if (frame.isFunctionFrame() && frame.script() == script) {
+                /* We crash on OOM since cleaning up here would be complicated. */
+                AutoEnterOOMUnsafeRegion oomUnsafe;
+                ArgumentsObject* argsobj = ArgumentsObject::createExpected(cx, frame);
+                if (!argsobj)
+                    oomUnsafe.crash("JSScript::argumentsOptimizationFailed");
+                SetFrameArgumentsObject(cx, frame, script, argsobj);
+            }
         }
     }
 

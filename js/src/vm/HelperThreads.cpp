@@ -37,6 +37,7 @@ using mozilla::ArrayLength;
 using mozilla::DebugOnly;
 using mozilla::Unused;
 using mozilla::TimeDuration;
+using mozilla::TimeStamp;
 
 namespace js {
 
@@ -147,6 +148,7 @@ GetSelectorRuntime(const CompilationSelector& selector)
         JSRuntime* match(ZonesInState zbs)    { return zbs.runtime; }
         JSRuntime* match(JSRuntime* runtime)  { return runtime; }
         JSRuntime* match(AllCompilations all) { return nullptr; }
+        JSRuntime* match(CompilationsUsingNursery cun) { return cun.runtime; }
     };
 
     return selector.match(Matcher());
@@ -162,29 +164,34 @@ JitDataStructuresExist(const CompilationSelector& selector)
         bool match(ZonesInState zbs)    { return zbs.runtime->hasJitRuntime(); }
         bool match(JSRuntime* runtime)  { return runtime->hasJitRuntime(); }
         bool match(AllCompilations all) { return true; }
+        bool match(CompilationsUsingNursery cun) { return cun.runtime->hasJitRuntime(); }
     };
 
     return selector.match(Matcher());
 }
 
 static bool
-CompiledScriptMatches(const CompilationSelector& selector, JSScript* target)
+IonBuilderMatches(const CompilationSelector& selector, jit::IonBuilder* builder)
 {
-    struct ScriptMatches
+    struct BuilderMatches
     {
-        JSScript* target_;
+        jit::IonBuilder* builder_;
 
-        bool match(JSScript* script)    { return script == target_; }
-        bool match(JSCompartment* comp) { return comp == target_->compartment(); }
-        bool match(JSRuntime* runtime)  { return runtime == target_->runtimeFromAnyThread(); }
+        bool match(JSScript* script)    { return script == builder_->script(); }
+        bool match(JSCompartment* comp) { return comp == builder_->script()->compartment(); }
+        bool match(JSRuntime* runtime)  { return runtime == builder_->script()->runtimeFromAnyThread(); }
         bool match(AllCompilations all) { return true; }
         bool match(ZonesInState zbs)    {
-            return zbs.runtime == target_->runtimeFromAnyThread() &&
-                   zbs.state == target_->zoneFromAnyThread()->gcState();
+            return zbs.runtime == builder_->script()->runtimeFromAnyThread() &&
+                   zbs.state == builder_->script()->zoneFromAnyThread()->gcState();
+        }
+        bool match(CompilationsUsingNursery cun) {
+            return cun.runtime == builder_->script()->runtimeFromAnyThread() &&
+                   !builder_->safeForMinorGC();
         }
     };
 
-    return selector.match(ScriptMatches{target});
+    return selector.match(BuilderMatches{builder});
 }
 
 void
@@ -202,7 +209,7 @@ js::CancelOffThreadIonCompile(const CompilationSelector& selector, bool discardL
     GlobalHelperThreadState::IonBuilderVector& worklist = HelperThreadState().ionWorklist(lock);
     for (size_t i = 0; i < worklist.length(); i++) {
         jit::IonBuilder* builder = worklist[i];
-        if (CompiledScriptMatches(selector, builder->script())) {
+        if (IonBuilderMatches(selector, builder)) {
             FinishOffThreadIonCompile(builder, lock);
             HelperThreadState().remove(worklist, &i);
         }
@@ -215,7 +222,7 @@ js::CancelOffThreadIonCompile(const CompilationSelector& selector, bool discardL
         bool unpaused = false;
         for (auto& helper : *HelperThreadState().threads) {
             if (helper.ionBuilder() &&
-                CompiledScriptMatches(selector, helper.ionBuilder()->script()))
+                IonBuilderMatches(selector, helper.ionBuilder()))
             {
                 helper.ionBuilder()->cancel();
                 if (helper.pause) {
@@ -235,7 +242,7 @@ js::CancelOffThreadIonCompile(const CompilationSelector& selector, bool discardL
     GlobalHelperThreadState::IonBuilderVector& finished = HelperThreadState().ionFinishedList(lock);
     for (size_t i = 0; i < finished.length(); i++) {
         jit::IonBuilder* builder = finished[i];
-        if (CompiledScriptMatches(selector, builder->script())) {
+        if (IonBuilderMatches(selector, builder)) {
             builder->script()->zone()->group()->numFinishedBuilders--;
             jit::FinishOffThreadBuilder(nullptr, builder, lock);
             HelperThreadState().remove(finished, &i);
@@ -250,7 +257,7 @@ js::CancelOffThreadIonCompile(const CompilationSelector& selector, bool discardL
             jit::IonBuilder* builder = group->ionLazyLinkList().getFirst();
             while (builder) {
                 jit::IonBuilder* next = builder->getNext();
-                if (CompiledScriptMatches(selector, builder->script()))
+                if (IonBuilderMatches(selector, builder))
                     jit::FinishOffThreadBuilder(runtime, builder, lock);
                 builder = next;
             }
@@ -1315,14 +1322,28 @@ js::GCParallelTask::join()
     joinWithLockHeld(helperLock);
 }
 
+static inline
+TimeDuration
+TimeSince(TimeStamp prev)
+{
+    TimeStamp now = TimeStamp::Now();
+#ifdef ANDROID
+    // Sadly this happens sometimes.
+    if (now < prev)
+        now = prev;
+#endif
+    MOZ_RELEASE_ASSERT(now >= prev);
+    return now - prev;
+}
+
 void
 js::GCParallelTask::runFromActiveCooperatingThread(JSRuntime* rt)
 {
     MOZ_ASSERT(state == NotStarted);
     MOZ_ASSERT(js::CurrentThreadCanAccessRuntime(rt));
-    mozilla::TimeStamp timeStart = mozilla::TimeStamp::Now();
+    TimeStamp timeStart = TimeStamp::Now();
     run();
-    duration_ = mozilla::TimeStamp::Now() - timeStart;
+    duration_ = TimeSince(timeStart);
 }
 
 void
@@ -1333,11 +1354,11 @@ js::GCParallelTask::runFromHelperThread(AutoLockHelperThreadState& locked)
 
     {
         AutoUnlockHelperThreadState parallelSection(locked);
-        mozilla::TimeStamp timeStart = mozilla::TimeStamp::Now();
+        TimeStamp timeStart = TimeStamp::Now();
         TlsContext.get()->heapState = JS::HeapState::MajorCollecting;
         run();
         TlsContext.get()->heapState = JS::HeapState::Idle;
-        duration_ = mozilla::TimeStamp::Now() - timeStart;
+        duration_ = TimeSince(timeStart);
     }
 
     state = Finished;
@@ -1583,9 +1604,10 @@ GlobalHelperThreadState::mergeParseTaskCompartment(JSContext* cx, ParseTask* par
     JS::AutoAssertNoGC nogc(cx);
 
     LeaveParseTaskZone(cx->runtime(), parseTask);
-    AutoCompartment ac(cx, parseTask->parseGlobal);
 
     {
+        AutoCompartment ac(cx, parseTask->parseGlobal);
+
         // Generator functions don't have Function.prototype as prototype but a
         // different function object, so the IdentifyStandardPrototype trick
         // below won't work.  Just special-case it.

@@ -80,7 +80,6 @@ void
 WebRenderTextureHost::Unlock()
 {
   MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-  return;
 }
 
 bool
@@ -178,8 +177,8 @@ WebRenderTextureHost::AddWRImage(wr::WebRenderAPI* aAPI,
 
 void
 WebRenderTextureHost::PushExternalImage(wr::DisplayListBuilder& aBuilder,
-                                        const WrRect& aBounds,
-                                        const WrRect& aClip,
+                                        const wr::LayoutRect& aBounds,
+                                        const wr::LayoutRect& aClip,
                                         wr::ImageRendering aFilter,
                                         Range<const wr::ImageKey>& aImageKeys)
 {

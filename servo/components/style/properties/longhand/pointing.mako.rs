@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
-<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="none"
+<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="discrete"
   spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
@@ -101,7 +101,7 @@
             } else {
                 Cursor::from_css_keyword(&ident)
                     .map(computed_value::Keyword::Cursor)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
             }
         }
     }
@@ -152,6 +152,7 @@
 // TODO(pcwalton): SVG-only values.
 ${helpers.single_keyword("pointer-events", "auto none", animation_value_type="discrete",
                          extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
 ${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",

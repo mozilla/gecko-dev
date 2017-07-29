@@ -307,8 +307,14 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     }
   }
 
-  sandbox::ResultCode result = mPolicy->SetJobLevel(jobLevel,
-                                                    0 /* ui_exceptions */);
+#if defined(DEBUG)
+  // This is required for a MOZ_ASSERT check in WindowsMessageLoop.cpp
+  // WinEventHook, see bug 1366694 for details.
+  DWORD uiExceptions = JOB_OBJECT_UILIMIT_HANDLES;
+#else
+  DWORD uiExceptions = 0;
+#endif
+  sandbox::ResultCode result = mPolicy->SetJobLevel(jobLevel, uiExceptions);
   MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
                      "Setting job level failed, have you set memory limit when jobLevel == JOB_NONE?");
 
@@ -341,7 +347,8 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     sandbox::MITIGATION_HEAP_TERMINATE |
     sandbox::MITIGATION_SEHOP |
     sandbox::MITIGATION_DEP_NO_ATL_THUNK |
-    sandbox::MITIGATION_DEP;
+    sandbox::MITIGATION_DEP |
+    sandbox::MITIGATION_EXTENSION_POINT_DISABLE;
 
   result = mPolicy->SetProcessMitigations(mitigations);
   MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
@@ -570,6 +577,8 @@ SandboxBroker::SetSecurityLevelForPluginProcess(int32_t aSandboxLevel)
     initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
   }
+
+  mPolicy->SetDoNotUseRestrictingSIDs();
 
   sandbox::ResultCode result = mPolicy->SetJobLevel(jobLevel,
                                                     0 /* ui_exceptions */);

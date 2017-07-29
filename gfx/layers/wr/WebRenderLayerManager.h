@@ -6,6 +6,8 @@
 #ifndef GFX_WEBRENDERLAYERMANAGER_H
 #define GFX_WEBRENDERLAYERMANAGER_H
 
+#include <vector>
+
 #include "gfxPrefs.h"
 #include "Layers.h"
 #include "mozilla/MozPromise.h"
@@ -13,6 +15,7 @@
 #include "mozilla/layers/FocusTarget.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/TransactionIdAllocator.h"
+#include "mozilla/layers/WebRenderScrollData.h"
 #include "mozilla/layers/WebRenderUserData.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "mozilla/webrender/WebRenderTypes.h"
@@ -35,7 +38,7 @@ class WebRenderLayerManager final : public LayerManager
 
 public:
   explicit WebRenderLayerManager(nsIWidget* aWidget);
-  void Initialize(PCompositorBridgeChild* aCBChild, wr::PipelineId aLayersId, TextureFactoryIdentifier* aTextureFactoryIdentifier);
+  bool Initialize(PCompositorBridgeChild* aCBChild, wr::PipelineId aLayersId, TextureFactoryIdentifier* aTextureFactoryIdentifier);
 
   virtual void Destroy() override;
 
@@ -70,7 +73,7 @@ public:
                        nsDisplayListBuilder* aDisplayListBuilder);
   void CreateWebRenderCommandsFromDisplayList(nsDisplayList* aDisplayList,
                                               nsDisplayListBuilder* aDisplayListBuilder,
-                                              StackingContextHelper& aSc,
+                                              const StackingContextHelper& aSc,
                                               wr::DisplayListBuilder& aBuilder);
   void EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
                                   nsDisplayListBuilder* aDisplayListBuilder);
@@ -214,7 +217,7 @@ private:
 
 private:
   nsIWidget* MOZ_NON_OWNING_REF mWidget;
-  std::vector<wr::ImageKey> mImageKeys;
+  std::vector<wr::ImageKey> mImageKeysToDelete;
   nsTArray<uint64_t> mDiscardedCompositorAnimationsIds;
 
   /* PaintedLayer callbacks; valid at the end of a transaciton,
@@ -235,6 +238,13 @@ private:
   // empty transactions in layers-free mode.
   wr::BuiltDisplayList mBuiltDisplayList;
   nsTArray<WebRenderParentCommand> mParentCommands;
+
+  // This holds the scroll data that we need to send to the compositor for
+  // APZ to do it's job
+  WebRenderScrollData mScrollData;
+  // We use this as a temporary data structure while building the mScrollData
+  // inside a layers-free transaction.
+  std::vector<WebRenderLayerScrollData> mLayerScrollData;
 
   // Layers that have been mutated. If we have an empty transaction
   // then a display item layer will no longer be valid

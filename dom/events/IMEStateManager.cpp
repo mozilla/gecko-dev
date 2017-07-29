@@ -15,7 +15,6 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/Unused.h"
@@ -186,7 +185,7 @@ void
 IMEStateManager::Shutdown()
 {
   MOZ_LOG(sISMLog, LogLevel::Info,
-    ("Shutdown(), sTextCompositions=0x%p, sTextCompositions->Length()=%" PRIuSIZE,
+    ("Shutdown(), sTextCompositions=0x%p, sTextCompositions->Length()=%zu",
      sTextCompositions, sTextCompositions ? sTextCompositions->Length() : 0));
 
   MOZ_ASSERT(!sTextCompositions || !sTextCompositions->Length());
@@ -198,9 +197,14 @@ IMEStateManager::Shutdown()
 void
 IMEStateManager::OnTabParentDestroying(TabParent* aTabParent)
 {
+  if (sFocusedIMETabParent == aTabParent) {
+    NotifyIMEOfBlurForChildProcess();
+  }
+
   if (sActiveTabParent != aTabParent) {
     return;
   }
+
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("OnTabParentDestroying(aTabParent=0x%p), "
      "The active TabParent is being destroyed", aTabParent));
@@ -208,8 +212,7 @@ IMEStateManager::OnTabParentDestroying(TabParent* aTabParent)
   // The active remote process might have crashed.
   sActiveTabParent = nullptr;
 
-  // TODO: Need to cancel composition without TextComposition and make
-  //       disable IME.
+  // XXX: Need to disable IME?
 }
 
 // static
@@ -220,6 +223,7 @@ IMEStateManager::WidgetDestroyed(nsIWidget* aWidget)
     sWidget = nullptr;
   }
   if (sFocusedIMEWidget == aWidget) {
+    NotifyIMEOfBlurForChildProcess();
     sFocusedIMEWidget = nullptr;
   }
   if (sActiveInputContextWidget == aWidget) {
@@ -245,6 +249,27 @@ IMEStateManager::StopIMEStateManagement()
   sContent = nullptr;
   sActiveTabParent = nullptr;
   DestroyIMEContentObserver();
+}
+
+// static
+void
+IMEStateManager::NotifyIMEOfBlurForChildProcess()
+{
+  MOZ_LOG(sISMLog, LogLevel::Debug,
+    ("NotifyIMEOfBlurForChildProcess(), sFocusedIMETabParent=0x%p, "
+     "sFocusedIMEWidget=0x%p",
+     sFocusedIMETabParent.get(), sFocusedIMEWidget));
+
+  if (!sFocusedIMETabParent) {
+    MOZ_ASSERT(!sFocusedIMEWidget);
+    return;
+  }
+
+  MOZ_ASSERT(sFocusedIMEWidget);
+  NotifyIME(NOTIFY_IME_OF_BLUR, sFocusedIMEWidget, sFocusedIMETabParent);
+
+  MOZ_ASSERT(!sFocusedIMETabParent);
+  MOZ_ASSERT(!sFocusedIMEWidget);
 }
 
 // static
@@ -291,7 +316,7 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
     if (i != TextCompositionArray::NoIndex) {
       MOZ_LOG(sISMLog, LogLevel::Debug,
         ("  OnDestroyPresContext(), "
-         "removing TextComposition instance from the array (index=%" PRIuSIZE ")", i));
+         "removing TextComposition instance from the array (index=%zu)", i));
       // there should be only one composition per presContext object.
       sTextCompositions->ElementAt(i)->Destroy();
       sTextCompositions->RemoveElementAt(i);
@@ -489,13 +514,19 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
     // process while the process has IME focus too, we need to notify IME of
     // blur here because it may be too late the blur notification to reach
     // this process especially when closing active window.
-    if (sFocusedIMETabParent &&
+    // However, don't send blur if we're being deactivated and IME wants to
+    // keep composition during deactive because notifying blur will commit
+    // or cancel composition.
+    if (sFocusedIMETabParent && sFocusedIMEWidget &&
+        (aPresContext ||
+         !sFocusedIMEWidget->IMENotificationRequestsRef().
+           WantDuringDeactive()) &&
         !IsSameProcess(sFocusedIMETabParent, newTabParent)) {
       MOZ_LOG(sISMLog, LogLevel::Info,
         ("  OnChangeFocusInternal(), notifying IME of blur of previous focused "
          "remote process because it may be too late actual notification to "
          "reach this process"));
-      NotifyIME(NOTIFY_IME_OF_BLUR, sFocusedIMEWidget, sFocusedIMETabParent);
+      NotifyIMEOfBlurForChildProcess();
     }
   }
 
@@ -534,6 +565,7 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   bool setIMEState = true;
 
   if (newTabParent) {
+    MOZ_ASSERT(XRE_IsParentProcess());
     if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS ||
         aAction.mFocusChange == InputContextAction::MENU_LOST_PSEUDO_FOCUS) {
       // XXX When menu keyboard listener is being uninstalled, IME state needs
@@ -559,7 +591,7 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
            "will get focus actually"));
       }
     } else if (newWidget->GetInputContext().mOrigin !=
-                 InputContext::ORIGIN_CONTENT) {
+                 InputContext::ORIGIN_MAIN) {
       // When focus is NOT changed actually, we shouldn't set IME state if
       // current input context was set by a remote process since that means
       // that the window is being activated and the child process may have

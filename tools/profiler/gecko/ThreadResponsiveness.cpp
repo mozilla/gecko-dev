@@ -9,9 +9,13 @@
 #include "nsThreadUtils.h"
 #include "nsITimer.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/SystemGroup.h"
 
 using mozilla::Mutex;
 using mozilla::MutexAutoLock;
+using mozilla::SystemGroup;
+using mozilla::TaskCategory;
 using mozilla::TimeStamp;
 
 class CheckResponsivenessTask : public mozilla::Runnable,
@@ -45,7 +49,8 @@ public:
 
     // Dispatching can fail during early startup, particularly when
     // MOZ_PROFILER_STARTUP is used.
-    nsresult rv = NS_DispatchToMainThread(this);
+    nsresult rv = SystemGroup::Dispatch(TaskCategory::Other,
+                                        do_AddRef(this));
     if (NS_SUCCEEDED(rv)) {
       mHasEverBeenSuccessfullyDispatched = true;
     }
@@ -66,6 +71,7 @@ public:
     mLastTracerTime = TimeStamp::Now();
     if (!mTimer) {
       mTimer = do_CreateInstance("@mozilla.org/timer;1");
+      mTimer->SetTarget(SystemGroup::EventTargetFor(TaskCategory::Other));
     }
     mTimer->InitWithCallback(this, 16, nsITimer::TYPE_ONE_SHOT);
 
@@ -74,7 +80,8 @@ public:
 
   NS_IMETHOD Notify(nsITimer* aTimer) final
   {
-    NS_DispatchToMainThread(this);
+    SystemGroup::Dispatch(TaskCategory::Other,
+                          do_AddRef(this));
     return NS_OK;
   }
 

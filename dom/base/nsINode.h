@@ -19,10 +19,12 @@
 #include "nsTObserverArray.h"       // for member
 #include "mozilla/ErrorResult.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/SizeOfState.h"    // for SizeOfState
 #include "mozilla/dom/EventTarget.h" // for base class
 #include "js/TypeDecls.h"     // for Handle, Value, JSObject, JSContext
 #include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "nsTHashtable.h"
 #include <iosfwd>
 
 // Including 'windows.h' will #define GetClassInfo to something else.
@@ -51,6 +53,7 @@ class nsIURI;
 class nsNodeSupportsWeakRefTearoff;
 class nsNodeWeakReference;
 class nsDOMMutationObserver;
+class nsRange;
 
 namespace mozilla {
 class EventListenerManager;
@@ -266,7 +269,8 @@ private:
 // defined, it is inherited from nsINode.
 // This macro isn't actually specific to nodes, and bug 956400 will move it into MFBT.
 #define NS_DECL_SIZEOF_EXCLUDING_THIS \
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  virtual size_t SizeOfExcludingThis(mozilla::SizeOfState& aState) \
+    const override;
 
 // Categories of node properties
 // 0 is global.
@@ -324,15 +328,15 @@ public:
   // The following members don't need to be measured:
   // - nsIContent: mPrimaryFrame, because it's non-owning and measured elsewhere
   //
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  virtual size_t SizeOfExcludingThis(mozilla::SizeOfState& aState) const;
 
   // SizeOfIncludingThis doesn't need to be overridden by sub-classes because
   // sub-classes of nsINode are guaranteed to be laid out in memory in such a
   // way that |this| points to the start of the allocated object, even in
-  // methods of nsINode's sub-classes, and so |aMallocSizeOf(this)| is always
+  // methods of nsINode's sub-classes, so aState.mMallocSizeOf(this) is always
   // safe to call no matter which object it was invoked on.
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  virtual size_t SizeOfIncludingThis(mozilla::SizeOfState& aState) const {
+    return aState.mMallocSizeOf(this) + SizeOfExcludingThis(aState);
   }
 
   friend class nsNodeUtils;
@@ -1107,6 +1111,12 @@ public:
      * nsNodeWeakReference.
      */
     nsNodeWeakReference* MOZ_NON_OWNING_REF mWeakReference;
+
+    /**
+     * A set of ranges in the common ancestor for the selection to which
+     * this node belongs to.
+     */
+    mozilla::UniquePtr<nsTHashtable<nsPtrHashKey<nsRange>>> mCommonAncestorRanges;
 
     /**
      * Number of descendant nodes in the uncomposed document that have been
@@ -1897,6 +1907,27 @@ public:
                                                   const ConvertCoordinateOptions& aOptions,
                                                   CallerType aCallerType,
                                                   ErrorResult& aRv);
+
+  const nsTHashtable<nsPtrHashKey<nsRange>>* GetExistingCommonAncestorRanges() const
+  {
+    if (!HasSlots()) {
+      return nullptr;
+    }
+    mozilla::UniquePtr<nsTHashtable<nsPtrHashKey<nsRange>>>& ranges =
+      GetExistingSlots()->mCommonAncestorRanges;
+    return ranges.get();
+  }
+
+  nsTHashtable<nsPtrHashKey<nsRange>>* GetExistingCommonAncestorRanges()
+  {
+    nsINode::nsSlots* slots = GetExistingSlots();
+    return slots ? slots->mCommonAncestorRanges.get() : nullptr;
+  }
+
+  mozilla::UniquePtr<nsTHashtable<nsPtrHashKey<nsRange>>>& GetCommonAncestorRangesPtr()
+  {
+    return Slots()->mCommonAncestorRanges;
+  }
 
 protected:
 

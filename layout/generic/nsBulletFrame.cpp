@@ -132,7 +132,9 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
     if (needNewRequest) {
       RefPtr<imgRequestProxy> newRequestClone;
-      newRequest->Clone(mListener, getter_AddRefs(newRequestClone));
+      newRequest->SyncClone(mListener,
+                            PresContext()->Document(),
+                            getter_AddRefs(newRequestClone));
 
       // Deregister the old request. We wait until after Clone is done in case
       // the old request and the new request are the same underlying image
@@ -396,8 +398,12 @@ BulletRenderer::BuildGlyphForText(nsDisplayItem* aItem, bool disableSubpixelAA)
 {
   MOZ_ASSERT(IsTextType());
 
+  RefPtr<DrawTarget> screenTarget = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
   RefPtr<DrawTargetCapture> capture =
-    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget()->CreateCaptureDT(IntSize());
+    Factory::CreateCaptureDrawTarget(screenTarget->GetBackendType(),
+                                     IntSize(),
+                                     screenTarget->GetFormat());
+
   RefPtr<gfxContext> captureCtx = gfxContext::CreateOrNull(capture);
 
   {
@@ -472,11 +478,11 @@ BulletRenderer::CreateWebRenderCommandsForImage(nsDisplayItem* aItem,
 
   const int32_t appUnitsPerDevPixel = aItem->Frame()->PresContext()->AppUnitsPerDevPixel();
   LayoutDeviceRect destRect = LayoutDeviceRect::FromAppUnits(mDest, appUnitsPerDevPixel);
-  WrRect dest = aSc.ToRelativeWrRectRounded(destRect);
+  wr::LayoutRect dest = aSc.ToRelativeLayoutRectRounded(destRect);
 
   aBuilder.PushImage(dest,
                      dest,
-                     WrImageRendering::Auto,
+                     wr::ImageRendering::Auto,
                      key.value());
 }
 

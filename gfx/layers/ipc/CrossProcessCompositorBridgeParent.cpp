@@ -10,6 +10,9 @@
 #include "base/message_loop.h"          // for MessageLoop
 #include "base/task.h"                  // for CancelableTask, etc
 #include "base/thread.h"                // for Thread
+#ifdef XP_WIN
+#include "mozilla/gfx/DeviceManagerDx.h"// for DeviceManagerDx
+#endif
 #include "mozilla/ipc/Transport.h"      // for Transport
 #include "mozilla/layers/AnimationHelper.h" // for CompositorAnimationStorage
 #include "mozilla/layers/APZCTreeManager.h"  // for APZCTreeManager
@@ -23,7 +26,7 @@
 #include "mozilla/layers/PLayerTransactionParent.h"
 #include "mozilla/layers/RemoteContentController.h"
 #include "mozilla/layers/WebRenderBridgeParent.h"
-#include "mozilla/layers/WebRenderCompositableHolder.h"
+#include "mozilla/layers/AsyncImagePipelineManager.h"
 #include "mozilla/mozalloc.h"           // for operator new, etc
 #include "nsDebug.h"                    // for NS_ASSERTION, etc
 #include "nsTArray.h"                   // for nsTArray
@@ -214,7 +217,7 @@ CrossProcessCompositorBridgeParent::AllocPWebRenderBridgeParent(const wr::Pipeli
     // This could happen when this function is called after CompositorBridgeParent destruction.
     // This was observed during Tab move between different windows.
     NS_WARNING("Created child without a matching parent?");
-    parent = WebRenderBridgeParent::CeateDestroyed();
+    parent = WebRenderBridgeParent::CreateDestroyed();
     *aIdNamespace = parent->GetIdNameSpace();
     *aTextureFactoryIdentifier = TextureFactoryIdentifier(LayersBackend::LAYERS_NONE);
     return parent;
@@ -222,7 +225,7 @@ CrossProcessCompositorBridgeParent::AllocPWebRenderBridgeParent(const wr::Pipeli
   WebRenderBridgeParent* root = sIndirectLayerTrees[cbp->RootLayerTreeId()].mWrBridge.get();
 
   RefPtr<wr::WebRenderAPI> api = root->GetWebRenderAPI();
-  RefPtr<WebRenderCompositableHolder> holder = root->CompositableHolder();
+  RefPtr<AsyncImagePipelineManager> holder = root->AsyncImageManager();
   RefPtr<CompositorAnimationStorage> animStorage = cbp->GetAnimationStorage();
   parent = new WebRenderBridgeParent(this, aPipelineId, nullptr, root->CompositorScheduler(), Move(api), Move(holder), Move(animStorage));
 
@@ -275,6 +278,29 @@ CrossProcessCompositorBridgeParent::RecvMapAndNotifyChildCreated(const uint64_t&
   // ensures proper window ownership of layer trees.
   return IPC_FAIL_NO_REASON(this);
 }
+
+
+mozilla::ipc::IPCResult
+CrossProcessCompositorBridgeParent::RecvCheckContentOnlyTDR(const uint32_t& sequenceNum,
+                                                            bool* isContentOnlyTDR)
+{
+  *isContentOnlyTDR = false;
+#ifdef XP_WIN
+  ContentDeviceData compositor;
+
+  DeviceManagerDx* dm = DeviceManagerDx::Get();
+
+  // Check that the D3D11 device sequence numbers match.
+  D3D11DeviceStatus status;
+  dm->ExportDeviceInfo(&status);
+
+  if (sequenceNum == status.sequenceNumber() && !dm->HasDeviceReset()) {
+    *isContentOnlyTDR = true;
+  }
+
+#endif
+  return IPC_OK();
+};
 
 void
 CrossProcessCompositorBridgeParent::ShadowLayersUpdated(
@@ -336,12 +362,28 @@ CrossProcessCompositorBridgeParent::DidComposite(
   TimeStamp& aCompositeStart,
   TimeStamp& aCompositeEnd)
 {
+  MonitorAutoLock lock(*sIndirectLayerTreesLock);
+  DidCompositeLocked(aId, aCompositeStart, aCompositeEnd);
+}
+
+void
+CrossProcessCompositorBridgeParent::DidCompositeLocked(
+  uint64_t aId,
+  TimeStamp& aCompositeStart,
+  TimeStamp& aCompositeEnd)
+{
   sIndirectLayerTreesLock->AssertCurrentThreadOwns();
   if (LayerTransactionParent *layerTree = sIndirectLayerTrees[aId].mLayerTree) {
-    Unused << SendDidComposite(aId, layerTree->GetPendingTransactionId(), aCompositeStart, aCompositeEnd);
-    layerTree->SetPendingTransactionId(0);
+    uint64_t transactionId = layerTree->GetPendingTransactionId();
+    if (transactionId) {
+      Unused << SendDidComposite(aId, transactionId, aCompositeStart, aCompositeEnd);
+      layerTree->SetPendingTransactionId(0);
+    }
   } else if (WebRenderBridgeParent* wrbridge = sIndirectLayerTrees[aId].mWrBridge) {
-    Unused << SendDidComposite(aId, wrbridge->FlushPendingTransactionIds(), aCompositeStart, aCompositeEnd);
+    uint64_t transactionId = wrbridge->FlushPendingTransactionIds();
+    if (transactionId) {
+      Unused << SendDidComposite(aId, transactionId, aCompositeStart, aCompositeEnd);
+    }
   }
 }
 

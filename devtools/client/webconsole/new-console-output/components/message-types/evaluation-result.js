@@ -19,14 +19,9 @@ EvaluationResult.displayName = "EvaluationResult";
 EvaluationResult.propTypes = {
   dispatch: PropTypes.func.isRequired,
   message: PropTypes.object.isRequired,
-  indent: PropTypes.number.isRequired,
   timestampsVisible: PropTypes.bool.isRequired,
   serviceContainer: PropTypes.object,
   loadedObjectProperties: PropTypes.object,
-};
-
-EvaluationResult.defaultProps = {
-  indent: 0,
 };
 
 function EvaluationResult(props) {
@@ -34,7 +29,6 @@ function EvaluationResult(props) {
     dispatch,
     message,
     serviceContainer,
-    indent,
     timestampsVisible,
     loadedObjectProperties,
   } = props;
@@ -42,8 +36,10 @@ function EvaluationResult(props) {
   const {
     source,
     type,
+    helperType,
     level,
     id: messageId,
+    indent,
     exceptionDocURL,
     frame,
     timeStamp,
@@ -70,6 +66,8 @@ function EvaluationResult(props) {
       useQuotes: true,
       escapeWhitespace: false,
       loadedObjectProperties,
+      type,
+      helperType,
     });
   }
 

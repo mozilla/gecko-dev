@@ -22,7 +22,7 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 
-use cssparser::{CompactCowStr, Token};
+use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseError;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
@@ -30,7 +30,7 @@ use selectors::parser::SelectorParseError;
 pub type UnsafeNode = (usize, usize);
 
 /// Represents a mobile style pinch zoom factor.
-/// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_traits.
+/// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_api.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
 pub struct PinchZoomFactor(f32);
@@ -59,6 +59,12 @@ impl PinchZoomFactor {
 #[derive(Clone, Copy, Debug)]
 pub enum CSSPixel {}
 
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+#[derive(Copy, Clone, Debug)]
+pub enum DevicePixel {}
+
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel
@@ -81,9 +87,9 @@ pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<'i, Style
 /// Errors that can be encountered while parsing CSS values.
 pub enum StyleParseError<'i> {
     /// A bad URL token in a DVB.
-    BadUrlInDeclarationValueBlock(CompactCowStr<'i>),
+    BadUrlInDeclarationValueBlock(CowRcStr<'i>),
     /// A bad string token in a DVB.
-    BadStringInDeclarationValueBlock(CompactCowStr<'i>),
+    BadStringInDeclarationValueBlock(CowRcStr<'i>),
     /// Unexpected closing parenthesis in a DVB.
     UnbalancedCloseParenthesisInDeclarationValueBlock,
     /// Unexpected closing bracket in a DVB.
@@ -91,15 +97,15 @@ pub enum StyleParseError<'i> {
     /// Unexpected closing curly bracket in a DVB.
     UnbalancedCloseCurlyBracketInDeclarationValueBlock,
     /// A property declaration parsing error.
-    PropertyDeclaration(PropertyDeclarationParseError),
+    PropertyDeclaration(PropertyDeclarationParseError<'i>),
     /// A property declaration value had input remaining after successfully parsing.
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
-    UnexpectedDimension(CompactCowStr<'i>),
+    UnexpectedDimension(CowRcStr<'i>),
     /// A media query using a ranged expression with no value was encountered.
     RangedExpressionWithNoValue,
     /// A function was encountered that was not expected.
-    UnexpectedFunction(CompactCowStr<'i>),
+    UnexpectedFunction(CowRcStr<'i>),
     /// @namespace must be before any rule but @charset and @import
     UnexpectedNamespaceRule,
     /// @import must be before any rule but @charset
@@ -107,24 +113,24 @@ pub enum StyleParseError<'i> {
     /// Unexpected @charset rule encountered.
     UnexpectedCharsetRule,
     /// Unsupported @ rule
-    UnsupportedAtRule(CompactCowStr<'i>),
+    UnsupportedAtRule(CowRcStr<'i>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.
     UnexpectedTokenWithinNamespace(Token<'i>),
-    /// An unknown CSS property was encountered.
-    UnknownProperty(CompactCowStr<'i>),
 }
 
 /// The result of parsing a property declaration.
 #[derive(Eq, PartialEq, Clone, Debug)]
-pub enum PropertyDeclarationParseError {
+pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for an unknown property.
-    UnknownProperty,
+    UnknownProperty(CowRcStr<'i>),
+    /// An unknown vendor-specific identifier was encountered.
+    UnknownVendorProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
-    InvalidValue(String),
+    InvalidValue(CowRcStr<'i>),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///
@@ -140,8 +146,8 @@ impl<'a> From<StyleParseError<'a>> for ParseError<'a> {
     }
 }
 
-impl<'a> From<PropertyDeclarationParseError> for ParseError<'a> {
-    fn from(this: PropertyDeclarationParseError) -> Self {
+impl<'a> From<PropertyDeclarationParseError<'a>> for ParseError<'a> {
+    fn from(this: PropertyDeclarationParseError<'a>) -> Self {
         cssparser::ParseError::Custom(SelectorParseError::Custom(StyleParseError::PropertyDeclaration(this)))
     }
 }

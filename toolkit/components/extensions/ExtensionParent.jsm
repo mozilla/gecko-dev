@@ -34,8 +34,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
                                   "resource://gre/modules/MessageChannel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NativeApp",
                                   "resource://gre/modules/NativeMessaging.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
@@ -72,10 +70,6 @@ var {
 const BASE_SCHEMA = "chrome://extensions/content/schemas/manifest.json";
 const CATEGORY_EXTENSION_SCHEMAS = "webextension-schemas";
 const CATEGORY_EXTENSION_SCRIPTS = "webextension-scripts";
-
-const XUL_URL = "data:application/vnd.mozilla.xul+xml;charset=utf-8," + encodeURI(
-  `<?xml version="1.0"?>
-  <window id="documentElement"/>`);
 
 let schemaURLs = new Set();
 
@@ -249,10 +243,13 @@ ProxyMessenger = {
           result = res;
         }
       } catch (e) {
-        if (e.result != MessageChannel.RESULT_NO_HANDLER) {
+        if (e.result === MessageChannel.RESULT_NO_RESPONSE) {
+          // Ignore.
+        } else if (e.result === MessageChannel.RESULT_NO_HANDLER) {
+          failures++;
+        } else {
           throw e;
         }
-        failures++;
       }
     };
 
@@ -276,7 +273,24 @@ ProxyMessenger = {
       // `tabId` being set implies that the tabs API is supported, so we don't
       // need to check whether `tabTracker` exists.
       let tab = apiManager.global.tabTracker.getTab(tabId, null);
-      return tab && (tab.linkedBrowser || tab.browser).messageManager;
+      if (!tab) {
+        return null;
+      }
+      let browser = tab.linkedBrowser || tab.browser;
+
+      // Options panels in the add-on manager currently require
+      // special-casing, since their message managers aren't currently
+      // connected to the tab's top-level message manager. To deal with
+      // this, we find the options <browser> for the tab, and use that
+      // directly, insteead.
+      if (browser.currentURI.cloneIgnoringRef().spec === "about:addons") {
+        let optionsBrowser = browser.contentDocument.querySelector(".inline-options-browser");
+        if (optionsBrowser) {
+          browser = optionsBrowser;
+        }
+      }
+
+      return browser.messageManager;
     }
 
     // runtime.sendMessage / runtime.connect
@@ -351,7 +365,7 @@ class ProxyContextParent extends BaseContext {
   constructor(envType, extension, params, xulBrowser, principal) {
     super(envType, extension);
 
-    this.uri = NetUtil.newURI(params.url);
+    this.uri = Services.io.newURI(params.url);
 
     this.incognito = params.incognito;
 
@@ -839,7 +853,7 @@ class HiddenXULWindow {
     let system = Services.scriptSecurityManager.getSystemPrincipal();
     this.chromeShell.createAboutBlankContentViewer(system);
     this.chromeShell.useGlobalHistory = false;
-    this.chromeShell.loadURI(XUL_URL, 0, null, null, null);
+    this.chromeShell.loadURI("chrome://extensions/content/dummy.xul", 0, null, null, null);
 
     await promiseObserved("chrome-document-global-created",
                           win => win.document == this.chromeShell.document);
@@ -999,6 +1013,14 @@ const DebugUtils = {
       apiManager.off("ready", this._extensionUpdatedWatcher);
       delete this._extensionUpdatedWatcher;
     }
+  },
+
+  getExtensionManifestWarnings(id) {
+    const addon = GlobalManager.extensionMap.get(id);
+    if (addon) {
+      return addon.warnings;
+    }
+    return [];
   },
 
 
@@ -1492,7 +1514,7 @@ var ExtensionParent = {
       return gBaseManifestProperties;
     }
 
-    let types = Schemas.schemaJSON.get(BASE_SCHEMA)[0].types;
+    let types = Schemas.schemaJSON.get(BASE_SCHEMA).deserialize({})[0].types;
     let manifest = types.find(type => type.id === "WebExtensionManifest");
     if (!manifest) {
       throw new Error("Unable to find base manifest properties");

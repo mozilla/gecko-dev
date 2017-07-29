@@ -349,10 +349,8 @@ class BuildOptionParser(object):
         'fuzzing-asan-tc': 'builds/releng_sub_%s_configs/%s_fuzzing_asan_tc.py',
         'tsan': 'builds/releng_sub_%s_configs/%s_tsan.py',
         'cross-debug': 'builds/releng_sub_%s_configs/%s_cross_debug.py',
-        'cross-debug-st-an': 'builds/releng_sub_%s_configs/%s_cross_debug_st_an.py',
         'cross-debug-artifact': 'builds/releng_sub_%s_configs/%s_cross_debug_artifact.py',
         'cross-noopt-debug': 'builds/releng_sub_%s_configs/%s_cross_noopt_debug.py',
-        'cross-opt-st-an': 'builds/releng_sub_%s_configs/%s_cross_opt_st_an.py',
         'cross-artifact': 'builds/releng_sub_%s_configs/%s_cross_artifact.py',
         'debug': 'builds/releng_sub_%s_configs/%s_debug.py',
         'asan-and-debug': 'builds/releng_sub_%s_configs/%s_asan_and_debug.py',
@@ -797,23 +795,22 @@ or run without that action (ie: --no-{action})"
             return self.buildid
 
         buildid = None
-        if c.get("is_automation"):
-            if self.buildbot_config['properties'].get('buildid'):
-                self.info("Determining buildid from buildbot properties")
-                buildid = self.buildbot_config['properties']['buildid'].encode(
-                    'ascii', 'replace'
-                )
-            else:
-                # for taskcluster, there are no buildbot properties, and we pass
-                # MOZ_BUILD_DATE into mozharness as an environment variable, only
-                # to have it pass the same value out with the same name.
-                buildid = os.environ.get('MOZ_BUILD_DATE')
+        if c.get("is_automation") and self.buildbot_config['properties'].get('buildid'):
+            self.info("Determining buildid from buildbot properties")
+            buildid = self.buildbot_config['properties']['buildid'].encode(
+                'ascii', 'replace'
+            )
+        else:
+            # for taskcluster, there are no buildbot properties, and we pass
+            # MOZ_BUILD_DATE into mozharness as an environment variable, only
+            # to have it pass the same value out with the same name.
+            buildid = os.environ.get('MOZ_BUILD_DATE')
 
         if not buildid:
             self.info("Creating buildid through current time")
             buildid = generate_build_ID()
 
-        if c.get('is_automation'):
+        if c.get('is_automation') or os.environ.get("TASK_ID"):
             self.set_buildbot_property('buildid',
                                        buildid,
                                        write_to_file=True)
@@ -1134,6 +1131,8 @@ or run without that action (ie: --no-{action})"
             '--retry', '4',
             '--tooltool-manifest',
             tooltool_manifest_path,
+            '--artifact-manifest',
+            os.path.join(dirs['abs_src_dir'], 'toolchains.json'),
             '--tooltool-url',
             c['tooltool_url'],
         ]
@@ -1143,6 +1142,9 @@ or run without that action (ie: --no-{action})"
         cache = c['env'].get('TOOLTOOL_CACHE')
         if cache:
             cmd.extend(['--cache-dir', cache])
+        toolchains = os.environ.get('MOZ_TOOLCHAINS')
+        if toolchains:
+            cmd.extend(toolchains.split())
         self.info(str(cmd))
         self.run_command_m(cmd, cwd=dirs['abs_src_dir'], halt_on_failure=True,
                            env=env)
@@ -1387,6 +1389,7 @@ or run without that action (ie: --no-{action})"
             'project': self.buildbot_config['properties']['branch'],
             'head_rev': revision,
             'pushdate': pushdate,
+            'pushid': pushinfo.pushid,
             'year': pushdate[0:4],
             'month': pushdate[4:6],
             'day': pushdate[6:8],

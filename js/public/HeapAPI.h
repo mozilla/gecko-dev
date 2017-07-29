@@ -58,16 +58,10 @@ const size_t ArenaHeaderSize = sizeof(size_t) + 2 * sizeof(uintptr_t) +
                                sizeof(size_t) + sizeof(uintptr_t);
 
 /*
- * Live objects are marked black. How many other additional colors are available
- * depends on the size of the GCThing. Objects marked gray are eligible for
- * cycle collection.
- */
-static const uint32_t BLACK = 0;
-static const uint32_t GRAY = 1;
-
-/*
- * Two bits determine the mark color as follows:
- *   BLACK_BIT   GRAY_OR_BLACK_BIT   color
+ * Live objects are marked black or gray. Everything reachable from a JS root is
+ * marked black. Objects marked gray are eligible for cycle collection.
+ *
+ *    BlackBit:     GrayOrBlackBit:  Color:
  *       0               0           white
  *       0               1           gray
  *       1               0           black
@@ -107,10 +101,14 @@ MOZ_ALWAYS_INLINE bool IsInsideNursery(const js::gc::Cell* cell);
 namespace JS {
 struct Zone;
 
-/* Default size for the generational nursery in bytes. */
+/*
+ * Default size for the generational nursery in bytes.
+ * This is the initial nursery size, when running in the browser this is
+ * updated by JS_SetGCParameter().
+ */
 const uint32_t DefaultNurseryBytes = 16 * js::gc::ChunkSize;
 
-/* Default maximum heap size in bytes to pass to JS_NewRuntime(). */
+/* Default maximum heap size in bytes to pass to JS_NewContext(). */
 const uint32_t DefaultHeapMaxBytes = 32 * 1024 * 1024;
 
 namespace shadow {

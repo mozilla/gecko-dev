@@ -39,6 +39,7 @@
 #include "mozilla/Maybe.h"
 #include "nsIContentPolicy.h"
 #include "nsIDocument.h"
+#include "nsIDOMMouseEvent.h"
 #include "nsPIDOMWindow.h"
 #include "nsRFPService.h"
 
@@ -54,6 +55,7 @@ class imgIRequest;
 class imgLoader;
 class imgRequestProxy;
 class nsAutoScriptBlockerSuppressNodeRemoved;
+class nsCacheableFuncStringHTMLCollection;
 class nsHtml5StringParser;
 class nsIChannel;
 class nsIConsoleService;
@@ -404,6 +406,13 @@ public:
    *  NOTE! If the two nodes aren't in the same connected subtree,
    *  the result is 1, and the optional aDisconnected parameter
    *  is set to true.
+   *
+   *  XXX aOffset1 and aOffset2 should be uint32_t since valid offset value is
+   *      between 0 - UINT32_MAX.  However, these methods work even with
+   *      negative offset values!  E.g., when aOffset1 is -1 and aOffset is 0,
+   *      these methods return -1.  Some root callers depend on this behavior.
+   *      On the other hand, nsINode can have ATTRCHILD_ARRAY_MAX_CHILD_COUN
+   *      (0x3FFFFF) at most.  Therefore, they can be int32_t for now.
    */
   static int32_t ComparePoints(nsINode* aParent1, int32_t aOffset1,
                                nsINode* aParent2, int32_t aOffset2,
@@ -801,7 +810,8 @@ public:
   /**
    * Helper method to call imgIRequest::GetStaticRequest.
    */
-  static already_AddRefed<imgRequestProxy> GetStaticRequest(imgRequestProxy* aRequest);
+  static already_AddRefed<imgRequestProxy> GetStaticRequest(nsIDocument* aLoadingDocument,
+                                                            imgRequestProxy* aRequest);
 
   /**
    * Method that decides whether a content node is draggable
@@ -1986,7 +1996,8 @@ public:
                                      bool aCtrl = false,
                                      bool aAlt = false,
                                      bool aShift = false,
-                                     bool aMeta = false);
+                                     bool aMeta = false,
+                                     uint16_t inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN);
 
   static bool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel, bool aAllowIfInheritsPrincipal);
 
@@ -2073,10 +2084,11 @@ public:
   {
     NS_PRECONDITION(aRootNode, "Must have root node");
 
-    return NS_GetFuncStringHTMLCollection(aRootNode, MatchClassNames,
-                                          DestroyClassNameArray,
-                                          AllocClassMatchingInfo,
-                                          aClasses);
+    return GetFuncStringContentList<nsCacheableFuncStringHTMLCollection>(aRootNode,
+                                                                         MatchClassNames,
+                                                                         DestroyClassNameArray,
+                                                                         AllocClassMatchingInfo,
+                                                                         aClasses);
   }
 
   /**
@@ -3018,7 +3030,7 @@ public:
                                    bool aNoFakePlugin,
                                    nsIContent* aContent);
 
-  static already_AddRefed<nsIEventTarget>
+  static already_AddRefed<nsISerialEventTarget>
   GetEventTargetByLoadInfo(nsILoadInfo* aLoadInfo, mozilla::TaskCategory aCategory);
 
   /**
@@ -3221,7 +3233,7 @@ private:
   static bool sIsResourceTimingEnabled;
   static bool sIsUserTimingLoggingEnabled;
   static bool sIsFrameTimingPrefEnabled;
-  static bool sIsExperimentalAutocompleteEnabled;
+  static bool sIsFormAutofillAutocompleteEnabled;
   static bool sIsWebComponentsEnabled;
   static bool sIsCustomElementsEnabled;
   static bool sSendPerformanceTimingNotifications;

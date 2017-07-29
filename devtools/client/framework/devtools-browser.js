@@ -12,10 +12,9 @@
  * browser window is ready (i.e. fired browser-delayed-startup-finished event)
  **/
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci} = require("chrome");
 const Services = require("Services");
 const defer = require("devtools/shared/defer");
-const Telemetry = require("devtools/client/shared/telemetry");
 const {gDevTools} = require("./devtools");
 
 // Load target and toolbox lazily as they need gDevTools to be fully initialized
@@ -25,6 +24,10 @@ loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
 loader.lazyRequireGetter(this, "BrowserMenus", "devtools/client/framework/browser-menus");
 loader.lazyRequireGetter(this, "appendStyleSheet", "devtools/client/shared/stylesheet-utils", true);
+loader.lazyRequireGetter(this, "DeveloperToolbar", "devtools/client/shared/developer-toolbar", true);
+loader.lazyImporter(this, "BrowserToolboxProcess", "resource://devtools/client/framework/ToolboxProcess.jsm");
+loader.lazyImporter(this, "ResponsiveUIManager", "resource://devtools/client/responsivedesign/responsivedesign.jsm");
+loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
 
 loader.lazyImporter(this, "CustomizableUI", "resource:///modules/CustomizableUI.jsm");
 loader.lazyImporter(this, "CustomizableWidgets", "resource:///modules/CustomizableWidgets.jsm");
@@ -33,11 +36,6 @@ loader.lazyImporter(this, "LightweightThemeManager", "resource://gre/modules/Lig
 
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const L10N = new LocalizationHelper("devtools/client/locales/toolbox.properties");
-
-const TABS_OPEN_PEAK_HISTOGRAM = "DEVTOOLS_TABS_OPEN_PEAK_LINEAR";
-const TABS_OPEN_AVG_HISTOGRAM = "DEVTOOLS_TABS_OPEN_AVERAGE_LINEAR";
-const TABS_PINNED_PEAK_HISTOGRAM = "DEVTOOLS_TABS_PINNED_PEAK_LINEAR";
-const TABS_PINNED_AVG_HISTOGRAM = "DEVTOOLS_TABS_PINNED_AVERAGE_LINEAR";
 
 const COMPACT_LIGHT_ID = "firefox-compact-light@mozilla.org";
 const COMPACT_DARK_ID = "firefox-compact-dark@mozilla.org";
@@ -61,7 +59,10 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
    */
   _browserStyleSheets: new WeakMap(),
 
-  _telemetry: new Telemetry(),
+  /**
+   * WeakMap keeping track of DeveloperToolbar instances for each firefox window.
+   */
+  _toolbars: new WeakMap(),
 
   _tabStats: {
     peakOpen: 0,
@@ -116,7 +117,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
       focusEl.setAttribute("disabled", "true");
     }
     if (devToolbarEnabled && Services.prefs.getBoolPref("devtools.toolbar.visible")) {
-      win.DeveloperToolbar.show(false).catch(console.error);
+      this.getDeveloperToolbar(win).show(false).catch(console.error);
     }
 
     // Enable WebIDE?
@@ -277,6 +278,53 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
   },
 
   /**
+   * Called by devtools/client/devtools-startup.js when a key shortcut is pressed
+   *
+   * @param  {Window} window
+   *         The top level browser window from which the key shortcut is pressed.
+   * @param  {Object} key
+   *         Key object describing the key shortcut being pressed. It comes
+   *         from devtools-startup.js's KeyShortcuts array. The useful fields here
+   *         are:
+   *         - `toolId` used to identify a toolbox's panel like inspector or webconsole,
+   *         - `id` used to identify any other key shortcuts like scratchpad or
+   *         about:debugging
+   */
+  onKeyShortcut(window, key) {
+    // If this is a toolbox's panel key shortcut, delegate to selectToolCommand
+    if (key.toolId) {
+      gDevToolsBrowser.selectToolCommand(window.gBrowser, key.toolId);
+      return;
+    }
+    // Otherwise implement all other key shortcuts individually here
+    switch (key.id) {
+      case "toggleToolbox":
+      case "toggleToolboxF12":
+        gDevToolsBrowser.toggleToolboxCommand(window.gBrowser);
+        break;
+      case "toggleToolbar":
+        window.DeveloperToolbar.focusToggle();
+        break;
+      case "webide":
+        gDevToolsBrowser.openWebIDE();
+        break;
+      case "browserToolbox":
+        BrowserToolboxProcess.init();
+        break;
+      case "browserConsole":
+        let HUDService = require("devtools/client/webconsole/hudservice");
+        HUDService.openBrowserConsoleOrFocus();
+        break;
+      case "responsiveDesignMode":
+        ResponsiveUIManager.toggle(window, window.gBrowser.selectedTab);
+        break;
+      case "scratchpad":
+        ScratchpadManager.openScratchpad();
+        break;
+    }
+  },
+
+  /**
    * Open a tab on "about:debugging", optionally pre-select a given tab.
    */
    // Used by browser-sets.inc, command
@@ -371,66 +419,6 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
   },
 
   /**
-   * Install Developer widget
-   */
-  installDeveloperWidget() {
-    let id = "developer-button";
-    let widget = CustomizableUI.getWidget(id);
-    if (widget && widget.provider == CustomizableUI.PROVIDER_API) {
-      return;
-    }
-    let item = {
-      id: id,
-      type: "view",
-      viewId: "PanelUI-developer",
-      shortcutId: "key_devToolboxMenuItem",
-      tooltiptext: "developer-button.tooltiptext2",
-      defaultArea: AppConstants.MOZ_DEV_EDITION ?
-                     CustomizableUI.AREA_NAVBAR :
-                     CustomizableUI.AREA_PANEL,
-      onViewShowing(event) {
-        // Populate the subview with whatever menuitems are in the developer
-        // menu. We skip menu elements, because the menu panel has no way
-        // of dealing with those right now.
-        let doc = event.target.ownerDocument;
-
-        let menu = doc.getElementById("menuWebDeveloperPopup");
-
-        let itemsToDisplay = [...menu.children];
-        // Hardcode the addition of the "work offline" menuitem at the bottom:
-        itemsToDisplay.push({localName: "menuseparator", getAttribute: () => {}});
-        itemsToDisplay.push(doc.getElementById("goOfflineMenuitem"));
-
-        let developerItems = doc.getElementById("PanelUI-developerItems");
-        // Import private helpers from CustomizableWidgets
-        let { clearSubview, fillSubviewFromMenuItems } =
-          Cu.import("resource:///modules/CustomizableWidgets.jsm", {});
-        clearSubview(developerItems);
-        fillSubviewFromMenuItems(itemsToDisplay, developerItems);
-      },
-      onInit(anchor) {
-        // Since onBeforeCreated already bails out when initialized, we can call
-        // it right away.
-        this.onBeforeCreated(anchor.ownerDocument);
-      },
-      onBeforeCreated(doc) {
-        // Bug 1223127, CUI should make this easier to do.
-        if (doc.getElementById("PanelUI-developerItems")) {
-          return;
-        }
-        let view = doc.createElement("panelview");
-        view.id = "PanelUI-developerItems";
-        let panel = doc.createElement("vbox");
-        panel.setAttribute("class", "panel-subview-body");
-        view.appendChild(panel);
-        doc.getElementById("PanelUI-multiView").appendChild(view);
-      }
-    };
-    CustomizableUI.createWidget(item);
-    CustomizableWidgets.push(item);
-  },
-
-  /**
    * Install WebIDE widget
    */
   // Used by itself
@@ -503,16 +491,6 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
 
     BrowserMenus.addMenus(win.document);
 
-    // Register the Developer widget in the Hamburger menu or navbar
-    // only once menus are registered as it depends on it.
-    gDevToolsBrowser.installDeveloperWidget();
-
-    // Inject lazily DeveloperToolbar on the chrome window
-    loader.lazyGetter(win, "DeveloperToolbar", function () {
-      let { DeveloperToolbar } = require("devtools/client/shared/developer-toolbar");
-      return new DeveloperToolbar(win);
-    });
-
     this.updateCommandAvailability(win);
     this.updateDevtoolsThemeAttribute(win);
     this.ensurePrefObserver();
@@ -524,6 +502,22 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
     tabContainer.addEventListener("TabClose", this);
     tabContainer.addEventListener("TabPinned", this);
     tabContainer.addEventListener("TabUnpinned", this);
+  },
+
+  /**
+   * Create singleton instance of the developer toolbar for a given top level window.
+   *
+   * @param {Window} win
+   *        The window to which the toolbar should be created.
+   */
+  getDeveloperToolbar(win) {
+    let toolbar = this._toolbars.get(win);
+    if (toolbar) {
+      return toolbar;
+    }
+    toolbar = new DeveloperToolbar(win);
+    this._toolbars.set(win, toolbar);
+    return toolbar;
   },
 
   /**
@@ -735,11 +729,7 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
       this._browserStyleSheets.delete(win);
     }
 
-    // Destroy the Developer toolbar if it has been accessed
-    let desc = Object.getOwnPropertyDescriptor(win, "DeveloperToolbar");
-    if (desc && !desc.get) {
-      win.DeveloperToolbar.destroy();
-    }
+    this._toolbars.delete(win);
 
     let tabContainer = win.gBrowser.tabContainer;
     tabContainer.removeEventListener("TabSelect", this);
@@ -782,23 +772,6 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
     }
   },
 
-  _pingTelemetry() {
-    let mean = function (arr) {
-      if (arr.length === 0) {
-        return 0;
-      }
-
-      let total = arr.reduce((a, b) => a + b);
-      return Math.ceil(total / arr.length);
-    };
-
-    let tabStats = gDevToolsBrowser._tabStats;
-    this._telemetry.log(TABS_OPEN_PEAK_HISTOGRAM, tabStats.peakOpen);
-    this._telemetry.log(TABS_OPEN_AVG_HISTOGRAM, mean(tabStats.histOpen));
-    this._telemetry.log(TABS_PINNED_PEAK_HISTOGRAM, tabStats.peakPinned);
-    this._telemetry.log(TABS_PINNED_AVG_HISTOGRAM, mean(tabStats.histPinned));
-  },
-
   /**
    * Either the SDK Loader has been destroyed by the add-on contribution
    * workflow, or firefox is shutting down.
@@ -814,9 +787,6 @@ var gDevToolsBrowser = exports.gDevToolsBrowser = {
     Services.obs.removeObserver(gDevToolsBrowser, "browser-delayed-startup-finished");
     Services.obs.removeObserver(gDevToolsBrowser, "quit-application");
     Services.obs.removeObserver(gDevToolsBrowser, "sdk:loader:destroy");
-
-    gDevToolsBrowser._pingTelemetry();
-    gDevToolsBrowser._telemetry = null;
 
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
       gDevToolsBrowser._forgetBrowserWindow(win);

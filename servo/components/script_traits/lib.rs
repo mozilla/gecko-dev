@@ -9,7 +9,6 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-extern crate app_units;
 extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
@@ -33,15 +32,13 @@ extern crate servo_atoms;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate webvr_traits;
 
 mod script_msg;
 pub mod webdriver_msg;
 
-use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
-use canvas_traits::CanvasData;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, Length, Point2D, Vector2D, Rect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
@@ -54,6 +51,7 @@ use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, Frame
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
+use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
@@ -68,8 +66,10 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
+use webrender_api::ImageKey;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -687,12 +687,6 @@ pub struct ScrollState {
     pub scroll_offset: Vector2D<f32>,
 }
 
-/// One hardware pixel.
-///
-/// This unit corresponds to the smallest addressable element of the display hardware.
-#[derive(Copy, Clone, Debug)]
-pub enum DevicePixel {}
-
 /// Data about the window size.
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct WindowSizeData {
@@ -828,8 +822,24 @@ impl From<RecvTimeoutError> for PaintWorkletError {
 pub trait Painter: Sync + Send {
     /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
     fn draw_a_paint_image(&self,
-                          concrete_object_size: Size2D<Au>,
-                          properties: Vec<(Atom, String)>,
-                          sender: IpcSender<CanvasData>);
+                          size: TypedSize2D<f32, CSSPixel>,
+                          zoom: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          properties: Vec<(Atom, String)>)
+                          -> DrawAPaintImageResult;
 }
 
+/// The result of executing paint code: the image together with any image URLs that need to be loaded.
+/// TODO: this should return a WR display list. https://github.com/servo/servo/issues/17497
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct DrawAPaintImageResult {
+    /// The image height
+    pub width: u32,
+    /// The image width
+    pub height: u32,
+    /// The image format
+    pub format: PixelFormat,
+    /// The image drawn, or None if an invalid paint image was drawn
+    pub image_key: Option<ImageKey>,
+    /// Drawing the image might have requested loading some image URLs.
+    pub missing_image_urls: Vec<ServoUrl>,
+}

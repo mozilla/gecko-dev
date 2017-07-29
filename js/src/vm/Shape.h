@@ -9,6 +9,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
+#include "mozilla/HashFunctions.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
@@ -660,9 +661,7 @@ struct StackBaseShape : public DefaultHasher<ReadBarriered<UnownedBaseShape*>>
     };
 
     static HashNumber hash(const Lookup& lookup) {
-        HashNumber hash = lookup.flags;
-        hash = mozilla::RotateLeft(hash, 4) ^ (uintptr_t(lookup.clasp) >> 3);
-        return hash;
+        return mozilla::HashGeneric(lookup.flags, lookup.clasp);
     }
     static inline bool match(const ReadBarriered<UnownedBaseShape*>& key, const Lookup& lookup) {
         return key.unbarrieredGet()->flags == lookup.flags &&
@@ -1339,7 +1338,8 @@ struct MovableCellHasher<InitialShapeProto<ReadBarriered<TaggedProto>>>
         return MovableCellHasher<TaggedProto>::ensureHash(l.proto());
     }
     static HashNumber hash(const Lookup& l) {
-        return HashNumber(l.key()) ^ MovableCellHasher<TaggedProto>::hash(l.proto());
+        HashNumber hash = MovableCellHasher<TaggedProto>::hash(l.proto());
+        return mozilla::AddToHash(hash, l.key());
     }
     static bool match(const Key& k, const Lookup& l) {
         return k.key() == l.key() &&
@@ -1394,9 +1394,8 @@ struct InitialShapeEntry
     inline InitialShapeEntry(Shape* shape, const Lookup::ShapeProto& proto);
 
     static HashNumber hash(const Lookup& lookup) {
-        return (mozilla::RotateLeft(uintptr_t(lookup.clasp) >> 3, 4) ^
-                MovableCellHasher<ShapeProto>::hash(lookup.proto)) +
-               lookup.nfixed;
+        HashNumber hash = MovableCellHasher<ShapeProto>::hash(lookup.proto);
+        return mozilla::AddToHash(hash, mozilla::HashGeneric(lookup.clasp, lookup.nfixed));
     }
     static inline bool match(const InitialShapeEntry& key, const Lookup& lookup) {
         const Shape* shape = key.shape.unbarrieredGet();
@@ -1489,15 +1488,9 @@ struct StackShape
     }
 
     HashNumber hash() const {
-        HashNumber hash = uintptr_t(base);
-
-        /* Accumulate from least to most random so the low bits are most random. */
-        hash = mozilla::RotateLeft(hash, 4) ^ attrs;
-        hash = mozilla::RotateLeft(hash, 4) ^ slot_;
-        hash = mozilla::RotateLeft(hash, 4) ^ HashId(propid);
-        hash = mozilla::RotateLeft(hash, 4) ^ uintptr_t(rawGetter);
-        hash = mozilla::RotateLeft(hash, 4) ^ uintptr_t(rawSetter);
-        return hash;
+        HashNumber hash = HashId(propid);
+        return mozilla::AddToHash(hash,
+                   mozilla::HashGeneric(base, attrs, slot_, rawGetter, rawSetter));
     }
 
     // Traceable implementation.
@@ -1556,47 +1549,17 @@ Shape::Shape(const StackShape& other, uint32_t nfixed)
     kids.setNull();
 }
 
-// This class is used to add a post barrier on the AccessorShape's getter/setter
-// objects. It updates the pointers and the shape's entry in the parent's
-// KidsHash table.
-class ShapeGetterSetterRef : public gc::BufferableRef
+// This class is used to update any shapes in a zone that have nursery objects
+// as getters/setters.  It updates the pointers and the shapes' entries in the
+// parents' KidsHash tables.
+class NurseryShapesRef : public gc::BufferableRef
 {
-    AccessorShape* shape_;
+    Zone* zone_;
 
   public:
-    explicit ShapeGetterSetterRef(AccessorShape* shape) : shape_(shape) {}
-    void trace(JSTracer* trc) override { shape_->fixupGetterSetterForBarrier(trc); }
+    explicit NurseryShapesRef(Zone* zone) : zone_(zone) {}
+    void trace(JSTracer* trc) override;
 };
-
-static inline void
-GetterSetterWriteBarrierPost(AccessorShape* shape)
-{
-    MOZ_ASSERT(shape);
-    if (shape->hasGetterObject()) {
-        gc::StoreBuffer* sb = reinterpret_cast<gc::Cell*>(shape->getterObject())->storeBuffer();
-        if (sb) {
-            sb->putGeneric(ShapeGetterSetterRef(shape));
-            return;
-        }
-    }
-    if (shape->hasSetterObject()) {
-        gc::StoreBuffer* sb = reinterpret_cast<gc::Cell*>(shape->setterObject())->storeBuffer();
-        if (sb) {
-            sb->putGeneric(ShapeGetterSetterRef(shape));
-            return;
-        }
-    }
-}
-
-inline
-AccessorShape::AccessorShape(const StackShape& other, uint32_t nfixed)
-  : Shape(other, nfixed),
-    rawGetter(other.rawGetter),
-    rawSetter(other.rawSetter)
-{
-    MOZ_ASSERT(getAllocKind() == gc::AllocKind::ACCESSOR_SHAPE);
-    GetterSetterWriteBarrierPost(this);
-}
 
 inline
 Shape::Shape(UnownedBaseShape* base, uint32_t nfixed)
@@ -1635,20 +1598,6 @@ Shape::setterObject() const
 {
     MOZ_ASSERT(hasSetterValue());
     return asAccessorShape().setterObj;
-}
-
-inline void
-Shape::initDictionaryShape(const StackShape& child, uint32_t nfixed, GCPtrShape* dictp)
-{
-    if (child.isAccessorShape())
-        new (this) AccessorShape(child, nfixed);
-    else
-        new (this) Shape(child, nfixed);
-    this->flags |= IN_DICTIONARY;
-
-    this->listp = nullptr;
-    if (dictp)
-        insertIntoDictionary(dictp);
 }
 
 inline Shape*

@@ -8,6 +8,7 @@
 
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/webrender/WebRenderAPI.h"
+#include "mozilla/layers/AnimationInfo.h"
 
 class nsDisplayItemGeometry;
 
@@ -17,6 +18,7 @@ class ImageClient;
 class ImageContainer;
 class WebRenderBridgeChild;
 class WebRenderImageData;
+class WebRenderFallbackData;
 class WebRenderLayerManager;
 
 class WebRenderUserData
@@ -29,10 +31,12 @@ public:
   { }
 
   virtual WebRenderImageData* AsImageData() { return nullptr; }
+  virtual WebRenderFallbackData* AsFallbackData() { return nullptr; }
 
   enum class UserDataType {
     eImage,
     eFallback,
+    eAnimation,
   };
 
   virtual UserDataType GetType() = 0;
@@ -67,8 +71,8 @@ public:
                                          const LayerRect& aSCBounds,
                                          const gfx::Matrix4x4& aSCTransform,
                                          const gfx::MaybeIntSize& aScaleToSize,
-                                         const WrImageRendering& aFilter,
-                                         const WrMixBlendMode& aMixBlendMode);
+                                         const wr::ImageRendering& aFilter,
+                                         const wr::MixBlendMode& aMixBlendMode);
 
   void CreateImageClientIfNeeded();
 
@@ -88,16 +92,34 @@ public:
   explicit WebRenderFallbackData(WebRenderLayerManager* aWRManager);
   virtual ~WebRenderFallbackData();
 
+  virtual WebRenderFallbackData* AsFallbackData() override { return this; }
   virtual UserDataType GetType() override { return UserDataType::eFallback; }
   static UserDataType Type() { return UserDataType::eFallback; }
   nsAutoPtr<nsDisplayItemGeometry> GetGeometry();
   void SetGeometry(nsAutoPtr<nsDisplayItemGeometry> aGeometry);
   nsRect GetBounds() { return mBounds; }
   void SetBounds(const nsRect& aRect) { mBounds = aRect; }
+  void SetInvalid(bool aInvalid) { mInvalid = aInvalid; }
+  bool IsInvalid() { return mInvalid; }
 
 protected:
   nsAutoPtr<nsDisplayItemGeometry> mGeometry;
   nsRect mBounds;
+  bool mInvalid;
+};
+
+class WebRenderAnimationData : public WebRenderUserData
+{
+public:
+  explicit WebRenderAnimationData(WebRenderLayerManager* aWRManager);
+  virtual ~WebRenderAnimationData() {}
+
+  virtual UserDataType GetType() override { return UserDataType::eAnimation; }
+  static UserDataType Type() { return UserDataType::eAnimation; }
+  AnimationInfo& GetAnimationInfo() { return mAnimationInfo; }
+
+protected:
+  AnimationInfo mAnimationInfo;
 };
 
 } // namespace layers

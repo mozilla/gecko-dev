@@ -360,21 +360,6 @@ parent:
     sync IsParentWindowMainWidgetVisible() returns (bool visible);
 
     /**
-     * Gets the DPI of the screen corresponding to this browser.
-     */
-    sync GetDPI() returns (float value);
-
-    /**
-     * Gets the default scaling factor of the screen corresponding to this browser.
-     */
-    sync GetDefaultScale() returns (double value);
-
-    /**
-     * Gets the rounding of coordinates in the widget.
-     */
-    sync GetWidgetRounding() returns (int32_t value);
-
-    /**
      * Set the native cursor.
      * @param value
      *   The widget cursor to set.
@@ -805,10 +790,9 @@ child:
      *
      * @param event keyboard event
      * @param isTrusted true if triggered by a trusted key event
-     * @param modifierMask indicates which accesskey modifiers are pressed
      */
     async HandleAccessKey(WidgetKeyboardEvent event,
-                          uint32_t[] charCodes, int32_t modifierMask);
+                          uint32_t[] charCodes);
 
     /**
      * Tells the root child docShell whether or not to use

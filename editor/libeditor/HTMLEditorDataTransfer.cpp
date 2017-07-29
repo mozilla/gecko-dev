@@ -141,14 +141,13 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
     rv = range->GetStartContainer(getter_AddRefs(parent));
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
-    int32_t childOffset;
-    rv = range->GetStartOffset(&childOffset);
-    NS_ENSURE_SUCCESS(rv, rv);
+    uint32_t childOffset = range->StartOffset();
 
     nsCOMPtr<nsIDOMNode> nodeToInsert;
     docfrag->GetFirstChild(getter_AddRefs(nodeToInsert));
     while (nodeToInsert) {
-      rv = InsertNode(nodeToInsert, parent, childOffset++);
+      rv = InsertNode(nodeToInsert, parent,
+                      static_cast<int32_t>(childOffset++));
       NS_ENSURE_SUCCESS(rv, rv);
       docfrag->GetFirstChild(getter_AddRefs(nodeToInsert));
     }
@@ -371,7 +370,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
     WSRunObject wsObj(this, parentNode, offsetOfNewNode);
     if (wsObj.mEndReasonNode &&
         TextEditUtils::IsBreak(wsObj.mEndReasonNode) &&
-        !IsVisBreak(wsObj.mEndReasonNode)) {
+        !IsVisibleBRElement(wsObj.mEndReasonNode)) {
       rv = DeleteNode(wsObj.mEndReasonNode);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -622,7 +621,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
         // PriorVisibleNode does not make that determination for breaks.
         // It also may not return the break in visNode.  We have to pull it
         // out of the WSRunObject's state.
-        if (!IsVisBreak(wsRunObj.mStartReasonNode)) {
+        if (!IsVisibleBRElement(wsRunObj.mStartReasonNode)) {
           // don't leave selection past an invisible break;
           // reset {selNode,selOffset} to point before break
           selNode = GetNodeLocation(GetAsDOMNode(wsRunObj.mStartReasonNode), &selOffset);
@@ -1154,7 +1153,7 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
                                          &len))) {
     AutoTransactionsConserveSelection dontSpazMySelection(this);
     nsAutoString flavor;
-    flavor.AssignWithConversion(bestFlavor);
+    CopyASCIItoUTF16(bestFlavor, flavor);
     nsAutoString stuffToPaste;
     bool isSafe = IsSafeToInsertData(aSourceDoc);
 

@@ -7,6 +7,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "PaymentRequestData.h"
 #include "PaymentRequestService.h"
+#include "BasicCardPayment.h"
 
 namespace mozilla {
 namespace dom {
@@ -300,17 +301,68 @@ PaymentRequestService::RequestPayment(nsIPaymentActionRequest* aRequest)
       break;
     }
     /*
-     *  TODO: 1. Check basic card support once the Basic Card Payment spec is
-     *           implemented.
-     *           https://www.w3.org/TR/payment-method-basic-card/
-     *        2. Check third party payment app support by traversing all
+     *  TODO: 1. Check third party payment app support by traversing all
      *           registered third party payment apps.
      */
-    case nsIPaymentActionRequest::CANMAKE_ACTION:
+    case nsIPaymentActionRequest::CANMAKE_ACTION: {
+      if (IsBasicCardPayment(requestId)) {
+        nsCOMPtr<nsIPaymentCanMakeActionResponse> canMakeResponse =
+          do_CreateInstance(NS_PAYMENT_CANMAKE_ACTION_RESPONSE_CONTRACT_ID);
+        MOZ_ASSERT(canMakeResponse);
+        rv = canMakeResponse->Init(requestId, true);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        nsCOMPtr<nsIPaymentActionResponse> response = do_QueryInterface(canMakeResponse);
+        MOZ_ASSERT(response);
+        rv = RespondPayment(response);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+      } else {
+        rv = CallTestingUIAction(requestId, type);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return NS_ERROR_FAILURE;
+        }
+      }
+      break;
+    }
     /*
      *  TODO: Launch/inform payment UI here once the UI module is implemented.
      */
-    case nsIPaymentActionRequest::SHOW_ACTION:
+    case nsIPaymentActionRequest::SHOW_ACTION: {
+      if (mShowingRequest) {
+        nsCOMPtr<nsIPaymentResponseData> responseData =
+          do_CreateInstance(NS_GENERAL_RESPONSE_DATA_CONTRACT_ID);
+        MOZ_ASSERT(responseData);
+        nsCOMPtr<nsIPaymentShowActionResponse> showResponse =
+          do_CreateInstance(NS_PAYMENT_SHOW_ACTION_RESPONSE_CONTRACT_ID);
+        MOZ_ASSERT(showResponse);
+        rv = showResponse->Init(requestId,
+                                nsIPaymentActionResponse::PAYMENT_REJECTED,
+                                EmptyString(),
+                                responseData,
+                                EmptyString(),
+                                EmptyString(),
+                                EmptyString());
+        nsCOMPtr<nsIPaymentActionResponse> response = do_QueryInterface(showResponse);
+        MOZ_ASSERT(response);
+        rv = RespondPayment(response);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+      } else {
+        rv = GetPaymentRequestById(requestId, getter_AddRefs(mShowingRequest));
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return NS_ERROR_FAILURE;
+        }
+        rv = CallTestingUIAction(requestId, type);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return NS_ERROR_FAILURE;
+        }
+      }
+      break;
+    }
     case nsIPaymentActionRequest::ABORT_ACTION:
     case nsIPaymentActionRequest::COMPLETE_ACTION: {
       rv = CallTestingUIAction(requestId, type);
@@ -391,11 +443,26 @@ PaymentRequestService::RespondPayment(nsIPaymentActionResponse* aResponse)
       rv = response->IsSucceeded(&isSucceeded);
       NS_ENSURE_SUCCESS(rv, rv);
       if (isSucceeded) {
+        mShowingRequest = nullptr;
+        mRequestQueue.RemoveElement(request);
+      }
+      break;
+    }
+    case nsIPaymentActionResponse::SHOW_ACTION: {
+      nsCOMPtr<nsIPaymentShowActionResponse> response =
+        do_QueryInterface(aResponse);
+      MOZ_ASSERT(response);
+      bool isAccepted;
+      rv = response->IsAccepted(&isAccepted);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (!isAccepted) {
+        mShowingRequest = nullptr;
         mRequestQueue.RemoveElement(request);
       }
       break;
     }
     case nsIPaymentActionResponse::COMPLETE_ACTION: {
+      mShowingRequest = nullptr;
       mRequestQueue.RemoveElement(request);
       break;
     }
@@ -467,6 +534,33 @@ PaymentRequestService::RemoveActionCallback(const nsAString& aRequestId)
   }
   mCallbackHashtable.Remove(aRequestId);
   return NS_OK;
+}
+
+bool
+PaymentRequestService::IsBasicCardPayment(const nsAString& aRequestId)
+{
+  nsCOMPtr<nsIPaymentRequest> payment;
+  nsresult rv = GetPaymentRequestById(aRequestId, getter_AddRefs(payment));
+  NS_ENSURE_SUCCESS(rv, false);
+  nsCOMPtr<nsIArray> methods;
+  rv = payment->GetPaymentMethods(getter_AddRefs(methods));
+  NS_ENSURE_SUCCESS(rv, false);
+  uint32_t length;
+  rv = methods->GetLength(&length);
+  NS_ENSURE_SUCCESS(rv, false);
+  RefPtr<BasicCardService> service = BasicCardService::GetService();
+  MOZ_ASSERT(service);
+  for (uint32_t index = 0; index < length; ++index) {
+    nsCOMPtr<nsIPaymentMethodData> method = do_QueryElementAt(methods, index);
+    MOZ_ASSERT(method);
+    nsAutoString supportedMethods;
+    rv = method->GetSupportedMethods(supportedMethods);
+    NS_ENSURE_SUCCESS(rv, false);
+    if (service->IsBasicCardPayment(supportedMethods)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 } // end of namespace dom

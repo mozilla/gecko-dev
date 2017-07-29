@@ -494,8 +494,6 @@ HTMLLinkElement::GetStyleSheetInfo(nsAString& aTitle,
   // If we get here we assume that we're loading a css file, so set the
   // type to 'text/css'
   aType.AssignLiteral("text/css");
-
-  return;
 }
 
 CORSMode
@@ -511,10 +509,10 @@ HTMLLinkElement::IntrinsicState() const
 }
 
 size_t
-HTMLLinkElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+HTMLLinkElement::SizeOfExcludingThis(mozilla::SizeOfState& aState) const
 {
-  return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
-         Link::SizeOfExcludingThis(aMallocSizeOf);
+  return nsGenericHTMLElement::SizeOfExcludingThis(aState) +
+         Link::SizeOfExcludingThis(aState);
 }
 
 JSObject*

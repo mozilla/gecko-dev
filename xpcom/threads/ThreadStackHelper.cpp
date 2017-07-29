@@ -138,7 +138,8 @@ ThreadStackHelper::GetStacksInternal(Stack* aStack,
   ScopedSetPtr<NativeStack> nativeStackPtr(mNativeStackToFill, aNativeStack);
 #endif
 
-  char nameBuffer[1000] = {0};
+  Array<char, nsThread::kRunnableNameBufSize> runnableName;
+  runnableName[0] = '\0';
   auto callback = [&, this] (void** aPCs, size_t aCount, bool aIsMainThread) {
     // NOTE: We cannot allocate any memory in this callback, as the target
     // thread is suspended, so we first copy it into a stack-allocated buffer,
@@ -148,10 +149,8 @@ ThreadStackHelper::GetStacksInternal(Stack* aStack,
     // Currently we only store the names of runnables which are running on the
     // main thread, so we only want to read sMainThreadRunnableName and copy its
     // value in the case that we are currently suspending the main thread.
-    if (aIsMainThread && nsThread::sMainThreadRunnableName) {
-      strncpy(nameBuffer, nsThread::sMainThreadRunnableName, sizeof(nameBuffer));
-      // Make sure the string is null-terminated.
-      nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+    if (aIsMainThread) {
+      runnableName = nsThread::sMainThreadRunnableName;
     }
 
 #ifdef MOZ_THREADSTACKHELPER_PSEUDO
@@ -176,10 +175,11 @@ ThreadStackHelper::GetStacksInternal(Stack* aStack,
                                        /* aSampleNative = */ !!aNativeStack);
   }
 
-  // Copy the name buffer allocation into the output string.
-  if (nameBuffer[0] != 0) {
-    aRunnableName = nameBuffer;
-  }
+  // Copy the name buffer allocation into the output string. We explicitly set
+  // the last byte to null in case we read in some corrupted data without a null
+  // terminator.
+  runnableName[nsThread::kRunnableNameBufSize - 1] = '\0';
+  aRunnableName.AssignASCII(runnableName.cbegin());
 #endif
 }
 
@@ -189,16 +189,6 @@ ThreadStackHelper::PrepareStackBuffer(Stack& aStack)
   // Return false to skip getting the stack and return an empty stack
   aStack.clear();
 #ifdef MOZ_THREADSTACKHELPER_PSEUDO
-  /* Normally, provided the profiler is enabled, it would be an error if we
-     don't have a pseudostack here (the thread probably forgot to call
-     profiler_register_thread). However, on B2G, profiling secondary threads
-     may be disabled despite profiler being enabled. This is by-design and
-     is not an error. */
-#ifdef MOZ_WIDGET_GONK
-  if (!mPseudoStack) {
-    return false;
-  }
-#endif
   MOZ_ASSERT(mPseudoStack);
   if (!aStack.reserve(mMaxStackSize) ||
       !aStack.reserve(aStack.capacity()) || // reserve up to the capacity

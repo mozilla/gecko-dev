@@ -2135,8 +2135,7 @@ nsRefreshDriver::Thaw()
         "nsRefreshDriver::DoRefresh", this, &nsRefreshDriver::DoRefresh);
       nsPresContext* pc = GetPresContext();
       if (pc) {
-        pc->Document()->Dispatch("nsRefreshDriver::DoRefresh",
-                                 TaskCategory::Other,
+        pc->Document()->Dispatch(TaskCategory::Other,
                                  event.forget());
         EnsureTimerStarted();
       } else {
@@ -2161,11 +2160,12 @@ nsRefreshDriver::FinishedWaitingForTransaction()
 }
 
 uint64_t
-nsRefreshDriver::GetTransactionId()
+nsRefreshDriver::GetTransactionId(bool aThrottle)
 {
   ++mPendingTransaction;
 
-  if (mPendingTransaction >= mCompletedTransaction + 2 &&
+  if (aThrottle &&
+      mPendingTransaction >= mCompletedTransaction + 2 &&
       !mWaitingForTransaction &&
       !mTestControllingRefreshes) {
     mWaitingForTransaction = true;

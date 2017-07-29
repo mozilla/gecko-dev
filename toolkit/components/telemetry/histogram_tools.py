@@ -78,6 +78,7 @@ whitelists = None
 
 
 def load_whitelist():
+    global whitelists
     try:
         whitelist_path = os.path.join(os.path.abspath(os.path.realpath(os.path.dirname(__file__))),
                                       'histogram-whitelists.json')
@@ -286,10 +287,12 @@ associated with the histogram.  Returns None if no guarding is necessary."""
            name not in whitelists['expiry_default']:
             raise ParserError('New histogram "%s" cannot have "default" %s value.' % (name, field))
 
-        if re.match(r'^[1-9][0-9]*$', expiration):
-            expiration = expiration + ".0a1"
-        elif re.match(r'^[1-9][0-9]*\.0$', expiration):
-            expiration = expiration + "a1"
+        if expiration != "default" and not utils.validate_expiration_version(expiration):
+            raise ParserError(('Error for histogram {} - invalid {}: {}.'
+                               '\nSee: {}#expires-in-version')
+                              .format(name, field, expiration, HISTOGRAMS_DOC_URL))
+
+        expiration = utils.add_expiration_postfix(expiration)
 
         definition[field] = expiration
 

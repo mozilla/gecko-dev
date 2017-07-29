@@ -1480,7 +1480,7 @@ private:
 
   nsCOMPtr<nsISelection>         mBoundingSelection;
   AutoTArray<PresShellState,8> mPresShellStates;
-  AutoTArray<nsIFrame*,100>    mFramesMarkedForDisplay;
+  AutoTArray<nsIFrame*,400>    mFramesMarkedForDisplay;
   AutoTArray<ThemeGeometry,2>  mThemeGeometries;
   nsDisplayTableItem*            mCurrentTableItem;
   DisplayListClipState           mClipState;
@@ -2028,6 +2028,13 @@ public:
   }
 
   /**
+   * Some items such as those calling into the native themed widget machinery
+   * have to be painted on the content process. In this case it is best to avoid
+   * allocating layers that serializes and forwards the work to the compositor.
+   */
+  virtual bool MustPaintOnContentSide() const { return false; }
+
+  /**
    * If this has a child list where the children are in the same coordinate
    * system as this item (i.e., they have the same reference frame),
    * return the list.
@@ -2183,7 +2190,8 @@ protected:
   nsDisplayItem() { mAbove = nullptr; }
 
   typedef bool (*PrefFunc)(void);
-  bool ShouldUseAdvancedLayer(LayerManager* aManager, PrefFunc aFunc);
+  bool ShouldUseAdvancedLayer(LayerManager* aManager, PrefFunc aFunc) const;
+  bool CanUseAdvancedLayer(LayerManager* aManager) const;
 
   nsIFrame* mFrame;
   const DisplayItemClipChain* mClipChain;
@@ -2996,6 +3004,12 @@ public:
 
   virtual void WriteDebugInfo(std::stringstream& aStream) override;
 
+  virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
+                                       nsTArray<WebRenderParentCommand>& aParentCommands,
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder) override;
+
   NS_DISPLAY_DECL_NAME("SolidColor", TYPE_SOLID_COLOR)
 
 private:
@@ -3280,6 +3294,7 @@ public:
                                    bool* aSnap) override;
   virtual mozilla::Maybe<nscolor> IsUniform(nsDisplayListBuilder* aBuilder) override;
   virtual bool ProvidesFontSmoothingBackgroundColor(nscolor* aColor) override;
+  virtual bool MustPaintOnContentSide() const override { return true; }
 
   /**
    * GetBounds() returns the background painting area.
@@ -3869,6 +3884,12 @@ public:
     return nullptr;
   }
 
+  virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
+                                       nsTArray<WebRenderParentCommand>& aParentCommands,
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder) override;
+
 protected:
   nsDisplayWrapList() {}
 
@@ -3967,6 +3988,12 @@ public:
   virtual void WriteDebugInfo(std::stringstream& aStream) override;
 
   bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder) override;
+
+  virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
+                                       nsTArray<WebRenderParentCommand>& aParentCommands,
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder) override;
 
 private:
   float mOpacity;

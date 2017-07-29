@@ -360,7 +360,7 @@ class MacroAssemblerNone : public Assembler
 
     Register splitTagForTest(ValueOperand) { MOZ_CRASH(); }
 
-    void boxDouble(FloatRegister, ValueOperand) { MOZ_CRASH(); }
+    void boxDouble(FloatRegister, ValueOperand, FloatRegister) { MOZ_CRASH(); }
     void boxNonDouble(JSValueType, Register, ValueOperand) { MOZ_CRASH(); }
     template <typename T> void unboxInt32(T, Register) { MOZ_CRASH(); }
     template <typename T> void unboxBoolean(T, Register) { MOZ_CRASH(); }
@@ -423,12 +423,6 @@ class MacroAssemblerNone : public Assembler
     // Instrumentation for entering and leaving the profiler.
     void profilerEnterFrame(Register , Register ) { MOZ_CRASH(); }
     void profilerExitFrame() { MOZ_CRASH(); }
-
-    void disableProtection() { MOZ_CRASH(); }
-    void enableProtection() { MOZ_CRASH(); }
-    void setLowerBoundForProtection(size_t) { MOZ_CRASH(); }
-    void unprotectRegion(unsigned char*, size_t) { MOZ_CRASH(); }
-    void reprotectRegion(unsigned char*, size_t) { MOZ_CRASH(); }
 
 #ifdef JS_NUNBOX32
     Address ToPayload(Address) { MOZ_CRASH(); }

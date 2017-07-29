@@ -54,8 +54,7 @@ static const char contentSandboxRules[] = R"(
   (define sandbox-level-1 (param "SANDBOX_LEVEL_1"))
   (define sandbox-level-2 (param "SANDBOX_LEVEL_2"))
   (define sandbox-level-3 (param "SANDBOX_LEVEL_3"))
-  (define macosMinorVersion-9 (param "MAC_OS_MINOR_9"))
-  (define macosMinorVersion-min13 (param "MAC_OS_MINOR_MIN_13"))
+  (define macosMinorVersion (string->number (param "MAC_OS_MINOR")))
   (define appPath (param "APP_PATH"))
   (define appBinaryPath (param "APP_BINARY_PATH"))
   (define appdir-path (param "APP_DIR"))
@@ -68,6 +67,7 @@ static const char contentSandboxRules[] = R"(
   (define testingReadPath1 (param "TESTING_READ_PATH1"))
   (define testingReadPath2 (param "TESTING_READ_PATH2"))
   (define testingReadPath3 (param "TESTING_READ_PATH3"))
+  (define testingReadPath4 (param "TESTING_READ_PATH4"))
 
   (if (string=? should-log "TRUE")
     (deny default)
@@ -109,7 +109,7 @@ static const char contentSandboxRules[] = R"(
 
   ; macOS 10.9 does not support the |sysctl-name| predicate, so unfortunately
   ; we need to allow all sysctl-reads there.
-  (if (string=? macosMinorVersion-9 "TRUE")
+  (if (= macosMinorVersion 9)
     (allow sysctl-read)
     (allow sysctl-read
       (sysctl-name-regex #"^sysctl\.")
@@ -196,20 +196,18 @@ static const char contentSandboxRules[] = R"(
       (global-name "com.apple.cmio.VDCAssistant")
       (global-name "com.apple.SystemConfiguration.configd")
       (global-name "com.apple.iconservices")
-      (global-name "com.apple.cookied")
       (global-name "com.apple.cache_delete")
       (global-name "com.apple.pluginkit.pkd")
       (global-name "com.apple.bird")
-      (global-name "com.apple.ocspd")
       (global-name "com.apple.cmio.AppleCameraAssistant")
       (global-name "com.apple.DesktopServicesHelper"))
 
 ; bug 1376163
-  (if (string=? macosMinorVersion-min13 "TRUE")
+  (if (>= macosMinorVersion 13)
     (allow mach-lookup (global-name "com.apple.audio.AudioComponentRegistrar")))
 
 ; bug 1312273
-  (if (string=? macosMinorVersion-9 "TRUE")
+  (if (= macosMinorVersion 9)
      (allow mach-lookup (global-name "com.apple.xpcd")))
 
   (allow iokit-open
@@ -266,6 +264,8 @@ static const char contentSandboxRules[] = R"(
     (allow file-read* (subpath testingReadPath2)))
   (when testingReadPath3
     (allow file-read* (subpath testingReadPath3)))
+  (when testingReadPath4
+    (allow file-read* (subpath testingReadPath4)))
 
   (allow file-read-metadata (home-subpath "/Library"))
 
@@ -273,9 +273,14 @@ static const char contentSandboxRules[] = R"(
     (literal "/private/var")
     (subpath "/private/var/folders"))
 
-; bug 1303987
+  ; bug 1303987
   (if (string? debugWriteDir)
-    (allow file-write-create file-write-data (subpath debugWriteDir)))
+    (begin
+      (allow file-write-data (subpath debugWriteDir))
+      (allow file-write-create
+        (require-all
+          (subpath debugWriteDir)
+          (vnode-type REGULAR-FILE)))))
 
   ; bug 1324610
   (allow network-outbound file-read*
@@ -359,8 +364,14 @@ static const char contentSandboxRules[] = R"(
       (iokit-user-client-class "Gen6DVDContext"))
 
   ; bug 1237847
-  (allow file-read* file-write-create file-write-data
-      (subpath appTempDir))
+  (allow file-read* file-write-data
+    (subpath appTempDir))
+  (allow file-write-create
+    (require-all
+      (subpath appTempDir)
+      (require-any
+        (vnode-type REGULAR-FILE)
+        (vnode-type DIRECTORY))))
 )";
 
 }

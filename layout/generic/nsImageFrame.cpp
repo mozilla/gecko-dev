@@ -178,17 +178,18 @@ nsImageFrame::AccessibleType()
 void
 nsImageFrame::DisconnectMap()
 {
-  if (mImageMap) {
-    mImageMap->Destroy();
-    mImageMap = nullptr;
+  if (!mImageMap) {
+    return;
+  }
+
+  mImageMap->Destroy();
+  mImageMap = nullptr;
 
 #ifdef ACCESSIBILITY
-  nsAccessibilityService* accService = GetAccService();
-  if (accService) {
+  if (nsAccessibilityService* accService = GetAccService()) {
     accService->RecreateAccessible(PresContext()->PresShell(), mContent);
   }
 #endif
-  }
 }
 
 void
@@ -212,7 +213,7 @@ nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
       // deregister with our refresh driver.
       imageLoader->FrameDestroyed(this);
 
-      imageLoader->RemoveObserver(mListener);
+      imageLoader->RemoveNativeObserver(mListener);
     }
 
     reinterpret_cast<nsImageListener*>(mListener.get())->SetFrame(nullptr);
@@ -269,7 +270,7 @@ nsImageFrame::Init(nsIContent*       aContent,
     MOZ_CRASH("Why do we have an nsImageFrame here at all?");
   }
 
-  imageLoader->AddObserver(mListener);
+  imageLoader->AddNativeObserver(mListener);
 
   nsPresContext *aPresContext = PresContext();
 
@@ -641,6 +642,18 @@ void
 nsImageFrame::InvalidateSelf(const nsIntRect* aLayerInvalidRect,
                              const nsRect* aFrameInvalidRect)
 {
+  if (HasProperty(nsIFrame::WebRenderUserDataProperty())) {
+    nsIFrame::WebRenderUserDataTable* userDataTable =
+      GetProperty(nsIFrame::WebRenderUserDataProperty());
+    RefPtr<WebRenderUserData> data;
+    userDataTable->Get(nsDisplayItem::TYPE_IMAGE, getter_AddRefs(data));
+    if (data && data->AsFallbackData()) {
+      data->AsFallbackData()->SetInvalid(true);
+    }
+    SchedulePaint();
+    return;
+  }
+
   InvalidateLayer(nsDisplayItem::TYPE_IMAGE,
                   aLayerInvalidRect,
                   aFrameInvalidRect);
@@ -1755,8 +1768,7 @@ nsImageFrame::PaintImage(gfxContext& aRenderingContext, nsPoint aPt,
       nsLayoutUtils::GetSamplingFilterForFrame(this), dest, aDirtyRect,
       svgContext, flags, &anchorPoint);
 
-  nsImageMap* map = GetImageMap();
-  if (map) {
+  if (nsImageMap* map = GetImageMap()) {
     gfxPoint devPixelOffset =
       nsLayoutUtils::PointToGfxPoint(dest.TopLeft(),
                                      PresContext()->AppUnitsPerDevPixel());
@@ -1896,7 +1908,7 @@ nsImageFrame::ShouldDisplaySelection()
             int32_t thisOffset = parentContent->IndexOf(mContent);
             nsCOMPtr<nsIDOMNode> parentNode = do_QueryInterface(parentContent);
             nsCOMPtr<nsIDOMNode> rangeNode;
-            int32_t rangeOffset;
+            uint32_t rangeOffset;
             nsCOMPtr<nsIDOMRange> range;
             selection->GetRangeAt(0,getter_AddRefs(range));
             if (range)
@@ -1904,12 +1916,16 @@ nsImageFrame::ShouldDisplaySelection()
               range->GetStartContainer(getter_AddRefs(rangeNode));
               range->GetStartOffset(&rangeOffset);
 
-              if (parentNode && rangeNode && (rangeNode == parentNode) && rangeOffset == thisOffset)
-              {
+              if (parentNode && rangeNode && rangeNode == parentNode &&
+                  static_cast<int32_t>(rangeOffset) == thisOffset) {
                 range->GetEndContainer(getter_AddRefs(rangeNode));
                 range->GetEndOffset(&rangeOffset);
-                if ((rangeNode == parentNode) && (rangeOffset == (thisOffset +1))) //+1 since that would mean this whole content is selected only
-                  return false; //do not allow nsFrame do draw any further selection
+                // +1 since that would mean this whole content is selected only
+                if (rangeNode == parentNode &&
+                    static_cast<int32_t>(rangeOffset) == thisOffset + 1) {
+                  // Do not allow nsFrame do draw any further selection
+                  return false;
+                }
               }
             }
           }
@@ -1925,8 +1941,7 @@ nsImageMap*
 nsImageFrame::GetImageMap()
 {
   if (!mImageMap) {
-    nsIContent* map = GetMapElement();
-    if (map) {
+    if (nsIContent* map = GetMapElement()) {
       mImageMap = new nsImageMap();
       mImageMap->Init(this, map);
     }
@@ -2014,9 +2029,7 @@ nsImageFrame::GetContentForEvent(WidgetEvent* aEvent,
     return NS_OK;
   }
 
-  nsImageMap* map = GetImageMap();
-
-  if (nullptr != map) {
+  if (nsImageMap* map = GetImageMap()) {
     nsIntPoint p;
     TranslateEventCoords(
       nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this), p);
@@ -2045,7 +2058,7 @@ nsImageFrame::HandleEvent(nsPresContext* aPresContext,
       aEvent->mMessage == eMouseMove) {
     nsImageMap* map = GetImageMap();
     bool isServerMap = IsServerImageMap();
-    if ((nullptr != map) || isServerMap) {
+    if (map || isServerMap) {
       nsIntPoint p;
       TranslateEventCoords(
         nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this), p);
@@ -2102,8 +2115,7 @@ nsresult
 nsImageFrame::GetCursor(const nsPoint& aPoint,
                         nsIFrame::Cursor& aCursor)
 {
-  nsImageMap* map = GetImageMap();
-  if (nullptr != map) {
+  if (nsImageMap* map = GetImageMap()) {
     nsIntPoint p;
     TranslateEventCoords(aPoint, p);
     nsCOMPtr<nsIContent> area = map->GetArea(p.x, p.y);

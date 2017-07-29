@@ -15,9 +15,12 @@
 #include "mozilla/gfx/GPUParent.h"
 #include "mozilla/gfx/GraphicsMessages.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/DeviceAttachmentsD3D11.h"
 #include "mozilla/layers/MLGDeviceD3D11.h"
+#include "mozilla/layers/PaintThread.h"
 #include "nsIGfxInfo.h"
 #include "nsString.h"
 #include <d3d11.h>
@@ -172,11 +175,6 @@ DeviceManagerDx::ImportDeviceInfo(const D3D11DeviceStatus& aDeviceStatus)
 void
 DeviceManagerDx::ExportDeviceInfo(D3D11DeviceStatus* aOut)
 {
-  // Even though the parent process might not own the compositor, we still
-  // populate DeviceManagerDx with device statistics (for simplicity).
-  // That means it still gets queried for compositor information.
-  MOZ_ASSERT(XRE_IsParentProcess() || XRE_GetProcessType() == GeckoProcessType_GPU);
-
   if (mDeviceStatus) {
     *aOut = mDeviceStatus.value();
   }
@@ -320,6 +318,20 @@ DeviceManagerDx::CreateCompositorDeviceHelper(
   return true;
 }
 
+// Note that it's enough for us to just use a counter for a unique ID,
+// even though the counter isn't synchronized between processes. If we
+// start in the GPU process and wind up in the parent process, the
+// whole graphics stack is blown away anyway. But just in case, we
+// make gpu process IDs negative and parent process IDs positive.
+static inline int32_t
+GetNextDeviceCounter()
+{
+  static int32_t sDeviceCounter = 0;
+  return XRE_IsGPUProcess()
+         ? --sDeviceCounter
+         : ++sDeviceCounter;
+}
+
 void
 DeviceManagerDx::CreateCompositorDevice(FeatureState& d3d11)
 {
@@ -377,20 +389,21 @@ DeviceManagerDx::CreateCompositorDevice(FeatureState& d3d11)
     D3D11Checks::WarnOnAdapterMismatch(device);
   }
 
-  int featureLevel = device->GetFeatureLevel();
+  uint32_t featureLevel = device->GetFeatureLevel();
   {
     MutexAutoLock lock(mDeviceLock);
     mCompositorDevice = device;
+
+    int32_t sequenceNumber = GetNextDeviceCounter();
     mDeviceStatus = Some(D3D11DeviceStatus(
       false,
       textureSharingWorks,
       featureLevel,
-      DxgiAdapterDesc::From(desc)));
+      DxgiAdapterDesc::From(desc),
+      sequenceNumber));
   }
   mCompositorDevice->SetExceptionMode(0);
 }
-
-//#define BREAK_ON_D3D_ERROR
 
 bool
 DeviceManagerDx::CreateDevice(IDXGIAdapter* aAdapter,
@@ -399,9 +412,9 @@ DeviceManagerDx::CreateDevice(IDXGIAdapter* aAdapter,
                                  HRESULT& aResOut,
                                  RefPtr<ID3D11Device>& aOutDevice)
 {
-#ifdef BREAK_ON_D3D_ERROR
-  aFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
+  if (gfxPrefs::Direct3D11EnableDebugLayer() || gfxPrefs::Direct3D11BreakOnError()) {
+    aFlags |= D3D11_CREATE_DEVICE_DEBUG;
+  }
 
   MOZ_SEH_TRY {
     aResOut = sD3D11CreateDeviceFn(
@@ -413,24 +426,35 @@ DeviceManagerDx::CreateDevice(IDXGIAdapter* aAdapter,
     return false;
   }
 
-#ifdef BREAK_ON_D3D_ERROR
-  do {
-    if (!aOutDevice)
-      break;
+  if (gfxPrefs::Direct3D11BreakOnError()) {
+    do {
+      if (!aOutDevice)
+        break;
 
-    RefPtr<ID3D11Debug> debug;
-    if(!SUCCEEDED( aOutDevice->QueryInterface(__uuidof(ID3D11Debug), getter_AddRefs(debug)) ))
-      break;
+      RefPtr<ID3D11Debug> debug;
+      if (!SUCCEEDED(aOutDevice->QueryInterface(__uuidof(ID3D11Debug), getter_AddRefs(debug))))
+        break;
 
-    RefPtr<ID3D11InfoQueue> infoQueue;
-    if(!SUCCEEDED( debug->QueryInterface(__uuidof(ID3D11InfoQueue), getter_AddRefs(infoQueue)) ))
-      break;
+      RefPtr<ID3D11InfoQueue> infoQueue;
+      if (!SUCCEEDED(debug->QueryInterface(__uuidof(ID3D11InfoQueue), getter_AddRefs(infoQueue))))
+        break;
 
-    infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-    infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
-    infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, true);
-  } while (false);
-#endif
+      D3D11_INFO_QUEUE_FILTER filter;
+      PodZero(&filter);
+
+      // Disable warnings caused by Advanced Layers that are known and not problematic.
+      D3D11_MESSAGE_ID blockIDs[] = {
+        D3D11_MESSAGE_ID_DEVICE_DRAW_CONSTANT_BUFFER_TOO_SMALL
+      };
+      filter.DenyList.NumIDs = MOZ_ARRAY_LENGTH(blockIDs);
+      filter.DenyList.pIDList = blockIDs;
+      infoQueue->PushStorageFilter(&filter);
+
+      infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+      infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+      infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, true);
+    } while (false);
+  }
 
   return true;
 }
@@ -475,11 +499,14 @@ DeviceManagerDx::CreateWARPCompositorDevice()
   {
     MutexAutoLock lock(mDeviceLock);
     mCompositorDevice = device;
+
+    int32_t sequenceNumber = GetNextDeviceCounter();
     mDeviceStatus = Some(D3D11DeviceStatus(
       true,
       textureSharingWorks,
       featureLevel,
-      nullAdapter));
+      nullAdapter,
+      sequenceNumber));
   }
   mCompositorDevice->SetExceptionMode(0);
 
@@ -703,6 +730,14 @@ DeviceManagerDx::CreateMLGDevice()
 void
 DeviceManagerDx::ResetDevices()
 {
+  // Flush the paint thread before revoking all these singletons. This
+  // should ensure that the paint thread doesn't start mixing and matching
+  // old and new objects together.
+  if (PaintThread::Get()) {
+    CompositorBridgeChild* cbc = CompositorBridgeChild::Get();
+    cbc->FlushAsyncPaints();
+  }
+
   MutexAutoLock lock(mDeviceLock);
 
   mAdapter = nullptr;
@@ -921,12 +956,8 @@ bool
 DeviceManagerDx::CanInitializeKeyedMutexTextures()
 {
   MutexAutoLock lock(mDeviceLock);
-  if (!mDeviceStatus) {
-    return false;
-  }
-  // Disable this on all Intel devices because of crashes.
-  // See bug 1292923.
-  return (mDeviceStatus->adapter().VendorId != 0x8086 || gfxPrefs::Direct3D11AllowIntelMutex());
+  return mDeviceStatus && gfxPrefs::Direct3D11AllowKeyedMutex() &&
+         gfxVars::AllowD3D11KeyedMutex();
 }
 
 bool

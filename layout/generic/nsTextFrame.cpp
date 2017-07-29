@@ -4625,7 +4625,6 @@ nsContinuingTextFrame::AddInlineMinISize(gfxContext *aRenderingContext,
                                          InlineMinISizeData *aData)
 {
   // Do nothing, since the first-in-flow accounts for everything.
-  return;
 }
 
 /* virtual */ void
@@ -4633,7 +4632,6 @@ nsContinuingTextFrame::AddInlinePrefISize(gfxContext *aRenderingContext,
                                           InlinePrefISizeData *aData)
 {
   // Do nothing, since the first-in-flow accounts for everything.
-  return;
 }
 
 //----------------------------------------------------------------------
@@ -5115,14 +5113,17 @@ nsDisplayText::nsDisplayText(nsDisplayListBuilder* aBuilder, nsTextFrame* aFrame
 {
   MOZ_COUNT_CTOR(nsDisplayText);
   mIsFrameSelected = aIsSelected;
-
   mBounds = mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
     // Bug 748228
   mBounds.Inflate(mFrame->PresContext()->AppUnitsPerDevPixel());
 
-  if (ShouldUseAdvancedLayer(aBuilder->GetWidgetLayerManager(), gfxPrefs::LayersAllowTextLayers)) {
+  if (gfxPrefs::LayersAllowTextLayers() &&
+      CanUseAdvancedLayer(aBuilder->GetWidgetLayerManager())) {
+    RefPtr<DrawTarget> screenTarget = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
     RefPtr<DrawTargetCapture> capture =
-      gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget()->CreateCaptureDT(IntSize());
+      Factory::CreateCaptureDrawTarget(screenTarget->GetBackendType(),
+                                       IntSize(),
+                                       screenTarget->GetFormat());
     RefPtr<gfxContext> captureCtx = gfxContext::CreateOrNull(capture);
 
     // TODO: Paint() checks mDisableSubpixelAA, we should too.
@@ -6974,12 +6975,14 @@ nsTextFrame::PaintShadows(nsCSSShadowArray* aShadow,
 
   // If the textrun uses any color or SVG fonts, we need to force use of a mask
   // for shadow rendering even if blur radius is zero.
-  uint32_t blurFlags = 0;
+  // Force disable hardware acceleration for text shadows since it's usually
+  // more expensive than just doing it on the CPU.
+  uint32_t blurFlags = nsContextBoxBlur::DISABLE_HARDWARE_ACCELERATION_BLUR;
   uint32_t numGlyphRuns;
   const gfxTextRun::GlyphRun* run = mTextRun->GetGlyphRuns(&numGlyphRuns);
   while (numGlyphRuns-- > 0) {
     if (run->mFont->AlwaysNeedsMaskForShadow()) {
-      blurFlags = nsContextBoxBlur::FORCE_MASK;
+      blurFlags |= nsContextBoxBlur::FORCE_MASK;
       break;
     }
     run++;

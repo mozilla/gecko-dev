@@ -196,6 +196,7 @@ nsHttpHandler::nsHttpHandler()
     , mThrottleSuspendFor(3000)
     , mThrottleResumeFor(200)
     , mThrottleResumeIn(400)
+    , mUrgentStartEnabled(true)
     , mRedirectionLimit(10)
     , mPhishyUserPassLength(1)
     , mQoSBits(0x00)
@@ -254,6 +255,7 @@ nsHttpHandler::nsHttpHandler()
     , mUseFastOpen(true)
     , mFastOpenConsecutiveFailureLimit(5)
     , mFastOpenConsecutiveFailureCounter(0)
+    , mActiveTabPriority(true)
     , mProcessId(0)
     , mNextChannelId(1)
 {
@@ -406,6 +408,12 @@ nsHttpHandler::Init()
 
     InitUserAgentComponents();
 
+    // This perference is only used in parent process.
+    if (!IsNeckoChild()) {
+        mActiveTabPriority =
+            Preferences::GetBool(HTTP_PREF("active_tab_priority"), true);
+    }
+
     // monitor some preference changes
     nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (prefBranch) {
@@ -515,9 +523,12 @@ nsHttpHandler::Init()
         obsService->AddObserver(this, "browser:purge-session-history", true);
         obsService->AddObserver(this, NS_NETWORK_LINK_TOPIC, true);
         obsService->AddObserver(this, "application-background", true);
-        obsService->AddObserver(this,
-                                "net:current-toplevel-outer-content-windowid",
-                                true);
+
+        if (!IsNeckoChild()) {
+            obsService->AddObserver(this,
+                                    "net:current-toplevel-outer-content-windowid",
+                                    true);
+        }
 
         if (mFastOpenSupported) {
             obsService->AddObserver(this, "captive-portal-login", true);
@@ -1590,16 +1601,16 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         }
     }
 
-    if (PREF_CHANGED("network.http.throttle.enable")) {
-        rv = prefs->GetBoolPref("network.http.throttle.enable", &mThrottleEnabled);
+    if (PREF_CHANGED(HTTP_PREF("throttle.enable"))) {
+        rv = prefs->GetBoolPref(HTTP_PREF("throttle.enable"), &mThrottleEnabled);
         if (NS_SUCCEEDED(rv) && mConnMgr) {
             Unused << mConnMgr->UpdateParam(nsHttpConnectionMgr::THROTTLING_ENABLED,
                                             static_cast<int32_t>(mThrottleEnabled));
         }
     }
 
-    if (PREF_CHANGED("network.http.throttle.suspend-for")) {
-        rv = prefs->GetIntPref("network.http.throttle.suspend-for", &val);
+    if (PREF_CHANGED(HTTP_PREF("throttle.suspend-for"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("throttle.suspend-for"), &val);
         mThrottleSuspendFor = (uint32_t)clamped(val, 0, 120000);
         if (NS_SUCCEEDED(rv) && mConnMgr) {
             Unused << mConnMgr->UpdateParam(nsHttpConnectionMgr::THROTTLING_SUSPEND_FOR,
@@ -1607,8 +1618,8 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         }
     }
 
-    if (PREF_CHANGED("network.http.throttle.resume-for")) {
-        rv = prefs->GetIntPref("network.http.throttle.resume-for", &val);
+    if (PREF_CHANGED(HTTP_PREF("throttle.resume-for"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("throttle.resume-for"), &val);
         mThrottleResumeFor = (uint32_t)clamped(val, 0, 120000);
         if (NS_SUCCEEDED(rv) && mConnMgr) {
             Unused << mConnMgr->UpdateParam(nsHttpConnectionMgr::THROTTLING_RESUME_FOR,
@@ -1616,13 +1627,17 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         }
     }
 
-    if (PREF_CHANGED("network.http.throttle.resume-background-in")) {
-        rv = prefs->GetIntPref("network.http.throttle.resume-background-in", &val);
+    if (PREF_CHANGED(HTTP_PREF("throttle.resume-background-in"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("throttle.resume-background-in"), &val);
         mThrottleResumeIn = (uint32_t)clamped(val, 0, 120000);
         if (NS_SUCCEEDED(rv) && mConnMgr) {
             Unused << mConnMgr->UpdateParam(nsHttpConnectionMgr::THROTTLING_RESUME_IN,
                                             mThrottleResumeIn);
         }
+    }
+
+    if (PREF_CHANGED(HTTP_PREF("on_click_priority"))) {
+        Unused << prefs->GetBoolPref(HTTP_PREF("on_click_priority"), &mUrgentStartEnabled);
     }
 
     if (PREF_CHANGED(HTTP_PREF("focused_window_transaction_ratio"))) {
@@ -2365,19 +2380,12 @@ nsHttpHandler::Observe(nsISupports *subject,
         wrapper->GetData(&windowId);
         MOZ_ASSERT(windowId);
 
-        if (IsNeckoChild()) {
-            if (gNeckoChild) {
-                gNeckoChild->SendNotifyCurrentTopLevelOuterContentWindowId(
-                    windowId);
-            }
-        } else {
-            static uint64_t sCurrentTopLevelOuterContentWindowId = 0;
-            if (sCurrentTopLevelOuterContentWindowId != windowId) {
-                sCurrentTopLevelOuterContentWindowId = windowId;
-                if (mConnMgr) {
-                    mConnMgr->UpdateCurrentTopLevelOuterContentWindowId(
-                        sCurrentTopLevelOuterContentWindowId);
-                }
+        static uint64_t sCurrentTopLevelOuterContentWindowId = 0;
+        if (sCurrentTopLevelOuterContentWindowId != windowId) {
+            sCurrentTopLevelOuterContentWindowId = windowId;
+            if (mConnMgr) {
+                mConnMgr->UpdateCurrentTopLevelOuterContentWindowId(
+                    sCurrentTopLevelOuterContentWindowId);
             }
         }
     } else if (!strcmp(topic, "captive-portal-login") ||

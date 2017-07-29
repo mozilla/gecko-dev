@@ -10,7 +10,6 @@
 #include "MediaSourceDemuxer.h"
 #include "MediaSourceUtils.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/StateMirroring.h"
 #include "SourceBufferResource.h"
 #include "SourceBuffer.h"
@@ -62,8 +61,8 @@ static Atomic<uint32_t> sStreamSourceID(0u);
 
 class DispatchKeyNeededEvent : public Runnable {
 public:
-  DispatchKeyNeededEvent(AbstractMediaDecoder* aDecoder,
-                         nsTArray<uint8_t>& aInitData,
+  DispatchKeyNeededEvent(MediaSourceDecoder* aDecoder,
+                         const nsTArray<uint8_t>& aInitData,
                          const nsString& aInitDataType)
     : Runnable("DispatchKeyNeededEvent")
     , mDecoder(aDecoder)
@@ -82,7 +81,7 @@ public:
     return NS_OK;
   }
 private:
-  RefPtr<AbstractMediaDecoder> mDecoder;
+  RefPtr<MediaSourceDecoder> mDecoder;
   nsTArray<uint8_t> mInitData;
   nsString mInitDataType;
 };
@@ -124,7 +123,7 @@ TrackBuffersManager::AppendData(already_AddRefed<MediaByteBuffer> aData,
 {
   MOZ_ASSERT(NS_IsMainThread());
   RefPtr<MediaByteBuffer> data(aData);
-  MSE_DEBUG("Appending %" PRIuSIZE " bytes", data->Length());
+  MSE_DEBUG("Appending %zu bytes", data->Length());
 
   mEnded = false;
 
@@ -840,7 +839,6 @@ TrackBuffersManager::CreateDemuxerforMIMEType()
   }
 #endif
   NS_WARNING("Not supported (yet)");
-  return;
 }
 
 // We reset the demuxer by creating a new one and initializing it.
@@ -1272,12 +1270,29 @@ TrackBuffersManager::DoDemuxVideo()
 }
 
 void
-TrackBuffersManager::OnVideoDemuxCompleted(RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples)
+TrackBuffersManager::MaybeDispatchEncryptedEvent(
+  const nsTArray<RefPtr<MediaRawData>>& aSamples)
+{
+  // Try and dispatch 'encrypted'. Won't go if ready state still HAVE_NOTHING.
+  for (const RefPtr<MediaRawData>& sample : aSamples) {
+    for (const nsTArray<uint8_t>& initData : sample->mCrypto.mInitDatas) {
+      nsCOMPtr<nsIRunnable> r = new DispatchKeyNeededEvent(
+        mParentDecoder, initData, sample->mCrypto.mInitDataType);
+      mAbstractMainThread->Dispatch(r.forget());
+    }
+  }
+}
+
+void
+TrackBuffersManager::OnVideoDemuxCompleted(
+  RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples)
 {
   MOZ_ASSERT(OnTaskQueue());
-  MSE_DEBUG("%" PRIuSIZE " video samples demuxed", aSamples->mSamples.Length());
+  MSE_DEBUG("%zu video samples demuxed", aSamples->mSamples.Length());
   mVideoTracks.mDemuxRequest.Complete();
   mVideoTracks.mQueuedSamples.AppendElements(aSamples->mSamples);
+
+  MaybeDispatchEncryptedEvent(aSamples->mSamples);
   DoDemuxAudio();
 }
 
@@ -1300,10 +1315,12 @@ void
 TrackBuffersManager::OnAudioDemuxCompleted(RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples)
 {
   MOZ_ASSERT(OnTaskQueue());
-  MSE_DEBUG("%" PRIuSIZE " audio samples demuxed", aSamples->mSamples.Length());
+  MSE_DEBUG("%zu audio samples demuxed", aSamples->mSamples.Length());
   mAudioTracks.mDemuxRequest.Complete();
   mAudioTracks.mQueuedSamples.AppendElements(aSamples->mSamples);
   CompleteCodedFrameProcessing();
+
+  MaybeDispatchEncryptedEvent(aSamples->mSamples);
 }
 
 void
@@ -1726,7 +1743,7 @@ TrackBuffersManager::InsertFrames(TrackBuffer& aSamples,
   // 5. Let track buffer equal the track buffer that the coded frame will be added to.
   auto& trackBuffer = aTrackData;
 
-  MSE_DEBUGV("Processing %" PRIuSIZE " %s frames(start:%" PRId64 " end:%" PRId64 ")",
+  MSE_DEBUGV("Processing %zu %s frames(start:%" PRId64 " end:%" PRId64 ")",
              aSamples.Length(),
              aTrackData.mInfo->mMimeType.get(),
              aIntervals.GetStart().ToMicroseconds(),

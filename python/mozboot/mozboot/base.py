@@ -151,7 +151,7 @@ MODERN_MERCURIAL_VERSION = LooseVersion('3.7.3')
 MODERN_PYTHON_VERSION = LooseVersion('2.7.3')
 
 # Upgrade rust older than this.
-MODERN_RUST_VERSION = LooseVersion('1.18.0')
+MODERN_RUST_VERSION = LooseVersion('1.19.0')
 
 class BaseBootstrapper(object):
     """Base class for system bootstrappers."""
@@ -259,9 +259,7 @@ class BaseBootstrapper(object):
             '%s does not yet implement ensure_stylo_packages()'
             % __name__)
 
-    def install_tooltool_clang_package(self, state_dir, checkout_root, manifest_file):
-        abs_manifest_file = os.path.join(checkout_root, manifest_file)
-
+    def install_tooltool_clang_package(self, state_dir, checkout_root, toolchain_job):
         mach_binary = os.path.join(checkout_root, 'mach')
         if not os.path.exists(mach_binary):
             raise ValueError("mach not found at %s" % mach_binary)
@@ -273,8 +271,7 @@ class BaseBootstrapper(object):
             raise ValueError("cannot determine path to Python executable")
 
         cmd = [sys.executable, mach_binary, 'artifact', 'toolchain',
-               '--tooltool-manifest', abs_manifest_file,
-               'clang']
+               '--from-build', toolchain_job]
 
         subprocess.check_call(cmd, cwd=state_dir)
 

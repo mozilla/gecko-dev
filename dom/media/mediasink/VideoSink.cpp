@@ -9,7 +9,6 @@
 #include "MediaPrefs.h"
 
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/SizePrintfMacros.h"
 
 namespace mozilla {
 
@@ -416,7 +415,7 @@ VideoSink::RenderVideoFrames(int32_t aMaxFrames,
     img->mFrameID = frame->mFrameID;
     img->mProducerID = mProducerID;
 
-    VSINK_LOG_V("playing video frame %" PRId64 " (id=%x) (vq-queued=%" PRIuSIZE ")",
+    VSINK_LOG_V("playing video frame %" PRId64 " (id=%x) (vq-queued=%zu)",
                 frame->mTime.ToMicroseconds(), frame->mFrameID,
                 VideoQueue().GetSize());
   }
@@ -459,11 +458,11 @@ VideoSink::UpdateRenderedVideoFrames()
   mVideoFrameEndTime = std::max(mVideoFrameEndTime,
     currentFrame ? currentFrame->GetEndTime() : lastFrameEndTime);
 
-  MaybeResolveEndPromise();
-
   RenderVideoFrames(
     mVideoQueueSendToCompositorSize,
     clockTime.ToMicroseconds(), nowTime);
+
+  MaybeResolveEndPromise();
 
   // Get the timestamp of the next frame. Schedule the next update at
   // the start time of the next frame. If we don't have a next frame,
@@ -496,6 +495,11 @@ VideoSink::MaybeResolveEndPromise()
   if (VideoQueue().IsFinished() &&
       VideoQueue().GetSize() <= 1 &&
       !mVideoSinkEndRequest.Exists()) {
+    if (VideoQueue().GetSize() == 1) {
+      // Remove the last frame since we have sent it to compositor.
+      RefPtr<VideoData> frame = VideoQueue().PopFront();
+      mFrameStats.NotifyPresentedFrame();
+    }
     mEndPromiseHolder.ResolveIfExists(true, __func__);
   }
 }
@@ -506,7 +510,7 @@ VideoSink::GetDebugInfo()
   AssertOwnerThread();
   return nsPrintfCString(
     "VideoSink Status: IsStarted=%d IsPlaying=%d VideoQueue(finished=%d "
-    "size=%" PRIuSIZE ") mVideoFrameEndTime=%" PRId64 " mHasVideo=%d "
+    "size=%zu) mVideoFrameEndTime=%" PRId64 " mHasVideo=%d "
     "mVideoSinkEndRequest.Exists()=%d mEndPromiseHolder.IsEmpty()=%d\n",
     IsStarted(), IsPlaying(), VideoQueue().IsFinished(),
     VideoQueue().GetSize(), mVideoFrameEndTime.ToMicroseconds(), mHasVideo,

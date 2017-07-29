@@ -7,7 +7,6 @@
 var gSearchResultsPane = {
   listSearchTooltips: new Set(),
   listSearchMenuitemIndicators: new Set(),
-  searchResultsCategory: null,
   searchInput: null,
   inited: false,
 
@@ -16,7 +15,6 @@ var gSearchResultsPane = {
       return;
     }
     this.inited = true;
-    this.searchResultsCategory = document.getElementById("category-search-results");
     this.searchInput = document.getElementById("searchInput");
     this.searchInput.hidden = !Services.prefs.getBoolPref("browser.preferences.search");
     if (!this.searchInput.hidden) {
@@ -39,6 +37,10 @@ var gSearchResultsPane = {
         }
       });
     }
+    let strings = this.strings;
+    this.searchInput.placeholder = AppConstants.platform == "win" ?
+      strings.getString("searchInput.labelWin") :
+      strings.getString("searchInput.labelUnix");
   },
 
   handleEvent(event) {
@@ -223,13 +225,16 @@ var gSearchResultsPane = {
     this.removeAllSearchTooltips();
     this.removeAllSearchMenuitemIndicators();
 
+    // Clear telemetry request if user types very frequently.
+    if (this.telemetryTimer) {
+      clearTimeout(this.telemetryTimer);
+    }
+
     let srHeader = document.getElementById("header-searchResults");
 
     if (this.query) {
       // Showing the Search Results Tag
       gotoPref("paneSearchResults");
-
-      this.searchResultsCategory.hidden = false;
 
       let resultsFound = false;
 
@@ -244,8 +249,9 @@ var gSearchResultsPane = {
 
       // Showing or Hiding specific section depending on if words in query are found
       for (let i = 0; i < rootPreferencesChildren.length; i++) {
-        if (rootPreferencesChildren[i].className != "header" &&
-            rootPreferencesChildren[i].className != "no-results-message" &&
+        if (!rootPreferencesChildren[i].classList.contains("header") &&
+            !rootPreferencesChildren[i].classList.contains("subcategory") &&
+            !rootPreferencesChildren[i].classList.contains("no-results-message") &&
             this.searchWithinNode(rootPreferencesChildren[i], this.query)) {
           rootPreferencesChildren[i].hidden = false;
           resultsFound = true;
@@ -273,9 +279,15 @@ var gSearchResultsPane = {
       } else {
         // Creating tooltips for all the instances found
         this.listSearchTooltips.forEach((anchorNode) => this.createSearchTooltip(anchorNode, this.query));
+
+        // Implant search telemetry probe after user stops typing for a while
+        if (this.query.length >= 2) {
+          this.telemetryTimer = setTimeout(() => {
+            Services.telemetry.keyedScalarAdd("preferences.search_query", this.query, 1);
+          }, 1000);
+        }
       }
     } else {
-      this.searchResultsCategory.hidden = true;
       document.getElementById("sorry-message").textContent = "";
       // Going back to General when cleared
       gotoPref("paneGeneral");

@@ -51,12 +51,68 @@ WINDOWS_WORKER_TYPES = {
       'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win7-32-gpu',
       'hardware': 'releng-hardware/gecko-t-win7-32-hw',
     },
+    'windows7-32-pgo': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win7-32',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win7-32-gpu',
+      'hardware': 'releng-hardware/gecko-t-win7-32-hw',
+    },
+    'windows7-32-nightly': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win7-32',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win7-32-gpu',
+      'hardware': 'releng-hardware/gecko-t-win7-32-hw',
+    },
+    'windows7-32-devedition': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win7-32',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win7-32-gpu',
+      'hardware': 'releng-hardware/gecko-t-win7-32-hw',
+    },
+    'windows7-32-stylo': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win7-32',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win7-32-gpu',
+      'hardware': 'releng-hardware/gecko-t-win7-32-hw',
+    },
     'windows10-64': {
       'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
       'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
       'hardware': 'releng-hardware/gecko-t-win10-64-hw',
     },
+    'windows10-64-pgo': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
+    'windows10-64-devedition': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
+    'windows10-64-nightly': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
+    'windows10-64-stylo': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
     'windows10-64-asan': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
+    # These values don't really matter since BBB will be executing them
+    'windows8-64': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
+    'windows8-64-pgo': {
+      'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
+      'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+      'hardware': 'releng-hardware/gecko-t-win10-64-hw',
+    },
+    'windows8-64-nightly': {
       'virtual': 'aws-provisioner-v1/gecko-t-win10-64',
       'virtual-with-gpu': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
       'hardware': 'releng-hardware/gecko-t-win10-64-hw',
@@ -310,6 +366,11 @@ test_description_schema = Schema({
         Optional('files-changed'): [basestring],
     }),
 
+    Optional('worker-type'): optionally_keyed_by(
+        'test-platform',
+        Any(basestring, None),
+    ),
+
 }, required=True)
 
 
@@ -426,6 +487,8 @@ def set_treeherder_machine_platform(config, tests):
         'macosx64/debug': 'osx-10-10/debug',
         'macosx64/opt': 'osx-10-10/opt',
         'win64-asan/opt': 'windows10-64/asan',
+        'win32-pgo/opt': 'windows7-32/pgo',
+        'win64-pgo/opt': 'windows10-64/pgo',
         # The build names for Android platforms have partially evolved over the
         # years and need to be translated.
         'android-api-15/debug': 'android-4-3-armv7-api15/debug',
@@ -434,8 +497,18 @@ def set_treeherder_machine_platform(config, tests):
         'android-api-15-gradle/opt': 'android-api-15-gradle/opt',
     }
     for test in tests:
-        test['treeherder-machine-platform'] = translation.get(
-            test['build-platform'], test['test-platform'])
+        # For most desktop platforms, the above table is not used for "regular"
+        # builds, so we'll always pick the test platform here.
+        # On macOS though, the regular builds are in the table.  This causes a
+        # conflict in `verify_task_graph_symbol` once you add a new test
+        # platform based on regular macOS builds, such as for Stylo.
+        # Since it's unclear if the regular macOS builds can be removed from
+        # the table, workaround the issue for Stylo.
+        if '-stylo' in test['test-platform']:
+            test['treeherder-machine-platform'] = test['test-platform']
+        else:
+            test['treeherder-machine-platform'] = translation.get(
+                test['build-platform'], test['test-platform'])
         yield test
 
 
@@ -460,7 +533,15 @@ def set_tier(config, tests):
                                          'linux64-devedition/opt',
                                          'linux64-asan/opt',
                                          'windows7-32/debug',
-                                         'windows7-32-vm/debug',
+                                         'windows7-32/opt',
+                                         'windows7-32-pgo/opt',
+                                         'windows7-32-devedition/opt',
+                                         'windows7-32-nightly/opt',
+                                         'windows10-64/debug',
+                                         'windows10-64/opt',
+                                         'windows10-64-pgo/opt',
+                                         'windows10-64-devedition/opt',
+                                         'windows10-64-nightly/opt',
                                          'macosx64/opt',
                                          'macosx64/debug',
                                          'android-4.3-arm7-api-15/opt',
@@ -518,6 +599,7 @@ def handle_keyed_by(config, tests):
         'mozharness.config',
         'mozharness.extra-options',
         'mozharness.requires-signed-builds',
+        'worker-type',
     ]
     for test in tests:
         for field in fields:
@@ -677,19 +759,6 @@ def set_tag(config, tests):
 
 
 @transforms.add
-def remove_linux_pgo_try_talos(config, tests):
-    """linux64-pgo talos tests don't run on try."""
-    def predicate(test):
-        return not(
-            test['test-platform'] == 'linux64-pgo/opt' and
-            (test['suite'] == 'talos' or test['suite'] == 'awsy') and
-            config.params['project'] == 'try'
-        )
-    for test in filter(predicate, tests):
-        yield test
-
-
-@transforms.add
 def set_test_type(config, tests):
     for test in tests:
         for test_type in ['mochitest', 'reftest']:
@@ -699,32 +768,35 @@ def set_test_type(config, tests):
 
 
 @transforms.add
-def parallel_stylo_tests(config, tests):
-    """Ensure that any stylo tests running with e10s enabled also test
-    parallel traversal in the style system."""
-
+def enable_stylo(config, tests):
+    """
+    Force Stylo on for all its tests, except Stylo vs. Gecko reftests where the
+    test harness will handle this.
+    """
     for test in tests:
-        if (not test['test-platform'].startswith('linux64-stylo/')) and \
-           (not test['test-platform'].startswith('linux64-stylo-sequential/')):
+        if '-stylo' not in test['test-platform']:
             yield test
             continue
 
-        e10s = test['e10s']
-        # We should have already handled 'both' in an earlier transform.
-        assert e10s != 'both'
-        if not e10s:
+        if 'reftest-stylo' not in test['suite']:
+            test['mozharness'].setdefault('extra-options', []).append('--enable-stylo')
+
+        yield test
+
+
+@transforms.add
+def single_stylo_traversal_tests(config, tests):
+    """Enable single traversal for all tests on the sequential Stylo platform."""
+
+    for test in tests:
+        if not test['test-platform'].startswith('linux64-stylo-sequential/'):
             yield test
             continue
 
         # Bug 1356122 - Run Stylo tests in sequential mode
-        if test['test-platform'].startswith('linux64-stylo-sequential/'):
-            yield test
-
-        if test['test-platform'].startswith('linux64-stylo/'):
-            # add parallel stylo tests
-            test['mozharness'].setdefault('extra-options', [])\
-                              .append('--parallel-stylo-traversal')
-            yield test
+        test['mozharness'].setdefault('extra-options', [])\
+                          .append('--single-stylo-traversal')
+        yield test
 
 
 @transforms.add
@@ -734,8 +806,10 @@ def set_worker_type(config, tests):
         # during the taskcluster migration, this is a bit tortured, but it
         # will get simpler eventually!
         test_platform = test['test-platform']
-        if test_platform.startswith('macosx'):
-            # note that some portion of these will be allocated to BBB below
+        if test.get('worker-type'):
+            # This test already has its worker type defined, so just use that (yields below)
+            pass
+        elif test_platform.startswith('macosx'):
             test['worker-type'] = MACOSX_WORKER_TYPES['macosx64']
         elif test_platform.startswith('win'):
             if test.get('suite', '') == 'talos' and \
@@ -756,6 +830,18 @@ def set_worker_type(config, tests):
             raise Exception("unknown test_platform {}".format(test_platform))
 
         yield test
+
+
+@transforms.add
+def skip_win10_hardware(config, tests):
+    """Windows 10 hardware isn't ready yet, don't even bother scheduling
+    unless we're on try"""
+    for test in tests:
+        if 'releng-hardware/gecko-t-win10-64-hw' not in test['worker-type']:
+            yield test
+        if config.params == 'try':
+            yield test
+        # Silently drop the test on the floor if its win10 hardware and we're not try
 
 
 @transforms.add

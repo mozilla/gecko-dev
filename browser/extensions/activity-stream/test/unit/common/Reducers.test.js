@@ -1,5 +1,6 @@
 const {reducers, INITIAL_STATE, insertPinned} = require("common/Reducers.jsm");
-const {TopSites, App, Prefs, Dialog} = reducers;
+const {TopSites, App, Snippets, Prefs, Dialog, Sections} = reducers;
+
 const {actionTypes: at} = require("common/Actions.jsm");
 
 describe("Reducers", () => {
@@ -77,6 +78,10 @@ describe("Reducers", () => {
       // old row is unchanged
       assert.equal(nextState.rows[0], oldState.rows[0]);
     });
+    it("should not update state for empty action.data on PLACES_BOOKMARK_ADDED", () => {
+      const nextState = TopSites(undefined, {type: at.PLACES_BOOKMARK_ADDED});
+      assert.equal(nextState, INITIAL_STATE.TopSites);
+    });
     it("should remove a bookmark on PLACES_BOOKMARK_REMOVED", () => {
       const oldState = {
         rows: [{url: "foo.com"}, {
@@ -98,6 +103,10 @@ describe("Reducers", () => {
       // old row is unchanged
       assert.deepEqual(nextState.rows[0], oldState.rows[0]);
     });
+    it("should not update state for empty action.data on PLACES_BOOKMARK_REMOVED", () => {
+      const nextState = TopSites(undefined, {type: at.PLACES_BOOKMARK_REMOVED});
+      assert.equal(nextState, INITIAL_STATE.TopSites);
+    });
     it("should remove a link on PLACES_LINK_BLOCKED and PLACES_LINK_DELETED", () => {
       const events = [at.PLACES_LINK_BLOCKED, at.PLACES_LINK_DELETED];
       events.forEach(event => {
@@ -111,7 +120,6 @@ describe("Reducers", () => {
       const oldState = {rows: [{url: "foo.com"}, {url: "bar.com"}]};
       const action = {type: at.PINNED_SITES_UPDATED, data: [{url: "baz.com", title: "baz"}]};
       const nextState = TopSites(oldState, action);
-      console.log(nextState.rows);
       assert.deepEqual(nextState.rows, [{url: "baz.com", title: "baz", isPinned: true, pinIndex: 0, pinTitle: "baz"}, {url: "foo.com"}, {url: "bar.com"}]);
     });
   });
@@ -180,6 +188,130 @@ describe("Reducers", () => {
       assert.deepEqual(INITIAL_STATE.Dialog, nextState);
     });
   });
+  describe("Sections", () => {
+    let oldState;
+
+    beforeEach(() => {
+      oldState = new Array(5).fill(null).map((v, i) => ({
+        id: `foo_bar_${i}`,
+        title: `Foo Bar ${i}`,
+        initialized: false,
+        rows: [{url: "www.foo.bar"}, {url: "www.other.url"}]
+      }));
+    });
+
+    it("should return INITIAL_STATE by default", () => {
+      assert.equal(INITIAL_STATE.Sections, Sections(undefined, {type: "non_existent"}));
+    });
+    it("should remove the correct section on SECTION_DEREGISTER", () => {
+      const newState = Sections(oldState, {type: at.SECTION_DEREGISTER, data: "foo_bar_2"});
+      assert.lengthOf(newState, 4);
+      const expectedNewState = oldState.splice(2, 1) && oldState;
+      assert.deepEqual(newState, expectedNewState);
+    });
+    it("should add a section on SECTION_REGISTER if it doesn't already exist", () => {
+      const action = {type: at.SECTION_REGISTER, data: {id: "foo_bar_5", title: "Foo Bar 5"}};
+      const newState = Sections(oldState, action);
+      assert.lengthOf(newState, 6);
+      const insertedSection = newState.find(section => section.id === "foo_bar_5");
+      assert.propertyVal(insertedSection, "title", action.data.title);
+    });
+    it("should set newSection.rows === [] if no rows are provided on SECTION_REGISTER", () => {
+      const action = {type: at.SECTION_REGISTER, data: {id: "foo_bar_5", title: "Foo Bar 5"}};
+      const newState = Sections(oldState, action);
+      const insertedSection = newState.find(section => section.id === "foo_bar_5");
+      assert.deepEqual(insertedSection.rows, []);
+    });
+    it("should update a section on SECTION_REGISTER if it already exists", () => {
+      const NEW_TITLE = "New Title";
+      const action = {type: at.SECTION_REGISTER, data: {id: "foo_bar_2", title: NEW_TITLE}};
+      const newState = Sections(oldState, action);
+      assert.lengthOf(newState, 5);
+      const updatedSection = newState.find(section => section.id === "foo_bar_2");
+      assert.ok(updatedSection && updatedSection.title === NEW_TITLE);
+    });
+    it("should have no effect on SECTION_ROWS_UPDATE if the id doesn't exist", () => {
+      const action = {type: at.SECTION_ROWS_UPDATE, data: {id: "fake_id", data: "fake_data"}};
+      const newState = Sections(oldState, action);
+      assert.deepEqual(oldState, newState);
+    });
+    it("should update the section rows with the correct data on SECTION_ROWS_UPDATE", () => {
+      const FAKE_DATA = ["some", "fake", "data"];
+      const action = {type: at.SECTION_ROWS_UPDATE, data: {id: "foo_bar_2", rows: FAKE_DATA}};
+      const newState = Sections(oldState, action);
+      const updatedSection = newState.find(section => section.id === "foo_bar_2");
+      assert.equal(updatedSection.rows, FAKE_DATA);
+    });
+    it("should remove blocked and deleted urls from all rows in all sections", () => {
+      const blockAction = {type: at.PLACES_LINK_BLOCKED, data: {url: "www.foo.bar"}};
+      const deleteAction = {type: at.PLACES_LINK_DELETED, data: {url: "www.foo.bar"}};
+      const newBlockState = Sections(oldState, blockAction);
+      const newDeleteState = Sections(oldState, deleteAction);
+      newBlockState.concat(newDeleteState).forEach(section => {
+        assert.deepEqual(section.rows, [{url: "www.other.url"}]);
+      });
+    });
+    it("should not update state for empty action.data on PLACES_BOOKMARK_ADDED", () => {
+      const nextState = Sections(undefined, {type: at.PLACES_BOOKMARK_ADDED});
+      assert.equal(nextState, INITIAL_STATE.Sections);
+    });
+    it("should bookmark an item when PLACES_BOOKMARK_ADDED is received", () => {
+      const action = {
+        type: at.PLACES_BOOKMARK_ADDED,
+        data: {
+          url: "www.foo.bar",
+          bookmarkGuid: "bookmark123",
+          bookmarkTitle: "Title for bar.com",
+          lastModified: 1234567
+        }
+      };
+      const nextState = Sections(oldState, action);
+      // check a section to ensure the correct url was bookmarked
+      const newRow = nextState[0].rows[0];
+      const oldRow = nextState[0].rows[1];
+
+      // new row has bookmark data
+      assert.equal(newRow.url, action.data.url);
+      assert.equal(newRow.bookmarkGuid, action.data.bookmarkGuid);
+      assert.equal(newRow.bookmarkTitle, action.data.bookmarkTitle);
+      assert.equal(newRow.bookmarkDateCreated, action.data.lastModified);
+
+      // old row is unchanged
+      assert.equal(oldRow, oldState[0].rows[1]);
+    });
+    it("should not update state for empty action.data on PLACES_BOOKMARK_REMOVED", () => {
+      const nextState = Sections(undefined, {type: at.PLACES_BOOKMARK_REMOVED});
+      assert.equal(nextState, INITIAL_STATE.Sections);
+    });
+    it("should remove the bookmark when PLACES_BOOKMARK_REMOVED is received", () => {
+      const action = {
+        type: at.PLACES_BOOKMARK_REMOVED,
+        data: {
+          url: "www.foo.bar",
+          bookmarkGuid: "bookmark123"
+        }
+      };
+      // add some bookmark data for the first url in rows
+      oldState.forEach(item => {
+        item.rows[0].bookmarkGuid = "bookmark123";
+        item.rows[0].bookmarkTitle = "Title for bar.com";
+        item.rows[0].bookmarkDateCreated = 1234567;
+      });
+      const nextState = Sections(oldState, action);
+      // check a section to ensure the correct bookmark was removed
+      const newRow = nextState[0].rows[0];
+      const oldRow = nextState[0].rows[1];
+
+      // new row has bookmark data
+      assert.equal(newRow.url, action.data.url);
+      assert.isUndefined(newRow.bookmarkGuid);
+      assert.isUndefined(newRow.bookmarkTitle);
+      assert.isUndefined(newRow.bookmarkDateCreated);
+
+      // old row is unchanged
+      assert.equal(oldRow, oldState[0].rows[1]);
+    });
+  });
   describe("#insertPinned", () => {
     let links;
 
@@ -243,6 +375,25 @@ describe("Reducers", () => {
       const pinned = [links[7]];
       const result = insertPinned(links, pinned);
       assert.equal(links.length, result.length);
+    });
+  });
+  describe("Snippets", () => {
+    it("should return INITIAL_STATE by default", () => {
+      assert.equal(Snippets(undefined, {type: "some_action"}), INITIAL_STATE.Snippets);
+    });
+    it("should set initialized to true on a SNIPPETS_DATA action", () => {
+      const state = Snippets(undefined, {type: at.SNIPPETS_DATA, data: {}});
+      assert.isTrue(state.initialized);
+    });
+    it("should set the snippet data on a SNIPPETS_DATA action", () => {
+      const data = {snippetsURL: "foo.com", version: 4};
+      const state = Snippets(undefined, {type: at.SNIPPETS_DATA, data});
+      assert.propertyVal(state, "snippetsURL", data.snippetsURL);
+      assert.propertyVal(state, "version", data.version);
+    });
+    it("should reset to the initial state on a SNIPPETS_RESET action", () => {
+      const state = Snippets({initalized: true, foo: "bar"}, {type: at.SNIPPETS_RESET});
+      assert.equal(state, INITIAL_STATE.Snippets);
     });
   });
 });

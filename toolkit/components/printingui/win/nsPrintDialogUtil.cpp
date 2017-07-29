@@ -109,9 +109,7 @@ GetLocalizedString(nsIStringBundle* aStrBundle, const char* aKey, nsString& oVal
 
   // Determine default label from string bundle
   nsXPIDLString valUni;
-  nsAutoString key;
-  key.AssignWithConversion(aKey);
-  nsresult rv = aStrBundle->GetStringFromName(key.get(), getter_Copies(valUni));
+  nsresult rv = aStrBundle->GetStringFromName(aKey, getter_Copies(valUni));
   if (NS_SUCCEEDED(rv) && valUni) {
     oVal.Assign(valUni);
   } else {
@@ -257,9 +255,9 @@ static HWND CreateRadioBtn(HINSTANCE        aHInst,
                            const char*      aStr,
                            const nsIntRect& aRect)
 {
-  nsString cStr;
-  cStr.AssignWithConversion(aStr);
-  return CreateControl("BUTTON", BS_RADIOBUTTON, aHInst, aHdlg, aId, cStr, aRect);
+  nsString str;
+  CopyASCIItoUTF16(aStr, str);
+  return CreateControl("BUTTON", BS_RADIOBUTTON, aHInst, aHdlg, aId, str, aRect);
 }
 
 //--------------------------------------------------------

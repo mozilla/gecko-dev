@@ -15,7 +15,6 @@
 #ifdef DEBUG
 #include "MainThreadUtils.h"
 #endif
-#include "mozilla/SizePrintfMacros.h"
 
 #ifdef XP_WIN
 #include <windows.h>
@@ -75,7 +74,7 @@ TokenBucketCancelable::Fire()
 // EventTokenBucket
 ////////////////////////////////////////////
 
-NS_IMPL_ISUPPORTS(EventTokenBucket, nsITimerCallback)
+NS_IMPL_ISUPPORTS(EventTokenBucket, nsITimerCallback, nsINamed)
 
 // by default 1hz with no burst
 EventTokenBucket::EventTokenBucket(uint32_t eventsPerSecond,
@@ -109,7 +108,7 @@ EventTokenBucket::EventTokenBucket(uint32_t eventsPerSecond,
 
 EventTokenBucket::~EventTokenBucket()
 {
-  SOCKET_LOG(("EventTokenBucket::dtor %p events=%" PRIuSIZE "\n",
+  SOCKET_LOG(("EventTokenBucket::dtor %p events=%zu\n",
               this, mEvents.GetSize()));
 
   CleanupTimers();
@@ -355,6 +354,13 @@ EventTokenBucket::Notify(nsITimer *timer)
   DispatchEvents();
   UpdateTimer();
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+EventTokenBucket::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("EventTokenBucket");
   return NS_OK;
 }
 

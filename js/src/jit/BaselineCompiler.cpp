@@ -7,7 +7,6 @@
 #include "jit/BaselineCompiler.h"
 
 #include "mozilla/Casting.h"
-#include "mozilla/SizePrintfMacros.h"
 
 #include "jsfun.h"
 
@@ -88,10 +87,10 @@ BaselineCompiler::addPCMappingEntry(bool addIndexEntry)
 MethodStatus
 BaselineCompiler::compile()
 {
-    JitSpew(JitSpew_BaselineScripts, "Baseline compiling script %s:%" PRIuSIZE " (%p)",
+    JitSpew(JitSpew_BaselineScripts, "Baseline compiling script %s:%zu (%p)",
             script->filename(), script->lineno(), script);
 
-    JitSpew(JitSpew_Codegen, "# Emitting baseline code for script %s:%" PRIuSIZE,
+    JitSpew(JitSpew_Codegen, "# Emitting baseline code for script %s:%zu",
             script->filename(), script->lineno());
 
     TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
@@ -223,7 +222,7 @@ BaselineCompiler::compile()
     baselineScript->setMethod(code);
     baselineScript->setTemplateEnvironment(templateEnv);
 
-    JitSpew(JitSpew_BaselineScripts, "Created BaselineScript %p (raw %p) for %s:%" PRIuSIZE,
+    JitSpew(JitSpew_BaselineScripts, "Created BaselineScript %p (raw %p) for %s:%zu",
             (void*) baselineScript.get(), (void*) code->raw(),
             script->filename(), script->lineno());
 
@@ -256,6 +255,8 @@ BaselineCompiler::compile()
 
     if (modifiesArguments_)
         baselineScript->setModifiesArguments();
+    if (analysis_.usesEnvironmentChain())
+        baselineScript->setUsesEnvironmentChain();
 
 #ifdef JS_TRACE_LOGGING
     // Initialize the tracelogger instrumentation.
@@ -277,7 +278,7 @@ BaselineCompiler::compile()
     // Always register a native => bytecode mapping entry, since profiler can be
     // turned on with baseline jitcode on stack, and baseline jitcode cannot be invalidated.
     {
-        JitSpew(JitSpew_Profiling, "Added JitcodeGlobalEntry for baseline script %s:%" PRIuSIZE " (%p)",
+        JitSpew(JitSpew_Profiling, "Added JitcodeGlobalEntry for baseline script %s:%zu (%p)",
                     script->filename(), script->lineno(), baselineScript.get());
 
         // Generate profiling string.
@@ -1543,7 +1544,7 @@ BaselineCompiler::emit_JSOP_FUNCTIONTHIS()
     return true;
 }
 
-typedef bool (*GetNonSyntacticGlobalThisFn)(JSContext*, HandleObject, MutableHandleValue);
+typedef void (*GetNonSyntacticGlobalThisFn)(JSContext*, HandleObject, MutableHandleValue);
 static const VMFunction GetNonSyntacticGlobalThisInfo =
     FunctionInfo<GetNonSyntacticGlobalThisFn>(js::GetNonSyntacticGlobalThis,
                                               "GetNonSyntacticGlobalThis");
@@ -1698,7 +1699,7 @@ BaselineCompiler::emit_JSOP_CALLSITEOBJ()
     return true;
 }
 
-typedef JSObject* (*CloneRegExpObjectFn)(JSContext*, JSObject*);
+typedef JSObject* (*CloneRegExpObjectFn)(JSContext*, Handle<RegExpObject*>);
 static const VMFunction CloneRegExpObjectInfo =
     FunctionInfo<CloneRegExpObjectFn>(CloneRegExpObject, "CloneRegExpObject");
 
@@ -4047,9 +4048,11 @@ BaselineCompiler::emit_JSOP_TOID()
     frame.syncStack(0);
     masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
 
-    // No-op if index is int32.
+    // No-op if the index is trivally convertable to an id.
     Label done;
     masm.branchTestInt32(Assembler::Equal, R0, &done);
+    masm.branchTestString(Assembler::Equal, R0, &done);
+    masm.branchTestSymbol(Assembler::Equal, R0, &done);
 
     prepareVMCall();
 
@@ -4201,7 +4204,7 @@ BaselineCompiler::emit_JSOP_ITER()
 {
     frame.popRegsAndSync(1);
 
-    ICIteratorNew_Fallback::Compiler compiler(cx);
+    ICGetIterator_Fallback::Compiler compiler(cx);
     if (!emitOpIC(compiler.getStub(&stubSpace_)))
         return false;
 
@@ -4804,7 +4807,8 @@ BaselineCompiler::emit_JSOP_RESUME()
         Label skip;
         AbsoluteAddress addressOfEnabled(cx->runtime()->geckoProfiler().addressOfEnabled());
         masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skip);
-        masm.loadPtr(AbsoluteAddress(cx->addressOfProfilingActivation()), scratchReg);
+        masm.loadJSContext(scratchReg);
+        masm.loadPtr(Address(scratchReg, JSContext::offsetOfProfilingActivation()), scratchReg);
         masm.storePtr(masm.getStackPointer(),
                       Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()));
         masm.bind(&skip);

@@ -530,16 +530,21 @@
             return true;
           }
 
-          // Use the passed in resolvedURI if we have one
-          const resolvedURI = aResolvedURI || Services.io.newChannelFromURI2(
-            aURI,
-            null, // loadingNode
-            Services.scriptSecurityManager.getSystemPrincipal(), // loadingPrincipal
-            null, // triggeringPrincipal
-            Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL, // securityFlags
-            Ci.nsIContentPolicy.TYPE_OTHER // contentPolicyType
-          ).URI;
-          return resolvedURI.schemeIs("jar") || resolvedURI.schemeIs("file");
+          try {
+            // Use the passed in resolvedURI if we have one
+            const resolvedURI = aResolvedURI || Services.io.newChannelFromURI2(
+              aURI,
+              null, // loadingNode
+              Services.scriptSecurityManager.getSystemPrincipal(), // loadingPrincipal
+              null, // triggeringPrincipal
+              Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL, // securityFlags
+              Ci.nsIContentPolicy.TYPE_OTHER // contentPolicyType
+            ).URI;
+            return resolvedURI.schemeIs("jar") || resolvedURI.schemeIs("file");
+          } catch (ex) {
+            // aURI might be invalid.
+            return false;
+          }
         ]]></body>
       </method>
 
@@ -718,11 +723,11 @@
                 if (this._shouldShowProgress(aRequest)) {
                   if (!(aStateFlags & nsIWebProgressListener.STATE_RESTORING)) {
                     this.mTab.setAttribute("busy", "true");
-                    this.mTabBrowser.setTabTitle(this.mTab);
                   }
 
-                  if (this.mTab.selected)
+                  if (this.mTab.selected) {
                     this.mTabBrowser.mIsBusy = true;
+                  }
                 }
               } else if (aStateFlags & nsIWebProgressListener.STATE_STOP &&
                          aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
@@ -752,8 +757,9 @@
                     this.mBrowser.urlbarChangeTracker.finishedLoad();
                   }
 
-                  if (!this.mBrowser.mIconURL)
+                  if (!this.mBrowser.mIconURL) {
                     this.mTabBrowser.useDefaultIcon(this.mTab);
+                  }
                 }
 
                 // For keyword URIs clear the user typed value since they will be changed into real URIs
@@ -832,6 +838,8 @@
                     findBar.close();
                   }
                 }
+
+                this.mTabBrowser.setTabTitle(this.mTab);
 
                 // Don't clear the favicon if this tab is in the pending
                 // state, as SessionStore will have set the icon for us even
@@ -1471,41 +1479,12 @@
         <parameter name="aTitle"/>
         <parameter name="aOptions"/>
         <body><![CDATA[
-          // If we don't have the content title yet, aTitle is a URI. Set its hostname
-          // as the label so that the tab isn't empty while the content is loading.
-          const label = aOptions && aOptions.isContentTitle
-                        ? aTitle
-                        : getHostnameWithoutWWW(aTitle, this.mURIFixup);
-
-          if (label) {
-            // Don't replace the set label with the empty tab label or the URL
-            // while the tab is loading.
-            aTab._suppressTransientPlaceholderLabel = true;
-
-            this._setTabLabel(aTab, label, aOptions);
-          }
-
-          function getHostnameWithoutWWW(uri, URIFixup) {
-            // about: pages don't have hostnames, so we can bail early here.
-            if (uri.startsWith("about:")) {
-              return uri;
+          if (aTitle) {
+            if (!aTab.getAttribute("label")) {
+              aTab._labelIsInitialTitle = true;
             }
 
-            // Some tests pass in values that are not valid URLs, such as
-            // "example.com" with no scheme. Just show whatever was passed in
-            // until we know the page's actual title.
-            let hostname;
-            try {
-              const fixedURI = URIFixup.createFixupURI(uri, URIFixup.FIXUP_FLAG_NONE);
-              hostname = fixedURI.host;
-            } catch (e) {
-            }
-
-            if (!hostname) {
-              return uri;
-            }
-
-            return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+            this._setTabLabel(aTab, aTitle, aOptions);
           }
         ]]></body>
       </method>
@@ -1517,15 +1496,23 @@
             var browser = this.getBrowserForTab(aTab);
             var title = browser.contentTitle;
 
-            if (aTab._suppressTransientPlaceholderLabel) {
+            // Don't replace an initially set label with the URL while the tab
+            // is loading.
+            if (aTab._labelIsInitialTitle) {
               if (!title) {
                 return false;
               }
-              delete aTab._suppressTransientPlaceholderLabel;
+              delete aTab._labelIsInitialTitle;
             }
 
             let isContentTitle = false;
             if (title) {
+              isContentTitle = true;
+            } else if (aTab.hasAttribute("customizemode")) {
+              let brandBundle = document.getElementById("bundle_brand");
+              let brandShortName = brandBundle.getString("brandShortName");
+              title = gNavigatorBundle.getFormattedString("customizeMode.tabTitle",
+                                                          [ brandShortName ]);
               isContentTitle = true;
             } else {
               if (browser.currentURI.spec) {
@@ -1546,13 +1533,10 @@
                                                  .getService(Components.interfaces.nsITextToSubURI);
                   title = textToSubURI.unEscapeNonAsciiURI(characterSet, title);
                 } catch (ex) { /* Do nothing. */ }
-              } else if (aTab.hasAttribute("customizemode")) {
-                let brandBundle = document.getElementById("bundle_brand");
-                let brandShortName = brandBundle.getString("brandShortName");
-                title = gNavigatorBundle.getFormattedString("customizeMode.tabTitle",
-                                                            [ brandShortName ]);
-              } else // Still no title?  Fall back to our untitled string.
+              } else {
+                // Still no title? Fall back to our untitled string.
                 title = this.mStringBundle.getString("tabs.emptyTabTitle");
+              }
             }
 
             return this._setTabLabel(aTab, title, { isContentTitle });
@@ -1566,7 +1550,24 @@
         <parameter name="aOptions"/>
         <body>
           <![CDATA[
-            if (!aLabel || aTab.getAttribute("label") == aLabel) {
+            if (!aLabel) {
+              return false;
+            }
+
+            aTab._fullLabel = aLabel;
+
+            aOptions = aOptions || {};
+            if (!aOptions.isContentTitle) {
+              // Remove protocol and "www."
+              if (!("_regex_shortenURLForTabLabel" in this)) {
+                this._regex_shortenURLForTabLabel = /^[^:]+:\/\/(?:www\.)?/;
+              }
+              aLabel = aLabel.replace(this._regex_shortenURLForTabLabel, "");
+            }
+
+            aTab._labelIsContentTitle = aOptions.isContentTitle;
+
+            if (aTab.getAttribute("label") == aLabel) {
               return false;
             }
 
@@ -1576,11 +1577,10 @@
 
             aTab.setAttribute("label", aLabel);
             aTab.setAttribute("labeldirection", isRTL ? "rtl" : "ltr");
-            aTab._labelIsContentTitle = aOptions && aOptions.isContentTitle;
 
             // Dispatch TabAttrModified event unless we're setting the label
             // before the TabOpen event was dispatched.
-            if (!aOptions || !aOptions.beforeTabOpen) {
+            if (!aOptions.beforeTabOpen) {
               this._tabAttrModified(aTab, ["label"]);
             }
 
@@ -1981,6 +1981,22 @@
             }
 
             return false;
+          ]]>
+        </body>
+      </method>
+
+      <method name="removePreloadedBrowser">
+        <body>
+          <![CDATA[
+            if (!this._isPreloadingEnabled()) {
+              return;
+            }
+
+            let browser = this._getPreloadedBrowser();
+
+            if (browser) {
+              browser.remove();
+            }
           ]]>
         </body>
       </method>
@@ -5130,7 +5146,7 @@
               label = this.mStringBundle.getString(stringID);
             }
           } else {
-            label = tab.getAttribute("label");
+            label = tab._fullLabel || tab.getAttribute("label");
             if (AppConstants.E10S_TESTING_ONLY &&
                 tab.linkedBrowser &&
                 tab.linkedBrowser.isRemoteBrowser) {
@@ -5265,14 +5281,52 @@
               break;
             }
             case "RefreshBlocker:Blocked": {
-              let event = new CustomEvent("RefreshBlocked", {
-                bubbles: true,
-                cancelable: false,
-                detail: data,
-              });
+              // The data object is expected to contain the following properties:
+              //  - URI (string)
+              //     The URI that a page is attempting to refresh or redirect to.
+              //  - delay (int)
+              //     The delay (in milliseconds) before the page was going to
+              //     reload or redirect.
+              //  - sameURI (bool)
+              //     true if we're refreshing the page. false if we're redirecting.
+              //  - outerWindowID (int)
+              //     The outerWindowID of the frame that requested the refresh or
+              //     redirect.
 
-              browser.dispatchEvent(event);
+              let brandBundle = document.getElementById("bundle_brand");
+              let brandShortName = brandBundle.getString("brandShortName");
+              let message =
+                gNavigatorBundle.getFormattedString("refreshBlocked." +
+                                                    (data.sameURI ? "refreshLabel"
+                                                                  : "redirectLabel"),
+                                                    [brandShortName]);
 
+              let notificationBox = this.getNotificationBox(browser);
+              let notification = notificationBox.getNotificationWithValue("refresh-blocked");
+
+              if (notification) {
+                notification.label = message;
+              } else {
+                let refreshButtonText =
+                  gNavigatorBundle.getString("refreshBlocked.goButton");
+                let refreshButtonAccesskey =
+                  gNavigatorBundle.getString("refreshBlocked.goButton.accesskey");
+
+                let buttons = [{
+                  label: refreshButtonText,
+                  accessKey: refreshButtonAccesskey,
+                  callback() {
+                    if (browser.messageManager) {
+                      browser.messageManager.sendAsyncMessage("RefreshBlocker:Refresh", data);
+                    }
+                  }
+                }];
+
+                notificationBox.appendNotification(message, "refresh-blocked",
+                                                   "chrome://browser/skin/Info.png",
+                                                   notificationBox.PRIORITY_INFO_MEDIUM,
+                                                   buttons);
+              }
               break;
             }
 
@@ -5584,6 +5638,7 @@
         </getter>
       </property>
       <field name="_soundPlayingAttrRemovalTimer">0</field>
+      <field name="_hoverTabTimer">null</field>
     </implementation>
 
     <handlers>
@@ -5699,9 +5754,7 @@
           // Preloaded browsers do not actually have any tabs. If one crashes,
           // it should be released and removed.
           if (browser === this._preloadedBrowser) {
-            // Calling _getPreloadedBrowser is necessary to actually consume the preloaded browser
-            let preloaded = this._getPreloadedBrowser();
-            preloaded.remove();
+            this.removePreloadedBrowser();
             return;
           }
 
@@ -7432,6 +7485,11 @@
 
           this._setPositionAttributes(val);
 
+          // Tab becomes visible, it's not unselected anymore.
+          if (val) {
+            this.finishUnselectedTabHoverTimer();
+          }
+
           return val;
           ]]>
         </setter>
@@ -7575,6 +7633,10 @@
           }
 
           tabContainer._hoveredTab = this;
+          if (this.linkedPanel && !this.selected) {
+            this.linkedBrowser.unselectedTabHover(true);
+            this.startUnselectedTabHoverTimer();
+          }
         ]]></body>
       </method>
 
@@ -7591,6 +7653,55 @@
           }
 
           tabContainer._hoveredTab = null;
+          if (this.linkedPanel && !this.selected) {
+            this.linkedBrowser.unselectedTabHover(false);
+            this.cancelUnselectedTabHoverTimer();
+          }
+        ]]></body>
+      </method>
+
+      <method name="startUnselectedTabHoverTimer">
+        <body><![CDATA[
+          // Only record data when we need to.
+          if (!this.linkedBrowser.shouldHandleUnselectedTabHover) {
+            return;
+          }
+
+          if (!TelemetryStopwatch.running("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this)) {
+            TelemetryStopwatch.start("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this);
+          }
+
+          if (this._hoverTabTimer) {
+            clearTimeout(this._hoverTabTimer);
+            this._hoverTabTimer = null;
+          }
+        ]]></body>
+      </method>
+
+      <method name="cancelUnselectedTabHoverTimer">
+        <body><![CDATA[
+          // Since we're listening "mouseout" event, instead of "mouseleave".
+          // Every time the cursor is moving from the tab to its child node (icon),
+          // it would dispatch "mouseout"(for tab) first and then dispatch
+          // "mouseover" (for icon, eg: close button, speaker icon) soon.
+          // It causes we would cancel present TelemetryStopwatch immediately
+          // when cursor is moving on the icon, and then start a new one.
+          // In order to avoid this situation, we could delay cancellation and
+          // remove it if we get "mouseover" within very short period.
+          this._hoverTabTimer = setTimeout(() => {
+            if (TelemetryStopwatch.running("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this)) {
+              TelemetryStopwatch.cancel("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this);
+            }
+          }, 100);
+        ]]></body>
+      </method>
+
+      <method name="finishUnselectedTabHoverTimer">
+        <body><![CDATA[
+          // Stop timer when the tab is opened.
+          if (TelemetryStopwatch.running("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this)) {
+            TelemetryStopwatch.finish("HOVER_UNTIL_UNSELECTED_TAB_OPENED", this);
+          }
         ]]></body>
       </method>
 

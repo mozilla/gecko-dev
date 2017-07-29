@@ -10,10 +10,14 @@
                          gecko_name="Display") %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
+//
+// We allow "display" to apply to placeholders because we need to make the
+// placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
 <%helpers:longhand name="display"
                    need_clone="True"
                    animation_value_type="discrete"
                    custom_cascade="${product == 'servo'}"
+                   flags="APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-display/#propdef-display">
     <%
         values = """inline block inline-block
@@ -53,6 +57,34 @@
                 )
             }
 
+            /// Returns whether an element with this display type is a line
+            /// participant, which means it may lay its children on the same
+            /// line as itself.
+            pub fn is_line_participant(&self) -> bool {
+                matches!(*self,
+                         T::inline
+                         % if product == "gecko":
+                         | T::contents
+                         | T::ruby
+                         | T::ruby_base_container
+                         % endif
+                )
+            }
+
+            /// Returns whether this "display" value is one of the types for
+            /// ruby.
+            #[cfg(feature = "gecko")]
+            pub fn is_ruby_type(&self) -> bool {
+                matches!(*self, T::ruby | T::ruby_base | T::ruby_text |
+                         T::ruby_base_container | T::ruby_text_container)
+            }
+
+            /// Returns whether this "display" value is a ruby level container.
+            #[cfg(feature = "gecko")]
+            pub fn is_ruby_level_container(&self) -> bool {
+                matches!(*self, T::ruby_base_container | T::ruby_text_container)
+            }
+
             /// Convert this display into an equivalent block display.
             ///
             /// Also used for style adjustments.
@@ -81,6 +113,25 @@
 
                     // Everything else becomes block.
                     _ => T::block,
+                }
+
+            }
+
+            /// Convert this display into an inline-outside display.
+            ///
+            /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
+            /// but the spec isn't stable enough, so we copy what Gecko does for now.
+            #[cfg(feature = "gecko")]
+            pub fn inlinify(&self) -> Self {
+                match *self {
+                    T::block | T::flow_root => T::inline_block,
+                    T::table => T::inline_table,
+                    T::flex => T::inline_flex,
+                    T::grid => T::inline_grid,
+                    T::_moz_box => T::_moz_inline_box,
+                    T::_moz_stack => T::_moz_inline_stack,
+                    T::_webkit_box => T::_webkit_inline_box,
+                    other => other,
                 }
             }
         }
@@ -134,9 +185,7 @@
 
     % if product == "servo":
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   _inherited_style: &ComputedValues,
-                                   context: &mut computed::Context,
-                                   _cacheable: &mut bool) {
+                                   context: &mut computed::Context) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
             longhands::_servo_text_decorations_in_effect::derive_from_display(context);
             longhands::_servo_under_display_none::derive_from_display(context);
@@ -171,6 +220,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
                                   gecko_pref_ident="float_"
+                                  flags="APPLIES_TO_FIRST_LETTER"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
     no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
@@ -255,12 +305,13 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     #[inline]
     pub fn derive_from_display(context: &mut Context) {
         let d = context.style().get_box().clone_display();
-        context.mutate_style().mutate_box().set__servo_display_for_hypothetical_box(d);
+        context.builder.set__servo_display_for_hypothetical_box(d);
     }
 
 </%helpers:longhand>
 
 <%helpers:longhand name="vertical-align" animation_value_type="ComputedValue"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
     use std::fmt;
     use style_traits::ToCss;
@@ -387,6 +438,7 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
     products="gecko", animation_value_type="discrete", internal=True,
+    flags="APPLIES_TO_PLACEHOLDER",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
@@ -400,10 +452,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 <%helpers:longhand name="overflow-y" need_clone="True" animation_value_type="discrete"
+                   flags="APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
@@ -537,6 +591,8 @@ ${helpers.predefined_type("animation-duration",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
+// animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
+// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.predefined_type("animation-timing-function",
                           "TimingFunction",
                           "computed::TimingFunction::ease()",
@@ -617,8 +673,6 @@ ${helpers.single_keyword("animation-direction",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
-// animation-play-state is the exception to the rule for allowed_in_keyframe_block:
-// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.single_keyword("animation-play-state",
                          "running paused",
                          need_clone=True,
@@ -627,7 +681,7 @@ ${helpers.single_keyword("animation-play-state",
                          vector=True,
                          extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
-                         allowed_in_keyframe_block=True)}
+                         allowed_in_keyframe_block=False)}
 
 ${helpers.single_keyword("animation-fill-mode",
                          "none forwards backwards both",
@@ -689,7 +743,7 @@ ${helpers.predefined_type(
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
     use values::generics::transform::Matrix;
-    use values::specified::{Angle, Integer, Length, LengthOrPercentage, Percentage};
+    use values::specified::{Angle, Integer, Length, LengthOrPercentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
@@ -700,7 +754,7 @@ ${helpers.predefined_type(
         use app_units::Au;
         use values::CSSFloat;
         use values::computed;
-        use values::computed::{Length, LengthOrPercentage, Percentage};
+        use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -770,7 +824,7 @@ ${helpers.predefined_type(
             //                       progress: ... } ]
             InterpolateMatrix { from_list: T,
                                 to_list: T,
-                                progress: Percentage },
+                                progress: computed::Percentage },
             // For accumulate operation of mismatched transform lists.
             AccumulateMatrix { from_list: T,
                                to_list: T,
@@ -857,7 +911,7 @@ ${helpers.predefined_type(
         /// A intermediate type for interpolation of mismatched transform lists.
         InterpolateMatrix { from_list: SpecifiedValue,
                             to_list: SpecifiedValue,
-                            progress: Percentage },
+                            progress: computed::Percentage },
         /// A intermediate type for accumulation of mismatched transform lists.
         AccumulateMatrix { from_list: SpecifiedValue,
                            to_list: SpecifiedValue,
@@ -971,7 +1025,7 @@ ${helpers.predefined_type(
         }
 
         Ok(SpecifiedValue(Space::parse(input, |input| {
-            let function = input.expect_function()?;
+            let function = input.expect_function()?.clone();
             input.parse_nested_block(|input| {
                 let result = match_ignore_ascii_case! { &function,
                     "matrix" => {
@@ -1163,7 +1217,7 @@ ${helpers.predefined_type(
                     _ => Err(()),
                 };
                 result
-                    .map_err(|()| StyleParseError::UnexpectedFunction(function).into())
+                    .map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
             })
         })?))
     }
@@ -1573,10 +1627,15 @@ ${helpers.single_keyword("page-break-inside",
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
 // FIXME support logical values `block` and `inline` (https://drafts.csswg.org/css-logical-props/#resize)
+//
+// This is APPLIES_TO_PLACEHOLDER so we can override, in the UA sheet, the
+// 'resize' property we'd inherit from textarea otherwise.  Basically, just
+// makes the UA rules easier to write.
 ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-ui/#propdef-resize",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          animation_value_type="discrete")}
 
 
@@ -1705,7 +1764,7 @@ ${helpers.predefined_type("transform-origin",
             return Ok(result)
         }
 
-        while let Ok(name) = input.try(|input| input.expect_ident()) {
+        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "layout" => Some(LAYOUT),
                 "style" => Some(STYLE),
@@ -1714,7 +1773,7 @@ ${helpers.predefined_type("transform-origin",
             };
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(SelectorParseError::UnexpectedIdent(name).into())
+                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
             };
             result.insert(flag);
         }
@@ -1843,6 +1902,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
                           "generics::basic_shape::ShapeSource::None",
                           products="gecko", boxed="True",
                           animation_value_type="none",
+                          flags="APPLIES_TO_FIRST_LETTER",
                           spec="https://drafts.csswg.org/css-shapes/#shape-outside-property")}
 
 <%helpers:longhand name="touch-action"
@@ -1900,7 +1960,8 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        // FIXME: remove clone() when lifetimes are non-lexical
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
             "auto" => Ok(TOUCH_ACTION_AUTO),
             "none" => Ok(TOUCH_ACTION_NONE),
             "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),

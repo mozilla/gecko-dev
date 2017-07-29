@@ -125,7 +125,7 @@ def create_parser(mach_interface=False):
                  'path and name of the mitmdump file to playback')
     add_arg('--mitmdumpPath',
             help="Path to mitmproxy's mitmdump playback tool")
-    add_arg("--firstNonBlankPaint", action='store_true', dest="first_non_blank_paint",
+    add_arg("--firstNonBlankPaint", action='store_true', dest="fnbpaint",
             help="Wait for firstNonBlankPaint event before recording the time")
     add_arg('--webServer', dest='webserver',
             help="DEPRECATED")
@@ -168,6 +168,13 @@ def create_parser(mach_interface=False):
     add_arg('--no-upload-results', action="store_true",
             dest='no_upload_results',
             help="If given, it disables uploading of talos results.")
+    add_arg('--stylo', action="store_true",
+            dest='stylo',
+            help='If given, enable Stylo via Environment variables and '
+                 'upload results with Stylo options.')
+    add_arg('--stylo-threads', type=int,
+            dest='stylothreads',
+            help='If given, run stylo with a certain number of threads')
 
     add_logging_group(parser)
     return parser

@@ -16,7 +16,7 @@ const TEST_ADDRESS_1 = {
   "address-level1": "MA",
   "postal-code": "02139",
   country: "US",
-  tel: "+1 617 253 5702",
+  tel: "+16172535702",
   email: "timbl@w3.org",
 };
 
@@ -48,18 +48,18 @@ const MERGE_TESTCASES = [
     addressInStorage: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
     },
     addressToMerge: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
       country: "US",
     },
     expectedAddress: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
       country: "US",
     },
   },
@@ -68,18 +68,18 @@ const MERGE_TESTCASES = [
     addressInStorage: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
       country: "US",
     },
     addressToMerge: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
     },
     expectedAddress: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
       country: "US",
     },
   },
@@ -88,17 +88,17 @@ const MERGE_TESTCASES = [
     addressInStorage: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
     },
     addressToMerge: {
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
       country: "US",
     },
     expectedAddress: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
-      "tel": "1-650-903-0800",
+      "tel": "+16509030800",
       country: "US",
     },
   },
@@ -124,6 +124,10 @@ add_task(async function test_initialize() {
   profileStorage = await initProfileStorage(TEST_STORE_FILE_NAME);
 
   Assert.deepEqual(profileStorage._store.data, data);
+  for (let {_sync} of profileStorage._store.data.addresses) {
+    Assert.ok(_sync);
+    Assert.equal(_sync.changeCounter, 1);
+  }
 });
 
 add_task(async function test_getAll() {
@@ -141,8 +145,8 @@ add_task(async function test_getAll() {
   do_check_eq(addresses[0]["address-line1"], "32 Vassar Street");
   do_check_eq(addresses[0]["address-line2"], "MIT Room 32-G524");
 
-  // Test with noComputedFields set.
-  addresses = profileStorage.addresses.getAll({noComputedFields: true});
+  // Test with rawData set.
+  addresses = profileStorage.addresses.getAll({rawData: true});
   do_check_eq(addresses[0].name, undefined);
   do_check_eq(addresses[0]["address-line1"], undefined);
   do_check_eq(addresses[0]["address-line2"], undefined);
@@ -161,6 +165,12 @@ add_task(async function test_get() {
 
   let address = profileStorage.addresses.get(guid);
   do_check_record_matches(address, TEST_ADDRESS_1);
+
+  // Test with rawData set.
+  address = profileStorage.addresses.get(guid, {rawData: true});
+  do_check_eq(address.name, undefined);
+  do_check_eq(address["address-line1"], undefined);
+  do_check_eq(address["address-line2"], undefined);
 
   // Modifying output shouldn't affect the storage.
   address.organization = "test";
@@ -242,11 +252,14 @@ add_task(async function test_update() {
   await onChanged;
   await profileStorage._saveImmediately();
 
-  let address = profileStorage.addresses.get(guid);
+  profileStorage.addresses.pullSyncChanges(); // force sync metadata, which we check below.
+
+  let address = profileStorage.addresses.get(guid, {rawData: true});
 
   do_check_eq(address.country, undefined);
   do_check_neq(address.timeLastModified, timeLastModified);
   do_check_record_matches(address, TEST_ADDRESS_3);
+  do_check_eq(getSyncChangeCounter(profileStorage.addresses, guid), 1);
 
   Assert.throws(
     () => profileStorage.addresses.update("INVALID_GUID", TEST_ADDRESS_3),
@@ -268,17 +281,23 @@ add_task(async function test_notifyUsed() {
   let timeLastUsed = addresses[1].timeLastUsed;
   let timesUsed = addresses[1].timesUsed;
 
+  profileStorage.addresses.pullSyncChanges(); // force sync metadata, which we check below.
+  let changeCounter = getSyncChangeCounter(profileStorage.addresses, guid);
+
   let onChanged = TestUtils.topicObserved("formautofill-storage-changed",
                                           (subject, data) => data == "notifyUsed");
 
   profileStorage.addresses.notifyUsed(guid);
   await onChanged;
-  await profileStorage._saveImmediately();
 
   let address = profileStorage.addresses.get(guid);
 
   do_check_eq(address.timesUsed, timesUsed + 1);
   do_check_neq(address.timeLastUsed, timeLastUsed);
+
+  // Using a record should not bump its change counter.
+  do_check_eq(getSyncChangeCounter(profileStorage.addresses, guid),
+    changeCounter);
 
   Assert.throws(() => profileStorage.addresses.notifyUsed("INVALID_GUID"),
     /No matching record\./);
@@ -298,7 +317,6 @@ add_task(async function test_remove() {
 
   profileStorage.addresses.remove(guid);
   await onChanged;
-  await profileStorage._saveImmediately();
 
   addresses = profileStorage.addresses.getAll();
 

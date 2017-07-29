@@ -24,6 +24,7 @@ use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadat
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::mem;
 use std::sync::Mutex;
@@ -31,7 +32,6 @@ use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylearc::Arc;
 use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, StylesheetContents, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
@@ -261,7 +261,7 @@ impl<'a> StylesheetLoader<'a> {
                 Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
                 _ => CredentialsMode::Include,
             },
-            origin: document.url(),
+            origin: document.origin().immutable().clone(),
             pipeline_id: Some(self.elem.global().pipeline_id()),
             referrer_url: Some(document.url()),
             referrer_policy: referrer_policy,

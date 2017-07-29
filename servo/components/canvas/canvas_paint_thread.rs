@@ -17,7 +17,7 @@ use std::borrow::ToOwned;
 use std::mem;
 use std::sync::Arc;
 use std::thread;
-use webrender_traits;
+use webrender_api;
 
 impl<'a> CanvasPaintThread<'a> {
     /// It reads image data from the canvas
@@ -57,8 +57,12 @@ pub struct CanvasPaintThread<'a> {
     path_builder: PathBuilder,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
-    webrender_api: webrender_traits::RenderApi,
-    image_key: Option<webrender_traits::ImageKey>,
+    webrender_api: webrender_api::RenderApi,
+    image_key: Option<webrender_api::ImageKey>,
+    /// An old webrender image key that can be deleted when the next epoch ends.
+    old_image_key: Option<webrender_api::ImageKey>,
+    /// An old webrender image key that can be deleted when the current epoch ends.
+    very_old_image_key: Option<webrender_api::ImageKey>,
 }
 
 #[derive(Clone)]
@@ -99,7 +103,7 @@ impl<'a> CanvasPaintState<'a> {
 
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
-           webrender_api_sender: webrender_traits::RenderApiSender,
+           webrender_api_sender: webrender_api::RenderApiSender,
            antialias: bool) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
@@ -111,13 +115,15 @@ impl<'a> CanvasPaintThread<'a> {
             saved_states: vec![],
             webrender_api: webrender_api,
             image_key: None,
+            old_image_key: None,
+            very_old_image_key: None,
         }
     }
 
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
-                 webrender_api_sender: webrender_traits::RenderApiSender,
+                 webrender_api_sender: webrender_api::RenderApiSender,
                  antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
@@ -548,7 +554,10 @@ impl<'a> CanvasPaintThread<'a> {
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
         if let Some(image_key) = self.image_key.take() {
-            self.webrender_api.delete_image(image_key);
+            // If this executes, then we are in a new epoch since we last recreated the canvas,
+            // so `old_image_key` must be `None`.
+            debug_assert!(self.old_image_key.is_none());
+            self.old_image_key = Some(image_key);
         }
     }
 
@@ -562,15 +571,15 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
 
-            let descriptor = webrender_traits::ImageDescriptor {
+            let descriptor = webrender_api::ImageDescriptor {
                 width: size.width as u32,
                 height: size.height as u32,
                 stride: None,
-                format: webrender_traits::ImageFormat::BGRA8,
+                format: webrender_api::ImageFormat::BGRA8,
                 offset: 0,
                 is_opaque: false,
             };
-            let data = webrender_traits::ImageData::Raw(Arc::new(element.into()));
+            let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
 
             match self.image_key {
                 Some(image_key) => {
@@ -586,6 +595,10 @@ impl<'a> CanvasPaintThread<'a> {
                                                  data,
                                                  None);
                 }
+            }
+
+            if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
+                self.webrender_api.delete_image(image_key);
             }
 
             let data = CanvasImageData {
@@ -745,7 +758,10 @@ impl<'a> CanvasPaintThread<'a> {
 
 impl<'a> Drop for CanvasPaintThread<'a> {
     fn drop(&mut self) {
-        if let Some(image_key) = self.image_key {
+        if let Some(image_key) = self.old_image_key.take() {
+            self.webrender_api.delete_image(image_key);
+        }
+        if let Some(image_key) = self.very_old_image_key.take() {
             self.webrender_api.delete_image(image_key);
         }
     }

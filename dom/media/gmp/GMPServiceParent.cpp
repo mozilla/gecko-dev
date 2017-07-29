@@ -17,7 +17,6 @@
 #include "GeckoChildProcessHost.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/SyncRunnable.h"
 #include "nsXPCOMPrivate.h"
 #include "mozilla/Services.h"
@@ -209,11 +208,7 @@ GeckoMediaPluginServiceParent::InitStorage()
 
   // Directory service is main thread only, so cache the profile dir here
   // so that we can use it off main thread.
-#ifdef MOZ_WIDGET_GONK
-  nsresult rv = NS_NewLocalFile(NS_LITERAL_STRING("/data/b2g/mozilla"), false, getter_AddRefs(mStorageBaseDir));
-#else
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mStorageBaseDir));
-#endif
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -482,7 +477,7 @@ GeckoMediaPluginServiceParent::UnloadPlugins()
     }
   }
 
-  LOGD(("%s::%s plugins:%" PRIuSIZE, __CLASS__, __FUNCTION__,
+  LOGD(("%s::%s plugins:%zu", __CLASS__, __FUNCTION__,
         plugins.Length()));
 #ifdef DEBUG
   for (const auto& plugin : plugins) {

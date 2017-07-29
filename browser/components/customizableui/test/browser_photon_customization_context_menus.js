@@ -46,8 +46,7 @@ add_task(async function home_button_context() {
 // but with tab-specific options instead.
 add_task(async function tabstrip_context() {
   // ensure there are tabs to reload/bookmark:
-  let extraTab = gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
-  await promiseTabLoadEvent(extraTab, "http://example.com/");
+  let extraTab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "http://example.com/");
   let contextMenu = document.getElementById("toolbar-context-menu");
   let shownPromise = popupShown(contextMenu);
   let tabstrip = document.getElementById("tabbrowser-tabs");
@@ -76,7 +75,7 @@ add_task(async function tabstrip_context() {
   let hiddenPromise = popupHidden(contextMenu);
   contextMenu.hidePopup();
   await hiddenPromise;
-  gBrowser.removeTab(extraTab);
+  await BrowserTestUtils.removeTab(extraTab);
 });
 
 // Right-click on an empty bit of extra toolbar should
@@ -429,4 +428,33 @@ add_task(async function custom_context_menus() {
   CustomizableUI.removeWidgetFromArea(widgetId);
   widget.remove();
   ok(CustomizableUI.inDefaultState, "Should be in default state after removing button.");
+});
+
+// Bug 1383458 - shouldn't enable 'pin to overflow menu' for flexible spaces
+add_task(async function flexible_space_context_menu() {
+  CustomizableUI.addWidgetToArea("spring", "nav-bar");
+  let springs = document.querySelectorAll("#nav-bar toolbarspring");
+  let lastSpring = springs[springs.length - 1];
+  ok(lastSpring, "we added a spring");
+  let contextMenu = document.getElementById("toolbar-context-menu");
+  let shownPromise = popupShown(contextMenu);
+  EventUtils.synthesizeMouse(lastSpring, 2, 2, {type: "contextmenu", button: 2});
+  await shownPromise;
+  let expectedEntries = [
+    [".customize-context-moveToPanel", false],
+    [".customize-context-removeFromToolbar", true],
+    ["---"]
+  ];
+  if (!isOSX) {
+    expectedEntries.push(["#toggle_toolbar-menubar", true]);
+  }
+  expectedEntries.push(
+    ["#toggle_PersonalToolbar", true],
+    ["---"],
+    [".viewCustomizeToolbar", true]
+  );
+  checkContextMenu(contextMenu, expectedEntries);
+  contextMenu.hidePopup();
+  gCustomizeMode.removeFromArea(lastSpring);
+  ok(!lastSpring.parentNode, "Spring should have been removed successfully.");
 });

@@ -21,6 +21,7 @@ class NamedLambdaObject;
 class WithScope;
 class InlineTypedObject;
 class GeneratorObject;
+class RegExpObject;
 class TypedArrayObject;
 
 namespace jit {
@@ -261,8 +262,11 @@ struct VMFunction
         expectTailCall(o.expectTailCall)
     {
         // Check for valid failure/return type.
-        MOZ_ASSERT_IF(outParam != Type_Void, returnType == Type_Bool);
-        MOZ_ASSERT(returnType == Type_Bool ||
+        MOZ_ASSERT_IF(outParam != Type_Void,
+                      returnType == Type_Void ||
+                      returnType == Type_Bool);
+        MOZ_ASSERT(returnType == Type_Void ||
+                   returnType == Type_Bool ||
                    returnType == Type_Object);
         addToFunctions();
     }
@@ -273,6 +277,7 @@ struct VMFunction
 };
 
 template <class> struct TypeToDataType { /* Unexpected return type for a VMFunction. */ };
+template <> struct TypeToDataType<void> { static const DataType result = Type_Void; };
 template <> struct TypeToDataType<bool> { static const DataType result = Type_Bool; };
 template <> struct TypeToDataType<JSObject*> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<JSFunction*> { static const DataType result = Type_Object; };
@@ -338,6 +343,9 @@ template <> struct TypeToArgProperties<Handle<GeneratorObject*> > {
 };
 template <> struct TypeToArgProperties<Handle<PlainObject*> > {
     static const uint32_t result = TypeToArgProperties<PlainObject*>::result | VMFunction::ByRef;
+};
+template <> struct TypeToArgProperties<Handle<RegExpObject*> > {
+    static const uint32_t result = TypeToArgProperties<RegExpObject*>::result | VMFunction::ByRef;
 };
 template <> struct TypeToArgProperties<Handle<WithScope*> > {
     static const uint32_t result = TypeToArgProperties<WithScope*>::result | VMFunction::ByRef;
@@ -423,6 +431,9 @@ template <> struct TypeToRootType<Handle<GeneratorObject*> > {
     static const uint32_t result = VMFunction::RootObject;
 };
 template <> struct TypeToRootType<Handle<PlainObject*> > {
+    static const uint32_t result = VMFunction::RootObject;
+};
+template <> struct TypeToRootType<Handle<RegExpObject*> > {
     static const uint32_t result = VMFunction::RootObject;
 };
 template <> struct TypeToRootType<Handle<LexicalScope*> > {

@@ -97,6 +97,8 @@ add_task(async function test_settings_store() {
       levelOfControl,
       "controlled_by_this_extension",
       "getLevelOfControl returns correct levelOfControl with only one item in the list.");
+    ok(ExtensionSettingsStore.hasSetting(extensions[extensionIndex], TEST_TYPE, key),
+       "hasSetting returns the correct value when an extension has a setting set.");
   }
 
   // Add a setting for the oldest extension.
@@ -120,6 +122,9 @@ add_task(async function test_settings_store() {
       "controlled_by_other_extensions",
       "getLevelOfControl returns correct levelOfControl when another extension is in control.");
   }
+
+  // Reload the settings store to emulate a browser restart.
+  await ExtensionSettingsStore._reloadFile();
 
   // Add a setting for the newest extension.
   for (let key of KEY_LIST) {
@@ -158,16 +163,14 @@ add_task(async function test_settings_store() {
   equal(removeResult, null, "Removing a setting that was not previously set returns null.");
 
   // Attempting to disable a setting that has not been set should throw an exception.
-  await Assert.rejects(
-    ExtensionSettingsStore.disable(extensions[0], "myType", "unset_key"),
-    /Cannot alter the setting for myType:unset_key as it does not exist/,
-    "disable rejects with an unset key.");
+  Assert.throws(() => ExtensionSettingsStore.disable(extensions[0], "myType", "unset_key"),
+                /Cannot alter the setting for myType:unset_key as it does not exist/,
+                "disable rejects with an unset key.");
 
   // Attempting to enable a setting that has not been set should throw an exception.
-  await Assert.rejects(
-    ExtensionSettingsStore.enable(extensions[0], "myType", "unset_key"),
-    /Cannot alter the setting for myType:unset_key as it does not exist/,
-    "enable rejects with an unset key.");
+  Assert.throws(() => ExtensionSettingsStore.enable(extensions[0], "myType", "unset_key"),
+                /Cannot alter the setting for myType:unset_key as it does not exist/,
+                "enable rejects with an unset key.");
 
   let expectedKeys = KEY_LIST;
   // Disable the non-top item for a key.
@@ -232,6 +235,8 @@ add_task(async function test_settings_store() {
       levelOfControl,
       "controlled_by_other_extensions",
       "getLevelOfControl returns correct levelOfControl after removal of non-top item.");
+    ok(!ExtensionSettingsStore.hasSetting(extensions[extensionIndex], TEST_TYPE, key),
+       "hasSetting returns the correct value when an extension does not have a setting set.");
   }
 
   for (let key of KEY_LIST) {

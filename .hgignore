@@ -64,6 +64,8 @@ _OPT\.OBJ/
 # Ignore the files and directory that JetBrains IDEs create.
 \.idea/
 \.iml$
+# Android Monitor in Android Studio creates a captures/ directory.
+^captures/
 
 # Gradle cache.
 ^.gradle/
@@ -120,6 +122,7 @@ GPATH
 
 # Ignore ESLint node_modules
 ^node_modules/
+^tools/lint/eslint/eslint-plugin-mozilla/node_modules/
 
 # Ignore talos virtualenv and tp5n files.
 # The tp5n set is supposed to be decompressed at

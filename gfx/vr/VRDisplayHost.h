@@ -18,6 +18,9 @@
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/dom/GamepadPoseState.h"
 
+#if defined(XP_MACOSX)
+class MacIOSurface;
+#endif
 namespace mozilla {
 namespace layers {
 class PTextureParent;
@@ -65,6 +68,11 @@ protected:
                            const IntSize& aSize,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) = 0;
+#elif defined(XP_MACOSX)
+  virtual bool SubmitFrame(MacIOSurface* aMacIOSurface,
+                           const IntSize& aSize,
+                           const gfx::Rect& aLeftEyeRect,
+                           const gfx::Rect& aRightEyeRect) = 0;
 #endif
 
   VRDisplayInfo mDisplayInfo;
@@ -79,6 +87,7 @@ protected:
 private:
   VRDisplayInfo mLastUpdateDisplayInfo;
   TimeStamp mLastFrameStart;
+  bool mFrameStarted;
 };
 
 class VRControllerHost {
@@ -97,7 +106,8 @@ public:
   uint64_t GetVibrateIndex();
 
 protected:
-  explicit VRControllerHost(VRDeviceType aType);
+  explicit VRControllerHost(VRDeviceType aType, dom::GamepadHand aHand,
+                            uint32_t aDisplayID);
   virtual ~VRControllerHost();
 
   VRControllerInfo mControllerInfo;

@@ -64,13 +64,8 @@
 # wishes to include *must* go into the global-scripts.inc file
 # so that they can be shared by macBrowserOverlay.xul.
 #include global-scripts.inc
-<script type="application/javascript" src="chrome://browser/content/nsContextMenu.js"/>
 
 <script type="application/javascript" src="chrome://global/content/contentAreaUtils.js"/>
-
-<script type="application/javascript" src="chrome://browser/content/downloads/downloads.js"/>
-<script type="application/javascript" src="chrome://browser/content/downloads/indicator.js"/>
-<script type="application/javascript" src="chrome://browser/content/places/editBookmarkOverlay.js"/>
 
 # All sets except for popupsets (commands, keys, stringbundles and broadcasters) *must* go into the
 # browser-sets.inc file for sharing with hiddenWindow.xul.
@@ -454,6 +449,7 @@
            hidden="true"
            flip="slide"
            position="bottomcenter topright"
+           tabspecific="true"
            noautofocus="true">
       <photonpanelmultiview id="page-action-multiView"
                             mainViewId="page-action-mainView">
@@ -485,15 +481,6 @@
                    class="PanelUI-subView"
                    title="&sendToDevice.viewTitle;">
           <vbox id="page-action-sendToDeviceView-body" class="panel-subview-body">
-            <toolbarbutton id="page-action-sendToDevice-fxa-button"
-                           class="subviewbutton subviewbutton-iconic"
-                           label="&syncBrand.fxAccount.label;"
-                           shortcut="&sendToDevice.fxaRequired.label;"
-                           oncommand="gPageActionButton.fxaButtonClicked();"/>
-            <toolbarbutton id="page-action-no-devices-button"
-                           class="subviewbutton"
-                           label="&sendToDevice.noDevices.label;"
-                           disabled="true"/>
             <toolbarbutton id="page-action-sync-not-ready-button"
                            class="subviewbutton"
                            label="&sendToDevice.syncNotReady.label;"
@@ -822,7 +809,6 @@
                      showcommentcolumn="true"
                      showimagecolumn="true"
                      enablehistory="true"
-                     maxrows="10"
                      newlines="stripsurroundingwhitespace"
                      ontextentered="this.handleCommand(param);"
                      ontextreverted="return this.handleRevert();"
@@ -871,8 +857,11 @@
                          tooltiptext="&urlbar.indexedDBNotificationAnchor.tooltip;"/>
                   <image id="password-notification-icon" class="notification-anchor-icon login-icon" role="button"
                          tooltiptext="&urlbar.passwordNotificationAnchor.tooltip;"/>
-                  <image id="plugins-notification-icon" class="notification-anchor-icon plugin-icon" role="button"
-                         tooltiptext="&urlbar.pluginsNotificationAnchor.tooltip;"/>
+                  <stack id="plugins-notification-icon" class="notification-anchor-icon" role="button" align="center"
+                         tooltiptext="&urlbar.pluginsNotificationAnchor.tooltip;">
+                    <image class="plugin-icon" />
+                    <image id="plugin-icon-badge" />
+                  </stack>
                   <image id="web-notifications-notification-icon" class="notification-anchor-icon desktop-notification-icon" role="button"
                          tooltiptext="&urlbar.webNotificationAnchor.tooltip;"/>
                   <image id="webRTC-shareDevices-notification-icon" class="notification-anchor-icon camera-icon" role="button"
@@ -916,12 +905,18 @@
                        hidden="true"
                        onclick="ReaderParent.buttonClick(event);"/>
 #ifdef MOZ_PHOTON_THEME
-                <image id="star-button"
-                       class="urlbar-icon"
-                       onclick="BookmarkingUI.onStarCommand(event);">
-                  <observes element="bookmarkThisPageBroadcaster" attribute="starred"/>
-                  <observes element="bookmarkThisPageBroadcaster" attribute="tooltiptext"/>
-                </image>
+                <hbox id="star-button-box">
+                  <image id="star-button"
+                         class="urlbar-icon"
+                         onclick="BookmarkingUI.onStarCommand(event);">
+                    <observes element="bookmarkThisPageBroadcaster" attribute="starred"/>
+                    <observes element="bookmarkThisPageBroadcaster" attribute="tooltiptext"/>
+                  </image>
+                  <hbox id="star-button-animatable-box">
+                    <image id="star-button-animatable-image"
+                           onclick="BookmarkingUI.onStarCommand(event);"/>
+                  </hbox>
+                </hbox>
 #endif
                 <toolbarbutton id="urlbar-zoom-button"
                        onclick="FullZoom.reset();"
@@ -1224,9 +1219,13 @@
                      tooltip="dynamic-shortcut-tooltip"/>
 #ifdef MOZ_PHOTON_THEME
       <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
-                     oncommand="PanelUI.showSubView('appMenu-libraryView', this, null, true);"
+                     oncommand="PanelUI.showSubView('appMenu-libraryView', this, null, event);"
                      closemenu="none"
-                     label="&places.library.title;"/>
+                     label="&places.library.title;">
+        <box class="toolbarbutton-animatable-box">
+          <image class="toolbarbutton-animatable-image"/>
+        </box>
+      </toolbarbutton>
 #endif
     </toolbarpalette>
   </toolbox>

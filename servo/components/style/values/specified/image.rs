@@ -13,7 +13,6 @@ use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
 use std::fmt;
@@ -169,9 +168,9 @@ impl Image {
     fn parse_element<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Atom, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-element"))?;
         input.parse_nested_block(|i| {
-            match i.next()? {
-                Token::IDHash(id) => Ok(Atom::from(Cow::from(id))),
-                t => Err(BasicParseError::UnexpectedToken(t).into()),
+            match *i.next()? {
+                Token::IDHash(ref id) => Ok(Atom::from(id.as_ref())),
+                ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             }
         })
     }
@@ -184,7 +183,8 @@ impl Parse for Gradient {
             Radial,
         }
 
-        let func = input.expect_function()?;
+        // FIXME: remove clone() when lifetimes are non-lexical
+        let func = input.expect_function()?.clone();
         let result = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
                 Some((Shape::Linear, false, CompatMode::Modern))
@@ -234,7 +234,7 @@ impl Parse for Gradient {
 
         let (shape, repeating, mut compat_mode) = match result {
             Some(result) => result,
-            None => return Err(StyleParseError::UnexpectedFunction(func).into()),
+            None => return Err(StyleParseError::UnexpectedFunction(func.clone()).into()),
         };
 
         let (kind, items) = input.parse_nested_block(|i| {
@@ -330,10 +330,10 @@ impl Gradient {
         impl<S: Side> From<Component<S>> for NumberOrPercentage {
             fn from(component: Component<S>) -> Self {
                 match component {
-                    Component::Center => NumberOrPercentage::Percentage(Percentage(0.5)),
+                    Component::Center => NumberOrPercentage::Percentage(Percentage::new(0.5)),
                     Component::Number(number) => number,
                     Component::Side(side) => {
-                        let p = Percentage(if side.is_start() { 0. } else { 1. });
+                        let p = if side.is_start() { Percentage::zero() } else { Percentage::hundred() };
                         NumberOrPercentage::Percentage(p)
                     },
                 }
@@ -363,7 +363,7 @@ impl Gradient {
             fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
                 match (NumberOrPercentage::from(*self), NumberOrPercentage::from(*other)) {
                     (NumberOrPercentage::Percentage(a), NumberOrPercentage::Percentage(b)) => {
-                        a.0.partial_cmp(&b.0)
+                        a.get().partial_cmp(&b.get())
                     },
                     (NumberOrPercentage::Number(a), NumberOrPercentage::Number(b)) => {
                         a.value.partial_cmp(&b.value)
@@ -389,7 +389,7 @@ impl Gradient {
             }
         }
 
-        let ident = input.expect_ident()?;
+        let ident = input.expect_ident_cloned()?;
         input.expect_comma()?;
 
         let (kind, reverse_stops) = match_ignore_ascii_case! { &ident,
@@ -439,19 +439,19 @@ impl Gradient {
         let mut items = input.try(|i| {
             i.expect_comma()?;
             i.parse_comma_separated(|i| {
-                let function = i.expect_function()?;
+                let function = i.expect_function()?.clone();
                 let (color, mut p) = i.parse_nested_block(|i| {
                     let p = match_ignore_ascii_case! { &function,
                         "color-stop" => {
                             let p = match NumberOrPercentage::parse(context, i)? {
-                                NumberOrPercentage::Number(number) => number.value,
-                                NumberOrPercentage::Percentage(p) => p.0,
+                                NumberOrPercentage::Number(number) => Percentage::new(number.value),
+                                NumberOrPercentage::Percentage(p) => p,
                             };
                             i.expect_comma()?;
                             p
                         },
-                        "from" => 0.,
-                        "to" => 1.,
+                        "from" => Percentage::zero(),
+                        "to" => Percentage::hundred(),
                         _ => return Err(StyleParseError::UnexpectedFunction(function.clone()).into()),
                     };
                     let color = Color::parse(context, i)?;
@@ -461,11 +461,11 @@ impl Gradient {
                     Ok((color.into(), p))
                 })?;
                 if reverse_stops {
-                    p = 1. - p;
+                    p.reverse();
                 }
                 Ok(GenericGradientItem::ColorStop(GenericColorStop {
                     color: color,
-                    position: Some(LengthOrPercentage::Percentage(Percentage(p))),
+                    position: Some(p.into()),
                 }))
             })
         }).unwrap_or(vec![]);
@@ -474,11 +474,11 @@ impl Gradient {
             items = vec![
                 GenericGradientItem::ColorStop(GenericColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage(0.).into()),
+                    position: Some(Percentage::zero().into()),
                 }),
                 GenericGradientItem::ColorStop(GenericColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage(1.).into()),
+                    position: Some(Percentage::hundred().into()),
                 }),
             ];
         } else if items.len() == 1 {
@@ -879,7 +879,7 @@ impl Parse for PaintWorklet {
         input.parse_nested_block(|i| {
             let name = i.expect_ident()?;
             Ok(PaintWorklet {
-                name: Atom::from(Cow::from(name)),
+                name: Atom::from(name.as_ref()),
             })
         })
     }
@@ -890,7 +890,7 @@ impl Parse for MozImageRect {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;
-            let url = SpecifiedUrl::parse_from_string(string.into_owned(), context)?;
+            let url = SpecifiedUrl::parse_from_string(string.as_ref().to_owned(), context)?;
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;

@@ -436,6 +436,7 @@
   <string name="page_removed">&page_removed;</string>
 
   <string name="bookmark_edit_title">&bookmark_edit_title;</string>
+  <string name="bookmark_edit_folder_title">&bookmark_edit_folder_title;</string>
   <string name="bookmark_edit_name">&bookmark_edit_name;</string>
   <string name="bookmark_edit_location">&bookmark_edit_location;</string>
   <string name="bookmark_edit_keyword">&bookmark_edit_keyword;</string>
@@ -480,6 +481,9 @@
   <string name="home_remote_tabs_hidden_devices_title">&home_remote_tabs_hidden_devices_title;</string>
   <string name="home_remote_tabs_unhide_selected_devices">&home_remote_tabs_unhide_selected_devices;</string>
   <string name="pin_site_dialog_hint">&pin_site_dialog_hint;</string>
+
+  <string name="home_pinned_site">&home_pinned_site;</string>
+  <string name="home_unpinned_site">&home_unpinned_site;</string>
 
   <string name="remote_tabs_never_synced">&remote_tabs_never_synced;</string>
 

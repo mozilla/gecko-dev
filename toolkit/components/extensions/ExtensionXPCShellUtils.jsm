@@ -61,21 +61,16 @@ function frameScript() {
 
 const FRAME_SCRIPT = `data:text/javascript,(${encodeURI(frameScript)}).call(this)`;
 
-
-const XUL_URL = "data:application/vnd.mozilla.xul+xml;charset=utf-8," + encodeURI(
-  `<?xml version="1.0"?>
-  <window id="documentElement"/>`);
-
 let kungFuDeathGrip = new Set();
-function promiseBrowserLoaded(browser, url) {
+function promiseBrowserLoaded(browser, url, redirectUrl) {
   return new Promise(resolve => {
     const listener = {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference, Ci.nsIWebProgressListener]),
 
       onStateChange(webProgress, request, stateFlags, statusCode) {
         let requestUrl = request.URI ? request.URI.spec : webProgress.DOMWindow.location.href;
-
-        if (webProgress.isTopLevel && requestUrl === url &&
+        if (webProgress.isTopLevel &&
+            (requestUrl === url || requestUrl === redirectUrl) &&
             (stateFlags & Ci.nsIWebProgressListener.STATE_STOP)) {
           resolve();
           kungFuDeathGrip.delete(listener);
@@ -110,7 +105,7 @@ class ContentPage {
 
     chromeShell.createAboutBlankContentViewer(system);
     chromeShell.useGlobalHistory = false;
-    chromeShell.loadURI(XUL_URL, 0, null, null, null);
+    chromeShell.loadURI("chrome://extensions/content/dummy.xul", 0, null, null, null);
 
     await promiseObserved("chrome-document-global-created",
                           win => win.document == chromeShell.document);
@@ -136,11 +131,11 @@ class ContentPage {
     return browser;
   }
 
-  async loadURL(url) {
+  async loadURL(url, redirectUrl = undefined) {
     await this.browserReady;
 
     this.browser.loadURI(url);
-    return promiseBrowserLoaded(this.browser, url);
+    return promiseBrowserLoaded(this.browser, url, redirectUrl);
   }
 
   async close() {
@@ -681,10 +676,10 @@ var ExtensionTestUtils = {
     REMOTE_CONTENT_SCRIPTS = !!val;
   },
 
-  loadContentPage(url, remote = undefined) {
+  loadContentPage(url, remote = undefined, redirectUrl = undefined) {
     let contentPage = new ContentPage(remote);
 
-    return contentPage.loadURL(url).then(() => {
+    return contentPage.loadURL(url, redirectUrl).then(() => {
       return contentPage;
     });
   },

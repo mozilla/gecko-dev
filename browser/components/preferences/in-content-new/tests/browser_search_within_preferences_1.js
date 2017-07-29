@@ -56,11 +56,7 @@ add_task(async function() {
 
   for (let i = 0; i < categoriesList.childElementCount; i++) {
     let child = categoriesList.children[i]
-    if (child.id == "category-search-results") {
-      is(child.selected, true, "Search results panel should be selected");
-    } else if (child.id) {
-      is(child.selected, false, "No other panel should be selected");
-    }
+    is(child.selected, false, "No other panel should be selected");
   }
   // Takes search off
   searchInput.value = "";
@@ -116,16 +112,24 @@ add_task(async function() {
   // Checks if back to generalPane
   for (let i = 0; i < mainPrefTag.childElementCount; i++) {
     let child = mainPrefTag.children[i]
-    if (child.id == "startupGroup"
-    || child.id == "defaultEngineGroup"
-    || child.id == "oneClickSearchProvidersGroup"
-    || child.id == "paneGeneral"
-    || child.id == "accessibilityGroup"
+    if (child.id == "paneGeneral"
+    || child.id == "startupGroup"
     || child.id == "languagesGroup"
     || child.id == "fontsGroup"
+    || child.id == "downloadsGroup"
+    || child.id == "applicationsGroup"
+    || child.id == "drmGroup"
+    || child.id == "updateApp"
     || child.id == "browsingGroup"
     || child.id == "performanceGroup"
-    || child.id == "header-general") {
+    || child.id == "connectionGroup"
+    || child.id == "generalCategory"
+    || child.id == "languageAndAppearanceCategory"
+    || child.id == "filesAndApplicationsCategory"
+    || child.id == "updatesCategory"
+    || child.id == "performanceCategory"
+    || child.id == "browsingCategory"
+    || child.id == "networkProxyCategory") {
       is_element_visible(child, "Should be in general tab");
     } else if (child.id) {
       is_element_hidden(child, "Should not be in general tab");
@@ -170,7 +174,7 @@ add_task(async function() {
  */
 add_task(async function() {
   await openPreferencesViaOpenPreferencesAPI("privacy", {leaveOpen: true});
-  let generalPane = gBrowser.contentDocument.getElementById("header-general");
+  let generalPane = gBrowser.contentDocument.getElementById("generalCategory");
 
   is_element_hidden(generalPane, "Should not be in general");
 
@@ -200,7 +204,7 @@ add_task(async function() {
 add_task(async function() {
   await SpecialPowers.pushPrefEnv({"set": [["browser.storageManager.enabled", false]]});
   await openPreferencesViaOpenPreferencesAPI("privacy", {leaveOpen: true});
-  let generalPane = gBrowser.contentDocument.getElementById("header-general");
+  let generalPane = gBrowser.contentDocument.getElementById("generalCategory");
 
   is_element_hidden(generalPane, "Should not be in general");
 
@@ -234,19 +238,15 @@ add_task(async function() {
 add_task(async function() {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {leaveOpen: true});
   let searchInput = gBrowser.contentDocument.getElementById("searchInput");
-  let searchResultsCategory = gBrowser.contentDocument.getElementById("category-search-results");
 
   is(searchInput, gBrowser.contentDocument.activeElement.closest("#searchInput"),
     "Search input should be focused when visiting preferences");
 
   searchInput.value = "password";
   searchInput.doCommand();
-  is(searchResultsCategory.hidden, false, "search results category should be shown");
-  is(searchResultsCategory.selected, true, "search results category should be selected");
 
   let privacyCategory = gBrowser.contentDocument.getElementById("category-privacy");
   privacyCategory.click();
-  is(searchResultsCategory.hidden, true, "search results category should not be shown");
   is(searchInput.value, "", "search input should be empty");
   let categoriesList = gBrowser.contentDocument.getElementById("categories");
   for (let i = 0; i < categoriesList.childElementCount; i++) {

@@ -5,6 +5,9 @@ use gecko_bindings::structs::nsStyleTransformMatrix;
 use gecko_bindings::structs::nsTArray;
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+pub type ServoStyleContextBorrowed<'a> = &'a ::properties::ComputedValues;
+pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
+pub type ServoComputedDataBorrowed<'a> = &'a ServoComputedData;
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::ErrorReporter;
 use gecko_bindings::structs::mozilla::css::ImageValue;
@@ -21,6 +24,7 @@ use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
+use gecko_bindings::structs::RawGeckoPropertyValuePairList;
 use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
 use gecko_bindings::structs::RawGeckoFontFaceRuleList;
 use gecko_bindings::structs::RawGeckoNode;
@@ -40,8 +44,7 @@ use gecko_bindings::structs::RawGeckoXBLBinding;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::CSSPseudoElementType;
-use gecko_bindings::structs::TraversalRestyleBehavior;
-use gecko_bindings::structs::TraversalRootBehavior;
+use gecko_bindings::structs::ServoTraversalFlags;
 use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
 use gecko_bindings::structs::CounterStylePtr;
 use gecko_bindings::structs::FontFamilyList;
@@ -50,6 +53,7 @@ use gecko_bindings::structs::FontSizePrefs;
 use gecko_bindings::structs::GeckoFontMetrics;
 use gecko_bindings::structs::IterationCompositeOperation;
 use gecko_bindings::structs::Keyframe;
+use gecko_bindings::structs::PropertyValuePair;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
@@ -215,6 +219,9 @@ use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::LoaderReusableStyleSheets;
 use gecko_bindings::structs::ServoStyleSheet;
+use gecko_bindings::structs::ServoComputedData;
+use gecko_bindings::structs::ServoStyleContext;
+use gecko_bindings::structs::ServoStyleContextStrong;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
 use gecko_bindings::structs::ParsingMode;
@@ -290,6 +297,10 @@ pub type RawGeckoKeyframeListBorrowed<'a> = &'a RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedOrNull<'a> = Option<&'a RawGeckoKeyframeList>;
 pub type RawGeckoKeyframeListBorrowedMut<'a> = &'a mut RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoKeyframeList>;
+pub type RawGeckoPropertyValuePairListBorrowed<'a> = &'a RawGeckoPropertyValuePairList;
+pub type RawGeckoPropertyValuePairListBorrowedOrNull<'a> = Option<&'a RawGeckoPropertyValuePairList>;
+pub type RawGeckoPropertyValuePairListBorrowedMut<'a> = &'a mut RawGeckoPropertyValuePairList;
+pub type RawGeckoPropertyValuePairListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoPropertyValuePairList>;
 pub type RawGeckoComputedKeyframeValuesListBorrowed<'a> = &'a RawGeckoComputedKeyframeValuesList;
 pub type RawGeckoComputedKeyframeValuesListBorrowedOrNull<'a> = Option<&'a RawGeckoComputedKeyframeValuesList>;
 pub type RawGeckoComputedKeyframeValuesListBorrowedMut<'a> = &'a mut RawGeckoComputedKeyframeValuesList;
@@ -314,11 +325,6 @@ pub struct ServoCssRules(ServoCssRulesVoid);
 pub type RawServoStyleSheetContentsStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoStyleSheetContents>;
 pub type RawServoStyleSheetContentsBorrowed<'a> = &'a RawServoStyleSheetContents;
 pub type RawServoStyleSheetContentsBorrowedOrNull<'a> = Option<&'a RawServoStyleSheetContents>;
-pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
-pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
-pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
-enum ServoComputedValuesVoid { }
-pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
 pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
 pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
@@ -371,6 +377,11 @@ pub type RawServoDocumentRuleBorrowed<'a> = &'a RawServoDocumentRule;
 pub type RawServoDocumentRuleBorrowedOrNull<'a> = Option<&'a RawServoDocumentRule>;
 enum RawServoDocumentRuleVoid { }
 pub struct RawServoDocumentRule(RawServoDocumentRuleVoid);
+pub type RawServoFontFeatureValuesRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoFontFeatureValuesRule>;
+pub type RawServoFontFeatureValuesRuleBorrowed<'a> = &'a RawServoFontFeatureValuesRule;
+pub type RawServoFontFeatureValuesRuleBorrowedOrNull<'a> = Option<&'a RawServoFontFeatureValuesRule>;
+enum RawServoFontFeatureValuesRuleVoid { }
+pub struct RawServoFontFeatureValuesRule(RawServoFontFeatureValuesRuleVoid);
 pub type RawServoRuleNodeStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoRuleNode>;
 pub type RawServoRuleNodeBorrowed<'a> = &'a RawServoRuleNode;
 pub type RawServoRuleNodeBorrowedOrNull<'a> = Option<&'a RawServoRuleNode>;
@@ -398,12 +409,6 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSheetContents_Release(ptr:
                                                 RawServoStyleSheetContentsBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_AddRef(ptr:
@@ -480,6 +485,14 @@ extern "C" {
     pub fn Servo_DocumentRule_Release(ptr: RawServoDocumentRuleBorrowed);
 }
 extern "C" {
+    pub fn Servo_FontFeatureValuesRule_AddRef(ptr:
+                                                  RawServoFontFeatureValuesRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_Release(ptr:
+                                                   RawServoFontFeatureValuesRuleBorrowed);
+}
+extern "C" {
     pub fn Servo_RuleNode_AddRef(ptr: RawServoRuleNodeBorrowed);
 }
 extern "C" {
@@ -527,6 +540,19 @@ extern "C" {
 extern "C" {
     pub fn Gecko_DestroyAnonymousContentList(anon_content:
                                                  *mut nsTArray<*mut nsIContent>);
+}
+extern "C" {
+    pub fn Gecko_ServoStyleContext_Init(context: *mut ServoStyleContext,
+                                        parent_context:
+                                            ServoStyleContextBorrowedOrNull,
+                                        pres_context:
+                                            RawGeckoPresContextBorrowed,
+                                        values: ServoComputedDataBorrowed,
+                                        pseudo_type: CSSPseudoElementType,
+                                        pseudo_tag: *mut nsIAtom);
+}
+extern "C" {
+    pub fn Gecko_ServoStyleContext_Destroy(context: *mut ServoStyleContext);
 }
 extern "C" {
     pub fn Gecko_ConstructStyleChildrenIterator(aElement:
@@ -733,6 +759,12 @@ extern "C" {
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
+    pub fn Gecko_IsPrivateBrowsingEnabled(aDoc: *const nsIDocument) -> bool;
+}
+extern "C" {
+    pub fn Gecko_AreVisitedLinksEnabled() -> bool;
+}
+extern "C" {
     pub fn Gecko_GetAnimationRule(aElementOrPseudo: RawGeckoElementBorrowed,
                                   aCascadeLevel:
                                       EffectCompositor_CascadeLevel,
@@ -755,9 +787,9 @@ extern "C" {
 extern "C" {
     pub fn Gecko_UpdateAnimations(aElementOrPseudo: RawGeckoElementBorrowed,
                                   aOldComputedValues:
-                                      ServoComputedValuesBorrowedOrNull,
+                                      ServoStyleContextBorrowedOrNull,
                                   aComputedValues:
-                                      ServoComputedValuesBorrowedOrNull,
+                                      ServoStyleContextBorrowedOrNull,
                                   aTasks: UpdateAnimationsTasks);
 }
 extern "C" {
@@ -900,7 +932,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetImageOrientation(aVisibility: *mut nsStyleVisibility,
-                                     aRadians: f64, aFlip: bool);
+                                     aOrientation: u8, aFlip: bool);
 }
 extern "C" {
     pub fn Gecko_SetImageOrientationAsFromImage(aVisibility:
@@ -1032,8 +1064,9 @@ extern "C" {
      -> CSSPseudoElementType;
 }
 extern "C" {
-    pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
-                                     newstyle: ServoComputedValuesBorrowed,
+    pub fn Gecko_CalcStyleDifference(old_style: ServoStyleContextBorrowed,
+                                     new_style: ServoStyleContextBorrowed,
+                                     old_style_bits: u64,
                                      any_style_changed: *mut bool)
      -> nsChangeHint;
 }
@@ -1154,6 +1187,12 @@ extern "C" {
                                           timingFunction:
                                               *const nsTimingFunction)
      -> *mut Keyframe;
+}
+extern "C" {
+    pub fn Gecko_AppendPropertyValuePair(aProperties:
+                                             RawGeckoPropertyValuePairListBorrowedMut,
+                                         aProperty: nsCSSPropertyID)
+     -> *mut PropertyValuePair;
 }
 extern "C" {
     pub fn Gecko_ResetStyleCoord(unit: *mut nsStyleUnit,
@@ -1894,8 +1933,9 @@ extern "C" {
     pub fn Servo_StyleSet_RebuildData(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed)
-     -> bool;
+    pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed,
+                                                viewport_changed: bool)
+     -> nsRestyleHint;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
@@ -1957,10 +1997,16 @@ extern "C" {
     pub fn Servo_StyleSet_ResolveForDeclarations(set:
                                                      RawServoStyleSetBorrowed,
                                                  parent_style:
-                                                     ServoComputedValuesBorrowedOrNull,
+                                                     ServoStyleContextBorrowedOrNull,
                                                  declarations:
                                                      RawServoDeclarationBlockBorrowed)
-     -> ServoComputedValuesStrong;
+     -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleContext_Release(ctx: ServoStyleContextBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_MightHaveAttributeDependency(set:
@@ -2126,6 +2172,24 @@ extern "C" {
      -> ServoCssRulesStrong;
 }
 extern "C" {
+    pub fn Servo_CssRules_GetFontFeatureValuesRuleAt(rules:
+                                                         ServoCssRulesBorrowed,
+                                                     index: u32,
+                                                     line: *mut u32,
+                                                     column: *mut u32)
+     -> RawServoFontFeatureValuesRuleStrong;
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_Debug(rule:
+                                                 RawServoFontFeatureValuesRuleBorrowed,
+                                             result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_GetCssText(rule:
+                                                      RawServoFontFeatureValuesRuleBorrowed,
+                                                  result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed,
                                             index: u32)
      -> *mut nsCSSFontFaceRule;
@@ -2263,6 +2327,16 @@ extern "C" {
                                                result: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_FontFeatureValuesRule_GetFontFamily(rule:
+                                                         RawServoFontFeatureValuesRuleBorrowed,
+                                                     result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_GetValueText(rule:
+                                                        RawServoFontFeatureValuesRuleBorrowed,
+                                                    result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_ParseProperty(property: nsCSSPropertyID,
                                value: *const nsACString,
                                data: *mut RawGeckoURLExtraData,
@@ -2280,21 +2354,21 @@ extern "C" {
     pub fn Servo_GetComputedKeyframeValues(keyframes:
                                                RawGeckoKeyframeListBorrowed,
                                            element: RawGeckoElementBorrowed,
-                                           style: ServoComputedValuesBorrowed,
+                                           style: ServoStyleContextBorrowed,
                                            set: RawServoStyleSetBorrowed,
                                            result:
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
 }
 extern "C" {
     pub fn Servo_ComputedValues_ExtractAnimationValue(computed_values:
-                                                          ServoComputedValuesBorrowed,
+                                                          ServoStyleContextBorrowed,
                                                       property:
                                                           nsCSSPropertyID)
      -> RawServoAnimationValueStrong;
 }
 extern "C" {
     pub fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(computed_values:
-                                                                     ServoComputedValuesBorrowed)
+                                                                     ServoStyleContextBorrowed)
      -> bool;
 }
 extern "C" {
@@ -2327,7 +2401,7 @@ extern "C" {
     pub fn Servo_GetAnimationValues(declarations:
                                         RawServoDeclarationBlockBorrowed,
                                     element: RawGeckoElementBorrowed,
-                                    style: ServoComputedValuesBorrowed,
+                                    style: ServoStyleContextBorrowed,
                                     style_set: RawServoStyleSetBorrowed,
                                     animation_values:
                                         RawGeckoServoAnimationValueListBorrowedMut);
@@ -2410,7 +2484,7 @@ extern "C" {
     pub fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
                                         declarations:
                                             RawServoDeclarationBlockBorrowed,
-                                        style: ServoComputedValuesBorrowed,
+                                        style: ServoStyleContextBorrowed,
                                         raw_data: RawServoStyleSetBorrowed)
      -> RawServoAnimationValueStrong;
 }
@@ -2661,28 +2735,35 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
-                                                       ServoComputedValuesBorrowedOrNull,
+                                                       ServoStyleContextBorrowedOrNull,
                                                    pseudo_tag: *mut nsIAtom,
-                                                   skip_display_fixup: bool,
                                                    set:
                                                        RawServoStyleSetBorrowed)
-     -> ServoComputedValuesStrong;
+     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_ComputedValues_Inherit(set: RawServoStyleSetBorrowed,
+                                        pseudo_tag: *mut nsIAtom,
                                         parent_style:
-                                            ServoComputedValuesBorrowedOrNull,
+                                            ServoStyleContextBorrowedOrNull,
                                         target: InheritTarget)
-     -> ServoComputedValuesStrong;
+     -> ServoStyleContextStrong;
 }
 extern "C" {
-    pub fn Servo_ComputedValues_GetVisitedStyle(values:
-                                                    ServoComputedValuesBorrowed)
-     -> ServoComputedValuesStrong;
+    pub fn Servo_ComputedValues_GetStyleBits(values:
+                                                 ServoStyleContextBorrowed)
+     -> u64;
+}
+extern "C" {
+    pub fn Servo_ComputedValues_EqualCustomProperties(first:
+                                                          ServoComputedDataBorrowed,
+                                                      second:
+                                                          ServoComputedDataBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetStyleRuleList(values:
-                                                     ServoComputedValuesBorrowed,
+                                                     ServoStyleContextBorrowed,
                                                  rules:
                                                      RawGeckoServoStyleRuleListBorrowedMut);
 }
@@ -2698,26 +2779,32 @@ extern "C" {
                                    change_hint: nsChangeHint);
 }
 extern "C" {
-    pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed)
-     -> nsChangeHint;
+    pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
+                                flags: ServoTraversalFlags,
+                                was_restyled: *mut bool) -> nsChangeHint;
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                              set: RawServoStyleSetBorrowed)
-     -> ServoComputedValuesStrong;
+                              set: RawServoStyleSetBorrowed,
+                              flags: ServoTraversalFlags)
+     -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_ResolveStyleAllowStale(element: RawGeckoElementBorrowed)
+     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
                                     is_probe: bool,
                                     inherited_style:
-                                        ServoComputedValuesBorrowedOrNull,
+                                        ServoStyleContextBorrowedOrNull,
                                     set: RawServoStyleSetBorrowed)
-     -> ServoComputedValuesStrong;
+     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_SetExplicitStyle(element: RawGeckoElementBorrowed,
-                                  primary_style: ServoComputedValuesBorrowed);
+                                  primary_style: ServoStyleContextBorrowed);
 }
 extern "C" {
     pub fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed,
@@ -2731,15 +2818,13 @@ extern "C" {
                                     snapshots:
                                         *const ServoElementSnapshotTable,
                                     set: RawServoStyleSetBorrowed)
-     -> ServoComputedValuesStrong;
+     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
                                  snapshots: *const ServoElementSnapshotTable,
-                                 root_behavior: TraversalRootBehavior,
-                                 restyle_behavior: TraversalRestyleBehavior)
-     -> bool;
+                                 flags: ServoTraversalFlags) -> bool;
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
@@ -2753,12 +2838,12 @@ extern "C" {
                                                           element:
                                                               RawGeckoElementBorrowed,
                                                           existing_style:
-                                                              ServoComputedValuesBorrowed,
+                                                              ServoStyleContextBorrowed,
                                                           snapshots:
                                                               *const ServoElementSnapshotTable,
                                                           pseudo_type:
                                                               CSSPseudoElementType)
-     -> ServoComputedValuesStrong;
+     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_SerializeFontValueForCanvas(declarations:
@@ -2767,139 +2852,19 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_GetCustomPropertyValue(computed_values:
-                                            ServoComputedValuesBorrowed,
+                                            ServoStyleContextBorrowed,
                                         name: *const nsAString,
                                         value: *mut nsAString) -> bool;
 }
 extern "C" {
     pub fn Servo_GetCustomPropertiesCount(computed_values:
-                                              ServoComputedValuesBorrowed)
+                                              ServoStyleContextBorrowed)
      -> u32;
 }
 extern "C" {
-    pub fn Servo_GetCustomPropertyNameAt(arg1: ServoComputedValuesBorrowed,
+    pub fn Servo_GetCustomPropertyNameAt(arg1: ServoStyleContextBorrowed,
                                          index: u32, name: *mut nsAString)
      -> bool;
-}
-extern "C" {
-    pub fn Servo_GetStyleFont(computed_values:
-                                  ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleFont;
-}
-extern "C" {
-    pub fn Servo_GetStyleColor(computed_values:
-                                   ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleColor;
-}
-extern "C" {
-    pub fn Servo_GetStyleList(computed_values:
-                                  ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleList;
-}
-extern "C" {
-    pub fn Servo_GetStyleText(computed_values:
-                                  ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleText;
-}
-extern "C" {
-    pub fn Servo_GetStyleVisibility(computed_values:
-                                        ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleVisibility;
-}
-extern "C" {
-    pub fn Servo_GetStyleUserInterface(computed_values:
-                                           ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleUserInterface;
-}
-extern "C" {
-    pub fn Servo_GetStyleTableBorder(computed_values:
-                                         ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleTableBorder;
-}
-extern "C" {
-    pub fn Servo_GetStyleSVG(computed_values:
-                                 ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleSVG;
-}
-extern "C" {
-    pub fn Servo_GetStyleVariables(computed_values:
-                                       ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleVariables;
-}
-extern "C" {
-    pub fn Servo_GetStyleBackground(computed_values:
-                                        ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleBackground;
-}
-extern "C" {
-    pub fn Servo_GetStylePosition(computed_values:
-                                      ServoComputedValuesBorrowedOrNull)
-     -> *const nsStylePosition;
-}
-extern "C" {
-    pub fn Servo_GetStyleTextReset(computed_values:
-                                       ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleTextReset;
-}
-extern "C" {
-    pub fn Servo_GetStyleDisplay(computed_values:
-                                     ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleDisplay;
-}
-extern "C" {
-    pub fn Servo_GetStyleContent(computed_values:
-                                     ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleContent;
-}
-extern "C" {
-    pub fn Servo_GetStyleUIReset(computed_values:
-                                     ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleUIReset;
-}
-extern "C" {
-    pub fn Servo_GetStyleTable(computed_values:
-                                   ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleTable;
-}
-extern "C" {
-    pub fn Servo_GetStyleMargin(computed_values:
-                                    ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleMargin;
-}
-extern "C" {
-    pub fn Servo_GetStylePadding(computed_values:
-                                     ServoComputedValuesBorrowedOrNull)
-     -> *const nsStylePadding;
-}
-extern "C" {
-    pub fn Servo_GetStyleBorder(computed_values:
-                                    ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleBorder;
-}
-extern "C" {
-    pub fn Servo_GetStyleOutline(computed_values:
-                                     ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleOutline;
-}
-extern "C" {
-    pub fn Servo_GetStyleXUL(computed_values:
-                                 ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleXUL;
-}
-extern "C" {
-    pub fn Servo_GetStyleSVGReset(computed_values:
-                                      ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleSVGReset;
-}
-extern "C" {
-    pub fn Servo_GetStyleColumn(computed_values:
-                                    ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleColumn;
-}
-extern "C" {
-    pub fn Servo_GetStyleEffects(computed_values:
-                                     ServoComputedValuesBorrowedOrNull)
-     -> *const nsStyleEffects;
 }
 extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
@@ -2919,5 +2884,7 @@ extern "C" {
                                           source:
                                               *const ::std::os::raw::c_char,
                                           sourceLen: u32, lineNumber: u32,
-                                          colNumber: u32, aURI: *mut nsIURI);
+                                          colNumber: u32, aURI: *mut nsIURI,
+                                          followup:
+                                              *const ::std::os::raw::c_char);
 }

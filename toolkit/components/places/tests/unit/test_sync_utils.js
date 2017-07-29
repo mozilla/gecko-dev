@@ -1,10 +1,5 @@
 Cu.import("resource://gre/modules/ObjectUtils.jsm");
 Cu.import("resource://gre/modules/PlacesSyncUtils.jsm");
-const {
-  // `fetchGuidsWithAnno` isn't exported, but we can still access it here via a
-  // backstage pass.
-  fetchGuidsWithAnno,
-} = Cu.import("resource://gre/modules/PlacesSyncUtils.jsm", {});
 Cu.import("resource://testing-common/httpd.js");
 Cu.importGlobalProperties(["URLSearchParams"]);
 
@@ -1513,8 +1508,8 @@ add_task(async function test_move_orphans() {
 
   do_print("Verify synced orphan annos match");
   {
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids.sort(), [fxBmk.syncId, tbBmk.syncId].sort(),
       "Orphaned bookmarks should match before moving");
   }
@@ -1526,8 +1521,8 @@ add_task(async function test_move_orphans() {
       parentGuid: PlacesUtils.bookmarks.menuGuid,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     });
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids, [tbBmk.syncId],
       "Should remove orphan annos from updated bookmark");
   }
@@ -1537,8 +1532,8 @@ add_task(async function test_move_orphans() {
     let tbId = await syncIdToId(tbBmk.syncId);
     PlacesUtils.bookmarks.moveItem(tbId, PlacesUtils.toolbarFolderId,
       PlacesUtils.bookmarks.DEFAULT_INDEX);
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids, [],
       "Should remove orphan annos from moved bookmark");
   }
@@ -1570,8 +1565,8 @@ add_task(async function test_reorder_orphans() {
 
   do_print("Verify synced orphan annos match");
   {
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids.sort(), [
       fxBmk.syncId,
       tbBmk.syncId,
@@ -1583,8 +1578,8 @@ add_task(async function test_reorder_orphans() {
   {
     await PlacesUtils.bookmarks.reorder(PlacesUtils.bookmarks.unfiledGuid,
       [tbBmk.syncId, fxBmk.syncId]);
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids, [mozBmk.syncId],
       "Should remove orphan annos from explicitly reordered bookmarks");
   }
@@ -1610,8 +1605,8 @@ add_task(async function test_set_orphan_indices() {
 
   do_print("Verify synced orphan annos match");
   {
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids.sort(), [fxBmk.syncId, tbBmk.syncId].sort(),
       "Orphaned bookmarks should match before changing indices");
   }
@@ -1625,8 +1620,8 @@ add_task(async function test_set_orphan_indices() {
       PlacesUtils.bookmarks.setItemIndex(tbId, 0);
     }, null);
     await PlacesTestUtils.promiseAsyncUpdates();
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids, [],
       "Should remove orphan annos after updating indices");
   }
@@ -1662,8 +1657,8 @@ add_task(async function test_unsynced_orphans() {
     let unknownId = await syncIdToId(unknownBmk.syncId);
     PlacesUtils.bookmarks.moveItem(unknownId, PlacesUtils.toolbarFolderId,
       PlacesUtils.bookmarks.DEFAULT_INDEX);
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids.sort(), [newBmk.syncId].sort(),
       "Should remove orphan annos from moved unsynced bookmark");
   }
@@ -1672,8 +1667,8 @@ add_task(async function test_unsynced_orphans() {
   {
     await PlacesUtils.bookmarks.reorder(PlacesUtils.bookmarks.unfiledGuid,
       [newBmk.syncId]);
-    let orphanGuids = await fetchGuidsWithAnno(SYNC_PARENT_ANNO,
-      nonexistentSyncId);
+    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+      SYNC_PARENT_ANNO, nonexistentSyncId);
     deepEqual(orphanGuids, [],
       "Should remove orphan annos from reordered unsynced bookmarks");
   }
@@ -2669,6 +2664,84 @@ add_task(async function test_migrateOldTrackerEntries() {
     guid: tombstoneSyncId,
     dateRemoved: new Date(1479162463976),
   }], "Should write tombstone for nonexistent migrated item");
+
+  await PlacesUtils.bookmarks.eraseEverything();
+  await PlacesSyncUtils.bookmarks.reset();
+});
+
+add_task(async function test_ensureMobileQuery() {
+  do_print("Ensure we correctly create the mobile query");
+
+  const PlacesUIUtils = {};
+  try {
+    Cu.import("resource://gre/modules/PlacesUIUtils.jsm", PlacesUIUtils);
+  } catch (ex) {
+    do_print("Can't build left pane roots; skipping test");
+    return;
+  }
+
+  // Creates the organizer queries as a side effect.
+  let leftPaneId = PlacesUIUtils.leftPaneFolderId;
+  do_print(`Left pane root ID: ${leftPaneId}`);
+
+  let allBookmarksGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+    "PlacesOrganizer/OrganizerQuery", "AllBookmarks");
+  equal(allBookmarksGuids.length, 1, "Should create folder with all bookmarks queries");
+  let allBookmarkGuid = allBookmarksGuids[0];
+
+  do_print("Try creating query after organizer is ready");
+  await PlacesSyncUtils.bookmarks.ensureMobileQuery()
+  let queryGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+    "PlacesOrganizer/OrganizerQuery", "MobileBookmarks");
+  equal(queryGuids.length, 0, "Should not create query without any mobile bookmarks");
+
+  do_print("Insert mobile bookmark, then create query");
+  let mozBmk = await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.mobileGuid,
+    url: "https://mozilla.org",
+  });
+  await PlacesSyncUtils.bookmarks.ensureMobileQuery()
+  queryGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
+    "PlacesOrganizer/OrganizerQuery", "MobileBookmarks");
+  equal(queryGuids.length, 1, "Should create query once mobile bookmarks exist");
+
+  let queryGuid = queryGuids[0];
+
+  let queryInfo = await PlacesUtils.bookmarks.fetch(queryGuid);
+  equal(queryInfo.url, `place:folder=MOBILE_BOOKMARKS`, "Query should point to mobile root");
+  equal(queryInfo.title, "Mobile Bookmarks", "Query title should be localized");
+  equal(queryInfo.parentGuid, allBookmarkGuid, "Should append mobile query to all bookmarks queries");
+
+  do_print("Rename root and query, then recreate");
+  await PlacesUtils.bookmarks.update({
+    guid: PlacesUtils.bookmarks.mobileGuid,
+    title: "renamed root",
+  });
+  await PlacesUtils.bookmarks.update({
+    guid: queryGuid,
+    title: "renamed query",
+  });
+  await PlacesSyncUtils.bookmarks.ensureMobileQuery()
+  let rootInfo = await PlacesUtils.bookmarks.fetch(PlacesUtils.bookmarks.mobileGuid);
+  equal(rootInfo.title, "Mobile Bookmarks", "Should fix root title");
+  queryInfo = await PlacesUtils.bookmarks.fetch(queryGuid);
+  equal(queryInfo.title, "Mobile Bookmarks", "Should fix query title");
+
+  do_print("Point query to different folder");
+  await PlacesUtils.bookmarks.update({
+    guid: queryGuid,
+    url: "place:folder=BOOKMARKS_MENU",
+  });
+  await PlacesSyncUtils.bookmarks.ensureMobileQuery()
+  queryInfo = await PlacesUtils.bookmarks.fetch(queryGuid);
+  equal(queryInfo.url.href, `place:folder=MOBILE_BOOKMARKS`,
+    "Should fix query URL to point to mobile root");
+
+  do_print("We shouldn't track the query or the left pane root");
+
+  let changes = await PlacesSyncUtils.bookmarks.pullChanges();
+  deepEqual(Object.keys(changes).sort(), [mozBmk.guid, "mobile"],
+    "Should not track mobile query");
 
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesSyncUtils.bookmarks.reset();

@@ -1925,34 +1925,33 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
   //
   // We don't do this for pseudos that may trigger animations or transitions,
   // since those need to be kicked off by the traversal machinery.
-  bool isServo = pseudoStyleContext->IsServo();
   bool hasServoAnimations = false;
-  if (isServo) {
-    ServoComputedValues* servoStyle = pseudoStyleContext->ComputedValues();
-    hasServoAnimations = Servo_ComputedValues_SpecifiesAnimationsOrTransitions(servoStyle);
+  auto* servoStyle = pseudoStyleContext->GetAsServo();
+  if (servoStyle) {
+    hasServoAnimations =
+      Servo_ComputedValues_SpecifiesAnimationsOrTransitions(servoStyle);
     if (!hasServoAnimations) {
       Servo_SetExplicitStyle(container, servoStyle);
     }
-  }
-
-  // stylo: ServoRestyleManager does not handle transitions yet, and when it
-  // does it probably won't need to track reframed style contexts to start
-  // transitions correctly.
-  if (mozilla::GeckoRestyleManager* geckoRM = RestyleManager()->GetAsGecko()) {
+  } else {
+    mozilla::GeckoRestyleManager* geckoRM = RestyleManager()->AsGecko();
     GeckoRestyleManager::ReframingStyleContexts* rsc =
       geckoRM->GetReframingStyleContexts();
+
     if (rsc) {
-      nsStyleContext* oldStyleContext = rsc->Get(container, aPseudoElement);
-      if (oldStyleContext) {
+      RefPtr<GeckoStyleContext> newContext =
+        GeckoStyleContext::TakeRef(pseudoStyleContext.forget());
+      if (auto* oldStyleContext = rsc->Get(container, aPseudoElement)) {
         GeckoRestyleManager::TryInitiatingTransition(aState.mPresContext,
                                                      container,
                                                      oldStyleContext,
-                                                     &pseudoStyleContext);
+                                                     &newContext);
       } else {
         aState.mPresContext->TransitionManager()->
           PruneCompletedTransitions(aParentContent->AsElement(),
-                                    aPseudoElement, pseudoStyleContext);
+                                    aPseudoElement, newContext);
       }
+      pseudoStyleContext = newContext.forget();
     }
   }
 
@@ -1971,7 +1970,7 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
   }
 
   // We may need to do a synchronous servo traversal in various uncommon cases.
-  if (isServo) {
+  if (servoStyle) {
     if (hasServoAnimations) {
       // If animations are involved, we avoid the SetExplicitStyle optimization
       // above.
@@ -2523,7 +2522,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     // NOTE(emilio): If the root has a non-null binding, we'll stop at the
     // document element and won't process any children, loading the bindings (or
     // failing to do so) will take care of the rest.
-    set->StyleDocument(TraversalRestyleBehavior::Normal);
+    set->StyleDocument(ServoTraversalFlags::Empty);
   }
 
   // FIXME: Should this use ResolveStyleContext?  (The calls in this
@@ -5157,7 +5156,6 @@ nsCSSFrameConstructor::ResolveStyleContext(nsStyleContext* aParentStyleContext,
                                            Element* aOriginatingElementOrNull)
 {
   StyleSetHandle styleSet = mPresShell->StyleSet();
-  aContent->OwnerDoc()->FlushPendingLinkUpdates();
 
   RefPtr<nsStyleContext> result;
   if (aContent->IsElement()) {
@@ -5208,16 +5206,19 @@ nsCSSFrameConstructor::ResolveStyleContext(nsStyleContext* aParentStyleContext,
     GeckoRestyleManager::ReframingStyleContexts* rsc =
       geckoRM->GetReframingStyleContexts();
     if (rsc) {
-      nsStyleContext* oldStyleContext =
+      GeckoStyleContext* oldStyleContext =
         rsc->Get(aContent, CSSPseudoElementType::NotPseudo);
       nsPresContext* presContext = mPresShell->GetPresContext();
       if (oldStyleContext) {
+        RefPtr<GeckoStyleContext> newContext =
+          GeckoStyleContext::TakeRef(result.forget());
         GeckoRestyleManager::TryInitiatingTransition(presContext, aContent,
-                                                     oldStyleContext, &result);
+                                                     oldStyleContext, &newContext);
+        result = newContext.forget();
       } else if (aContent->IsElement()) {
         presContext->TransitionManager()->
           PruneCompletedTransitions(aContent->AsElement(),
-            CSSPseudoElementType::NotPseudo, result);
+            CSSPseudoElementType::NotPseudo, result->AsGecko());
       }
     }
   }
@@ -5886,8 +5887,12 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
           // styling descendants of elements with a -moz-binding the
           // first time. Thus call StyleNewChildren() again.
           styleSet->StyleNewChildren(element);
+
+          // Because of LazyComputeBehavior::Assert we never create a style
+          // context here, so it's fine to pass a null parent.
           styleContext =
-            styleSet->ResolveStyleFor(element, nullptr, LazyComputeBehavior::Assert);
+            styleSet->ResolveStyleFor(element, nullptr,
+                                      LazyComputeBehavior::Assert);
         } else {
           styleContext =
             ResolveStyleContext(styleContext->GetParent(), aContent, &aState);
@@ -7201,7 +7206,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
   // tree.
 
   // Walk up the tree setting the NODE_DESCENDANTS_NEED_FRAMES bit as we go.
-  nsIContent* content = aContainer;
+  nsIContent* content = aChild->GetFlattenedTreeParent();
 
 #ifdef DEBUG
   // If we hit a node with no primary frame, or the NODE_NEEDS_FRAME bit set
@@ -7209,6 +7214,9 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
   // ignore anonymous children (eg framesets) make this complicated. So we set
   // these two booleans if we encounter these situations and unset them if we
   // hit a node with a leaf frame.
+  //
+  // It's fine if one of node without primary frame is in a display:none
+  // subtree.
   //
   // Also, it's fine if one of the nodes without primary frame is a display:
   // contents node except if it's the direct ancestor of the children we're
@@ -7222,9 +7230,10 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     if (content->GetPrimaryFrame() && content->GetPrimaryFrame()->IsLeaf()) {
       noPrimaryFrame = needsFrameBitSet = false;
     }
-    if (!noPrimaryFrame && !content->GetPrimaryFrame() &&
-        !GetDisplayContentsStyleFor(content)) {
-      noPrimaryFrame = true;
+    if (!noPrimaryFrame && !content->GetPrimaryFrame()) {
+      nsStyleContext* sc = GetUndisplayedContent(content);
+      noPrimaryFrame = !GetDisplayContentsStyleFor(content) &&
+        (sc && !sc->IsInDisplayNoneSubtree());
     }
     if (!needsFrameBitSet && content->HasFlag(NODE_NEEDS_FRAME)) {
       needsFrameBitSet = true;

@@ -119,6 +119,9 @@ HttpBackgroundChannelChild::OnChannelClosed()
 
   // HttpChannelChild is not going to handle any incoming message.
   mChannelChild = nullptr;
+
+  // Remove pending IPC messages as well.
+  mQueuedRunnables.Clear();
 }
 
 void
@@ -452,7 +455,7 @@ HttpBackgroundChannelChild::ActorDestroy(ActorDestroyReason aWhy)
     RefPtr<HttpBackgroundChannelChild> self = this;
     mQueuedRunnables.AppendElement(NS_NewRunnableFunction(
       "HttpBackgroundChannelChild::ActorDestroy", [self]() {
-        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(OnSocketThread());
         RefPtr<HttpChannelChild> channelChild = self->mChannelChild.forget();
 
         if (channelChild) {

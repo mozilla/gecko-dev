@@ -21,6 +21,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 #include "nsQueryObject.h"
 #include "nsSOCKSIOLayer.h"
@@ -129,22 +130,22 @@ private:
             // callbacks called normally they will all be null and this is a nop
 
             if (mChannel) {
-                NS_ReleaseOnMainThread(
+                NS_ReleaseOnMainThreadSystemGroup(
                   "nsAsyncResolveRequest::mChannel", mChannel.forget());
             }
 
             if (mCallback) {
-                NS_ReleaseOnMainThread(
+                NS_ReleaseOnMainThreadSystemGroup(
                   "nsAsyncResolveRequest::mCallback", mCallback.forget());
             }
 
             if (mProxyInfo) {
-                NS_ReleaseOnMainThread(
+                NS_ReleaseOnMainThreadSystemGroup(
                   "nsAsyncResolveRequest::mProxyInfo", mProxyInfo.forget());
             }
 
             if (mXPComPPS) {
-                NS_ReleaseOnMainThread(
+                NS_ReleaseOnMainThreadSystemGroup(
                   "nsAsyncResolveRequest::mXPComPPS", mXPComPPS.forget());
             }
         }
@@ -366,7 +367,7 @@ private:
     ~AsyncGetPACURIRequest()
     {
         MOZ_ASSERT(NS_IsMainThread() == mIsMainThreadOnly);
-        NS_ReleaseOnMainThread(
+        NS_ReleaseOnMainThreadSystemGroup(
           "AsyncGetPACURIRequest::mServiceHolder", mServiceHolder.forget());
     }
 
@@ -1415,19 +1416,12 @@ nsProtocolProxyService::AsyncResolve(nsISupports *channelOrURI, uint32_t flags,
             return NS_ERROR_NO_INTERFACE;
         }
 
-        nsCOMPtr<nsIScriptSecurityManager> secMan(
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
-        NS_ENSURE_SUCCESS(rv, rv);
-        nsCOMPtr<nsIPrincipal> systemPrincipal;
-        rv = secMan->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
-        NS_ENSURE_SUCCESS(rv, rv);
-
         // creating a temporary channel from the URI which is not
         // used to perform any network loads, hence its safe to
         // use systemPrincipal as the loadingPrincipal.
         rv = NS_NewChannel(getter_AddRefs(channel),
                            uri,
-                           systemPrincipal,
+                           nsContentUtils::GetSystemPrincipal(),
                            nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                            nsIContentPolicy::TYPE_OTHER);
         NS_ENSURE_SUCCESS(rv, rv);

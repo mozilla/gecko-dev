@@ -16,6 +16,7 @@
 #include "jsapi.h"
 #include "js/Initialization.h"
 #include "mozilla/UniquePtrExtensions.h"
+#include "ProfileBuffer.h"
 #include "ProfileJSONWriter.h"
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
@@ -164,6 +165,79 @@ TEST(GeckoProfiler, FeaturesAndParams)
 
     // These calls are no-ops.
     profiler_stop();
+    profiler_stop();
+
+    InactiveFeaturesAndParamsCheck();
+  }
+}
+
+TEST(GeckoProfiler, EnsureStarted)
+{
+  InactiveFeaturesAndParamsCheck();
+
+  uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+  const char* filters[] = { "GeckoMain", "Compositor" };
+  {
+    // Inactive -> Active
+    profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                            features, filters, MOZ_ARRAY_LENGTH(filters));
+
+    ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                      features, filters, MOZ_ARRAY_LENGTH(filters));
+  }
+
+  {
+    // Active -> Active with same settings
+
+    // First, write some samples into the buffer.
+    PR_Sleep(PR_MillisecondsToInterval(500));
+
+    uint32_t currPos1, entries1, generation1;
+    profiler_get_buffer_info(&currPos1, &entries1, &generation1);
+    ASSERT_TRUE(generation1 > 0 || currPos1 > 0);
+
+    // Call profiler_ensure_started with the same settings as before.
+    // This operation must not clear our buffer!
+    profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                            features, filters, MOZ_ARRAY_LENGTH(filters));
+
+    ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                      features, filters, MOZ_ARRAY_LENGTH(filters));
+
+    // Check that our position in the buffer stayed the same or advanced.
+    // In particular, it shouldn't have reverted to the start.
+    uint32_t currPos2, entries2, generation2;
+    profiler_get_buffer_info(&currPos2, &entries2, &generation2);
+    ASSERT_TRUE(generation2 >= generation1);
+    ASSERT_TRUE(generation2 > generation1 || currPos2 >= currPos1);
+  }
+
+  {
+    // Active -> Active with *different* settings
+
+    uint32_t currPos1, entries1, generation1;
+    profiler_get_buffer_info(&currPos1, &entries1, &generation1);
+
+    // Call profiler_ensure_started with a different feature set than the one it's
+    // currently running with. This is supposed to stop and restart the
+    // profiler, thereby discarding the buffer contents.
+    uint32_t differentFeatures = features | ProfilerFeature::Leaf;
+    profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                            differentFeatures,
+                            filters, MOZ_ARRAY_LENGTH(filters));
+
+    ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                      differentFeatures, filters, MOZ_ARRAY_LENGTH(filters));
+
+    uint32_t currPos2, entries2, generation2;
+    profiler_get_buffer_info(&currPos2, &entries2, &generation2);
+    ASSERT_TRUE(generation2 <= generation1);
+    ASSERT_TRUE(generation2 < generation1 || currPos2 < currPos1);
+  }
+
+  {
+    // Active -> Inactive
+
     profiler_stop();
 
     InactiveFeaturesAndParamsCheck();
@@ -406,6 +480,24 @@ TEST(GeckoProfiler, Markers)
     profiler_add_marker("M5", MakeUnique<GTestMarkerPayload>(i));
   }
 
+  // Create two strings: one that is the maximum allowed length, and one that
+  // is one char longer.
+  static const size_t kMax = ProfileBuffer::kMaxFrameKeyLength;
+  UniquePtr<char[]> okstr1 = MakeUnique<char[]>(kMax);
+  UniquePtr<char[]> okstr2 = MakeUnique<char[]>(kMax);
+  UniquePtr<char[]> longstr = MakeUnique<char[]>(kMax + 1);
+  for (size_t i = 0; i < kMax; i++) {
+    okstr1[i] = 'a';
+    okstr2[i] = 'b';
+    longstr[i] = 'c';
+  }
+  okstr1[kMax - 1] = '\0';
+  okstr2[kMax - 1] = '\0';
+  longstr[kMax] = '\0';
+  AUTO_PROFILER_LABEL_DYNAMIC("", CSS, okstr1.get());
+  AUTO_PROFILER_LABEL_DYNAMIC("okstr2", CSS, okstr2.get());
+  AUTO_PROFILER_LABEL_DYNAMIC("", CSS, longstr.get());
+
   // Sleep briefly to ensure a sample is taken and the pending markers are
   // processed.
   PR_Sleep(PR_MillisecondsToInterval(500));
@@ -425,6 +517,17 @@ TEST(GeckoProfiler, Markers)
     SprintfLiteral(buf, "\"gtest-%d\"", i);
     ASSERT_TRUE(strstr(profile.get(), buf));
   }
+
+  // okstr1 should appear as is.
+  ASSERT_TRUE(strstr(profile.get(), okstr1.get()));
+
+  // okstr2 should appear, slightly truncated with "okstr2 " in front of it.
+  // (Nb: this only checks the front part of the marker string.)
+  ASSERT_TRUE(strstr(profile.get(), "okstr2 bbbbbbbbb"));
+
+  // longstr should be replaced with "(too long)".
+  ASSERT_TRUE(!strstr(profile.get(), longstr.get()));
+  ASSERT_TRUE(strstr(profile.get(), "(too long)"));
 
   profiler_stop();
 
@@ -634,3 +737,70 @@ TEST(GeckoProfiler, Bug1355807)
 
   profiler_stop();
 }
+
+class GTestStackCollector final : public ProfilerStackCollector
+{
+public:
+  GTestStackCollector()
+    : mSetIsMainThread(0)
+    , mFrames(0)
+  {}
+
+  virtual void SetIsMainThread() { mSetIsMainThread++; }
+
+  virtual void CollectNativeLeafAddr(void* aAddr) { mFrames++; }
+  virtual void CollectJitReturnAddr(void* aAddr) { mFrames++; }
+  virtual void CollectCodeLocation(
+    const char* aLabel, const char* aStr, int aLineNumber,
+    const mozilla::Maybe<js::ProfileEntry::Category>& aCategory) { mFrames++; }
+
+  int mSetIsMainThread;
+  int mFrames;
+};
+
+void DoSuspendAndSample(int aTid, nsIThread* aThread)
+{
+  aThread->Dispatch(
+    NS_NewRunnableFunction(
+      "GeckoProfiler_SuspendAndSample_Test::TestBody",
+      [&]() {
+        uint32_t features = ProfilerFeature::Leaf;
+        GTestStackCollector collector;
+        profiler_suspend_and_sample_thread(aTid, features, collector,
+                                           /* sampleNative = */ true);
+
+        ASSERT_TRUE(collector.mSetIsMainThread == 1);
+        ASSERT_TRUE(collector.mFrames > 5); // approximate; must be > 0
+      }),
+    NS_DISPATCH_SYNC);
+}
+
+TEST(GeckoProfiler, SuspendAndSample)
+{
+  nsCOMPtr<nsIThread> thread;
+  nsresult rv = NS_NewNamedThread("GeckoProfGTest", getter_AddRefs(thread));
+  ASSERT_TRUE(NS_SUCCEEDED(rv));
+
+  int tid = Thread::GetCurrentId();
+
+  ASSERT_TRUE(!profiler_is_active());
+
+  // Suspend and sample while the profiler is inactive.
+  DoSuspendAndSample(tid, thread);
+
+  uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
+  const char* filters[] = { "GeckoMain", "Compositor" };
+
+  profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                 features, filters, MOZ_ARRAY_LENGTH(filters));
+
+  ASSERT_TRUE(profiler_is_active());
+
+  // Suspend and sample while the profiler is active.
+  DoSuspendAndSample(tid, thread);
+
+  profiler_stop();
+
+  ASSERT_TRUE(!profiler_is_active());
+}
+

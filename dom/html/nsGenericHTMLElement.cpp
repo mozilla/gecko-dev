@@ -231,13 +231,6 @@ nsGenericHTMLElement::CopyInnerTo(Element* aDst, bool aPreallocateChildren)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsGenericHTMLElement::GetDataset(nsISupports** aDataset)
-{
-  *aDataset = Dataset().take();
-  return NS_OK;
-}
-
 static const nsAttrValue::EnumTable kDirTable[] = {
   { "ltr", eDir_LTR },
   { "rtl", eDir_RTL },
@@ -382,15 +375,6 @@ nsGenericHTMLElement::GetOffsetRect(CSSIntRect& aRect)
   return offsetParent ? offsetParent->AsElement() : nullptr;
 }
 
-NS_IMETHODIMP
-nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
-                                         const nsAString& aText)
-{
-  ErrorResult rv;
-  Element::InsertAdjacentHTML(aPosition, aText, rv);
-  return rv.StealNSResult();
-}
-
 bool
 nsGenericHTMLElement::Spellcheck()
 {
@@ -503,7 +487,7 @@ nsGenericHTMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   if (aDocument) {
     RegAccessKey();
-    if (HasName()) {
+    if (CanHaveName(NodeInfo()->NameAtom()) && HasName()) {
       aDocument->
         AddToNameTable(this, GetParsedAttr(nsGkAtoms::name)->GetAtomValue());
     }
@@ -519,7 +503,7 @@ nsGenericHTMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   // We need to consider a labels element is moved to another subtree
   // with different root, it needs to update labels list and its root
   // as well.
-  nsDOMSlots* slots = GetExistingDOMSlots();
+  nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
   if (slots && slots->mLabelsList) {
     slots->mLabelsList->MaybeResetRoot(SubtreeRoot());
   }
@@ -546,7 +530,7 @@ nsGenericHTMLElement::UnbindFromTree(bool aDeep, bool aNullParent)
 
   // We need to consider a labels element is removed from tree,
   // it needs to update labels list and its root as well.
-  nsDOMSlots* slots = GetExistingDOMSlots();
+  nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
   if (slots && slots->mLabelsList) {
     slots->mLabelsList->MaybeResetRoot(SubtreeRoot());
   }
@@ -792,15 +776,16 @@ nsGenericHTMLElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
         RegAccessKey();
       }
     } else if (aName == nsGkAtoms::name) {
-      if (aValue && !aValue->Equals(EmptyString(), eIgnoreCase) &&
-          CanHaveName(NodeInfo()->NameAtom())) {
+      if (aValue && !aValue->Equals(EmptyString(), eIgnoreCase)) {
         // This may not be quite right because we can have subclass code run
         // before here. But in practice subclasses don't care about this flag,
         // and in particular selector matching does not care.  Otherwise we'd
         // want to handle it like we handle id attributes (in PreIdMaybeChange
         // and PostIdMaybeChange).
         SetHasName();
-        AddToNameTable(aValue->GetAtomValue());
+        if (CanHaveName(NodeInfo()->NameAtom())) {
+          AddToNameTable(aValue->GetAtomValue());
+        }
       }
     }
   }
@@ -1684,14 +1669,6 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aU
   return true;
 }
 
-/* static */ bool
-nsGenericHTMLElement::IsScrollGrabAllowed(JSContext*, JSObject*)
-{
-  // Only allow scroll grabbing in chrome
-  nsIPrincipal* prin = nsContentUtils::SubjectPrincipal();
-  return nsContentUtils::IsSystemPrincipal(prin);
-}
-
 HTMLMenuElement*
 nsGenericHTMLElement::GetContextMenu() const
 {
@@ -1705,13 +1682,6 @@ nsGenericHTMLElement::GetContextMenu() const
     }
   }
   return nullptr;
-}
-
-NS_IMETHODIMP
-nsGenericHTMLElement::GetContextMenu(nsIDOMHTMLMenuElement** aContextMenu)
-{
-  NS_IF_ADDREF(*aContextMenu = GetContextMenu());
-  return NS_OK;
 }
 
 bool
@@ -1733,7 +1703,7 @@ nsGenericHTMLElement::Labels()
 {
   MOZ_ASSERT(IsLabelable(),
              "Labels() only allow labelable elements to use it.");
-  nsDOMSlots* slots = DOMSlots();
+  nsExtendedDOMSlots* slots = ExtendedDOMSlots();
 
   if (!slots->mLabelsList) {
     slots->mLabelsList = new nsLabelsNodeList(SubtreeRoot(), MatchLabelsElement,
@@ -2122,8 +2092,7 @@ nsGenericHTMLFormElement::PreHandleEvent(EventChainVisitor& aVisitor)
 bool
 nsGenericHTMLFormElement::IsDisabled() const
 {
-  return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) ||
-         (mFieldSet && mFieldSet->IsDisabled());
+  return State().HasState(NS_EVENT_STATE_DISABLED);
 }
 
 void
@@ -2167,17 +2136,6 @@ nsGenericHTMLFormElement::IntrinsicState() const
   // AfterSetAttr too.  And add them to AfterSetAttr for all subclasses that
   // implement IntrinsicState() and are affected by that attribute.
   EventStates state = nsGenericHTMLElement::IntrinsicState();
-
-  if (CanBeDisabled()) {
-    // :enabled/:disabled
-    if (IsDisabled()) {
-      state |= NS_EVENT_STATE_DISABLED;
-      state &= ~NS_EVENT_STATE_ENABLED;
-    } else {
-      state &= ~NS_EVENT_STATE_DISABLED;
-      state |= NS_EVENT_STATE_ENABLED;
-    }
-  }
 
   if (mForm && mForm->IsDefaultSubmitElement(this)) {
       NS_ASSERTION(IsSubmitControl(),
@@ -2440,10 +2398,37 @@ nsGenericHTMLFormElement::UpdateFieldSet(bool aNotify)
   }
 }
 
+void nsGenericHTMLFormElement::UpdateDisabledState(bool aNotify)
+{
+  if (!CanBeDisabled()) {
+    return;
+  }
+
+  bool isDisabled = HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
+
+  if (!isDisabled && mFieldSet) {
+    isDisabled = mFieldSet->IsDisabled();
+  }
+
+  EventStates disabledStates;
+  if (isDisabled) {
+    disabledStates |= NS_EVENT_STATE_DISABLED;
+  } else {
+    disabledStates |= NS_EVENT_STATE_ENABLED;
+  }
+
+  EventStates oldDisabledStates = State() & DISABLED_STATES;
+  EventStates changedStates = disabledStates ^ oldDisabledStates;
+
+  if (!changedStates.IsEmpty()) {
+    ToggleStates(changedStates, aNotify);
+  }
+}
+
 void
 nsGenericHTMLFormElement::FieldSetDisabledChanged(bool aNotify)
 {
-  UpdateState(aNotify);
+  UpdateDisabledState(aNotify);
 }
 
 bool
@@ -2457,6 +2442,32 @@ nsGenericHTMLFormElement::IsLabelable() const
          type == NS_FORM_OUTPUT ||
          type == NS_FORM_SELECT ||
          type == NS_FORM_TEXTAREA;
+}
+
+void
+nsGenericHTMLFormElement::GetFormAction(nsString& aValue)
+{
+  uint32_t type = ControlType();
+  if (!(type & NS_FORM_INPUT_ELEMENT) && !(type & NS_FORM_BUTTON_ELEMENT)) {
+    return;
+  }
+
+  if (!GetAttr(kNameSpaceID_None, nsGkAtoms::formaction, aValue) ||
+      aValue.IsEmpty()) {
+    nsIDocument* document = OwnerDoc();
+    nsIURI* docURI = document->GetDocumentURI();
+    if (docURI) {
+      nsAutoCString spec;
+      nsresult rv = docURI->GetSpec(spec);
+      if (NS_FAILED(rv)) {
+        return;
+      }
+
+      CopyUTF8toUTF16(spec, aValue);
+    }
+  } else {
+    GetURIAttr(nsGkAtoms::formaction, nullptr, aValue);
+  }
 }
 
 //----------------------------------------------------------------------

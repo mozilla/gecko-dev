@@ -249,14 +249,6 @@ MutatePrototype(JSContext* cx, HandlePlainObject obj, HandleValue value)
     return SetPrototype(cx, obj, newProto);
 }
 
-bool
-InitProp(JSContext* cx, HandleObject obj, HandlePropertyName name, HandleValue value,
-         jsbytecode* pc)
-{
-    RootedId id(cx, NameToId(name));
-    return InitPropertyOperation(cx, JSOp(*pc), obj, id, value);
-}
-
 template<bool Equal>
 bool
 LooselyEqual(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs, bool* res)
@@ -1625,8 +1617,8 @@ template <bool HandleMissing>
 bool
 GetNativeDataProperty(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp)
 {
-    if (MOZ_UNLIKELY(!obj->isNative()))
-        return false;
+    // Condition checked by caller.
+    MOZ_ASSERT(obj->isNative());
     return GetNativeDataProperty<HandleMissing>(cx, &obj->as<NativeObject>(), NameToId(name), vp);
 }
 
@@ -1674,8 +1666,8 @@ GetNativeDataPropertyByValue(JSContext* cx, JSObject* obj, Value* vp)
 {
     JS::AutoCheckCannotGC nogc;
 
-    if (MOZ_UNLIKELY(!obj->isNative()))
-        return false;
+    // Condition checked by caller.
+    MOZ_ASSERT(obj->isNative());
 
     // vp[0] contains the id, result will be stored in vp[1].
     Value idVal = vp[0];

@@ -202,6 +202,7 @@ pref("dom.gamepad.non_standard_events.enabled", false);
 pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 pref("dom.gamepad.extensions.enabled", true);
+pref("dom.gamepad.haptic_feedback.enabled", true);
 
 // If this is true, TextEventDispatcher dispatches keydown and keyup events
 // even during composition (keypress events are never fired during composition
@@ -217,7 +218,7 @@ pref("dom.compartment_per_addon", true);
 // execution to record the bytecode of the JavaScript function used, and save it
 // in the existing cache entry. On the following loads of the same script, the
 // bytecode would be loaded from the cache instead of being generated once more.
-pref("dom.script_loader.bytecode_cache.enabled", false); // Not tuned yet.
+pref("dom.script_loader.bytecode_cache.enabled", false);
 
 // Ignore the heuristics of the bytecode cache, and always record on the first
 // visit. (used for testing purposes).
@@ -444,10 +445,17 @@ pref("media.decoder-doctor.wmf-disabled-is-failure", false);
 pref("media.decoder-doctor.new-issue-endpoint", "https://webcompat.com/issues/new");
 
 // Whether to suspend decoding of videos in background tabs.
+#ifdef RELEASE_OR_BETA
+pref("media.suspend-bkgnd-video.enabled", false);
+#else
 pref("media.suspend-bkgnd-video.enabled", true);
+#endif
 // Delay, in ms, from time window goes to background to suspending
 // video decoders. Defaults to 10 seconds.
 pref("media.suspend-bkgnd-video.delay-ms", 10000);
+// Resume video decoding when the cursor is hovering on a background tab to
+// reduce the resume latency and improve the user experience.
+pref("media.resume-bkgnd-video-on-tabhover", true);;
 
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
@@ -563,6 +571,9 @@ pref("media.peerconnection.capture_delay", 50);
 pref("media.getusermedia.playout_delay", 50);
 pref("media.navigator.audio.full_duplex", false);
 #endif
+// Use MediaDataDecoder API for WebRTC, this includes hardware acceleration for
+// decoding.
+pref("media.navigator.mediadatadecoder_enabled", false);
 #endif
 
 pref("dom.webaudio.enabled", true);
@@ -594,7 +605,7 @@ pref("media.mediasource.enabled", true);
 
 pref("media.mediasource.mp4.enabled", true);
 
-#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
 pref("media.mediasource.webm.enabled", false);
 #else
 pref("media.mediasource.webm.enabled", true);
@@ -639,7 +650,7 @@ pref("media.decoder.skip-to-next-key-frame.enabled", true);
 
 // Log level for cubeb, the audio input/output system. Valid values are
 // "verbose", "normal" and "" (log disabled).
-pref("media.cubeb.log_level", "");
+pref("media.cubeb.logging_level", "");
 
 // Set to true to force demux/decode warnings to be treated as errors.
 pref("media.playback.warnings-as-errors", false);
@@ -698,9 +709,16 @@ pref("apz.fling_friction", "0.002");
 pref("apz.fling_min_velocity_threshold", "0.5");
 pref("apz.fling_stop_on_tap_threshold", "0.05");
 pref("apz.fling_stopped_threshold", "0.01");
+#ifdef NIGHTLY_BUILD
+pref("apz.frame_delay.enabled", true);
+#else
 pref("apz.frame_delay.enabled", false);
-pref("apz.highlight_checkerboarded_areas", false);
+#endif
+#if defined(NIGHTLY_BUILD) && !defined(MOZ_WIDGET_ANDROID)
+pref("apz.keyboard.enabled", true);
+#else
 pref("apz.keyboard.enabled", false);
+#endif
 pref("apz.max_velocity_inches_per_ms", "-1.0");
 pref("apz.max_velocity_queue_size", 5);
 pref("apz.min_skate_speed", "1.0");
@@ -717,6 +735,7 @@ pref("apz.overscroll.stretch_factor", "0.35");
 pref("apz.paint_skipping.enabled", true);
 // Fetch displayport updates early from the message queue
 pref("apz.peek_messages.enabled", true);
+pref("apz.popups.enabled", false);
 
 // Whether to print the APZC tree for debugging
 pref("apz.printtree", false);
@@ -740,7 +759,7 @@ pref("apz.y_stationary_size_multiplier", "3.5");
 pref("apz.zoom_animation_duration_ms", 250);
 pref("apz.scale_repaint_delay_ms", 500);
 
-#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
 // Mobile prefs
 pref("apz.allow_zooming", true);
 pref("apz.enlarge_displayport_when_clipped", true);
@@ -756,7 +775,7 @@ pref("apz.y_stationary_size_multiplier", "1.5");
 pref("gfx.hidpi.enabled", 2);
 #endif
 
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+#if !defined(MOZ_WIDGET_ANDROID)
 // Use containerless scrolling for now on desktop.
 pref("layout.scroll.root-frame-containers", false);
 #endif
@@ -875,6 +894,8 @@ pref("gfx.webrender.enabled", false);
 pref("gfx.webrender.force-angle", true);
 #endif
 
+pref("gfx.webrender.highlight-painted-layers", false);
+pref("gfx.webrender.layers-free", false);
 pref("gfx.webrender.profiler.enabled", false);
 
 // Whether webrender should be used as much as possible.
@@ -1014,22 +1035,33 @@ pref("toolkit.asyncshutdown.log", false);
 // Enable deprecation warnings.
 pref("devtools.errorconsole.deprecation_warnings", true);
 
+#ifdef NIGHTLY_BUILD
+// Don't show the Browser Toolbox prompt on local builds / nightly
+sticky_pref("devtools.debugger.prompt-connection", false);
+#else
+sticky_pref("devtools.debugger.prompt-connection", true);
+#endif
+
+#ifdef MOZILLA_OFFICIAL
 // Disable debugging chrome
-pref("devtools.chrome.enabled", false);
+sticky_pref("devtools.chrome.enabled", false);
+// Disable remote debugging connections
+sticky_pref("devtools.debugger.remote-enabled", false);
+#else
+// In local builds, enable the browser toolbox by default
+sticky_pref("devtools.chrome.enabled", true);
+sticky_pref("devtools.debugger.remote-enabled", true);
+#endif
+
 
 // Disable remote debugging protocol logging
 pref("devtools.debugger.log", false);
 pref("devtools.debugger.log.verbose", false);
 
-// Disable remote debugging connections
-pref("devtools.debugger.remote-enabled", false);
-
 pref("devtools.debugger.remote-port", 6000);
 pref("devtools.debugger.remote-websocket", false);
 // Force debugger server binding on the loopback interface
 pref("devtools.debugger.force-local", true);
-// Display a prompt when a new connection starts to accept/reject it
-pref("devtools.debugger.prompt-connection", true);
 // Block tools from seeing / interacting with certified apps
 pref("devtools.debugger.forbid-certified-apps", true);
 
@@ -1189,7 +1221,7 @@ pref("print.print_edge_right", 0);
 pref("print.print_edge_bottom", 0);
 
 // Print via the parent process. This is only used when e10s is enabled.
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+#if !defined(MOZ_WIDGET_ANDROID)
 pref("print.print_via_parent", true);
 #else
 pref("print.print_via_parent", false);
@@ -1253,7 +1285,11 @@ pref("dom.min_timeout_value", 4);
 pref("dom.min_background_timeout_value", 1000);
 // Timeout clamp in ms for tracking timeouts we clamp
 // Note that this requires the privacy.trackingprotection.annotate_channels pref to be on in order to have any effect.
+#ifdef NIGHTLY_BUILD
+pref("dom.min_tracking_timeout_value", 10000);
+#else
 pref("dom.min_tracking_timeout_value", 4);
+#endif
 // And for background windows
 // Note that this requires the privacy.trackingprotection.annotate_channels pref to be on in order to have any effect.
 pref("dom.min_tracking_background_timeout_value", 10000);
@@ -1299,8 +1335,8 @@ pref("dom.forms.datetime.others", false);
 // Enable time picker UI. By default, disabled.
 pref("dom.forms.datetime.timepicker", false);
 
-// Support for new @autocomplete values
-pref("dom.forms.autocomplete.experimental", false);
+// Support @autocomplete values for form autofill feature.
+pref("dom.forms.autocomplete.formautofill", false);
 
 // Enable search in <select> dropdowns (more than 40 options)
 pref("dom.forms.selectSearch", false);
@@ -1414,6 +1450,7 @@ pref("javascript.options.discardSystemSource", false);
 // Comment 32 and Bug 613551.
 pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
+pref("javascript.options.mem.nursery.max_kb", -1);
 pref("javascript.options.mem.gc_per_zone", true);
 pref("javascript.options.mem.gc_incremental", true);
 pref("javascript.options.mem.gc_incremental_slice_ms", 5);
@@ -1739,9 +1776,15 @@ pref("network.http.rcwn.cache_queue_priority_threshold", 2);
 // is smaller than this size.
 pref("network.http.rcwn.small_resource_size_kb", 256);
 
+pref("network.http.rcwn.max_wait_before_racing_ms", 500);
+
 // The ratio of the transaction count for the focused window and the count of
 // all available active connections.
 pref("network.http.focused_window_transaction_ratio", "0.9");
+
+// Whether or not we give more priority to active tab.
+// Note that this requires restart for changes to take effect.
+pref("network.http.active_tab_priority", true);
 
 // default values for FTP
 // in a DSCP environment this should be 40 (0x28, or AF11), per RFC-4594,
@@ -2136,6 +2179,10 @@ pref("network.http.throttle.resume-for", 100);
 // response has finished.  Prevents resuming too soon during an active page load
 // at which sub-resource reqeusts quickly come and go.
 pref("network.http.throttle.resume-background-in", 1000);
+
+// Give higher priority to requests resulting from a user interaction event
+// like click-to-play, image fancy-box zoom, navigation.
+pref("network.http.on_click_priority", true);
 
 pref("permissions.default.image",           1); // 1-Accept, 2-Deny, 3-dontAcceptForeign
 
@@ -4579,6 +4626,10 @@ pref("image.http.accept", "*/*");
 // disable.
 pref("image.infer-src-animation.threshold-ms", 2000);
 
+// Whether the network request priority should be adjusted according
+// the layout and view frame position of each particular image.
+pref("image.layout_network_priority", true);
+
 //
 // Image memory management prefs
 //
@@ -4642,6 +4693,7 @@ pref("gl.require-hardware", false);
 pref("gl.multithreaded", true);
 #endif
 pref("gl.ignore-dx-interop2-blacklist", false);
+pref("gl.use-tls-is-current", 0);
 
 pref("webgl.force-enabled", false);
 pref("webgl.disabled", false);
@@ -4668,6 +4720,7 @@ pref("webgl.webgl2-compat-mode", false);
 
 pref("webgl.perf.max-warnings", 0);
 pref("webgl.perf.max-acceptable-fb-status-invals", 0);
+pref("webgl.perf.spew-frame-allocs", true);
 
 pref("webgl.enable-webgl2", true);
 
@@ -4684,10 +4737,6 @@ pref("webgl.dxgl.needs-finish", false);
 #endif
 
 pref("gfx.offscreencanvas.enabled", false);
-
-#ifdef MOZ_WIDGET_GONK
-pref("gfx.gralloc.fence-with-readpixels", false);
-#endif
 
 // Stagefright prefs
 pref("stagefright.force-enabled", false);
@@ -4715,7 +4764,7 @@ pref("network.tcp.keepalive.retry_interval", 1); // seconds
 pref("network.tcp.keepalive.probe_count", 4);
 #endif
 
-pref("network.tcp.tcp_fastopen_enable", false);
+pref("network.tcp.tcp_fastopen_enable", true);
 pref("network.tcp.tcp_fastopen_consecutive_failure_limit", 5);
 
 // Whether to disable acceleration for all widgets.
@@ -4727,8 +4776,8 @@ pref("layers.bench.enabled", false);
 #if defined(XP_WIN)
 pref("layers.gpu-process.enabled", true);
 pref("media.gpu-process-decoder", true);
-#ifdef NIGHTLY_BUILD
 pref("layers.gpu-process.allow-software", true);
+#ifdef NIGHTLY_BUILD
 pref("layers.gpu-process.max_restarts", 3);
 #endif
 #endif
@@ -4748,7 +4797,7 @@ pref("layers.acceleration.force-enabled", false);
 pref("layers.acceleration.draw-fps", false);
 
 // Enable DEAA antialiasing for transformed layers in the compositor
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+#if !defined(MOZ_WIDGET_ANDROID)
 // Desktop prefs
 pref("layers.deaa.enabled", true);
 #else
@@ -4835,6 +4884,9 @@ pref("gfx.direct2d.disabled", false);
 // blacklisting
 pref("gfx.direct2d.force-enabled", false);
 
+pref("gfx.direct3d11.enable-debug-layer", false);
+pref("gfx.direct3d11.break-on-error", false);
+
 pref("layers.prefer-opengl", false);
 #endif
 
@@ -4856,9 +4908,6 @@ pref("layers.force-active", false);
 // Never use gralloc surfaces, even when they're available on this
 // platform and are the optimal surface type.
 pref("layers.gralloc.disable", false);
-
-pref("webrender.highlight-painted-layers", false);
-pref("gfx.webrender.layers-free", false);
 
 // Enable/Disable the geolocation API for content
 pref("geo.enabled", true);
@@ -4908,8 +4957,6 @@ pref("extensions.webextensions.themes.icons.enabled", false);
 pref("extensions.webextensions.remote", false);
 // Whether or not the moz-extension resource loads are remoted
 pref("extensions.webextensions.protocol.remote", true);
-
-pref("layers.popups.compositing.enabled", false);
 
 // Report Site Issue button
 pref("extensions.webcompat-reporter.newIssueEndpoint", "https://webcompat.com/issues/new");
@@ -5079,7 +5126,7 @@ pref("layout.css.expensive-style-struct-assertions.enabled", false);
 // enable JS dump() function.
 pref("browser.dom.window.dump.enabled", false);
 
-#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
 // Network Information API
 pref("dom.netinfo.enabled", true);
 #else
@@ -5177,11 +5224,33 @@ pref("dom.vr.controller_trigger_threshold", "0.1");
 // result in a non-responsive browser in the VR headset.
 pref("dom.vr.navigation.timeout", 5000);
 // Oculus device
+#if defined(HAVE_64BIT_BUILD)
+// We are only enabling WebVR by default on 64-bit builds (Bug 1384459)
 pref("dom.vr.oculus.enabled", true);
+#else
+pref("dom.vr.oculus.enabled", false);
+#endif
+// Minimum number of milliseconds after content has stopped VR presentation
+// before the Oculus session is re-initialized to an invisible / tracking
+// only mode.  If this value is too high, users will need to wait longer
+// after stopping WebVR presentation before automatically returning to the
+// Oculus home interface.  (They can immediately return to the Oculus Home
+// interface through the Oculus HUD without waiting this duration)
+// If this value is too low, the Oculus Home interface may be visible
+// momentarily during VR link navigation.
+pref("dom.vr.oculus.present.timeout", 10000);
+// Minimum number of milliseconds that the browser will wait before
+// reloading the Oculus OVR library after seeing a "ShouldQuit" flag set.
+// Oculus requests that we shut down and unload the OVR library, by setting
+// a "ShouldQuit" flag.  To ensure that we don't interfere with
+// Oculus software auto-updates, we will not attempt to re-load the
+// OVR library until this timeout has elapsed.
+pref("dom.vr.oculus.quit.timeout", 30000);
 // OSVR device
 pref("dom.vr.osvr.enabled", false);
 // OpenVR device
-#ifdef XP_WIN
+#if defined(XP_WIN) && defined(HAVE_64BIT_BUILD)
+// We are only enabling WebVR by default on 64-bit builds (Bug 1384459)
 pref("dom.vr.openvr.enabled", true);
 #else
 // See Bug 1310663 (Linux) and Bug 1310665 (macOS)
@@ -5277,9 +5346,9 @@ pref("urlclassifier.gethashnoise", 4);
 // Gethash timeout for Safebrowsing.
 pref("urlclassifier.gethash.timeout_ms", 5000);
 // Update server response timeout for Safebrowsing.
-pref("urlclassifier.update.response_timeout_ms", 15000);
+pref("urlclassifier.update.response_timeout_ms", 30000);
 // Download update timeout for Safebrowsing.
-pref("urlclassifier.update.timeout_ms", 60000);
+pref("urlclassifier.update.timeout_ms", 90000);
 
 // Name of the about: page contributed by safebrowsing to handle display of error
 // pages on phishing/malware hits.  (bug 399233)
@@ -5309,7 +5378,8 @@ pref("browser.safebrowsing.provider.google.gethashURL", "https://safebrowsing.go
 pref("browser.safebrowsing.provider.google.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
 pref("browser.safebrowsing.provider.google.reportPhishMistakeURL", "https://%LOCALE%.phish-error.mozilla.com/?hl=%LOCALE%&url=");
 pref("browser.safebrowsing.provider.google.reportMalwareMistakeURL", "https://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%&url=");
-
+pref("browser.safebrowsing.provider.google.advisoryURL", "https://developers.google.com/safe-browsing/v4/advisory");
+pref("browser.safebrowsing.provider.google.advisoryName", "Google Safe Browsing.");
 
 // Prefs for v4.
 pref("browser.safebrowsing.provider.google4.pver", "4");
@@ -5319,6 +5389,8 @@ pref("browser.safebrowsing.provider.google4.gethashURL", "https://safebrowsing.g
 pref("browser.safebrowsing.provider.google4.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
 pref("browser.safebrowsing.provider.google4.reportPhishMistakeURL", "https://%LOCALE%.phish-error.mozilla.com/?hl=%LOCALE%&url=");
 pref("browser.safebrowsing.provider.google4.reportMalwareMistakeURL", "https://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%&url=");
+pref("browser.safebrowsing.provider.google4.advisoryURL", "https://developers.google.com/safe-browsing/v4/advisory");
+pref("browser.safebrowsing.provider.google4.advisoryName", "Google Safe Browsing.");
 
 pref("browser.safebrowsing.reportPhishURL", "https://%LOCALE%.phish-report.mozilla.com/?hl=%LOCALE%&url=");
 
@@ -5431,15 +5503,6 @@ pref("camera.control.face_detection.enabled", true);
 // SW Cache API
 pref("dom.caches.enabled", true);
 
-#ifdef MOZ_WIDGET_GONK
-// Empirically, this is the value returned by hal::GetTotalSystemMemory()
-// when Flame's memory is limited to 512MiB. If the camera stack determines
-// it is running on a low memory platform, features that can be reliably
-// supported will be disabled. This threshold can be adjusted to suit other
-// platforms; and set to 0 to disable the low-memory check altogether.
-pref("camera.control.low_memory_thresholdMB", 404);
-#endif
-
 // UDPSocket API
 pref("dom.udpsocket.enabled", false);
 
@@ -5486,7 +5549,6 @@ pref("browser.search.geoip.timeout", 3000);
 pref("browser.search.official", true);
 #endif
 
-#ifndef MOZ_WIDGET_GONK
 // GMPInstallManager prefs
 
 // User-settable override to media.gmp-manager.url for testing purposes.
@@ -5522,7 +5584,6 @@ pref("media.gmp-manager.certs.1.issuerName", "CN=DigiCert SHA2 Secure Server CA,
 pref("media.gmp-manager.certs.1.commonName", "aus5.mozilla.org");
 pref("media.gmp-manager.certs.2.issuerName", "CN=thawte SSL CA - G2,O=\"thawte, Inc.\",C=US");
 pref("media.gmp-manager.certs.2.commonName", "aus5.mozilla.org");
-#endif
 
 // Whether or not to perform reader mode article parsing on page load.
 // If this pref is disabled, we will never show a reader mode icon in the toolbar.
@@ -5601,15 +5662,7 @@ pref("dom.secureelement.enabled", false);
 // and compositionend events.
 pref("dom.compositionevent.allow_control_characters", false);
 
-#ifdef MOZ_WIDGET_GONK
-// Bug 1154053: Serialize B2G memory reports; smaller devices are
-// usually overcommitted on memory by using zRAM, so memory reporting
-// causes memory pressure from uncompressing cold heap memory.
-pref("memory.report_concurrency", 1);
-#else
-// Desktop probably doesn't have swapped-out children like that.
 pref("memory.report_concurrency", 10);
-#endif
 
 // Add Mozilla AudioChannel APIs.
 pref("media.useAudioChannelAPI", false);
@@ -5635,9 +5688,6 @@ pref("dom.input.fallbackUploadDir", "");
 // Turn rewriting of youtube embeds on/off
 pref("plugins.rewrite_youtube_embeds", true);
 
-// Don't hide Flash from navigator.plugins when it is click-to-activate
-pref("plugins.navigator_hide_disabled_flash", false);
-
 // Disable browser frames by default
 pref("dom.mozBrowserFramesEnabled", false);
 
@@ -5650,13 +5700,7 @@ pref("dom.audiochannel.audioCompeting.allAgents", false);
 // Default media volume
 pref("media.default_volume", "1.0");
 
-// Once bug 1276272 is resolved, we will trun this preference to default ON in
-// non-release channels.
-#ifdef RELEASE_OR_BETA
-pref("media.seekToNextFrame.enabled", false);
-#else
 pref("media.seekToNextFrame.enabled", true);
-#endif
 
 // return the maximum number of cores that navigator.hardwareCurrency returns
 pref("dom.maxHardwareConcurrency", 16);
@@ -5666,7 +5710,7 @@ pref("dom.maxHardwareConcurrency", 16);
 pref("osfile.reset_worker_delay", 30000);
 #endif
 
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+#if !defined(MOZ_WIDGET_ANDROID)
 pref("dom.webkitBlink.dirPicker.enabled", true);
 pref("dom.webkitBlink.filesystem.enabled", true);
 #endif
@@ -5714,6 +5758,12 @@ pref("security.mixed_content.hsts_priming_request_timeout", 2000);
 // behavior of Firefox.
 pref("security.data_uri.unique_opaque_origin", false);
 
+// TODO: Bug 1380959: Block toplevel data: URI navigations
+// If true, all toplevel data: URI navigations will be blocked.
+// Please note that manually entering a data: URI in the
+// URL-Bar will not be blocked when flipping this pref.
+pref("security.data_uri.block_toplevel_data_uri_navigations", false);
+
 // Disable Storage api in release builds.
 #if defined(NIGHTLY_BUILD) && !defined(MOZ_WIDGET_ANDROID)
 pref("dom.storageManager.enabled", true);
@@ -5759,13 +5809,14 @@ pref("fuzzing.enabled", false);
 #if defined(XP_WIN)
 #if defined(NIGHTLY_BUILD)
 pref("layers.mlgpu.dev-enabled", true);
-#else
-pref("layers.mlgpu.dev-enabled", false);
-#endif
 
 // Both this and the master "enabled" pref must be on to use Advanced Layers
 // on Windows 7.
+pref("layers.mlgpu.enable-on-windows7", true);
+#else
+pref("layers.mlgpu.dev-enabled", false);
 pref("layers.mlgpu.enable-on-windows7", false);
+#endif
 #endif
 
 // Set advanced layers preferences here to have them show up in about:config or

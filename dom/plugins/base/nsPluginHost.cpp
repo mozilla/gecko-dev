@@ -320,7 +320,8 @@ NS_IMPL_ISUPPORTS(nsPluginHost,
                   nsIPluginHost,
                   nsIObserver,
                   nsITimerCallback,
-                  nsISupportsWeakReference)
+                  nsISupportsWeakReference,
+                  nsINamed)
 
 already_AddRefed<nsPluginHost>
 nsPluginHost::GetInst()
@@ -2365,6 +2366,7 @@ nsPluginHost::SetPluginsInContent(uint32_t aPluginEpoch,
       // Don't add the same plugin again.
       if (nsPluginTag* existing = PluginWithId(tag.id())) {
         UpdateInMemoryPluginInfo(existing);
+        existing->SetBlocklistState(tag.blocklistState());
         continue;
       }
 
@@ -2382,7 +2384,8 @@ nsPluginHost::SetPluginsInContent(uint32_t aPluginEpoch,
                                                tag.supportsAsyncRender(),
                                                tag.lastModifiedTime(),
                                                tag.isFromExtension(),
-                                               tag.sandboxLevel());
+                                               tag.sandboxLevel(),
+                                               tag.blocklistState());
       AddPluginTag(pluginTag);
     }
 
@@ -2611,6 +2614,11 @@ nsPluginHost::SendPluginsToContent()
     /// to be more sane and avoid this dance
     nsPluginTag *tag = static_cast<nsPluginTag *>(basetag.get());
 
+    uint32_t blocklistState;
+    if (NS_WARN_IF(NS_FAILED(tag->GetBlocklistState(&blocklistState)))) {
+      return NS_ERROR_FAILURE;
+    }
+
     pluginTags.AppendElement(PluginTag(tag->mId,
                                        tag->Name(),
                                        tag->Description(),
@@ -2624,7 +2632,8 @@ nsPluginHost::SendPluginsToContent()
                                        tag->Version(),
                                        tag->mLastModifiedTime,
                                        tag->IsFromExtension(),
-                                       tag->mSandboxLevel));
+                                       tag->mSandboxLevel,
+                                       blocklistState));
   }
   nsTArray<dom::ContentParent*> parents;
   dom::ContentParent::GetAll(parents);
@@ -3489,6 +3498,13 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
       plugin->InvalidateBlocklistState();
       plugin = plugin->mNext;
     }
+    // We update blocklists asynchronously by just sending a new plugin list to
+    // content.
+    if (XRE_IsParentProcess()) {
+      // We'll need to repack our tags and send them to content again.
+      IncrementChromeEpoch();
+      SendPluginsToContent();
+    }
   }
 #ifdef MOZ_WIDGET_ANDROID
   if (!strcmp("application-background", aTopic)) {
@@ -3717,6 +3733,13 @@ NS_IMETHODIMP nsPluginHost::Notify(nsITimer* timer)
   }
 
   return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsPluginHost::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("nsPluginHost");
+  return NS_OK;
 }
 
 #ifdef XP_WIN

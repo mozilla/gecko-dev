@@ -222,7 +222,10 @@ AboutRedirector::GetURIFlags(nsIURI *aURI, uint32_t *result)
       // of the normal about:newtab entry in kRedirMap.
       if (name.EqualsLiteral("newtab")) {
         if (sActivityStreamEnabled) {
-          *result = redir.flags | nsIAboutModule::URI_MUST_LOAD_IN_CHILD;
+          *result = redir.flags |
+            nsIAboutModule::URI_MUST_LOAD_IN_CHILD |
+            nsIAboutModule::ENABLE_INDEXED_DB |
+            nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT;
           return NS_OK;
         }
       }

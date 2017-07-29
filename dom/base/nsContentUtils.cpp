@@ -290,7 +290,7 @@ bool nsContentUtils::sIsFrameTimingPrefEnabled = false;
 bool nsContentUtils::sIsPerformanceTimingEnabled = false;
 bool nsContentUtils::sIsResourceTimingEnabled = false;
 bool nsContentUtils::sIsUserTimingLoggingEnabled = false;
-bool nsContentUtils::sIsExperimentalAutocompleteEnabled = false;
+bool nsContentUtils::sIsFormAutofillAutocompleteEnabled = false;
 bool nsContentUtils::sIsWebComponentsEnabled = false;
 bool nsContentUtils::sIsCustomElementsEnabled = false;
 bool nsContentUtils::sSendPerformanceTimingNotifications = false;
@@ -693,8 +693,8 @@ nsContentUtils::Init()
   Preferences::AddBoolVarCache(&sIsFrameTimingPrefEnabled,
                                "dom.enable_frame_timing", false);
 
-  Preferences::AddBoolVarCache(&sIsExperimentalAutocompleteEnabled,
-                               "dom.forms.autocomplete.experimental", false);
+  Preferences::AddBoolVarCache(&sIsFormAutofillAutocompleteEnabled,
+                               "dom.forms.autocomplete.formautofill", false);
 
   Preferences::AddBoolVarCache(&sIsWebComponentsEnabled,
                                "dom.webcomponents.enabled", false);
@@ -871,12 +871,12 @@ nsContentUtils::InitializeModifierStrings()
   nsXPIDLString modifierSeparator;
   if (bundle) {
     //macs use symbols for each modifier key, so fetch each from the bundle, which also covers i18n
-    bundle->GetStringFromName(u"VK_SHIFT", getter_Copies(shiftModifier));
-    bundle->GetStringFromName(u"VK_META", getter_Copies(metaModifier));
-    bundle->GetStringFromName(u"VK_WIN", getter_Copies(osModifier));
-    bundle->GetStringFromName(u"VK_ALT", getter_Copies(altModifier));
-    bundle->GetStringFromName(u"VK_CONTROL", getter_Copies(controlModifier));
-    bundle->GetStringFromName(u"MODIFIER_SEPARATOR", getter_Copies(modifierSeparator));
+    bundle->GetStringFromName("VK_SHIFT", getter_Copies(shiftModifier));
+    bundle->GetStringFromName("VK_META", getter_Copies(metaModifier));
+    bundle->GetStringFromName("VK_WIN", getter_Copies(osModifier));
+    bundle->GetStringFromName("VK_ALT", getter_Copies(altModifier));
+    bundle->GetStringFromName("VK_CONTROL", getter_Copies(controlModifier));
+    bundle->GetStringFromName("MODIFIER_SEPARATOR", getter_Copies(modifierSeparator));
   }
   //if any of these don't exist, we get  an empty string
   sShiftText = new nsString(shiftModifier);
@@ -1184,9 +1184,9 @@ nsContentUtils::InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrV
       return eAutocompleteAttrState_Valid;
     }
 
-    // Only allow on/off if experimental @autocomplete values aren't enabled
+    // Only allow on/off if form autofill @autocomplete values aren't enabled
     // and it doesn't grant all valid values.
-    if (!sIsExperimentalAutocompleteEnabled && !aGrantAllValidValue) {
+    if (!sIsFormAutofillAutocompleteEnabled && !aGrantAllValidValue) {
       return eAutocompleteAttrState_Invalid;
     }
 
@@ -1196,9 +1196,9 @@ nsContentUtils::InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrV
     }
     category = eAutocompleteCategory_NORMAL;
   } else { // Check if the last token is of the contact category instead.
-    // Only allow on/off if experimental @autocomplete values aren't enabled
+    // Only allow on/off if form autofill @autocomplete values aren't enabled
     // and it doesn't grant all valid values.
-    if (!sIsExperimentalAutocompleteEnabled && !aGrantAllValidValue) {
+    if (!sIsFormAutofillAutocompleteEnabled && !aGrantAllValidValue) {
       return eAutocompleteAttrState_Invalid;
     }
 
@@ -2774,6 +2774,9 @@ nsContentUtils::ComparePoints(nsINode* aParent1, int32_t aOffset1,
                               bool* aDisconnected)
 {
   if (aParent1 == aParent2) {
+    // XXX This is odd.  aOffset1 and/or aOffset2 may be -1, e.g., it's result
+    //     of nsINode::IndexOf(), but this compares such invalid offset with
+    //     valid offset.
     return aOffset1 < aOffset2 ? -1 :
            aOffset1 > aOffset2 ? 1 :
            0;
@@ -2824,10 +2827,14 @@ nsContentUtils::ComparePoints(nsINode* aParent1, int32_t aOffset1,
 
   if (!pos1) {
     nsINode* child2 = parents2.ElementAt(--pos2);
+    // XXX aOffset1 may be -1 as mentioned above.  So, why does this return
+    //     it's *before* of the valid DOM point?
     return aOffset1 <= parent->IndexOf(child2) ? -1 : 1;
   }
 
   nsINode* child1 = parents1.ElementAt(--pos1);
+  // XXX aOffset2 may be -1 as mentioned above.  So, why does this return it's
+  //     *after* of the valid DOM point?
   return parent->IndexOf(child1) < aOffset2 ? -1 : 1;
 }
 
@@ -3529,8 +3536,7 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
                                  EmptyCString(), //mime guess
                                  nullptr,         //extra
                                  &decision,
-                                 GetContentPolicy(),
-                                 sSecurityManager);
+                                 GetContentPolicy());
 
   if (aImageBlockingStatus) {
     *aImageBlockingStatus =
@@ -3589,7 +3595,14 @@ nsContentUtils::IsInPrivateBrowsing(nsIDocument* aDoc)
 
   nsCOMPtr<nsILoadGroup> loadGroup = aDoc->GetDocumentLoadGroup();
   if (loadGroup) {
-    return IsInPrivateBrowsing(loadGroup);
+    nsCOMPtr<nsIInterfaceRequestor> callbacks;
+    loadGroup->GetNotificationCallbacks(getter_AddRefs(callbacks));
+    if (callbacks) {
+      nsCOMPtr<nsILoadContext> loadContext = do_GetInterface(callbacks);
+      if (loadContext) {
+        return loadContext->UsePrivateBrowsing();
+      }
+    }
   }
 
   nsCOMPtr<nsIChannel> channel = aDoc->GetChannel();
@@ -3756,11 +3769,12 @@ nsContentUtils::GetImageFromContent(nsIImageLoadingContent* aContent,
 
 //static
 already_AddRefed<imgRequestProxy>
-nsContentUtils::GetStaticRequest(imgRequestProxy* aRequest)
+nsContentUtils::GetStaticRequest(nsIDocument* aLoadingDocument,
+                                 imgRequestProxy* aRequest)
 {
   NS_ENSURE_TRUE(aRequest, nullptr);
   RefPtr<imgRequestProxy> retval;
-  aRequest->GetStaticRequest(getter_AddRefs(retval));
+  aRequest->GetStaticRequest(aLoadingDocument, getter_AddRefs(retval));
   return retval.forget();
 }
 
@@ -3950,8 +3964,7 @@ nsresult nsContentUtils::GetLocalizedString(PropertiesFile aFile,
   NS_ENSURE_SUCCESS(rv, rv);
   nsIStringBundle *bundle = sStringBundles[aFile];
 
-  return bundle->GetStringFromName(NS_ConvertASCIItoUTF16(aKey).get(),
-                                   getter_Copies(aResult));
+  return bundle->GetStringFromName(aKey, getter_Copies(aResult));
 }
 
 /* static */
@@ -3966,11 +3979,10 @@ nsresult nsContentUtils::FormatLocalizedString(PropertiesFile aFile,
   nsIStringBundle *bundle = sStringBundles[aFile];
 
   if (!aParams || !aParamsLength) {
-    return bundle->GetStringFromName(NS_ConvertASCIItoUTF16(aKey).get(),
-                                     getter_Copies(aResult));
+    return bundle->GetStringFromName(aKey, getter_Copies(aResult));
   }
 
-  return bundle->FormatStringFromName(NS_ConvertASCIItoUTF16(aKey).get(),
+  return bundle->FormatStringFromName(aKey,
                                       aParams, aParamsLength,
                                       getter_Copies(aResult));
 }
@@ -6605,7 +6617,8 @@ nsContentUtils::DispatchXULCommand(nsIContent* aTarget,
                                    bool aCtrl,
                                    bool aAlt,
                                    bool aShift,
-                                   bool aMeta)
+                                   bool aMeta,
+                                   uint16_t aInputSource)
 {
   NS_ENSURE_STATE(aTarget);
   nsIDocument* doc = aTarget->OwnerDoc();
@@ -6618,7 +6631,7 @@ nsContentUtils::DispatchXULCommand(nsIContent* aTarget,
                                                            nullptr);
   xulCommand->InitCommandEvent(NS_LITERAL_STRING("command"), true, true,
                                doc->GetInnerWindow(), 0, aCtrl, aAlt, aShift,
-                               aMeta, aSourceEvent);
+                               aMeta, aSourceEvent, aInputSource);
 
   if (aShell) {
     nsEventStatus status = nsEventStatus_eIgnore;
@@ -6851,8 +6864,10 @@ nsContentUtils::IsUserFocusIgnored(nsINode* aNode)
 bool
 nsContentUtils::HasScrollgrab(nsIContent* aContent)
 {
-  nsGenericHTMLElement* element = nsGenericHTMLElement::FromContentOrNull(aContent);
-  return element && element->Scrollgrab();
+  // If we ever standardize this feature we'll want to hook this up properly
+  // again. For now we're removing all the DOM-side code related to it but
+  // leaving the layout and APZ handling for it in place.
+  return false;
 }
 
 void
@@ -7162,9 +7177,8 @@ nsContentUtils::IsPatternMatching(nsAString& aValue, nsAString& aPattern,
 {
   NS_ASSERTION(aDocument, "aDocument should be a valid pointer (not null)");
 
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  AutoJSContext cx;
+  AutoDisableJSInterruptCallback disabler(cx);
 
   // We can use the junk scope here, because we're just using it for
   // regexp evaluation, not actual script execution.
@@ -10531,7 +10545,7 @@ nsContentUtils::HtmlObjectContentTypeForMIMEType(const nsCString& aMIMEType,
   return nsIObjectLoadingContent::TYPE_NULL;
 }
 
-/* static */ already_AddRefed<nsIEventTarget>
+/* static */ already_AddRefed<nsISerialEventTarget>
 nsContentUtils::GetEventTargetByLoadInfo(nsILoadInfo* aLoadInfo, TaskCategory aCategory)
 {
   if (NS_WARN_IF(!aLoadInfo)) {
@@ -10541,7 +10555,7 @@ nsContentUtils::GetEventTargetByLoadInfo(nsILoadInfo* aLoadInfo, TaskCategory aC
   nsCOMPtr<nsIDOMDocument> domDoc;
   aLoadInfo->GetLoadingDocument(getter_AddRefs(domDoc));
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-  nsCOMPtr<nsIEventTarget> target;
+  nsCOMPtr<nsISerialEventTarget> target;
   if (doc) {
     if (DocGroup* group = doc->GetDocGroup()) {
       target = group->EventTargetFor(aCategory);

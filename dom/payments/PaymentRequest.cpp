@@ -4,9 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/PaymentRequest.h"
 #include "mozilla/dom/PaymentResponse.h"
 #include "nsContentUtils.h"
+#include "BasicCardPayment.h"
 #include "PaymentRequestManager.h"
 
 namespace mozilla {
@@ -51,7 +53,8 @@ PaymentRequest::PrefEnabled(JSContext* aCx, JSObject* aObj)
 }
 
 bool
-PaymentRequest::IsValidMethodData(const Sequence<PaymentMethodData>& aMethodData,
+PaymentRequest::IsValidMethodData(JSContext* aCx,
+                                  const Sequence<PaymentMethodData>& aMethodData,
                                   nsAString& aErrorMsg)
 {
   if (!aMethodData.Length()) {
@@ -60,10 +63,23 @@ PaymentRequest::IsValidMethodData(const Sequence<PaymentMethodData>& aMethodData
   }
 
   for (const PaymentMethodData& methodData : aMethodData) {
-    if (!methodData.mSupportedMethods.Length()) {
+    if (methodData.mSupportedMethods.IsEmpty()) {
       aErrorMsg.AssignLiteral(
-        "At least one payment method identifier is required.");
+        "Payment method identifier is required.");
       return false;
+    }
+    RefPtr<BasicCardService> service = BasicCardService::GetService();
+    MOZ_ASSERT(service);
+    if (service->IsBasicCardPayment(methodData.mSupportedMethods)) {
+      if (!methodData.mData.WasPassed()) {
+        continue;
+      }
+      MOZ_ASSERT(aCx);
+      if (!service->IsValidBasicCardRequest(aCx,
+                                            methodData.mData.Value(),
+                                            aErrorMsg)) {
+        return false;
+      }
     }
   }
 
@@ -225,11 +241,42 @@ PaymentRequest::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
 
-  // [TODO] Bug 1318988 - Implement `allowPaymentRequest` on iframe
+  // the feature can only be used in an active document
+  if (!window->IsCurrentInnerWindow()) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return nullptr;
+  }
+
+  // If the node has the same origin as the parent node, the feature is allowed-to-use.
+  // Otherwise, only allow-to-use this feature when the browsing context container is
+  // an iframe with "allowpaymentrequest" attribute.
+  nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
+  nsINode* node = static_cast<nsINode*>(doc);
+  if (!node) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+  do {
+    nsINode* parentNode = nsContentUtils::GetCrossDocParentNode(node);
+    if (parentNode) {
+      nsresult rv = nsContentUtils::CheckSameOrigin(node, parentNode);
+      if (NS_FAILED(rv)) {
+        nsIContent* content = static_cast<nsIContent*>(parentNode);
+        if (!content->IsHTMLElement(nsGkAtoms::iframe) ||
+            !content->HasAttr(kNameSpaceID_None, nsGkAtoms::allowpaymentrequest)) {
+          aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+          return nullptr;
+        }
+      }
+    }
+    node = parentNode;
+  } while (node);
 
   // Check payment methods and details
   nsAutoString message;
-  if (!IsValidMethodData(aMethodData, message) ||
+  if (!IsValidMethodData(nsContentUtils::GetCurrentJSContext(),
+                         aMethodData,
+                         message) ||
       !IsValidDetailsInit(aDetails, message)) {
     aRv.ThrowTypeError<MSG_ILLEGAL_PR_CONSTRUCTOR>(message);
     return nullptr;
@@ -261,11 +308,16 @@ PaymentRequest::CreatePaymentRequest(nsPIDOMWindowInner* aWindow, nsresult& aRv)
   if (NS_WARN_IF(NS_FAILED(aRv))) {
     return nullptr;
   }
+
+  // Build a string in {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} format
   char buffer[NSID_LENGTH];
   uuid.ToProvidedString(buffer);
-  nsAutoString id;
-  CopyASCIItoUTF16(buffer, id);
 
+  // Remove {} and the null terminator
+  nsAutoString id;
+  id.AssignASCII(&buffer[1], NSID_LENGTH - 3);
+
+  // Create payment request with generated id
   RefPtr<PaymentRequest> request = new PaymentRequest(aWindow, id);
   return request.forget();
 }
@@ -349,7 +401,11 @@ PaymentRequest::Show(ErrorResult& aRv)
   }
   nsresult rv = manager->ShowPayment(mInternalId);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->MaybeReject(NS_ERROR_FAILURE);
+    if (rv == NS_ERROR_ABORT) {
+      promise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
+    } else {
+      promise->MaybeReject(NS_ERROR_DOM_NOT_ALLOWED_ERR);
+    }
     mState = eClosed;
     return promise.forget();
   }
@@ -556,6 +612,7 @@ PaymentRequest::DispatchUpdateEvent(const nsAString& aType)
   RefPtr<PaymentRequestUpdateEvent> event =
     PaymentRequestUpdateEvent::Constructor(this, aType, init);
   event->SetTrusted(true);
+  event->SetRequest(this);
 
   return DispatchDOMEvent(nullptr, event, nullptr, nullptr);
 }

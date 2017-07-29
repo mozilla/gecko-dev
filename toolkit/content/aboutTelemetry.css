@@ -15,8 +15,8 @@ body {
 }
 
 #categories {
+  min-width: 250px;
   padding-top: 0px;
-  min-width: 300px;
   overflow-y: auto;
 }
 
@@ -44,6 +44,18 @@ body {
   border-bottom: 1px solid var(--in-content-header-border-color);
 }
 
+.header {
+  display: flex;
+}
+
+.header select {
+  margin-left: 4px;
+}
+
+#sectionTitle {
+  flex-grow: 1;
+}
+
 .heading > h3 {
   margin: 0;
   padding-bottom: 12px;
@@ -59,6 +71,7 @@ body {
   pointer-events: all;
   -moz-user-select: none;
   cursor: pointer;
+  text-align: center;
 }
 
 .controls {
@@ -126,25 +139,15 @@ body {
   position: relative;
 }
 
+section:not(.active) {
+  display: none;
+}
+
 #page-description {
   border: 1px solid threedshadow;
   margin: 0px;
   padding: 10px;
   line-height: 1.2;
-}
-
-#settings {
-  border: 1px solid lightgrey;
-  padding: 5px;
-}
-
-.change-data-choices-link {
-  border-bottom-width: 2px;
-  border-bottom-style: solid;
-}
-
-.change-data-choices-link:hover {
-  text-decoration: none;
 }
 
 #ping-explanation > span {
@@ -187,31 +190,6 @@ body {
   margin-bottom: 10px;
 }
 
-.data-section:not(.has-data),
-.data-subsection:not(.has-subdata) {
-  color: gray;
-}
-
-.section-name {
-  font-size: x-large;
-  display: inline;
-}
-
-.has-data .section-name {
-  cursor: pointer;
-}
-
-.data,
-.subdata {
-  margin: 15px;
-  display: none;
-}
-
-.has-data.expanded .data,
-.has-subdata.expanded .subdata {
-  display: block;
-}
-
 .stack-title {
   font-size: medium;
   font-weight: bold;
@@ -224,11 +202,17 @@ body {
 
 .histogram {
   float: left;
-  border: 1px solid gray;
   white-space: nowrap;
   padding: 10px;
   position: relative; /* required for position:absolute of the contained .copy-node */
+  padding: 12px 20px 12px 20px;
+  border: 1px solid var(--in-content-box-border-color);
+  border-radius: 2px;
+  margin-bottom: 24px;
+  margin-right: 24px;
+  min-height: 284px;
 }
+
 
 body[dir="rtl"] .histogram {
   float: right;
@@ -245,7 +229,6 @@ body[dir="rtl"] .histogram {
   white-space: nowrap;
   padding: 15px;
   position: relative; /* required for position:absolute of the contained .copy-node */
-  display: block;
   overflow: hidden;
 }
 
@@ -271,14 +254,39 @@ body[dir="rtl"] .bar {
 }
 
 .bar-inner {
-  background-color: DeepSkyBlue;
-  border: 1px solid #0000b0;
+  background-color: #0095DD;
+  border: 1px solid #00539F;
+  border-radius: 2px;
+}
+
+.bar:nth-child(even) .long-label  {
+  margin-bottom: 1em;
+}
+
+th, td, table {
+  text-align: start;
+  border-collapse: collapse;
+}
+
+table {
+  width: 100%;
+  font-size: 15px;
+}
+
+td {
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--in-content-box-border-color);
+}
+
+tr:not(:first-child):hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 th {
+  font-size: larger;
   font-weight: bold;
   white-space: nowrap;
-  text-align: left;
+  padding-bottom: 0.5em;
 }
 
 body[dir="rtl"] th {
@@ -311,53 +319,11 @@ body[dir="rtl"] .copy-node {
   visibility: visible;
 }
 
-.statebox {
-  display: none;
-}
-
-.filter-ui {
-  padding-inline-start: 10em;
-  display: none;
-}
-
-.has-data.expanded .filter-ui {
-  display: inline;
-}
-
-.processes-ui {
-  display: none;
-}
-
-.has-data.expanded .processes-ui {
-  display: initial;
-}
-
-.filter-blocked {
-  display: none;
-}
-
-#raw-ping-data-section {
-  width: 100%;
-  height: 100%;
-}
-
 #raw-ping-data {
-  margin: 0px;
-}
-
-#hide-raw-ping {
-  float: right;
-  cursor: pointer;
-  font-size: 20px;
-  background-color:#d8d8d8;
-  padding: 5px 10px;
+  font-size: 15px;
 }
 
 caption {
   font-size: larger;
   margin: 5px 0;
-}
-
-.process-picker {
-  margin: 0 0.5em;
 }

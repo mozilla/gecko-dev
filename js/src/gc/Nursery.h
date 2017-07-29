@@ -353,12 +353,18 @@ class Nursery
     ProfileDurations totalDurations_;
     uint64_t minorGcCount_;
 
+    struct {
+        JS::gcreason::Reason reason;
+        uint64_t nurseryUsedBytes;
+        uint64_t tenuredBytes;
+    } previousGC;
+
     /*
      * The set of externally malloced buffers potentially kept live by objects
      * stored in the nursery. Any external buffers that do not belong to a
      * tenured thing at the end of a minor GC must be freed.
      */
-    typedef HashSet<void*, PointerHasher<void*, 3>, SystemAllocPolicy> MallocedBuffersSet;
+    typedef HashSet<void*, PointerHasher<void*>, SystemAllocPolicy> MallocedBuffersSet;
     MallocedBuffersSet mallocedBuffers;
 
     /* A task structure used to free the malloced bufers on a background thread. */
@@ -372,7 +378,7 @@ class Nursery
      * buffers might overlap each other. For these, an entry in the following
      * table is used.
      */
-    typedef HashMap<void*, void*, PointerHasher<void*, 1>, SystemAllocPolicy> ForwardedBufferMap;
+    typedef HashMap<void*, void*, PointerHasher<void*>, SystemAllocPolicy> ForwardedBufferMap;
     ForwardedBufferMap forwardedBuffers;
 
     /*
@@ -462,7 +468,7 @@ class Nursery
     /* Change the allocable space provided by the nursery. */
     void maybeResizeNursery(JS::gcreason::Reason reason, double promotionRate);
     void growAllocableSpace();
-    void shrinkAllocableSpace();
+    void shrinkAllocableSpace(unsigned removeNumChunks);
     void minimizeAllocableSpace();
 
     /* Profile recording and printing. */

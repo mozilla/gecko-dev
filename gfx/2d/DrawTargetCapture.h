@@ -19,8 +19,7 @@ class DrawingCommand;
 class DrawTargetCaptureImpl : public DrawTargetCapture
 {
 public:
-  DrawTargetCaptureImpl()
-  {}
+  DrawTargetCaptureImpl(BackendType aBackend, const IntSize& aSize, SurfaceFormat aFormat);
 
   bool Init(const IntSize& aSize, DrawTarget* aRefDT);
 
@@ -80,6 +79,12 @@ public:
                           const Pattern &aPattern,
                           const DrawOptions &aOptions = DrawOptions(),
                           const GlyphRenderingOptions *aRenderingOptions = nullptr) override;
+  virtual void StrokeGlyphs(ScaledFont* aFont,
+                            const GlyphBuffer& aBuffer,
+                            const Pattern& aPattern,
+                            const StrokeOptions& aStrokeOptions = StrokeOptions(),
+                            const DrawOptions& aOptions = DrawOptions(),
+                            const GlyphRenderingOptions* aRenderingOptions = nullptr) override;
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
                     const DrawOptions &aOptions = DrawOptions()) override;
@@ -143,7 +148,7 @@ public:
   bool ContainsOnlyColoredGlyphs(RefPtr<ScaledFont>& aScaledFont, Color& aColor, std::vector<Glyph>& aGlyphs) override;
 
 protected:
-  ~DrawTargetCaptureImpl();
+  virtual ~DrawTargetCaptureImpl();
 
 private:
 
@@ -160,7 +165,6 @@ private:
     return reinterpret_cast<T*>(nextDrawLocation + sizeof(uint32_t));
   }
   RefPtr<DrawTarget> mRefDT;
-
   IntSize mSize;
 
   std::vector<uint8_t> mDrawCommandStorage;

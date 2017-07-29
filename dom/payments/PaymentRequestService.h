@@ -46,11 +46,16 @@ private:
   nsresult
   CallTestingUIAction(const nsAString& aRequestId, uint32_t aActionType);
 
+  bool
+  IsBasicCardPayment(const nsAString& aRequestId);
+
   FallibleTArray<nsCOMPtr<nsIPaymentRequest>> mRequestQueue;
 
   nsInterfaceHashtable<nsStringHashKey, nsIPaymentActionCallback> mCallbackHashtable;
 
   nsCOMPtr<nsIPaymentUIService> mTestingUIService;
+
+  nsCOMPtr<nsIPaymentRequest> mShowingRequest;
 };
 
 } // end of namespace dom

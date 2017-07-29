@@ -25,6 +25,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/UniquePtr.h"
@@ -45,6 +46,7 @@ class SpliceableJSONWriter;
 namespace mozilla {
 class MallocAllocPolicy;
 template <class T, size_t MinInlineCapacity, class AllocPolicy> class Vector;
+class TimeStamp;
 } // namespace mozilla
 
 // When the profiler is disabled functions declared with these macros are
@@ -161,6 +163,16 @@ PROFILER_FUNC_VOID(profiler_start(int aEntries, double aInterval,
 // profiler is inactive. After stopping the profiler is "inactive".
 PROFILER_FUNC_VOID(profiler_stop())
 
+// If the profiler is inactive, start it. If it's already active, restart it if
+// the requested settings differ from the current settings. Both the check and
+// the state change are performed while the profiler state is locked.
+// The only difference to profiler_start is that the current buffer contents are
+// not discarded if the profiler is already running with the requested settings.
+PROFILER_FUNC_VOID(profiler_ensure_started(int aEntries, double aInterval,
+                                           uint32_t aFeatures,
+                                           const char** aFilters,
+                                           uint32_t aFilterCount))
+
 //---------------------------------------------------------------------------
 // Control the profiler
 //---------------------------------------------------------------------------
@@ -267,9 +279,50 @@ typedef void ProfilerStackCallback(void** aPCs, size_t aCount, bool aIsMainThrea
 // WARNING: The target thread is suspended during the callback. Do not try to
 // allocate or acquire any locks, or you could deadlock. The target thread will
 // have resumed by the time this function returns.
+//
+// XXX: this function is in the process of being replaced with the other profiler_suspend_and_sample_thread() function.
 PROFILER_FUNC_VOID(
   profiler_suspend_and_sample_thread(int aThreadId,
                                      const std::function<ProfilerStackCallback>& aCallback,
+                                     bool aSampleNative = true))
+
+// An object of this class is passed to profiler_suspend_and_sample_thread().
+// For each stack frame, one of the Collect methods will be called.
+class ProfilerStackCollector
+{
+public:
+  // Some collectors need to worry about possibly overwriting previous
+  // generations of data. If that's not an issue, this can return Nothing,
+  // which is the default behaviour.
+  virtual mozilla::Maybe<uint32_t> Generation() { return mozilla::Nothing(); }
+
+  // This method will be called once if the thread being suspended is the main
+  // thread. Default behaviour is to do nothing.
+  virtual void SetIsMainThread() {}
+
+  // WARNING: The target thread is suspended when the Collect methods are
+  // called. Do not try to allocate or acquire any locks, or you could
+  // deadlock. The target thread will have resumed by the time this function
+  // returns.
+
+  virtual void CollectNativeLeafAddr(void* aAddr) = 0;
+
+  virtual void CollectJitReturnAddr(void* aAddr) = 0;
+
+  // aLabel is static and never null. aStr may be null. aLineNumber may be -1.
+  virtual void CollectCodeLocation(
+    const char* aLabel, const char* aStr, int aLineNumber,
+    const mozilla::Maybe<js::ProfileEntry::Category>& aCategory) = 0;
+};
+
+// This method suspends the thread identified by aThreadId, samples its
+// pseudo-stack, JS stack, and (optionally) native stack, passing the collected
+// frames into aCollector. aFeatures dictates which compiler features are used.
+// |Privacy| and |Leaf| are the only relevant ones.
+PROFILER_FUNC_VOID(
+  profiler_suspend_and_sample_thread(int aThreadId,
+                                     uint32_t aFeatures,
+                                     ProfilerStackCollector& aCollector,
                                      bool aSampleNative = true))
 
 struct ProfilerBacktraceDestructor
@@ -408,7 +461,8 @@ PROFILER_FUNC(
 // Returns false if the profiler is inactive.
 PROFILER_FUNC(
   bool profiler_stream_json_for_this_process(SpliceableJSONWriter& aWriter,
-                                             double aSinceTime = 0),
+                                             double aSinceTime = 0,
+                                             mozilla::TimeStamp* aOutFirstSampleTime = nullptr),
   false)
 
 // Get the profile and write it into a file. A no-op if the profile is
@@ -588,6 +642,29 @@ protected:
   const char* mCategory;
   const char* mMarkerName;
 };
+
+// Set MOZ_PROFILER_STARTUP* environment variables that will be inherited into
+// a child process that is about to be launched, in order to make that child
+// process start with the same profiler settings as in the current process.
+#ifdef MOZ_GECKO_PROFILER
+class MOZ_RAII AutoSetProfilerEnvVarsForChildProcess
+{
+public:
+  explicit AutoSetProfilerEnvVarsForChildProcess(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+  ~AutoSetProfilerEnvVarsForChildProcess();
+
+private:
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  char mSetEntries[64];
+  char mSetInterval[64];
+  char mSetFeaturesBitfield[64];
+  char mSetFilters[1024];
+};
+#else
+class AutoSetProfilerEnvVarsForChildProcess
+{
+};
+#endif
 
 } // namespace mozilla
 

@@ -21,6 +21,7 @@
 #include "nsWeakReference.h"
 #include "TCPFastOpen.h"
 
+#include "nsINamed.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
 
@@ -244,12 +245,11 @@ private:
     // contains list of active and idle connections as well as the list of
     // pending transactions.
     //
-    class nsConnectionEntry : public SupportsWeakPtr<nsConnectionEntry>
+    class nsConnectionEntry
     {
     public:
-        MOZ_DECLARE_WEAKREFERENCE_TYPENAME(nsConnectionEntry)
+        NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsConnectionEntry)
         explicit nsConnectionEntry(nsHttpConnectionInfo *ci);
-        ~nsConnectionEntry();
 
         RefPtr<nsHttpConnectionInfo> mConnInfo;
         nsTArray<RefPtr<PendingTransactionInfo> > mUrgentStartQ;// the urgent start transaction queue
@@ -337,6 +337,13 @@ private:
 
         // Remove the empty pendingQ in |mPendingTransactionTable|.
         void RemoveEmptyPendingQ();
+        enum {
+          CONN_ENTRY_NOT_REMOVED,
+          CONN_ENTRY_CLEAR_CONNECTION_HISTORY,
+          CONN_ENTRY_REMOVED_SHUTDOWN,
+        }  mHowItWasRemoved;
+    private:
+        ~nsConnectionEntry();
     };
 
 public:
@@ -352,6 +359,7 @@ private:
                                    public nsITransportEventSink,
                                    public nsIInterfaceRequestor,
                                    public nsITimerCallback,
+                                   public nsINamed,
                                    public nsSupportsWeakReference,
                                    public TCPFastOpen
     {
@@ -364,6 +372,7 @@ private:
         NS_DECL_NSITRANSPORTEVENTSINK
         NS_DECL_NSIINTERFACEREQUESTOR
         NS_DECL_NSITIMERCALLBACK
+        NS_DECL_NSINAMED
 
         nsHalfOpenSocket(nsConnectionEntry *ent,
                          nsAHttpTransaction *trans,
@@ -406,6 +415,7 @@ private:
         void FastOpenNotSupported() override;
         void SetFastOpenStatus(uint8_t tfoStatus) override;
         void CancelFastOpenConnection();
+
     private:
         nsresult SetupConn(nsIAsyncOutputStream *out,
                            bool aFastOpen);
@@ -416,7 +426,6 @@ private:
         already_AddRefed<PendingTransactionInfo>
         FindTransactionHelper(bool removeWhenFound);
 
-        WeakPtr<nsConnectionEntry>     mEnt;
         RefPtr<nsAHttpTransaction>     mTransaction;
         bool                           mDispatchedMTransaction;
         nsCOMPtr<nsISocketTransport>   mSocketTransport;
@@ -443,12 +452,6 @@ private:
         TimeStamp             mPrimarySynStarted;
         TimeStamp             mBackupSynStarted;
 
-        // for syn retry
-        nsCOMPtr<nsITimer>             mSynTimer;
-        nsCOMPtr<nsISocketTransport>   mBackupTransport;
-        nsCOMPtr<nsIAsyncOutputStream> mBackupStreamOut;
-        nsCOMPtr<nsIAsyncInputStream>  mBackupStreamIn;
-
         // mHasConnected tracks whether one of the sockets has completed the
         // connection process. It may have completed unsuccessfully.
         bool                           mHasConnected;
@@ -465,6 +468,18 @@ private:
 
         bool                           mFastOpenInProgress;
         RefPtr<nsHttpConnection>       mConnectionNegotiatingFastOpen;
+
+    private:
+        // nsHttpConnectionMgr is friend class so that we can access them for
+        // diagnostic asserts. The this asserts are removed the following line
+        // needs to be removed.
+        friend class nsHttpConnectionMgr;
+
+        RefPtr<nsConnectionEntry>      mEnt;
+        nsCOMPtr<nsITimer>             mSynTimer;
+        nsCOMPtr<nsISocketTransport>   mBackupTransport;
+        nsCOMPtr<nsIAsyncOutputStream> mBackupStreamOut;
+        nsCOMPtr<nsIAsyncInputStream>  mBackupStreamIn;
     };
     friend class nsHalfOpenSocket;
 
@@ -523,8 +538,20 @@ private:
     MOZ_MUST_USE bool ProcessPendingQForEntry(nsConnectionEntry *,
                                               bool considerAll);
     bool DispatchPendingQ(nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
-                                   nsConnectionEntry *ent,
-                                   bool considerAll);
+                          nsConnectionEntry *ent,
+                          bool considerAll);
+
+    // This function selects transactions from mPendingTransactionTable to dispatch
+    // according to the following conditions:
+    // 1. When ActiveTabPriority() is false, only get transactions from the queue
+    //    whose window id is 0.
+    // 2. If |considerAll| is false, either get transactions from the focused window
+    //    queue or non-focused ones.
+    // 3. If |considerAll| is true, fill the |pendingQ| with the transactions from
+    //    both focused window and non-focused window queues.
+    void PreparePendingQForDispatching(nsConnectionEntry *ent,
+                                       nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
+                                       bool considerAll);
 
     // Return total active connection count, which is the sum of
     // active connections and unconnected half open connections.
@@ -658,7 +685,7 @@ private:
     // nsConnectionEntry object. It is unlocked and therefore must only
     // be accessed from the socket thread.
     //
-    nsClassHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
+    nsRefPtrHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
 
     // Read Timeout Tick handlers
     void TimeoutTick();
@@ -720,6 +747,12 @@ private:
     bool mActiveTabUnthrottledTransactionsExist;
 
     void LogActiveTransactions(char);
+
+    nsTArray<RefPtr<PendingTransactionInfo>>*
+    GetTransactionPendingQHelper(nsConnectionEntry *ent, nsAHttpTransaction *trans);
+
+    // This is only a diagnostic check end it will e removed soon.
+    void CheckConnEntryMustBeInmCT(nsConnectionEntry *ent);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpConnectionMgr::nsHalfOpenSocket, NS_HALFOPENSOCKET_IID)

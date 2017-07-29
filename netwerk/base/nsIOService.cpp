@@ -167,6 +167,7 @@ uint32_t   nsIOService::gDefaultSegmentSize = 4096;
 uint32_t   nsIOService::gDefaultSegmentCount = 24;
 
 bool nsIOService::sIsDataURIUniqueOpaqueOrigin = false;
+bool nsIOService::sBlockToplevelDataUriNavigations = false;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -250,6 +251,8 @@ nsIOService::Init()
 
     Preferences::AddBoolVarCache(&sIsDataURIUniqueOpaqueOrigin,
                                  "security.data_uri.unique_opaque_origin", false);
+    Preferences::AddBoolVarCache(&sBlockToplevelDataUriNavigations,
+                                 "security.data_uri.block_toplevel_data_uri_navigations", false);
     Preferences::AddBoolVarCache(&mOfflineMirrorsConnectivity, OFFLINE_MIRRORS_CONNECTIVITY, true);
 
     gIOService = this;
@@ -1854,14 +1857,10 @@ nsIOService::SpeculativeConnectInternal(nsIURI *aURI,
 
     NS_ASSERTION(aPrincipal, "We expect passing a principal here.");
 
-    // If the principal is given, we use this prinicpal directly. Otherwise,
+    // If the principal is given, we use this principal directly. Otherwise,
     // we fallback to use the system principal.
     if (!aPrincipal) {
-        nsCOMPtr<nsIScriptSecurityManager> secMan(
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = secMan->GetSystemPrincipal(getter_AddRefs(loadingPrincipal));
-        NS_ENSURE_SUCCESS(rv, rv);
+        loadingPrincipal = nsContentUtils::GetSystemPrincipal();
     }
 
     // dummy channel used to create a TCP connection.
@@ -1933,6 +1932,12 @@ nsIOService::SpeculativeAnonymousConnect2(nsIURI *aURI,
 nsIOService::IsDataURIUniqueOpaqueOrigin()
 {
   return sIsDataURIUniqueOpaqueOrigin;
+}
+
+/*static*/ bool
+nsIOService::BlockToplevelDataUriNavigations()
+{
+  return sBlockToplevelDataUriNavigations;
 }
 
 } // namespace net

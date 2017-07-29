@@ -22,6 +22,7 @@ using namespace mozilla::gfx;
 WebRenderBridgeChild::WebRenderBridgeChild(const wr::PipelineId& aPipelineId)
   : mReadLockSequenceNumber(0)
   , mIsInTransaction(false)
+  , mIsInClearCachedResources(false)
   , mIdNamespace(0)
   , mResourceId(0)
   , mPipelineId(aPipelineId)
@@ -57,7 +58,7 @@ WebRenderBridgeChild::ActorDestroy(ActorDestroyReason why)
 void
 WebRenderBridgeChild::AddWebRenderParentCommand(const WebRenderParentCommand& aCmd)
 {
-  MOZ_ASSERT(mIsInTransaction);
+  MOZ_ASSERT(mIsInTransaction || mIsInClearCachedResources);
   mParentCommands.AppendElement(aCmd);
 }
 
@@ -107,16 +108,21 @@ WebRenderBridgeChild::DPEnd(wr::DisplayListBuilder &aBuilder,
   MOZ_ASSERT(mIsInTransaction);
 
   wr::BuiltDisplayList dl;
-  WrSize contentSize;
+  wr::LayoutSize contentSize;
   aBuilder.Finalize(contentSize, dl);
   ByteBuffer dlData(Move(dl.dl));
 
+  TimeStamp fwdTime;
+#if defined(ENABLE_FRAME_LATENCY_LOG)
+  fwdTime = TimeStamp::Now();
+#endif
+
   if (aIsSync) {
     this->SendDPSyncEnd(aSize, mParentCommands, mDestroyedActors, GetFwdTransactionId(), aTransactionId,
-                        contentSize, dlData, dl.dl_desc, aScrollData, mIdNamespace);
+                        contentSize, dlData, dl.dl_desc, aScrollData, mIdNamespace,fwdTime);
   } else {
     this->SendDPEnd(aSize, mParentCommands, mDestroyedActors, GetFwdTransactionId(), aTransactionId,
-                    contentSize, dlData, dl.dl_desc, aScrollData, mIdNamespace);
+                    contentSize, dlData, dl.dl_desc, aScrollData, mIdNamespace, fwdTime);
   }
 
   mParentCommands.Clear();
@@ -205,27 +211,27 @@ WebRenderBridgeChild::PushGlyphs(wr::DisplayListBuilder& aBuilder, const nsTArra
   MOZ_ASSERT(aFont);
   MOZ_ASSERT(!aGlyphs.IsEmpty());
 
-  WrFontKey key = GetFontKeyForScaledFont(aFont);
-  MOZ_ASSERT(key.mNamespace && key.mHandle);
+  wr::WrFontKey key = GetFontKeyForScaledFont(aFont);
+  MOZ_ASSERT(key.mNamespace.mHandle && key.mHandle);
 
   for (size_t i = 0; i < aGlyphs.Length(); i++) {
     GlyphArray glyph_array = aGlyphs[i];
     nsTArray<gfx::Glyph>& glyphs = glyph_array.glyphs();
 
-    nsTArray<WrGlyphInstance> wr_glyph_instances;
+    nsTArray<wr::GlyphInstance> wr_glyph_instances;
     wr_glyph_instances.SetLength(glyphs.Length());
 
     for (size_t j = 0; j < glyphs.Length(); j++) {
       wr_glyph_instances[j].index = glyphs[j].mIndex;
-      wr_glyph_instances[j].point = aSc.ToRelativeWrPoint(
+      wr_glyph_instances[j].point = aSc.ToRelativeLayoutPoint(
               LayerPoint::FromUnknownPoint(glyphs[j].mPosition));
     }
 
-    aBuilder.PushText(aSc.ToRelativeWrRect(aBounds),
-                      aSc.ToRelativeWrRect(aClip),
+    aBuilder.PushText(aSc.ToRelativeLayoutRect(aBounds),
+                      aSc.ToRelativeLayoutRect(aClip),
                       glyph_array.color().value(),
                       key,
-                      Range<const WrGlyphInstance>(wr_glyph_instances.Elements(), wr_glyph_instances.Length()),
+                      Range<const wr::GlyphInstance>(wr_glyph_instances.Elements(), wr_glyph_instances.Length()),
                       aFont->GetSize());
 
   }
@@ -243,7 +249,7 @@ WebRenderBridgeChild::GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont)
   RefPtr<gfx::UnscaledFont> unscaled = aScaledFont->GetUnscaledFont();
   MOZ_ASSERT(unscaled);
 
-  wr::FontKey key = {0, 0};
+  wr::FontKey key = { wr::IdNamespace { 0 }, 0};
   if (mFontKeys.Get(unscaled, &key)) {
     return key;
   }
@@ -254,7 +260,7 @@ WebRenderBridgeChild::GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont)
     return key;
   }
 
-  key.mNamespace = GetNamespace();
+  key.mNamespace.mHandle = GetNamespace();
   key.mHandle = GetNextResourceId();
 
   SendAddRawFont(key, data.mFontBuffer, data.mFontIndex);
@@ -458,6 +464,20 @@ WebRenderBridgeChild::RecvWrUpdated(const uint32_t& aNewIdNameSpace)
   mFontKeys.Clear();
   GetCompositorBridgeChild()->RecvInvalidateLayers(wr::AsUint64(mPipelineId));
   return IPC_OK();
+}
+
+void
+WebRenderBridgeChild::BeginClearCachedResources()
+{
+  mIsInClearCachedResources = true;
+}
+
+void
+WebRenderBridgeChild::EndClearCachedResources()
+{
+  ProcessWebRenderParentCommands();
+  SendClearCachedResources();
+  mIsInClearCachedResources = false;
 }
 
 } // namespace layers

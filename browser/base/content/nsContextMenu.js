@@ -25,6 +25,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "DevToolsShim",
 
 var gContextMenuContentData = null;
 
+function setContextMenuContentData(data) {
+  gContextMenuContentData = data;
+}
+
 function openContextMenu(aMessage) {
   let data = aMessage.data;
   let browser = aMessage.target;
@@ -630,7 +634,7 @@ nsContextMenu.prototype = {
   },
 
   initSyncItems() {
-    gSync.initPageContextMenu(this);
+    gSync.updateContentContextMenu(this);
   },
 
   openPasswordManager() {
@@ -1808,7 +1812,9 @@ nsContextMenu.prototype = {
   },
 
   bookmarkThisPage: function CM_bookmarkThisPage() {
-    window.top.PlacesCommandHook.bookmarkPage(this.browser, PlacesUtils.bookmarksMenuFolderId, true);
+    window.top.PlacesCommandHook
+              .bookmarkPage(this.browser, PlacesUtils.bookmarksMenuFolderId, true)
+              .catch(Components.utils.reportError);
   },
 
   bookmarkLink: function CM_bookmarkLink() {

@@ -27,11 +27,7 @@
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 
-#ifdef MOZ_WIDGET_GONK
-#define PERFLOG(msg, ...)  __android_log_print(ANDROID_LOG_INFO, "PerformanceTiming", msg, ##__VA_ARGS__)
-#else
 #define PERFLOG(msg, ...) printf_stderr(msg, ##__VA_ARGS__)
-#endif
 
 namespace mozilla {
 namespace dom {
@@ -281,18 +277,13 @@ Performance::Mark(const nsAString& aName, ErrorResult& aRv)
     return;
   }
 
-  // Don't add the entry if the buffer is full. XXX should be removed by bug 1159003.
-  if (mUserEntries.Length() >= mResourceTimingBufferSize) {
-    return;
-  }
-
   if (IsPerformanceTimingAttribute(aName)) {
     aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
     return;
   }
 
   RefPtr<PerformanceMark> performanceMark =
-    new PerformanceMark(GetAsISupports(), aName, Now());
+    new PerformanceMark(GetParentObject(), aName, Now());
   InsertUserEntry(performanceMark);
 
   if (profiler_is_active()) {
@@ -348,12 +339,6 @@ Performance::Measure(const nsAString& aName,
     return;
   }
 
-  // Don't add the entry if the buffer is full. XXX should be removed by bug
-  // 1159003.
-  if (mUserEntries.Length() >= mResourceTimingBufferSize) {
-    return;
-  }
-
   DOMHighResTimeStamp startTime;
   DOMHighResTimeStamp endTime;
 
@@ -384,7 +369,7 @@ Performance::Measure(const nsAString& aName,
   }
 
   RefPtr<PerformanceMeasure> performanceMeasure =
-    new PerformanceMeasure(GetAsISupports(), aName, startTime, endTime);
+    new PerformanceMeasure(GetParentObject(), aName, startTime, endTime);
   InsertUserEntry(performanceMeasure);
 
   if (profiler_is_active()) {
@@ -580,6 +565,32 @@ Performance::IsObserverEnabled(JSContext* aCx, JSObject* aGlobal)
                             NS_LITERAL_CSTRING("dom.enable_performance_observer"));
 
   return runnable->Dispatch() && runnable->IsEnabled();
+}
+
+void
+Performance::MemoryPressure()
+{
+  mUserEntries.Clear();
+}
+
+size_t
+Performance::SizeOfUserEntries(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t userEntries = 0;
+  for (const PerformanceEntry* entry : mUserEntries) {
+    userEntries += entry->SizeOfIncludingThis(aMallocSizeOf);
+  }
+  return userEntries;
+}
+
+size_t
+Performance::SizeOfResourceEntries(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t resourceEntries = 0;
+  for (const PerformanceEntry* entry : mResourceEntries) {
+    resourceEntries += entry->SizeOfIncludingThis(aMallocSizeOf);
+  }
+  return resourceEntries;
 }
 
 } // dom namespace

@@ -33,6 +33,7 @@
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 #include "mozilla/gfx/Rect.h"
 
+class MacIOSurface;
 namespace mozilla {
 namespace ipc {
 class Shmem;
@@ -643,13 +644,18 @@ public:
 
   // Put all necessary WR commands into DisplayListBuilder for this textureHost rendering.
   virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
-                                 const WrRect& aBounds,
-                                 const WrRect& aClip,
+                                 const wr::LayoutRect& aBounds,
+                                 const wr::LayoutRect& aClip,
                                  wr::ImageRendering aFilter,
                                  Range<const wr::ImageKey>& aKeys)
   {
     MOZ_ASSERT_UNREACHABLE("No PushExternalImage() implementation for this TextureHost type.");
   }
+
+  /**
+   * Some API's can use the cross-process IOSurface directly, such as OpenVR
+   */
+  virtual MacIOSurface* GetMacIOSurface() { return nullptr; }
 
 protected:
   void ReadUnlock();
@@ -749,8 +755,8 @@ public:
                           const wr::ExternalImageId& aExtID) override;
 
   virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
-                                 const WrRect& aBounds,
-                                 const WrRect& aClip,
+                                 const wr::LayoutRect& aBounds,
+                                 const wr::LayoutRect& aClip,
                                  wr::ImageRendering aFilter,
                                  Range<const wr::ImageKey>& aImageKeys) override;
 

@@ -8,7 +8,6 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/SizePrintfMacros.h"
 
 #include "nsNavHistory.h"
 
@@ -1540,7 +1539,7 @@ PlacesSQLQueryBuilder::SelectAsURI()
                            tagsSqlFragment);
 
         mQueryString = NS_LITERAL_CSTRING(
-          "SELECT b2.fk, h.url, COALESCE(b2.title, h.title) AS page_title, "
+          "SELECT b2.fk, h.url, b2.title AS page_title, "
             "h.rev_host, h.visit_count, h.last_visit_date, null, b2.id, "
             "b2.dateAdded, b2.lastModified, b2.parent, ") +
             tagsSqlFragment + NS_LITERAL_CSTRING(", h.frecency, h.hidden, h.guid, "
@@ -1564,7 +1563,7 @@ PlacesSQLQueryBuilder::SelectAsURI()
                            mHasSearchTerms,
                            tagsSqlFragment);
         mQueryString = NS_LITERAL_CSTRING(
-          "SELECT b.fk, h.url, COALESCE(b.title, h.title) AS page_title, "
+          "SELECT b.fk, h.url, b.title AS page_title, "
             "h.rev_host, h.visit_count, h.last_visit_date, null, b.id, "
             "b.dateAdded, b.lastModified, b.parent, ") +
             tagsSqlFragment + NS_LITERAL_CSTRING(", h.frecency, h.hidden, h.guid,"
@@ -1658,8 +1657,8 @@ PlacesSQLQueryBuilder::SelectAsDay()
     switch(i) {
        case 0:
         // Today
-         history->GetStringFromName(
-          u"finduri-AgeInDays-is-0", dateName);
+        history->GetStringFromName(
+          "finduri-AgeInDays-is-0", dateName);
         // From start of today
         sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','utc')*1000000)");
@@ -1672,8 +1671,8 @@ PlacesSQLQueryBuilder::SelectAsDay()
          break;
        case 1:
         // Yesterday
-         history->GetStringFromName(
-          u"finduri-AgeInDays-is-1", dateName);
+        history->GetStringFromName(
+          "finduri-AgeInDays-is-1", dateName);
         // From start of yesterday
         sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','-1 day','utc')*1000000)");
@@ -1687,7 +1686,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
       case 2:
         // Last 7 days
         history->GetAgeInDaysString(7,
-          u"finduri-AgeInDays-last-is", dateName);
+          "finduri-AgeInDays-last-is", dateName);
         // From start of 7 days ago
         sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','-7 days','utc')*1000000)");
@@ -1703,7 +1702,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
       case 3:
         // This month
         history->GetStringFromName(
-          u"finduri-AgeInMonths-is-0", dateName);
+          "finduri-AgeInMonths-is-0", dateName);
         // From start of this month
         sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of month','utc')*1000000)");
@@ -1720,7 +1719,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
         if (i == HISTORY_ADDITIONAL_DATE_CONT_NUM + 6) {
           // Older than 6 months
           history->GetAgeInDaysString(6,
-            u"finduri-AgeInMonths-isgreater", dateName);
+            "finduri-AgeInMonths-isgreater", dateName);
           // From start of epoch
           sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
             "(datetime(0, 'unixepoch')*1000000)");
@@ -1819,7 +1818,7 @@ PlacesSQLQueryBuilder::SelectAsSite()
   nsNavHistory *history = nsNavHistory::GetHistoryService();
   NS_ENSURE_STATE(history);
 
-  history->GetStringFromName(u"localhost", localFiles);
+  history->GetStringFromName("localhost", localFiles);
   mAddParams.Put(NS_LITERAL_CSTRING("localhost"), localFiles);
 
   // If there are additional conditions the query has to join on visits too.
@@ -2905,10 +2904,23 @@ NS_IMETHODIMP
 nsNavHistory::GetShutdownClient(nsIAsyncShutdownClient **_shutdownClient)
 {
   NS_ENSURE_ARG_POINTER(_shutdownClient);
-  RefPtr<nsIAsyncShutdownClient> client = mDB->GetClientsShutdown();
-  MOZ_ASSERT(client);
+  nsCOMPtr<nsIAsyncShutdownClient> client = mDB->GetClientsShutdown();
+  if (!client) {
+    return NS_ERROR_UNEXPECTED;
+  }
   client.forget(_shutdownClient);
+  return NS_OK;
+}
 
+NS_IMETHODIMP
+nsNavHistory::GetConnectionShutdownClient(nsIAsyncShutdownClient **_shutdownClient)
+{
+  NS_ENSURE_ARG_POINTER(_shutdownClient);
+  nsCOMPtr<nsIAsyncShutdownClient> client = mDB->GetConnectionShutdown();
+  if (!client) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  client.forget(_shutdownClient);
   return NS_OK;
 }
 
@@ -4101,7 +4113,7 @@ nsNavHistory::BookmarkIdToResultNode(int64_t aBookmarkId, nsNavHistoryQueryOptio
                      true, tagsFragment);
   // Should match kGetInfoIndex_*
   nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(NS_LITERAL_CSTRING(
-      "SELECT b.fk, h.url, COALESCE(b.title, h.title), "
+      "SELECT b.fk, h.url, b.title, "
              "h.rev_host, h.visit_count, h.last_visit_date, null, b.id, "
              "b.dateAdded, b.lastModified, b.parent, "
              ) + tagsFragment + NS_LITERAL_CSTRING(", h.frecency, h.hidden, h.guid, "
@@ -4197,11 +4209,11 @@ nsNavHistory::TitleForDomain(const nsCString& domain, nsACString& aTitle)
   }
 
   // use the localized one instead
-  GetStringFromName(u"localhost", aTitle);
+  GetStringFromName("localhost", aTitle);
 }
 
 void
-nsNavHistory::GetAgeInDaysString(int32_t aInt, const char16_t *aName,
+nsNavHistory::GetAgeInDaysString(int32_t aInt, const char* aName,
                                  nsACString& aResult)
 {
   nsIStringBundle *bundle = GetBundle();
@@ -4217,11 +4229,11 @@ nsNavHistory::GetAgeInDaysString(int32_t aInt, const char16_t *aName,
       return;
     }
   }
-  CopyUTF16toUTF8(nsDependentString(aName), aResult);
+  aResult.Assign(aName);
 }
 
 void
-nsNavHistory::GetStringFromName(const char16_t *aName, nsACString& aResult)
+nsNavHistory::GetStringFromName(const char* aName, nsACString& aResult)
 {
   nsIStringBundle *bundle = GetBundle();
   if (bundle) {
@@ -4232,7 +4244,7 @@ nsNavHistory::GetStringFromName(const char16_t *aName, nsACString& aResult)
       return;
     }
   }
-  CopyUTF16toUTF8(nsDependentString(aName), aResult);
+  aResult.Assign(aName);
 }
 
 // static

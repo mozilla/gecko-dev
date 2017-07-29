@@ -32,7 +32,7 @@ namespace mozilla {
 
 using namespace mozilla::gfx;
 
-NS_IMPL_ISUPPORTS(MediaEngineDefaultVideoSource, nsITimerCallback)
+NS_IMPL_ISUPPORTS(MediaEngineDefaultVideoSource, nsITimerCallback, nsINamed)
 /**
  * Default video source.
  */
@@ -58,14 +58,12 @@ void
 MediaEngineDefaultVideoSource::GetName(nsAString& aName) const
 {
   aName.AssignLiteral(u"Default Video Device");
-  return;
 }
 
 void
 MediaEngineDefaultVideoSource::GetUUID(nsACString& aUUID) const
 {
   aUUID.AssignLiteral("1041FCBD-3F12-4F7B-9E9B-1EC556DD5676");
-  return;
 }
 
 uint32_t
@@ -189,7 +187,7 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID,
   mTrackID = aID;
 
   // Start timer for subsequent frames
-#if (defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)) && defined(DEBUG)
+#if defined(MOZ_WIDGET_ANDROID) && defined(DEBUG)
 // emulator debug is very, very slow and has problems dealing with realtime audio inputs
   mTimer->InitWithCallback(this, (1000 / mOpts.mFPS)*10, nsITimer::TYPE_REPEATING_SLACK);
 #else
@@ -288,6 +286,13 @@ MediaEngineDefaultVideoSource::Notify(nsITimer* aTimer)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+MediaEngineDefaultVideoSource::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("MediaEngineDefaultVideoSource");
+  return NS_OK;
+}
+
 void
 MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
                                           SourceMediaStream *aSource,
@@ -382,14 +387,12 @@ void
 MediaEngineDefaultAudioSource::GetName(nsAString& aName) const
 {
   aName.AssignLiteral(u"Default Audio Device");
-  return;
 }
 
 void
 MediaEngineDefaultAudioSource::GetUUID(nsACString& aUUID) const
 {
   aUUID.AssignLiteral("B7CBD7C1-53EF-42F9-8353-73F61C70C092");
-  return;
 }
 
 uint32_t
@@ -533,8 +536,6 @@ MediaEngineDefault::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
   RefPtr<MediaEngineVideoSource> newSource = new MediaEngineDefaultVideoSource();
   mVSources.AppendElement(newSource);
   aVSources->AppendElement(newSource);
-
-  return;
 }
 
 void
@@ -559,7 +560,6 @@ MediaEngineDefault::EnumerateAudioDevices(dom::MediaSourceEnum aMediaSource,
     mASources.AppendElement(newSource);
     aASources->AppendElement(newSource);
   }
-  return;
 }
 
 } // namespace mozilla

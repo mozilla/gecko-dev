@@ -4,7 +4,7 @@
 
 //! Keyframes: https://drafts.csswg.org/css-animations/#keyframes
 
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CompactCowStr};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
 use error_reporting::{NullReporter, ContextualParseError};
 use parser::{ParserContext, log_css_error};
@@ -14,10 +14,11 @@ use properties::LonghandIdSet;
 use properties::animated_properties::AnimatableLonghand;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use selectors::parser::SelectorParseError;
+use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
-use stylearc::Arc;
+use style_traits::PropertyDeclarationParseError;
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::KeyframesName;
@@ -530,9 +531,10 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
-        let id = PropertyId::parse(name.into())?;
+        let id = PropertyId::parse(&name)
+            .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name))?;
         match PropertyDeclaration::parse_into(self.declarations, id, self.context, input) {
             Ok(()) => {
                 // In case there is still unparsed text in the declaration, we should roll back.

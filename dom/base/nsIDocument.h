@@ -939,6 +939,12 @@ public:
   Element* GetRootElement() const;
 
   /**
+   * Gets the event target to dispatch key events to if there is no focused
+   * content in the document.
+   */
+  virtual nsIContent* GetUnfocusedKeyEventTarget();
+
+  /**
    * Retrieve information about the viewport as a data structure.
    * This will return information in the viewport META data section
    * of the document. This can be used in lieu of ProcessViewportInfo(),
@@ -2931,8 +2937,7 @@ public:
   virtual void NotifyIntersectionObservers() = 0;
 
   // Dispatch a runnable related to the document.
-  virtual nsresult Dispatch(const char* aName,
-                            mozilla::TaskCategory aCategory,
+  virtual nsresult Dispatch(mozilla::TaskCategory aCategory,
                             already_AddRefed<nsIRunnable>&& aRunnable) override;
 
   virtual nsISerialEventTarget*

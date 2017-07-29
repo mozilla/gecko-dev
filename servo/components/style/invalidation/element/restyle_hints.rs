@@ -6,7 +6,7 @@
 
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
-use traversal::TraversalFlags;
+use traversal_flags::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.
@@ -65,8 +65,12 @@ impl RestyleHint {
     }
 
     /// Returns whether we need to restyle this element.
-    pub fn has_self_invalidations(&self) -> bool {
-        self.intersects(RESTYLE_SELF | RECASCADE_SELF | Self::replacements())
+    pub fn has_non_animation_invalidations(&self) -> bool {
+        self.intersects(
+            RESTYLE_SELF |
+            RECASCADE_SELF |
+            (Self::replacements() & !Self::for_animations())
+        )
     }
 
     /// Propagates this restyle hint to a child element.
@@ -129,6 +133,13 @@ impl RestyleHint {
     #[inline]
     pub fn has_animation_hint(&self) -> bool {
         self.intersects(Self::for_animations())
+    }
+
+    /// Returns whether the hint specifies that an animation cascade level must
+    /// be replaced.
+    #[inline]
+    pub fn has_animation_hint_or_recascade(&self) -> bool {
+        self.intersects(Self::for_animations() | RECASCADE_SELF)
     }
 
     /// Returns whether the hint specifies some restyle work other than an

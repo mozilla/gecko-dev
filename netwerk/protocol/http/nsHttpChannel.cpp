@@ -11,7 +11,6 @@
 
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Sprintf.h"
 
 #include "nsHttp.h"
@@ -129,6 +128,7 @@ static bool sRCWNEnabled = false;
 static uint32_t sRCWNQueueSizeNormal = 50;
 static uint32_t sRCWNQueueSizePriority = 10;
 static uint32_t sRCWNSmallResourceSizeKB = 256;
+static uint32_t sRCWNMaxWaitMs = 500;
 
 // True if the local cache should be bypassed when processing a request.
 #define BYPASS_LOCAL_CACHE(loadFlags) \
@@ -193,6 +193,50 @@ Hash(const char *buf, nsACString &hash)
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
+}
+
+bool
+IsInSubpathOfAppCacheManifest(nsIApplicationCache *cache, nsACString const& uriSpec)
+{
+    MOZ_ASSERT(cache);
+
+    nsresult rv;
+
+    nsCOMPtr<nsIURI> uri;
+    rv = NS_NewURI(getter_AddRefs(uri), uriSpec);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    nsCOMPtr<nsIURL> url(do_QueryInterface(uri, &rv));
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    nsAutoCString directory;
+    rv = url->GetDirectory(directory);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    nsCOMPtr<nsIURI> manifestURI;
+    rv = cache->GetManifestURI(getter_AddRefs(manifestURI));
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    nsCOMPtr<nsIURL> manifestURL(do_QueryInterface(manifestURI, &rv));
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    nsAutoCString manifestDirectory;
+    rv = manifestURL->GetDirectory(manifestDirectory);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    return StringBeginsWith(directory, manifestDirectory);
 }
 
 } // unnamed namespace
@@ -485,11 +529,18 @@ nsHttpChannel::Connect()
         // otherwise, let's just proceed without using the cache.
     }
 
+    if (mRaceCacheWithNetwork && mCacheEntry && !mCachedContentIsValid &&
+        (mDidReval || mCachedContentIsPartial)) {
+        // We won't send the conditional request because the unconditional
+        // request was already sent (see bug 1377223).
+        AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent);
+    }
+
     // When racing, if OnCacheEntryAvailable is called before AsyncOpenURI
     // returns, then we may not have started reading from the cache.
     // If the content is valid, we should attempt to do so, as technically the
     // cache has won the race.
-    if (sRCWNEnabled && mCachedContentIsValid && mNetworkTriggered) {
+    if (mRaceCacheWithNetwork && mCachedContentIsValid) {
         Unused << ReadFromCache(true);
     }
 
@@ -2357,6 +2408,7 @@ nsHttpChannel::ContinueProcessResponse2(nsresult rv)
     uint32_t httpStatus = mResponseHead->Status();
 
     bool successfulReval = false;
+    bool partialContentUsed = false;
 
     // handle different server response categories.  Note that we handle
     // caching or not caching of error pages in
@@ -2380,9 +2432,12 @@ nsHttpChannel::ContinueProcessResponse2(nsresult rv)
         MaybeInvalidateCacheEntryForSubsequentGet();
         break;
     case 206:
-        if (mCachedContentIsPartial) // an internal byte range request...
+        if (mCachedContentIsPartial) { // an internal byte range request...
             rv = ProcessPartialContent();
-        else {
+            if (NS_SUCCEEDED(rv)) {
+                partialContentUsed = true;
+            }
+        } else {
             mCacheInputStream.CloseAndRelease();
             rv = ProcessNormal();
         }
@@ -2499,6 +2554,16 @@ nsHttpChannel::ContinueProcessResponse2(nsresult rv)
         MaybeInvalidateCacheEntryForSubsequentGet();
         break;
     }
+
+    if (mRaceDelay && !mRaceCacheWithNetwork &&
+        (mCachedContentIsPartial || mDidReval)) {
+        if (successfulReval || partialContentUsed) {
+            AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::CachedContentUsed);
+        } else {
+            AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::CachedContentNotUsed);
+        }
+    }
+
 
     if (gHttpHandler->IsTelemetryEnabled()) {
         CacheDisposition cacheDisposition;
@@ -2701,7 +2766,8 @@ nsHttpChannel::PromptTempRedirect()
     if (NS_FAILED(rv)) return rv;
 
     nsXPIDLString messageString;
-    rv = stringBundle->GetStringFromName(u"RepostFormData", getter_Copies(messageString));
+    rv = stringBundle->GetStringFromName("RepostFormData",
+                                         getter_Copies(messageString));
     // GetStringFromName can return NS_OK and nullptr messageString.
     if (NS_SUCCEEDED(rv) && messageString) {
         bool repost = false;
@@ -2798,8 +2864,6 @@ nsHttpChannel::HandleAsyncAPIRedirect()
                  static_cast<uint32_t>(rv), this));
         }
     }
-
-    return;
 }
 
 nsresult
@@ -3499,6 +3563,12 @@ nsHttpChannel::ProcessFallback(bool *waitingForRedirectCallback)
     if (fallbackEntryType & nsIApplicationCache::ITEM_FOREIGN) {
         // This cache points to a fallback that refers to a different
         // manifest.  Refuse to fall back.
+        return NS_OK;
+    }
+
+    if (!IsInSubpathOfAppCacheManifest(mApplicationCache, mFallbackKey)) {
+        // Refuse to fallback if the fallback key is not contained in the same
+        // path as the cache manifest.
         return NS_OK;
     }
 
@@ -4480,7 +4550,14 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntry *entry,
         return NS_OK;
     }
 
-    if (mCachedContentIsValid && mNetworkTriggered) {
+    if (mRaceCacheWithNetwork && mCacheEntry && !mCachedContentIsValid &&
+        (mDidReval || mCachedContentIsPartial)) {
+        // We won't send the conditional request because the unconditional
+        // request was already sent (see bug 1377223).
+        AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent);
+    }
+
+    if (mRaceCacheWithNetwork && mCachedContentIsValid) {
         Unused << ReadFromCache(true);
     }
 
@@ -4601,6 +4678,17 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntry *aEntry,
 
         if (namespaceType &
             nsIApplicationCacheNamespace::NAMESPACE_FALLBACK) {
+
+            nsAutoCString namespaceSpec;
+            rv = namespaceEntry->GetNamespaceSpec(namespaceSpec);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            // This prevents fallback attacks injected by an insecure subdirectory
+            // for the whole origin (or a parent directory).
+            if (!IsInSubpathOfAppCacheManifest(mApplicationCache, namespaceSpec)) {
+                return NS_OK;
+            }
+
             rv = namespaceEntry->GetData(mFallbackKey);
             NS_ENSURE_SUCCESS(rv, rv);
         }
@@ -4951,6 +5039,13 @@ nsHttpChannel::ReadFromCache(bool alreadyMarkedValid)
 
     LOG(("nsHttpChannel::ReadFromCache [this=%p] "
          "Using cached copy of: %s\n", this, mSpec.get()));
+
+    // When racing the cache with the network with a timer, and we get data from
+    // the cache, we should prevent the timer from triggering a network request.
+    if (mNetworkTriggerTimer) {
+        mNetworkTriggerTimer->Cancel();
+        mNetworkTriggerTimer = nullptr;
+    }
 
     if (mRaceCacheWithNetwork) {
         MOZ_ASSERT(mFirstResponseSource != RESPONSE_FROM_CACHE);
@@ -6101,6 +6196,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         Preferences::AddUintVarCache(&sRCWNQueueSizeNormal, "network.http.rcwn.cache_queue_normal_threshold");
         Preferences::AddUintVarCache(&sRCWNQueueSizePriority, "network.http.rcwn.cache_queue_priority_threshold");
         Preferences::AddUintVarCache(&sRCWNSmallResourceSizeKB, "network.http.rcwn.small_resource_size_kb");
+        Preferences::AddUintVarCache(&sRCWNMaxWaitMs, "network.http.rcwn.max_wait_before_racing_ms");
     }
 
     rv = NS_CheckPortSafety(mURI);
@@ -6473,7 +6569,8 @@ nsHttpChannel::BeginConnectContinue()
         if (mClassOfService & nsIClassOfService::Unblocked) {
             mCaps |= NS_HTTP_LOAD_UNBLOCKED;
         }
-        if (mClassOfService & nsIClassOfService::UrgentStart) {
+        if (mClassOfService & nsIClassOfService::UrgentStart &&
+            gHttpHandler->IsUrgentStartEnabled()) {
             mCaps |= NS_HTTP_URGENT_START;
             SetPriority(nsISupportsPriority::PRIORITY_HIGHEST);
         }
@@ -6846,6 +6943,15 @@ nsHttpChannel::GetConnectStart(TimeStamp* _retval) {
         *_retval = mTransaction->GetConnectStart();
     else
         *_retval = mTransactionTimings.connectStart;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetSecureConnectionStart(TimeStamp* _retval) {
+    if (mTransaction)
+        *_retval = mTransaction->GetSecureConnectionStart();
+    else
+        *_retval = mTransactionTimings.secureConnectionStart;
     return NS_OK;
 }
 
@@ -7253,21 +7359,38 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         // keep the connection around after the transaction is finished.
         //
         RefPtr<nsAHttpConnection> conn;
-        LOG(("  authRetry=%d, sticky conn cap=%d", authRetry, mCaps & NS_HTTP_STICKY_CONNECTION));
+        LOG(("  mAuthRetryPending=%d, status=%" PRIx32 ", sticky conn cap=%d",
+             mAuthRetryPending, static_cast<uint32_t>(status),
+             mCaps & NS_HTTP_STICKY_CONNECTION));
         // We must check caps for stickinness also on the transaction because it
         // might have been updated by the transaction itself during inspection of
         // the reposnse headers yet on the socket thread (found connection based
         // auth schema).
-        if (authRetry && (mCaps & NS_HTTP_STICKY_CONNECTION ||
-                          mTransaction->Caps() & NS_HTTP_STICKY_CONNECTION)) {
+        if ((mAuthRetryPending || NS_FAILED(status)) &&
+            (mCaps & NS_HTTP_STICKY_CONNECTION ||
+             mTransaction->Caps() & NS_HTTP_STICKY_CONNECTION)) {
+
             conn = mTransaction->GetConnectionReference();
             LOG(("  transaction %p provides connection %p", mTransaction.get(), conn.get()));
-            // This is so far a workaround to fix leak when reusing unpersistent
-            // connection for authentication retry. See bug 459620 comment 4
-            // for details.
-            if (conn && !conn->IsPersistent()) {
-                LOG(("  connection is not persistent, not reusing it"));
-                conn = nullptr;
+
+            if (conn) {
+                if (NS_FAILED(status)) {
+                    // Close (don't reuse) the sticky connection if it's in the middle
+                    // of an NTLM negotiation and this channel has been cancelled.
+                    // There are proxy servers known to get confused when we send
+                    // a new request over such a half-stated connection.
+                    if (!mAuthConnectionRestartable) {
+                        LOG(("  not reusing a half-authenticated sticky connection"));
+                        conn->DontReuse();
+                    }
+                    conn = nullptr;
+                } else if (!conn->IsPersistent()) {
+                    // This is so far a workaround to fix leak when reusing unpersistent
+                    // connection for authentication retry. See bug 459620 comment 4
+                    // for details.
+                    LOG(("  connection is not persistent, not reusing it"));
+                    conn = nullptr;
+                }
             }
         }
 
@@ -7818,18 +7941,6 @@ nsHttpChannel::GetCacheTokenFetchCount(int32_t *_retval)
 }
 
 NS_IMETHODIMP
-nsHttpChannel::GetCacheTokenLastFetched(uint32_t *_retval)
-{
-    NS_ENSURE_ARG_POINTER(_retval);
-    nsCOMPtr<nsICacheEntry> cacheEntry = mCacheEntry ? mCacheEntry : mAltDataCacheEntry;
-    if (!cacheEntry) {
-        return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    return cacheEntry->GetLastFetched(_retval);
-}
-
-NS_IMETHODIMP
 nsHttpChannel::GetCacheTokenExpirationTime(uint32_t *_retval)
 {
     NS_ENSURE_ARG_POINTER(_retval);
@@ -8290,7 +8401,7 @@ NS_IMETHODIMP
 nsHttpChannel::OnRedirectVerifyCallback(nsresult result)
 {
     LOG(("nsHttpChannel::OnRedirectVerifyCallback [this=%p] "
-         "result=%" PRIx32 " stack=%" PRIuSIZE " mWaitingForRedirectCallback=%u\n",
+         "result=%" PRIx32 " stack=%zu mWaitingForRedirectCallback=%u\n",
          this, static_cast<uint32_t>(result), mRedirectFuncStack.Length(),
          mWaitingForRedirectCallback));
     MOZ_ASSERT(mWaitingForRedirectCallback,
@@ -9002,7 +9113,7 @@ nsHttpChannel::ReportRcwnStats(bool isFromNet)
             AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2::NetworkNoRace);
         }
     } else {
-        if (mRaceCacheWithNetwork) {
+        if (mRaceCacheWithNetwork || mRaceDelay) {
             gIOService->IncrementCacheWonRequestNumber();
             Telemetry::Accumulate(Telemetry::NETWORK_RACE_CACHE_BANDWIDTH_RACE_CACHE_WIN, mTransferSize);
             if (mRaceDelay) {
@@ -9252,6 +9363,9 @@ nsHttpChannel::MaybeRaceCacheWithNetwork()
         // We use microseconds in CachePerfStats but we need milliseconds
         // for TriggerNetwork.
         mRaceDelay /= 1000;
+        if (mRaceDelay > sRCWNMaxWaitMs) {
+            mRaceDelay = sRCWNMaxWaitMs;
+        }
     }
 
     MOZ_ASSERT(sRCWNEnabled, "The pref must be truned on.");

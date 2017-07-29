@@ -1078,8 +1078,7 @@ Loader::CheckContentPolicy(nsIPrincipal* aSourcePrincipal,
                                           NS_LITERAL_CSTRING("text/css"),
                                           nullptr,  //extra param
                                           &shouldLoad,
-                                          nsContentUtils::GetContentPolicy(),
-                                          nsContentUtils::GetSecurityManager());
+                                          nsContentUtils::GetContentPolicy());
    if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
      return NS_ERROR_CONTENT_BLOCKED;
    }
@@ -2477,14 +2476,11 @@ Loader::PostLoadEvent(nsIURI* aURI,
   nsresult rv;
   RefPtr<SheetLoadData> runnable(evt);
   if (mDocument) {
-    rv = mDocument->Dispatch("SheetLoadData", TaskCategory::Other,
-                             runnable.forget());
+    rv = mDocument->Dispatch(TaskCategory::Other, runnable.forget());
   } else if (mDocGroup) {
-    rv = mDocGroup->Dispatch("SheetLoadData", TaskCategory::Other,
-                             runnable.forget());
+    rv = mDocGroup->Dispatch(TaskCategory::Other, runnable.forget());
   } else {
-    rv = SystemGroup::Dispatch("SheetLoadData", TaskCategory::Other,
-                               runnable.forget());
+    rv = SystemGroup::Dispatch(TaskCategory::Other, runnable.forget());
   }
 
   if (NS_FAILED(rv)) {

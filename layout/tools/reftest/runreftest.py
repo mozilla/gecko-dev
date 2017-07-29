@@ -207,13 +207,15 @@ class ReftestResolver(object):
 
 
 class RefTest(object):
+    TEST_SEEN_INITIAL = 'reftest'
+    TEST_SEEN_FINAL = 'Main app process exited normally'
     use_marionette = True
     oldcwd = os.getcwd()
     resolver_cls = ReftestResolver
 
     def __init__(self):
         self.update_mozinfo()
-        self.lastTestSeen = 'reftest'
+        self.lastTestSeen = self.TEST_SEEN_INITIAL
         self.haveDumpedScreen = False
         self.resolver = self.resolver_cls()
         self.log = None
@@ -289,7 +291,8 @@ class RefTest(object):
         prefs['reftest.logLevel'] = options.log_tbpl_level or 'info'
         prefs['reftest.manifests'] = json.dumps(manifests)
 
-        if startAfter is not None:
+        if startAfter not in (None, self.TEST_SEEN_INITIAL, self.TEST_SEEN_FINAL):
+            self.log.info("Setting reftest.startAfter to %s" % startAfter)
             prefs['reftest.startAfter'] = startAfter
 
         if options.e10s:
@@ -380,6 +383,8 @@ class RefTest(object):
         browserEnv["XPCOM_DEBUG_BREAK"] = "stack"
         if hasattr(options, "topsrcdir"):
             browserEnv["MOZ_DEVELOPER_REPO_DIR"] = options.topsrcdir
+        if hasattr(options, "topobjdir"):
+            browserEnv["MOZ_DEVELOPER_OBJ_DIR"] = options.topobjdir
 
         if mozinfo.info["asan"]:
             # Disable leak checking for reftests for now
@@ -667,7 +672,7 @@ class RefTest(object):
             # use process_output so message is logged verbatim
             self.log.process_output(None, msg)
         else:
-            self.lastTestSeen = 'Main app process exited normally'
+            self.lastTestSeen = self.TEST_SEEN_FINAL
 
         crashed = mozcrash.log_crashes(self.log, os.path.join(profile.profile, 'minidumps'),
                                        symbolsPath, test=self.lastTestSeen)
@@ -721,6 +726,11 @@ class RefTest(object):
                 if status == 0:
                     break
 
+                if startAfter == self.TEST_SEEN_FINAL:
+                    self.log.info("Finished running all tests, skipping resume "
+                                  "despite non-zero status code: %s" % status)
+                    break
+
                 if startAfter is not None and options.shuffle:
                     self.log.error("Can not resume from a crash with --shuffle "
                                    "enabled. Please consider disabling --shuffle")
@@ -744,8 +754,6 @@ class RefTest(object):
     def copyExtraFilesToProfile(self, options, profile):
         "Copy extra files or dirs specified on the command line to the testing profile."
         profileDir = profile.profile
-        if not os.path.exists(os.path.join(profileDir, "hyphenation")):
-            os.makedirs(os.path.join(profileDir, "hyphenation"))
         for f in options.extraProfileFiles:
             abspath = self.getFullPath(f)
             if os.path.isfile(abspath):
@@ -753,7 +761,10 @@ class RefTest(object):
                     extra_prefs = mozprofile.Preferences.read_prefs(abspath)
                     profile.set_preferences(extra_prefs)
                 elif os.path.basename(abspath).endswith('.dic'):
-                    shutil.copy2(abspath, os.path.join(profileDir, "hyphenation"))
+                    hyphDir = os.path.join(profileDir, "hyphenation")
+                    if not os.path.exists(hyphDir):
+                        os.makedirs(hyphDir)
+                    shutil.copy2(abspath, hyphDir)
                 else:
                     shutil.copy2(abspath, profileDir)
             elif os.path.isdir(abspath):

@@ -103,22 +103,47 @@ FocusTarget::FocusTarget(nsIPresShell* aRootPresShell,
     return;
   }
 
-  // Get the content that should be scrolled for this PresShell, which is
-  // the current focused element or the current DOM selection
-  nsCOMPtr<nsIContent> scrollTarget = presShell->GetContentForScrolling();
+  nsCOMPtr<nsIDocument> document = presShell->GetDocument();
+  if (!document) {
+    FT_LOG("Creating nil target with seq=%" PRIu64 " (no document)\n",
+           aFocusSequenceNumber);
 
-  // Collect event listener information so we can track what is potentially focus
-  // changing
-  mFocusHasKeyEventListeners = HasListenersForKeyEvents(scrollTarget);
+    mType = FocusTarget::eNone;
+    return;
+  }
 
-  // Check if the scroll target is a remote browser
-  if (TabParent* browserParent = TabParent::GetFrom(scrollTarget)) {
+  // Find the focused content and use it to determine whether there are key event
+  // listeners or whether key events will be targeted at a different process
+  // through a remote browser.
+  nsCOMPtr<nsIContent> focusedContent = presShell->GetFocusedContentInOurWindow();
+
+  // Check if there are key event listeners that could prevent default or change
+  // the focus or selection of the page.
+  mFocusHasKeyEventListeners =
+    HasListenersForKeyEvents(focusedContent ? focusedContent.get()
+                                            : document->GetUnfocusedKeyEventTarget());
+
+  // Check if the focused element is content editable or if the document
+  // is in design mode.
+  if (IsEditableNode(focusedContent) ||
+      IsEditableNode(document)) {
+    FT_LOG("Creating nil target with seq=%" PRIu64 ", kl=%d (disabling for editable node)\n",
+           aFocusSequenceNumber,
+           static_cast<int>(mFocusHasKeyEventListeners));
+
+    mType = FocusTarget::eNone;
+    return;
+  }
+
+  // Check if the focused element is a remote browser
+  if (TabParent* browserParent = TabParent::GetFrom(focusedContent)) {
     RenderFrameParent* rfp = browserParent->GetRenderFrame();
 
     // The globally focused element for scrolling is in a remote layer tree
     if (rfp) {
-      FT_LOG("Creating reflayer target with seq=%" PRIu64 ", lt=%" PRIu64 "\n",
+      FT_LOG("Creating reflayer target with seq=%" PRIu64 ", kl=%d, lt=%" PRIu64 "\n",
              aFocusSequenceNumber,
+             mFocusHasKeyEventListeners,
              rfp->GetLayersId());
 
       mType = FocusTarget::eRefLayer;
@@ -126,30 +151,37 @@ FocusTarget::FocusTarget(nsIPresShell* aRootPresShell,
       return;
     }
 
-    FT_LOG("Creating nil target with seq=%" PRIu64 " (remote browser missing layers id)\n",
-           aFocusSequenceNumber);
+    FT_LOG("Creating nil target with seq=%" PRIu64 ", kl=%d (remote browser missing layers id)\n",
+           aFocusSequenceNumber,
+           mFocusHasKeyEventListeners);
 
     mType = FocusTarget::eNone;
     return;
   }
 
-  // If the focus isn't on a remote browser then check for scrollable targets
-  if (IsEditableNode(scrollTarget) ||
-      IsEditableNode(presShell->GetDocument())) {
-    FT_LOG("Creating nil target with seq=%" PRIu64 " (disabling for editable node)\n",
-           aFocusSequenceNumber);
+  // The content to scroll is either the focused element or the focus node of
+  // the selection. It's difficult to determine if an element is an interactive
+  // element requiring async keyboard scrolling to be disabled. So we only
+  // allow async key scrolling based on the selection, which doesn't have
+  // this problem and is more common.
+  if (focusedContent) {
+    FT_LOG("Creating nil target with seq=%" PRIu64 ", kl=%d (disabling for focusing an element)\n",
+           aFocusSequenceNumber,
+           mFocusHasKeyEventListeners);
 
     mType = FocusTarget::eNone;
     return;
   }
+
+  nsCOMPtr<nsIContent> selectedContent = presShell->GetSelectedContentForScrolling();
 
   // Gather the scrollable frames that would be scrolled in each direction
   // for this scroll target
   nsIScrollableFrame* horizontal =
-    presShell->GetScrollableFrameToScrollForContent(scrollTarget.get(),
+    presShell->GetScrollableFrameToScrollForContent(selectedContent.get(),
                                                     nsIPresShell::eHorizontal);
   nsIScrollableFrame* vertical =
-    presShell->GetScrollableFrameToScrollForContent(scrollTarget.get(),
+    presShell->GetScrollableFrameToScrollForContent(selectedContent.get(),
                                                     nsIPresShell::eVertical);
 
   // We might have the globally focused element for scrolling. Gather a ViewID for
@@ -160,8 +192,9 @@ FocusTarget::FocusTarget(nsIPresShell* aRootPresShell,
   mData.mScrollTargets.mVertical =
     nsLayoutUtils::FindIDForScrollableFrame(vertical);
 
-  FT_LOG("Creating scroll target with seq=%" PRIu64 ", h=%" PRIu64 ", v=%" PRIu64 "\n",
+  FT_LOG("Creating scroll target with seq=%" PRIu64 ", kl=%d, h=%" PRIu64 ", v=%" PRIu64 "\n",
          aFocusSequenceNumber,
+         mFocusHasKeyEventListeners,
          mData.mScrollTargets.mHorizontal,
          mData.mScrollTargets.mVertical);
 }

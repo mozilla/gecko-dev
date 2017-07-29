@@ -61,11 +61,12 @@ def buildCommandLine(test):
     url = ['-tp', test['tpmanifest']]
     CLI_bool_options = ['tpchrome', 'tpmozafterpaint', 'tpdisable_e10s',
                         'tpnoisy', 'rss', 'tprender', 'tploadnocache',
-                        'tpscrolltest']
+                        'tpscrolltest', 'fnbpaint']
     CLI_options = ['tpcycles', 'tppagecycles', 'tpdelay', 'tptimeout']
     for key in CLI_bool_options:
         if test.get(key):
             url.append('-%s' % key)
+
     for key in CLI_options:
         value = test.get(key)
         if value:
@@ -121,6 +122,11 @@ def run_tests(config, browser_config):
         browser_config['preferences']['xpinstall.signatures.required'] = False
 
     browser_config['preferences']['extensions.allow-non-mpc-extensions'] = True
+
+    # if using firstNonBlankPaint, must turn on pref for it
+    if test.get('fnbpaint', False):
+        LOG.info("Using firstNonBlankPaint, so turning on pref for it")
+        browser_config['preferences']['dom.performance.time_to_non_blank_paint.enabled'] = True
 
     # set defaults
     testdate = config.get('testdate', '')
@@ -188,6 +194,14 @@ def run_tests(config, browser_config):
     if config['e10s']:
         talos_results.add_extra_option('e10s')
 
+    # stylo is another option for testing
+    if config['stylo']:
+        talos_results.add_extra_option('stylo')
+
+    # measuring the difference of a a certain thread level
+    if config.get('stylothreads', 0) > 0:
+        talos_results.add_extra_option('%s_thread' % config['stylothreads'])
+
     if config['gecko_profile']:
         talos_results.add_extra_option('geckoProfile')
 
@@ -217,9 +231,6 @@ def run_tests(config, browser_config):
         mitmproxy.install_mitmproxy_cert(mitmproxy_proc,
                                          browser_config['browser_path'],
                                          str(scripts_path))
-
-    if config.get('first_non_blank_paint', False):
-        browser_config['firstNonBlankPaint'] = True
 
     testname = None
     # run the tests

@@ -22,8 +22,8 @@
 <!ENTITY trackingProtectionPBM6.label         "Use Tracking Protection in Private Browsing to block known trackers">
 <!ENTITY trackingProtectionPBM6.accesskey     "v">
 <!ENTITY trackingProtectionPBMLearnMore.label "Learn more">
-<!ENTITY changeBlockList.label          "Change Block List">
-<!ENTITY changeBlockList.accesskey      "C">
+<!ENTITY changeBlockList2.label               "Change Block List…">
+<!ENTITY changeBlockList2.accesskey           "C">
 
 <!ENTITY  doNotTrack.description        "Send websites a “Do Not Track” signal that you don’t want to be tracked">
 <!ENTITY  doNotTrack.learnMore.label    "Learn more">
@@ -33,11 +33,10 @@
 <!ENTITY  history.label                 "History">
 <!ENTITY  permissions.label             "Permissions">
 
-<!ENTITY  locationBar.label             "Location Bar">
-
-<!ENTITY  locbar.suggest2.label         "When using the location bar, suggest">
-<!ENTITY  locbar.history.label          "History">
-<!ENTITY  locbar.history.accesskey      "H">
+<!ENTITY  addressBar.label              "Address Bar">
+<!ENTITY  addressBar.suggest.label      "When using the address bar, suggest">
+<!ENTITY  locbar.history2.label         "Browsing history">
+<!ENTITY  locbar.history2.accesskey     "H">
 <!ENTITY  locbar.bookmarks.label        "Bookmarks">
 <!ENTITY  locbar.bookmarks.accesskey    "k">
 <!ENTITY  locbar.openpage.label         "Open tabs">
@@ -109,7 +108,6 @@
 <!ENTITY  clearOnCloseSettings.label     "Settings…">
 <!ENTITY  clearOnCloseSettings.accesskey "t">
 
-<!ENTITY  browserContainersHeader.label         "Container Tabs">
 <!ENTITY  browserContainersLearnMore.label      "Learn more">
 <!ENTITY  browserContainersEnabled.label        "Enable Container Tabs">
 <!ENTITY  browserContainersEnabled.accesskey    "n">

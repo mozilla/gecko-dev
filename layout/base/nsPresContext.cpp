@@ -274,7 +274,6 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
     mIsGlyph(false),
     mUsesRootEMUnits(false),
     mUsesExChUnits(false),
-    mUsesViewportUnits(false),
     mPendingViewportChange(false),
     mCounterStylesDirty(true),
     mPostedFlushCounterStyles(false),
@@ -1123,8 +1122,7 @@ nsPresContext::Observe(nsISupports* aSubject,
     auto encoding = Encoding::ForName(NS_LossyConvertUTF16toASCII(aData));
     RefPtr<CharSetChangingRunnable> runnable =
       new CharSetChangingRunnable(this, encoding);
-    return Document()->Dispatch("CharSetChangingRunnable",
-                                TaskCategory::Other,
+    return Document()->Dispatch(TaskCategory::Other,
                                 runnable.forget());
   }
 
@@ -1413,10 +1411,15 @@ nsPresContext::SetFullZoom(float aZoom)
 void
 nsPresContext::SetOverrideDPPX(float aDPPX)
 {
-  mOverrideDPPX = aDPPX;
+  // SetOverrideDPPX is called during navigations, including history
+  // traversals.  In that case, it's typically called with our current value,
+  // and we don't need to actually do anything.
+  if (aDPPX != mOverrideDPPX) {
+    mOverrideDPPX = aDPPX;
 
-  if (HasCachedStyleData()) {
-    MediaFeatureValuesChanged(nsRestyleHint(0), nsChangeHint(0));
+    if (HasCachedStyleData()) {
+      MediaFeatureValuesChanged(nsRestyleHint(0), nsChangeHint(0));
+    }
   }
 }
 
@@ -1809,8 +1812,7 @@ nsPresContext::ThemeChanged()
       NewRunnableMethod("nsPresContext::ThemeChangedInternal",
                         this,
                         &nsPresContext::ThemeChangedInternal);
-    nsresult rv = Document()->Dispatch("nsPresContext::ThemeChangedInternal",
-                                       TaskCategory::Other,
+    nsresult rv = Document()->Dispatch(TaskCategory::Other,
                                        ev.forget());
     if (NS_SUCCEEDED(rv)) {
       mPendingThemeChanged = true;
@@ -1874,8 +1876,7 @@ nsPresContext::SysColorChanged()
       NewRunnableMethod("nsPresContext::SysColorChangedInternal",
                         this,
                         &nsPresContext::SysColorChangedInternal);
-    nsresult rv = Document()->Dispatch("nsPresContext::SysColorChangedInternal",
-                                       TaskCategory::Other,
+    nsresult rv = Document()->Dispatch(TaskCategory::Other,
                                        ev.forget());
     if (NS_SUCCEEDED(rv)) {
       mPendingSysColorChanged = true;
@@ -1915,9 +1916,7 @@ nsPresContext::UIResolutionChanged()
                         this,
                         &nsPresContext::UIResolutionChangedInternal);
     nsresult rv =
-      Document()->Dispatch("nsPresContext::UIResolutionChangedInternal",
-                           TaskCategory::Other,
-                           ev.forget());
+      Document()->Dispatch(TaskCategory::Other, ev.forget());
     if (NS_SUCCEEDED(rv)) {
       mPendingUIResolutionChanged = true;
     }
@@ -2054,7 +2053,9 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint,
 
   mUsesRootEMUnits = false;
   mUsesExChUnits = false;
-  mUsesViewportUnits = false;
+  if (nsStyleSet* styleSet = mShell->StyleSet()->GetAsGecko()) {
+    styleSet->SetUsesViewportUnits(false);
+  }
   mDocument->RebuildUserFontSet();
   RebuildCounterStyles();
 
@@ -2112,20 +2113,9 @@ nsPresContext::MediaFeatureValuesChanged(nsRestyleHint aRestyleHint,
   mPendingMediaFeatureValuesChanged = false;
 
   // MediumFeaturesChanged updates the applied rules, so it always gets called.
-  if (mShell && mShell->StyleSet()->MediumFeaturesChanged()) {
-    aRestyleHint |= eRestyle_Subtree;
-  }
-
-  if (mPendingViewportChange &&
-      (mUsesViewportUnits || mDocument->IsStyledByServo())) {
-    // Rebuild all style data without rerunning selector matching.
-    //
-    // FIXME(emilio, bug 1328652): We don't set mUsesViewportUnits in stylo yet,
-    // so assume the worst.
-    //
-    // Also, in this case we don't need to do a rebuild of the style data, only
-    // post a restyle.
-    aRestyleHint |= eRestyle_ForceDescendants;
+  if (mShell) {
+    aRestyleHint |= mShell->
+      StyleSet()->MediumFeaturesChanged(mPendingViewportChange);
   }
 
   if (aRestyleHint || aChangeHint) {
@@ -2171,9 +2161,7 @@ nsPresContext::PostMediaFeatureValuesChangedEvent()
       NewRunnableMethod("nsPresContext::HandleMediaFeatureValuesChangedEvent",
                         this, &nsPresContext::HandleMediaFeatureValuesChangedEvent);
     nsresult rv =
-      Document()->Dispatch("nsPresContext::HandleMediaFeatureValuesChangedEvent",
-                           TaskCategory::Other,
-                           ev.forget());
+      Document()->Dispatch(TaskCategory::Other, ev.forget());
     if (NS_SUCCEEDED(rv)) {
       mPendingMediaFeatureValuesChanged = true;
       mShell->SetNeedStyleFlush();
@@ -2396,9 +2384,7 @@ nsPresContext::RebuildCounterStyles()
       NewRunnableMethod("nsPresContext::HandleRebuildCounterStyles",
                         this, &nsPresContext::HandleRebuildCounterStyles);
     nsresult rv =
-      Document()->Dispatch("nsPresContext::HandleRebuildCounterStyles",
-                           TaskCategory::Other,
-                           ev.forget());
+      Document()->Dispatch(TaskCategory::Other, ev.forget());
     if (NS_SUCCEEDED(rv)) {
       mPostedFlushCounterStyles = true;
     }
@@ -3445,8 +3431,7 @@ nsRootPresContext::AddWillPaintObserver(nsIRunnable* aRunnable)
 {
   if (!mWillPaintFallbackEvent.IsPending()) {
     mWillPaintFallbackEvent = new RunWillPaintObservers(this);
-    Document()->Dispatch("RunWillPaintObservers",
-                         TaskCategory::Other,
+    Document()->Dispatch(TaskCategory::Other,
                          do_AddRef(mWillPaintFallbackEvent.get()));
   }
   mWillPaintObservers.AppendElement(aRunnable);

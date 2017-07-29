@@ -17,8 +17,8 @@ use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFF
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use media_queries::{Device, MediaList};
 use properties::ComputedValues;
+use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
-use stylearc::Arc;
 use stylesheet_set::StylesheetSet;
 use stylesheets::{Origin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
@@ -185,6 +185,13 @@ impl PerDocumentStyleDataImpl {
             author_style_disabled,
             &mut extra_data
         );
+    }
+
+    /// Returns whether private browsing is enabled.
+    pub fn is_private_browsing_enabled(&self) -> bool {
+        let doc =
+            self.stylist.device().pres_context().mDocument.raw::<nsIDocument>();
+        unsafe { bindings::Gecko_IsPrivateBrowsingEnabled(doc) }
     }
 
     /// Get the default computed values for this document.

@@ -19,6 +19,7 @@
 #include "GeckoProfiler.h"
 #include "nsIMozBrowserFrame.h"
 #include "nsPlaceholderFrame.h"
+#include "mozilla/ServoStyleContextInlines.h"
 
 using namespace mozilla;
 typedef nsAbsoluteContainingBlock::AbsPosReflowFlags AbsPosReflowFlags;
@@ -427,7 +428,7 @@ ViewportFrame::UpdateStyle(ServoRestyleState& aRestyleState)
   // like UpdateStyleOfOwnedChildFrame that try to append changes for the
   // content to the change list.  Nor do we computed a changehint, since we have
   // no way to apply it anyway.
-  newContext->ResolveSameStructsAs(PresContext(), oldContext);
+  newContext->ResolveSameStructsAs(oldContext);
 
   MOZ_ASSERT(!GetNextContinuation(), "Viewport has continuations?");
   SetStyleContext(newContext);

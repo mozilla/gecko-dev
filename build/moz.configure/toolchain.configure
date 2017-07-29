@@ -65,9 +65,9 @@ add_old_configure_assignment('YASM', have_yasm)
 # Android NDK
 # ==============================================================
 
-@depends('--disable-compile-environment', build_project, gonkdir, '--help')
-def compiling_android(compile_env, build_project, gonkdir, _):
-    return compile_env and (gonkdir or build_project in ('mobile/android', 'js'))
+@depends('--disable-compile-environment', build_project, '--help')
+def compiling_android(compile_env, build_project, _):
+    return compile_env and build_project in ('mobile/android', 'js')
 
 include('android-ndk.configure', when=compiling_android)
 
@@ -1047,6 +1047,14 @@ def is_windows(target, host):
 
 include('windows.configure', when=is_windows)
 
+# Shader Compiler for Windows (and MinGW Cross Compile)
+# ==============================================================
+
+fxc = check_prog('FXC', ('fxc.exe', 'fxc2.exe'), when=depends(target)
+                 (lambda t: t.kernel == 'WINNT'))
+wine = check_prog('WINE', ['wine'], when=depends(target, host)
+                  (lambda t, h: t.kernel == 'WINNT' and h.kernel == 'Linux'))
+
 # Security Hardening
 # ==============================================================
 
@@ -1080,3 +1088,92 @@ def developer_options(value):
         return True
 
 add_old_configure_assignment('DEVELOPER_OPTIONS', developer_options)
+
+# Linker detection
+# ==============================================================
+
+@depends(target)
+def build_not_win_mac(target):
+    if target.kernel not in ('Darwin', 'WINNT'):
+        return True
+
+
+option('--enable-gold',
+       env='MOZ_FORCE_GOLD',
+       help='Enable GNU Gold Linker when it is not already the default',
+       when=build_not_win_mac)
+
+
+@depends('--enable-gold', c_compiler, developer_options, check_build_environment, when=build_not_win_mac)
+@checking('for ld', lambda x: x.KIND)
+@imports('os')
+@imports('shutil')
+def enable_gold(enable_gold_option, c_compiler, developer_options, build_env):
+    linker = None
+    # Used to check the kind of linker
+    version_check = ['-Wl,--version']
+    cmd_base = c_compiler.wrapper + [c_compiler.compiler] + c_compiler.flags
+
+    def resolve_gold():
+        # Try to force the usage of gold
+        targetDir = os.path.join(build_env.topobjdir, 'build', 'unix', 'gold')
+
+        gold_detection_arg = '-print-prog-name=ld.gold'
+        gold = check_cmd_output(c_compiler.compiler, gold_detection_arg).strip()
+        if not gold:
+            return
+
+        goldFullPath = find_program(gold)
+        if goldFullPath is None:
+            return
+
+        if os.path.exists(targetDir):
+            shutil.rmtree(targetDir)
+        os.makedirs(targetDir)
+        os.symlink(goldFullPath, os.path.join(targetDir, 'ld'))
+
+        linker = ['-B', targetDir]
+        cmd = cmd_base + linker + version_check
+        if 'GNU gold' in check_cmd_output(*cmd).decode('utf-8'):
+            # We have detected gold, will build with the -B workaround
+            return namespace(
+                KIND='gold',
+                LINKER_FLAG=linker,
+            )
+        else:
+            # The -B trick didn't work, removing the directory
+            shutil.rmtree(targetDir)
+
+    if enable_gold_option or developer_options:
+        result = resolve_gold()
+
+        if result:
+            return result
+        # gold is only required if --enable-gold is used.
+        elif enable_gold_option:
+            die('Could not find gold')
+        # Else fallthrough.
+
+    cmd = cmd_base + version_check
+    cmd_output = check_cmd_output(*cmd).decode('utf-8')
+    # using decode because ld can be localized and python will
+    # have problems with french accent for example
+    if 'GNU ld' in cmd_output:
+        # We are using the normal linker
+        return namespace(
+            KIND='bfd'
+        )
+
+    # Special case for Android. In the ndk, it is gold
+    if 'GNU gold' in cmd_output:
+        return namespace(
+            KIND='gold'
+        )
+
+    # For other platforms without gold or the GNU linker
+    return namespace(
+        KIND='other'
+    )
+
+set_config('LD_IS_BFD', depends(enable_gold.KIND)(lambda x: x == 'bfd' or None))
+set_config('LINKER_LDFLAGS', enable_gold.LINKER_FLAG)

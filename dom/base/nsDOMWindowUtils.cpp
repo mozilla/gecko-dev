@@ -75,6 +75,7 @@
 #include "Layers.h"
 #include "gfxPrefs.h"
 
+#include "mozilla/dom/AudioDeviceInfo.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/IDBFactoryBinding.h"
@@ -2451,6 +2452,53 @@ nsDOMWindowUtils::GetCurrentAudioBackend(nsAString& aBackend)
 }
 
 NS_IMETHODIMP
+nsDOMWindowUtils::GetCurrentMaxAudioChannels(uint32_t* aChannels)
+{
+  *aChannels = CubebUtils::MaxNumberOfChannels();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetCurrentPreferredChannelLayout(nsAString& aLayout)
+{
+  CubebUtils::GetPreferredChannelLayout(aLayout);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetCurrentPreferredSampleRate(uint32_t* aRate)
+{
+  *aRate = CubebUtils::PreferredSampleRate();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::AudioDevices(uint16_t aSide, nsIArray** aDevices)
+{
+  NS_ENSURE_ARG_POINTER(aDevices);
+  NS_ENSURE_ARG((aSide == AUDIO_INPUT) || (aSide == AUDIO_OUTPUT));
+  *aDevices = nullptr;
+
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIMutableArray> devices =
+    do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsTArray<RefPtr<AudioDeviceInfo>> collection;
+  CubebUtils::GetDeviceCollection(collection,
+                                  aSide == AUDIO_INPUT
+                                    ? CubebUtils::Side::Input
+                                    : CubebUtils::Side::Output);
+  for (auto device: collection) {
+    devices->AppendElement(device, false);
+  }
+
+  devices.forget(aDevices);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMWindowUtils::StartFrameTimeRecording(uint32_t *startIndex)
 {
   NS_ENSURE_ARG_POINTER(startIndex);
@@ -2900,14 +2948,21 @@ nsDOMWindowUtils::GetUnanimatedComputedStyle(nsIDOMElement* aElement,
     nsComputedDOMStyle::GetUnanimatedStyleContextNoFlush(element,
                                                          pseudo, shell);
 
-  // We will support Servo in bug 1311257.
-  if (shell->StyleSet()->IsServo()) {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  if (styleContext->IsServo()) {
+    RefPtr<RawServoAnimationValue> value =
+      Servo_ComputedValues_ExtractAnimationValue(styleContext->AsServo(),
+                                                 propertyID).Consume();
+    if (!value) {
+      return NS_ERROR_FAILURE;
+    }
+    Servo_AnimationValue_Serialize(value, propertyID, &aResult);
+    return NS_OK;
   }
 
   StyleAnimationValue computedValue;
   if (!StyleAnimationValue::ExtractComputedValue(propertyID,
-                                                 styleContext, computedValue)) {
+                                                 styleContext->AsGecko(),
+                                                 computedValue)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -4438,6 +4493,26 @@ nsDOMWindowUtils::GetDirectionFromText(const nsAString& aString, int32_t* aRetva
       MOZ_ASSERT_UNREACHABLE("GetDirectionFromText should never return this value");
       return NS_ERROR_FAILURE;
   }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::EnsureDirtyRootFrame()
+{
+  nsIDocument* doc = GetDocument();
+  nsIPresShell* presShell = doc ? doc->GetShell() : nullptr;
+
+  if (!presShell) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIFrame* frame = presShell->GetRootFrame();
+  if (!frame) {
+    return NS_ERROR_FAILURE;
+  }
+
+  presShell->FrameNeedsReflow(frame, nsIPresShell::eStyleChange,
+                              NS_FRAME_IS_DIRTY);
   return NS_OK;
 }
 

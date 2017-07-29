@@ -75,15 +75,9 @@ using mozilla::ipc::GeckoChildProcessHost;
 #include "mozilla/jni/Utils.h"
 #endif
 
-static const bool kLowRightsSubprocesses =
-  // We currently only attempt to drop privileges on gonk, because we
-  // have no plugins or extensions to worry about breaking.
-#ifdef MOZ_WIDGET_GONK
-  true
-#else
-  false
-#endif
-  ;
+// We currently don't drop privileges on any platform, because we have to worry
+// about plugins and extensions breaking.
+static const bool kLowRightsSubprocesses = false;
 
 static bool
 ShouldHaveDirectoryService()
@@ -541,6 +535,8 @@ GeckoChildProcessHost::SetChildLogName(const char* varName, const char* origLogN
 bool
 GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, base::ProcessArchitecture arch)
 {
+  AutoSetProfilerEnvVarsForChildProcess profilerEnvironment;
+
   // If NSPR log files are not requested, we're done.
   const char* origNSPRLogName = PR_GetEnv("NSPR_LOG_FILE");
   const char* origMozLogName = PR_GetEnv("MOZ_LOG_FILE");
@@ -755,12 +751,6 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 
   FilePath exePath;
   BinaryPathType pathType = GetPathToBinary(exePath, mProcessType);
-
-#ifdef MOZ_WIDGET_GONK
-  if (const char *ldPreloadPath = getenv("LD_PRELOAD")) {
-    newEnvVars["LD_PRELOAD"] = ldPreloadPath;
-  }
-#endif // MOZ_WIDGET_GONK
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   // Preload libmozsandbox.so so that sandbox-related interpositions

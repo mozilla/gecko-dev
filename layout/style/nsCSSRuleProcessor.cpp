@@ -1068,6 +1068,12 @@ nsCSSRuleProcessor::Startup()
                                true);
 }
 
+/* static */ bool
+nsCSSRuleProcessor::VisitedLinksEnabled()
+{
+  return gSupportVisitedPseudo;
+}
+
 /* static */ void
 nsCSSRuleProcessor::InitSystemMetrics()
 {
@@ -1132,9 +1138,9 @@ nsCSSRuleProcessor::InitSystemMetrics()
     sSystemMetrics->AppendElement(nsGkAtoms::mac_yosemite_theme);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsAccentColorApplies, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsAccentColorInTitlebar, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
-    sSystemMetrics->AppendElement(nsGkAtoms::windows_accent_color_applies);
+    sSystemMetrics->AppendElement(nsGkAtoms::windows_accent_color_in_titlebar);
   }
 
   rv = LookAndFeel::GetInt(LookAndFeel::eIntID_DWMCompositor, &metricResult);
@@ -1240,7 +1246,8 @@ nsCSSRuleProcessor::GetWindowsThemeIdentifier()
 
 /* static */
 EventStates
-nsCSSRuleProcessor::GetContentState(Element* aElement, bool aUsingPrivateBrowsing)
+nsCSSRuleProcessor::GetContentState(const Element* aElement,
+                                    bool aUsingPrivateBrowsing)
 {
   EventStates state = aElement->StyleState();
 
@@ -1260,7 +1267,8 @@ nsCSSRuleProcessor::GetContentState(Element* aElement, bool aUsingPrivateBrowsin
 
 /* static */
 EventStates
-nsCSSRuleProcessor::GetContentState(Element* aElement, const TreeMatchContext& aTreeMatchContext)
+nsCSSRuleProcessor::GetContentState(const Element* aElement,
+                                    const TreeMatchContext& aTreeMatchContext)
 {
   return nsCSSRuleProcessor::GetContentState(
     aElement,
@@ -1270,7 +1278,7 @@ nsCSSRuleProcessor::GetContentState(Element* aElement, const TreeMatchContext& a
 
 /* static */
 EventStates
-nsCSSRuleProcessor::GetContentState(Element* aElement)
+nsCSSRuleProcessor::GetContentState(const Element* aElement)
 {
   nsILoadContext* loadContext = aElement->OwnerDoc()->GetLoadContext();
   bool usingPrivateBrowsing = loadContext && loadContext->UsePrivateBrowsing();
@@ -1288,7 +1296,7 @@ nsCSSRuleProcessor::IsLink(const Element* aElement)
 /* static */
 EventStates
 nsCSSRuleProcessor::GetContentStateForVisitedHandling(
-                     Element* aElement,
+                     const Element* aElement,
                      nsRuleWalker::VisitedHandlingType aVisitedHandling,
                      bool aIsRelevantLink)
 {
@@ -3949,7 +3957,6 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
       mRuleCascades = newCascade.forget();
     }
   }
-  return;
 }
 
 /* static */ bool

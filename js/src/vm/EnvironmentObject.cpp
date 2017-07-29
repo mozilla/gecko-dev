@@ -8,7 +8,6 @@
 
 #include "mozilla/PodOperations.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/SizePrintfMacros.h"
 
 #include "jscompartment.h"
 #include "jsiter.h"
@@ -3247,7 +3246,8 @@ js::GetThisValueForDebuggerMaybeOptimizedOut(JSContext* cx, AbstractFramePtr fra
         MOZ_CRASH("'this' binding must be found");
     }
 
-    return GetNonSyntacticGlobalThis(cx, scopeChain, res);
+    GetNonSyntacticGlobalThis(cx, scopeChain, res);
+    return true;
 }
 
 bool
@@ -3640,14 +3640,14 @@ AnalyzeEntrainedVariablesInScript(JSContext* cx, HandleScript script, HandleScri
             buf.printf(" ");
         }
 
-        buf.printf("(%s:%" PRIuSIZE ") has variables entrained by ", script->filename(), script->lineno());
+        buf.printf("(%s:%zu) has variables entrained by ", script->filename(), script->lineno());
 
         if (JSAtom* name = innerScript->functionNonDelazifying()->displayAtom()) {
             buf.putString(name);
             buf.printf(" ");
         }
 
-        buf.printf("(%s:%" PRIuSIZE ") ::", innerScript->filename(), innerScript->lineno());
+        buf.printf("(%s:%zu) ::", innerScript->filename(), innerScript->lineno());
 
         for (PropertyNameSet::Range r = remainingNames.all(); !r.empty(); r.popFront()) {
             buf.printf(" ");

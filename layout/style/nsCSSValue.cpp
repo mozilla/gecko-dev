@@ -378,7 +378,7 @@ nsCSSValue::GetPossiblyStaticImageValue(nsIDocument* aDocument,
   if (aPresContext->IsDynamic()) {
     return do_AddRef(req);
   }
-  return nsContentUtils::GetStaticRequest(req);
+  return nsContentUtils::GetStaticRequest(aDocument, req);
 }
 
 nscoord nsCSSValue::GetFixedLength(nsPresContext* aPresContext) const
@@ -2892,31 +2892,35 @@ css::URLValueData::IsLocalRef() const
 bool
 css::URLValueData::HasRef() const
 {
+  bool result = false;
+
   if (IsLocalRef()) {
-    return true;
+    result = true;
+  } else {
+    if (nsIURI* uri = GetURI()) {
+      nsAutoCString ref;
+      nsresult rv = uri->GetRef(ref);
+      if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
+        result = true;
+      }
+    }
   }
 
-  nsIURI* uri = GetURI();
-  if (!uri) {
-    return false;
-  }
+  mMightHaveRef = Some(result);
 
-  nsAutoCString ref;
-  nsresult rv = uri->GetRef(ref);
-  if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
-    return true;
-  }
-
-  return false;
+  return result;
 }
 
 bool
 css::URLValueData::MightHaveRef() const
 {
   if (mMightHaveRef.isNothing()) {
-    // ::MightHaveRef is O(N), use it only use it only when MightHaveRef is
-    // called.
-    mMightHaveRef.emplace(::MightHaveRef(mString));
+    bool result = ::MightHaveRef(mString);
+    if (!ServoStyleSet::IsInServoTraversal()) {
+      // Can only cache the result if we're not on a style worker thread.
+      mMightHaveRef.emplace(result);
+    }
+    return result;
   }
 
   return mMightHaveRef.value();

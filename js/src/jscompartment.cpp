@@ -89,7 +89,6 @@ JSCompartment::JSCompartment(Zone* zone, const JS::CompartmentOptions& options =
     debugScriptMap(nullptr),
     debugEnvs(nullptr),
     enumerators(nullptr),
-    lastCachedNativeIterator(nullptr),
     compartmentStats_(nullptr),
     scheduledForDestruction(false),
     maybeAlive(true),
@@ -158,7 +157,11 @@ JSCompartment::init(JSContext* maybecx)
     if (!enumerators)
         return false;
 
-    if (!savedStacks_.init() || !varNames_.init() || !templateLiteralMap_.init()) {
+    if (!savedStacks_.init() ||
+        !varNames_.init() ||
+        !templateLiteralMap_.init() ||
+        !iteratorCache.init())
+    {
         if (maybecx)
             ReportOutOfMemory(maybecx);
         return false;
@@ -566,10 +569,13 @@ JSCompartment::getOrCreateNonSyntacticLexicalEnvironment(JSContext* cx, HandleOb
             return nullptr;
     }
 
-    // The key is the unwrapped dynamic scope, as we may be creating different
-    // WithEnvironmentObject wrappers each time.
-    MOZ_ASSERT(!enclosing->as<WithEnvironmentObject>().isSyntactic());
-    RootedObject key(cx, &enclosing->as<WithEnvironmentObject>().object());
+    // If a wrapped WithEnvironmentObject was passed in, unwrap it, as we may
+    // be creating different WithEnvironmentObject wrappers each time.
+    RootedObject key(cx, enclosing);
+    if (enclosing->is<WithEnvironmentObject>()) {
+        MOZ_ASSERT(!enclosing->as<WithEnvironmentObject>().isSyntactic());
+        key = &enclosing->as<WithEnvironmentObject>().object();
+    }
     RootedObject lexicalEnv(cx, nonSyntacticLexicalEnvironments_->lookup(key));
 
     if (!lexicalEnv) {
@@ -588,9 +594,13 @@ JSCompartment::getNonSyntacticLexicalEnvironment(JSObject* enclosing) const
 {
     if (!nonSyntacticLexicalEnvironments_)
         return nullptr;
-    if (!enclosing->is<WithEnvironmentObject>())
-        return nullptr;
-    JSObject* key = &enclosing->as<WithEnvironmentObject>().object();
+    // If a wrapped WithEnvironmentObject was passed in, unwrap it as in
+    // getOrCreateNonSyntacticLexicalEnvironment.
+    JSObject* key = enclosing;
+    if (enclosing->is<WithEnvironmentObject>()) {
+        MOZ_ASSERT(!enclosing->as<WithEnvironmentObject>().isSyntactic());
+        key = &enclosing->as<WithEnvironmentObject>().object();
+    }
     JSObject* lexicalEnv = nonSyntacticLexicalEnvironments_->lookup(key);
     if (!lexicalEnv)
         return nullptr;
@@ -1069,8 +1079,8 @@ JSCompartment::purge()
 {
     dtoaCache.purge();
     newProxyCache.purge();
-    lastCachedNativeIterator = nullptr;
     objectGroups.purge();
+    iteratorCache.clearAndShrink();
 }
 
 void

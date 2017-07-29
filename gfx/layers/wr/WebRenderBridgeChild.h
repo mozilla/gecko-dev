@@ -96,9 +96,9 @@ public:
     mIdNamespace = aIdNamespace;
   }
 
-  WrImageKey GetNextImageKey()
+  wr::WrImageKey GetNextImageKey()
   {
-    return WrImageKey{ GetNamespace(), GetNextResourceId() };
+    return wr::WrImageKey{ wr::WrIdNamespace { GetNamespace() }, GetNextResourceId() };
   }
 
   void PushGlyphs(wr::DisplayListBuilder& aBuilder, const nsTArray<GlyphArray>& aGlyphs,
@@ -109,6 +109,9 @@ public:
 
   void RemoveExpiredFontKeys();
   void ClearReadLocks();
+
+  void BeginClearCachedResources();
+  void EndClearCachedResources();
 
 private:
   friend class CompositorBridgeChild;
@@ -162,6 +165,7 @@ private:
   nsTArray<nsTArray<ReadLockInit>> mReadLocks;
   uint64_t mReadLockSequenceNumber;
   bool mIsInTransaction;
+  bool mIsInClearCachedResources;
   uint32_t mIdNamespace;
   uint32_t mResourceId;
   wr::PipelineId mPipelineId;

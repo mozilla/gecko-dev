@@ -6,7 +6,6 @@
 
 #include "nsError.h"
 #include "MediaDecoderStateMachine.h"
-#include "AbstractMediaDecoder.h"
 #include "OggDemuxer.h"
 #include "OggCodecState.h"
 #include "mozilla/AbstractThread.h"
@@ -143,9 +142,7 @@ OggDemuxer::~OggDemuxer()
         Telemetry::Accumulate(
           Telemetry::HistogramID::MEDIA_OGG_LOADED_IS_CHAINED, isChained);
       });
-    SystemGroup::Dispatch("~OggDemuxer::report_telemetry",
-                          TaskCategory::Other,
-                          task.forget());
+    SystemGroup::Dispatch(TaskCategory::Other, task.forget());
   }
 }
 

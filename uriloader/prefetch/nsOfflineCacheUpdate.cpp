@@ -38,7 +38,6 @@
 #include "mozilla/Attributes.h"
 #include "nsContentUtils.h"
 #include "nsIPrincipal.h"
-#include "mozilla/SizePrintfMacros.h"
 
 #include "nsXULAppAPI.h"
 
@@ -801,6 +800,37 @@ nsOfflineManifestItem::AddNamespace(uint32_t namespaceType,
     return NS_OK;
 }
 
+static nsresult
+GetURIDirectory(nsIURI* uri, nsACString &directory)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIURL> url(do_QueryInterface(uri, &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = url->GetDirectory(directory);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+static nsresult
+CheckFileContainedInPath(nsIURI* file, nsACString const &masterDirectory)
+{
+  nsresult rv;
+
+  nsAutoCString directory;
+  rv = GetURIDirectory(file, directory);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool contains = StringBeginsWith(directory, masterDirectory);
+  if (!contains) {
+      return NS_ERROR_DOM_BAD_URI;
+  }
+
+  return NS_OK;
+}
+
 nsresult
 nsOfflineManifestItem::HandleManifestLine(const nsCString::const_iterator &aBegin,
                                           const nsCString::const_iterator &aEnd)
@@ -944,6 +974,25 @@ nsOfflineManifestItem::HandleManifestLine(const nsCString::const_iterator &aBegi
         rv = fallbackURI->GetAsciiSpec(fallbackSpec);
         if (NS_FAILED(rv))
             break;
+
+        // The following set of checks is preventing a website under
+        // a subdirectory to add fallback pages for the whole origin
+        // (or a parent directory) to prevent fallback attacks.
+        nsAutoCString manifestDirectory;
+        rv = GetURIDirectory(mURI, manifestDirectory);
+        if (NS_FAILED(rv)) {
+            break;
+        }
+
+        rv = CheckFileContainedInPath(namespaceURI, manifestDirectory);
+        if (NS_FAILED(rv)) {
+            break;
+        }
+
+        rv = CheckFileContainedInPath(fallbackURI, manifestDirectory);
+        if (NS_FAILED(rv)) {
+            break;
+        }
 
         // Manifest and namespace must be same origin
         if (!NS_SecurityCompareURIs(mURI, namespaceURI,
@@ -1843,7 +1892,7 @@ nsOfflineCacheUpdate::ProcessNextURI()
     // Keep the object alive through a Finish() call.
     nsCOMPtr<nsIOfflineCacheUpdate> kungFuDeathGrip(this);
 
-    LOG(("nsOfflineCacheUpdate::ProcessNextURI [%p, inprogress=%d, numItems=%" PRIuSIZE "]",
+    LOG(("nsOfflineCacheUpdate::ProcessNextURI [%p, inprogress=%d, numItems=%zu]",
          this, mItemsInProgress, mItems.Length()));
 
     if (mState != STATE_DOWNLOADING) {

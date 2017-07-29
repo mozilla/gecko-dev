@@ -52,6 +52,7 @@
 #include "nsITimer.h"
 #include "nsIDOMDocument.h"
 #include "nsIDocument.h"
+#include "nsINamed.h"
 
 #include "nsISelectionController.h"//for the enums
 #include "nsAutoCopyListener.h"
@@ -196,6 +197,7 @@ struct CachedOffsetForFrame {
 };
 
 class nsAutoScrollTimer final : public nsITimerCallback
+                              , public nsINamed
 {
 public:
 
@@ -280,6 +282,12 @@ public:
     return NS_OK;
   }
 
+  NS_IMETHOD GetName(nsACString& aName) override
+  {
+    aName.AssignLiteral("nsAutoScrollTimer");
+    return NS_OK;
+  }
+
 protected:
   virtual ~nsAutoScrollTimer()
   {
@@ -299,7 +307,7 @@ private:
   uint32_t mDelay;
 };
 
-NS_IMPL_ISUPPORTS(nsAutoScrollTimer, nsITimerCallback)
+NS_IMPL_ISUPPORTS(nsAutoScrollTimer, nsITimerCallback, nsINamed)
 
 nsresult NS_NewDomSelection(nsISelection **aDomSelection)
 {
@@ -1402,13 +1410,14 @@ static inline bool
 RangeMatchesBeginPoint(nsRange* aRange, nsINode* aNode, int32_t aOffset)
 {
   return aRange->GetStartContainer() == aNode &&
-         aRange->StartOffset() == aOffset;
+         static_cast<int32_t>(aRange->StartOffset()) == aOffset;
 }
 
 static inline bool
 RangeMatchesEndPoint(nsRange* aRange, nsINode* aNode, int32_t aOffset)
 {
-  return aRange->GetEndContainer() == aNode && aRange->EndOffset() == aOffset;
+  return aRange->GetEndContainer() == aNode &&
+         static_cast<int32_t>(aRange->EndOffset()) == aOffset;
 }
 
 // Selection::EqualsRangeAtPoint
@@ -3502,11 +3511,10 @@ Selection::PostScrollSelectionIntoViewEvent(
   nsRefreshDriver* refreshDriver = presContext->RefreshDriver();
   NS_ENSURE_STATE(refreshDriver);
 
-  RefPtr<ScrollSelectionIntoViewEvent> ev =
+  mScrollEvent =
     new ScrollSelectionIntoViewEvent(this, aRegion, aVertical, aHorizontal,
                                      aFlags);
-  mScrollEvent = ev;
-  refreshDriver->AddEarlyRunner(ev);
+  refreshDriver->AddEarlyRunner(mScrollEvent.get());
   return NS_OK;
 }
 

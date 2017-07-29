@@ -67,6 +67,14 @@ public:
     return !sRunningDispatcher || mAccessValid;
   }
 
+  // This function returns true if it's currently safe to run unlabeled code
+  // with no known SchedulerGroup. It will only return true if we're inside an
+  // unlabeled runnable.
+  static bool IsSafeToRunUnlabeled()
+  {
+    return !sRunningDispatcher;
+  }
+
   // Ensure that it's valid to access the TabGroup at this time.
   void ValidateAccess() const
   {
@@ -100,8 +108,7 @@ public:
 
   bool* GetValidAccessPtr() { return &mAccessValid; }
 
-  virtual nsresult Dispatch(const char* aName,
-                            TaskCategory aCategory,
+  virtual nsresult Dispatch(TaskCategory aCategory,
                             already_AddRefed<nsIRunnable>&& aRunnable);
 
   virtual nsISerialEventTarget* EventTargetFor(TaskCategory aCategory) const;
@@ -114,8 +121,7 @@ public:
   // requested type.
   virtual dom::TabGroup* AsTabGroup() { return nullptr; }
 
-  static nsresult UnlabeledDispatch(const char* aName,
-                                    TaskCategory aCategory,
+  static nsresult UnlabeledDispatch(TaskCategory aCategory,
                                     already_AddRefed<nsIRunnable>&& aRunnable);
 
   static void MarkVsyncReceived();
@@ -135,8 +141,7 @@ protected:
   // function returns |dispatcher|.
   static SchedulerGroup* FromEventTarget(nsIEventTarget* aEventTarget);
 
-  nsresult LabeledDispatch(const char* aName,
-                           TaskCategory aCategory,
+  nsresult LabeledDispatch(TaskCategory aCategory,
                            already_AddRefed<nsIRunnable>&& aRunnable);
 
   void CreateEventTargets(bool aNeedValidation);

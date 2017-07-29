@@ -16,31 +16,38 @@
             return "https://drafts.csswg.org/css-backgrounds/#border-%s-%s" % (side[0], kind)
 %>
 % for side in ALL_SIDES:
-    ${helpers.predefined_type("border-%s-color" % side[0], "Color",
+    <%
+        side_name = side[0]
+        is_logical = side[1]
+    %>
+    ${helpers.predefined_type("border-%s-color" % side_name, "Color",
                               "computed_value::T::currentcolor()",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
                               animation_value_type="IntermediateColor",
-                              logical=side[1],
-                              allow_quirks=not side[1],
+                              logical=is_logical,
+                              allow_quirks=not is_logical,
+                              flags="APPLIES_TO_FIRST_LETTER",
                               ignored_when_colors_disabled=True)}
 
-    ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
+    ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
                               "specified::BorderStyle::none",
-                              need_clone=True,
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
-                              animation_value_type="none", logical=side[1])}
+                              flags="APPLIES_TO_FIRST_LETTER",
+                              animation_value_type="discrete" if not is_logical else "none",
+                              logical=is_logical)}
 
-    ${helpers.predefined_type("border-%s-width" % side[0],
+    ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
                               "Au::from_px(3)",
                               computed_type="::app_units::Au",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
                               animation_value_type="ComputedValue",
-                              logical=side[1],
-                              allow_quirks=not side[1])}
+                              logical=is_logical,
+                              flags="APPLIES_TO_FIRST_LETTER",
+                              allow_quirks=not is_logical)}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',
@@ -54,6 +61,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
+                              flags="APPLIES_TO_FIRST_LETTER",
                               animation_value_type="ComputedValue")}
 % endfor
 
@@ -63,6 +71,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
     <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="discrete"
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
                        products="gecko"
+                       flags="APPLIES_TO_FIRST_LETTER"
                        ignored_when_colors_disabled="True">
         use std::fmt;
         use style_traits::ToCss;
@@ -202,6 +211,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     vector=False,
     animation_value_type="discrete",
     has_uncacheable_values=False,
+    flags="APPLIES_TO_FIRST_LETTER",
     boxed="True")}
 
 ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
@@ -210,9 +220,11 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     initial_specified_value="specified::LengthOrNumber::zero().into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
     animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
 <%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
+                   flags="APPLIES_TO_FIRST_LETTER"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use style_traits::ToCss;
 
@@ -274,13 +286,15 @@ ${helpers.predefined_type("border-image-width", "BorderImageWidth",
     initial_specified_value="specified::BorderImageSideWidth::one().into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
     animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
 ${helpers.predefined_type("border-image-slice", "BorderImageSlice",
     initial_value="computed::NumberOrPercentage::Percentage(computed::Percentage(1.)).into()",
-    initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage(1.)).into()",
+    initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage::new(1.)).into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
     animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
 #[cfg(feature = "gecko")]

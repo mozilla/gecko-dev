@@ -51,6 +51,7 @@ extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
+extern crate itertools;
 extern crate itoa;
 #[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 #[macro_use]
@@ -67,6 +68,7 @@ pub extern crate nsstring_vendor as nsstring;
 extern crate num_integer;
 extern crate num_traits;
 extern crate ordered_float;
+extern crate owning_ref;
 extern crate parking_lot;
 extern crate pdqsort;
 #[cfg(feature = "gecko")] extern crate precomputed_hash;
@@ -134,13 +136,10 @@ pub mod stylesheets;
 pub mod thread_state;
 pub mod timer;
 pub mod traversal;
+pub mod traversal_flags;
 #[macro_use]
 #[allow(non_camel_case_types)]
 pub mod values;
-
-// Compat shim for the old name when it lived in the style crate.
-// FIXME(bholley) Remove this.
-pub use servo_arc as stylearc;
 
 use std::fmt;
 use style_traits::ToCss;

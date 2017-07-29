@@ -26,6 +26,7 @@ ipc-channel = "0.8"
 itertools = "0.5"
 layout_traits = {path = "../layout_traits"}
 log = "0.3.5"
+metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
@@ -39,7 +40,7 @@ servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
 webvr_traits = {path = "../webvr_traits"}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

@@ -22,7 +22,7 @@ const BRAND_SHORT_NAME = Services.strings
 const PROMPT_COUNT_PREF = "browser.onboarding.notification.prompt-count";
 
 /**
- * Add any number of tours, following the format
+ * Add any number of tours, key is the tourId, value should follow the format below
  * "tourId": { // The short tour id which could be saved in pref
  *   // The unique tour id
  *   id: "onboarding-tour-addons",
@@ -48,7 +48,7 @@ var onboardingTourset = {
     getNotificationStrings(bundle) {
       return {
         title: bundle.GetStringFromName("onboarding.notification.onboarding-tour-private-browsing.title"),
-        message: bundle.GetStringFromName("onboarding.notification.onboarding-tour-private-browsing.message"),
+        message: bundle.GetStringFromName("onboarding.notification.onboarding-tour-private-browsing.message2"),
         button: bundle.GetStringFromName("onboarding.button.learnMore"),
       };
     },
@@ -57,10 +57,10 @@ var onboardingTourset = {
       div.innerHTML = `
         <section class="onboarding-tour-description">
           <h1 data-l10n-id="onboarding.tour-private-browsing.title2"></h1>
-          <p data-l10n-id="onboarding.tour-private-browsing.description2"></p>
+          <p data-l10n-id="onboarding.tour-private-browsing.description3"></p>
         </section>
         <section class="onboarding-tour-content">
-          <img src="resource://onboarding/img/figure_private.svg" />
+          <img src="resource://onboarding/img/figure_private.svg" role="presentation"/>
         </section>
         <aside class="onboarding-tour-button-container">
           <button id="onboarding-tour-private-browsing-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-private-browsing.button"></button>
@@ -87,7 +87,7 @@ var onboardingTourset = {
           <p data-l10n-id="onboarding.tour-addons.description2"></p>
         </section>
         <section class="onboarding-tour-content">
-          <img src="resource://onboarding/img/figure_addons.svg" />
+          <img src="resource://onboarding/img/figure_addons.svg" role="presentation"/>
         </section>
         <aside class="onboarding-tour-button-container">
           <button id="onboarding-tour-addons-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-addons.button"></button>
@@ -114,7 +114,7 @@ var onboardingTourset = {
           <p data-l10n-id="onboarding.tour-customize.description2"></p>
         </section>
         <section class="onboarding-tour-content">
-          <img src="resource://onboarding/img/figure_customize.svg" />
+          <img src="resource://onboarding/img/figure_customize.svg" role="presentation"/>
         </section>
         <aside class="onboarding-tour-button-container">
           <button id="onboarding-tour-customize-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-customize.button"></button>
@@ -141,7 +141,7 @@ var onboardingTourset = {
           <p data-l10n-id="onboarding.tour-search.description2"></p>
         </section>
         <section class="onboarding-tour-content">
-          <img src="resource://onboarding/img/figure_search.svg" />
+          <img src="resource://onboarding/img/figure_search.svg" role="presentation"/>
         </section>
         <aside class="onboarding-tour-button-container">
           <button id="onboarding-tour-search-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-search.button"></button>
@@ -160,10 +160,12 @@ var onboardingTourset = {
         button: bundle.GetStringFromName("onboarding.button.learnMore"),
       };
     },
-    getPage(win) {
+    getPage(win, bundle) {
       let div = win.document.createElement("div");
       let defaultBrowserButtonId = win.matchMedia("(-moz-os-version: windows-win7)").matches ?
         "onboarding.tour-default-browser.win7.button" : "onboarding.tour-default-browser.button";
+      let isDefaultMessage = bundle.GetStringFromName("onboarding.tour-default-browser.is-default.message");
+      let isDefault2ndMessage = bundle.formatStringFromName("onboarding.tour-default-browser.is-default.2nd-message", [BRAND_SHORT_NAME], 1);
       // eslint-disable-next-line no-unsanitized/property
       div.innerHTML = `
         <section class="onboarding-tour-description">
@@ -171,10 +173,11 @@ var onboardingTourset = {
           <p data-l10n-id="onboarding.tour-default-browser.description2"></p>
         </section>
         <section class="onboarding-tour-content">
-          <img src="resource://onboarding/img/figure_default.svg" />
+          <img src="resource://onboarding/img/figure_default.svg" role="presentation"/>
         </section>
         <aside class="onboarding-tour-button-container">
           <button id="onboarding-tour-default-browser-button" class="onboarding-tour-action-button" data-l10n-id="${defaultBrowserButtonId}"></button>
+          <div id="onboarding-tour-is-default-browser-msg" class="onboarding-hidden">${isDefaultMessage}<br/>${isDefault2ndMessage}</div>
         </aside>
       `;
       return div;
@@ -193,6 +196,11 @@ var onboardingTourset = {
     getPage(win, bundle) {
       let div = win.document.createElement("div");
       div.classList.add("onboarding-no-button");
+      // The email validation pattern used in the form comes from IETF rfc5321,
+      // which is identical to server-side checker of Firefox Account. See
+      // discussion in https://bugzilla.mozilla.org/show_bug.cgi?id=1378770#c6
+      // for detail.
+      let emailRegex = "^[\\w.!#$%&’*+\\/=?^`{|}~-]{1,64}@[a-z\\d](?:[a-z\\d-]{0,253}[a-z\\d])?(?:\\.[a-z\\d](?:[a-z\\d-]{0,253}[a-z\\d])?)+$";
       div.innerHTML = `
         <section class="onboarding-tour-description">
           <h1 data-l10n-id="onboarding.tour-sync.title2"></h1>
@@ -202,14 +210,96 @@ var onboardingTourset = {
           <form>
             <h3 data-l10n-id="onboarding.tour-sync.form.title"></h3>
             <p data-l10n-id="onboarding.tour-sync.form.description"></p>
-            <input id="onboarding-tour-sync-email-input" type="text"></input><br />
+            <input id="onboarding-tour-sync-email-input" type="email" required="true"></input><br />
             <button id="onboarding-tour-sync-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-sync.button"></button>
           </form>
-          <img src="resource://onboarding/img/figure_sync.svg" />
+          <img src="resource://onboarding/img/figure_sync.svg" role="presentation"/>
         </section>
       `;
-      div.querySelector("#onboarding-tour-sync-email-input").placeholder =
+      let emailInput = div.querySelector("#onboarding-tour-sync-email-input");
+      emailInput.placeholder =
         bundle.GetStringFromName("onboarding.tour-sync.email-input.placeholder");
+      emailInput.pattern = emailRegex;
+      return div;
+    },
+  },
+  "library": {
+    id: "onboarding-tour-library",
+    tourNameId: "onboarding.tour-library",
+    getNotificationStrings(bundle) {
+      return {
+        title: bundle.GetStringFromName("onboarding.notification.onboarding-tour-library.title"),
+        message: bundle.formatStringFromName("onboarding.notification.onboarding-tour-library.message", [BRAND_SHORT_NAME], 1),
+        button: bundle.GetStringFromName("onboarding.button.learnMore"),
+      };
+    },
+    getPage(win) {
+      let div = win.document.createElement("div");
+      div.innerHTML = `
+        <section class="onboarding-tour-description">
+          <h1 data-l10n-id="onboarding.tour-library.title"></h1>
+          <p data-l10n-id="onboarding.tour-library.description"></p>
+        </section>
+        <section class="onboarding-tour-content">
+          <img src="resource://onboarding/img/figure_search.svg" role="presentation"/>
+        </section>
+        <aside class="onboarding-tour-button-container">
+          <button id="onboarding-tour-library-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-library.button"></button>
+        </aside>
+      `;
+      return div;
+    },
+  },
+  "singlesearch": {
+    id: "onboarding-tour-singlesearch",
+    tourNameId: "onboarding.tour-singlesearch",
+    getNotificationStrings(bundle) {
+      return {
+        title: bundle.GetStringFromName("onboarding.notification.onboarding-tour-singlesearch.title"),
+        message: bundle.GetStringFromName("onboarding.notification.onboarding-tour-singlesearch.message"),
+        button: bundle.GetStringFromName("onboarding.button.learnMore"),
+      };
+    },
+    getPage(win, bundle) {
+      let div = win.document.createElement("div");
+      div.innerHTML = `
+        <section class="onboarding-tour-description">
+          <h1 data-l10n-id="onboarding.tour-singlesearch.title"></h1>
+          <p data-l10n-id="onboarding.tour-singlesearch.description"></p>
+        </section>
+        <section class="onboarding-tour-content">
+          <img src="resource://onboarding/img/figure_search.svg" role="presentation"/>
+        </section>
+        <aside class="onboarding-tour-button-container">
+          <button id="onboarding-tour-singlesearch-button" class="onboarding-tour-action-button" data-l10n-id="onboarding.tour-singlesearch.button"></button>
+        </aside>
+      `;
+      return div;
+    },
+  },
+  "performance": {
+    id: "onboarding-tour-performance",
+    tourNameId: "onboarding.tour-performance",
+    getNotificationStrings(bundle) {
+      return {
+        title: bundle.GetStringFromName("onboarding.notification.onboarding-tour-performance.title"),
+        message: bundle.formatStringFromName("onboarding.notification.onboarding-tour-performance.message", [BRAND_SHORT_NAME], 1),
+        button: bundle.GetStringFromName("onboarding.button.learnMore"),
+      };
+    },
+    getPage(win, bundle) {
+      let div = win.document.createElement("div");
+      // TODO: The content image is a placeholder. It should be replaced upon assets are available.
+      //       This is tracking in Bug 1382520.
+      div.innerHTML = `
+        <section class="onboarding-tour-description">
+          <h1 data-l10n-id="onboarding.tour-performance.title"></h1>
+          <p data-l10n-id="onboarding.tour-performance.description"></p>
+        </section>
+        <section class="onboarding-tour-content">
+          <img src="resource://onboarding/img/figure_sync.svg" role="presentation"/>
+        </section>
+      `;
       return div;
     },
   },
@@ -226,11 +316,10 @@ class Onboarding {
 
   async init(contentWindow) {
     this._window = contentWindow;
-    this._tourItems = [];
-    this._tourPages = [];
     this._tours = [];
+    this._tourType = Services.prefs.getStringPref("browser.onboarding.tour-type", "update");
 
-    let tourIds = this._getTourIDList(Services.prefs.getStringPref("browser.onboarding.tour-type", "update"));
+    let tourIds = this._getTourIDList();
     tourIds.forEach(tourId => {
       if (onboardingTourset[tourId]) {
         this._tours.push(onboardingTourset[tourId]);
@@ -273,8 +362,10 @@ class Onboarding {
       return;
     }
     this.uiInitialized = true;
+    this._tourItems = [];
+    this._tourPages = [];
 
-    this._overlayIcon = this._renderOverlayIcon();
+    this._overlayIcon = this._renderOverlayButton();
     this._overlayIcon.addEventListener("click", this);
     this._window.document.body.appendChild(this._overlayIcon);
 
@@ -289,8 +380,8 @@ class Onboarding {
     this._window.requestIdleCallback(() => this._initNotification());
   }
 
-  _getTourIDList(tourType) {
-    let tours = Services.prefs.getStringPref(`browser.onboarding.${tourType}tour`, "");
+  _getTourIDList() {
+    let tours = Services.prefs.getStringPref(`browser.onboarding.${this._tourType}tour`, "");
     return tours.split(",").filter(tourId => tourId !== "").map(tourId => tourId.trim());
   }
 
@@ -363,13 +454,15 @@ class Onboarding {
     }
 
     switch (evt.target.id) {
-      case "onboarding-overlay-icon":
+      case "onboarding-overlay-button":
       case "onboarding-overlay-close-btn":
       // If the clicking target is directly on the outer-most overlay,
       // that means clicking outside the tour content area.
       // Let's toggle the overlay.
       case "onboarding-overlay":
         this.toggleOverlay();
+        let selectedTour = this._tours.find(tour => !this.isTourCompleted(tour.id)) || this._tours[0];
+        this.gotoPage(selectedTour.id);
         break;
       case "onboarding-notification-close-btn":
         this.hideNotification();
@@ -380,6 +473,12 @@ class Onboarding {
         this.toggleOverlay();
         this.gotoPage(tourId);
         this._removeTourFromNotificationQueue(tourId);
+        break;
+      // These tours are tagged completed instantly upon showing.
+      case "onboarding-tour-default-browser":
+      case "onboarding-tour-sync":
+      case "onboarding-tour-performance":
+        this.setToursCompleted([ evt.target.id ]);
         break;
     }
     let classList = evt.target.classList;
@@ -404,6 +503,7 @@ class Onboarding {
       this._notificationBar.remove();
     }
 
+    this._tourItems = this._tourPages =
     this._overlayIcon = this._overlay = this._notificationBar = null;
   }
 
@@ -457,7 +557,7 @@ class Onboarding {
 
   markTourCompletionState(tourId) {
     // We are doing lazy load so there might be no items.
-    if (this._tourItems.length > 0 && this.isTourCompleted(tourId)) {
+    if (this._tourItems && this._tourItems.length > 0 && this.isTourCompleted(tourId)) {
       let targetItem = this._tourItems.find(item => item.id == tourId);
       targetItem.classList.add("onboarding-complete");
     }
@@ -583,8 +683,6 @@ class Onboarding {
     // Show the target tour notification
     this._notificationBar = this._renderNotificationBar();
     this._notificationBar.addEventListener("click", this);
-    this._window.document.body.appendChild(this._notificationBar);
-
     this._notificationBar.dataset.targetTourId = targetTour.id;
     let notificationStrings = targetTour.getNotificationStrings(this._bundle);
     let actionBtn = this._notificationBar.querySelector("#onboarding-notification-action-btn");
@@ -594,6 +692,7 @@ class Onboarding {
     let tourMessage = this._notificationBar.querySelector("#onboarding-notification-tour-message");
     tourMessage.textContent = notificationStrings.message;
     this._notificationBar.classList.add("onboarding-opened");
+    this._window.document.body.appendChild(this._notificationBar);
 
     let params = [];
     if (startQueueLength != queue.length) {
@@ -641,10 +740,17 @@ class Onboarding {
         </div>
         <button id="onboarding-notification-action-btn"></button>
       </section>
-      <button id="onboarding-notification-close-btn"></button>
+      <button id="onboarding-notification-close-btn" class="onboarding-close-btn"></button>
     `;
-    let toolTip = this._bundle.formatStringFromName("onboarding.notification-icon-tool-tip", [BRAND_SHORT_NAME], 1);
+    let toolTip = this._bundle.formatStringFromName(
+      this._tourType === "new" ? "onboarding.notification-icon-tool-tip" :
+                                 "onboarding.notification-icon-tooltip-updated",
+      [BRAND_SHORT_NAME], 1);
     div.querySelector("#onboarding-notification-icon").setAttribute("data-tooltip", toolTip);
+
+    let closeBtn = div.querySelector("#onboarding-notification-close-btn");
+    closeBtn.setAttribute("title",
+      this._bundle.GetStringFromName("onboarding.notification-close-button-tooltip"));
     return div;
   }
 
@@ -669,7 +775,7 @@ class Onboarding {
     // The security should be fine because this is not from an external input.
     div.innerHTML = `
       <div id="onboarding-overlay-dialog">
-        <span id="onboarding-overlay-close-btn"></span>
+        <button id="onboarding-overlay-close-btn" class="onboarding-close-btn"></button>
         <header id="onboarding-header"></header>
         <nav>
           <ul id="onboarding-tour-list"></ul>
@@ -681,16 +787,27 @@ class Onboarding {
     `;
 
     div.querySelector("label[for='onboarding-tour-hidden-checkbox']").textContent =
-       this._bundle.GetStringFromName("onboarding.hidden-checkbox-label-text");
+      this._bundle.GetStringFromName("onboarding.hidden-checkbox-label-text");
     div.querySelector("#onboarding-header").textContent =
-       this._bundle.formatStringFromName("onboarding.overlay-title", [BRAND_SHORT_NAME], 1);
+      this._bundle.GetStringFromName("onboarding.overlay-title2");
+    let closeBtn = div.querySelector("#onboarding-overlay-close-btn");
+    closeBtn.setAttribute("title",
+      this._bundle.GetStringFromName("onboarding.overlay-close-button-tooltip"));
     return div;
   }
 
-  _renderOverlayIcon() {
-    let img = this._window.document.createElement("div");
-    img.id = "onboarding-overlay-icon";
-    return img;
+  _renderOverlayButton() {
+    let button = this._window.document.createElement("button");
+    let tooltipStringId = this._tourType === "new" ?
+      "onboarding.overlay-icon-tooltip" : "onboarding.overlay-icon-tooltip-updated";
+    let tooltip = this._bundle.formatStringFromName(tooltipStringId, [BRAND_SHORT_NAME], 1);
+    button.setAttribute("aria-label", tooltip);
+    button.id = "onboarding-overlay-button";
+    let img = this._window.document.createElement("img");
+    img.id = "onboarding-overlay-button-icon";
+    img.src = "resource://onboarding/img/overlay-icon.svg";
+    button.appendChild(img);
+    return button;
   }
 
   _loadTours(tours) {
@@ -724,15 +841,15 @@ class Onboarding {
       // Cache elements in arrays for later use to avoid cost of querying elements
       this._tourItems.push(li);
       this._tourPages.push(div);
+
+      this.markTourCompletionState(tour.id);
     }
-    tours.forEach(tour => this.markTourCompletionState(tour.id));
 
     let dialog = this._window.document.getElementById("onboarding-overlay-dialog");
     let ul = this._window.document.getElementById("onboarding-tour-list");
     ul.appendChild(itemsFrag);
     let footer = this._window.document.getElementById("onboarding-footer");
     dialog.insertBefore(pagesFrag, footer);
-    this.gotoPage(tours[0].id);
   }
 
   _loadCSS() {
@@ -771,6 +888,12 @@ if (Services.prefs.getBoolPref("browser.onboarding.enabled", false) &&
     let window = evt.target.defaultView;
     let location = window.location.href;
     if (location == ABOUT_NEWTAB_URL || location == ABOUT_HOME_URL) {
+      // We just want to run tests as quick as possible
+      // so in the automation test, we don't do `requestIdleCallback`.
+      if (Cu.isInAutomation) {
+        new Onboarding(window);
+        return;
+      }
       window.requestIdleCallback(() => {
         new Onboarding(window);
       });

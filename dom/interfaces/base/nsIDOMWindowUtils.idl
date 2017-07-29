@@ -29,6 +29,7 @@ native nscolor(nscolor);
 [ptr] native gfxContext(gfxContext);
 typedef unsigned long long nsViewID;
 
+interface nsIArray;
 interface nsICycleCollectorListener;
 interface nsIDOMNode;
 interface nsIDOMNodeList;
@@ -1427,6 +1428,28 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute AString currentAudioBackend;
 
   /**
+   * Returns the max channel counts of the current audio device.
+   */
+  readonly attribute unsigned long currentMaxAudioChannels;
+
+  /**
+   * Returns the preferred channel layout of the current audio device.
+   */
+  readonly attribute AString currentPreferredChannelLayout;
+
+  /**
+   * Returns the preferred sample rate of the current audio device.
+   */
+  readonly attribute unsigned long currentPreferredSampleRate;
+
+  /**
+   * Returns all the audio input/output devices.
+   */
+  const unsigned short AUDIO_INPUT   = 0;
+  const unsigned short AUDIO_OUTPUT  = 1;
+  nsIArray audioDevices(in unsigned short aSide);
+
+  /**
    * Record (and return) frame-intervals for frames which were presented
    *   between calling StartFrameTimeRecording and StopFrameTimeRecording.
    *
@@ -2022,6 +2045,14 @@ interface nsIDOMWindowUtils : nsISupports {
    *         on the first-strong character found in the string.
    */
   long getDirectionFromText(in AString aString);
+
+  /**
+   * Calls FrameNeedsReflow on that root frame so that a layout flush
+   * will be necessary.
+   *
+   * This should only be used for testing.
+   */
+  void ensureDirtyRootFrame();
 
   /**
    * Whether the current document is styled by Servo's style engine.

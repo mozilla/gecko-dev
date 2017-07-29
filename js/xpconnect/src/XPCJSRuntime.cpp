@@ -140,7 +140,7 @@ public:
   nsresult Dispatch()
   {
       nsCOMPtr<nsIRunnable> self(this);
-      return NS_IdleDispatchToCurrentThread(self.forget(), 1000);
+      return NS_IdleDispatchToCurrentThread(self.forget(), 2500);
   }
 
   void Start(bool aContinuation = false, bool aPurge = false)
@@ -628,12 +628,6 @@ void XPCJSRuntime::TraceNativeBlackRoots(JSTracer* trc)
         if (AutoMarkingPtr* roots = cx->mAutoRoots)
             roots->TraceJSAll(trc);
     }
-
-    // XPCJSObjectHolders don't participate in cycle collection, so always
-    // trace them here.
-    XPCRootSetElem* e;
-    for (e = mObjectHolderRoots; e; e = e->GetNextRoot())
-        static_cast<XPCJSObjectHolder*>(e)->TraceJS(trc);
 
     JSContext* cx = XPCJSContext::Get()->Context();
     dom::TraceBlackJS(trc, JS_GetGCParameter(cx, JSGC_NUMBER),
@@ -1461,7 +1455,7 @@ ReportZoneStats(const JS::ZoneStats& zStats,
         bool truncated = notableString.Length() < info.length;
 
         nsCString path = pathPrefix +
-            nsPrintfCString("strings/" STRING_LENGTH "%" PRIuSIZE ", copies=%d, \"%s\"%s)/",
+            nsPrintfCString("strings/" STRING_LENGTH "%zu, copies=%d, \"%s\"%s)/",
                             info.length, info.numCopies, escapedString.get(),
                             truncated ? " (truncated)" : "");
 
@@ -2125,11 +2119,11 @@ MOZ_DEFINE_MALLOC_SIZE_OF(OrphanMallocSizeOf)
 namespace xpc {
 
 static size_t
-SizeOfTreeIncludingThis(nsINode* tree)
+SizeOfTreeIncludingThis(nsINode* tree, SizeOfState& aState)
 {
-    size_t n = tree->SizeOfIncludingThis(OrphanMallocSizeOf);
+    size_t n = tree->SizeOfIncludingThis(aState);
     for (nsIContent* child = tree->GetFirstChild(); child; child = child->GetNextNode(tree))
-        n += child->SizeOfIncludingThis(OrphanMallocSizeOf);
+        n += child->SizeOfIncludingThis(aState);
 
     return n;
 }
@@ -2139,10 +2133,11 @@ class OrphanReporter : public JS::ObjectPrivateVisitor
   public:
     explicit OrphanReporter(GetISupportsFun aGetISupports)
       : JS::ObjectPrivateVisitor(aGetISupports)
-    {
-    }
+      , mState(OrphanMallocSizeOf)
+    {}
 
-    virtual size_t sizeOfIncludingThis(nsISupports* aSupports) override {
+    virtual size_t sizeOfIncludingThis(nsISupports* aSupports) override
+    {
         size_t n = 0;
         nsCOMPtr<nsINode> node = do_QueryInterface(aSupports);
         // https://bugzilla.mozilla.org/show_bug.cgi?id=773533#c11 explains
@@ -2155,21 +2150,15 @@ class OrphanReporter : public JS::ObjectPrivateVisitor
             // sub-tree that this node belongs to, measure the sub-tree's size
             // and then record its root so we don't measure it again.
             nsCOMPtr<nsINode> orphanTree = node->SubtreeRoot();
-            if (orphanTree &&
-                !mAlreadyMeasuredOrphanTrees.Contains(orphanTree)) {
-                // If PutEntry() fails we don't measure this tree, which could
-                // lead to under-measurement. But that's better than the
-                // alternatives, which are over-measurement or an OOM abort.
-                if (mAlreadyMeasuredOrphanTrees.PutEntry(orphanTree, fallible)) {
-                    n += SizeOfTreeIncludingThis(orphanTree);
-                }
+            if (orphanTree && !mState.HaveSeenPtr(orphanTree.get())) {
+                n += SizeOfTreeIncludingThis(orphanTree, mState);
             }
         }
         return n;
     }
 
   private:
-    nsTHashtable <nsISupportsHashKey> mAlreadyMeasuredOrphanTrees;
+    SizeOfState mState;
 };
 
 #ifdef DEBUG
@@ -2560,6 +2549,9 @@ AccumulateTelemetryCallback(int id, uint32_t sample, const char* key)
       case JS_TELEMETRY_GC_BUDGET_MS:
         Telemetry::Accumulate(Telemetry::GC_BUDGET_MS, sample);
         break;
+      case JS_TELEMETRY_GC_BUDGET_OVERRUN:
+        Telemetry::Accumulate(Telemetry::GC_BUDGET_OVERRUN, sample);
+        break;
       case JS_TELEMETRY_GC_ANIMATION_MS:
         Telemetry::Accumulate(Telemetry::GC_ANIMATION_MS, sample);
         break;
@@ -2807,7 +2799,6 @@ XPCJSRuntime::XPCJSRuntime(JSContext* aCx)
    mDoingFinalization(false),
    mVariantRoots(nullptr),
    mWrappedJSRoots(nullptr),
-   mObjectHolderRoots(nullptr),
    mAsyncSnowWhiteFreer(new AsyncFreeSnowWhite())
 {
     MOZ_COUNT_CTOR_INHERITED(XPCJSRuntime, CycleCollectedJSRuntime);
@@ -2851,6 +2842,7 @@ XPCJSRuntime::Initialize(JSContext* cx)
     js::SetPreserveWrapperCallback(cx, PreserveWrapper);
     JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallback);
     js::SetWindowProxyClass(cx, &OuterWindowProxyClass);
+    js::SetXrayJitInfo(&gXrayJitInfo);
     JS::SetProcessLargeAllocationFailureCallback(OnLargeAllocationFailureCallback);
 
     // The JS engine needs to keep the source code around in order to implement

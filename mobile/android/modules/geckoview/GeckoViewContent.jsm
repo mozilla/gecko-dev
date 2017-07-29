@@ -19,11 +19,16 @@ function debug(aMsg) {
 
 class GeckoViewContent extends GeckoViewModule {
   init() {
-    this.messageManager.loadFrameScript(
-      "chrome://geckoview/content/GeckoViewContent.js", true);
+    this.frameScriptLoaded = false;
   }
 
   register() {
+    if (!this.frameScriptLoaded) {
+      this.messageManager.loadFrameScript(
+        "chrome://geckoview/content/GeckoViewContent.js", true);
+      this.frameScriptLoaded = true;
+    }
+
     this.window.addEventListener("MozDOMFullScreen:Entered", this,
                                  /* capture */ true, /* untrusted */ false);
     this.window.addEventListener("MozDOMFullScreen:Exited", this,
@@ -33,6 +38,7 @@ class GeckoViewContent extends GeckoViewModule {
     this.messageManager.addMessageListener("GeckoView:DOMFullscreenExit", this);
     this.messageManager.addMessageListener("GeckoView:DOMFullscreenRequest", this);
     this.messageManager.addMessageListener("GeckoView:DOMTitleChanged", this);
+    this.messageManager.addMessageListener("GeckoView:ContextMenu", this);
   }
 
   // Bundle event handler.
@@ -54,6 +60,7 @@ class GeckoViewContent extends GeckoViewModule {
     this.messageManager.removeMessageListener("GeckoView:DOMFullscreenExit", this);
     this.messageManager.removeMessageListener("GeckoView:DOMFullscreenRequest", this);
     this.messageManager.removeMessageListener("GeckoView:DOMTitleChanged", this);
+    this.messageManager.removeMessageListener("GeckoView:ContextMenu", this);
   }
 
   // DOM event handler
@@ -78,6 +85,15 @@ class GeckoViewContent extends GeckoViewModule {
     debug("receiveMessage " + aMsg.name);
 
     switch (aMsg.name) {
+      case "GeckoView:ContextMenu":
+        this.eventDispatcher.sendRequest({
+          type: aMsg.name,
+          screenX: aMsg.data.screenX,
+          screenY: aMsg.data.screenY,
+          elementSrc: aMsg.data.elementSrc,
+          uri: aMsg.data.uri
+        });
+        break;
       case "GeckoView:DOMFullscreenExit":
         this.window.QueryInterface(Ci.nsIInterfaceRequestor)
                    .getInterface(Ci.nsIDOMWindowUtils)

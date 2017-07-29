@@ -428,8 +428,8 @@ public:
    * Wayland/GTK event time also uses CLOCK_MONOTONIC.
    * UNTESTED ON OTHER PLATFORMS
    */
-#if defined(MOZ_WIDGET_GONK) || defined(XP_DARWIN) || \
-    defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GTK)
+#if defined(XP_DARWIN) || defined(MOZ_WIDGET_ANDROID) ||\
+    defined(MOZ_WIDGET_GTK)
   static TimeStamp FromSystemTime(int64_t aSystemTime)
   {
     static_assert(sizeof(aSystemTime) == sizeof(TimeStampValue),

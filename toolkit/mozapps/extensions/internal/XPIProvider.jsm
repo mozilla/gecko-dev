@@ -262,7 +262,13 @@ const SIGNED_TYPES = new Set([
   "webextension-theme",
 ]);
 
-const ALL_TYPES = new Set([
+const LEGACY_TYPES = new Set([
+  "apiextension",
+  "extension",
+  "theme",
+]);
+
+const ALL_EXTERNAL_TYPES = new Set([
   "dictionary",
   "extension",
   "experiment",
@@ -835,8 +841,8 @@ function isUsableAddon(aAddon) {
       return false;
   }
 
-  if (!AddonSettings.ALLOW_LEGACY_EXTENSIONS &&
-      aAddon.type == "extension" && !aAddon._installLocation.isSystem &&
+  if (!AddonSettings.ALLOW_LEGACY_EXTENSIONS && LEGACY_TYPES.has(aAddon.type) &&
+      !aAddon._installLocation.isSystem &&
       aAddon.signedState !== AddonManager.SIGNEDSTATE_PRIVILEGED) {
     logger.warn(`disabling legacy extension ${aAddon.id}`);
     return false;
@@ -2329,7 +2335,7 @@ this.XPIProvider = {
    *                          flushing the XPI Database if it was loaded,
    *                          0 otherwise.
    */
-  shutdown() {
+  async shutdown() {
     logger.debug("shutdown");
 
     // Stop anything we were doing asynchronously
@@ -2371,6 +2377,13 @@ this.XPIProvider = {
       Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, false);
     }
 
+    // Ugh, if we reach this point without loading the xpi database,
+    // we need to load it know, otherwise the telemetry shutdown blocker
+    // will never resolve.
+    if (!XPIDatabase.initialized) {
+      await XPIDatabase.asyncLoadDB();
+    }
+
     this.installs = null;
     this.installLocations = null;
     this.installLocationsByName = null;
@@ -2379,24 +2392,11 @@ this.XPIProvider = {
     this.extensionsActive = false;
     this._addonFileMap.clear();
 
-    if (gLazyObjectsLoaded) {
-      let done = XPIDatabase.shutdown();
-      done.then(
-        ret => {
-          logger.debug("Notifying XPI shutdown observers");
-          Services.obs.notifyObservers(null, "xpi-provider-shutdown");
-        },
-        err => {
-          logger.debug("Notifying XPI shutdown observers");
-          this._shutdownError = err;
-          Services.obs.notifyObservers(null, "xpi-provider-shutdown", err);
-        }
-      );
-      return done;
+    try {
+      await XPIDatabase.shutdown();
+    } catch (err) {
+      this._shutdownError = err;
     }
-    logger.debug("Notifying XPI shutdown observers");
-    Services.obs.notifyObservers(null, "xpi-provider-shutdown");
-    return undefined;
   },
 
   /**
@@ -2503,7 +2503,7 @@ this.XPIProvider = {
       return;
     }
 
-    url = UpdateUtils.formatUpdateURL(url);
+    url = await UpdateUtils.formatUpdateURL(url);
 
     logger.info(`Starting system add-on update check from ${url}.`);
     let res = await ProductAddonChecker.getProductAddonList(url);
@@ -3594,7 +3594,7 @@ this.XPIProvider = {
    */
   getAddonsByTypes(aTypes, aCallback) {
     let typesToGet = getAllAliasesForTypes(aTypes);
-    if (typesToGet && !typesToGet.some(type => ALL_TYPES.has(type))) {
+    if (typesToGet && !typesToGet.some(type => ALL_EXTERNAL_TYPES.has(type))) {
       aCallback([]);
       return;
     }

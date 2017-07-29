@@ -144,7 +144,7 @@ class VRDisplay;
 enum class VRDisplayEventReason : uint8_t;
 class VREventObserver;
 class WakeLock;
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
 class WindowOrientationObserver;
 #endif
 class Worklet;
@@ -651,7 +651,7 @@ public:
   virtual void EnableDeviceSensor(uint32_t aType) override;
   virtual void DisableDeviceSensor(uint32_t aType) override;
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
   virtual void EnableOrientationChangeListener() override;
   virtual void DisableOrientationChangeListener() override;
 #endif
@@ -941,7 +941,7 @@ public:
   nsIDOMOfflineResourceList* GetApplicationCache(mozilla::ErrorResult& aError);
   already_AddRefed<nsIDOMOfflineResourceList> GetApplicationCache() override;
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
   int16_t Orientation(mozilla::dom::CallerType aCallerType) const;
 #endif
 
@@ -969,7 +969,7 @@ public:
   GetPaintWorklet(mozilla::ErrorResult& aRv);
 
   void
-  GetAppLocalesAsBCP47(nsTArray<nsString>& aLocales);
+  GetRegionalPrefsLocales(nsTArray<nsString>& aLocales);
 
 #ifdef ENABLE_INTL_API
   mozilla::dom::IntlUtils*
@@ -1829,8 +1829,7 @@ private:
 
 public:
   // Dispatch a runnable related to the global.
-  virtual nsresult Dispatch(const char* aName,
-                            mozilla::TaskCategory aCategory,
+  virtual nsresult Dispatch(mozilla::TaskCategory aCategory,
                             already_AddRefed<nsIRunnable>&& aRunnable) override;
 
   virtual nsISerialEventTarget*
@@ -2047,7 +2046,7 @@ protected:
 
   nsTArray<uint32_t> mEnabledSensors;
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
   nsAutoPtr<mozilla::dom::WindowOrientationObserver> mOrientationChangeObserver;
 #endif
 

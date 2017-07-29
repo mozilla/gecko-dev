@@ -41,6 +41,7 @@ public:
               const nsAString& aType,
               const PaymentRequestUpdateEventInit& aEventInitDict);
 
+  // Called by WebIDL constructor
   static already_AddRefed<PaymentRequestUpdateEvent>
   Constructor(const GlobalObject& aGlobal,
               const nsAString& aType,
@@ -49,7 +50,7 @@ public:
 
   void UpdateWith(Promise& aPromise, ErrorResult& aRv);
 
-  bool IsTrusted() const;
+  void SetRequest(PaymentRequest* aRequest);
 
 protected:
   ~PaymentRequestUpdateEvent();

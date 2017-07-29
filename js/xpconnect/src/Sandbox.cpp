@@ -83,8 +83,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SandboxPrivate)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END
 
-const char kScriptSecurityManagerContractID[] = NS_SCRIPTSECURITYMANAGER_CONTRACTID;
-
 class nsXPCComponents_utils_Sandbox : public nsIXPCComponents_utils_Sandbox,
                                       public nsIXPCScriptable
 {
@@ -1705,15 +1703,13 @@ AssembleSandboxMemoryReporterName(JSContext* cx, nsCString& sandboxName)
     if (sandboxName.IsEmpty())
         sandboxName = NS_LITERAL_CSTRING("[anonymous sandbox]");
 
-    nsXPConnect* xpc = nsXPConnect::XPConnect();
     // Get the xpconnect native call context.
-    nsAXPCNativeCallContext* cc = nullptr;
-    xpc->GetCurrentNativeCallContext(&cc);
+    XPCCallContext* cc = XPCJSContext::Get()->GetCallContext();
     NS_ENSURE_TRUE(cc, NS_ERROR_INVALID_ARG);
 
     // Get the current source info from xpc.
     nsCOMPtr<nsIStackFrame> frame;
-    xpc->GetCurrentJSStack(getter_AddRefs(frame));
+    nsXPConnect::XPConnect()->GetCurrentJSStack(getter_AddRefs(frame));
 
     // Append the caller's location information.
     if (frame) {

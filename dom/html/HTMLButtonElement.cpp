@@ -87,17 +87,12 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLButtonElement)
                                nsIConstraintValidation)
 NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElementWithState)
 
-// nsIConstraintValidation
-NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(HTMLButtonElement)
-
-NS_IMETHODIMP
+void
 HTMLButtonElement::SetCustomValidity(const nsAString& aError)
 {
   nsIConstraintValidation::SetCustomValidity(aError);
 
   UpdateState(true);
-
-  return NS_OK;
 }
 
 void
@@ -111,9 +106,14 @@ HTMLButtonElement::UpdateBarredFromConstraintValidation()
 void
 HTMLButtonElement::FieldSetDisabledChanged(bool aNotify)
 {
-  UpdateBarredFromConstraintValidation();
 
+  // FieldSetDisabledChanged *has* to be called *before*
+  // UpdateBarredFromConstraintValidation, because the latter depends on our
+  // disabled state.
   nsGenericHTMLFormElementWithState::FieldSetDisabledChanged(aNotify);
+
+  UpdateBarredFromConstraintValidation();
+  UpdateState(aNotify);
 }
 
 // nsIDOMHTMLButtonElement
@@ -441,6 +441,12 @@ HTMLButtonElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     }
 
     if (aName == nsGkAtoms::type || aName == nsGkAtoms::disabled) {
+      if (aName == nsGkAtoms::disabled) {
+        // This *has* to be called *before* validity state check because
+        // UpdateBarredFromConstraintValidation depends on our disabled state.
+        UpdateDisabledState(aNotify);
+      }
+
       UpdateBarredFromConstraintValidation();
     }
   }

@@ -9,7 +9,6 @@
 #include "mozilla/Casting.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Sprintf.h"
 
 #include "jslibmath.h"
@@ -52,7 +51,7 @@ FallbackICSpew(JSContext* cx, ICFallbackStub* stub, const char* fmt, ...)
         va_end(args);
 
         JitSpew(JitSpew_BaselineICFallback,
-                "Fallback hit for (%s:%" PRIuSIZE ") (pc=%" PRIuSIZE ",line=%d,uses=%d,stubs=%" PRIuSIZE "): %s",
+                "Fallback hit for (%s:%zu) (pc=%zu,line=%d,uses=%d,stubs=%zu): %s",
                 script->filename(),
                 script->lineno(),
                 script->pcToOffset(pc),
@@ -77,7 +76,7 @@ TypeFallbackICSpew(JSContext* cx, ICTypeMonitor_Fallback* stub, const char* fmt,
         va_end(args);
 
         JitSpew(JitSpew_BaselineICFallback,
-                "Type monitor fallback hit for (%s:%" PRIuSIZE ") (pc=%" PRIuSIZE ",line=%d,uses=%d,stubs=%d): %s",
+                "Type monitor fallback hit for (%s:%zu) (pc=%zu,line=%d,uses=%d,stubs=%d): %s",
                 script->filename(),
                 script->lineno(),
                 script->pcToOffset(pc),
@@ -1089,7 +1088,7 @@ ICBinaryArith_Double::Compiler::generateStubCode(MacroAssembler& masm)
         MOZ_CRASH("Unexpected op");
     }
 
-    masm.boxDouble(FloatReg0, R0);
+    masm.boxDouble(FloatReg0, R0, FloatReg0);
     EmitReturnFromIC(masm);
 
     // Failure case - jump to next stub
@@ -1346,7 +1345,7 @@ ICUnaryArith_Double::Compiler::generateStubCode(MacroAssembler& masm)
 
     if (op == JSOP_NEG) {
         masm.negateDouble(FloatReg0);
-        masm.boxDouble(FloatReg0, R0);
+        masm.boxDouble(FloatReg0, R0, FloatReg0);
     } else {
         // Truncate the double to an int32.
         Register scratchReg = R1.scratchReg();
@@ -1462,6 +1461,7 @@ DoCompareFallback(JSContext* cx, void* payload, ICCompare_Fallback* stub_, Handl
         bool attached = false;
         if (gen.tryAttachStub()) {
             ICStub* newStub = AttachBaselineCacheIRStub(cx, gen.writerRef(), gen.cacheKind(),
+                                                        BaselineCacheIRStubKind::Regular,
                                                         engine, script, stub, &attached);
             if (newStub)
                  JitSpew(JitSpew_BaselineIC, "  Attached CacheIR stub");
@@ -2068,9 +2068,11 @@ DoGetPropFallback(JSContext* cx, BaselineFrame* frame, ICGetProp_Fallback* stub_
     if (stub->state().canAttachStub()) {
         RootedValue idVal(cx, StringValue(name));
         GetPropIRGenerator gen(cx, script, pc, CacheKind::GetProp, stub->state().mode(),
-                               &isTemporarilyUnoptimizable, val, idVal, val, CanAttachGetter::Yes);
+                               &isTemporarilyUnoptimizable, val, idVal, val,
+                               GetPropertyResultFlags::All);
         if (gen.tryAttachStub()) {
             ICStub* newStub = AttachBaselineCacheIRStub(cx, gen.writerRef(), gen.cacheKind(),
+                                                        BaselineCacheIRStubKind::Monitored,
                                                         ICStubEngine::Baseline, script,
                                                         stub, &attached);
             if (newStub) {
@@ -2138,9 +2140,10 @@ DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame, ICGetProp_Fallback* 
         RootedValue idVal(cx, StringValue(name));
         GetPropIRGenerator gen(cx, script, pc, CacheKind::GetPropSuper, stub->state().mode(),
                                &isTemporarilyUnoptimizable, val, idVal, receiver,
-                               CanAttachGetter::Yes);
+                               GetPropertyResultFlags::All);
         if (gen.tryAttachStub()) {
             ICStub* newStub = AttachBaselineCacheIRStub(cx, gen.writerRef(), gen.cacheKind(),
+                                                        BaselineCacheIRStubKind::Monitored,
                                                         ICStubEngine::Baseline, script,
                                                         stub, &attached);
             if (newStub) {

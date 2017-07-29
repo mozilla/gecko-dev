@@ -300,8 +300,7 @@ ScriptLoader::CheckContentPolicy(nsIDocument* aDocument,
                                           NS_LossyConvertUTF16toASCII(aType),
                                           nullptr,    //extra
                                           &shouldLoad,
-                                          nsContentUtils::GetContentPolicy(),
-                                          nsContentUtils::GetSecurityManager());
+                                          nsContentUtils::GetContentPolicy());
   if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
     if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
       return NS_ERROR_CONTENT_BLOCKED;
@@ -1503,8 +1502,7 @@ public:
   static void Dispatch(already_AddRefed<NotifyOffThreadScriptLoadCompletedRunnable>&& aSelf) {
     RefPtr<NotifyOffThreadScriptLoadCompletedRunnable> self = aSelf;
     RefPtr<DocGroup> docGroup = self->mDocGroup;
-    docGroup->Dispatch("NotifyOffThreadScriptLoadCompletedRunnable",
-                       TaskCategory::Other, self.forget());
+    docGroup->Dispatch(TaskCategory::Other, self.forget());
   }
 
   NS_DECL_NSIRUNNABLE
@@ -1557,10 +1555,10 @@ ScriptLoader::ProcessOffThreadRequest(ScriptLoadRequest* aRequest)
 NotifyOffThreadScriptLoadCompletedRunnable::~NotifyOffThreadScriptLoadCompletedRunnable()
 {
   if (MOZ_UNLIKELY(mRequest || mLoader) && !NS_IsMainThread()) {
-    NS_ReleaseOnMainThread(
-      "NotifyOffThreadScriptLoadCompletedRunnable::mRequest", mRequest.forget());
-    NS_ReleaseOnMainThread(
-      "NotifyOffThreadScriptLoadCompletedRunnable::mLoader", mLoader.forget());
+    NS_ReleaseOnMainThreadSystemGroup("NotifyOffThreadScriptLoadCompletedRunnable::mRequest",
+                                      mRequest.forget());
+    NS_ReleaseOnMainThreadSystemGroup("NotifyOffThreadScriptLoadCompletedRunnable::mLoader",
+                                      mLoader.forget());
   }
 }
 
@@ -1619,11 +1617,14 @@ ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest)
     return rv;
   }
 
-  size_t len = aRequest->IsSource()
-    ? aRequest->mScriptText.length()
-    : aRequest->mScriptBytecode.length();
-  if (!JS::CanCompileOffThread(cx, options, len)) {
-    return NS_ERROR_FAILURE;
+  if (aRequest->IsSource()) {
+    if (!JS::CanCompileOffThread(cx, options, aRequest->mScriptText.length())) {
+      return NS_ERROR_FAILURE;
+    }
+  } else {
+    if (!JS::CanDecodeOffThread(cx, options, aRequest->mScriptBytecode.length())) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   RefPtr<NotifyOffThreadScriptLoadCompletedRunnable> runnable =
@@ -1927,10 +1928,8 @@ ScriptLoader::ShouldCacheBytecode(ScriptLoadRequest* aRequest)
   // List of parameters used by the strategies.
   bool hasSourceLengthMin = false;
   bool hasFetchCountMin = false;
-  bool hasTimeSinceLastFetched = false;
   size_t sourceLengthMin = 100;
-  int32_t fetchCountMin = 5;
-  TimeDuration timeSinceLastFetched;
+  int32_t fetchCountMin = 4;
 
   LOG(("ScriptLoadRequest (%p): Bytecode-cache: strategy = %d.", aRequest, strategy));
   switch (strategy) {
@@ -1943,68 +1942,16 @@ ScriptLoader::ShouldCacheBytecode(ScriptLoadRequest* aRequest)
       // Eager mode, skip heuristics!
       hasSourceLengthMin = false;
       hasFetchCountMin = false;
-      hasTimeSinceLastFetched = false;
       break;
     }
     default:
     case 0: {
       hasSourceLengthMin = true;
       hasFetchCountMin = true;
-      hasTimeSinceLastFetched = true;
       sourceLengthMin = 1024;
-      fetchCountMin = 5;
-      timeSinceLastFetched = TimeDuration::FromSeconds(72 * 3600);
-      break;
-    }
-
-    // The following strategies are made-up to study what impact each parameter
-    // has when compared to the default case.
-    case 1: {
-      hasSourceLengthMin = true;
-      hasFetchCountMin = true;
-      hasTimeSinceLastFetched = false;
-      sourceLengthMin = 1024;
-      fetchCountMin = 5;
-      break;
-    }
-    case 2: {
-      hasSourceLengthMin = true;
-      hasFetchCountMin = false;
-      hasTimeSinceLastFetched = true;
-      sourceLengthMin = 1024;
-      timeSinceLastFetched = TimeDuration::FromSeconds(72 * 3600);
-      break;
-    }
-    case 3: {
-      hasSourceLengthMin = false;
-      hasFetchCountMin = true;
-      hasTimeSinceLastFetched = true;
-      fetchCountMin = 5;
-      timeSinceLastFetched = TimeDuration::FromSeconds(72 * 3600);
-      break;
-    }
-
-    // The following strategies are made-up to study what impact each parameter
-    // has individually.
-    case 4: {
-      hasSourceLengthMin = false;
-      hasFetchCountMin = false;
-      hasTimeSinceLastFetched = true;
-      timeSinceLastFetched = TimeDuration::FromSeconds(72 * 3600);
-      break;
-    }
-    case 5: {
-      hasSourceLengthMin = false;
-      hasFetchCountMin = true;
-      hasTimeSinceLastFetched = false;
-      fetchCountMin = 5;
-      break;
-    }
-    case 6: {
-      hasSourceLengthMin = true;
-      hasFetchCountMin = false;
-      hasTimeSinceLastFetched = false;
-      sourceLengthMin = 1024;
+      // If we were to optimize only for speed, without considering the impact
+      // on memory, we should set this threshold to 2. (Bug 900784 comment 120)
+      fetchCountMin = 4;
       break;
     }
   }
@@ -2028,26 +1975,6 @@ ScriptLoader::ShouldCacheBytecode(ScriptLoadRequest* aRequest)
     }
     LOG(("ScriptLoadRequest (%p): Bytecode-cache: fetchCount = %d.", aRequest, fetchCount));
     if (fetchCount < fetchCountMin) {
-      return false;
-    }
-  }
-
-  // Check that the cache entry got accessed recently, before caching it.
-  if (hasTimeSinceLastFetched) {
-    uint32_t lastFetched = 0;
-    if (NS_FAILED(aRequest->mCacheInfo->GetCacheTokenLastFetched(&lastFetched))) {
-      LOG(("ScriptLoadRequest (%p): Bytecode-cache: Cannot get lastFetched.", aRequest));
-      return false;
-    }
-    uint32_t now = PR_Now() / PR_USEC_PER_SEC;
-    if (now < lastFetched) {
-      LOG(("ScriptLoadRequest (%p): Bytecode-cache: (What?) lastFetched set in the future.", aRequest));
-      return false;
-    }
-    TimeDuration since = TimeDuration::FromSeconds(now - lastFetched);
-    LOG(("ScriptLoadRequest (%p): Bytecode-cache: lastFetched = %f sec. ago.",
-         aRequest, since.ToSeconds()));
-    if (since >= timeSinceLastFetched) {
       return false;
     }
   }
@@ -2419,7 +2346,7 @@ ScriptLoader::ProcessPendingRequestsAsync()
                         this,
                         &ScriptLoader::ProcessPendingRequests);
     if (mDocument) {
-      mDocument->Dispatch("ScriptLoader", TaskCategory::Other, task.forget());
+      mDocument->Dispatch(TaskCategory::Other, task.forget());
     } else {
       NS_DispatchToCurrentThread(task.forget());
     }

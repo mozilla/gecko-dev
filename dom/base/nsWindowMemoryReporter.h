@@ -27,6 +27,8 @@ class nsWindowSizes {
   macro(DOM,   mDOMCDATANodesSize) \
   macro(DOM,   mDOMCommentNodesSize) \
   macro(DOM,   mDOMEventTargetsSize) \
+  macro(DOM,   mDOMPerformanceUserEntries) \
+  macro(DOM,   mDOMPerformanceResourceEntries) \
   macro(DOM,   mDOMOtherSize) \
   macro(Style, mStyleSheetsSize) \
   macro(Other, mLayoutPresShellSize) \
@@ -37,7 +39,7 @@ class nsWindowSizes {
   macro(Other, mPropertyTablesSize) \
 
 public:
-  explicit nsWindowSizes(mozilla::MallocSizeOf aMallocSizeOf)
+  explicit nsWindowSizes(mozilla::SizeOfState& aState)
     :
       #define ZERO_SIZE(kind, mSize)  mSize(0),
       FOR_EACH_SIZE(ZERO_SIZE)
@@ -45,7 +47,7 @@ public:
       mDOMEventTargetsCount(0),
       mDOMEventListenersCount(0),
       mArenaStats(),
-      mMallocSizeOf(aMallocSizeOf)
+      mState(aState)
   {}
 
   void addToTabSizes(nsTabSizes *sizes) const {
@@ -73,7 +75,7 @@ public:
   uint32_t mDOMEventListenersCount;
 
   nsArenaMemoryStats mArenaStats;
-  mozilla::MallocSizeOf mMallocSizeOf;
+  mozilla::SizeOfState& mState;
 
 #undef FOR_EACH_SIZE
 };

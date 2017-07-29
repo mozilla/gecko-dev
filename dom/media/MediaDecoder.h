@@ -7,7 +7,6 @@
 #if !defined(MediaDecoder_h_)
 #define MediaDecoder_h_
 
-#include "AbstractMediaDecoder.h"
 #include "DecoderDoctorDiagnostics.h"
 #include "MediaDecoderOwner.h"
 #include "MediaEventSource.h"
@@ -35,13 +34,10 @@ class nsIPrincipal;
 
 namespace mozilla {
 
-namespace dom {
-class HTMLMediaElement;
-}
-
 class AbstractThread;
+class FrameStatistics;
 class VideoFrameContainer;
-class MediaDecoderReader;
+class MediaFormatReader;
 class MediaDecoderStateMachine;
 
 enum class MediaEventType : int8_t;
@@ -87,14 +83,14 @@ struct MOZ_STACK_CLASS MediaDecoderInit
   }
 };
 
-class MediaDecoder : public AbstractMediaDecoder
+class MediaDecoder
 {
 public:
   typedef MozPromise<bool /* aIgnored */, bool /* aIgnored */,
                      /* IsExclusive = */ true>
     SeekPromise;
 
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoder)
 
   // Enumeration for the valid play states (see mPlayState)
   enum PlayState
@@ -215,8 +211,6 @@ public:
   // Must be called before Shutdown().
   bool OwnerHasError() const;
 
-  already_AddRefed<GMPCrashHelper> GetCrashHelper() override;
-
 public:
   // Returns true if this media supports random seeking. False for example with
   // chained ogg files.
@@ -301,11 +295,12 @@ private:
 
   virtual void AddSizeOfResources(ResourceSizes* aSizes);
 
-  VideoFrameContainer* GetVideoFrameContainer() final override
+  VideoFrameContainer* GetVideoFrameContainer()
   {
     return mVideoFrameContainer;
   }
-  layers::ImageContainer* GetImageContainer() override;
+
+  layers::ImageContainer* GetImageContainer();
 
   // Fire timeupdate events if needed according to the time constraints
   // outlined in the specification.
@@ -391,9 +386,9 @@ private:
   // Indicate whether the media is same-origin with the element.
   void UpdateSameOriginStatus(bool aSameOrigin);
 
-  MediaDecoderOwner* GetOwner() const override;
+  MediaDecoderOwner* GetOwner() const;
 
-  AbstractThread* AbstractMainThread() const final override
+  AbstractThread* AbstractMainThread() const
   {
     return mAbstractMainThread;
   }
@@ -415,10 +410,6 @@ private:
   static bool IsWaveEnabled();
   static bool IsWebMEnabled();
 
-#ifdef MOZ_ANDROID_OMX
-  static bool IsAndroidMediaPluginEnabled();
-#endif
-
 #ifdef MOZ_WMF
   static bool IsWMFEnabled();
 #endif
@@ -431,13 +422,6 @@ private:
 
   // Return the frame decode/paint related statistics.
   FrameStatistics& GetFrameStatistics() { return *mFrameStats; }
-
-  // Increments the parsed and decoded frame counters by the passed in counts.
-  // Can be called on any thread.
-  virtual void NotifyDecodedFrames(const FrameStatisticsData& aStats) override
-  {
-    GetFrameStatistics().NotifyDecodedFrames(aStats);
-  }
 
   void UpdateReadyState()
   {
@@ -512,6 +496,8 @@ protected:
     return mCurrentPosition.Ref();
   }
 
+  already_AddRefed<layers::KnowsCompositor> GetCompositor();
+
   // Official duration of the media resource as observed by script.
   double mDuration;
 
@@ -522,7 +508,7 @@ protected:
   // Media data resource.
   RefPtr<MediaResource> mResource;
 
-  RefPtr<MediaDecoderReader> mReader;
+  RefPtr<MediaFormatReader> mReader;
 
   // Amount of buffered data ahead of current time required to consider that
   // the next frame is available.
@@ -542,9 +528,6 @@ private:
   // Called when the owner's activity changed.
   void NotifyCompositor();
 
-  MediaEventSource<RefPtr<layers::KnowsCompositor>>*
-  CompositorUpdatedEvent() override { return &mCompositorUpdatedEvent; }
-
   void OnPlaybackEvent(MediaEventType aEvent);
   void OnPlaybackErrorEvent(const MediaResult& aError);
 
@@ -559,8 +542,6 @@ private:
 
   void ConnectMirrors(MediaDecoderStateMachine* aObject);
   void DisconnectMirrors();
-
-  MediaEventProducer<RefPtr<layers::KnowsCompositor>> mCompositorUpdatedEvent;
 
   // The state machine object for handling the decoding. It is safe to
   // call methods of this object from other threads. Its internal data
@@ -708,6 +689,9 @@ protected:
   MediaEventListener mOnPlaybackErrorEvent;
   MediaEventListener mOnDecoderDoctorEvent;
   MediaEventListener mOnMediaNotSeekable;
+  MediaEventListener mOnEncrypted;
+  MediaEventListener mOnWaitingForKey;
+  MediaEventListener mOnDecodeWarning;
 
 protected:
   // PlaybackRate and pitch preservation status we should start at.
@@ -779,6 +763,16 @@ protected:
   // back again.
   Canonical<int64_t> mDecoderPosition;
 
+  // We can allow video decoding in background when we match some special
+  // conditions, eg. when the cursor is hovering over the tab. This observer is
+  // used to listen the related events.
+  class BackgroundVideoDecodingPermissionObserver;
+  RefPtr<BackgroundVideoDecodingPermissionObserver> mVideoDecodingOberver;
+
+  // True if we want to resume video decoding even the media element is in the
+  // background.
+  bool mIsBackgroundVideoDecodingAllowed;
+
 public:
   AbstractCanonical<double>* CanonicalVolume() { return &mVolume; }
   AbstractCanonical<bool>* CanonicalPreservesPitch()
@@ -825,10 +819,6 @@ private:
   void NotifyAudibleStateChanged();
 
   bool mTelemetryReported;
-
-  // Used to debug how mOwner becomes a dangling pointer in bug 1326294.
-  bool mIsMediaElement;
-  WeakPtr<dom::HTMLMediaElement> mElement;
   const MediaContainerType mContainerType;
 };
 

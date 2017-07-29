@@ -22,9 +22,6 @@ StaticRefPtr<CompositorManagerChild> CompositorManagerChild::sInstance;
 CompositorManagerChild::IsInitialized(base::ProcessId aGPUPid)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  // Since GPUChild and CompositorManagerChild will race on ActorDestroy, we
-  // cannot know if the CompositorManagerChild is about to be released but has
-  // yet to be. As such, we need to verify the GPU PID matches as well.
   return sInstance && sInstance->CanSend() && sInstance->OtherPid() == aGPUPid;
 }
 
@@ -49,12 +46,7 @@ CompositorManagerChild::Init(Endpoint<PCompositorManagerChild>&& aEndpoint,
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (sInstance) {
-    // Since GPUChild and CompositorManagerChild will race on ActorDestroy, we
-    // cannot know if the CompositorManagerChild has yet to be released or not.
-    // To avoid an unnecessary reinitialization, we verify the GPU PID actually
-    // changed.
     MOZ_ASSERT(sInstance->mNamespace != aNamespace);
-    MOZ_RELEASE_ASSERT(sInstance->OtherPid() != aEndpoint.OtherPid());
   }
 
   sInstance = new CompositorManagerChild(Move(aEndpoint), aNamespace);
@@ -75,11 +67,24 @@ CompositorManagerChild::Shutdown()
   sInstance = nullptr;
 }
 
+/* static */ void
+CompositorManagerChild::OnGPUProcessLost()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  // Since GPUChild and CompositorManagerChild will race on ActorDestroy, we
+  // cannot know if the CompositorManagerChild is about to be released but has
+  // yet to be. As such, we want to pre-emptively set mCanSend to false.
+  if (sInstance) {
+    sInstance->mCanSend = false;
+  }
+}
+
 /* static */ bool
 CompositorManagerChild::CreateContentCompositorBridge(uint32_t aNamespace)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (NS_WARN_IF(!sInstance)) {
+  if (NS_WARN_IF(!sInstance || !sInstance->CanSend())) {
     return false;
   }
 
@@ -106,7 +111,7 @@ CompositorManagerChild::CreateWidgetCompositorBridge(uint64_t aProcessToken,
 {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
-  if (NS_WARN_IF(!sInstance)) {
+  if (NS_WARN_IF(!sInstance || !sInstance->CanSend())) {
     return nullptr;
   }
 
@@ -134,7 +139,7 @@ CompositorManagerChild::CreateSameProcessWidgetCompositorBridge(LayerManager* aL
 {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
-  if (NS_WARN_IF(!sInstance)) {
+  if (NS_WARN_IF(!sInstance || !sInstance->CanSend())) {
     return nullptr;
   }
 
@@ -258,7 +263,9 @@ CompositorManagerChild::SetReplyTimeout()
 #ifndef DEBUG
   // Add a timeout for release builds to kill GPU process when it hangs.
   // Don't apply timeout when using web render as it tend to timeout frequently.
-  if (XRE_IsParentProcess() && !gfxVars::UseWebRender()) {
+  if (XRE_IsParentProcess() &&
+      GPUProcessManager::Get()->GetGPUChild() &&
+      !gfxVars::UseWebRender()) {
     int32_t timeout = gfxPrefs::GPUProcessIPCReplyTimeoutMs();
     SetReplyTimeoutMs(timeout);
   }
@@ -270,6 +277,7 @@ CompositorManagerChild::ShouldContinueFromReplyTimeout()
 {
   if (XRE_IsParentProcess()) {
     gfxCriticalNote << "Killing GPU process due to IPC reply timeout";
+    MOZ_DIAGNOSTIC_ASSERT(GPUProcessManager::Get()->GetGPUChild());
     GPUProcessManager::Get()->KillProcess();
   }
   return false;

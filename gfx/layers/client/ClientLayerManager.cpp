@@ -505,6 +505,12 @@ ClientLayerManager::DidComposite(uint64_t aTransactionId,
 {
   MOZ_ASSERT(mWidget);
 
+  // Notifying the observers may tick the refresh driver which can cause
+  // a lot of different things to happen that may affect the lifetime of
+  // this layer manager. So let's make sure this object stays alive until
+  // the end of the method invocation.
+  RefPtr<ClientLayerManager> selfRef = this;
+
   // |aTransactionId| will be > 0 if the compositor is acknowledging a shadow
   // layers transaction.
   if (aTransactionId) {
@@ -516,7 +522,9 @@ ClientLayerManager::DidComposite(uint64_t aTransactionId,
     if (listener) {
       listener->DidCompositeWindow(aTransactionId, aCompositeStart, aCompositeEnd);
     }
-    mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
+    if (mTransactionIdAllocator) {
+      mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
+    }
   }
 
   // These observers fire whether or not we were in a transaction.
@@ -726,7 +734,7 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
 
   mPhase = PHASE_FORWARD;
 
-  mLatestTransactionId = mTransactionIdAllocator->GetTransactionId();
+  mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(!mIsRepeatTransaction);
   TimeStamp transactionStart;
   if (!mTransactionIdAllocator->GetTransactionStart().IsNull()) {
     transactionStart = mTransactionIdAllocator->GetTransactionStart();

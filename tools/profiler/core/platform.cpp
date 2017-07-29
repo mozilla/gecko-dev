@@ -22,7 +22,7 @@
 //
 // - A "backtrace" sample is the simplest kind. It is done in response to an
 //   API call (profiler_suspend_and_sample_thread()). It involves getting a
-//   stack trace and passing it to a callback function; it does not write to a
+//   stack trace via a ProfilerStackCollector; it does not write to a
 //   ProfileBuffer. The sampling is done from off-thread, and so uses
 //   SuspendAndSampleAndResumeThread() to get the register values.
 
@@ -54,7 +54,9 @@
 #include "nsIXULRuntime.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
+#include "nsJSPrincipals.h"
 #include "nsMemoryReporterManager.h"
+#include "nsScriptSecurityManager.h"
 #include "nsXULAppAPI.h"
 #include "nsProfilerStartParams.h"
 #include "ProfilerParent.h"
@@ -74,19 +76,36 @@
 # include "FennecJNIWrappers.h"
 #endif
 
-#if defined(MOZ_PROFILING) && \
-    (defined(GP_OS_windows) || defined(GP_OS_darwin))
+// Win32 builds always have frame pointers, so FramePointerStackWalk() always
+// works.
+#if defined(GP_PLAT_x86_windows)
 # define HAVE_NATIVE_UNWIND
-# define USE_NS_STACKWALK
+# define USE_FRAME_POINTER_STACK_WALK
 #endif
 
-// This should also work on ARM Linux, but not tested there yet.
+// Win64 builds always omit frame pointers, so we use the slower
+// MozStackWalk(), which works in that case.
+#if defined(GP_PLAT_amd64_windows)
+# define HAVE_NATIVE_UNWIND
+# define USE_MOZ_STACK_WALK
+#endif
+
+// Mac builds only have frame pointers when MOZ_PROFILING is specified, so
+// FramePointerStackWalk() only works in that case. We don't use MozStackWalk()
+// on Mac.
+#if defined(GP_OS_darwin) && defined(MOZ_PROFILING)
+# define HAVE_NATIVE_UNWIND
+# define USE_FRAME_POINTER_STACK_WALK
+#endif
+
+// Android builds use the ARM Exception Handling ABI to unwind.
 #if defined(GP_PLAT_arm_android)
 # define HAVE_NATIVE_UNWIND
 # define USE_EHABI_STACKWALK
 # include "EHABIStackWalk.h"
 #endif
 
+// Linux builds use LUL, which uses DWARF info to unwind stacks.
 #if defined(GP_PLAT_amd64_linux) || defined(GP_PLAT_x86_linux)
 # define HAVE_NATIVE_UNWIND
 # define USE_LUL_STACKWALK
@@ -406,6 +425,25 @@ public:
 
   static bool Exists(PSLockRef) { return !!sInstance; }
 
+  static bool Equals(PSLockRef,
+                     int aEntries, double aInterval, uint32_t aFeatures,
+                     const char** aFilters, uint32_t aFilterCount)
+  {
+    if (sInstance->mEntries != aEntries ||
+        sInstance->mInterval != aInterval ||
+        sInstance->mFeatures != aFeatures ||
+        sInstance->mFilters.length() != aFilterCount) {
+      return false;
+    }
+
+    for (uint32_t i = 0; i < sInstance->mFilters.length(); ++i) {
+      if (strcmp(sInstance->mFilters[i].c_str(), aFilters[i]) != 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   static size_t SizeOf(PSLockRef, MallocSizeOf aMallocSizeOf)
   {
     size_t n = aMallocSizeOf(sInstance);
@@ -443,7 +481,7 @@ public:
 
   PS_GET(const Vector<std::string>&, Filters)
 
-  static ProfileBuffer* Buffer(PSLockRef) { return sInstance->mBuffer.get(); }
+  static ProfileBuffer& Buffer(PSLockRef) { return *sInstance->mBuffer.get(); }
 
   PS_GET_AND_SET(bool, IsPaused)
 
@@ -487,8 +525,8 @@ private:
   // Substrings of names of threads we want to profile.
   Vector<std::string> mFilters;
 
-  // The buffer into which all samples are recorded. Always used in conjunction
-  // with CorePS::m{Live,Dead}Threads.
+  // The buffer into which all samples are recorded. Always non-null. Always
+  // used in conjunction with CorePS::m{Live,Dead}Threads.
   const UniquePtr<ProfileBuffer> mBuffer;
 
   // The current sampler thread. This class is not responsible for destroying
@@ -657,87 +695,63 @@ public:
 #endif
 };
 
-static void
-AddDynamicCodeLocationEntry(ProfileBuffer* aBuffer, const char* aStr)
+static bool
+IsChromeJSScript(JSScript* aScript)
 {
-  aBuffer->addEntry(ProfileBufferEntry::CodeLocation(""));
+  // WARNING: this function runs within the profiler's "critical section".
 
-  size_t strLen = strlen(aStr) + 1;   // +1 for the null terminator
-  for (size_t j = 0; j < strLen; ) {
-    // Store up to kNumChars characters in the entry.
-    char chars[ProfileBufferEntry::kNumChars];
-    size_t len = ProfileBufferEntry::kNumChars;
-    if (j + len >= strLen) {
-      len = strLen - j;
-    }
-    memcpy(chars, &aStr[j], len);
-    j += ProfileBufferEntry::kNumChars;
+  nsIScriptSecurityManager* const secman =
+    nsScriptSecurityManager::GetScriptSecurityManager();
+  NS_ENSURE_TRUE(secman, false);
 
-    aBuffer->addEntry(ProfileBufferEntry::EmbeddedString(chars));
-  }
+  JSPrincipals* const principals = JS_GetScriptPrincipals(aScript);
+  return secman->IsSystemPrincipal(nsJSPrincipals::get(principals));
 }
 
 static void
-AddPseudoEntry(PSLockRef aLock, ProfileBuffer* aBuffer,
-               js::ProfileEntry& entry, NotNull<RacyThreadInfo*> aRacyInfo)
+AddPseudoEntry(uint32_t aFeatures, NotNull<RacyThreadInfo*> aRacyInfo,
+               const js::ProfileEntry& entry,
+               ProfilerStackCollector& aCollector)
 {
+  // WARNING: this function runs within the profiler's "critical section".
+  // WARNING: this function might be called while the profiler is inactive, and
+  //          cannot rely on ActivePS.
+
   MOZ_ASSERT(entry.kind() == js::ProfileEntry::Kind::CPP_NORMAL ||
              entry.kind() == js::ProfileEntry::Kind::JS_NORMAL);
 
+  const char* dynamicString = entry.dynamicString();
   int lineno = -1;
 
-  // First entry has kind CodeLocation.
-  const char* label = entry.label();
-  bool includeDynamicString = !ActivePS::FeaturePrivacy(aLock);
-  const char* dynamicString =
-    includeDynamicString ? entry.dynamicString() : nullptr;
+  // XXX: it's unclear why the computation of lineno should depend on
+  // |dynamicString|. Perhaps it shouldn't?
 
   if (dynamicString) {
-    // Create a string that is label + ' ' + annotationString (unless
-    // label is an empty string, in which case the ' ' is omitted).
-    // Avoid sprintf because it can take a lock on Windows, and this
-    // code runs during the profiler's "critical section" as defined
-    // in SamplerThread::SuspendAndSampleAndResumeThread.
-    char combinedStringBuffer[512];
-    const char* locationString;
-    size_t labelLength = strlen(label);
-    size_t spaceLength = label[0] == '\0' ? 0 : 1;
-    size_t dynamicLength = strlen(dynamicString);
-    size_t combinedLength = labelLength + spaceLength + dynamicLength;
-
-    if (combinedLength < ArrayLength(combinedStringBuffer)) {
-      PodCopy(combinedStringBuffer, label, labelLength);
-      if (spaceLength != 0) {
-        combinedStringBuffer[labelLength] = ' ';
-      }
-      PodCopy(&combinedStringBuffer[labelLength + spaceLength], dynamicString,
-              dynamicLength);
-      combinedStringBuffer[combinedLength] = '\0';
-      locationString = combinedStringBuffer;
-    } else {
-      locationString = label;
-    }
-
-    // Store the string using one or more EmbeddedString entries. That will
-    // happen to the preceding entry.
-    AddDynamicCodeLocationEntry(aBuffer, locationString);
+    bool isChromeJSEntry = false;
     if (entry.isJs()) {
-      JSScript* script = entry.script();
-      if (script) {
+      // We call entry.script() repeatedly -- rather than storing the result in
+      // a local variable in order -- to avoid rooting hazards.
+      if (entry.script()) {
+        isChromeJSEntry = IsChromeJSScript(entry.script());
         if (!entry.pc()) {
           // The JIT only allows the top-most entry to have a nullptr pc.
-          MOZ_ASSERT(&entry ==
-                     &aRacyInfo->entries[aRacyInfo->stackSize() - 1]);
+          MOZ_ASSERT(&entry == &aRacyInfo->entries[aRacyInfo->stackSize() - 1]);
         } else {
-          lineno = JS_PCToLineNumber(script, entry.pc());
+          lineno = JS_PCToLineNumber(entry.script(), entry.pc());
         }
       }
     } else {
       lineno = entry.line();
     }
-  } else {
-    aBuffer->addEntry(ProfileBufferEntry::CodeLocation(label));
 
+    // Adjust the dynamic string as necessary.
+    if (ProfilerFeature::HasPrivacy(aFeatures) && !isChromeJSEntry) {
+      dynamicString = "(private)";
+    } else if (strlen(dynamicString) >= ProfileBuffer::kMaxFrameKeyLength) {
+      dynamicString = "(too long)";
+    }
+
+  } else {
     // XXX: Bug 1010578. Don't assume a CPP entry and try to get the line for
     // js entries as well.
     if (entry.isCpp()) {
@@ -745,11 +759,8 @@ AddPseudoEntry(PSLockRef aLock, ProfileBuffer* aBuffer,
     }
   }
 
-  if (lineno != -1) {
-    aBuffer->addEntry(ProfileBufferEntry::LineNumber(lineno));
-  }
-
-  aBuffer->addEntry(ProfileBufferEntry::Category(int(entry.category())));
+  aCollector.CollectCodeLocation(entry.label(), dynamicString, lineno,
+                                 Some(entry.category()));
 }
 
 // Setting MAX_NATIVE_FRAMES too high risks the unwinder wasting a lot of time
@@ -787,12 +798,17 @@ struct AutoWalkJSStack
   }
 };
 
+// Merges the pseudo-stack, native stack, and JS stack, outputting the details
+// to aCollector.
 static void
-MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
-                       const ThreadInfo& aThreadInfo, const Registers& aRegs,
-                       const NativeStack& aNativeStack, ProfileBuffer* aBuffer)
+MergeStacks(uint32_t aFeatures, bool aIsSynchronous,
+            const ThreadInfo& aThreadInfo, const Registers& aRegs,
+            const NativeStack& aNativeStack,
+            ProfilerStackCollector& aCollector)
 {
   // WARNING: this function runs within the profiler's "critical section".
+  // WARNING: this function might be called while the profiler is inactive, and
+  //          cannot rely on ActivePS.
 
   NotNull<RacyThreadInfo*> racyInfo = aThreadInfo.RacyInfo();
   js::ProfileEntry* pseudoEntries = racyInfo->entries;
@@ -807,10 +823,10 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
   // ProfilingFrameIterator to avoid incorrectly resetting the generation of
   // sampled JIT entries inside the JS engine. See note below concerning 'J'
   // entries.
-  uint32_t startBufferGen;
-  startBufferGen = aIsSynchronous
-                 ? UINT32_MAX
-                 : aBuffer->mGeneration;
+  uint32_t startBufferGen = UINT32_MAX;
+  if (!aIsSynchronous && aCollector.Generation().isSome()) {
+    startBufferGen = *aCollector.Generation();
+  }
   uint32_t jsCount = 0;
   JS::ProfilingFrameIterator::Frame jsFrames[MAX_JS_FRAMES];
 
@@ -847,9 +863,6 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
       }
     }
   }
-
-  // Start the sample with a root entry.
-  aBuffer->addEntry(ProfileBufferEntry::Sample("(root)"));
 
   // While the pseudo-stack array is ordered oldest-to-youngest, the JS and
   // native arrays are ordered youngest-to-oldest. We must add frames to aInfo
@@ -925,7 +938,7 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
       // Pseudo-frames with the CPP_MARKER_FOR_JS kind are just annotations and
       // should not be recorded in the profile.
       if (pseudoEntry.kind() != js::ProfileEntry::Kind::CPP_MARKER_FOR_JS) {
-        AddPseudoEntry(aLock, aBuffer, pseudoEntry, racyInfo);
+        AddPseudoEntry(aFeatures, racyInfo, pseudoEntry, aCollector);
       }
       pseudoIndex++;
       continue;
@@ -951,12 +964,11 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
       // with stale JIT code return addresses.
       if (aIsSynchronous ||
           jsFrame.kind == JS::ProfilingFrameIterator::Frame_Wasm) {
-        AddDynamicCodeLocationEntry(aBuffer, jsFrame.label);
+        aCollector.CollectCodeLocation("", jsFrame.label, -1, Nothing());
       } else {
         MOZ_ASSERT(jsFrame.kind == JS::ProfilingFrameIterator::Frame_Ion ||
                    jsFrame.kind == JS::ProfilingFrameIterator::Frame_Baseline);
-        aBuffer->addEntry(
-          ProfileBufferEntry::JitReturnAddr(jsFrames[jsIndex].returnAddress));
+        aCollector.CollectJitReturnAddr(jsFrames[jsIndex].returnAddress);
       }
 
       jsIndex--;
@@ -968,7 +980,7 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
     if (nativeStackAddr) {
       MOZ_ASSERT(nativeIndex >= 0);
       void* addr = (void*)aNativeStack.mPCs[nativeIndex];
-      aBuffer->addEntry(ProfileBufferEntry::NativeLeafAddr(addr));
+      aCollector.CollectNativeLeafAddr(addr);
     }
     if (nativeIndex >= 0) {
       nativeIndex--;
@@ -979,10 +991,11 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
   //
   // Do not do this for synchronous samples, which use their own
   // ProfileBuffers instead of the global one in CorePS.
-  if (!aIsSynchronous && context) {
-    MOZ_ASSERT(aBuffer->mGeneration >= startBufferGen);
-    uint32_t lapCount = aBuffer->mGeneration - startBufferGen;
-    JS::UpdateJSContextProfilerSampleBufferGen(context, aBuffer->mGeneration,
+  if (!aIsSynchronous && context && aCollector.Generation().isSome()) {
+    MOZ_ASSERT(*aCollector.Generation() >= startBufferGen);
+    uint32_t lapCount = *aCollector.Generation() - startBufferGen;
+    JS::UpdateJSContextProfilerSampleBufferGen(context,
+                                               *aCollector.Generation(),
                                                lapCount);
   }
 }
@@ -991,7 +1004,7 @@ MergeStacksIntoProfile(PSLockRef aLock, bool aIsSynchronous,
 static uintptr_t GetThreadHandle(PlatformData* aData);
 #endif
 
-#ifdef USE_NS_STACKWALK
+#if defined(USE_FRAME_POINTER_STACK_WALK) || defined(USE_MOZ_STACK_WALK)
 static void
 StackWalkCallback(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 {
@@ -1007,6 +1020,8 @@ DoNativeBacktrace(PSLockRef aLock, const ThreadInfo& aThreadInfo,
                   const Registers& aRegs, NativeStack& aNativeStack)
 {
   // WARNING: this function runs within the profiler's "critical section".
+  // WARNING: this function might be called while the profiler is inactive, and
+  //          cannot rely on ActivePS.
 
   // Start with the current function. We use 0 as the frame number here because
   // the FramePointerStackWalk() and MozStackWalk() calls below will use 1..N.
@@ -1016,20 +1031,20 @@ DoNativeBacktrace(PSLockRef aLock, const ThreadInfo& aThreadInfo,
 
   uint32_t maxFrames = uint32_t(MAX_NATIVE_FRAMES - aNativeStack.mCount);
 
-#if defined(GP_OS_darwin) || (defined(GP_PLAT_x86_windows))
+#if defined(USE_FRAME_POINTER_STACK_WALK)
   void* stackEnd = aThreadInfo.StackTop();
   if (aRegs.mFP >= aRegs.mSP && aRegs.mFP <= stackEnd) {
     FramePointerStackWalk(StackWalkCallback, /* skipFrames */ 0, maxFrames,
                           &aNativeStack, reinterpret_cast<void**>(aRegs.mFP),
                           stackEnd);
   }
-#else
-  // Win64 always omits frame pointers so for it we use the slower
-  // MozStackWalk().
+#elif defined(USE_MOZ_STACK_WALK)
   uintptr_t thread = GetThreadHandle(aThreadInfo.GetPlatformData());
   MOZ_ASSERT(thread);
   MozStackWalk(StackWalkCallback, /* skipFrames */ 0, maxFrames, &aNativeStack,
                thread, /* platformData */ nullptr);
+#else
+# error "bad configuration"
 #endif
 }
 #endif
@@ -1040,6 +1055,8 @@ DoNativeBacktrace(PSLockRef aLock, const ThreadInfo& aThreadInfo,
                   const Registers& aRegs, NativeStack& aNativeStack)
 {
   // WARNING: this function runs within the profiler's "critical section".
+  // WARNING: this function might be called while the profiler is inactive, and
+  //          cannot rely on ActivePS.
 
   const mcontext_t* mcontext = &aRegs.mContext->uc_mcontext;
   mcontext_t savedContext;
@@ -1119,6 +1136,8 @@ DoNativeBacktrace(PSLockRef aLock, const ThreadInfo& aThreadInfo,
                   const Registers& aRegs, NativeStack& aNativeStack)
 {
   // WARNING: this function runs within the profiler's "critical section".
+  // WARNING: this function might be called while the profiler is inactive, and
+  //          cannot rely on ActivePS.
 
   const mcontext_t* mc = &aRegs.mContext->uc_mcontext;
 
@@ -1248,32 +1267,33 @@ static inline void
 DoSharedSample(PSLockRef aLock, bool aIsSynchronous,
                ThreadInfo& aThreadInfo, const TimeStamp& aNow,
                const Registers& aRegs, ProfileBuffer::LastSample* aLS,
-               ProfileBuffer* aBuffer)
+               ProfileBuffer& aBuffer)
 {
   // WARNING: this function runs within the profiler's "critical section".
 
   MOZ_RELEASE_ASSERT(ActivePS::Exists(aLock));
 
-  aBuffer->addThreadIdEntry(aThreadInfo.ThreadId(), aLS);
+  aBuffer.AddThreadIdEntry(aThreadInfo.ThreadId(), aLS);
 
   TimeDuration delta = aNow - CorePS::ProcessStartTime();
-  aBuffer->addEntry(ProfileBufferEntry::Time(delta.ToMilliseconds()));
+  aBuffer.AddEntry(ProfileBufferEntry::Time(delta.ToMilliseconds()));
 
   NativeStack nativeStack;
 #if defined(HAVE_NATIVE_UNWIND)
   if (ActivePS::FeatureStackWalk(aLock)) {
     DoNativeBacktrace(aLock, aThreadInfo, aRegs, nativeStack);
 
-    MergeStacksIntoProfile(aLock, aIsSynchronous, aThreadInfo, aRegs,
-                           nativeStack, aBuffer);
+    MergeStacks(ActivePS::Features(aLock), aIsSynchronous, aThreadInfo, aRegs,
+                nativeStack, aBuffer);
   } else
 #endif
   {
-    MergeStacksIntoProfile(aLock, aIsSynchronous, aThreadInfo, aRegs,
-                           nativeStack, aBuffer);
+    MergeStacks(ActivePS::Features(aLock), aIsSynchronous, aThreadInfo, aRegs,
+                nativeStack, aBuffer);
 
+    // We can't walk the whole native stack, but we can record the top frame.
     if (ActivePS::FeatureLeaf(aLock)) {
-      aBuffer->addEntry(ProfileBufferEntry::NativeLeafAddr((void*)aRegs.mPC));
+      aBuffer.AddEntry(ProfileBufferEntry::NativeLeafAddr((void*)aRegs.mPC));
     }
   }
 }
@@ -1281,7 +1301,7 @@ DoSharedSample(PSLockRef aLock, bool aIsSynchronous,
 // Writes the components of a synchronous sample to the given ProfileBuffer.
 static void
 DoSyncSample(PSLockRef aLock, ThreadInfo& aThreadInfo, const TimeStamp& aNow,
-             const Registers& aRegs, ProfileBuffer* aBuffer)
+             const Registers& aRegs, ProfileBuffer& aBuffer)
 {
   // WARNING: this function runs within the profiler's "critical section".
 
@@ -1297,7 +1317,7 @@ DoPeriodicSample(PSLockRef aLock, ThreadInfo& aThreadInfo,
 {
   // WARNING: this function runs within the profiler's "critical section".
 
-  ProfileBuffer* buffer = ActivePS::Buffer(aLock);
+  ProfileBuffer& buffer = ActivePS::Buffer(aLock);
 
   DoSharedSample(aLock, /* isSynchronous = */ false, aThreadInfo, aNow, aRegs,
                  &aThreadInfo.LastSample(), buffer);
@@ -1306,25 +1326,24 @@ DoPeriodicSample(PSLockRef aLock, ThreadInfo& aThreadInfo,
     aThreadInfo.RacyInfo()->GetPendingMarkers();
   while (pendingMarkersList && pendingMarkersList->peek()) {
     ProfilerMarker* marker = pendingMarkersList->popHead();
-    buffer->addStoredMarker(marker);
-    buffer->addEntry(ProfileBufferEntry::Marker(marker));
+    buffer.AddStoredMarker(marker);
+    buffer.AddEntry(ProfileBufferEntry::Marker(marker));
   }
 
   ThreadResponsiveness* resp = aThreadInfo.GetThreadResponsiveness();
   if (resp && resp->HasData()) {
     TimeDuration delta = resp->GetUnresponsiveDuration(aNow);
-    buffer->addEntry(
-      ProfileBufferEntry::Responsiveness(delta.ToMilliseconds()));
+    buffer.AddEntry(ProfileBufferEntry::Responsiveness(delta.ToMilliseconds()));
   }
 
   if (aRSSMemory != 0) {
     double rssMemory = static_cast<double>(aRSSMemory);
-    buffer->addEntry(ProfileBufferEntry::ResidentMemory(rssMemory));
+    buffer.AddEntry(ProfileBufferEntry::ResidentMemory(rssMemory));
   }
 
   if (aUSSMemory != 0) {
     double ussMemory = static_cast<double>(aUSSMemory);
-    buffer->addEntry(ProfileBufferEntry::UnsharedMemory(ussMemory));
+    buffer.AddEntry(ProfileBufferEntry::UnsharedMemory(ussMemory));
   }
 }
 
@@ -1427,7 +1446,7 @@ StreamMetaJSCustomObject(PSLockRef aLock, SpliceableJSONWriter& aWriter)
 {
   MOZ_RELEASE_ASSERT(CorePS::Exists() && ActivePS::Exists(aLock));
 
-  aWriter.IntProperty("version", 6);
+  aWriter.IntProperty("version", 7);
 
   // The "startTime" field holds the number of milliseconds since midnight
   // January 1, 1970 GMT. This grotty code computes (Now - (Now -
@@ -1564,7 +1583,7 @@ BuildJavaThreadJSObject(SpliceableJSONWriter& aWriter)
 }
 #endif
 
-static void
+static TimeStamp
 locked_profiler_stream_json_for_this_process(PSLockRef aLock,
                                              SpliceableJSONWriter& aWriter,
                                              double aSinceTime)
@@ -1592,6 +1611,8 @@ locked_profiler_stream_json_for_this_process(PSLockRef aLock,
     aWriter.EndObject();
   }
 
+  double firstSampleTime = INFINITY;
+
   // Lists the samples for each thread profile
   aWriter.StartArrayProperty("threads");
   {
@@ -1601,16 +1622,20 @@ locked_profiler_stream_json_for_this_process(PSLockRef aLock,
       if (!info->IsBeingProfiled()) {
         continue;
       }
-      info->StreamJSON(ActivePS::Buffer(aLock), aWriter,
-                       CorePS::ProcessStartTime(), aSinceTime);
+      double thisThreadFirstSampleTime =
+        info->StreamJSON(ActivePS::Buffer(aLock), aWriter,
+                         CorePS::ProcessStartTime(), aSinceTime);
+      firstSampleTime = std::min(thisThreadFirstSampleTime, firstSampleTime);
     }
 
     const CorePS::ThreadVector& deadThreads = CorePS::DeadThreads(aLock);
     for (size_t i = 0; i < deadThreads.size(); i++) {
       ThreadInfo* info = deadThreads.at(i);
       MOZ_ASSERT(info->IsBeingProfiled());
-      info->StreamJSON(ActivePS::Buffer(aLock), aWriter,
-                       CorePS::ProcessStartTime(), aSinceTime);
+      double thisThreadFirstSampleTime =
+        info->StreamJSON(ActivePS::Buffer(aLock), aWriter,
+                        CorePS::ProcessStartTime(), aSinceTime);
+      firstSampleTime = std::min(thisThreadFirstSampleTime, firstSampleTime);
     }
 
 #if defined(GP_OS_android)
@@ -1628,10 +1653,19 @@ locked_profiler_stream_json_for_this_process(PSLockRef aLock,
 #endif
   }
   aWriter.EndArray();
+
+  if (firstSampleTime != INFINITY) {
+    return CorePS::ProcessStartTime() +
+           TimeDuration::FromMilliseconds(firstSampleTime);
+  }
+
+  return TimeStamp();
 }
 
 bool
-profiler_stream_json_for_this_process(SpliceableJSONWriter& aWriter, double aSinceTime)
+profiler_stream_json_for_this_process(SpliceableJSONWriter& aWriter,
+                                      double aSinceTime,
+                                      TimeStamp* aOutFirstSampleTime)
 {
   LOG("profiler_stream_json_for_this_process");
 
@@ -1643,7 +1677,13 @@ profiler_stream_json_for_this_process(SpliceableJSONWriter& aWriter, double aSin
     return false;
   }
 
-  locked_profiler_stream_json_for_this_process(lock, aWriter, aSinceTime);
+  TimeStamp firstSampleTime =
+    locked_profiler_stream_json_for_this_process(lock, aWriter, aSinceTime);
+
+  if (aOutFirstSampleTime) {
+    *aOutFirstSampleTime = firstSampleTime;
+  }
+
   return true;
 }
 
@@ -1679,6 +1719,23 @@ PrintUsageThenExit(int aExitCode)
     "  If MOZ_PROFILER_STARTUP is set, specifies the sample interval,\n"
     "  measured in milliseconds, when the profiler is first started.\n"
     "  If unset, the platform default is used.\n"
+    "\n"
+    "  MOZ_PROFILER_STARTUP_FEATURES_BITFIELD=<Number>\n"
+    "  If MOZ_PROFILER_STARTUP is set, specifies the profiling features, as\n"
+    "  the integer value of the features bitfield.\n"
+    "  If unset, the value from MOZ_PROFILER_STARTUP_FEATURES is used.\n"
+    "\n"
+    "  MOZ_PROFILER_STARTUP_FEATURES=<Features>\n"
+    "  If MOZ_PROFILER_STARTUP is set, specifies the profiling features, as\n"
+    "  a comma-separated list of strings.\n"
+    "  Ignored if  MOZ_PROFILER_STARTUP_FEATURES_BITFIELD is set.\n"
+    "  If unset, the platform default is used.\n"
+    "\n"
+    "  MOZ_PROFILER_STARTUP_FILTERS=<Filters>\n"
+    "  If MOZ_PROFILER_STARTUP is set, specifies the thread filters, as a\n"
+    "  comma-separated list of strings. A given thread will be sampled if any\n"
+    "  of the filters is a case-insensitive substring of the thread name.\n"
+    "  If unset, a default is used.\n"
     "\n"
     "  MOZ_PROFILER_SHUTDOWN\n"
     "  If set, the profiler saves a profile to the named file on shutdown.\n"
@@ -1842,7 +1899,7 @@ SamplerThread::Run()
         return;
       }
 
-      ActivePS::Buffer(lock)->deleteExpiredStoredMarkers();
+      ActivePS::Buffer(lock).DeleteExpiredStoredMarkers();
 
       if (!ActivePS::IsPaused(lock)) {
         const CorePS::ThreadVector& liveThreads = CorePS::LiveThreads(lock);
@@ -1859,7 +1916,7 @@ SamplerThread::Run()
           // cheaper than taking a new sample.
           if (info->RacyInfo()->CanDuplicateLastSampleDueToSleep()) {
             bool dup_ok =
-              ActivePS::Buffer(lock)->DuplicateLastSample(
+              ActivePS::Buffer(lock).DuplicateLastSample(
                 info->ThreadId(), CorePS::ProcessStartTime(),
                 info->LastSample());
             if (dup_ok) {
@@ -1989,6 +2046,33 @@ GeckoProfilerReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
 
 NS_IMPL_ISUPPORTS(GeckoProfilerReporter, nsIMemoryReporter)
 
+static bool
+HasFeature(const char** aFeatures, uint32_t aFeatureCount, const char* aFeature)
+{
+  for (size_t i = 0; i < aFeatureCount; i++) {
+    if (strcmp(aFeatures[i], aFeature) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+uint32_t
+ParseFeaturesFromStringArray(const char** aFeatures, uint32_t aFeatureCount)
+{
+  #define ADD_FEATURE_BIT(n_, str_, Name_) \
+    if (HasFeature(aFeatures, aFeatureCount, str_)) { \
+      features |= ProfilerFeature::Name_; \
+    }
+
+  uint32_t features = 0;
+  PROFILER_FOR_EACH_FEATURE(ADD_FEATURE_BIT)
+
+  #undef ADD_FEATURE_BIT
+
+  return features;
+}
+
 // Find the ThreadInfo for the current thread. This should only be called in
 // places where TLSInfo can't be used. On success, *aIndexOut is set to the
 // index if it is non-null.
@@ -2106,12 +2190,41 @@ MozGlueLabelExit(PseudoStack* aPseudoStack)
   }
 }
 
+static nsTArray<const char*>
+SplitAtCommas(const char* aString, UniquePtr<char[]>& aStorage)
+{
+  size_t len = strlen(aString);
+  aStorage = MakeUnique<char[]>(len + 1);
+  PodCopy(aStorage.get(), aString, len + 1);
+
+  // Iterate over all characters in aStorage and split at commas, by
+  // overwriting commas with the null char.
+  nsTArray<const char*> array;
+  size_t currentElementStart = 0;
+  for (size_t i = 0; i <= len; i++) {
+    if (aStorage[i] == ',') {
+      aStorage[i] = '\0';
+    }
+    if (aStorage[i] == '\0') {
+      array.AppendElement(&aStorage[currentElementStart]);
+      currentElementStart = i + 1;
+    }
+  }
+  return array;
+}
+
 void
 profiler_init(void* aStackTop)
 {
   LOG("profiler_init");
 
   MOZ_RELEASE_ASSERT(!CorePS::Exists());
+
+  if (getenv("MOZ_PROFILER_HELP")) {
+    PrintUsageThenExit(0); // terminates execution
+  }
+
+  SharedLibraryInfo::Initialize();
 
   uint32_t features =
 #if defined(GP_OS_android)
@@ -2125,11 +2238,12 @@ profiler_init(void* aStackTop)
                       ProfilerFeature::Threads |
                       0;
 
-  const char* filters[] = { "GeckoMain", "Compositor", "DOM Worker" };
+  UniquePtr<char[]> filterStorage;
 
-  if (getenv("MOZ_PROFILER_HELP")) {
-    PrintUsageThenExit(0); // terminates execution
-  }
+  nsTArray<const char*> filters;
+  filters.AppendElement("GeckoMain");
+  filters.AppendElement("Compositor");
+  filters.AppendElement("DOM Worker");
 
   int entries = PROFILER_DEFAULT_ENTRIES;
   double interval = PROFILER_DEFAULT_INTERVAL;
@@ -2165,14 +2279,15 @@ profiler_init(void* aStackTop)
     // startup, even if no profiling is actually to be done. So, instead, it is
     // created on demand at the first call to PlatformStart().
 
-    if (!getenv("MOZ_PROFILER_STARTUP")) {
+    const char* startupEnv = getenv("MOZ_PROFILER_STARTUP");
+    if (!startupEnv || startupEnv[0] == '\0') {
       return;
     }
 
     LOG("- MOZ_PROFILER_STARTUP is set");
 
     const char* startupEntries = getenv("MOZ_PROFILER_STARTUP_ENTRIES");
-    if (startupEntries) {
+    if (startupEntries && startupEntries[0] != '\0') {
       errno = 0;
       entries = strtol(startupEntries, nullptr, 10);
       if (errno == 0 && entries > 0) {
@@ -2183,7 +2298,7 @@ profiler_init(void* aStackTop)
     }
 
     const char* startupInterval = getenv("MOZ_PROFILER_STARTUP_INTERVAL");
-    if (startupInterval) {
+    if (startupInterval && startupInterval[0] != '\0') {
       errno = 0;
       interval = PR_strtod(startupInterval, nullptr);
       if (errno == 0 && interval > 0.0 && interval <= 1000.0) {
@@ -2193,14 +2308,44 @@ profiler_init(void* aStackTop)
       }
     }
 
+    const char* startupFeaturesBitfield =
+      getenv("MOZ_PROFILER_STARTUP_FEATURES_BITFIELD");
+    if (startupFeaturesBitfield && startupFeaturesBitfield[0] != '\0') {
+      errno = 0;
+      features = strtol(startupFeaturesBitfield, nullptr, 10);
+      if (errno == 0 && features != 0) {
+        LOG("- MOZ_PROFILER_STARTUP_FEATURES_BITFIELD = %d", features);
+      } else {
+        PrintUsageThenExit(1);
+      }
+    } else {
+      const char* startupFeatures = getenv("MOZ_PROFILER_STARTUP_FEATURES");
+      if (startupFeatures && startupFeatures[0] != '\0') {
+        // Interpret startupFeatures as a list of feature strings, separated by
+        // commas.
+        UniquePtr<char[]> featureStringStorage;
+        nsTArray<const char*> featureStringArray =
+          SplitAtCommas(startupFeatures, featureStringStorage);
+        features = ParseFeaturesFromStringArray(featureStringArray.Elements(),
+                                                featureStringArray.Length());
+        LOG("- MOZ_PROFILER_STARTUP_FEATURES = %d", features);
+      }
+    }
+
+    const char* startupFilters = getenv("MOZ_PROFILER_STARTUP_FILTERS");
+    if (startupFilters && startupFilters[0] != '\0') {
+      filters = SplitAtCommas(startupFilters, filterStorage);
+      LOG("- MOZ_PROFILER_STARTUP_FILTERS = %s", startupFilters);
+    }
+
     locked_profiler_start(lock, entries, interval, features,
-                          filters, MOZ_ARRAY_LENGTH(filters));
+                          filters.Elements(), filters.Length());
   }
 
   // We do this with gPSMutex unlocked. The comment in profiler_stop() explains
   // why.
-  NotifyProfilerStarted(entries, interval, features, filters,
-                        MOZ_ARRAY_LENGTH(filters));
+  NotifyProfilerStarted(entries, interval, features,
+                        filters.Elements(), filters.Length());
 }
 
 static void
@@ -2309,6 +2454,60 @@ profiler_get_start_params(int* aEntries, double* aInterval, uint32_t* aFeatures,
   }
 }
 
+AutoSetProfilerEnvVarsForChildProcess::AutoSetProfilerEnvVarsForChildProcess(
+  MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_IN_IMPL)
+{
+  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+
+  MOZ_RELEASE_ASSERT(CorePS::Exists());
+
+  PSAutoLock lock(gPSMutex);
+
+  if (!ActivePS::Exists(lock)) {
+    PR_SetEnv("MOZ_PROFILER_STARTUP=");
+    return;
+  }
+
+  PR_SetEnv("MOZ_PROFILER_STARTUP=1");
+  SprintfLiteral(mSetEntries, "MOZ_PROFILER_STARTUP_ENTRIES=%d",
+                 ActivePS::Entries(lock));
+  PR_SetEnv(mSetEntries);
+
+  SprintfLiteral(mSetInterval, "MOZ_PROFILER_STARTUP_INTERVAL=%f",
+                 ActivePS::Interval(lock));
+  PR_SetEnv(mSetInterval);
+
+  SprintfLiteral(mSetFeaturesBitfield,
+                 "MOZ_PROFILER_STARTUP_FEATURES_BITFIELD=%d",
+                 ActivePS::Features(lock));
+  PR_SetEnv(mSetFeaturesBitfield);
+
+  std::string filtersString;
+  const Vector<std::string>& filters = ActivePS::Filters(lock);
+  for (uint32_t i = 0; i < filters.length(); ++i) {
+    filtersString += filters[i];
+    if (i != filters.length() - 1) {
+      filtersString += ",";
+    }
+  }
+  SprintfLiteral(mSetFilters, "MOZ_PROFILER_STARTUP_FILTERS=%s",
+                 filtersString.c_str());
+  PR_SetEnv(mSetFilters);
+}
+
+AutoSetProfilerEnvVarsForChildProcess::~AutoSetProfilerEnvVarsForChildProcess()
+{
+  // Our current process doesn't look at these variables after startup, so we
+  // can just unset all the variables. This allows us to use literal strings,
+  // which will be valid for the whole life time of the program and can be
+  // passed to PR_SetEnv without problems.
+  PR_SetEnv("MOZ_PROFILER_STARTUP=");
+  PR_SetEnv("MOZ_PROFILER_STARTUP_ENTRIES=");
+  PR_SetEnv("MOZ_PROFILER_STARTUP_INTERVAL=");
+  PR_SetEnv("MOZ_PROFILER_STARTUP_FEATURES_BITFIELD=");
+  PR_SetEnv("MOZ_PROFILER_STARTUP_FILTERS=");
+}
+
 static void
 locked_profiler_save_profile_to_file(PSLockRef aLock, const char* aFilename)
 {
@@ -2395,9 +2594,9 @@ profiler_get_buffer_info_helper(uint32_t* aCurrentPosition,
     return;
   }
 
-  *aCurrentPosition = ActivePS::Buffer(lock)->mWritePos;
+  *aCurrentPosition = ActivePS::Buffer(lock).mWritePos;
   *aEntries = ActivePS::Entries(lock);
-  *aGeneration = ActivePS::Buffer(lock)->mGeneration;
+  *aGeneration = ActivePS::Buffer(lock).mGeneration;
 }
 
 static void
@@ -2515,6 +2714,53 @@ profiler_start(int aEntries, double aInterval, uint32_t aFeatures,
   }
   NotifyProfilerStarted(aEntries, aInterval, aFeatures,
                         aFilters, aFilterCount);
+}
+
+void
+profiler_ensure_started(int aEntries, double aInterval, uint32_t aFeatures,
+                        const char** aFilters, uint32_t aFilterCount)
+{
+  LOG("profiler_ensure_started");
+
+  bool startedProfiler = false;
+  SamplerThread* samplerThread = nullptr;
+  {
+    PSAutoLock lock(gPSMutex);
+
+    // Initialize if necessary.
+    if (!CorePS::Exists()) {
+      profiler_init(nullptr);
+    }
+
+    if (ActivePS::Exists(lock)) {
+      // The profiler is active.
+      if (!ActivePS::Equals(lock, aEntries, aInterval, aFeatures,
+                            aFilters, aFilterCount)) {
+        // Stop and restart with different settings.
+        samplerThread = locked_profiler_stop(lock);
+        locked_profiler_start(lock, aEntries, aInterval, aFeatures,
+                              aFilters, aFilterCount);
+        startedProfiler = true;
+      }
+    } else {
+      // The profiler is stopped.
+      locked_profiler_start(lock, aEntries, aInterval, aFeatures,
+                            aFilters, aFilterCount);
+      startedProfiler = true;
+    }
+  }
+
+  // We do these operations with gPSMutex unlocked. The comments in
+  // profiler_stop() explain why.
+  if (samplerThread) {
+    ProfilerParent::ProfilerStopped();
+    NotifyObservers("profiler-stopped");
+    delete samplerThread;
+  }
+  if (startedProfiler) {
+    NotifyProfilerStarted(aEntries, aInterval, aFeatures,
+                          aFilters, aFilterCount);
+  }
 }
 
 static MOZ_MUST_USE SamplerThread*
@@ -2840,7 +3086,7 @@ profiler_get_backtrace()
   // 1000 should be plenty for a single backtrace.
   auto buffer = MakeUnique<ProfileBuffer>(1000);
 
-  DoSyncSample(lock, *info, now, regs, buffer.get());
+  DoSyncSample(lock, *info, now, regs, *buffer.get());
 
   return UniqueProfilerBacktrace(
     new ProfilerBacktrace("SyncProfile", tid, Move(buffer)));
@@ -3028,8 +3274,8 @@ profiler_clear_js_context()
   if (ActivePS::Exists(lock)) {
     // Flush this thread's ThreadInfo, if it is being profiled.
     if (info->IsBeingProfiled()) {
-      info->FlushSamplesAndMarkers(ActivePS::Buffer(lock),
-                                   CorePS::ProcessStartTime());
+      info->FlushSamplesAndMarkers(CorePS::ProcessStartTime(),
+                                   ActivePS::Buffer(lock));
     }
   }
 
@@ -3077,6 +3323,63 @@ profiler_suspend_and_sample_thread(
         }
 #endif
         aCallback(nativeStack.mPCs, nativeStack.mCount, info->IsMainThread());
+      });
+
+      // NOTE: Make sure to disable the sampler before it is destroyed, in case
+      // the profiler is running at the same time.
+      sampler.Disable(lock);
+      break;
+    }
+  }
+}
+
+// NOTE: aCollector's methods will be called while the target thread is paused.
+// Doing things in those methods like allocating -- which may try to claim
+// locks -- is a surefire way to deadlock.
+void
+profiler_suspend_and_sample_thread(int aThreadId,
+                                   uint32_t aFeatures,
+                                   ProfilerStackCollector& aCollector,
+                                   bool aSampleNative /* = true */)
+{
+  // Lock the profiler mutex
+  PSAutoLock lock(gPSMutex);
+
+  const CorePS::ThreadVector& liveThreads = CorePS::LiveThreads(lock);
+  for (uint32_t i = 0; i < liveThreads.size(); i++) {
+    ThreadInfo* info = liveThreads.at(i);
+
+    if (info->ThreadId() == aThreadId) {
+      if (info->IsMainThread()) {
+        aCollector.SetIsMainThread();
+      }
+
+      // Allocate the space for the native stack
+      NativeStack nativeStack;
+
+      // Suspend, sample, and then resume the target thread.
+      Sampler sampler(lock);
+      sampler.SuspendAndSampleAndResumeThread(lock, *info,
+                                              [&](const Registers& aRegs) {
+        // The target thread is now suspended. Collect a native backtrace, and
+        // call the callback.
+        bool isSynchronous = false;
+#if defined(HAVE_NATIVE_UNWIND)
+        if (aSampleNative) {
+          DoNativeBacktrace(lock, *info, aRegs, nativeStack);
+
+          MergeStacks(aFeatures, isSynchronous, *info, aRegs, nativeStack,
+                      aCollector);
+        } else
+#endif
+        {
+          MergeStacks(aFeatures, isSynchronous, *info, aRegs, nativeStack,
+                      aCollector);
+
+          if (ProfilerFeature::HasLeaf(aFeatures)) {
+            aCollector.CollectNativeLeafAddr((void*)aRegs.mPC);
+          }
+        }
       });
 
       // NOTE: Make sure to disable the sampler before it is destroyed, in case

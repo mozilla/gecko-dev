@@ -173,6 +173,9 @@ GetPrefNameForFeature(int32_t aFeature)
     case nsIGfxInfo::FEATURE_ADVANCED_LAYERS:
       name = BLACKLIST_PREF_BRANCH "layers.advanced";
       break;
+    case nsIGfxInfo::FEATURE_D3D11_KEYED_MUTEX:
+      name = BLACKLIST_PREF_BRANCH "d3d11.keyed.mutex";
+      break;
     case nsIGfxInfo::FEATURE_VP8_HW_DECODE:
     case nsIGfxInfo::FEATURE_VP9_HW_DECODE:
     case nsIGfxInfo::FEATURE_DX_INTEROP2:
@@ -353,6 +356,10 @@ BlacklistFeatureToGfxFeature(const nsAString& aFeature)
       return nsIGfxInfo::FEATURE_CANVAS2D_ACCELERATION;
   else if (aFeature.EqualsLiteral("WEBGL2"))
     return nsIGfxInfo::FEATURE_WEBGL2;
+  else if (aFeature.EqualsLiteral("ADVANCED_LAYERS"))
+    return nsIGfxInfo::FEATURE_ADVANCED_LAYERS;
+  else if (aFeature.EqualsLiteral("D3D11_KEYED_MUTEX"))
+    return nsIGfxInfo::FEATURE_D3D11_KEYED_MUTEX;
 
   // If we don't recognize the feature, it may be new, and something
   // this version doesn't understand.  So, nothing to do.  This is
@@ -983,6 +990,8 @@ GfxInfoBase::EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo)
     nsIGfxInfo::FEATURE_WEBRTC_HW_ACCELERATION,
     nsIGfxInfo::FEATURE_CANVAS2D_ACCELERATION,
     nsIGfxInfo::FEATURE_WEBGL2,
+    nsIGfxInfo::FEATURE_ADVANCED_LAYERS,
+    nsIGfxInfo::FEATURE_D3D11_KEYED_MUTEX,
     0
   };
 
@@ -1460,6 +1469,13 @@ NS_IMETHODIMP
 GfxInfoBase::GetWebRenderEnabled(bool* aWebRenderEnabled)
 {
   *aWebRenderEnabled = gfxVars::UseWebRender();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+GfxInfoBase::GetIsHeadless(bool* aIsHeadless)
+{
+  *aIsHeadless = gfxPlatform::IsHeadless();
   return NS_OK;
 }
 

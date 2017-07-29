@@ -84,9 +84,6 @@ var whitelist = [
   {file: "resource://app/modules/NewTabSearchProvider.jsm"},
   {file: "resource://app/modules/NewTabWebChannel.jsm"},
 
-  // Activity Stream currently needs this file in all channels except Nightly
-  {file: "resource://app/modules/PreviewProvider.jsm", skipNightly: true},
-
   // layout/mathml/nsMathMLChar.cpp
   {file: "resource://gre/res/fonts/mathfontSTIXGeneral.properties"},
   {file: "resource://gre/res/fonts/mathfontUnicode.properties"},
@@ -170,6 +167,14 @@ var whitelist = [
   {file: "resource://gre/modules/sdk/bootstrap.js"},
 
 ];
+
+// Temporary whitelisted while WebPayments in construction
+// See Bug 1381141
+if (AppConstants.NIGHTLY_BUILD && AppConstants.MOZ_BUILD_APP == "browser") {
+  whitelist.push(
+    {file: "chrome://payments/content/paymentRequest.xhtml"}
+  );
+}
 
 if (!AppConstants.MOZ_PHOTON_THEME) {
   whitelist.push(

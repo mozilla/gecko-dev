@@ -195,6 +195,7 @@ function treatAsSafeArgument(entry, varName, csuName)
         ["Gecko_GetOrCreateKeyframeAtStart", "aKeyframes", null],
         ["Gecko_GetOrCreateInitialKeyframe", "aKeyframes", null],
         ["Gecko_GetOrCreateFinalKeyframe", "aKeyframes", null],
+        ["Gecko_AppendPropertyValuePair", "aProperties", null],
         ["Gecko_SetStyleCoordCalcValue", null, null],
         ["Gecko_StyleClipPath_SetURLValue", "aClip", null],
         ["Gecko_nsStyleFilter_SetURLValue", "aEffects", null],
@@ -371,7 +372,7 @@ function ignoreContents(entry)
         /mozalloc_handle_oom/,
         /^NS_Log/, /log_print/, /LazyLogModule::operator/,
         /SprintfLiteral/, "PR_smprintf", "PR_smprintf_free",
-        /NS_DispatchToMainThread/, /NS_ReleaseOnMainThread/,
+        /NS_DispatchToMainThread/, /NS_ReleaseOnMainThreadSystemGroup/,
         /NS_NewRunnableFunction/, /NS_Atomize/,
         /nsCSSValue::BufferFromString/,
         /NS_strdup/,
@@ -412,9 +413,12 @@ function ignoreContents(entry)
         "Gecko_CopyMozBorderColors",
         "Gecko_SetNullImageValue",
 
+        // The analysis thinks we'll write to mBits in the DoGetStyleFoo<false>
+        // call.  Maybe the template parameter confuses it?
+        /nsStyleContext::PeekStyle/,
+
         // Needs main thread assertions or other fixes.
         /UndisplayedMap::GetEntryFor/,
-        /nsStyleContext::CalcStyleDifferenceInternal/,
         /EffectCompositor::GetServoAnimationRule/,
         /LookAndFeel::GetColor/,
         "Gecko_CopyStyleContentsFrom",

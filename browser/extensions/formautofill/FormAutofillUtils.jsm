@@ -11,8 +11,11 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 const ADDRESS_REFERENCES = "chrome://formautofill/content/addressReferences.js";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 this.FormAutofillUtils = {
+  get AUTOFILL_FIELDS_THRESHOLD() { return 3; },
+
   _fieldNameInfo: {
     "name": "name",
     "given-name": "name",
@@ -29,6 +32,13 @@ this.FormAutofillUtils = {
     "country": "address",
     "country-name": "address",
     "tel": "tel",
+    "tel-country-code": "tel",
+    "tel-national": "tel",
+    "tel-area-code": "tel",
+    "tel-local": "tel",
+    "tel-local-prefix": "tel",
+    "tel-local-suffix": "tel",
+    "tel-extension": "tel",
     "email": "email",
     "cc-name": "creditCard",
     "cc-number": "creditCard",
@@ -194,31 +204,37 @@ this.FormAutofillUtils = {
   },
 
   /**
-   * Find the option element from select element.
-   * 1. Try to find the locale using the country from profile.
-   * 2. First pass try to find exact match.
-   * 3. Second pass try to identify values from profile value and options,
-   *    and look for a match.
-   * @param   {DOMElement} selectEl
-   * @param   {object} profile
-   * @param   {string} fieldName
-   * @returns {DOMElement}
+   * Get country address data. Fallback to US if not found.
+   * @param   {string} country
+   * @returns {object}
    */
-  findSelectOption(selectEl, profile, fieldName) {
-    let value = profile[fieldName];
-    if (!value) {
-      return null;
-    }
-
+  getCountryAddressData(country) {
     // Load the addressData if needed
     if (!this._addressDataLoaded) {
       Object.assign(this, this.loadDataFromScript(ADDRESS_REFERENCES));
       this._addressDataLoaded = true;
     }
+    return this.addressData[`data/${country}`] || this.addressData["data/US"];
+  },
 
-    // Set dataset to "data/US" as fallback
-    let dataset = this.addressData[`data/${profile.country}`] ||
-                  this.addressData["data/US"];
+  /**
+   * Find the option element from select element.
+   * 1. Try to find the locale using the country from address.
+   * 2. First pass try to find exact match.
+   * 3. Second pass try to identify values from address value and options,
+   *    and look for a match.
+   * @param   {DOMElement} selectEl
+   * @param   {object} address
+   * @param   {string} fieldName
+   * @returns {DOMElement}
+   */
+  findSelectOption(selectEl, address, fieldName) {
+    let value = address[fieldName];
+    if (!value) {
+      return null;
+    }
+
+    let dataset = this.getCountryAddressData(address.country);
     let collator = new Intl.Collator(dataset.lang, {sensitivity: "base", ignorePunctuation: true});
 
     for (let option of selectEl.options) {
@@ -239,7 +255,7 @@ this.FormAutofillUtils = {
       let names = dataset.sub_names;
       let identifiedValue = this.identifyValue(keys, names, value, collator);
 
-      // No point going any further if we cannot identify value from profile
+      // No point going any further if we cannot identify value from address
       if (identifiedValue === undefined) {
         return null;
       }
@@ -294,6 +310,37 @@ this.FormAutofillUtils = {
    */
   strCompare(a = "", b = "", collator) {
     return !collator.compare(a, b);
+  },
+
+  /**
+   * Get formatting information of a given country
+   * @param   {string} country
+   * @returns {object}
+   *         {
+   *           {string} addressLevel1Label
+   *           {string} postalCodeLabel
+   *         }
+   */
+  getFormFormat(country) {
+    const dataset = this.getCountryAddressData(country);
+    return {
+      "addressLevel1Label": dataset.state_name_type || "province",
+      "postalCodeLabel": dataset.zip_name_type || "postalCode",
+    };
+  },
+
+  /**
+   * Localize elements with "data-localization" attribute
+   * @param   {string} bundleURI
+   * @param   {DOMElement} root
+   */
+  localizeMarkup(bundleURI, root) {
+    const bundle = Services.strings.createBundle(bundleURI);
+    let elements = root.querySelectorAll("[data-localization]");
+    for (let element of elements) {
+      element.textContent = bundle.GetStringFromName(element.getAttribute("data-localization"));
+      element.removeAttribute("data-localization");
+    }
   },
 };
 

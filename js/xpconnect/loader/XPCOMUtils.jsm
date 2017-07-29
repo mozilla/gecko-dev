@@ -111,8 +111,9 @@ this.XPCOMUtils = {
     if (interfaces) {
       for (let i = 0; i < interfaces.length; i++) {
         let iface = interfaces[i];
-        if (Ci[iface]) {
-          a.push(Ci[iface].name);
+        let name = (iface && iface.name) || String(iface);
+        if (name in Ci) {
+          a.push(name);
         }
       }
     }
@@ -207,6 +208,41 @@ this.XPCOMUtils = {
       configurable: true,
       enumerable: true
     });
+  },
+
+  /**
+   * Defines a getter on a specified object for a script.  The script will not
+   * be loaded until first use.
+   *
+   * @param aObject
+   *        The object to define the lazy getter on.
+   * @param aNames
+   *        The name of the getter to define on aObject for the script.
+   *        This can be a string if the script exports only one symbol,
+   *        or an array of strings if the script can be first accessed
+   *        from several different symbols.
+   * @param aResource
+   *        The URL used to obtain the script.
+   */
+  defineLazyScriptGetter: function XPCU_defineLazyScriptGetter(aObject, aNames,
+                                                               aResource)
+  {
+    if (!Array.isArray(aNames)) {
+      aNames = [aNames];
+    }
+    for (let name of aNames) {
+      Object.defineProperty(aObject, name, {
+        get: function() {
+          for (let n of aNames) {
+            delete aObject[n];
+          }
+          Services.scriptloader.loadSubScript(aResource, aObject);
+          return aObject[name];
+        },
+        configurable: true,
+        enumerable: true
+      });
+    }
   },
 
   /**
@@ -421,9 +457,9 @@ this.XPCOMUtils = {
     if (!("__URI__" in that))
       throw Error("importRelative may only be used from a JSM, and its first argument "+
                   "must be that JSM's global object (hint: use this)");
-    let uri = that.__URI__;
-    let i = uri.lastIndexOf("/");
-    Components.utils.import(uri.substring(0, i+1) + path, scope || that);
+
+    Cu.importGlobalProperties(["URL"]);
+    Components.utils.import(new URL(path, that.__URI__).href, scope || that);
   },
 
   /**

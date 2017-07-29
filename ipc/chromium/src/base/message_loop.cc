@@ -168,6 +168,11 @@ MessageLoop* MessageLoop::current() {
   return get_tls_ptr().Get();
 }
 
+// static
+void MessageLoop::set_current(MessageLoop* loop) {
+  get_tls_ptr().Set(loop);
+}
+
 static mozilla::Atomic<int32_t> message_loop_id_seq(0);
 
 MessageLoop::MessageLoop(Type type, nsIThread* aThread)
@@ -177,6 +182,7 @@ MessageLoop::MessageLoop(Type type, nsIThread* aThread)
       exception_restoration_(false),
       state_(NULL),
       run_depth_base_(1),
+      shutting_down_(false),
 #ifdef OS_WIN
       os_modal_loop_(false),
 #endif  // OS_WIN
@@ -377,10 +383,13 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task, int delay_
     return;
   }
 
+  // Tasks should only be queued before or during the Run loop, not after.
+  MOZ_ASSERT(!shutting_down_);
+
 #ifdef MOZ_TASK_TRACER
   nsCOMPtr<nsIRunnable> tracedTask = task;
   if (mozilla::tasktracer::IsStartLogging()) {
-    tracedTask = mozilla::tasktracer::CreateTracedRunnable(Move(task));
+    tracedTask = mozilla::tasktracer::CreateTracedRunnable(tracedTask.forget());
     (static_cast<mozilla::tasktracer::TracedRunnable*>(tracedTask.get()))->DispatchTask();
   }
   PendingTask pending_task(tracedTask.forget(), true);
@@ -567,6 +576,9 @@ bool MessageLoop::DoIdleWork() {
 // MessageLoop::AutoRunState
 
 MessageLoop::AutoRunState::AutoRunState(MessageLoop* loop) : loop_(loop) {
+  // Top-level Run should only get called once.
+  MOZ_ASSERT(!loop_->shutting_down_);
+
   // Make the loop reference us.
   previous_state_ = loop_->state_;
   if (previous_state_) {
@@ -585,6 +597,9 @@ MessageLoop::AutoRunState::AutoRunState(MessageLoop* loop) : loop_(loop) {
 
 MessageLoop::AutoRunState::~AutoRunState() {
   loop_->state_ = previous_state_;
+
+  // If exiting a top-level Run, then we're shutting down.
+  loop_->shutting_down_ = !previous_state_;
 }
 
 //------------------------------------------------------------------------------

@@ -606,6 +606,12 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvShareCodeCoverageMutex(const CrossProcessMutexHandle& aHandle) override;
 
+  virtual mozilla::ipc::IPCResult
+  RecvDumpCodeCoverageCounters() override;
+
+  virtual mozilla::ipc::IPCResult
+  RecvResetCodeCoverageCounters() override;
+
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
   bool
   SendGetA11yContentId();
@@ -662,7 +668,9 @@ public:
   virtual already_AddRefed<nsIEventTarget> GetEventTargetFor(TabChild* aTabChild) override;
 
   mozilla::ipc::IPCResult
-  RecvSetPluginList(const uint32_t& aPluginEpoch, nsTArray<PluginTag>&& aPluginTags, nsTArray<FakePluginTag>&& aFakePluginTags) override;
+  RecvSetPluginList(const uint32_t& aPluginEpoch,
+                    nsTArray<PluginTag>&& aPluginTags,
+                    nsTArray<FakePluginTag>&& aFakePluginTags) override;
 
 private:
   static void ForceKillTimerCallback(nsITimer* aTimer, void* aClosure);

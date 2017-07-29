@@ -47,6 +47,7 @@
 #include "nsDebug.h"
 #include "nsFocusManager.h"
 #include "nsFrameLoader.h"
+#include "nsFrameManager.h"
 #include "nsIBaseWindow.h"
 #include "nsIBrowser.h"
 #include "nsIContent.h"
@@ -734,7 +735,7 @@ TabParent::UpdateDimensions(const nsIntRect& rect, const ScreenIntSize& size)
   hal::ScreenConfiguration config;
   hal::GetCurrentScreenConfiguration(&config);
   ScreenOrientationInternal orientation = config.orientation();
-  LayoutDeviceIntPoint clientOffset = widget->GetClientOffset();
+  LayoutDeviceIntPoint clientOffset = GetClientOffset();
   LayoutDeviceIntPoint chromeOffset = -GetChildProcessOffset();
 
   if (!mUpdatedDimensions || mOrientation != orientation ||
@@ -815,15 +816,14 @@ TabParent::ThemeChanged()
 
 void
 TabParent::HandleAccessKey(const WidgetKeyboardEvent& aEvent,
-                           nsTArray<uint32_t>& aCharCodes,
-                           const int32_t& aModifierMask)
+                           nsTArray<uint32_t>& aCharCodes)
 {
   if (!mIsDestroyed) {
     // Note that we don't need to mark aEvent is posted to a remote process
     // because the event may be dispatched to it as normal keyboard event.
     // Therefore, we should use local copy to send it.
     WidgetKeyboardEvent localEvent(aEvent);
-    Unused << SendHandleAccessKey(localEvent, aCharCodes, aModifierMask);
+    Unused << SendHandleAccessKey(localEvent, aCharCodes);
   }
 }
 
@@ -1979,17 +1979,51 @@ TabParent::GetChildProcessOffset()
     return offset;
   }
 
-  // Find out how far we're offset from the nearest widget.
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     return offset;
   }
-  nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(widget,
-                                                            LayoutDeviceIntPoint(0, 0),
-                                                            targetFrame);
 
-  return LayoutDeviceIntPoint::FromAppUnitsToNearest(
-           pt, targetFrame->PresContext()->AppUnitsPerDevPixel());
+  nsPresContext* presContext = targetFrame->PresContext();
+  nsIFrame* rootFrame = presContext->PresShell()->FrameManager()->GetRootFrame();
+  nsView* rootView = rootFrame ? rootFrame->GetView() : nullptr;
+  if (!rootView) {
+    return offset;
+  }
+
+  // Note that we don't want to take into account transforms here:
+#if 0
+  nsPoint pt(0, 0);
+  nsLayoutUtils::TransformPoint(targetFrame, rootFrame, pt);
+#endif
+  // In practice, when transforms are applied to this frameLoader, we currently
+  // get the wrong results whether we take transforms into account here or not.
+  // But applying transforms here gives us the wrong results in all
+  // circumstances when transforms are applied, unless they're purely
+  // translational. It also gives us the wrong results whenever CSS transitions
+  // are used to apply transforms, since the offeets aren't updated as the
+  // transition is animated.
+  //
+  // What we actually need to do is apply the transforms to the coordinates of
+  // any events we send to the child, and reverse them for any screen
+  // coordinates that we retrieve from the child.
+
+  nsPoint pt = targetFrame->GetOffsetTo(rootFrame);
+  return -nsLayoutUtils::TranslateViewToWidget(presContext, rootView, pt, widget);
+}
+
+LayoutDeviceIntPoint
+TabParent::GetClientOffset()
+{
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  nsCOMPtr<nsIWidget> docWidget = GetDocWidget();
+
+  if (widget == docWidget) {
+    return widget->GetClientOffset();
+  }
+
+  return (docWidget->GetClientOffset() +
+          nsLayoutUtils::WidgetToWidgetOffset(widget, docWidget));
 }
 
 mozilla::ipc::IPCResult
@@ -2011,7 +2045,23 @@ TabParent::RecvReplyKeyEvent(const WidgetKeyboardEvent& aEvent)
   AutoHandlingUserInputStatePusher userInpStatePusher(localEvent.IsTrusted(),
                                                       &localEvent, doc);
 
-  EventDispatcher::Dispatch(mFrameElement, presContext, &localEvent);
+  nsEventStatus status = nsEventStatus_eIgnore;
+
+  // Handle access key in this process before dispatching reply event because
+  // ESM handles it before dispatching the event to the DOM tree.
+  if (localEvent.mMessage == eKeyPress &&
+      (localEvent.ModifiersMatchWithAccessKey(AccessKeyType::eChrome) ||
+       localEvent.ModifiersMatchWithAccessKey(AccessKeyType::eContent))) {
+    RefPtr<EventStateManager> esm = presContext->EventStateManager();
+    AutoTArray<uint32_t, 10> accessCharCodes;
+    localEvent.GetAccessKeyCandidates(accessCharCodes);
+    if (esm->HandleAccessKey(&localEvent, presContext, accessCharCodes)) {
+      status = nsEventStatus_eConsumeNoDefault;
+    }
+  }
+
+  EventDispatcher::Dispatch(mFrameElement, presContext, &localEvent, nullptr,
+                            &status);
 
   if (!localEvent.DefaultPrevented() &&
       !localEvent.mFlags.mIsSynthesizedForTests) {
@@ -2030,10 +2080,16 @@ TabParent::RecvAccessKeyNotHandled(const WidgetKeyboardEvent& aEvent)
 {
   NS_ENSURE_TRUE(mFrameElement, IPC_OK());
 
+  // This is called only when this process had focus and HandleAccessKey
+  // message was posted to all remote process and each remote process didn't
+  // execute any content access keys.
+  // XXX If there were two or more remote processes, this may be called
+  //     twice or more for a keyboard event, that must be a bug.  But how to
+  //     detect if received event has already been handled?
+
   WidgetKeyboardEvent localEvent(aEvent);
   localEvent.MarkAsHandledInRemoteProcess();
   localEvent.mMessage = eAccessKeyNotFound;
-  localEvent.mAccessKeyForwardedToChild = false;
 
   // Here we convert the WidgetEvent that we received to an nsIDOMEvent
   // to be able to dispatch it to the <browser> element as the target element.
@@ -2314,39 +2370,6 @@ TabParent::RecvIsParentWindowMainWidgetVisible(bool* aIsVisible)
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-TabParent::RecvGetDPI(float* aValue)
-{
-  TryCacheDPIAndScale();
-
-  MOZ_ASSERT(mDPI > 0 || mFrameElement,
-             "Must not ask for DPI before OwnerElement is received!");
-  *aValue = mDPI;
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-TabParent::RecvGetDefaultScale(double* aValue)
-{
-  TryCacheDPIAndScale();
-
-  MOZ_ASSERT(mDefaultScale.scale > 0 || mFrameElement,
-             "Must not ask for scale before OwnerElement is received!");
-  *aValue = mDefaultScale.scale;
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-TabParent::RecvGetWidgetRounding(int32_t* aValue)
-{
-  TryCacheDPIAndScale();
-
-  MOZ_ASSERT(mRounding > 0 || mFrameElement,
-             "Must not ask for rounding before OwnerElement is received!");
-  *aValue = mRounding;
-  return IPC_OK();
-}
-
 already_AddRefed<nsIWidget>
 TabParent::GetTopLevelWidget()
 {
@@ -2504,6 +2527,8 @@ TabParent::SetRenderFrame(PRenderFrameParent* aRFParent)
     return false;
   }
 
+  frameLoader->MaybeShowFrame();
+
   uint64_t layersId = renderFrame->GetLayersId();
   AddTabParentToTable(layersId, this);
 
@@ -2566,6 +2591,15 @@ TabParent::GetWidget() const
     widget = nsContentUtils::WidgetForDocument(mFrameElement->OwnerDoc());
   }
   return widget.forget();
+}
+
+already_AddRefed<nsIWidget>
+TabParent::GetDocWidget() const
+{
+  if (!mFrameElement) {
+    return nullptr;
+  }
+  return do_AddRef(nsContentUtils::WidgetForDocument(mFrameElement->OwnerDoc()));
 }
 
 void

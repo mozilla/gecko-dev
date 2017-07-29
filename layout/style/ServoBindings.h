@@ -50,6 +50,7 @@ namespace mozilla {
   };
   enum class UpdateAnimationsTasks : uint8_t;
   struct LangGroupFontPrefs;
+  class ServoStyleContext;
   class ServoStyleSheet;
   class ServoElementSnapshotTable;
 }
@@ -66,6 +67,19 @@ class nsStyleGradient;
 class nsStyleCoord;
 struct nsStyleDisplay;
 class nsXBLBinding;
+
+namespace mozilla {
+  #define STYLE_STRUCT(name_, checkdata_cb_) struct Gecko##name_ {nsStyle##name_ gecko;};
+  #include "nsStyleStructList.h"
+  #undef STYLE_STRUCT
+}
+
+#define STYLE_STRUCT(name_, checkdata_cb_) \
+  const nsStyle##name_* ServoComputedData::GetStyle##name_() const { return &name_.mPtr->gecko; }
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
 
 #define NS_DECL_THREADSAFE_FFI_REFCOUNTING(class_, name_)                     \
   void Gecko_AddRef##name_##ArbitraryThread(class_* aPtr);                    \
@@ -133,6 +147,12 @@ RawGeckoNodeBorrowedOrNull Gecko_GetFlattenedTreeParentNode(RawGeckoNodeBorrowed
 RawGeckoElementBorrowedOrNull Gecko_GetBeforeOrAfterPseudo(RawGeckoElementBorrowed element, bool is_before);
 nsTArray<nsIContent*>* Gecko_GetAnonymousContentForElement(RawGeckoElementBorrowed element);
 void Gecko_DestroyAnonymousContentList(nsTArray<nsIContent*>* anon_content);
+
+void Gecko_ServoStyleContext_Init(mozilla::ServoStyleContext* context,
+                                  ServoStyleContextBorrowedOrNull parent_context,
+                                  RawGeckoPresContextBorrowed pres_context, ServoComputedDataBorrowed values,
+                                  mozilla::CSSPseudoElementType pseudo_type, nsIAtom* pseudo_tag);
+void Gecko_ServoStyleContext_Destroy(mozilla::ServoStyleContext* context);
 
 // By default, Servo walks the DOM by traversing the siblings of the DOM-view
 // first child. This generally works, but misses anonymous children, which we
@@ -209,6 +229,13 @@ Gecko_GetVisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed element);
 RawServoDeclarationBlockStrongBorrowedOrNull
 Gecko_GetActiveLinkAttrDeclarationBlock(RawGeckoElementBorrowed element);
 
+// Visited handling.
+
+// Returns whether private browsing is enabled for a given element.
+bool Gecko_IsPrivateBrowsingEnabled(const nsIDocument* aDoc);
+// Returns whether visited links are enabled.
+bool Gecko_AreVisitedLinksEnabled();
+
 // Animations
 bool
 Gecko_GetAnimationRule(RawGeckoElementBorrowed aElementOrPseudo,
@@ -219,8 +246,8 @@ Gecko_GetSMILOverrideDeclarationBlock(RawGeckoElementBorrowed element);
 bool Gecko_StyleAnimationsEquals(RawGeckoStyleAnimationListBorrowed,
                                  RawGeckoStyleAnimationListBorrowed);
 void Gecko_UpdateAnimations(RawGeckoElementBorrowed aElementOrPseudo,
-                            ServoComputedValuesBorrowedOrNull aOldComputedValues,
-                            ServoComputedValuesBorrowedOrNull aComputedValues,
+                            ServoStyleContextBorrowedOrNull aOldComputedValues,
+                            ServoStyleContextBorrowedOrNull aComputedValues,
                             mozilla::UpdateAnimationsTasks aTasks);
 bool Gecko_ElementHasAnimations(RawGeckoElementBorrowed aElementOrPseudo);
 bool Gecko_ElementHasCSSAnimations(RawGeckoElementBorrowed aElementOrPseudo);
@@ -286,7 +313,7 @@ void Gecko_CopyAlternateValuesFrom(nsFont* dest, const nsFont* src);
 
 // Visibility style
 void Gecko_SetImageOrientation(nsStyleVisibility* aVisibility,
-                               double aRadians,
+                               uint8_t aOrientation,
                                bool aFlip);
 void Gecko_SetImageOrientationAsFromImage(nsStyleVisibility* aVisibility);
 void Gecko_CopyImageOrientationFrom(nsStyleVisibility* aDst,
@@ -358,8 +385,9 @@ void Gecko_SetOwnerDocumentNeedsStyleFlush(RawGeckoElementBorrowed element);
 nsStyleContext* Gecko_GetStyleContext(RawGeckoElementBorrowed element,
                                       nsIAtom* aPseudoTagOrNull);
 mozilla::CSSPseudoElementType Gecko_GetImplementedPseudo(RawGeckoElementBorrowed element);
-nsChangeHint Gecko_CalcStyleDifference(nsStyleContext* oldstyle,
-                                       ServoComputedValuesBorrowed newstyle,
+nsChangeHint Gecko_CalcStyleDifference(ServoStyleContextBorrowed old_style,
+                                       ServoStyleContextBorrowed new_style,
+                                       uint64_t old_style_bits,
                                        bool* any_style_changed);
 nsChangeHint Gecko_HintsHandledForDescendants(nsChangeHint aHint);
 
@@ -455,6 +483,13 @@ mozilla::Keyframe* Gecko_GetOrCreateInitialKeyframe(
 mozilla::Keyframe* Gecko_GetOrCreateFinalKeyframe(
   RawGeckoKeyframeListBorrowedMut keyframes,
   const nsTimingFunction* timingFunction);
+
+// Appends and returns a new PropertyValuePair to |aProperties| initialized with
+// its mProperty member set to |aProperty| and all other members initialized to
+// their default values.
+mozilla::PropertyValuePair* Gecko_AppendPropertyValuePair(
+  RawGeckoPropertyValuePairListBorrowedMut aProperties,
+  nsCSSPropertyID aProperty);
 
 // Clean up pointer-based coordinates
 void Gecko_ResetStyleCoord(nsStyleUnit* unit, nsStyleUnion* value);
@@ -652,7 +687,8 @@ void Gecko_ReportUnexpectedCSSError(mozilla::css::ErrorReporter* reporter,
                                     uint32_t sourceLen,
                                     uint32_t lineNumber,
                                     uint32_t colNumber,
-                                    nsIURI* aURI);
+                                    nsIURI* aURI,
+                                    const char* followup);
 
 } // extern "C"
 

@@ -12,7 +12,6 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 
@@ -369,7 +368,7 @@ TISInputSourceWrapper::TranslateToString(UInt32 aKeyCode, UInt32 aModifiers,
                                   &deadKeyState, 5, &len, chars);
 
   MOZ_LOG(gLog, LogLevel::Info,
-    ("%p TISInputSourceWrapper::TranslateToString, err=0x%X, len=%" PRIuSIZE,
+    ("%p TISInputSourceWrapper::TranslateToString, err=0x%X, len=%zu",
      this, static_cast<int>(err), len));
 
   NS_ENSURE_TRUE(err == noErr, false);
@@ -432,7 +431,7 @@ TISInputSourceWrapper::IsDeadKey(UInt32 aKeyCode,
 
   MOZ_LOG(gLog, LogLevel::Info,
     ("%p TISInputSourceWrapper::IsDeadKey, err=0x%X, "
-     "len=%" PRIuSIZE ", deadKeyState=%u",
+     "len=%zu, deadKeyState=%u",
      this, static_cast<int>(err), len, deadKeyState));
 
   if (NS_WARN_IF(err != noErr)) {
@@ -2815,7 +2814,12 @@ IMEInputHandler::WillDispatchKeyboardEvent(
       (!insertString || insertString->IsEmpty())) {
     // Inform the child process that this is an event that we want a reply
     // from.
-    aKeyboardEvent.mFlags.mWantReplyFromContentProcess = true;
+    // XXX This should be called only when the target is a remote process.
+    //     However, it's difficult to check it under widget/.
+    //     So, let's do this here for now, then,
+    //     EventStateManager::PreHandleEvent() will reset the flags if
+    //     the event target isn't in remote process.
+    aKeyboardEvent.MarkAsWaitingReplyFromRemoteProcess();
   }
   if (KeyboardLayoutOverrideRef().mOverrideEnabled) {
     TISInputSourceWrapper tis;

@@ -563,6 +563,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
     nsViewManager* viewManager = view->GetViewManager();
     nsRect rect = GetRect();
     rect.x = rect.y = 0;
+    rect.SizeTo(BoundsCheck(minSize, rect.Size(), maxSize));
     viewManager->ResizeView(view, rect);
 
     if (mPopupState == ePopupOpening) {
@@ -597,8 +598,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
 
     // If there are no transitions, fire the popupshown event right away.
     nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
-    mContent->OwnerDoc()->Dispatch("nsXULPopupShownEvent",
-                                   TaskCategory::Other,
+    mContent->OwnerDoc()->Dispatch(TaskCategory::Other,
                                    event.forget());
   }
 

@@ -41,6 +41,9 @@ public:
   void Initialize(WebRenderScrollData& aOwner,
                   Layer* aLayer,
                   int32_t aDescendantCount);
+  void InitializeRoot(int32_t aDescendantCount);
+  void Initialize(WebRenderScrollData& aOwner,
+                  nsDisplayItem* aItem);
 
   int32_t GetDescendantCount() const;
   size_t GetScrollMetadataCount() const;
@@ -52,7 +55,6 @@ public:
   const ScrollMetadata& GetScrollMetadata(const WebRenderScrollData& aOwner,
                                           size_t aIndex) const;
 
-  bool IsScrollInfoLayer() const { return mIsScrollInfoLayer; }
   gfx::Matrix4x4 GetTransform() const { return mTransform; }
   CSSTransformMatrix GetTransformTyped() const;
   bool GetTransformIsPerspective() const { return mTransformIsPerspective; }
@@ -65,6 +67,8 @@ public:
   FrameMetrics::ViewID GetScrollbarTargetContainerId() const { return mScrollbarTargetContainerId; }
   bool IsScrollbarContainer() const { return mIsScrollbarContainer; }
   FrameMetrics::ViewID GetFixedPositionScrollContainerId() const { return mFixedPosScrollContainerId; }
+
+  void Dump(const WebRenderScrollData& aOwner) const;
 
   friend struct IPC::ParamTraits<WebRenderLayerScrollData>;
 
@@ -84,7 +88,6 @@ private:
   // Various data that we collect from the Layer in Initialize(), serialize
   // over IPC, and use on the parent side in APZ.
 
-  bool mIsScrollInfoLayer;
   gfx::Matrix4x4 mTransform;
   bool mTransformIsPerspective;
   EventRegions mEventRegions;
@@ -114,6 +117,9 @@ public:
   // Add a new empty WebRenderLayerScrollData and return the index that can be
   // used to look it up via GetLayerData.
   size_t AddNewLayerData();
+  // Add the provided WebRenderLayerScrollData and return the index that can
+  // be used to look it up via GetLayerData.
+  size_t AddLayerData(const WebRenderLayerScrollData& aData);
 
   size_t GetLayerCount() const;
 
@@ -133,6 +139,8 @@ public:
   uint32_t GetPaintSequenceNumber() const;
 
   friend struct IPC::ParamTraits<WebRenderScrollData>;
+
+  void Dump() const;
 
 private:
   // Internal data structure used to maintain uniqueness of mScrollMetadatas.
@@ -188,7 +196,6 @@ struct ParamTraits<mozilla::layers::WebRenderLayerScrollData>
   {
     WriteParam(aMsg, aParam.mDescendantCount);
     WriteParam(aMsg, aParam.mScrollIds);
-    WriteParam(aMsg, aParam.mIsScrollInfoLayer);
     WriteParam(aMsg, aParam.mTransform);
     WriteParam(aMsg, aParam.mTransformIsPerspective);
     WriteParam(aMsg, aParam.mEventRegions);
@@ -207,7 +214,6 @@ struct ParamTraits<mozilla::layers::WebRenderLayerScrollData>
   {
     return ReadParam(aMsg, aIter, &aResult->mDescendantCount)
         && ReadParam(aMsg, aIter, &aResult->mScrollIds)
-        && ReadParam(aMsg, aIter, &aResult->mIsScrollInfoLayer)
         && ReadParam(aMsg, aIter, &aResult->mTransform)
         && ReadParam(aMsg, aIter, &aResult->mTransformIsPerspective)
         && ReadParam(aMsg, aIter, &aResult->mEventRegions)

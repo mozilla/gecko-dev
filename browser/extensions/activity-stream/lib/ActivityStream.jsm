@@ -4,20 +4,46 @@
 "use strict";
 
 const {utils: Cu} = Components;
+Cu.import("resource://gre/modules/Services.jsm");
 
 // NB: Eagerly load modules that will be loaded/constructed/initialized in the
 // common case to avoid the overhead of wrapping and detecting lazy loading.
 const {actionTypes: at} = Cu.import("resource://activity-stream/common/Actions.jsm", {});
 const {DefaultPrefs} = Cu.import("resource://activity-stream/lib/ActivityStreamPrefs.jsm", {});
 const {LocalizationFeed} = Cu.import("resource://activity-stream/lib/LocalizationFeed.jsm", {});
+const {ManualMigration} = Cu.import("resource://activity-stream/lib/ManualMigration.jsm", {});
 const {NewTabInit} = Cu.import("resource://activity-stream/lib/NewTabInit.jsm", {});
 const {PlacesFeed} = Cu.import("resource://activity-stream/lib/PlacesFeed.jsm", {});
 const {PrefsFeed} = Cu.import("resource://activity-stream/lib/PrefsFeed.jsm", {});
 const {Store} = Cu.import("resource://activity-stream/lib/Store.jsm", {});
+const {SnippetsFeed} = Cu.import("resource://activity-stream/lib/SnippetsFeed.jsm", {});
+const {SystemTickFeed} = Cu.import("resource://activity-stream/lib/SystemTickFeed.jsm", {});
 const {TelemetryFeed} = Cu.import("resource://activity-stream/lib/TelemetryFeed.jsm", {});
 const {TopSitesFeed} = Cu.import("resource://activity-stream/lib/TopSitesFeed.jsm", {});
+const {TopStoriesFeed} = Cu.import("resource://activity-stream/lib/TopStoriesFeed.jsm", {});
 
 const REASON_ADDON_UNINSTALL = 6;
+
+// Sections, keyed by section id
+const SECTIONS = new Map([
+  ["topstories", {
+    feed: TopStoriesFeed,
+    prefTitle: "Fetches content recommendations from a configurable content provider",
+     // for now, we only want to show top stories by default to the following locales
+    showByDefault: ["en-US", "en-CA"].includes(Services.locale.getRequestedLocale())
+  }]
+]);
+
+const SECTION_FEEDS_CONFIG = Array.from(SECTIONS.entries()).map(entry => {
+  const id = entry[0];
+  const {feed: Feed, prefTitle, showByDefault: value} = entry[1];
+  return {
+    name: `section.${id}`,
+    factory: () => new Feed(),
+    title: prefTitle || `${id} section feed`,
+    value
+  };
+});
 
 const PREFS_CONFIG = new Map([
   ["default.sites", {
@@ -44,12 +70,39 @@ const PREFS_CONFIG = new Map([
   }],
   ["telemetry.ping.endpoint", {
     title: "Telemetry server endpoint",
-    value: "https://onyx_tiles.stage.mozaws.net/v4/links/activity-stream"
+    value: "https://tiles.services.mozilla.com/v4/links/activity-stream"
+  }],
+  ["feeds.section.topstories.options", {
+    title: "Configuration options for top stories feed",
+    value: `{
+      "stories_endpoint": "https://getpocket.com/v3/firefox/global-recs?consumer_key=$apiKey",
+      "stories_referrer": "https://getpocket.com/recommendations",
+      "topics_endpoint": "https://getpocket.com/v3/firefox/trending-topics?consumer_key=$apiKey",
+      "read_more_endpoint": "https://getpocket.com/explore/trending?src=ff_new_tab",
+      "learn_more_endpoint": "https://getpocket.com/firefox_learnmore?src=ff_newtab",
+      "survey_link": "https://www.surveymonkey.com/r/newtabffx",
+      "api_key_pref": "extensions.pocket.oAuthConsumerKey",
+      "provider_name": "Pocket",
+      "provider_icon": "pocket",
+      "provider_description": "pocket_feedback_body"
+    }`
+  }],
+  ["migrationExpired", {
+    title: "Boolean flag that decides whether to show the migration message or not.",
+    value: false
+  }],
+  ["migrationRemainingDays", {
+    title: "Number of days to show the manual migration message",
+    value: 4
+  }],
+  ["migrationLastShownDate", {
+    title: "Timestamp when migration message was last shown. In seconds.",
+    value: 0
   }]
 ]);
 
 const FEEDS_CONFIG = new Map();
-for (const {name, factory, title, value} of [
+for (const {name, factory, title, value} of SECTION_FEEDS_CONFIG.concat([
   {
     name: "localization",
     factory: () => new LocalizationFeed(),
@@ -75,6 +128,18 @@ for (const {name, factory, title, value} of [
     value: true
   },
   {
+    name: "snippets",
+    factory: () => new SnippetsFeed(),
+    title: "Gets snippets data",
+    value: false
+  },
+  {
+    name: "systemtick",
+    factory: () => new SystemTickFeed(),
+    title: "Produces system tick events to periodically check for data expiry",
+    value: true
+  },
+  {
     name: "telemetry",
     factory: () => new TelemetryFeed(),
     title: "Relays telemetry-related actions to TelemetrySender",
@@ -85,8 +150,14 @@ for (const {name, factory, title, value} of [
     factory: () => new TopSitesFeed(),
     title: "Queries places and gets metadata for Top Sites section",
     value: true
+  },
+  {
+    name: "migration",
+    factory: () => new ManualMigration(),
+    title: "Manual migration wizard",
+    value: true
   }
-]) {
+])) {
   const pref = `feeds.${name}`;
   FEEDS_CONFIG.set(pref, factory);
   PREFS_CONFIG.set(pref, {title, value});
@@ -135,4 +206,4 @@ this.ActivityStream = class ActivityStream {
 };
 
 this.PREFS_CONFIG = PREFS_CONFIG;
-this.EXPORTED_SYMBOLS = ["ActivityStream"];
+this.EXPORTED_SYMBOLS = ["ActivityStream", "SECTIONS"];

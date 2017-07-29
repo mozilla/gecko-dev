@@ -128,10 +128,6 @@ HTMLTextAreaElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
   return NS_OK;
 }
 
-// nsIConstraintValidation
-NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(HTMLTextAreaElement)
-
-
 NS_IMETHODIMP
 HTMLTextAreaElement::GetForm(nsIDOMHTMLFormElement** aForm)
 {
@@ -1111,6 +1107,13 @@ HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::required || aName == nsGkAtoms::disabled ||
         aName == nsGkAtoms::readonly) {
+      if (aName == nsGkAtoms::disabled) {
+        // This *has* to be called *before* validity state check because
+        // UpdateBarredFromConstraintValidation and
+        // UpdateValueMissingValidityState depend on our disabled state.
+        UpdateDisabledState(aNotify);
+      }
+
       UpdateValueMissingValidityState();
 
       // This *has* to be called *after* validity has changed.
@@ -1158,16 +1161,12 @@ HTMLTextAreaElement::IsValueEmpty() const
   return value.IsEmpty();
 }
 
-// nsIConstraintValidation
-
-NS_IMETHODIMP
+void
 HTMLTextAreaElement::SetCustomValidity(const nsAString& aError)
 {
   nsIConstraintValidation::SetCustomValidity(aError);
 
   UpdateState(true);
-
-  return NS_OK;
 }
 
 bool
@@ -1428,10 +1427,14 @@ HTMLTextAreaElement::HasCachedSelection()
 void
 HTMLTextAreaElement::FieldSetDisabledChanged(bool aNotify)
 {
+  // This *has* to be called before UpdateBarredFromConstraintValidation and
+  // UpdateValueMissingValidityState because these two functions depend on our
+  // disabled state.
+  nsGenericHTMLFormElementWithState::FieldSetDisabledChanged(aNotify);
+
   UpdateValueMissingValidityState();
   UpdateBarredFromConstraintValidation();
-
-  nsGenericHTMLFormElementWithState::FieldSetDisabledChanged(aNotify);
+  UpdateState(aNotify);
 }
 
 JSObject*

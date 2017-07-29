@@ -1205,7 +1205,18 @@ nsStyleSVGReset::FinishStyle(nsPresContext* aPresContext)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPresContext->StyleSet()->IsServo());
 
-  mMask.ResolveImages(aPresContext);
+  NS_FOR_VISIBLE_IMAGE_LAYERS_BACK_TO_FRONT(i, mMask) {
+    nsStyleImage& image = mMask.mLayers[i].mImage;
+    if (image.GetType() == eStyleImageType_Image) {
+      // If the url of mask resource contains a reference('#'), it should be a
+      // <mask-source>, mostly. For a <mask-source>, there is no need to
+      // resolve this style image, since we do not depend on it to get the
+      // SVG mask resource.
+      if (!image.GetURLValue()->HasRef()) {
+        image.ResolveImage(aPresContext);
+      }
+    }
+  }
 }
 
 nsChangeHint
@@ -2031,8 +2042,7 @@ nsStyleImageRequest::~nsStyleImageRequest()
       task->Run();
     } else {
       if (mDocGroup) {
-        mDocGroup->Dispatch("StyleImageRequestCleanupTask",
-                            TaskCategory::Other, task.forget());
+        mDocGroup->Dispatch(TaskCategory::Other, task.forget());
       } else {
         // if Resolve was not called at some point, mDocGroup is not set.
         NS_DispatchToMainThread(task.forget());
@@ -2460,6 +2470,9 @@ nsStyleImage::IsComplete() const
     case eStyleImageType_URL:
       return true;
     case eStyleImageType_Image: {
+      if (!IsResolved()) {
+        return false;
+      }
       imgRequestProxy* req = GetImageData();
       if (!req) {
         return false;
@@ -3455,8 +3468,8 @@ nsStyleDisplay::~nsStyleDisplay()
   // the deallocation of style structs during styling, we need to handle it
   // here.
   if (mSpecifiedTransform && ServoStyleSet::IsInServoTraversal()) {
-    // The default behavior of NS_ReleaseOnMainThread is to only proxy the
-    // release if we're not already on the main thread. This is a nice
+    // The default behavior of NS_ReleaseOnMainThreadSystemGroup is to only
+    // proxy the release if we're not already on the main thread. This is a nice
     // optimization for the cases we happen to be doing a sequential traversal
     // (i.e. a single-core machine), but it trips our assertions which check
     // whether we're in a Servo traversal, parallel or not. So we
@@ -3467,7 +3480,7 @@ nsStyleDisplay::~nsStyleDisplay()
 #else
       false;
 #endif
-    NS_ReleaseOnMainThread(
+    NS_ReleaseOnMainThreadSystemGroup(
       "nsStyleDisplay::mSpecifiedTransform",
       mSpecifiedTransform.forget(), alwaysProxy);
   }
@@ -3493,7 +3506,20 @@ nsStyleDisplay::CalcDifference(const nsStyleDisplay& aNewData) const
       || mScrollSnapDestination != aNewData.mScrollSnapDestination
       || mTopLayer != aNewData.mTopLayer
       || mResize != aNewData.mResize) {
-    hint |= nsChangeHint_ReconstructFrame;
+    return nsChangeHint_ReconstructFrame;
+  }
+
+  if ((mAppearance == NS_THEME_TEXTFIELD &&
+       aNewData.mAppearance != NS_THEME_TEXTFIELD) ||
+      (mAppearance != NS_THEME_TEXTFIELD &&
+       aNewData.mAppearance == NS_THEME_TEXTFIELD)) {
+    // This is for <input type=number> where we allow authors to specify a
+    // |-moz-appearance:textfield| to get a control without a spinner. (The
+    // spinner is present for |-moz-appearance:number-input| but also other
+    // values such as 'none'.) We need to reframe since we want to use
+    // nsTextControlFrame instead of nsNumberControlFrame if the author
+    // specifies 'textfield'.
+    return nsChangeHint_ReconstructFrame;
   }
 
   if (mOverflowX != aNewData.mOverflowX
@@ -3513,24 +3539,30 @@ nsStyleDisplay::CalcDifference(const nsStyleDisplay& aNewData) const
    * if this does become common perhaps a faster-path might be worth while.
    */
 
-  if ((mAppearance == NS_THEME_TEXTFIELD &&
-       aNewData.mAppearance != NS_THEME_TEXTFIELD) ||
-      (mAppearance != NS_THEME_TEXTFIELD &&
-       aNewData.mAppearance == NS_THEME_TEXTFIELD)) {
-    // This is for <input type=number> where we allow authors to specify a
-    // |-moz-appearance:textfield| to get a control without a spinner. (The
-    // spinner is present for |-moz-appearance:number-input| but also other
-    // values such as 'none'.) We need to reframe since we want to use
-    // nsTextControlFrame instead of nsNumberControlFrame if the author
-    // specifies 'textfield'.
-    return nsChangeHint_ReconstructFrame;
+  if (mFloat != aNewData.mFloat) {
+    // Changing which side we're floating on (float:none was handled above).
+    hint |= nsChangeHint_ReflowHintsForFloatAreaChange;
   }
 
-  if (mFloat != aNewData.mFloat) {
-    // Changing which side we float on doesn't affect descendants directly
-    hint |= nsChangeHint_AllReflowHints &
-            ~(nsChangeHint_ClearDescendantIntrinsics |
-              nsChangeHint_NeedDirtyReflow);
+  if (!mShapeOutside.DefinitelyEquals(aNewData.mShapeOutside)) {
+    if (aNewData.mFloat != StyleFloat::None) {
+      // If we are floating, and our shape-outside property changes, our
+      // descendants are not impacted, but our ancestor and siblings are.
+      // This is similar to a float-only change, but since the ISize of the
+      // float area changes arbitrarily along its block axis, more is required
+      // to get the siblings to adjust properly. Hinting overflow change is
+      // sufficient to trigger the correct calculation, but may be too
+      // heavyweight.
+
+      // XXX What is the minimum hint to ensure mShapeInfo is regenerated in
+      // the next reflow?
+      hint |= nsChangeHint_ReflowHintsForFloatAreaChange |
+              nsChangeHint_CSSOverflowChange;
+    } else {
+      // shape-outside changed, but we don't need to reflow because we're not
+      // floating.
+      hint |= nsChangeHint_NeutralChange;
+    }
   }
 
   if (mVerticalAlign != aNewData.mVerticalAlign) {
@@ -3692,8 +3724,7 @@ nsStyleDisplay::CalcDifference(const nsStyleDisplay& aNewData) const
        mAnimationFillModeCount != aNewData.mAnimationFillModeCount ||
        mAnimationPlayStateCount != aNewData.mAnimationPlayStateCount ||
        mAnimationIterationCountCount != aNewData.mAnimationIterationCountCount ||
-       mScrollSnapCoordinate != aNewData.mScrollSnapCoordinate ||
-       !mShapeOutside.DefinitelyEquals(aNewData.mShapeOutside))) {
+       mScrollSnapCoordinate != aNewData.mScrollSnapCoordinate)) {
     hint |= nsChangeHint_NeutralChange;
   }
 
@@ -3773,7 +3804,7 @@ nsStyleContentData::~nsStyleContentData()
   MOZ_COUNT_DTOR(nsStyleContentData);
 
   if (mType == eStyleContentType_Image) {
-    NS_ReleaseOnMainThread(
+    NS_ReleaseOnMainThreadSystemGroup(
       "nsStyleContentData::mContent.mImage", dont_AddRef(mContent.mImage));
     mContent.mImage = nullptr;
   } else if (mType == eStyleContentType_Counter ||
@@ -4365,7 +4396,7 @@ nsStyleUIReset::~nsStyleUIReset()
 #else
       false;
 #endif
-    NS_ReleaseOnMainThread(
+    NS_ReleaseOnMainThreadSystemGroup(
       "nsStyleUIReset::mSpecifiedWindowTransform",
       mSpecifiedWindowTransform.forget(), alwaysProxy);
   }

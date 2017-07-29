@@ -623,26 +623,31 @@ DocAccessibleParent::MaybeInitWindowEmulation()
     tab->GetDocShellIsActive(&isActive);
   }
 
-  IAccessibleHolder hWndAccHolder;
-  HWND parentWnd = reinterpret_cast<HWND>(rootDocument->GetNativeWindow());
-  HWND hWnd = nsWinUtils::CreateNativeWindow(kClassNameTabContent,
-                                             parentWnd, rect.x, rect.y,
-                                             rect.width, rect.height,
-                                             isActive);
-  if (hWnd) {
-    // Attach accessible document to the emulated native window
-    ::SetPropW(hWnd, kPropNameDocAccParent, (HANDLE)this);
-    SetEmulatedWindowHandle(hWnd);
+  nsWinUtils::NativeWindowCreateProc onCreate([this](HWND aHwnd) -> void {
+    IAccessibleHolder hWndAccHolder;
+
+    ::SetPropW(aHwnd, kPropNameDocAccParent, reinterpret_cast<HANDLE>(this));
+
+    SetEmulatedWindowHandle(aHwnd);
+
     IAccessible* rawHWNDAcc = nullptr;
-    if (SUCCEEDED(::AccessibleObjectFromWindow(hWnd, OBJID_WINDOW,
+    if (SUCCEEDED(::AccessibleObjectFromWindow(aHwnd, OBJID_WINDOW,
                                                IID_IAccessible,
                                                (void**)&rawHWNDAcc))) {
       hWndAccHolder.Set(IAccessibleHolder::COMPtrType(rawHWNDAcc));
     }
-  }
 
-  Unused << SendEmulatedWindow(reinterpret_cast<uintptr_t>(mEmulatedWindowHandle),
-                               hWndAccHolder);
+    Unused << SendEmulatedWindow(reinterpret_cast<uintptr_t>(mEmulatedWindowHandle),
+                                 hWndAccHolder);
+  });
+
+  HWND parentWnd = reinterpret_cast<HWND>(rootDocument->GetNativeWindow());
+  DebugOnly<HWND> hWnd = nsWinUtils::CreateNativeWindow(kClassNameTabContent,
+                                                        parentWnd,
+                                                        rect.x, rect.y,
+                                                        rect.width, rect.height,
+                                                        isActive, &onCreate);
+  MOZ_ASSERT(hWnd);
 }
 
 /**
@@ -669,7 +674,13 @@ DocAccessibleParent::SendParentCOMProxy()
 
   IAccessibleHolder::COMPtrType ptr(rawNative);
   IAccessibleHolder holder(Move(ptr));
-  Unused << PDocAccessibleParent::SendParentCOMProxy(holder);
+  if (!PDocAccessibleParent::SendParentCOMProxy(holder)) {
+    return;
+  }
+
+#if defined(MOZ_CONTENT_SANDBOX)
+  mParentProxyStream = Move(holder.GetPreservedStream());
+#endif // defined(MOZ_CONTENT_SANDBOX)
 }
 
 void

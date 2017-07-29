@@ -158,52 +158,6 @@ hasRecentCorruptDB()
 }
 
 /**
- * Updates sqlite_stat1 table through ANALYZE.
- * Since also nsPlacesExpiration.js executes ANALYZE, the analyzed tables
- * must be the same in both components.  So ensure they are in sync.
- *
- * @param aDBConn
- *        The database connection.
- */
-nsresult
-updateSQLiteStatistics(mozIStorageConnection* aDBConn)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  nsCOMPtr<mozIStorageAsyncStatement> analyzePlacesStmt;
-  aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
-    "ANALYZE moz_places"
-  ), getter_AddRefs(analyzePlacesStmt));
-  NS_ENSURE_STATE(analyzePlacesStmt);
-  nsCOMPtr<mozIStorageAsyncStatement> analyzeBookmarksStmt;
-  aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
-    "ANALYZE moz_bookmarks"
-  ), getter_AddRefs(analyzeBookmarksStmt));
-  NS_ENSURE_STATE(analyzeBookmarksStmt);
-  nsCOMPtr<mozIStorageAsyncStatement> analyzeVisitsStmt;
-  aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
-    "ANALYZE moz_historyvisits"
-  ), getter_AddRefs(analyzeVisitsStmt));
-  NS_ENSURE_STATE(analyzeVisitsStmt);
-  nsCOMPtr<mozIStorageAsyncStatement> analyzeInputStmt;
-  aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
-    "ANALYZE moz_inputhistory"
-  ), getter_AddRefs(analyzeInputStmt));
-  NS_ENSURE_STATE(analyzeInputStmt);
-
-  mozIStorageBaseStatement *stmts[] = {
-    analyzePlacesStmt,
-    analyzeBookmarksStmt,
-    analyzeVisitsStmt,
-    analyzeInputStmt
-  };
-
-  nsCOMPtr<mozIStoragePendingStatement> ps;
-  (void)aDBConn->ExecuteAsync(stmts, ArrayLength(stmts), nullptr,
-                              getter_AddRefs(ps));
-  return NS_OK;
-}
-
-/**
  * Sets the connection journal mode to one of the JOURNAL_* types.
  *
  * @param aDBConn
@@ -502,8 +456,17 @@ Database::GetStatement(const nsACString& aQuery)
 already_AddRefed<nsIAsyncShutdownClient>
 Database::GetClientsShutdown()
 {
-  MOZ_ASSERT(mClientsShutdown);
-  return mClientsShutdown->GetClient();
+  if (mClientsShutdown)
+    return mClientsShutdown->GetClient();
+  return nullptr;
+}
+
+already_AddRefed<nsIAsyncShutdownClient>
+Database::GetConnectionShutdown()
+{
+  if (mConnectionShutdown)
+    return mConnectionShutdown->GetClient();
+  return nullptr;
 }
 
 // static
@@ -642,11 +605,6 @@ Database::EnsureConnection()
 
     if (databaseMigrated) {
       mDatabaseStatus = nsINavHistoryService::DATABASE_STATUS_UPGRADED;
-    }
-
-    if (mDatabaseStatus == nsINavHistoryService::DATABASE_STATUS_UPGRADED ||
-        mDatabaseStatus == nsINavHistoryService::DATABASE_STATUS_CREATE) {
-      MOZ_ALWAYS_SUCCEEDS(updateSQLiteStatistics(mMainConn));
     }
 
     // Initialize here all the items that are not part of the on-disk database,
@@ -1269,28 +1227,28 @@ Database::CreateBookmarkRoots()
   if (NS_FAILED(rv)) return rv;
 
   // Fetch the internationalized folder name from the string bundle.
-  rv = bundle->GetStringFromName(u"BookmarksMenuFolderTitle",
+  rv = bundle->GetStringFromName("BookmarksMenuFolderTitle",
                                  getter_Copies(rootTitle));
   if (NS_FAILED(rv)) return rv;
   rv = CreateRoot(mMainConn, NS_LITERAL_CSTRING("menu"),
                   NS_LITERAL_CSTRING("menu________"), rootTitle);
   if (NS_FAILED(rv)) return rv;
 
-  rv = bundle->GetStringFromName(u"BookmarksToolbarFolderTitle",
+  rv = bundle->GetStringFromName("BookmarksToolbarFolderTitle",
                                  getter_Copies(rootTitle));
   if (NS_FAILED(rv)) return rv;
   rv = CreateRoot(mMainConn, NS_LITERAL_CSTRING("toolbar"),
                   NS_LITERAL_CSTRING("toolbar_____"), rootTitle);
   if (NS_FAILED(rv)) return rv;
 
-  rv = bundle->GetStringFromName(u"TagsFolderTitle",
+  rv = bundle->GetStringFromName("TagsFolderTitle",
                                  getter_Copies(rootTitle));
   if (NS_FAILED(rv)) return rv;
   rv = CreateRoot(mMainConn, NS_LITERAL_CSTRING("tags"),
                   NS_LITERAL_CSTRING("tags________"), rootTitle);
   if (NS_FAILED(rv)) return rv;
 
-  rv = bundle->GetStringFromName(u"OtherBookmarksFolderTitle",
+  rv = bundle->GetStringFromName("OtherBookmarksFolderTitle",
                                  getter_Copies(rootTitle));
   if (NS_FAILED(rv)) return rv;
   rv = CreateRoot(mMainConn, NS_LITERAL_CSTRING("unfiled"),
@@ -1444,7 +1402,7 @@ Database::UpdateBookmarkRootTitles()
 
   for (uint32_t i = 0; i < ArrayLength(rootGuids); ++i) {
     nsXPIDLString title;
-    rv = bundle->GetStringFromName(NS_ConvertASCIItoUTF16(titleStringIDs[i]).get(),
+    rv = bundle->GetStringFromName(titleStringIDs[i],
                                    getter_Copies(title));
     if (NS_FAILED(rv)) return rv;
 
@@ -2625,6 +2583,13 @@ Database::Shutdown()
   DispatchToAsyncThread(event);
 
   mClosed = true;
+
+  // Execute PRAGMA optimized as last step, this will ensure proper database
+  // performance across restarts.
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  MOZ_ALWAYS_SUCCEEDS(mMainConn->ExecuteSimpleSQLAsync(NS_LITERAL_CSTRING(
+    "PRAGMA optimize(0x02)"
+  ), nullptr, getter_AddRefs(ps)));
 
   (void)mMainConn->AsyncClose(connectionShutdown);
   mMainConn = nullptr;

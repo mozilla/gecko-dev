@@ -12,7 +12,6 @@ const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AppConstants.jsm");
-Cu.import("resource://gre/modules/AsyncPrefs.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "WindowsUIUtils", "@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils");
 XPCOMUtils.defineLazyGetter(this, "WeaveService", () =>
@@ -21,10 +20,13 @@ XPCOMUtils.defineLazyGetter(this, "WeaveService", () =>
 XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
                                   "resource://gre/modules/ContextualIdentityService.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SafeBrowsing",
+                                  "resource://gre/modules/SafeBrowsing.jsm");
+
 // lazy module getters
 
 /* global AboutHome:false, AboutNewTab:false, AddonManager:false, AppMenuNotifications:false,
-          AsyncShutdown:false, AutoCompletePopup:false, BookmarkHTMLUtils:false,
+          AsyncPrefs: false, AsyncShutdown:false, AutoCompletePopup:false, BookmarkHTMLUtils:false,
           BookmarkJSONUtils:false, BrowserUITelemetry:false, BrowserUsageTelemetry:false,
           ContentClick:false, ContentPrefServiceParent:false, ContentSearch:false,
           DateTimePickerHelper:false, DirectoryLinksProvider:false,
@@ -37,7 +39,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
           ProcessHangMonitor:false, ReaderParent:false, RecentWindow:false,
           RemotePrompt:false, SessionStore:false,
           ShellService:false, SimpleServiceDiscovery:false, TabCrashHandler:false,
-          Task:false, UITour:false, UIState:false, UpdateListener:false, WebChannel:false,
+          UITour:false, UIState:false, UpdateListener:false, WebChannel:false,
           WindowsRegistry:false, webrtcUI:false */
 
 
@@ -54,6 +56,7 @@ let initializedModules = {};
   ["AboutNewTab", "resource:///modules/AboutNewTab.jsm"],
   ["AddonManager", "resource://gre/modules/AddonManager.jsm"],
   ["AppMenuNotifications", "resource://gre/modules/AppMenuNotifications.jsm"],
+  ["AsyncPrefs", "resource://gre/modules/AsyncPrefs.jsm"],
   ["AsyncShutdown", "resource://gre/modules/AsyncShutdown.jsm"],
   ["AutoCompletePopup", "resource://gre/modules/AutoCompletePopup.jsm"],
   ["BookmarkHTMLUtils", "resource://gre/modules/BookmarkHTMLUtils.jsm"],
@@ -91,7 +94,6 @@ let initializedModules = {};
   ["ShellService", "resource:///modules/ShellService.jsm"],
   ["SimpleServiceDiscovery", "resource://gre/modules/SimpleServiceDiscovery.jsm"],
   ["TabCrashHandler", "resource:///modules/ContentCrashHandlers.jsm"],
-  ["Task", "resource://gre/modules/Task.jsm"],
   ["UIState", "resource://services-sync/UIState.jsm"],
   ["UITour", "resource:///modules/UITour.jsm"],
   ["UpdateListener", "resource://gre/modules/UpdateListener.jsm", "init"],
@@ -143,6 +145,12 @@ const listeners = {
     "ContentPrefs:AddObserverForName": ["ContentPrefServiceParent"],
     "ContentPrefs:RemoveObserverForName": ["ContentPrefServiceParent"],
     // PLEASE KEEP THIS LIST IN SYNC WITH THE LISTENERS ADDED IN ContentPrefServiceParent.init
+
+    // PLEASE KEEP THIS LIST IN SYNC WITH THE LISTENERS ADDED IN AsyncPrefs.init
+    "AsyncPrefs:SetPref": ["AsyncPrefs"],
+    "AsyncPrefs:ResetPref": ["AsyncPrefs"],
+    // PLEASE KEEP THIS LIST IN SYNC WITH THE LISTENERS ADDED IN AsyncPrefs.init
+
     "FeedConverter:addLiveBookmark": ["Feeds"],
     "WCCR:setAutoHandler": ["Feeds"],
     "webrtc:UpdateGlobalIndicators": ["webrtcUI"],
@@ -312,13 +320,17 @@ BrowserGlue.prototype = {
   observe: function BG_observe(subject, topic, data) {
     switch (topic) {
       case "notifications-open-settings":
-        this._openPreferences("privacy", { origin: "notifOpenSettings" });
+        if (Services.prefs.getBoolPref("browser.preferences.useOldOrganization")) {
+          this._openPreferences("content", { origin: "notifOpenSettings" });
+        } else {
+          this._openPreferences("privacy", { origin: "notifOpenSettings" });
+        }
         break;
       case "prefservice:after-app-defaults":
         this._onAppDefaults();
         break;
       case "final-ui-startup":
-        this._finalUIStartup();
+        this._beforeUIStartup();
         break;
       case "browser-delayed-startup-finished":
         this._onFirstWindowLoaded(subject);
@@ -584,13 +596,13 @@ BrowserGlue.prototype = {
 
   _onAppDefaults: function BG__onAppDefaults() {
     // apply distribution customizations (prefs)
-    // other customizations are applied in _finalUIStartup()
+    // other customizations are applied in _beforeUIStartup()
     this._distributionCustomizer.applyPrefDefaults();
   },
 
   // runs on startup, before the first command line handler is invoked
   // (i.e. before the first window is opened)
-  _finalUIStartup: function BG__finalUIStartup() {
+  _beforeUIStartup: function BG__beforeUIStartup() {
     // check if we're in safe mode
     if (Services.appinfo.inSafeMode) {
       Services.ww.openWindow(null, "chrome://browser/content/safeMode.xul",
@@ -607,8 +619,6 @@ BrowserGlue.prototype = {
     listeners.init();
 
     SessionStore.init();
-    BrowserUsageTelemetry.init();
-    BrowserUITelemetry.init();
 
     if (AppConstants.INSTALL_COMPACT_THEMES) {
       let vendorShortName = gBrandBundle.GetStringFromName("vendorShortName");
@@ -633,12 +643,6 @@ BrowserGlue.prototype = {
         accentcolor: "black",
         author: vendorShortName,
       });
-    }
-
-    TabCrashHandler.init();
-    if (AppConstants.MOZ_CRASHREPORTER) {
-      PluginCrashReporter.init();
-      UnsubmittedCrashHandler.init();
     }
 
     Services.obs.notifyObservers(null, "browser-ui-startup-complete");
@@ -899,6 +903,11 @@ BrowserGlue.prototype = {
       }
     }
 
+    TabCrashHandler.init();
+    if (AppConstants.MOZ_CRASHREPORTER) {
+      PluginCrashReporter.init();
+    }
+
     ProcessHangMonitor.init();
 
     // A channel for "remote troubleshooting" code...
@@ -1050,6 +1059,9 @@ BrowserGlue.prototype = {
 
   // All initial windows have opened.
   _onWindowsRestored: function BG__onWindowsRestored() {
+    BrowserUsageTelemetry.init();
+    BrowserUITelemetry.init();
+
     if (AppConstants.MOZ_DEV_EDITION) {
       this._createExtraDefaultProfile();
     }
@@ -1163,10 +1175,21 @@ BrowserGlue.prototype = {
       }
     }
 
+    if (AppConstants.MOZ_CRASHREPORTER) {
+      UnsubmittedCrashHandler.init();
+      Services.tm.idleDispatchToMainThread(function() {
+        UnsubmittedCrashHandler.checkForUnsubmittedCrashReports();
+      });
+    }
+
     // Let's load the contextual identities.
     Services.tm.idleDispatchToMainThread(() => {
       ContextualIdentityService.load();
     });
+
+    Services.tm.idleDispatchToMainThread(() => {
+      SafeBrowsing.init();
+    }, 5000);
 
     this._sanitizer.onStartup();
     E10SAccessibilityCheck.onWindowsRestored();
@@ -1711,7 +1734,7 @@ BrowserGlue.prototype = {
 
   // eslint-disable-next-line complexity
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 49;
+    const UI_VERSION = 50;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
 
     let currentUIVersion;
@@ -2052,6 +2075,23 @@ BrowserGlue.prototype = {
     if (currentUIVersion < 49) {
       // Annotate that a user haven't seen any onboarding tour
       Services.prefs.setIntPref("browser.onboarding.seen-tourset-version", 0);
+    }
+
+    if (currentUIVersion < 50) {
+      try {
+        // Transform prefs related to old DevTools Console.
+        // The following prefs might be missing when the old DevTools Console
+        // front-end is removed.
+        // See also: https://bugzilla.mozilla.org/show_bug.cgi?id=1381834
+        if (Services.prefs.getBoolPref("devtools.webconsole.filter.networkinfo")) {
+          Services.prefs.setBoolPref("devtools.webconsole.filter.net", true);
+        }
+        if (Services.prefs.getBoolPref("devtools.webconsole.filter.cssparser")) {
+          Services.prefs.setBoolPref("devtools.webconsole.filter.css", true);
+        }
+      } catch (ex) {
+        // It's ok if a pref is missing.
+      }
     }
 
     // Update the migration version.

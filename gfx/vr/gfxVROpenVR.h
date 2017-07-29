@@ -19,6 +19,9 @@
 #include "gfxVR.h"
 #include "VRDisplayHost.h"
 
+#if defined(XP_MACOSX)
+class MacIOSurface;
+#endif
 namespace mozilla {
 namespace gfx {
 namespace impl {
@@ -35,6 +38,11 @@ protected:
   virtual void StopPresentation() override;
 #if defined(XP_WIN)
   virtual bool SubmitFrame(mozilla::layers::TextureSourceD3D11* aSource,
+                           const IntSize& aSize,
+                           const gfx::Rect& aLeftEyeRect,
+                           const gfx::Rect& aRightEyeRect) override;
+#elif defined(XP_MACOSX)
+  virtual bool SubmitFrame(MacIOSurface* aMacIOSurface,
                            const IntSize& aSize,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) override;
@@ -58,13 +66,19 @@ protected:
 
   void UpdateStageParameters();
   void PollEvents();
+  bool SubmitFrame(void* aTextureHandle,
+                   ::vr::ETextureType aTextureType,
+                   const IntSize& aSize,
+                   const gfx::Rect& aLeftEyeRect,
+                   const gfx::Rect& aRightEyeRect);
 };
 
 class VRControllerOpenVR : public VRControllerHost
 {
 public:
-  explicit VRControllerOpenVR(dom::GamepadHand aHand, uint32_t aNumButtons,
-                              uint32_t aNumAxes, ::vr::ETrackedDeviceClass aDeviceType);
+  explicit VRControllerOpenVR(dom::GamepadHand aHand, uint32_t aDisplayID,
+                              uint32_t aNumButtons, uint32_t aNumAxes,
+                              ::vr::ETrackedDeviceClass aDeviceType);
   void SetTrackedIndex(uint32_t aTrackedIndex);
   uint32_t GetTrackedIndex();
   float GetAxisMove(uint32_t aAxis);
@@ -108,7 +122,7 @@ public:
 
   virtual void Destroy() override;
   virtual void Shutdown() override;
-  virtual void GetHMDs(nsTArray<RefPtr<VRDisplayHost> >& aHMDResult) override;
+  virtual bool GetHMDs(nsTArray<RefPtr<VRDisplayHost> >& aHMDResult) override;
   virtual bool GetIsPresenting() override;
   virtual void HandleInput() override;
   virtual void GetControllers(nsTArray<RefPtr<VRControllerHost>>&

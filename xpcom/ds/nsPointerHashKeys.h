@@ -12,6 +12,7 @@
 #include "nscore.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/HashFunctions.h"
 
 /**
  * hashkey wrapper using T* KeyType
@@ -35,7 +36,7 @@ public:
   static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
   static PLDHashNumber HashKey(KeyTypePointer aKey)
   {
-    return uintptr_t(aKey) >> 2;
+    return mozilla::HashGeneric(aKey);
   }
   enum { ALLOW_MEMMOVE = true };
 

@@ -1341,8 +1341,8 @@ toolbar#nav-bar {
         if pat_file in self.patternFiles:
             return self.patternFiles[pat_file]
         if not os.path.isfile(pat_file):
-            self.log.error("TEST-UNEXPECTED-ERROR | runtests.py | "
-                           "Cannot find failure pattern file " + pat_file)
+            self.log.warning("runtests.py | Cannot find failure pattern file " +
+                             pat_file)
             return None
 
         # Using ":error" to ensure it shows up in the failure summary.
@@ -1397,6 +1397,9 @@ toolbar#nav-bar {
         if manifest:
             if options.extra_mozinfo_json:
                 mozinfo.update(options.extra_mozinfo_json)
+            if 'STYLO_FORCE_ENABLED' in os.environ:
+                mozinfo.update({'stylo': True})
+
             info = mozinfo.info
 
             # Bug 1089034 - imptest failure expectations are encoded as
@@ -1591,6 +1594,8 @@ toolbar#nav-bar {
 
         if hasattr(options, "topsrcdir"):
             browserEnv["MOZ_DEVELOPER_REPO_DIR"] = options.topsrcdir
+        if hasattr(options, "topobjdir"):
+            browserEnv["MOZ_DEVELOPER_OBJ_DIR"] = options.topobjdir
 
         # These variables are necessary for correct application startup; change
         # via the commandline at your own risk.
@@ -1752,6 +1757,7 @@ toolbar#nav-bar {
         options.extraPrefs.append(
             "browser.tabs.remote.autostart=%s" %
             ('true' if options.e10s else 'false'))
+
         options.extraPrefs.append(
             "dom.ipc.tabs.nested.enabled=%s" %
             ('true' if options.nested_oop else 'false'))

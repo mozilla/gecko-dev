@@ -1391,7 +1391,14 @@ PrepareChildExceptionTimeAnnotations()
     WriteAnnotation(apiData, "OOMAllocationSize", oomAllocationSizeBuffer);
   }
 
-  if (gMozCrashReason) {
+  char* rust_panic_reason;
+  size_t rust_panic_len;
+  if (get_rust_panic_reason(&rust_panic_reason, &rust_panic_len)) {
+    // rust_panic_reason is not null-terminated.
+    WriteLiteral(apiData, "MozCrashReason=");
+    apiData.WriteBuffer(rust_panic_reason, rust_panic_len);
+    WriteLiteral(apiData, "\n");
+  } else if (gMozCrashReason) {
     WriteAnnotation(apiData, "MozCrashReason", gMozCrashReason);
   }
 
@@ -1594,13 +1601,9 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   if (gExceptionHandler)
     return NS_ERROR_ALREADY_INITIALIZED;
 
-  install_rust_panic_hook();
-
-#if !defined(DEBUG) || defined(MOZ_WIDGET_GONK)
+#if !defined(DEBUG)
   // In non-debug builds, enable the crash reporter by default, and allow
   // disabling it with the MOZ_CRASHREPORTER_DISABLE environment variable.
-  // Also enable it by default in debug gonk builds as it is difficult to
-  // set environment on startup.
   const char *envvar = PR_GetEnv("MOZ_CRASHREPORTER_DISABLE");
   if (envvar && *envvar && !force)
     return NS_OK;
@@ -1612,10 +1615,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
     return NS_OK;
 #endif
 
-#if defined(MOZ_WIDGET_GONK)
-  doReport = false;
-  headlessClient = true;
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
   doReport = ShouldReport();
 #else
   // this environment variable prevents us from launching
@@ -1821,6 +1821,8 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   mozalloc_set_oom_abort_handler(AnnotateOOMAllocationSize);
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
+
+  install_rust_panic_hook();
 
   InitThreadAnnotation();
 
@@ -3577,7 +3579,7 @@ OOPDeinit()
   pidToMinidump = nullptr;
 
 #if defined(XP_WIN) || defined(XP_MACOSX)
-  mozilla::SmprintfFree(childCrashNotifyPipe);
+  free(childCrashNotifyPipe);
   childCrashNotifyPipe = nullptr;
 #endif
 }
@@ -3780,6 +3782,8 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
 
+  install_rust_panic_hook();
+
   // we either do remote or nothing, no fallback to regular crash reporting
   return gExceptionHandler->IsOutOfProcess();
 }
@@ -3827,6 +3831,8 @@ SetRemoteExceptionHandler()
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
 
+  install_rust_panic_hook();
+
   // we either do remote or nothing, no fallback to regular crash reporting
   return gExceptionHandler->IsOutOfProcess();
 }
@@ -3855,6 +3861,8 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
   mozalloc_set_oom_abort_handler(AnnotateOOMAllocationSize);
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
+
+  install_rust_panic_hook();
 
   // we either do remote or nothing, no fallback to regular crash reporting
   return gExceptionHandler->IsOutOfProcess();

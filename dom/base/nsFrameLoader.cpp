@@ -1095,6 +1095,18 @@ ParentWindowIsActive(nsIDocument* aDoc)
   return false;
 }
 
+void
+nsFrameLoader::MaybeShowFrame()
+{
+  nsIFrame* frame = GetPrimaryFrameOfOwningContent();
+  if (frame) {
+    nsSubDocumentFrame* subDocFrame = do_QueryFrame(frame);
+    if (subDocFrame) {
+      subDocFrame->MaybeShowViewer();
+    }
+  }
+}
+
 bool
 nsFrameLoader::Show(int32_t marginWidth, int32_t marginHeight,
                     int32_t scrollbarPrefX, int32_t scrollbarPrefY,
@@ -1656,6 +1668,14 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
       (otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::allowfullscreen) ||
        otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)));
   if (ourFullscreenAllowed != otherFullscreenAllowed) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  bool ourPaymentRequestAllowed =
+    ourContent->HasAttr(kNameSpaceID_None, nsGkAtoms::allowpaymentrequest);
+  bool otherPaymentRequestAllowed =
+    otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::allowpaymentrequest);
+  if (ourPaymentRequestAllowed != otherPaymentRequestAllowed) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -2718,6 +2738,11 @@ nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame *aIFrame)
   if (IsRemoteFrame()) {
     if (mRemoteBrowser) {
       ScreenIntSize size = aIFrame->GetSubdocumentSize();
+      // If we were not able to show remote frame before, we should probably
+      // retry now to send correct showInfo.
+      if (!mRemoteBrowserShown) {
+        ShowRemoteFrame(size, aIFrame);
+      }
       nsIntRect dimensions;
       NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), NS_ERROR_FAILURE);
       mLazySize = size;

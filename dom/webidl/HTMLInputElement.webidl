@@ -95,7 +95,7 @@ interface HTMLInputElement : HTMLElement {
            attribute Date? valueAsDate;
   [Pure, SetterThrows]
            attribute unrestricted double valueAsNumber;
-  [CEReactions]
+  [CEReactions, SetterThrows]
            attribute unsigned long width;
 
   [Throws]
@@ -107,7 +107,7 @@ interface HTMLInputElement : HTMLElement {
   readonly attribute boolean willValidate;
   [Pure]
   readonly attribute ValidityState validity;
-  [GetterThrows]
+  [Throws]
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   boolean reportValidity();
@@ -246,6 +246,14 @@ partial interface HTMLInputElement {
 
   [Pref="dom.forms.datetime", ChromeOnly]
   void setDateTimePickerState(boolean open);
+
+  [Pref="dom.forms.datetime", ChromeOnly,
+   BinaryName="getMinimumAsDouble"]
+  double getMinimum();
+
+  [Pref="dom.forms.datetime", ChromeOnly,
+   BinaryName="getMaximumAsDouble"]
+  double getMaximum();
 
   [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
   void openDateTimePicker(optional DateTimeValue initialValue);

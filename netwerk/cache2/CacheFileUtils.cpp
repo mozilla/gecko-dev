@@ -6,7 +6,6 @@
 #include "CacheLog.h"
 #include "CacheFileUtils.h"
 #include "LoadContextInfo.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/Telemetry.h"
 #include "nsCOMPtr.h"
@@ -319,7 +318,7 @@ ValidityPair::Merge(const ValidityPair& aOther)
 void
 ValidityMap::Log() const
 {
-  LOG(("ValidityMap::Log() - number of pairs: %" PRIuSIZE, mMap.Length()));
+  LOG(("ValidityMap::Log() - number of pairs: %zu", mMap.Length()));
   for (uint32_t i=0; i<mMap.Length(); i++) {
     LOG(("    (%u, %u)", mMap[i].Offset() + 0, mMap[i].Len() + 0));
   }
@@ -532,7 +531,7 @@ CachePerfStats::MMA::AddValue(uint32_t aValue)
     // Filter high spikes
     uint32_t avg = GetAverage();
     uint32_t stddev = GetStdDev();
-    uint32_t maxdiff = (avg / 4) + (2 * stddev);
+    uint32_t maxdiff = avg + (3 * stddev);
     if (avg && aValue > avg + maxdiff) {
       return;
     }
@@ -654,6 +653,14 @@ CachePerfStats::IsCacheSlow()
   // slower. Use only data about single IO operations because ENTRY_OPEN can be
   // affected by more factors than a slow disk.
   for (uint32_t i = 0; i < ENTRY_OPEN; ++i) {
+    if (i == IO_WRITE) {
+      // Skip this data type. IsCacheSlow is used for determining cache slowness
+      // when opening entries. Writes have low priority and it's normal that
+      // they are delayed a lot, but this doesn't necessarily affect opening
+      // cache entries.
+      continue;
+    }
+
     uint32_t avgLong = sData[i].GetAverage(true);
     if (avgLong == 0) {
       // We have no perf data yet, skip this data type.
@@ -661,7 +668,7 @@ CachePerfStats::IsCacheSlow()
     }
     uint32_t avgShort = sData[i].GetAverage(false);
     uint32_t stddevLong = sData[i].GetStdDev(true);
-    uint32_t maxdiff = (avgLong / 4) + (2 * stddevLong);
+    uint32_t maxdiff = avgLong + (3 * stddevLong);
 
     if (avgShort > avgLong + maxdiff) {
       LOG(("CachePerfStats::IsCacheSlow() - result is slow based on perf "

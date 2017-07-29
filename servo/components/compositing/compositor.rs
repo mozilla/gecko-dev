@@ -16,7 +16,7 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, Tra
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
-use script_traits::{ConstellationMsg, DevicePixel, LayoutControlMsg, LoadData, MouseButton};
+use script_traits::{ConstellationMsg, LayoutControlMsg, LoadData, MouseButton};
 use script_traits::{MouseEventType, ScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
@@ -29,13 +29,13 @@ use std::fs::File;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
-use style_traits::{CSSPixel, PinchZoomFactor};
+use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
+use webrender_api::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
+use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -58,7 +58,7 @@ trait ConvertPipelineIdFromWebRender {
     fn from_webrender(&self) -> PipelineId;
 }
 
-impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
+impl ConvertPipelineIdFromWebRender for webrender_api::PipelineId {
     fn from_webrender(&self) -> PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
@@ -180,7 +180,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     webrender: webrender::Renderer,
 
     /// The webrender interface, if enabled.
-    webrender_api: webrender_traits::RenderApi,
+    webrender_api: webrender_api::RenderApi,
 
     /// GL functions interface (may be GL or GLES)
     gl: Rc<gl::Gl>,
@@ -315,7 +315,7 @@ impl RenderNotifier {
     }
 }
 
-impl webrender_traits::RenderNotifier for RenderNotifier {
+impl webrender_api::RenderNotifier for RenderNotifier {
     fn new_frame_ready(&mut self) {
         self.compositor_proxy.recomposite(CompositingReason::NewWebRenderFrame);
     }
@@ -330,7 +330,7 @@ struct CompositorThreadDispatcher {
     compositor_proxy: CompositorProxy
 }
 
-impl webrender_traits::RenderDispatcher for CompositorThreadDispatcher {
+impl webrender_api::RenderDispatcher for CompositorThreadDispatcher {
     fn dispatch(&self, f: Box<Fn() + Send>) {
         self.compositor_proxy.send(Msg::Dispatch(f));
     }
@@ -509,10 +509,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
-                let allow = self.window.allow_navigation(url);
-                if let Err(e) = response_chan.send(allow) {
-                    warn!("Failed to send allow_navigation result ({}).", e);
-                }
+                self.window.allow_navigation(url, response_chan);
             }
 
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
@@ -704,12 +701,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let dppx = self.page_zoom * self.hidpi_factor();
 
         let window_rect = {
-            let offset = webrender_traits::DeviceUintPoint::new(self.window_rect.origin.x, self.window_rect.origin.y);
-            let size = webrender_traits::DeviceUintSize::new(self.window_rect.size.width, self.window_rect.size.height);
-            webrender_traits::DeviceUintRect::new(offset, size)
+            let offset = webrender_api::DeviceUintPoint::new(self.window_rect.origin.x, self.window_rect.origin.y);
+            let size = webrender_api::DeviceUintSize::new(self.window_rect.size.width, self.window_rect.size.height);
+            webrender_api::DeviceUintRect::new(offset, size)
         };
 
-        let frame_size = webrender_traits::DeviceUintSize::new(self.frame_size.width, self.frame_size.height);
+        let frame_size = webrender_api::DeviceUintSize::new(self.frame_size.width, self.frame_size.height);
         self.webrender_api.set_window_parameters(frame_size, window_rect);
 
         let initial_viewport = self.window_rect.size.to_f32() / dppx;
@@ -740,10 +737,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             WindowEvent::Refresh => {
                 self.composite();
-            }
-
-            WindowEvent::InitializeCompositing => {
-                self.initialize_compositing();
             }
 
             WindowEvent::Resize(size) => {
@@ -988,7 +981,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(webrender_traits::LayoutVector2D::from_untyped(
+                    scroll_location: ScrollLocation::Delta(webrender_api::LayoutVector2D::from_untyped(
                                                            &scroll_delta.to_untyped())),
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
@@ -1128,8 +1121,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                     let cursor =
                         (combined_event.cursor.to_f32() / self.scale).to_untyped();
-                    let location = webrender_traits::ScrollLocation::Delta(delta);
-                    let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
+                    let location = webrender_api::ScrollLocation::Delta(delta);
+                    let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
                     self.webrender_api.scroll(location, cursor, combined_event.phase);
                     last_combined_event = None
                 }
@@ -1139,7 +1132,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(webrender_traits::LayoutVector2D::from_untyped(
+                        scroll_location: ScrollLocation::Delta(webrender_api::LayoutVector2D::from_untyped(
                                                                &this_delta.to_untyped())),
                         cursor: this_cursor,
                         phase: scroll_event.phase,
@@ -1178,14 +1171,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 ScrollLocation::Delta(delta) => {
                     let scaled_delta = (TypedVector2D::from_untyped(&delta.to_untyped()) / self.scale)
                                        .to_untyped();
-                    let calculated_delta = webrender_traits::LayoutVector2D::from_untyped(&scaled_delta);
+                    let calculated_delta = webrender_api::LayoutVector2D::from_untyped(&scaled_delta);
                                            ScrollLocation::Delta(calculated_delta)
                 },
                 // Leave ScrollLocation unchanged if it is Start or End location.
                 sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
+            let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
             self.webrender_api.scroll(scroll_location, cursor, combined_event.phase);
             self.waiting_for_results_of_scroll = true
         }
@@ -1283,7 +1276,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn update_page_zoom_for_webrender(&mut self) {
-        let page_zoom = webrender_traits::ZoomFactor::new(self.page_zoom.get());
+        let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
         self.webrender_api.set_page_zoom(page_zoom);
     }
 
@@ -1298,11 +1291,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
-        let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
-            windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
-        };
+    fn on_navigation_window_event(&self, direction: TraversalDirection) {
         let top_level_browsing_context_id = match self.root_pipeline {
             Some(ref pipeline) => pipeline.top_level_browsing_context_id,
             None => return warn!("Sending navigation to constellation with no root pipeline."),
@@ -1381,8 +1370,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let mut pipeline_epochs = HashMap::new();
                 for (id, _) in &self.pipeline_details {
                     let webrender_pipeline_id = id.to_webrender();
-                    if let Some(webrender_traits::Epoch(epoch)) = self.webrender
-                                                                      .current_epoch(webrender_pipeline_id) {
+                    if let Some(webrender_api::Epoch(epoch)) = self.webrender
+                                                                   .current_epoch(webrender_pipeline_id) {
                         let epoch = Epoch(epoch);
                         pipeline_epochs.insert(*id, epoch);
                     }
@@ -1475,7 +1464,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
 
             // Paint the scene.
-            let size = webrender_traits::DeviceUintSize::from_untyped(&self.frame_size.to_untyped());
+            let size = webrender_api::DeviceUintSize::from_untyped(&self.frame_size.to_untyped());
             self.webrender.render(size);
         });
 
@@ -1564,9 +1553,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         } else if opts::get().is_running_problem_test {
             println!("composition_request is already {:?}", self.composition_request);
         }
-    }
-
-    fn initialize_compositing(&mut self) {
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {

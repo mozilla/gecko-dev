@@ -13,6 +13,7 @@
 #include "SharedSSLState.h"
 #include "cert.h"
 #include "certdb.h"
+#include "mozStorageCID.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
@@ -238,7 +239,7 @@ nsNSSComponent::PIPBundleFormatStringFromName(const char* name,
 
   if (mPIPNSSBundle && name) {
     nsXPIDLString result;
-    rv = mPIPNSSBundle->FormatStringFromName(NS_ConvertASCIItoUTF16(name).get(),
+    rv = mPIPNSSBundle->FormatStringFromName(name,
                                              params, numParams,
                                              getter_Copies(result));
     if (NS_SUCCEEDED(rv)) {
@@ -257,8 +258,7 @@ nsNSSComponent::GetPIPNSSBundleString(const char* name, nsAString& outString)
   outString.SetLength(0);
   if (mPIPNSSBundle && name) {
     nsXPIDLString result;
-    rv = mPIPNSSBundle->GetStringFromName(NS_ConvertASCIItoUTF16(name).get(),
-                                          getter_Copies(result));
+    rv = mPIPNSSBundle->GetStringFromName(name, getter_Copies(result));
     if (NS_SUCCEEDED(rv)) {
       outString = result;
       rv = NS_OK;
@@ -277,8 +277,7 @@ nsNSSComponent::GetNSSBundleString(const char* name, nsAString& outString)
   outString.SetLength(0);
   if (mNSSErrorsBundle && name) {
     nsXPIDLString result;
-    rv = mNSSErrorsBundle->GetStringFromName(NS_ConvertASCIItoUTF16(name).get(),
-                                             getter_Copies(result));
+    rv = mNSSErrorsBundle->GetStringFromName(name, getter_Copies(result));
     if (NS_SUCCEEDED(rv)) {
       outString = result;
       rv = NS_OK;
@@ -644,8 +643,8 @@ nsNSSComponent::MaybeImportFamilySafetyRoot(PCCERT_CONTEXT certificate,
       0,
       0
     };
-    if (CERT_ChangeCertTrust(nullptr, nssCertificate.get(), &trust)
-          != SECSuccess) {
+    if (ChangeCertTrustWithPossibleAuthentication(nssCertificate, trust,
+                                                  nullptr) != SECSuccess) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
               ("couldn't trust certificate for TLS server auth"));
       return NS_ERROR_FAILURE;
@@ -732,8 +731,8 @@ nsNSSComponent::UnloadFamilySafetyRoot()
   // they're the same. To work around this, we set a non-zero flag to ensure
   // that the trust will get updated.
   CERTCertTrust trust = { CERTDB_USER, 0, 0 };
-  if (CERT_ChangeCertTrust(nullptr, mFamilySafetyRoot.get(), &trust)
-        != SECSuccess) {
+  if (ChangeCertTrustWithPossibleAuthentication(mFamilySafetyRoot, trust,
+                                                nullptr) != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("couldn't untrust certificate for TLS server auth"));
   }
@@ -875,7 +874,9 @@ nsNSSComponent::UnloadEnterpriseRoots(const MutexAutoLock& /*proof of lock*/)
               ("library failure: CERTCertListNode null or lacks cert"));
       continue;
     }
-    if (CERT_ChangeCertTrust(nullptr, n->cert, &trust) != SECSuccess) {
+    UniqueCERTCertificate cert(CERT_DupCertificate(n->cert));
+    if (ChangeCertTrustWithPossibleAuthentication(cert, trust, nullptr)
+          != SECSuccess) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
               ("couldn't untrust certificate for TLS server auth"));
     }
@@ -1036,8 +1037,8 @@ nsNSSComponent::ImportEnterpriseRootsForLocation(
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("couldn't add cert to list"));
       continue;
     }
-    if (CERT_ChangeCertTrust(nullptr, nssCertificate.get(), &trust)
-          != SECSuccess) {
+    if (ChangeCertTrustWithPossibleAuthentication(nssCertificate, trust,
+                                                  nullptr) != SECSuccess) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
               ("couldn't trust certificate for TLS server auth"));
     }
@@ -1716,12 +1717,13 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
     return srv == SECSuccess ? NS_OK : NS_ERROR_FAILURE;
   }
 
-  const char* profilePathCStr = PromiseFlatCString(profilePath).get();
+
+  const nsCString& profilePathCStr = PromiseFlatCString(profilePath);
   // Try read/write mode. If we're in safeMode, we won't load PKCS#11 modules.
 #ifndef ANDROID
   PRErrorCode savedPRErrorCode1;
 #endif // ifndef ANDROID
-  SECStatus srv = ::mozilla::psm::InitializeNSS(profilePathCStr, false,
+  SECStatus srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), false,
                                                 !safeMode);
   if (srv == SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized NSS in r/w mode"));
@@ -1732,7 +1734,7 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
   PRErrorCode savedPRErrorCode2;
 #endif // ifndef ANDROID
   // That failed. Try read-only mode.
-  srv = ::mozilla::psm::InitializeNSS(profilePathCStr, true, !safeMode);
+  srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), true, !safeMode);
   if (srv == SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized NSS in r-o mode"));
     return NS_OK;
@@ -1753,7 +1755,7 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
     // problem, but for some reason the combination of read-only and no-moddb
     // flags causes NSS initialization to fail, so unfortunately we have to use
     // read-write mode.
-    srv = ::mozilla::psm::InitializeNSS(profilePathCStr, false, false);
+    srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), false, false);
     if (srv == SECSuccess) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("FIPS may be the problem"));
       // Unload NSS so we can attempt to fix this situation for the user.
@@ -1769,12 +1771,12 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
       if (NS_FAILED(rv)) {
         return rv;
       }
-      srv = ::mozilla::psm::InitializeNSS(profilePathCStr, false, true);
+      srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), false, true);
       if (srv == SECSuccess) {
         MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized in r/w mode"));
         return NS_OK;
       }
-      srv = ::mozilla::psm::InitializeNSS(profilePathCStr, true, true);
+      srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), true, true);
       if (srv == SECSuccess) {
         MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized in r-o mode"));
         return NS_OK;
@@ -2031,6 +2033,14 @@ nsNSSComponent::Init()
 
   MOZ_ASSERT(XRE_IsParentProcess());
   if (!XRE_IsParentProcess()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  // To avoid a sqlite3_config race in NSS init, as a workaround for
+  // bug 730495, we require the storage service to get initialized first.
+  nsCOMPtr<nsISupports> storageService =
+    do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+  if (!storageService) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 

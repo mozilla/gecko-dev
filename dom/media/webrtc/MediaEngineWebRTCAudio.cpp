@@ -198,10 +198,10 @@ MediaEngineWebRTCMicrophoneSource::MediaEngineWebRTCMicrophoneSource(
   mDeviceName.Assign(NS_ConvertUTF8toUTF16(name));
   mDeviceUUID.Assign(uuid);
   mListener = new mozilla::WebRTCAudioDataListener(this);
-  mSettings.mEchoCancellation.Construct(0);
-  mSettings.mAutoGainControl.Construct(0);
-  mSettings.mNoiseSuppression.Construct(0);
-  mSettings.mChannelCount.Construct(0);
+  mSettings->mEchoCancellation.Construct(0);
+  mSettings->mAutoGainControl.Construct(0);
+  mSettings->mNoiseSuppression.Construct(0);
+  mSettings->mChannelCount.Construct(0);
   // We'll init lazily as needed
 }
 
@@ -209,14 +209,12 @@ void
 MediaEngineWebRTCMicrophoneSource::GetName(nsAString& aName) const
 {
   aName.Assign(mDeviceName);
-  return;
 }
 
 void
 MediaEngineWebRTCMicrophoneSource::GetUUID(nsACString& aUUID) const
 {
   aUUID.Assign(mDeviceUUID);
-  return;
 }
 
 // GetBestFitnessDistance returns the best distance the capture device can offer
@@ -417,10 +415,10 @@ MediaEngineWebRTCMicrophoneSource::SetLastPrefs(
   RefPtr<MediaEngineWebRTCMicrophoneSource> that = this;
 
   NS_DispatchToMainThread(media::NewRunnableFrom([that, aPrefs]() mutable {
-    that->mSettings.mEchoCancellation.Value() = aPrefs.mAecOn;
-    that->mSettings.mAutoGainControl.Value() = aPrefs.mAgcOn;
-    that->mSettings.mNoiseSuppression.Value() = aPrefs.mNoiseOn;
-    that->mSettings.mChannelCount.Value() = aPrefs.mChannels;
+    that->mSettings->mEchoCancellation.Value() = aPrefs.mAecOn;
+    that->mSettings->mAutoGainControl.Value() = aPrefs.mAgcOn;
+    that->mSettings->mNoiseSuppression.Value() = aPrefs.mNoiseOn;
+    that->mSettings->mChannelCount.Value() = aPrefs.mChannels;
     return NS_OK;
   }));
 }
@@ -628,7 +626,7 @@ MediaEngineWebRTCMicrophoneSource::InsertInGraph(const T* aBuffer,
     mTotalFrames += aFrames;
     if (mTotalFrames > mLastLogFrames + mSampleFrequency) { // ~ 1 second
       MOZ_LOG(AudioLogModule(), LogLevel::Debug,
-              ("%p: Inserting %" PRIuSIZE " samples into graph, total frames = %" PRIu64,
+              ("%p: Inserting %zu samples into graph, total frames = %" PRIu64,
                (void*)this, aFrames, mTotalFrames));
       mLastLogFrames = mTotalFrames;
     }
@@ -942,7 +940,6 @@ MediaEngineWebRTCMicrophoneSource::Process(int channel,
 
   uint32_t channels = isStereo ? 2 : 1;
   InsertInGraph<int16_t>(audio10ms, length, channels);
-  return;
 }
 
 void

@@ -4,6 +4,7 @@
 
 /* import-globals-from memory.js */
 /* import-globals-from report.js */
+/* eslint mozilla/avoid-Date-timing: "off" */
 
 try {
   if (Cc === undefined) {
@@ -42,6 +43,7 @@ var forceCC = true;
 var reportRSS = true;
 
 var useMozAfterPaint = false;
+var useFNBPaint = false;
 var gPaintWindow = window;
 var gPaintListener = false;
 var loadNoCache = false;
@@ -148,6 +150,7 @@ function plInit() {
     if (args.timeout) timeout = parseInt(args.timeout);
     if (args.delay) delay = parseInt(args.delay);
     if (args.mozafterpaint) useMozAfterPaint = true;
+    if (args.fnbpaint) useFNBPaint = true;
     if (args.rss) reportRSS = true;
     if (args.loadnocache) loadNoCache = true;
     if (args.scrolltest) scrollTest = true;
@@ -155,7 +158,7 @@ function plInit() {
     if (args.profilinginfo) profilingInfo = JSON.parse(args.profilinginfo)
 
     if (profilingInfo) {
-      Profiler.initFromObject(profilingInfo);
+      TalosParentProfiler.initFromObject(profilingInfo);
     }
 
     forceCC = !args.noForceCC;
@@ -203,7 +206,7 @@ function plInit() {
 
     pageIndex = 0;
     if (profilingInfo) {
-      Profiler.beginTest(getCurrentPageShortName());
+      TalosParentProfiler.beginTest(getCurrentPageShortName());
     }
 
     // Create a new chromed browser window for content
@@ -261,36 +264,56 @@ function plInit() {
                     content.selectedBrowser.getAttribute("remote") == "true")
 
         // Load the frame script for e10s / IPC message support
-        if (gUseE10S) {
-          let contentScript = "data:,function _contentLoadHandler(e) { " +
-            "  if (e.originalTarget.defaultView == content) { " +
-            "    content.wrappedJSObject.tpRecordTime = function(t, s, n) { sendAsyncMessage('PageLoader:RecordTime', { time: t, startTime: s, testName: n }); }; ";
-          if (useMozAfterPaint) {
-            contentScript += "" +
-            "function _contentPaintHandler() { " +
-            "  var utils = content.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils); " +
-            "  if (utils.isMozAfterPaintPending) { " +
-            "    addEventListener('MozAfterPaint', function(e) { " +
-            "      removeEventListener('MozAfterPaint', arguments.callee, true); " +
-            "      sendAsyncMessage('PageLoader:LoadEvent', {}); " +
-            "    }, true); " +
-            "  } else { " +
-            "    sendAsyncMessage('PageLoader:LoadEvent', {}); " +
-            "  } " +
-            "}; " +
-            "content.setTimeout(_contentPaintHandler, 0); ";
-          } else {
-            contentScript += "    sendAsyncMessage('PageLoader:LoadEvent', {}); ";
-          }
+        let contentScript = "data:,function _contentLoadHandler(e) { " +
+          "  if (e.originalTarget.defaultView == content) { " +
+          "    content.wrappedJSObject.tpRecordTime = function(t, s, n) { sendAsyncMessage('PageLoader:RecordTime', { time: t, startTime: s, testName: n }); }; ";
+        if (useFNBPaint) {
           contentScript += "" +
-            "  }" +
-            "} " +
-            "addEventListener('load', _contentLoadHandler, true); ";
-          content.selectedBrowser.messageManager.loadFrameScript(contentScript, false, true);
-          content.selectedBrowser.messageManager.loadFrameScript("chrome://pageloader/content/talos-content.js", false);
-          content.selectedBrowser.messageManager.loadFrameScript("chrome://pageloader/content/tscroll.js", false, true);
-          content.selectedBrowser.messageManager.loadFrameScript("chrome://pageloader/content/Profiler.js", false, true);
+          "var gRetryCounter = 0; " +
+          "function _contentFNBPaintHandler() { " +
+          "  x = content.window.performance.timing.timeToNonBlankPaint; " +
+          "  if (typeof x == 'undefined') { " +
+          "    sendAsyncMessage('PageLoader:FNBPaintError', {}); " +
+          "  } " +
+          "  if (x > 0) { " +
+          "    sendAsyncMessage('PageLoader:LoadEvent', { 'fnbpaint': x }); " +
+          "  } else { " +
+          "    gRetryCounter += 1; " +
+          "    if (gRetryCounter <= 10) { " +
+          "      dump('fnbpaint is not yet available (0), retry number ' + gRetryCounter + '...\\n'); " +
+          "      content.setTimeout(_contentFNBPaintHandler, 100); " +
+          "    } else { " +
+          "      dump('unable to get a value for fnbpaint after ' + gRetryCounter + ' retries\\n'); " +
+          "      sendAsyncMessage('PageLoader:FNBPaintError', {}); " +
+          "    } " +
+          "  } " +
+          "}; " +
+          "content.setTimeout(_contentFNBPaintHandler, 0); ";
+        } else if (useMozAfterPaint) {
+          contentScript += "" +
+          "function _contentPaintHandler() { " +
+          "  var utils = content.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils); " +
+          "  if (utils.isMozAfterPaintPending) { " +
+          "    addEventListener('MozAfterPaint', function(e) { " +
+          "      removeEventListener('MozAfterPaint', arguments.callee, true); " +
+          "      sendAsyncMessage('PageLoader:LoadEvent', {}); " +
+          "    }, true); " +
+          "  } else { " +
+          "    sendAsyncMessage('PageLoader:LoadEvent', {}); " +
+          "  } " +
+          "}; " +
+          "content.setTimeout(_contentPaintHandler, 0); ";
+        } else {
+          contentScript += "    sendAsyncMessage('PageLoader:LoadEvent', {}); ";
         }
+        contentScript += "" +
+          "  }" +
+          "} " +
+          "addEventListener('load', _contentLoadHandler, true); ";
+        content.selectedBrowser.messageManager.loadFrameScript(contentScript, false, true);
+        content.selectedBrowser.messageManager.loadFrameScript("chrome://pageloader/content/talos-content.js", false);
+        content.selectedBrowser.messageManager.loadFrameScript("chrome://pageloader/content/tscroll.js", false, true);
+        content.selectedBrowser.messageManager.loadFrameScript("chrome://pageloader/content/Profiler.js", false, true);
 
         if (reportRSS) {
           initializeMemoryCollector(plLoadPage, 100);
@@ -315,6 +338,7 @@ var ContentListener = {
   receiveMessage(message) {
     switch (message.name) {
       case "PageLoader:LoadEvent": return plLoadHandlerMessage(message);
+      case "PageLoader:FNBPaintError": return plFNBPaintErrorMessage(message);
       case "PageLoader:RecordTime": return plRecordTimeMessage(message);
     }
     return undefined;
@@ -325,6 +349,10 @@ var ContentListener = {
 var removeLastAddedListener = null;
 var removeLastAddedMsgListener = null;
 function plLoadPage() {
+  if (profilingInfo) {
+    TalosParentProfiler.beginTest(getCurrentPageShortName() + "_pagecycle_" + pageCycle);
+  }
+
   var pageName = pages[pageIndex].url.spec;
 
   if (removeLastAddedListener) {
@@ -337,49 +365,26 @@ function plLoadPage() {
     removeLastAddedMsgListener = null;
   }
 
-  if ((plPageFlags() & TEST_DOES_OWN_TIMING) && !gUseE10S) {
-    // if the page does its own timing, use a capturing handler
-    // to make sure that we can set up the function for content to call
-
-    content.addEventListener("load", plLoadHandlerCapturing, true);
-    removeLastAddedListener = function() {
-      content.removeEventListener("load", plLoadHandlerCapturing, true);
-      if (useMozAfterPaint) {
-        content.removeEventListener("MozAfterPaint", plPaintedCapturing, true);
-        gPaintListener = false;
-      }
-    };
-  } else if (!gUseE10S) {
-    // if the page doesn't do its own timing, use a bubbling handler
-    // to make sure that we're called after the page's own onload() handling
-
-    // XXX we use a capturing event here too -- load events don't bubble up
-    // to the <browser> element.  See bug 390263.
-    content.addEventListener("load", plLoadHandler, true);
-    removeLastAddedListener = function() {
-      content.removeEventListener("load", plLoadHandler, true);
-      if (useMozAfterPaint) {
-        gPaintWindow.removeEventListener("MozAfterPaint", plPainted, true);
-        gPaintListener = false;
-      }
-    };
+  // messages to watch for page load
+  let mm = content.selectedBrowser.messageManager;
+  mm.addMessageListener("PageLoader:LoadEvent", ContentListener);
+  mm.addMessageListener("PageLoader:RecordTime", ContentListener);
+  if (useFNBPaint) {
+    mm.addMessageListener("PageLoader:FNBPaintError", ContentListener);
   }
 
-  // If the test browser is remote (e10s / IPC) we need to use messages to watch for page load
-  if (gUseE10S) {
-    let mm = content.selectedBrowser.messageManager;
-    mm.addMessageListener("PageLoader:LoadEvent", ContentListener);
-    mm.addMessageListener("PageLoader:RecordTime", ContentListener);
-    removeLastAddedMsgListener = function() {
-      mm.removeMessageListener("PageLoader:LoadEvent", ContentListener);
-      mm.removeMessageListener("PageLoader:RecordTime", ContentListener);
-    };
-  }
+  removeLastAddedMsgListener = function() {
+    mm.removeMessageListener("PageLoader:LoadEvent", ContentListener);
+    mm.removeMessageListener("PageLoader:RecordTime", ContentListener);
+    if (useFNBPaint) {
+      mm.removeMessageListener("PageLoader:FNBPaintError", ContentListener);
+    }
+  };
 
   failTimeout.register(loadFail, timeout);
 
   // record which page we are about to open
-  Profiler.mark("Opening " + pages[pageIndex].url.path);
+  TalosParentProfiler.mark("Opening " + pages[pageIndex].url.path);
 
   if (reportRSS) {
     collectMemory(startAndLoadURI, pageName);
@@ -393,8 +398,9 @@ function startAndLoadURI(pageName) {
     // Resume the profiler because we're really measuring page load time.
     // If the test is doing its own timing, it'll also need to do its own
     // profiler pausing / resuming.
-    Profiler.resume("Starting to load URI " + pageName, true);
+    TalosParentProfiler.resume("Starting to load URI " + pageName);
   }
+
   start_time = Date.now();
   if (loadNoCache) {
     content.loadURIWithFlags(pageName, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
@@ -428,8 +434,9 @@ function loadFail() {
   if (numRetries >= maxRetries) {
     dumpLine("__FAILTimeout in " + getTestName() + "__FAIL");
     dumpLine("__FAILTimeout (" + numRetries + "/" + maxRetries + ") exceeded on " + pageName + "__FAIL");
-    Profiler.finishTest();
-    plStop(true);
+    TalosParentProfiler.finishTest().then(() => {
+      plStop(true);
+    });
   } else {
     dumpLine("__WARNTimeout (" + numRetries + "/" + maxRetries + ") exceeded on " + pageName + "__WARN");
     // TODO: make this a cleaner cleanup
@@ -451,23 +458,19 @@ function loadFail() {
 
 var plNextPage = async function() {
   var doNextPage = false;
+
+  if (profilingInfo) {
+    await TalosParentProfiler.finishTest();
+  }
+
   if (pageCycle < numPageCycles) {
     pageCycle++;
     doNextPage = true;
-  } else {
-    if (profilingInfo) {
-      await Profiler.finishTestAsync();
-    }
-
-    if (pageIndex < pages.length - 1) {
-      pageIndex++;
-      if (profilingInfo) {
-        Profiler.beginTest(getCurrentPageShortName());
-      }
-      recordedName = null;
-      pageCycle = 1;
-      doNextPage = true;
-    }
+  } else if (pageIndex < pages.length - 1) {
+    pageIndex++;
+    recordedName = null;
+    pageCycle = 1;
+    doNextPage = true;
   }
 
   if (doNextPage == true) {
@@ -610,7 +613,7 @@ function _loadHandlerCapturing() {
 
   if (gTime !== -1) {
     plRecordTime(gTime);
-    Profiler.pause("capturing load handler fired", true);
+    TalosParentProfiler.pause("capturing load handler fired");
     gTime = -1;
     recordedName = null;
     setTimeout(plNextPage, delay);
@@ -650,13 +653,20 @@ function plPainted() {
   _loadHandler();
 }
 
-function _loadHandler() {
+function _loadHandler(fnbpaint = 0) {
   failTimeout.clear();
+  var end_time = 0;
 
-  var end_time = Date.now();
-  var time = (end_time - start_time);
+  if (fnbpaint !== 0) {
+    // window.performance.timing.timeToNonBlankPaint is a timestamp
+    end_time = fnbpaint;
+  } else {
+    end_time = Date.now();
+  }
 
-  Profiler.pause("Bubbling load handler fired.", true);
+  var duration = (end_time - start_time);
+
+  TalosParentProfiler.pause("Bubbling load handler fired.");
 
   // does this page want to do its own timing?
   // if so, we shouldn't be here
@@ -665,7 +675,7 @@ function _loadHandler() {
     plStop(true);
   }
 
-  plRecordTime(time);
+  plRecordTime(duration);
 
   if (doRenderTest)
     runRenderTest();
@@ -674,7 +684,11 @@ function _loadHandler() {
 }
 
 // the core handler for remote (e10s) browser
-function plLoadHandlerMessage() {
+function plLoadHandlerMessage(message) {
+  let fnbpaint = 0;
+  if (message.json.fnbpaint !== undefined) {
+    fnbpaint = message.json.fnbpaint;
+  }
   failTimeout.clear();
 
   if ((plPageFlags() & EXECUTE_SCROLL_TEST)) {
@@ -702,7 +716,7 @@ function plLoadHandlerMessage() {
       plNextPage();
     }
   } else {
-    _loadHandler();
+    _loadHandler(fnbpaint);
   }
 }
 
@@ -716,6 +730,12 @@ function plRecordTimeMessage(message) {
     gStartTime = message.json.startTime;
   }
   _loadHandlerCapturing();
+}
+
+// error retrieving fnbpaint
+function plFNBPaintErrorMessage(message) {
+  dumpLine("Abort: firstNonBlankPaint value is not available after loading the page");
+  plStop(true);
 }
 
 function runRenderTest() {
@@ -775,17 +795,21 @@ function plStopAll(force) {
   if (content) {
     content.removeEventListener("load", plLoadHandlerCapturing, true);
     content.removeEventListener("load", plLoadHandler, true);
-    if (useMozAfterPaint)
+
+    if (useMozAfterPaint) {
       content.removeEventListener("MozAfterPaint", plPaintedCapturing, true);
       content.removeEventListener("MozAfterPaint", plPainted, true);
-
-    if (gUseE10S) {
-      let mm = content.selectedBrowser.messageManager;
-      mm.removeMessageListener("PageLoader:LoadEvent", ContentListener);
-      mm.removeMessageListener("PageLoader:RecordTime", ContentListener);
-
-      mm.loadFrameScript("data:,removeEventListener('load', _contentLoadHandler, true);", false, true);
     }
+
+    let mm = content.selectedBrowser.messageManager;
+    mm.removeMessageListener("PageLoader:LoadEvent", ContentListener);
+    mm.removeMessageListener("PageLoader:RecordTime", ContentListener);
+
+    if (useFNBPaint) {
+      mm.removeMessageListener("PageLoader:FNBPaintError", ContentListener);
+    }
+
+    mm.loadFrameScript("data:,removeEventListener('load', _contentLoadHandler, true);", false, true);
   }
 
   if (MozillaFileLogger && MozillaFileLogger._foStream)

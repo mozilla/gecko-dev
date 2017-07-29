@@ -384,7 +384,6 @@ class TestBackForwardNavigation(BaseNavigationTestCase):
         ]
         self.run_bfcache_test(test_pages)
 
-    @skip("Causes crashes for JS GC (bug 1344863) and a11y (bug 1344868)")
     def test_frameset(self):
         test_pages = [
             {"url": self.marionette.absolute_url("frameset.html")},
@@ -685,6 +684,7 @@ class TestPageLoadStrategy(BaseNavigationTestCase):
         # current load state is unknown. So only test that the command executes successfully.
         self.marionette.navigate(self.test_page_slow_resource)
 
+    @skip_if_mobile("Disabling due to message passing slowness on Android.")
     def test_eager(self):
         self.marionette.delete_session()
         self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": "eager"}})

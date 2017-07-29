@@ -18,8 +18,11 @@ namespace mozilla {
 
 MediaDecoderStateMachine* WebMDecoder::CreateStateMachine()
 {
-  MediaDecoderReaderInit init(this);
+  MediaFormatReaderInit init;
   init.mVideoFrameContainer = GetVideoFrameContainer();
+  init.mKnowsCompositor = GetCompositor();
+  init.mCrashHelper = GetOwner()->CreateGMPCrashHelper();
+  init.mFrameStats = mFrameStats;
   mReader = new MediaFormatReader(init, new WebMDemuxer(mResource));
   return new MediaDecoderStateMachine(this, mReader);
 }
@@ -69,10 +72,8 @@ WebMDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 void
 WebMDecoder::GetMozDebugReaderData(nsACString& aString)
 {
-  // This is definitely a MediaFormatReader. See CreateStateMachine() above.
-  auto reader = static_cast<MediaFormatReader*>(mReader.get());
-  if (reader) {
-    reader->GetMozDebugReaderData(aString);
+  if (mReader) {
+    mReader->GetMozDebugReaderData(aString);
   }
 }
 

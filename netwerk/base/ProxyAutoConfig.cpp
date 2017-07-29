@@ -9,6 +9,7 @@
 #include "nsIDNSListener.h"
 #include "nsIDNSRecord.h"
 #include "nsIDNSService.h"
+#include "nsINamed.h"
 #include "nsThreadUtils.h"
 #include "nsIConsoleService.h"
 #include "nsIURLParser.h"
@@ -38,6 +39,17 @@ static const char *sPacUtils =
   "    return host.split('.').length - 1;\n"
   "}\n"
   ""
+  "function isValidIpAddress(ipchars) {\n"
+  "    var matches = /^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$/.exec(ipchars);\n"
+  "    if (matches == null) {\n"
+  "        return false;\n"
+  "    } else if (matches[1] > 255 || matches[2] > 255 || \n"
+  "               matches[3] > 255 || matches[4] > 255) {\n"
+  "        return false;\n"
+  "    }\n"
+  "    return true;\n"
+  "}\n"
+  ""
   "function convert_addr(ipchars) {\n"
   "    var bytes = ipchars.split('.');\n"
   "    var result = ((bytes[0] & 0xff) << 24) |\n"
@@ -48,14 +60,14 @@ static const char *sPacUtils =
   "}\n"
   ""
   "function isInNet(ipaddr, pattern, maskstr) {\n"
-  "    var test = /^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$/.exec(ipaddr);\n"
-  "    if (test == null) {\n"
+  "    if (!isValidIpAddress(pattern) || !isValidIpAddress(maskstr)) {\n"
+  "        return false;\n"
+  "    }\n"
+  "    if (!isValidIpAddress(ipaddr)) {\n"
   "        ipaddr = dnsResolve(ipaddr);\n"
-  "        if (ipaddr == null)\n"
+  "        if (ipaddr == null) {\n"
   "            return false;\n"
-  "    } else if (test[1] > 255 || test[2] > 255 || \n"
-  "               test[3] > 255 || test[4] > 255) {\n"
-  "        return false;    // not an IP address\n"
+  "        }\n"
   "    }\n"
   "    var host = convert_addr(ipaddr);\n"
   "    var pat  = convert_addr(pattern);\n"
@@ -265,6 +277,7 @@ static void SetRunning(ProxyAutoConfig *arg)
 // The PACResolver is used for dnsResolve()
 class PACResolver final : public nsIDNSListener
                         , public nsITimerCallback
+                        , public nsINamed
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -300,6 +313,13 @@ public:
     return NS_OK;
   }
 
+  // nsINamed
+  NS_IMETHOD GetName(nsACString& aName) override
+  {
+    aName.AssignLiteral("PACResolver");
+    return NS_OK;
+  }
+
   nsresult                 mStatus;
   nsCOMPtr<nsICancelable>  mRequest;
   nsCOMPtr<nsIDNSRecord>   mResponse;
@@ -309,7 +329,7 @@ public:
 private:
   ~PACResolver() {}
 };
-NS_IMPL_ISUPPORTS(PACResolver, nsIDNSListener, nsITimerCallback)
+NS_IMPL_ISUPPORTS(PACResolver, nsIDNSListener, nsITimerCallback, nsINamed)
 
 static
 void PACLogToConsole(nsString &aMessage)

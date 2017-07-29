@@ -104,6 +104,7 @@ class TsBase(Test):
         'xperf_user_providers',
         'xperf_stackwalk',
         'tpmozafterpaint',
+        'fnbpaint',
         'firstpaint',
         'userready',
         'testeventmap',
@@ -169,7 +170,7 @@ class sessionrestore(TsBase):
     gecko_profile_entries = 10000000
     profile_path = '${talos}/startup_test/sessionrestore/profile'
     shutdown = False
-    reinstall = ['sessionstore.js', 'sessionCheckpoints.json']
+    reinstall = ['sessionstore.jsonlz4', 'sessionstore.js', 'sessionCheckpoints.json']
     # Restore the session. We have to provide a URL, otherwise Talos
     # asks for a manifest URL.
     url = 'about:home'
@@ -233,7 +234,7 @@ class PageloaderTest(Test):
     cycles = None
     timeout = None
     keys = ['tpmanifest', 'tpcycles', 'tppagecycles', 'tprender', 'tpchrome',
-            'tpmozafterpaint', 'tploadnocache', 'firstpaint', 'userready',
+            'tpmozafterpaint', 'fnbpaint', 'tploadnocache', 'firstpaint', 'userready',
             'testeventmap', 'base_vs_ref', 'rss', 'mainthread', 'resolution', 'cycles',
             'gecko_profile', 'gecko_profile_interval', 'gecko_profile_entries',
             'tptimeout', 'win_counters', 'w7_counters', 'linux_counters', 'mac_counters',
@@ -254,6 +255,7 @@ class QuantumPageloadTest(PageloaderTest):
     filters = filter.ignore_first.prepare(5) + filter.median.prepare()
     unit = 'ms'
     lower_is_better = True
+    fnbpaint = True
 
 
 @register_test()
@@ -306,7 +308,7 @@ class tps(PageloaderTest):
     extensions = '${talos}/tests/tabswitch/tabswitch-signed.xpi'
     tpmanifest = '${talos}/tests/tabswitch/tps.manifest'
     tppagecycles = 5
-    gecko_profile_entries = 1000000
+    gecko_profile_entries = 5000000
     tploadnocache = True
     preferences = {
         'addon.test.tabswitch.urlfile': os.path.join('${talos}',
@@ -553,7 +555,6 @@ class tp5o_scroll(PageloaderTest):
     tppagecycles = 12
     gecko_profile_interval = 2
     gecko_profile_entries = 2000000
-
     tpscrolltest = True
     """ASAP mode"""
     tpmozafterpaint = False
@@ -596,8 +597,8 @@ class kraken(PageloaderTest):
     tpmanifest = '${talos}/tests/kraken/kraken.manifest'
     tpcycles = 1
     tppagecycles = 1
-    gecko_profile_interval = 0.1
-    gecko_profile_entries = 1000000
+    gecko_profile_interval = 1
+    gecko_profile_entries = 5000000
     tpmozafterpaint = False
     tpchrome = False
     preferences = {'dom.send_after_paint_to_content': False}
@@ -859,6 +860,38 @@ class quantum_pageload_amazon(QuantumPageloadTest):
 
 @register_test()
 class quantum_pageload_facebook(QuantumPageloadTest):
+    """
+    Quantum Pageload Test - Facebook
+    """
+    tpmanifest = '${talos}/tests/quantum_pageload/quantum_pageload_facebook.manifest'
+
+
+@register_test()
+class tp6_google(QuantumPageloadTest):
+    """
+    Quantum Pageload Test - Google
+    """
+    tpmanifest = '${talos}/tests/quantum_pageload/quantum_pageload_google.manifest'
+
+
+@register_test()
+class tp6_youtube(QuantumPageloadTest):
+    """
+    Quantum Pageload Test - YouTube
+    """
+    tpmanifest = '${talos}/tests/quantum_pageload/quantum_pageload_youtube.manifest'
+
+
+@register_test()
+class tp6_amazon(QuantumPageloadTest):
+    """
+    Quantum Pageload Test - Amazon
+    """
+    tpmanifest = '${talos}/tests/quantum_pageload/quantum_pageload_amazon.manifest'
+
+
+@register_test()
+class tp6_facebook(QuantumPageloadTest):
     """
     Quantum Pageload Test - Facebook
     """

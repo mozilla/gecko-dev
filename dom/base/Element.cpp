@@ -67,6 +67,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/SizeOfState.h"
 #include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
 #include "nsNodeUtils.h"
@@ -493,7 +494,7 @@ Element::GetBindingURL(nsIDocument *aDocument, css::URLValue **aResult)
                                IsHTMLElement(nsGkAtoms::object) ||
                                IsHTMLElement(nsGkAtoms::embed) ||
                                IsHTMLElement(nsGkAtoms::applet));
-  nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
+  nsIPresShell* shell = aDocument->GetShell();
   if (!shell || GetPrimaryFrame() || !isXULorPluginElement) {
     *aResult = nullptr;
     return true;
@@ -1305,7 +1306,6 @@ Element::SetAttribute(const nsAString& aName,
 
   aError = SetAttr(name->NamespaceID(), name->LocalName(), name->GetPrefix(),
                    aValue, true);
-  return;
 }
 
 void
@@ -1549,7 +1549,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 #endif
   {
     if (aBindingParent) {
-      nsDOMSlots *slots = DOMSlots();
+      nsExtendedDOMSlots* slots = ExtendedDOMSlots();
 
       slots->mBindingParent = aBindingParent; // Weak, so no addref happens.
     }
@@ -1575,7 +1575,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     }
     ShadowRoot* parentContainingShadow = aParent->GetContainingShadow();
     if (parentContainingShadow) {
-      DOMSlots()->mContainingShadow = parentContainingShadow;
+      ExtendedDOMSlots()->mContainingShadow = parentContainingShadow;
     }
   }
 
@@ -1912,8 +1912,8 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
 
   ClearInDocument();
 
-  // Computed styled data isn't useful for detached nodes, and we'll need to
-  // recomputed it anyway if we ever insert the nodes back into a document.
+  // Computed style data isn't useful for detached nodes, and we'll need to
+  // recompute it anyway if we ever insert the nodes back into a document.
   if (IsStyledByServo()) {
     ClearServoData();
   } else {
@@ -1965,7 +1965,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   }
 #endif
 
-  nsDOMSlots* slots = GetExistingDOMSlots();
+  nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
   if (slots) {
     if (clearBindingParent) {
       slots->mBindingParent = nullptr;
@@ -2013,7 +2013,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
 nsICSSDeclaration*
 Element::GetSMILOverrideStyle()
 {
-  Element::nsDOMSlots *slots = DOMSlots();
+  Element::nsExtendedDOMSlots* slots = ExtendedDOMSlots();
 
   if (!slots->mSMILOverrideStyle) {
     slots->mSMILOverrideStyle = new nsDOMCSSAttributeDeclaration(this, true);
@@ -2025,7 +2025,7 @@ Element::GetSMILOverrideStyle()
 DeclarationBlock*
 Element::GetSMILOverrideStyleDeclaration()
 {
-  Element::nsDOMSlots *slots = GetExistingDOMSlots();
+  Element::nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
   return slots ? slots->mSMILOverrideStyleDeclaration.get() : nullptr;
 }
 
@@ -2033,7 +2033,7 @@ nsresult
 Element::SetSMILOverrideStyleDeclaration(DeclarationBlock* aDeclaration,
                                          bool aNotify)
 {
-  Element::nsDOMSlots *slots = DOMSlots();
+  Element::nsExtendedDOMSlots* slots = ExtendedDOMSlots();
 
   slots->mSMILOverrideStyleDeclaration = aDeclaration;
 
@@ -2726,8 +2726,6 @@ Element::PreIdMaybeChange(int32_t aNamespaceID, nsIAtom* aName,
     return;
   }
   RemoveFromIdTable();
-
-  return;
 }
 
 void
@@ -2746,8 +2744,6 @@ Element::PostIdMaybeChange(int32_t aNamespaceID, nsIAtom* aName,
   } else {
     ClearHasID();
   }
-
-  return;
 }
 
 EventListenerManager*
@@ -2995,8 +2991,8 @@ Element::List(FILE* out, int32_t aIndent,
           static_cast<unsigned long long>(State().GetInternalValue()));
   fprintf(out, " flags=[%08x]", static_cast<unsigned int>(GetFlags()));
   if (IsCommonAncestorForRangeInSelection()) {
-    nsRange::RangeHashTable* ranges =
-      static_cast<nsRange::RangeHashTable*>(GetProperty(nsGkAtoms::range));
+    const nsTHashtable<nsPtrHashKey<nsRange>>* ranges =
+      GetExistingCommonAncestorRanges();
     fprintf(out, " ranges:%d", ranges ? ranges->Count() : 0);
   }
   fprintf(out, " primaryframe=%p", static_cast<void*>(GetPrimaryFrame()));
@@ -4087,7 +4083,7 @@ Element::ClearDataset()
 nsDataHashtable<nsRefPtrHashKey<DOMIntersectionObserver>, int32_t>*
 Element::RegisteredIntersectionObservers()
 {
-  nsDOMSlots* slots = DOMSlots();
+  nsExtendedDOMSlots* slots = ExtendedDOMSlots();
   return &slots->mRegisteredIntersectionObservers;
 }
 
@@ -4138,7 +4134,18 @@ Element::ClearServoData() {
 void
 Element::SetCustomElementData(CustomElementData* aData)
 {
-  nsDOMSlots *slots = DOMSlots();
+  nsExtendedDOMSlots *slots = ExtendedDOMSlots();
   MOZ_ASSERT(!slots->mCustomElementData, "Custom element data may not be changed once set.");
   slots->mCustomElementData = aData;
 }
+
+size_t
+Element::SizeOfExcludingThis(SizeOfState& aState) const
+{
+  size_t n = FragmentOrElement::SizeOfExcludingThis(aState);
+
+  // XXX: measure mServoData.
+
+  return n;
+}
+

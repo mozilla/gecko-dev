@@ -338,6 +338,11 @@ typedef GenericFlingAnimation FlingAnimation;
  * the main thread doesn't actually need to do a repaint. This pref allows the
  * main thread to skip doing those repaints in cases where it doesn't need to.
  *
+ * \li\b apz.popups.enabled
+ * Determines whether APZ is used for XUL popup widgets with remote content.
+ * Ideally, this should always be true, but it is currently not well tested, and
+ * has known issues, so needs to be prefable.
+ *
  * \li\b apz.record_checkerboarding
  * Whether or not to record detailed info on checkerboarding events.
  *
@@ -732,6 +737,7 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mAPZCId(sAsyncPanZoomControllerCount++),
      mSharedLock(nullptr),
      mAsyncTransformAppliedToContent(false),
+     mTestHasAsyncKeyScrolled(false),
      mCheckerboardEventLock("APZCBELock")
 {
   if (aGestures == USE_GESTURE_DETECTOR) {
@@ -1697,6 +1703,9 @@ AsyncPanZoomController::OnKeyboard(const KeyboardInput& aEvent)
 {
   // Report the type of scroll action to telemetry
   ReportKeyboardScrollAction(aEvent.mAction);
+
+  // Mark that this APZC has async key scrolled
+  mTestHasAsyncKeyScrolled = true;
 
   // Calculate the destination for this keyboard scroll action
   CSSPoint destination = GetKeyboardDestination(aEvent.mAction);
@@ -3233,7 +3242,7 @@ bool AsyncPanZoomController::UpdateAnimation(const TimeStamp& aSampleTime,
   // Sample the composited async transform once per composite. Note that we
   // call this after the |mLastSampleTime == aSampleTime| check, to ensure
   // it's only called once per APZC on each composite.
-  SampleCompositedAsyncTransform();
+  bool needComposite = SampleCompositedAsyncTransform();
 
   TimeDuration sampleTimeDelta = aSampleTime - mLastSampleTime;
   mLastSampleTime = aSampleTime;
@@ -3253,9 +3262,9 @@ bool AsyncPanZoomController::UpdateAnimation(const TimeStamp& aSampleTime,
       RequestContentRepaint();
     }
     UpdateSharedCompositorFrameMetrics();
-    return true;
+    needComposite = true;
   }
-  return false;
+  return needComposite;
 }
 
 AsyncTransformComponentMatrix
@@ -3416,12 +3425,17 @@ AsyncPanZoomController::GetEffectiveZoom(AsyncTransformConsumer aMode) const
   return mFrameMetrics.GetZoom();
 }
 
-void
+bool
 AsyncPanZoomController::SampleCompositedAsyncTransform()
 {
   ReentrantMonitorAutoEnter lock(mMonitor);
-  mCompositedScrollOffset = mFrameMetrics.GetScrollOffset();
-  mCompositedZoom = mFrameMetrics.GetZoom();
+  if (mCompositedScrollOffset != mFrameMetrics.GetScrollOffset() ||
+      mCompositedZoom != mFrameMetrics.GetZoom()) {
+    mCompositedScrollOffset = mFrameMetrics.GetScrollOffset();
+    mCompositedZoom = mFrameMetrics.GetZoom();
+    return true;
+  }
+  return false;
 }
 
 AsyncTransformComponentMatrix

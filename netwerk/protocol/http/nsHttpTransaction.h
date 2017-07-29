@@ -148,6 +148,7 @@ public:
 
     // Locked methods to get and set timing info
     const TimingStruct Timings();
+    void BootstrapTimings(TimingStruct times);
     void SetDomainLookupStart(mozilla::TimeStamp timeStamp, bool onlyIfNull = false);
     void SetDomainLookupEnd(mozilla::TimeStamp timeStamp, bool onlyIfNull = false);
     void SetConnectStart(mozilla::TimeStamp timeStamp, bool onlyIfNull = false);
@@ -159,6 +160,8 @@ public:
     mozilla::TimeStamp GetDomainLookupStart();
     mozilla::TimeStamp GetDomainLookupEnd();
     mozilla::TimeStamp GetConnectStart();
+    mozilla::TimeStamp GetSecureConnectionStart();
+
     mozilla::TimeStamp GetConnectEnd();
     mozilla::TimeStamp GetRequestStart();
     mozilla::TimeStamp GetResponseStart();
@@ -389,6 +392,10 @@ public:
     // Called by the connetion manager on the socket thread when reading for this
     // previously throttled transaction has to be resumed.
     void ResumeReading();
+
+    // This examins classification of this transaction whether the Throttleable class
+    // has been set while Leader or Unblocked are not.
+    bool EligibleForThrottling();
 
 private:
     bool mSubmittedRatePacing;

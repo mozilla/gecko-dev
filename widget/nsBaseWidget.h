@@ -11,6 +11,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WidgetUtils.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
+#include "mozilla/layers/CompositorOptions.h"
 #include "nsRect.h"
 #include "nsIWidget.h"
 #include "nsWidgetsCID.h"
@@ -520,9 +521,6 @@ protected:
     return NS_ERROR_UNEXPECTED;
   }
 
-  virtual nsresult NotifyIMEInternal(const IMENotification& aIMENotification)
-  { return NS_ERROR_NOT_IMPLEMENTED; }
-
   /**
    * GetPseudoIMEContext() returns pseudo IME context when TextEventDispatcher
    * has non-native input transaction.  Otherwise, returns nullptr.
@@ -743,6 +741,11 @@ protected:
 
   static bool debug_GetCachedBoolPref(const char* aPrefName);
 #endif
+
+private:
+  already_AddRefed<LayerManager>
+  CreateCompositorSession(int aWidth, int aHeight,
+                          mozilla::layers::CompositorOptions* aOptionsOut);
 };
 
 #endif // nsBaseWidget_h__

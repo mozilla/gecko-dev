@@ -38,6 +38,7 @@
 #include "mozilla/dom/VideoDecoderManagerChild.h"
 #include "mozilla/dom/VideoDecoderManagerParent.h"
 #include "MediaPrefs.h"
+#include "nsPrintfCString.h"
 
 #ifdef MOZ_CRASHREPORTER
 # include "nsExceptionHandler.h"
@@ -186,6 +187,11 @@ GPUProcessManager::DisableGPUProcess(const char* aMessage)
   // correctly. We cannot re-enter DisableGPUProcess from this call because we
   // know that it is disabled in the config above.
   EnsureProtocolsReady();
+
+  // If we disable the GPU process during reinitialization after a previous
+  // crash, then we need to tell the content processes again, because they
+  // need to rebind to the UI process.
+  HandleProcessLost();
 }
 
 bool
@@ -366,6 +372,10 @@ GPUProcessManager::OnProcessLaunchComplete(GPUProcessHost* aHost)
   CrashReporter::AnnotateCrashReport(
     NS_LITERAL_CSTRING("GPUProcessStatus"),
     NS_LITERAL_CSTRING("Running"));
+
+  CrashReporter::AnnotateCrashReport(
+    NS_LITERAL_CSTRING("GPUProcessLaunchCount"),
+    nsPrintfCString("%d", mNumProcessAttempts));
 #endif
 }
 
@@ -463,6 +473,7 @@ GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost)
 {
   MOZ_ASSERT(mProcess && mProcess == aHost);
 
+  CompositorManagerChild::OnGPUProcessLost();
   DestroyProcess();
 
   if (mNumProcessAttempts > uint32_t(gfxPrefs::GPUProcessMaxRestarts())) {
@@ -475,12 +486,12 @@ GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost)
     mDecodeVideoOnGpuProcess = false;
     Telemetry::Accumulate(Telemetry::GPU_PROCESS_CRASH_FALLBACKS,
                                      uint32_t(FallbackType::DECODINGDISABLED));
+    HandleProcessLost();
   } else {
     Telemetry::Accumulate(Telemetry::GPU_PROCESS_CRASH_FALLBACKS,
                                      uint32_t(FallbackType::NONE));
+    HandleProcessLost();
   }
-
-  HandleProcessLost();
 }
 
 void
@@ -660,14 +671,17 @@ GPUProcessManager::DestroyProcess()
 #endif
 }
 
-RefPtr<CompositorSession>
+already_AddRefed<CompositorSession>
 GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
                                             LayerManager* aLayerManager,
                                             CSSToLayoutDeviceScale aScale,
                                             const CompositorOptions& aOptions,
                                             bool aUseExternalSurfaceSize,
-                                            const gfx::IntSize& aSurfaceSize)
+                                            const gfx::IntSize& aSurfaceSize,
+                                            bool* aRetryOut)
 {
+  MOZ_ASSERT(aRetryOut);
+
   uint64_t layerTreeId = AllocateLayerTreeId();
 
   EnsureProtocolsReady();
@@ -686,10 +700,10 @@ GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
     if (!session) {
       // We couldn't create a remote compositor, so abort the process.
       DisableGPUProcess("Failed to create remote compositor");
+      *aRetryOut = true;
+      return nullptr;
     }
-  }
-
-  if (!session) {
+  } else {
     session = InProcessCompositorSession::Create(
       aWidget,
       aLayerManager,
@@ -709,7 +723,8 @@ GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
   }
 #endif // defined(MOZ_WIDGET_ANDROID)
 
-  return session;
+  *aRetryOut = false;
+  return session.forget();
 }
 
 RefPtr<CompositorSession>
@@ -927,7 +942,6 @@ GPUProcessManager::CreateContentVideoDecoderManager(base::ProcessId aOtherProces
   mGPUChild->SendNewContentVideoDecoderManager(Move(parentPipe));
 
   *aOutEndpoint = Move(childPipe);
-  return;
 }
 
 already_AddRefed<IAPZCTreeManager>

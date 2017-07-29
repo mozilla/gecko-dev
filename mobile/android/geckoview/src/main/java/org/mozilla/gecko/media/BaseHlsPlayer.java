@@ -84,5 +84,13 @@ public interface BaseHlsPlayer {
 
     public long getNextKeyFrameTime();
 
+    public void suspend();
+
+    public void resume();
+
+    public void play();
+
+    public void pause();
+
     public void release();
 }

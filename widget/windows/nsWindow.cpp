@@ -369,9 +369,6 @@ static const int32_t kResizableBorderMinSize = 3;
 // Cached pointer events enabler value, True if pointer events are enabled.
 static bool gIsPointerEventsEnabled = false;
 
-// True if we should use compositing for popup widgets.
-static bool gIsPopupCompositingEnabled = false;
-
 // We should never really try to accelerate windows bigger than this. In some
 // cases this might lead to no D3D9 acceleration where we could have had it
 // but D3D9 does not reliably report when it supports bigger windows. 8192
@@ -673,10 +670,6 @@ nsWindow::nsWindow(bool aIsChildWindow)
     Preferences::AddBoolVarCache(&gIsPointerEventsEnabled,
                                  "dom.w3c_pointer_events.enabled",
                                  gIsPointerEventsEnabled);
-
-    Preferences::AddBoolVarCache(&gIsPopupCompositingEnabled,
-                                 "layers.popups.compositing.enabled",
-                                 gIsPopupCompositingEnabled);
   } // !sInstanceCount
 
   mIdleService = nullptr;
@@ -1253,13 +1246,14 @@ void nsWindow::SubclassWindow(BOOL bState)
 void
 nsWindow::SetParent(nsIWidget *aNewParent)
 {
-  mParent = aNewParent;
-
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
   nsIWidget* parent = GetParent();
   if (parent) {
     parent->RemoveChild(this);
   }
+
+  mParent = aNewParent;
+
   if (aNewParent) {
     ReparentNativeWidget(aNewParent);
     aNewParent->AddChild(this);
@@ -1306,18 +1300,12 @@ static int32_t RoundDown(double aDouble)
 
 float nsWindow::GetDPI()
 {
-  HDC dc = ::GetDC(mWnd);
-  if (!dc)
-    return 96.0f;
-
-  double heightInches = ::GetDeviceCaps(dc, VERTSIZE)/MM_PER_INCH_FLOAT;
-  int heightPx = ::GetDeviceCaps(dc, VERTRES);
-  ::ReleaseDC(mWnd, dc);
-  if (heightInches < 0.25) {
-    // Something's broken
-    return 96.0f;
+  float dpi = 96.0f;
+  nsCOMPtr<nsIScreen> screen = GetWidgetScreen();
+  if (screen) {
+    screen->GetDpi(&dpi);
   }
-  return float(heightPx/heightInches);
+  return dpi;
 }
 
 double nsWindow::GetDefaultScaleInternal()
@@ -5058,6 +5046,24 @@ nsWindow::ExternalHandlerProcessMessage(UINT aMessage,
   return false;
 }
 
+/**
+ * the _exit() call is not a safe way to terminate your own process on
+ * Windows, because _exit runs DLL detach callbacks which run static
+ * destructors for xul.dll.
+ *
+ * This method terminates the current process without those issues.
+ */
+static void
+ExitThisProcessSafely()
+{
+  HANDLE process = GetCurrentProcess();
+  if (TerminateProcess(GetCurrentProcess(), 0)) {
+    // TerminateProcess is asynchronous, so we wait on our own process handle
+    WaitForSingleObject(process, INFINITE);
+  }
+  MOZ_CRASH("Just in case extremis crash in ExitThisProcessSafely.");
+}
+
 // The main windows message processing method.
 bool
 nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
@@ -5142,8 +5148,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         obsServ->NotifyObservers(nullptr, "profile-before-change", context);
         obsServ->NotifyObservers(nullptr, "profile-before-change-qm", context);
         obsServ->NotifyObservers(nullptr, "profile-before-change-telemetry", context);
-        // Then a controlled but very quick exit.
-        _exit(0);
+        ExitThisProcessSafely();
       }
       sCanQuit = TRI_UNKNOWN;
       result = true;
@@ -5205,6 +5210,11 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_SETTINGCHANGE:
     {
+      if (wParam == SPI_SETKEYBOARDDELAY) {
+        // CaretBlinkTime is cached in nsLookAndFeel
+        NotifyThemeChanged();
+        break;
+      }
       if (lParam) {
         auto lParamString = reinterpret_cast<const wchar_t*>(lParam);
         if (!wcscmp(lParamString, L"ImmersiveColorSet")) {
@@ -7186,6 +7196,16 @@ bool
 nsWindow::IsPopup()
 {
   return mWindowType == eWindowType_popup;
+}
+
+bool
+nsWindow::ShouldUseOffMainThreadCompositing()
+{
+  if (IsSmallPopup()) {
+    return false;
+  }
+
+  return nsBaseWidget::ShouldUseOffMainThreadCompositing();
 }
 
 void

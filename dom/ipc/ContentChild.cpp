@@ -166,11 +166,6 @@
 #include "APKOpen.h"
 #endif
 
-#if defined(MOZ_WIDGET_GONK)
-#include "nsVolume.h"
-#include "nsVolumeService.h"
-#endif
-
 #ifdef XP_WIN
 #include <process.h>
 #define getpid _getpid
@@ -241,10 +236,6 @@ using namespace mozilla::layout;
 using namespace mozilla::net;
 using namespace mozilla::jsipc;
 using namespace mozilla::psm;
-using namespace mozilla::widget;
-#if defined(MOZ_WIDGET_GONK)
-using namespace mozilla::system;
-#endif
 using namespace mozilla::widget;
 using mozilla::loader::PScriptCacheChild;
 
@@ -1002,6 +993,11 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     return NS_ERROR_ABORT;
   }
 
+  // If the TabChild has been torn down, we don't need to do this anymore.
+  if (NS_WARN_IF(!newChild->IPCOpen())) {
+    return NS_ERROR_ABORT;
+  }
+
   if (layersId == 0) { // if renderFrame is invalid.
     PRenderFrameChild::Send__delete__(renderFrame);
     renderFrame = nullptr;
@@ -1014,8 +1010,9 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
     nsCOMPtr<nsILoadContext> context = do_QueryInterface(openerShell);
     showInfo = ShowInfo(EmptyString(), false,
                         context->UsePrivateBrowsing(), true, false,
-                        aTabOpener->mDPI, aTabOpener->mRounding,
-                        aTabOpener->mDefaultScale);
+                        aTabOpener->WebWidget()->GetDPI(),
+                        aTabOpener->WebWidget()->RoundsWidgetCoordinatesTo(),
+                        aTabOpener->WebWidget()->GetDefaultScale().scale);
   }
 
   newChild->SetMaxTouchPoints(maxTouchPoints);
@@ -1412,25 +1409,23 @@ GetAppPaths(nsCString &aAppPath, nsCString &aAppBinaryPath, nsCString &aAppDir)
     return false;
   }
 
-  bool isLink;
-  app->IsSymlink(&isLink);
-  if (isLink) {
-    app->GetNativeTarget(aAppPath);
-  } else {
-    app->GetNativePath(aAppPath);
+  rv = app->Normalize();
+  if (NS_FAILED(rv)) {
+    return false;
   }
-  appBinary->IsSymlink(&isLink);
-  if (isLink) {
-    appBinary->GetNativeTarget(aAppBinaryPath);
-  } else {
-    appBinary->GetNativePath(aAppBinaryPath);
+  app->GetNativePath(aAppPath);
+
+  rv = appBinary->Normalize();
+  if (NS_FAILED(rv)) {
+    return false;
   }
-  appDirParent->IsSymlink(&isLink);
-  if (isLink) {
-    appDirParent->GetNativeTarget(aAppDir);
-  } else {
-    appDirParent->GetNativePath(aAppDir);
+  appBinary->GetNativePath(aAppBinaryPath);
+
+  rv = appDirParent->Normalize();
+  if (NS_FAILED(rv)) {
+    return false;
   }
+  appDirParent->GetNativePath(aAppDir);
 
   return true;
 }
@@ -1503,13 +1498,6 @@ StartMacOSContentSandbox()
   }
 
   bool isFileProcess = cc->GetRemoteType().EqualsLiteral(FILE_REMOTE_TYPE);
-  char *developer_repo_dir = nullptr;
-  if (mozilla::IsDevelopmentBuild()) {
-    // If this is a developer build the resources in the .app are symlinks to
-    // outside of the .app. Therefore in non-release builds we allow reads from
-    // the whole repository. MOZ_DEVELOPER_REPO_DIR is set by mach run.
-    developer_repo_dir = PR_GetEnv("MOZ_DEVELOPER_REPO_DIR");
-  }
 
   MacSandboxInfo info;
   info.type = MacSandboxType_Content;
@@ -1535,8 +1523,26 @@ StartMacOSContentSandbox()
   if (!testingReadPath2.IsEmpty()) {
     info.testingReadPath2.assign(testingReadPath2.get());
   }
-  if (developer_repo_dir) {
-    info.testingReadPath3.assign(developer_repo_dir);
+
+  if (mozilla::IsDevelopmentBuild()) {
+    nsCOMPtr<nsIFile> repoDir;
+    rv = mozilla::GetRepoDir(getter_AddRefs(repoDir));
+    if (NS_FAILED(rv)) {
+      MOZ_CRASH("Failed to get path to repo dir");
+    }
+    nsCString repoDirPath;
+    Unused << repoDir->GetNativePath(repoDirPath);
+    info.testingReadPath3.assign(repoDirPath.get());
+
+    nsCOMPtr<nsIFile> objDir;
+    rv = mozilla::GetObjDir(getter_AddRefs(objDir));
+    if (NS_FAILED(rv)) {
+      MOZ_CRASH("Failed to get path to build object dir");
+    }
+
+    nsCString objDirPath;
+    Unused << objDir->GetNativePath(objDirPath);
+    info.testingReadPath4.assign(objDirPath.get());
   }
 
   if (profileDir) {
@@ -1577,11 +1583,6 @@ ContentChild::RecvSetProcessSandbox(const MaybeFileDesc& aBroker)
 #if defined(MOZ_CONTENT_SANDBOX)
   bool sandboxEnabled = true;
 #if defined(XP_LINUX)
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
-  // For B2G >= KitKat, sandboxing is mandatory; this has already
-  // been enforced by ContentParent::StartUp().
-  MOZ_ASSERT(SandboxInfo::Get().CanSandboxContent());
-#else
   // Otherwise, sandboxing is best-effort.
   if (!SandboxInfo::Get().CanSandboxContent()) {
        sandboxEnabled = false;
@@ -1594,7 +1595,6 @@ ContentChild::RecvSetProcessSandbox(const MaybeFileDesc& aBroker)
        Unused << CubebUtils::GetCubebContext();
   }
 
-#endif /* MOZ_WIDGET_GONK && ANDROID_VERSION >= 19 */
   if (sandboxEnabled) {
     int brokerFd = -1;
     if (aBroker.type() == MaybeFileDesc::TFileDescriptor) {
@@ -1618,7 +1618,10 @@ ContentChild::RecvSetProcessSandbox(const MaybeFileDesc& aBroker)
         }
       }
     }
-    sandboxEnabled = SetContentProcessSandbox(brokerFd, syscallWhitelist);
+    ContentChild* cc = ContentChild::GetSingleton();
+    bool isFileProcess = cc->GetRemoteType().EqualsLiteral(FILE_REMOTE_TYPE);
+    sandboxEnabled = SetContentProcessSandbox(brokerFd, isFileProcess,
+                                              syscallWhitelist);
   }
 #elif defined(XP_WIN)
   mozilla::SandboxTarget::Instance()->StartSandbox();
@@ -3508,6 +3511,30 @@ ContentChild::RecvShareCodeCoverageMutex(const CrossProcessMutexHandle& aHandle)
 {
 #ifdef MOZ_CODE_COVERAGE
   CodeCoverageHandler::Init(aHandle);
+  return IPC_OK();
+#else
+  NS_RUNTIMEABORT("Shouldn't receive this message in non-code coverage builds!");
+  return IPC_FAIL_NO_REASON(this);
+#endif
+}
+
+mozilla::ipc::IPCResult
+ContentChild::RecvDumpCodeCoverageCounters()
+{
+#ifdef MOZ_CODE_COVERAGE
+  CodeCoverageHandler::DumpCounters(0);
+  return IPC_OK();
+#else
+  NS_RUNTIMEABORT("Shouldn't receive this message in non-code coverage builds!");
+  return IPC_FAIL_NO_REASON(this);
+#endif
+}
+
+mozilla::ipc::IPCResult
+ContentChild::RecvResetCodeCoverageCounters()
+{
+#ifdef MOZ_CODE_COVERAGE
+  CodeCoverageHandler::ResetCounters(0);
   return IPC_OK();
 #else
   NS_RUNTIMEABORT("Shouldn't receive this message in non-code coverage builds!");

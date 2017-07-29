@@ -833,11 +833,10 @@ nsCSSRendering::PaintBorderWithStyleBorder(nsPresContext* aPresContext,
       nsCSSBorderImageRenderer::CreateBorderImageRenderer(aPresContext, aForFrame, aBorderArea,
                                                           aStyleBorder, aDirtyRect, aSkipSides,
                                                           irFlags, &result);
-    if (aStyleBorder.IsBorderImageLoaded()) {
-      if (!renderer) {
-        return result;
-      }
-
+    // renderer was created successfully, which means border image is ready to
+    // be used.
+    if (renderer) {
+      MOZ_ASSERT(result == DrawResult::SUCCESS);
       return renderer->DrawBorderImage(aPresContext, aRenderingContext,
                                        aForFrame, aDirtyRect);
     }
@@ -2205,9 +2204,15 @@ nsCSSRendering::GetImageLayerClip(const nsStyleImageLayers::Layer& aLayer,
   nsRect clipBorderArea =
     ::BoxDecorationRectForBorder(aForFrame, aBorderArea, skipSides, &aBorder);
 
-  bool haveRoundedCorners = GetRadii(aForFrame, aBorder, aBorderArea,
-                                     clipBorderArea, aClipState->mRadii);
-
+  bool haveRoundedCorners = false;
+  LayoutFrameType fType = aForFrame->Type();
+  if (fType != LayoutFrameType::TableColGroup &&
+      fType != LayoutFrameType::TableCol &&
+      fType != LayoutFrameType::TableRow &&
+      fType != LayoutFrameType::TableRowGroup) {
+    haveRoundedCorners = GetRadii(aForFrame, aBorder, aBorderArea,
+                                  clipBorderArea, aClipState->mRadii);
+  }
   bool isSolidBorder =
       aWillPaintBorder && IsOpaqueBorder(aBorder);
   if (isSolidBorder && layerClip == StyleGeometryBox::BorderBox) {
@@ -2638,11 +2643,6 @@ nsCSSRendering::PaintStyleImageLayerWithSC(const PaintBGParams& aParams,
   // even if the image isn't.
   if (drawBackgroundColor && !isCanvasFrame) {
     DrawBackgroundColor(clipState, &aRenderingCtx, appUnitsPerPixel);
-  }
-
-  if (!drawBackgroundImage) {
-    return DrawResult::SUCCESS; // No need to draw layer image, we can early
-                                // return now.
   }
 
   // Compute the outermost boundary of the area that might be painted.
@@ -4293,13 +4293,16 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
 
   // Create the temporary surface for blurring
   dirtyRect = transform.TransformBounds(dirtyRect);
+  bool useHardwareAccel = !(aFlags & DISABLE_HARDWARE_ACCELERATION_BLUR);
   if (aSkipRect) {
     gfxRect skipRect = transform.TransformBounds(*aSkipRect);
     mContext = mAlphaBoxBlur.Init(aDestinationCtx, rect, spreadRadius,
-                                  blurRadius, &dirtyRect, &skipRect);
+                                  blurRadius, &dirtyRect, &skipRect,
+                                  useHardwareAccel);
   } else {
     mContext = mAlphaBoxBlur.Init(aDestinationCtx, rect, spreadRadius,
-                                  blurRadius, &dirtyRect, nullptr);
+                                  blurRadius, &dirtyRect, nullptr,
+                                  useHardwareAccel);
   }
 
   if (mContext) {

@@ -15,6 +15,13 @@ let editBookmarkPanelRemoveButtonRect;
 
 StarUI._closePanelQuickForTesting = true;
 
+add_task(async function setup() {
+  bookmarkPanel.setAttribute("animate", false);
+  registerCleanupFunction(() => {
+    bookmarkPanel.removeAttribute("animate");
+  });
+})
+
 async function test_bookmarks_popup({isNewBookmark, popupShowFn, popupEditFn,
                                 shouldAutoClose, popupHideFn, isBookmarkRemoved}) {
   await BrowserTestUtils.withNewTab({gBrowser, url: "about:home"}, async function(browser) {
@@ -330,7 +337,7 @@ add_task(async function bookmarks_menu_new_bookmark_remove_bookmark() {
     },
     shouldAutoClose: true,
     popupHideFn() {
-      document.getElementById("editBookmarkPanelRemoveButton").doCommand();
+      document.getElementById("editBookmarkPanelRemoveButton").click();
     },
     isBookmarkRemoved: true,
   });
@@ -382,7 +389,7 @@ add_task(async function mouse_hovering_panel_should_prevent_autoclose() {
   }
   await test_bookmarks_popup({
     isNewBookmark: true,
-    async popupShowFn(browser) {
+    async popupShowFn() {
       await new Promise(resolve => {
         EventUtils.synthesizeNativeMouseMove(
           document.documentElement,

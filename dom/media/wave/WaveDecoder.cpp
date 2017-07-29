@@ -22,7 +22,9 @@ WaveDecoder::Clone(MediaDecoderInit& aInit)
 MediaDecoderStateMachine*
 WaveDecoder::CreateStateMachine()
 {
-  MediaDecoderReaderInit init(this);
+  MediaFormatReaderInit init;
+  init.mCrashHelper = GetOwner()->CreateGMPCrashHelper();
+  init.mFrameStats = mFrameStats;
   mReader = new MediaFormatReader(init, new WAVDemuxer(mResource));
   return new MediaDecoderStateMachine(this, mReader);
 }

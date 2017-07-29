@@ -156,6 +156,11 @@ public:
 
   Performance* GetPerformance();
 
+  Performance* GetPerformanceIfExists() const
+  {
+    return mPerformance;
+  }
+
   already_AddRefed<Promise>
   Fetch(const RequestOrUSVString& aInput, const RequestInit& aInit,
         CallerType aCallerType, ErrorResult& aRv);
@@ -208,7 +213,7 @@ public:
   // Override DispatchTrait API to target the worker thread.  Dispatch may
   // return failure if the worker thread is not alive.
   nsresult
-  Dispatch(const char* aName, TaskCategory aCategory,
+  Dispatch(TaskCategory aCategory,
            already_AddRefed<nsIRunnable>&& aRunnable) override;
 
   nsISerialEventTarget*
@@ -421,7 +426,7 @@ public:
   // Override DispatchTrait API to target the worker thread.  Dispatch may
   // return failure if the worker thread is not alive.
   nsresult
-  Dispatch(const char* aName, TaskCategory aCategory,
+  Dispatch(TaskCategory aCategory,
            already_AddRefed<nsIRunnable>&& aRunnable) override;
 
   nsISerialEventTarget*

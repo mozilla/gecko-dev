@@ -252,7 +252,6 @@
                                        -> Result<(GridTemplateComponent,
                                                   GridTemplateComponent,
                                                   Either<TemplateAreas, None_>), ParseError<'i>> {
-
         // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
         // shorthand should know after these keywords there is nothing to parse. Otherwise it
         // gets confused and rejects the sub properties that contains `none` or `subgrid`.
@@ -278,34 +277,34 @@
             }
         % endfor
 
-        let first_line_names = input.try(parse_line_names).unwrap_or(vec![]);
-        if let Ok(s) = input.try(Parser::expect_string) {
+        let first_line_names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice());
+        if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
-            let mut names = first_line_names;
-            let mut string = s.into_owned().into_boxed_str();
+            let mut names = first_line_names.into_vec();
             loop {
-                line_names.push(names);
+                line_names.push(names.into_boxed_slice());
                 strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
-                values.push(Either::First(size));
-                names = input.try(parse_line_names).unwrap_or(vec![]);
+                values.push(size);
+                names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice()).into_vec();
                 if let Ok(v) = input.try(parse_line_names) {
-                    names.extend(v);
+                    names.extend(v.into_vec());
                 }
 
-                string = match input.try(Parser::expect_string) {
-                    Ok(s) => s.into_owned().into_boxed_str(),
+                string = match input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+                    Ok(s) => s,
                     _ => {      // only the named area determines whether we should bail out
-                        line_names.push(names);
+                        line_names.push(names.into_boxed_slice());
                         break
                     },
                 };
             }
 
             if line_names.len() == values.len() {
-                line_names.push(vec![]);        // should be one longer than track sizes
+                // should be one longer than track sizes
+                line_names.push(vec![].into_boxed_slice());
             }
 
             let template_areas = TemplateAreas::from_vec(strings)
@@ -313,7 +312,7 @@
             let template_rows = TrackList {
                 list_type: TrackListType::Normal,
                 values: values,
-                line_names: line_names,
+                line_names: line_names.into_boxed_slice(),
                 auto_repeat: None,
             };
 
@@ -372,10 +371,40 @@
                 template_columns.to_css(dest)
             },
             Either::First(ref areas) => {
+                // The length of template-area and template-rows values should be equal.
+                if areas.strings.len() != template_rows.track_list_len() {
+                    return Ok(());
+                }
+
                 let track_list = match *template_rows {
-                    GenericGridTemplateComponent::TrackList(ref list) => list,
-                    _ => unreachable!(),        // should exist!
+                    GenericGridTemplateComponent::TrackList(ref list) => {
+                        // We should fail if there is a `repeat` function. `grid` and
+                        // `grid-template` shorthands doesn't accept that. Only longhand accepts.
+                        if list.auto_repeat.is_some() {
+                            return Ok(());
+                        }
+                        list
+                    },
+                    // Others template components shouldn't exist with normal shorthand values.
+                    // But if we need to serialize a group of longhand sub-properties for
+                    // the shorthand, we should be able to return empty string instead of crashing.
+                    _ => return Ok(()),
                 };
+
+                // We need to check some values that longhand accepts but shorthands don't.
+                match *template_columns {
+                    // We should fail if there is a `repeat` function. `grid` and
+                    // `grid-template` shorthands doesn't accept that. Only longhand accepts that.
+                    GenericGridTemplateComponent::TrackList(ref list) if list.auto_repeat.is_some() => {
+                        return Ok(());
+                    },
+                    // Also the shorthands don't accept subgrids unlike longhand.
+                    // We should fail without an error here.
+                    GenericGridTemplateComponent::Subgrid(_) => {
+                        return Ok(());
+                    },
+                    _ => {},
+                }
 
                 let mut names_iter = track_list.line_names.iter();
                 for (((i, string), names), size) in areas.strings.iter().enumerate()
@@ -428,8 +457,8 @@
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
-    use values::generics::grid::GridTemplateComponent;
-    use values::specified::{LengthOrPercentage, TrackSize};
+    use values::generics::grid::{GridTemplateComponent, TrackListType};
+    use values::specified::{GenericGridTemplateComponent, LengthOrPercentage, TrackSize};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -495,11 +524,9 @@
         })
     }
 
-    /// Returns true if every sub property value of `grid` shorthand is initial.
     impl<'a> LonghandsToSerialize<'a> {
-        fn is_initial(&self) -> bool {
-            *self.grid_template_rows == GridTemplateComponent::None &&
-            *self.grid_template_columns == GridTemplateComponent::None &&
+        /// Returns true if other sub properties except template-{rows,columns} are initial.
+        fn is_grid_template(&self) -> bool {
             *self.grid_template_areas == Either::Second(None_) &&
             *self.grid_auto_rows == TrackSize::default() &&
             *self.grid_auto_columns == TrackSize::default() &&
@@ -509,16 +536,37 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            // `grid` shorthand resets these properties. If they are not zero, that means they
+            // are changed by longhands and in that case we should fail serializing `grid`.
+            if *self.grid_row_gap != LengthOrPercentage::zero() ||
+               *self.grid_column_gap != LengthOrPercentage::zero() {
+                return Ok(());
+            }
+
+
             if *self.grid_template_areas != Either::Second(None_) ||
                (*self.grid_template_rows != GridTemplateComponent::None &&
                    *self.grid_template_columns != GridTemplateComponent::None) ||
-               self.is_initial() {
+               self.is_grid_template() {
                 return super::grid_template::serialize_grid_template(self.grid_template_rows,
                                                                      self.grid_template_columns,
                                                                      self.grid_template_areas, dest);
             }
 
             if self.grid_auto_flow.autoflow == AutoFlow::Column {
+                // It should fail to serialize if other branch of the if condition's values are set.
+                if *self.grid_auto_rows != TrackSize::default() ||
+                   *self.grid_template_columns != GridTemplateComponent::None {
+                    return Ok(());
+                }
+
+                // It should fail to serialize if template-rows value is not Explicit.
+                if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_rows {
+                    if list.list_type != TrackListType::Explicit {
+                        return Ok(());
+                    }
+                }
+
                 self.grid_template_rows.to_css(dest)?;
                 dest.write_str(" / auto-flow")?;
                 if self.grid_auto_flow.dense {
@@ -530,6 +578,19 @@
                     self.grid_auto_columns.to_css(dest)?;
                 }
             } else {
+                // It should fail to serialize if other branch of the if condition's values are set.
+                if *self.grid_auto_columns != TrackSize::default() ||
+                   *self.grid_template_rows != GridTemplateComponent::None {
+                    return Ok(());
+                }
+
+                // It should fail to serialize if template-column value is not Explicit.
+                if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_columns {
+                    if list.list_type != TrackListType::Explicit {
+                        return Ok(());
+                    }
+                }
+
                 dest.write_str("auto-flow")?;
                 if self.grid_auto_flow.dense {
                     dest.write_str(" dense")?;

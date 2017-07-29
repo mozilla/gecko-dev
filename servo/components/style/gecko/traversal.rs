@@ -4,10 +4,8 @@
 
 //! Gecko-specific bits for the styling DOM traversal.
 
-use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, StyleContext};
-use data::ElementData;
-use dom::{NodeInfo, TNode};
+use dom::{TNode, TElement};
 use gecko::wrapper::{GeckoElement, GeckoNode};
 use traversal::{DomTraversal, PerLevelTraversalData, TraversalDriver, recalc_style_at};
 
@@ -29,15 +27,16 @@ impl<'a> RecalcStyleOnly<'a> {
 }
 
 impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> {
-    fn process_preorder(&self,
-                        traversal_data: &PerLevelTraversalData,
-                        context: &mut StyleContext<GeckoElement<'le>>,
-                        node: GeckoNode<'le>)
+    fn process_preorder<F>(&self,
+                           traversal_data: &PerLevelTraversalData,
+                           context: &mut StyleContext<GeckoElement<'le>>,
+                           node: GeckoNode<'le>,
+                           note_child: F)
+        where F: FnMut(GeckoNode<'le>),
     {
-        if node.is_element() {
-            let el = node.as_element().unwrap();
-            let mut data = unsafe { el.ensure_data() }.borrow_mut();
-            recalc_style_at(self, traversal_data, context, el, &mut data);
+        if let Some(el) = node.as_element() {
+            let mut data = unsafe { el.ensure_data() };
+            recalc_style_at(self, traversal_data, context, el, &mut data, note_child);
         }
     }
 
@@ -47,14 +46,6 @@ impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> 
 
     /// We don't use the post-order traversal for anything.
     fn needs_postorder_traversal() -> bool { false }
-
-    unsafe fn ensure_element_data<'a>(element: &'a GeckoElement<'le>) -> &'a AtomicRefCell<ElementData> {
-        element.ensure_data()
-    }
-
-    unsafe fn clear_element_data<'a>(element: &'a GeckoElement<'le>) {
-        element.clear_data()
-    }
 
     fn shared_context(&self) -> &SharedStyleContext {
         &self.shared

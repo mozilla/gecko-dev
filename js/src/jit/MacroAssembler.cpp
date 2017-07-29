@@ -438,7 +438,7 @@ MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src, const V
             bind(&isDouble);
             {
                 convertUInt32ToDouble(temp, ScratchDoubleReg);
-                boxDouble(ScratchDoubleReg, dest);
+                boxDouble(ScratchDoubleReg, dest, ScratchDoubleReg);
             }
             bind(&done);
         } else {
@@ -451,12 +451,12 @@ MacroAssembler::loadFromTypedArray(Scalar::Type arrayType, const T& src, const V
         loadFromTypedArray(arrayType, src, AnyRegister(ScratchFloat32Reg), dest.scratchReg(),
                            nullptr);
         convertFloat32ToDouble(ScratchFloat32Reg, ScratchDoubleReg);
-        boxDouble(ScratchDoubleReg, dest);
+        boxDouble(ScratchDoubleReg, dest, ScratchDoubleReg);
         break;
       case Scalar::Float64:
         loadFromTypedArray(arrayType, src, AnyRegister(ScratchDoubleReg), dest.scratchReg(),
                            nullptr);
-        boxDouble(ScratchDoubleReg, dest);
+        boxDouble(ScratchDoubleReg, dest, ScratchDoubleReg);
         break;
       default:
         MOZ_CRASH("Invalid typed array type");
@@ -960,8 +960,19 @@ MacroAssembler::copySlotsFromTemplate(Register obj, const NativeObject* template
                                       uint32_t start, uint32_t end)
 {
     uint32_t nfixed = Min(templateObj->numFixedSlotsForCompilation(), end);
-    for (unsigned i = start; i < nfixed; i++)
-        storeValue(templateObj->getFixedSlot(i), Address(obj, NativeObject::getFixedSlotOffset(i)));
+    for (unsigned i = start; i < nfixed; i++) {
+        // Template objects are not exposed to script and therefore immutable.
+        // However, regexp template objects are sometimes used directly (when
+        // the cloning is not observable), and therefore we can end up with a
+        // non-zero lastIndex. Detect this case here and just substitute 0, to
+        // avoid racing with the main thread updating this slot.
+        Value v;
+        if (templateObj->is<RegExpObject>() && i == RegExpObject::lastIndexSlot())
+            v = Int32Value(0);
+        else
+            v = templateObj->getFixedSlot(i);
+        storeValue(v, Address(obj, NativeObject::getFixedSlotOffset(i)));
+    }
 }
 
 void
@@ -986,7 +997,7 @@ MacroAssembler::fillSlotsWithConstantValue(Address base, Register temp,
     for (unsigned i = start; i < end; ++i, addr.offset += sizeof(GCPtrValue))
         store32(temp, ToType(addr));
 #else
-    moveValue(v, temp);
+    moveValue(v, ValueOperand(temp));
     for (uint32_t i = start; i < end; ++i, base.offset += sizeof(GCPtrValue))
         storePtr(temp, base);
 #endif
@@ -1917,7 +1928,7 @@ MacroAssembler::convertInt32ValueToDouble(ValueOperand val)
     branchTestInt32(Assembler::NotEqual, val, &done);
     unboxInt32(val, val.scratchReg());
     convertInt32ToDouble(val.scratchReg(), ScratchDoubleReg);
-    boxDouble(ScratchDoubleReg, val);
+    boxDouble(ScratchDoubleReg, val, ScratchDoubleReg);
     bind(&done);
 }
 

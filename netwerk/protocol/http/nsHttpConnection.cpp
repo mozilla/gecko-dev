@@ -144,6 +144,7 @@ nsHttpConnection::Init(nsHttpConnectionInfo *info,
 
     mConnectedTransport = connectedTransport;
     mConnInfo = info;
+    MOZ_DIAGNOSTIC_ASSERT(mConnInfo);
     mLastWriteTime = mLastReadTime = PR_IntervalNow();
     mRtt = rtt;
     mMaxHangTime = PR_SecondsToInterval(maxHangTime);
@@ -286,11 +287,11 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
     // pack them all into a new spdy session.
 
     nsTArray<RefPtr<nsAHttpTransaction> > list;
-    nsresult rv = NS_OK;
+    nsresult status = NS_OK;
     if (!mDid0RTTSpdy) {
-        rv = TryTakeSubTransactions(list);
+        status = TryTakeSubTransactions(list);
 
-        if (NS_FAILED(rv) && rv != NS_ERROR_NOT_IMPLEMENTED) {
+        if (NS_FAILED(status) && status != NS_ERROR_NOT_IMPLEMENTED) {
             return;
         }
     }
@@ -305,6 +306,7 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
         mProxyConnectInProgress = false;
     }
 
+    nsresult rv = NS_OK;
     bool spdyProxy = mConnInfo->UsingHttpsProxy() && !mTLSFilter;
     if (spdyProxy) {
         RefPtr<nsHttpConnectionInfo> wildCardProxyCi;
@@ -313,10 +315,11 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
         gHttpHandler->ConnMgr()->MoveToWildCardConnEntry(mConnInfo,
                                                          wildCardProxyCi, this);
         mConnInfo = wildCardProxyCi;
+        MOZ_DIAGNOSTIC_ASSERT(mConnInfo);
     }
 
     if (!mDid0RTTSpdy) {
-        rv = MoveTransactionsToSpdy(rv, list);
+        rv = MoveTransactionsToSpdy(status, list);
         if (NS_FAILED(rv)) {
             return;
         }
@@ -537,8 +540,15 @@ npnComplete:
     mNPNComplete = true;
 
     mTransaction->OnTransportStatus(mSocketTransport,
-                                    NS_NET_STATUS_TLS_HANDSHAKE_ENDED,
-                                    0);
+                                    NS_NET_STATUS_TLS_HANDSHAKE_ENDED, 0);
+
+    // this is happening after the bootstrap was originally written to. so update it.
+    if (mBootstrappedTimings.secureConnectionStart.IsNull() &&
+        !mBootstrappedTimings.connectEnd.IsNull()) {
+        mBootstrappedTimings.secureConnectionStart = mBootstrappedTimings.connectEnd;
+        mBootstrappedTimings.connectEnd = TimeStamp::Now();
+    }
+
     if (mWaitingFor0RTTResponse) {
         // Didn't get 0RTT OK, back out of the "attempting 0RTT" state
         mWaitingFor0RTTResponse = false;
@@ -582,8 +592,14 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     LOG(("nsHttpConnection::Activate [this=%p trans=%p caps=%x]\n",
          this, trans, caps));
 
-    if (!trans->IsNullTransaction() && !mFastOpen)
+    if (!mExperienced && !trans->IsNullTransaction() && !mFastOpen) {
         mExperienced = true;
+        nsHttpTransaction *hTrans = trans->QueryHttpTransaction();
+        if (hTrans) {
+            hTrans->BootstrapTimings(mBootstrappedTimings);
+        }
+        mBootstrappedTimings = TimingStruct();
+    }
 
     mTransactionCaps = caps;
     mPriority = pri;
@@ -1925,7 +1941,7 @@ nsHttpConnection::SetupSecondaryTLS()
     if (!ci) {
         ci = mConnInfo;
     }
-    MOZ_ASSERT(ci);
+    MOZ_DIAGNOSTIC_ASSERT(ci);
 
     mTLSFilter = new TLSFilterTransaction(mTransaction,
                                           ci->Origin(), ci->OriginPort(), this, this);
@@ -2375,6 +2391,12 @@ nsHttpConnection::SetFastOpen(bool aFastOpen)
         !mTransaction->IsNullTransaction()) {
         mExperienced = true;
     }
+}
+
+void
+nsHttpConnection::BootstrapTimings(TimingStruct times)
+{
+    mBootstrappedTimings = times;
 }
 
 } // namespace net

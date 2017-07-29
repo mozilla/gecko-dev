@@ -23,6 +23,7 @@ use selector_parser::{AttrValue, ElementExt, PreExistingComputedValues};
 use selector_parser::{PseudoClassStringArg, PseudoElement};
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use selectors::sink::Push;
+use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use smallvec::VecLike;
 use std::fmt;
@@ -30,9 +31,9 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylearc::Arc;
 use stylist::Stylist;
 use thread_state;
+use traversal_flags::TraversalFlags;
 
 pub use style_traits::UnsafeNode;
 
@@ -360,7 +361,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's style attribute.
-    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>;
 
     /// Unset the style attribute's dirty bit.
     /// Servo doesn't need to manage ditry bit for style attribute.
@@ -368,7 +369,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's SMIL override declarations.
-    fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+    fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
@@ -469,13 +470,29 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Flags this element as having handled already its snapshot.
     unsafe fn set_handled_snapshot(&self);
 
-    /// Returns whether the element's styles are up-to-date.
-    fn has_current_styles(&self, data: &ElementData) -> bool {
+    /// Returns whether the element's styles are up-to-date for |traversal_flags|.
+    fn has_current_styles_for_traversal(
+        &self,
+        data: &ElementData,
+        traversal_flags: TraversalFlags,
+    ) -> bool {
+        if traversal_flags.for_animation_only() {
+            // In animation-only restyle we never touch snapshots and don't
+            // care about them. But we can't assert '!self.handled_snapshot()'
+            // here since there are some cases that a second animation-only
+            // restyle which is a result of normal restyle (e.g. setting
+            // animation-name in normal restyle and creating a new CSS
+            // animation in a SequentialTask) is processed after the normal
+            // traversal in that we had elements that handled snapshot.
+            return data.has_styles() &&
+                   !data.restyle.hint.has_animation_hint_or_recascade();
+        }
+
         if self.has_snapshot() && !self.handled_snapshot() {
             return false;
         }
 
-        data.has_styles() && !data.has_invalidations()
+        data.has_styles() && !data.restyle.hint.has_non_animation_invalidations()
     }
 
     /// Flags an element and its ancestors with a given `DescendantsBit`.
@@ -526,6 +543,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     unsafe fn unset_animation_only_dirty_descendants(&self) {
     }
 
+    /// Returns true if this element is a visited link.
+    ///
+    /// Servo doesn't support visited styles yet.
+    fn is_visited_link(&self) -> bool { false }
+
     /// Returns true if this element is native anonymous (only Gecko has native
     /// anonymous content).
     fn is_native_anonymous(&self) -> bool { false }
@@ -549,6 +571,17 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Atomically notes that a child has been processed during bottom-up
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
+
+    /// Gets a reference to the ElementData container, or creates one.
+    ///
+    /// Unsafe because it can race to allocate and leak if not used with
+    /// exclusive access to the element.
+    unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData>;
+
+    /// Clears the element data reference, if any.
+    ///
+    /// Unsafe following the same reasoning as ensure_data.
+    unsafe fn clear_data(&self);
 
     /// Gets a reference to the ElementData container.
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>>;

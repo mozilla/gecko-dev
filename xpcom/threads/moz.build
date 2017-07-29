@@ -7,6 +7,7 @@
 XPIDL_SOURCES += [
     'nsIEnvironment.idl',
     'nsIEventTarget.idl',
+    'nsIHangDetails.idl',
     'nsIIdlePeriod.idl',
     'nsINamed.idl',
     'nsIProcess.idl',
@@ -47,6 +48,7 @@ EXPORTS.mozilla += [
     'Monitor.h',
     'MozPromise.h',
     'Mutex.h',
+    'RecursiveMutex.h',
     'ReentrantMonitor.h',
     'RWLock.h',
     'SchedulerGroup.h',
@@ -79,6 +81,7 @@ UNIFIED_SOURCES += [
     'nsThreadPool.cpp',
     'nsThreadUtils.cpp',
     'nsTimerImpl.cpp',
+    'RecursiveMutex.cpp',
     'RWLock.cpp',
     'SchedulerGroup.cpp',
     'SharedThreadPool.cpp',

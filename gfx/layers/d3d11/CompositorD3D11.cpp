@@ -67,9 +67,11 @@ CompositorD3D11::CompositorD3D11(CompositorBridgeParent* aParent, widget::Compos
   , mHwnd(nullptr)
   , mDisableSequenceForNextFrame(false)
   , mAllowPartialPresents(false)
-  , mVerifyBuffersFailed(false)
   , mIsDoubleBuffered(false)
+  , mVerifyBuffersFailed(false)
+  , mUseMutexOnPresent(false)
 {
+  mUseMutexOnPresent = gfxPrefs::UseMutexOnPresent();
 }
 
 CompositorD3D11::~CompositorD3D11()
@@ -1105,6 +1107,13 @@ CompositorD3D11::EndFrame()
     return;
   }
 
+  if (XRE_IsParentProcess() && mDevice->GetDeviceRemovedReason() != S_OK) {
+    gfxCriticalNote << "GFX: D3D11 skip EndFrame with device-removed.";
+    Compositor::EndFrame();
+    mCurrentRT = nullptr;
+    return;
+  }
+
   LayoutDeviceIntSize oldSize = mSize;
   EnsureSize();
   if (mSize.width <= 0 || mSize.height <= 0) {
@@ -1121,6 +1130,9 @@ CompositorD3D11::EndFrame()
 
   if (oldSize == mSize) {
     Present();
+    if (gfxPrefs::CompositorClearState()) {
+      mContext->ClearState();
+    }
   } else {
     mDiagnostics->Cancel();
   }
@@ -1165,6 +1177,12 @@ CompositorD3D11::Present()
   RefPtr<IDXGISwapChain1> chain;
   HRESULT hr = mSwapChain->QueryInterface((IDXGISwapChain1**)getter_AddRefs(chain));
 
+  RefPtr<IDXGIKeyedMutex> mutex;
+  if (mUseMutexOnPresent && mAttachments->mSyncTexture) {
+    mAttachments->mSyncTexture->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(mutex));
+    MOZ_ASSERT(mutex);
+  }
+
   if (SUCCEEDED(hr) && mAllowPartialPresents) {
     DXGI_PRESENT_PARAMETERS params;
     PodZero(&params);
@@ -1182,9 +1200,29 @@ CompositorD3D11::Present()
     }
 
     params.pDirtyRects = params.DirtyRectsCount ? rects.data() : nullptr;
+
+    if (mutex) {
+      hr = mutex->AcquireSync(0, 2000);
+      NS_ENSURE_TRUE_VOID(SUCCEEDED(hr));
+    }
+
     chain->Present1(presentInterval, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0, &params);
+
+    if (mutex) {
+      mutex->ReleaseSync(0);
+    }
   } else {
-    HRESULT hr = mSwapChain->Present(0, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0);
+    if (mutex) {
+      hr = mutex->AcquireSync(0, 2000);
+      NS_ENSURE_TRUE_VOID(SUCCEEDED(hr));
+    }
+
+    hr = mSwapChain->Present(0, mDisableSequenceForNextFrame ? DXGI_PRESENT_DO_NOT_SEQUENCE : 0);
+
+    if (mutex) {
+      mutex->ReleaseSync(0);
+    }
+
     if (FAILED(hr)) {
       gfxCriticalNote << "D3D11 swap chain preset failed " << hexa(hr);
       HandleError(hr);

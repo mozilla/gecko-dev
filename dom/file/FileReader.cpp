@@ -71,6 +71,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FileReader)
   NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
   NS_INTERFACE_MAP_ENTRY(nsIInputStreamCallback)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+  NS_INTERFACE_MAP_ENTRY(nsINamed)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(FileReader, DOMEventTargetHelper)
@@ -373,22 +374,30 @@ FileReader::ReadFileContent(Blob& aBlob,
   mDataFormat = aDataFormat;
   CopyUTF16toUTF8(aCharset, mCharset);
 
-  nsresult rv;
-  nsCOMPtr<nsIStreamTransportService> sts =
-    do_GetService(kStreamTransportServiceCID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
-    return;
-  }
-
   nsCOMPtr<nsIInputStream> stream;
   mBlob->GetInternalStream(getter_AddRefs(stream), aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
 
+  bool nonBlocking = false;
+  aRv = stream->IsNonBlocking(&nonBlocking);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
+
   mAsyncStream = do_QueryInterface(stream);
-  if (!mAsyncStream) {
+
+  // We want to have a non-blocking nsIAsyncInputStream.
+  if (!mAsyncStream || !nonBlocking) {
+    nsresult rv;
+    nsCOMPtr<nsIStreamTransportService> sts =
+      do_GetService(kStreamTransportServiceCID, &rv);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aRv.Throw(rv);
+      return;
+    }
+
     nsCOMPtr<nsITransport> transport;
     aRv = sts->CreateInputTransport(stream,
                                     /* aStartOffset */ 0,
@@ -673,6 +682,14 @@ FileReader::OnInputStreamReady(nsIAsyncInputStream* aStream)
     StartProgressEventTimer();
   }
 
+  return NS_OK;
+}
+
+// nsINamed
+NS_IMETHODIMP
+FileReader::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("FileReader");
   return NS_OK;
 }
 

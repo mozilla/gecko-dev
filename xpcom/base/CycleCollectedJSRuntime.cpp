@@ -108,7 +108,7 @@ struct DeferredFinalizeFunctionHolder
   void* data;
 };
 
-class IncrementalFinalizeRunnable : public Runnable
+class IncrementalFinalizeRunnable : public CancelableRunnable
 {
   typedef AutoTArray<DeferredFinalizeFunctionHolder, 16> DeferredFinalizeArray;
   typedef CycleCollectedJSRuntime::DeferredFinalizerTable DeferredFinalizerTable;
@@ -849,7 +849,8 @@ CycleCollectedJSRuntime::GCSliceCallback(JSContext* aContext,
     }
   }
 
-  if (aProgress == JS::GC_CYCLE_END) {
+  if (aProgress == JS::GC_CYCLE_END &&
+      JS::dbg::FireOnGarbageCollectionHookRequired(aContext)) {
     JS::gcreason::Reason reason = aDesc.reason_;
     Unused <<
       NS_WARN_IF(NS_FAILED(DebuggerOnGCRunnable::Enqueue(aContext, aDesc)) &&
@@ -1287,7 +1288,7 @@ CycleCollectedJSRuntime::DumpJSHeap(FILE* aFile)
 
 IncrementalFinalizeRunnable::IncrementalFinalizeRunnable(CycleCollectedJSRuntime* aRt,
                                                          DeferredFinalizerTable& aFinalizers)
-  : Runnable("IncrementalFinalizeRunnable")
+  : CancelableRunnable("IncrementalFinalizeRunnable")
   , mRuntime(aRt)
   , mFinalizeFunctionToRun(0)
   , mReleasing(false)

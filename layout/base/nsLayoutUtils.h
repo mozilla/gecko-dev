@@ -72,6 +72,7 @@ struct ContainerLayerParameters;
 class WritingMode;
 class DisplayItemClip;
 class EffectSet;
+struct ActiveScrolledRoot;
 namespace dom {
 class CanvasRenderingContext2D;
 class DOMRectList;
@@ -182,6 +183,12 @@ public:
    * Find content for given ID.
    */
   static nsIContent* FindContentFor(ViewID aId);
+
+  /**
+   * Find the view ID (or generate a new one) for the content element
+   * corresponding to the ASR.
+   */
+  static ViewID ViewIDForASR(const mozilla::ActiveScrolledRoot* aASR);
 
   /**
    * Find the scrollable frame for a given ID.
@@ -785,6 +792,9 @@ public:
                           nsView* aView, nsPoint aPt,
                           nsIWidget* aWidget);
 
+  static mozilla::LayoutDeviceIntPoint
+    WidgetToWidgetOffset(nsIWidget* aFromWidget, nsIWidget* aToWidget);
+
   enum FrameForPointFlags {
     /**
      * When set, paint suppression is ignored, so we'll return non-root page
@@ -1143,6 +1153,11 @@ public:
    * SVG frames return a single box, themselves.
    */
   static void GetAllInFlowBoxes(nsIFrame* aFrame, BoxCallback* aCallback);
+
+  /**
+   * Like GetAllInFlowBoxes, but doesn't include continuations.
+   */
+  static void AddBoxesForFrame(nsIFrame* aFrame, BoxCallback* aCallback);
 
   /**
    * Find the first frame descendant of aFrame (including aFrame) which is

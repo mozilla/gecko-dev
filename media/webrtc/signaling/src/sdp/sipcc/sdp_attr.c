@@ -1189,6 +1189,9 @@ sdp_result_e sdp_parse_attr_fmtp (sdp_t *sdp_p, sdp_attr_t *attr_p,
                     temp = PL_strtok_r(NULL, ",", &strtok_state);
                     iter++;
                 }
+            } else {
+              SDP_FREE(temp_ptr);
+              return SDP_INVALID_PARAMETER;
             }
 
             fmtp_p->fmtp_format = SDP_FMTP_CODEC_INFO;
@@ -1353,7 +1356,12 @@ sdp_result_e sdp_parse_attr_fmtp (sdp_t *sdp_p, sdp_attr_t *attr_p,
             }
           }
         }
-        fmtp_ptr++;
+        if (*fmtp_ptr == '\n') {
+          // reached end of line, stop parsing
+          done = TRUE;
+        } else {
+          fmtp_ptr++;
+        }
       } else {
           done = TRUE;
       }

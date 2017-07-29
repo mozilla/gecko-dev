@@ -53,10 +53,9 @@ bool
 WebRenderPaintedLayer::UpdateImageClient()
 {
   MOZ_ASSERT(WrManager()->GetPaintedLayerCallback());
-  LayerIntRegion visibleRegion = GetVisibleRegion();
-  LayerIntRect bounds = visibleRegion.GetBounds();
-  LayerIntSize size = bounds.Size();
-  IntSize imageSize(size.width, size.height);
+  nsIntRegion visibleRegion = GetVisibleRegion().ToUnknownRegion();
+  IntRect bounds = visibleRegion.GetBounds();
+  IntSize imageSize = bounds.Size();
 
   UpdateImageHelper helper(mImageContainer, mImageClient, imageSize);
 
@@ -74,7 +73,7 @@ WebRenderPaintedLayer::UpdateImageClient()
 
     WrManager()->GetPaintedLayerCallback()(this,
                                            ctx,
-                                           visibleRegion.ToUnknownRegion(), visibleRegion.ToUnknownRegion(),
+                                           visibleRegion, visibleRegion,
                                            DrawRegionClip::DRAW, nsIntRegion(), WrManager()->GetPaintedLayerCallbackData());
 
     if (gfxPrefs::WebRenderHighlightPaintedLayers()) {
@@ -100,11 +99,11 @@ WebRenderPaintedLayer::CreateWebRenderDisplayList(wr::DisplayListBuilder& aBuild
   LayerRect rect = Bounds();
   DumpLayerInfo("PaintedLayer", rect);
 
-  WrImageKey key = GetImageKey();
+  wr::WrImageKey key = GenerateImageKey();
   WrBridge()->AddWebRenderParentCommand(OpAddExternalImage(mExternalImageId.value(), key));
   WrManager()->AddImageKeyForDiscard(key);
 
-  WrRect r = sc.ToRelativeWrRect(rect);
+  wr::LayoutRect r = sc.ToRelativeLayoutRect(rect);
   aBuilder.PushImage(r, r, wr::ImageRendering::Auto, key);
 }
 
@@ -123,28 +122,69 @@ WebRenderPaintedLayer::RenderLayer(wr::DisplayListBuilder& aBuilder,
     return;
   }
 
-  nsIntRegion regionToPaint;
-  regionToPaint.Sub(mVisibleRegion.ToUnknownRegion(), GetValidRegion());
+  bool hasSomethingToPaint = true;
+  LayerIntRect visibleBounds = mVisibleRegion.GetBounds();
+  nsIntRegion visibleRegion = mVisibleRegion.ToUnknownRegion();
+  if (visibleBounds == mPaintedRect) {
+    // If the visible bounds haven't changed, there is a chance that the visible region
+    // might be entirely valid. If there is anything to paint, though, we'll repaint
+    // the entire visible region.
+    nsIntRegion regionToPaint = visibleRegion;
+    regionToPaint.SubOut(GetValidRegion());
+
+    if (regionToPaint.IsEmpty()) {
+      hasSomethingToPaint = false; // yay!
+    }
+  }
 
   // We have something to paint but can't. This usually happens only in
   // empty transactions
-  if (!regionToPaint.IsEmpty() && !WrManager()->GetPaintedLayerCallback()) {
+  if (hasSomethingToPaint && !WrManager()->GetPaintedLayerCallback()) {
     WrManager()->SetTransactionIncomplete();
     return;
   }
 
-  if (!regionToPaint.IsEmpty() && WrManager()->GetPaintedLayerCallback()) {
+  if (hasSomethingToPaint && WrManager()->GetPaintedLayerCallback()) {
+    // In UpdateImageClient we throw away the previous buffer and paint everything in
+    // a new one, which amounts to losing the valid region.
+    ClearValidRegion();
     if (!UpdateImageClient()) {
+      mPaintedRect = LayerIntRect();
       return;
     }
+    mPaintedRect = visibleBounds;
+    SetValidRegion(visibleRegion);
   } else {
     // We have an empty transaction, just reuse the old image we had before.
     MOZ_ASSERT(mExternalImageId);
     MOZ_ASSERT(mImageContainer->HasCurrentImage());
-    MOZ_ASSERT(GetInvalidRegion().IsEmpty());
   }
 
   CreateWebRenderDisplayList(aBuilder, aSc);
+}
+
+void
+WebRenderPaintedLayer::ClearCachedResources()
+{
+  ClearWrResources();
+  if (mImageClient) {
+    mImageClient->FlushAllImages();
+    mImageClient->ClearCachedResources();
+  }
+  if (mImageContainer) {
+    mImageContainer->ClearAllImages();
+    mImageContainer->ClearCachedResources();
+  }
+  ClearValidRegion();
+}
+
+void
+WebRenderPaintedLayer::ClearWrResources()
+{
+  if (mExternalImageId.isSome()) {
+    WrBridge()->DeallocExternalImageId(mExternalImageId.ref());
+    mExternalImageId = Nothing();
+  }
 }
 
 } // namespace layers

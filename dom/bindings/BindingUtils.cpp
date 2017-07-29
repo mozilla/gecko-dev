@@ -13,7 +13,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Unused.h"
 #include "mozilla/UseCounter.h"
 
@@ -685,7 +684,7 @@ DefineUnforgeableAttributes(JSContext* cx, JS::Handle<JSObject*> obj,
 // funToString ObjectOps member for interface objects.
 JSString*
 InterfaceObjectToString(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                        unsigned /* indent */)
+                        bool /* isToSource */)
 {
   const js::Class* clasp = js::GetObjectClass(aObject);
   MOZ_ASSERT(IsDOMIfaceAndProtoClass(clasp));
@@ -1741,7 +1740,7 @@ XrayResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
       return true;
     }
   } else if (type == eInterface) {
-    if (IdEquals(id, "prototype")) {
+    if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE)) {
       return nativePropertyHooks->mPrototypeID == prototypes::id::_ID_Count ||
              ResolvePrototypeOrConstructor(cx, wrapper, obj,
                                            nativePropertyHooks->mPrototypeID,
@@ -1771,7 +1770,7 @@ XrayResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
   } else {
     MOZ_ASSERT(IsInterfacePrototype(type));
 
-    if (IdEquals(id, "constructor")) {
+    if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_CONSTRUCTOR)) {
       return nativePropertyHooks->mConstructorID == constructors::id::_ID_Count ||
              ResolvePrototypeOrConstructor(cx, wrapper, obj,
                                            nativePropertyHooks->mConstructorID,
@@ -2742,7 +2741,7 @@ ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
       // 20 digits, plus one more for the null terminator.
       char index[21];
       static_assert(sizeof(size_t) <= 8, "index array too small");
-      SprintfLiteral(index, "%" PRIuSIZE, badCharIndex);
+      SprintfLiteral(index, "%zu", badCharIndex);
       // A char16_t is 16 bits long.  The biggest unsigned 16 bit
       // number (65,535) has 5 digits, plus one more for the null
       // terminator.

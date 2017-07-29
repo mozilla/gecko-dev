@@ -78,6 +78,8 @@ browser/extensions/activity-stream/vendor/**
 browser/locales/**
 # imported from chromium
 browser/extensions/mortar/**
+# Generated data files
+browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.jsm
 
 # devtools/ exclusions
 devtools/client/canvasdebugger/**
@@ -297,8 +299,9 @@ services/sync/services-sync.js
 testing/marionette/test_*.js
 testing/marionette/atom.js
 testing/marionette/legacyaction.js
-testing/marionette/client/**
-testing/marionette/harness/**
+testing/marionette/client
+testing/marionette/doc
+testing/marionette/harness
 
 # other testing/ exclusions
 testing/mochitest/**

@@ -264,11 +264,11 @@ Wrapper::className(JSContext* cx, HandleObject proxy) const
 }
 
 JSString*
-Wrapper::fun_toString(JSContext* cx, HandleObject proxy, unsigned indent) const
+Wrapper::fun_toString(JSContext* cx, HandleObject proxy, bool isToSource) const
 {
     assertEnteredPolicy(cx, proxy, JSID_VOID, GET);
     RootedObject target(cx, proxy->as<ProxyObject>().target());
-    return fun_toStringHelper(cx, target, indent);
+    return fun_toStringHelper(cx, target, isToSource);
 }
 
 RegExpShared*
@@ -341,9 +341,9 @@ Wrapper::wrappedObject(JSObject* wrapper)
     // of black wrappers black but while it is in progress we can observe gray
     // targets. Expose rather than returning a gray object in this case.
     if (target) {
-        if (wrapper->isMarked(gc::BLACK) && !wrapper->isMarked(gc::GRAY))
+        if (wrapper->isMarkedBlack())
             MOZ_ASSERT(JS::ObjectIsNotGray(target));
-        if (!wrapper->isMarked(gc::GRAY))
+        if (!wrapper->isMarkedGray())
             JS::ExposeObjectToActiveJS(target);
     }
 

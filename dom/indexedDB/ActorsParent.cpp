@@ -7,6 +7,7 @@
 #include "ActorsParent.h"
 
 #include <algorithm>
+#include <stdint.h> // UINTPTR_MAX, uintptr_t
 #include "FileInfo.h"
 #include "FileManager.h"
 #include "IDBObjectStore.h"
@@ -28,7 +29,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/SnappyCompressOutputStream.h"
 #include "mozilla/SnappyUncompressInputStream.h"
 #include "mozilla/StaticPtr.h"
@@ -124,7 +124,7 @@
          LogLevel::Debug,                                                         \
          _args )
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
 #define IDB_MOBILE
 #endif
 
@@ -854,6 +854,11 @@ ReadCompressedIndexDataValuesFromBlob(const uint8_t* aBlobData,
 
   AUTO_PROFILER_LABEL("ReadCompressedIndexDataValuesFromBlob", STORAGE);
 
+  if (uintptr_t(aBlobData) > UINTPTR_MAX - aBlobDataLength) {
+    IDB_REPORT_INTERNAL_ERR();
+    return NS_ERROR_FILE_CORRUPTED;
+  }
+
   const uint8_t* blobDataIter = aBlobData;
   const uint8_t* blobDataEnd = aBlobData + aBlobDataLength;
 
@@ -873,7 +878,8 @@ ReadCompressedIndexDataValuesFromBlob(const uint8_t* aBlobData,
 
     if (NS_WARN_IF(blobDataIter == blobDataEnd) ||
         NS_WARN_IF(keyBufferLength > uint64_t(UINT32_MAX)) ||
-        NS_WARN_IF(blobDataIter + keyBufferLength > blobDataEnd)) {
+        NS_WARN_IF(keyBufferLength > uintptr_t(blobDataEnd)) ||
+        NS_WARN_IF(blobDataIter > blobDataEnd - keyBufferLength)) {
       IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_FILE_CORRUPTED;
     }
@@ -891,7 +897,8 @@ ReadCompressedIndexDataValuesFromBlob(const uint8_t* aBlobData,
     if (sortKeyBufferLength > 0) {
       if (NS_WARN_IF(blobDataIter == blobDataEnd) ||
           NS_WARN_IF(sortKeyBufferLength > uint64_t(UINT32_MAX)) ||
-          NS_WARN_IF(blobDataIter + sortKeyBufferLength > blobDataEnd)) {
+          NS_WARN_IF(sortKeyBufferLength > uintptr_t(blobDataEnd)) ||
+          NS_WARN_IF(blobDataIter > blobDataEnd - sortKeyBufferLength)) {
         IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_FILE_CORRUPTED;
       }
@@ -4413,7 +4420,7 @@ struct StorageOpenTraits<nsIFile*>
     nsString path;
     MOZ_ALWAYS_SUCCEEDS(aFile->GetPath(path));
 
-    aPath.AssignWithConversion(path);
+    LossyCopyUTF16toASCII(path, aPath);
   }
 #endif
 };
@@ -9876,15 +9883,13 @@ CheckWasmModule(FileHelper* aFileHelper,
     return NS_ERROR_FAILURE;
   }
 
-  size_t compiledSize;
-  module->serializedSize(nullptr, &compiledSize);
-
+  size_t compiledSize = module->compiledSerializedSize();
   UniquePtr<uint8_t[]> compiled(new (fallible) uint8_t[compiledSize]);
   if (NS_WARN_IF(!compiled)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  module->serialize(nullptr, 0, compiled.get(), compiledSize);
+  module->compiledSerialize(compiled.get(), compiledSize);
 
   nsCOMPtr<nsIInputStream> inputStream;
   rv = NS_NewByteInputStream(getter_AddRefs(inputStream),
@@ -22196,7 +22201,7 @@ OpenDatabaseOp::UpdateLocaleAwareIndex(mozIStorageConnection* aConnection,
   }
 
   nsString locale;
-  locale.AssignWithConversion(aLocale);
+  CopyASCIItoUTF16(aLocale, locale);
   rv = metaStmt->BindStringByName(NS_LITERAL_CSTRING("locale"), locale);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;

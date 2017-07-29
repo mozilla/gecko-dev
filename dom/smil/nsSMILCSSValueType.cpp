@@ -412,7 +412,7 @@ AddOrAccumulate(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   // hopefully become obsolete before we expand that set.
   return StyleAnimationValue::Add(property,
                                   destWrapper->mGeckoValue,
-                                  valueToAddWrapper->mGeckoValue, aCount);
+                                  *valueToAdd, aCount);
 }
 
 nsresult
@@ -640,7 +640,7 @@ static bool
 ValueFromStringHelper(nsCSSPropertyID aPropID,
                       Element* aTargetElement,
                       nsPresContext* aPresContext,
-                      nsStyleContext* aStyleContext,
+                      mozilla::GeckoStyleContext* aStyleContext,
                       const nsAString& aString,
                       StyleAnimationValue& aStyleAnimValue,
                       bool* aIsContextSensitive)
@@ -700,14 +700,10 @@ ValueFromStringHelper(nsCSSPropertyID aPropID,
     return result;
   }
 
-  // Get a suitable style context for Servo
-  const ServoComputedValues* currentStyle =
-    aStyleContext->ComputedValues();
-
   // Compute value
   aPresContext->StyleSet()->AsServo()->GetAnimationValues(servoDeclarationBlock,
                                                           aTargetElement,
-                                                          currentStyle,
+                                                          aStyleContext->AsServo(),
                                                           result);
   if (result.IsEmpty()) {
     return result;
@@ -755,7 +751,7 @@ nsSMILCSSValueType::ValueFromString(nsCSSPropertyID aPropID,
     return;
   }
 
-  if (aTargetElement->IsStyledByServo()) {
+  if (styleContext->IsServo()) {
     ServoAnimationValues parsedValues =
       ValueFromStringHelper(aPropID, aTargetElement, presContext,
                             styleContext, aString);
@@ -773,8 +769,9 @@ nsSMILCSSValueType::ValueFromString(nsCSSPropertyID aPropID,
   }
 
   StyleAnimationValue parsedValue;
-  if (ValueFromStringHelper(aPropID, aTargetElement, presContext, styleContext,
-                            aString, parsedValue, aIsContextSensitive)) {
+  if (ValueFromStringHelper(aPropID, aTargetElement, presContext,
+                            styleContext->AsGecko(), aString, parsedValue,
+                            aIsContextSensitive)) {
     sSingleton.Init(aValue);
     aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue);
   }

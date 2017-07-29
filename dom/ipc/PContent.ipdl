@@ -608,6 +608,8 @@ child:
     async SetPluginList(uint32_t pluginEpoch, PluginTag[] plugins, FakePluginTag[] fakePlugins);
 
     async ShareCodeCoverageMutex(CrossProcessMutexHandle handle);
+    async DumpCodeCoverageCounters();
+    async ResetCodeCoverageCounters();
 
 parent:
     async InitBackground(Endpoint<PBackgroundParent> aEndpoint);
@@ -638,11 +640,6 @@ parent:
      */
     sync ConnectPluginBridge(uint32_t aPluginId)
         returns (nsresult rv, Endpoint<PPluginModuleParent> aEndpoint);
-
-    /**
-     * Return the current blocklist state for a particular plugin.
-     */
-    sync GetBlocklistState(uint32_t aPluginId) returns (uint32_t aState);
 
     async PJavaScript();
 
@@ -706,9 +703,7 @@ parent:
 
     async PHeapSnapshotTempFileHelper();
 
-    // Giving high priority to prevent other messages sending before this one.
-    // See bug 1360549 for details.
-    prio(high) async PNecko();
+    async PNecko();
 
     async PPrinting();
 

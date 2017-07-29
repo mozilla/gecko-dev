@@ -1063,7 +1063,13 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
     nsIDocShell *docShell = window->GetDocShell();
     NS_ENSURE_TRUE(docShell, NS_ERROR_UNEXPECTED);
 
-    docShell->GetRestoringDocument(&restoring);
+    // Unfortunately, docShell->GetRestoringDocument() might no longer be set
+    // correctly.  In particular, it can be false by now if someone took it upon
+    // themselves to block onload from inside restoration and unblock it later.
+    // But we can detect the restoring case very simply: by whether our
+    // document's readyState is COMPLETE.
+    restoring = (mDocument->GetReadyStateEnum() ==
+                 nsIDocument::READYSTATE_COMPLETE);
     if (!restoring) {
       NS_ASSERTION(mDocument->IsXULDocument() || // readyState for XUL is bogus
                    mDocument->GetReadyStateEnum() ==
@@ -1074,6 +1080,13 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
                       nsIDocument::READYSTATE_UNINITIALIZED &&
                     NS_IsAboutBlank(mDocument->GetDocumentURI())),
                    "Bad readystate");
+#ifdef DEBUG
+      bool docShellThinksWeAreRestoring;
+      docShell->GetRestoringDocument(&docShellThinksWeAreRestoring);
+      MOZ_ASSERT(!docShellThinksWeAreRestoring,
+                 "How can docshell think we are restoring if we don't have a "
+                 "READYSTATE_COMPLETE document?");
+#endif // DEBUG
       nsCOMPtr<nsIDocument> d = mDocument;
       mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
 
@@ -2236,9 +2249,7 @@ nsDocumentViewer::Show(void)
   // from the event loop after we actually draw the page.
   RefPtr<nsDocumentShownDispatcher> event =
     new nsDocumentShownDispatcher(document);
-  document->Dispatch("nsDocumentShownDispatcher",
-                      TaskCategory::Other,
-                      event.forget());
+  document->Dispatch(TaskCategory::Other, event.forget());
 
   return NS_OK;
 }
@@ -3091,6 +3102,7 @@ nsDocumentViewer::SetTextZoom(float aTextZoom)
     return NS_OK;
   }
 
+  bool textZoomChange = (mTextZoom != aTextZoom);
   mTextZoom = aTextZoom;
 
   // Set the text zoom on all children of mContainer (even if our zoom didn't
@@ -3109,9 +3121,12 @@ nsDocumentViewer::SetTextZoom(float aTextZoom)
   // And do the external resources
   mDocument->EnumerateExternalResources(SetExtResourceTextZoom, &ZoomInfo);
 
-  nsContentUtils::DispatchChromeEvent(mDocument, static_cast<nsIDocument*>(mDocument),
-                                      NS_LITERAL_STRING("TextZoomChange"),
-                                      true, true);
+  // Dispatch TextZoomChange event only if text zoom value has changed.
+  if (textZoomChange) {
+    nsContentUtils::DispatchChromeEvent(mDocument, static_cast<nsIDocument*>(mDocument),
+                                        NS_LITERAL_STRING("TextZoomChange"),
+                                        true, true);
+  }
 
   return NS_OK;
 }
@@ -4003,36 +4018,40 @@ nsDocumentViewer::Print(nsIPrintSettings*       aPrintSettings,
   if (pDoc)
     return pDoc->Print();
 
-  if (!mPrintEngine) {
+  // Our call to nsPrintEngine::Print() may cause mPrintEngine to be
+  // Release()'d in Destroy().  Therefore, we need to grab the instance with
+  // a local variable, so that it won't be deleted during its own method.
+  RefPtr<nsPrintEngine> printEngine = mPrintEngine;
+  if (!printEngine) {
     NS_ENSURE_STATE(mDeviceContext);
-    mPrintEngine = new nsPrintEngine();
+    printEngine = new nsPrintEngine();
 
-    rv = mPrintEngine->Initialize(this, mContainer, mDocument,
-                                  float(mDeviceContext->AppUnitsPerCSSInch()) /
-                                  float(mDeviceContext->AppUnitsPerDevPixel()) /
-                                  mPageZoom,
+    rv = printEngine->Initialize(this, mContainer, mDocument,
+                                 float(mDeviceContext->AppUnitsPerCSSInch()) /
+                                 float(mDeviceContext->AppUnitsPerDevPixel()) /
+                                 mPageZoom,
 #ifdef DEBUG
-                                  mDebugFile
+                                 mDebugFile
 #else
-                                  nullptr
+                                 nullptr
 #endif
-                                  );
+                                 );
     if (NS_FAILED(rv)) {
-      mPrintEngine->Destroy();
-      mPrintEngine = nullptr;
+      printEngine->Destroy();
       return rv;
     }
+    mPrintEngine = printEngine;
   }
-  if (mPrintEngine->HasPrintCallbackCanvas()) {
+  if (printEngine->HasPrintCallbackCanvas()) {
     // Postpone the 'afterprint' event until after the mozPrintCallback
     // callbacks have been called:
     mAutoBeforeAndAfterPrint = autoBeforeAndAfterPrint;
   }
   dom::Element* root = mDocument->GetRootElement();
   if (root && root->HasAttr(kNameSpaceID_None, nsGkAtoms::mozdisallowselectionprint)) {
-    mPrintEngine->SetDisallowSelectionPrint(true);
+    printEngine->SetDisallowSelectionPrint(true);
   }
-  rv = mPrintEngine->Print(aPrintSettings, aWebProgressListener);
+  rv = printEngine->Print(aPrintSettings, aWebProgressListener);
   if (NS_FAILED(rv)) {
     OnDonePrinting();
   }
@@ -4093,27 +4112,32 @@ nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
   // beforeprint event may have caused ContentViewer to be shutdown.
   NS_ENSURE_STATE(mContainer);
   NS_ENSURE_STATE(mDeviceContext);
-  if (!mPrintEngine) {
-    mPrintEngine = new nsPrintEngine();
 
-    rv = mPrintEngine->Initialize(this, mContainer, doc,
-                                  float(mDeviceContext->AppUnitsPerCSSInch()) /
-                                  float(mDeviceContext->AppUnitsPerDevPixel()) /
-                                  mPageZoom,
+  // Our call to nsPrintEngine::PrintPreview() may cause mPrintEngine to be
+  // Release()'d in Destroy().  Therefore, we need to grab the instance with
+  // a local variable, so that it won't be deleted during its own method.
+  RefPtr<nsPrintEngine> printEngine = mPrintEngine;
+  if (!printEngine) {
+    printEngine = new nsPrintEngine();
+
+    rv = printEngine->Initialize(this, mContainer, doc,
+                                 float(mDeviceContext->AppUnitsPerCSSInch()) /
+                                 float(mDeviceContext->AppUnitsPerDevPixel()) /
+                                 mPageZoom,
 #ifdef DEBUG
-                                  mDebugFile
+                                 mDebugFile
 #else
-                                  nullptr
+                                 nullptr
 #endif
-                                  );
+                                 );
     if (NS_FAILED(rv)) {
-      mPrintEngine->Destroy();
-      mPrintEngine = nullptr;
+      printEngine->Destroy();
       return rv;
     }
+    mPrintEngine = printEngine;
   }
   if (autoBeforeAndAfterPrint &&
-      mPrintEngine->HasPrintCallbackCanvas()) {
+      printEngine->HasPrintCallbackCanvas()) {
     // Postpone the 'afterprint' event until after the mozPrintCallback
     // callbacks have been called:
     mAutoBeforeAndAfterPrint = autoBeforeAndAfterPrint;
@@ -4121,9 +4145,10 @@ nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
   dom::Element* root = doc->GetRootElement();
   if (root && root->HasAttr(kNameSpaceID_None, nsGkAtoms::mozdisallowselectionprint)) {
     PR_PL(("PrintPreview: found mozdisallowselectionprint"));
-    mPrintEngine->SetDisallowSelectionPrint(true);
+    printEngine->SetDisallowSelectionPrint(true);
   }
-  rv = mPrintEngine->PrintPreview(aPrintSettings, aChildDOMWin, aWebProgressListener);
+  rv = printEngine->PrintPreview(aPrintSettings, aChildDOMWin,
+                                 aWebProgressListener);
   mPrintPreviewZoomed = false;
   if (NS_FAILED(rv)) {
     OnDonePrinting();
@@ -4638,6 +4663,10 @@ nsDocumentViewer::OnDonePrinting()
 {
 #if defined(NS_PRINTING) && defined(NS_PRINT_PREVIEW)
   SetPrintRelated();
+  // If Destroy() has been called during calling nsPrintEngine::Print() or
+  // nsPrintEngine::PrintPreview(), mPrintEngine is already nullptr here.
+  // So, the following clean up does nothing in such case.
+  // (Do we need some of this for that case?)
   if (mPrintEngine) {
     RefPtr<nsPrintEngine> pe = mPrintEngine;
     if (GetIsPrintPreview()) {

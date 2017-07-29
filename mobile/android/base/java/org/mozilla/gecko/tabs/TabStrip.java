@@ -24,6 +24,7 @@ import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.widget.themed.ThemedImageButton;
 import org.mozilla.gecko.widget.themed.ThemedLinearLayout;
 
+
 public class TabStrip extends ThemedLinearLayout
                       implements TabStripInterface {
     private static final String LOGTAG = "GeckoTabStrip";

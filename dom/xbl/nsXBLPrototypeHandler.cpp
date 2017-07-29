@@ -158,8 +158,8 @@ nsXBLPrototypeHandler::TryConvertToKeyboardShortcut(
   }
 
   // Convert the modifiers
-  Modifiers modifiersMask = GetModifiers();
-  Modifiers modifiers = GetModifiersMask();
+  Modifiers modifiersMask = GetModifiersMask();
+  Modifiers modifiers = GetModifiers();
 
   // Mask away any bits that won't be compared
   modifiers &= modifiersMask;
@@ -772,7 +772,7 @@ static const keyCodeData gKeyCodes[] = {
 int32_t nsXBLPrototypeHandler::GetMatchingKeyCode(const nsAString& aKeyName)
 {
   nsAutoCString keyName;
-  keyName.AssignWithConversion(aKeyName);
+  LossyCopyUTF16toASCII(aKeyName, keyName);
   ToUpperCase(keyName); // We want case-insensitive comparison with data
                         // stored as uppercase.
 

@@ -163,6 +163,13 @@ function initialize(event) {
     gDragDrop.onDrop(event);
   });
   addonPage.addEventListener("keypress", function(event) {
+    // If there is an embedded preferences <browser> running in a remote
+    // process, we will see the event here first before it gets a chance
+    // to bubble up through the embedded page.  To avoid stealing focus,
+    // we just ignore events when focus is in an options browser.
+    if (event.target.classList.contains("inline-options-browser")) {
+      return;
+    }
     gHeader.onKeyPress(event);
   });
 
@@ -269,6 +276,10 @@ function isLegacyExtension(addon) {
     legacy = false;
   }
   return legacy;
+}
+
+function isDisabledLegacy(addon) {
+  return !legacyExtensionsEnabled && isLegacyExtension(addon);
 }
 
 function isDiscoverEnabled() {
@@ -2783,12 +2794,17 @@ var gLegacyView = {
   async show(type, request) {
     let addons = await AddonManager.getAddonsByTypes(["extension"]);
     addons = addons.filter(a => !a.hidden &&
-                              (isLegacyExtension(a) || isDisabledUnsigned(a)));
+                              (isDisabledLegacy(a) || isDisabledUnsigned(a)));
 
     while (this._listBox.itemCount > 0)
       this._listBox.removeItemAt(0);
 
     let elements = addons.map(a => createItem(a));
+    if (elements.length == 0) {
+      gViewController.loadView("addons://list/extension");
+      return;
+    }
+
     sortElements(elements, ["uiState", "name"], true);
     for (let element of elements) {
       this._listBox.appendChild(element);
@@ -3137,8 +3153,11 @@ var gDetailView = {
 
     // If the search category isn't selected then make sure to select the
     // correct category
-    if (gCategories.selected != "addons://search/")
-      gCategories.select("addons://list/" + aAddon.type);
+    if (gCategories.selected != "addons://search/") {
+      let category = (isDisabledLegacy(aAddon) || isDisabledUnsigned(aAddon)) ?
+                     "addons://legacy" : `addons://list/${aAddon.type}`;
+      gCategories.select(category);
+    }
 
     document.getElementById("detail-name").textContent = aAddon.name;
     var icon = AddonManager.getPreferredIconURL(aAddon, 64, window);
@@ -3714,6 +3733,7 @@ var gDetailView = {
     browser.setAttribute("id", "addon-options");
     browser.setAttribute("class", "inline-options-browser");
     browser.setAttribute("forcemessagemanager", "true");
+    browser.setAttribute("selectmenulist", "ContentSelectDropdown");
 
     let {optionsURL} = this._addon;
     let remote = !E10SUtils.canLoadURIInProcess(optionsURL, Services.appinfo.PROCESS_TYPE_DEFAULT);

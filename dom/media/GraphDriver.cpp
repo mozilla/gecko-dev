@@ -163,15 +163,12 @@ private:
 ThreadedDriver::~ThreadedDriver()
 {
   if (mThread) {
-    if (NS_IsMainThread()) {
-      mThread->Shutdown();
-    } else {
-      nsCOMPtr<nsIRunnable> event =
-        new MediaStreamGraphShutdownThreadRunnable(mThread.forget());
-      NS_DispatchToMainThread(event);
-    }
+    nsCOMPtr<nsIRunnable> event =
+      new MediaStreamGraphShutdownThreadRunnable(mThread.forget());
+    GraphImpl()->Dispatch(event.forget());
   }
 }
+
 class MediaStreamGraphInitThreadRunnable : public Runnable {
 public:
   explicit MediaStreamGraphInitThreadRunnable(ThreadedDriver* aDriver)
@@ -497,10 +494,11 @@ AsyncCubebTask::EnsureThread()
     // since we don't know the order that the shutdown-threads observers
     // will run.  ClearOnShutdown guarantees it runs first.
     if (!NS_IsMainThread()) {
-      NS_DispatchToMainThread(
+      nsCOMPtr<nsIRunnable> runnable =
         NS_NewRunnableFunction("AsyncCubebTask::EnsureThread", []() -> void {
           ClearOnShutdown(&sThreadPool, ShutdownPhase::ShutdownThreads);
-        }));
+        });
+      AbstractThread::MainThread()->Dispatch(runnable.forget());
     } else {
       ClearOnShutdown(&sThreadPool, ShutdownPhase::ShutdownThreads);
     }
@@ -657,7 +655,7 @@ AudioCallbackDriver::Init()
   if (latencyPref) {
     latency_frames = latencyPref.value();
   } else {
-    if (cubeb_get_min_latency(cubebContext, output, &latency_frames) != CUBEB_OK) {
+    if (cubeb_get_min_latency(cubebContext, &output, &latency_frames) != CUBEB_OK) {
       NS_WARNING("Could not get minimal latency from cubeb.");
     }
   }

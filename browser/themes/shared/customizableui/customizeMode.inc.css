@@ -457,14 +457,14 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
   padding: 5px 10px;
 }
 
-.customization-uidensity-menu-button > .menu-iconic-left > .menu-iconic-icon,
+.customization-uidensity-menuitem > .menu-iconic-left > .menu-iconic-icon,
 .customization-lwtheme-menu-theme > .toolbarbutton-icon {
   width: 32px;
   height: 32px;
   margin: 5px;
 }
 
-.customization-uidensity-menu-button,
+.customization-uidensity-menuitem,
 .customization-lwtheme-menu-theme {
   -moz-appearance: none;
   border: 1px solid transparent;
@@ -475,40 +475,44 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
   padding-inline-start: 0;
 }
 
+.customization-uidensity-menuitem {
+  color: inherit;
+}
+
 .customization-lwtheme-menu-theme[defaulttheme] {
   list-style-image: url(chrome://browser/content/default-theme-icon.svg);
 }
 
 %ifdef MOZ_PHOTON_THEME
-#customization-uidensity-menu-button-normal {
+#customization-uidensity-menuitem-normal {
   list-style-image: url("chrome://browser/skin/customizableui/density-normal.svg");
 }
 
-#customization-uidensity-menu-button-compact {
+#customization-uidensity-menuitem-compact {
   list-style-image: url("chrome://browser/skin/customizableui/density-compact.svg");
 }
 
-#customization-uidensity-menu-button-touch {
+#customization-uidensity-menuitem-touch {
   list-style-image: url("chrome://browser/skin/customizableui/density-touch.svg");
 }
 %endif
 
-.customization-uidensity-menu-button[active="true"],
-.customization-uidensity-menu-button:hover,
+.customization-uidensity-menuitem[active="true"],
+.customization-uidensity-menuitem:hover,
 .customization-lwtheme-menu-theme[active="true"],
 .customization-lwtheme-menu-theme:hover {
   background-color: var(--arrowpanel-dimmed);
   border-color: var(--panel-separator-color);
 }
 
-.customization-uidensity-menu-button[active="true"],
-.customization-uidensity-menu-button:hover:active,
+.customization-uidensity-menuitem[active="true"],
+.customization-uidensity-menuitem:hover:active,
 .customization-lwtheme-menu-theme[active="true"],
 .customization-lwtheme-menu-theme:hover:active {
   background-color: var(--arrowpanel-dimmed-further);
 }
 
-.customization-uidensity-menu-button > .menu-iconic-text,
+.customization-uidensity-menuitem > .menu-iconic-text,
 .customization-lwtheme-menu-theme > .toolbarbutton-text {
   text-align: start;
 }
@@ -576,9 +580,7 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
 #customization-panelWrapper > .panel-arrowbox {
   position: relative;
   height: 10px;
-%ifndef XP_MACOSX
-  margin-bottom: 2px;
-%endif
+  margin-bottom: -1px;
 }
 
 #customization-panelWrapper > .panel-arrowbox > .panel-arrow[side="top"] {
@@ -610,6 +612,7 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
    * 10px.
    */
   margin-inline-end: calc(4px + 3 * var(--toolbarbutton-inner-padding));
+  vertical-align: top;
 }
 
 %ifdef XP_MACOSX

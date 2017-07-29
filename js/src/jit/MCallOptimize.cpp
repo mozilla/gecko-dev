@@ -12,6 +12,7 @@
 
 #include "builtin/AtomicsObject.h"
 #include "builtin/Intl.h"
+#include "builtin/MapObject.h"
 #include "builtin/SIMD.h"
 #include "builtin/TestingFunctions.h"
 #include "builtin/TypedObject.h"
@@ -311,12 +312,18 @@ IonBuilder::inlineNativeCall(CallInfo& callInfo, JSFunction* target)
         return inlineObjectHasPrototype(callInfo);
       case InlinableNative::IntrinsicFinishBoundFunctionInit:
         return inlineFinishBoundFunctionInit(callInfo);
+      case InlinableNative::IntrinsicIsPackedArray:
+        return inlineIsPackedArray(callInfo);
 
       // Map intrinsics.
+      case InlinableNative::IntrinsicIsMapObject:
+        return inlineHasClass(callInfo, &MapObject::class_);
       case InlinableNative::IntrinsicGetNextMapEntryForIterator:
         return inlineGetNextEntryForIterator(callInfo, MGetNextEntryForIterator::Map);
 
       // Set intrinsics.
+      case InlinableNative::IntrinsicIsSetObject:
+        return inlineHasClass(callInfo, &SetObject::class_);
       case InlinableNative::IntrinsicGetNextSetEntryForIterator:
         return inlineGetNextEntryForIterator(callInfo, MGetNextEntryForIterator::Set);
 
@@ -1741,6 +1748,47 @@ IonBuilder::inlineFinishBoundFunctionInit(CallInfo& callInfo)
 }
 
 IonBuilder::InliningResult
+IonBuilder::inlineIsPackedArray(CallInfo& callInfo)
+{
+    MOZ_ASSERT(!callInfo.constructing());
+    MOZ_ASSERT(callInfo.argc() == 1);
+
+    if (getInlineReturnType() != MIRType::Boolean)
+        return InliningStatus_NotInlined;
+
+    MDefinition* array = callInfo.getArg(0);
+
+    if (array->type() != MIRType::Object)
+        return InliningStatus_NotInlined;
+
+    TemporaryTypeSet* arrayTypes = array->resultTypeSet();
+    if (!arrayTypes)
+        return InliningStatus_NotInlined;
+
+    const Class* clasp = arrayTypes->getKnownClass(constraints());
+    if (clasp != &ArrayObject::class_)
+        return InliningStatus_NotInlined;
+
+    // Only inline if the array uses dense storage.
+    ObjectGroupFlags unhandledFlags = OBJECT_FLAG_SPARSE_INDEXES |
+                                      OBJECT_FLAG_LENGTH_OVERFLOW |
+                                      OBJECT_FLAG_NON_PACKED;
+
+    if (arrayTypes->hasObjectFlags(constraints(), unhandledFlags)) {
+        trackOptimizationOutcome(TrackedOutcome::ArrayBadFlags);
+        return InliningStatus_NotInlined;
+    }
+
+    callInfo.setImplicitlyUsedUnchecked();
+
+    auto* ins = MIsPackedArray::New(alloc(), array);
+    current->add(ins);
+    current->push(ins);
+
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningResult
 IonBuilder::inlineStrCharCodeAt(CallInfo& callInfo)
 {
     if (callInfo.argc() != 1 || callInfo.constructing()) {
@@ -2477,23 +2525,31 @@ IonBuilder::inlineIsTypedArrayHelper(CallInfo& callInfo, WrappingBehavior wrappi
     if (!types)
         return InliningStatus_NotInlined;
 
+    // Wrapped typed arrays won't appear to be typed arrays per a
+    // |forAllClasses| query.  If wrapped typed arrays are to be considered
+    // typed arrays, a negative answer is not conclusive.  Don't inline in
+    // that case.
+    auto isPossiblyWrapped = [this, wrappingBehavior, types]() {
+        if (wrappingBehavior != AllowWrappedTypedArrays)
+            return false;
+
+        switch (types->forAllClasses(constraints(), IsProxyClass)) {
+          case TemporaryTypeSet::ForAllResult::ALL_FALSE:
+          case TemporaryTypeSet::ForAllResult::EMPTY:
+            break;
+          case TemporaryTypeSet::ForAllResult::ALL_TRUE:
+          case TemporaryTypeSet::ForAllResult::MIXED:
+            return true;
+        }
+        return false;
+    };
+
     bool result = false;
+    bool isConstant = true;
     switch (types->forAllClasses(constraints(), IsTypedArrayClass)) {
       case TemporaryTypeSet::ForAllResult::ALL_FALSE:
-        // Wrapped typed arrays won't appear to be typed arrays per a
-        // |forAllClasses| query.  If wrapped typed arrays are to be considered
-        // typed arrays, a negative answer is not conclusive.  Don't inline in
-        // that case.
-        if (wrappingBehavior == AllowWrappedTypedArrays) {
-            switch (types->forAllClasses(constraints(), IsProxyClass)) {
-              case TemporaryTypeSet::ForAllResult::ALL_FALSE:
-              case TemporaryTypeSet::ForAllResult::EMPTY:
-                break;
-              case TemporaryTypeSet::ForAllResult::ALL_TRUE:
-              case TemporaryTypeSet::ForAllResult::MIXED:
-                return InliningStatus_NotInlined;
-            }
-        }
+        if (isPossiblyWrapped())
+            return InliningStatus_NotInlined;
 
         MOZ_FALLTHROUGH;
 
@@ -2506,10 +2562,20 @@ IonBuilder::inlineIsTypedArrayHelper(CallInfo& callInfo, WrappingBehavior wrappi
         break;
 
       case TemporaryTypeSet::ForAllResult::MIXED:
-        return InliningStatus_NotInlined;
+        if (isPossiblyWrapped())
+            return InliningStatus_NotInlined;
+
+        isConstant = false;
+        break;
     }
 
-    pushConstant(BooleanValue(result));
+    if (isConstant) {
+        pushConstant(BooleanValue(result));
+    } else {
+        auto* ins = MIsTypedArray::New(alloc(), callInfo.getArg(0));
+        current->add(ins);
+        current->push(ins);
+    }
 
     callInfo.setImplicitlyUsedUnchecked();
     return InliningStatus_Inlined;

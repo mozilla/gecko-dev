@@ -10,11 +10,11 @@ use fnv::FnvHashMap;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
 use parser::{ParserContext, log_css_error};
+use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::PARSING_MODE_DEFAULT;
-use stylearc::Arc;
 use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::memory::{MallocSizeOfFn, MallocSizeOfWithGuard};
@@ -240,13 +240,14 @@ pub trait StylesheetInDocument {
         device: &'a Device,
         guard: &'a SharedRwLockReadGuard<'b>
     ) -> EffectiveRulesIterator<'a, 'b> {
-        self.iter_rules::<'a, 'b, EffectiveRules>(device, guard)
+        self.iter_rules::<EffectiveRules>(device, guard)
     }
 
     rule_filter! {
         effective_style_rules(Style => StyleRule),
         effective_media_rules(Media => MediaRule),
         effective_font_face_rules(FontFace => FontFaceRule),
+        effective_font_face_feature_values_rules(FontFeatureValues => FontFeatureValuesRule),
         effective_counter_style_rules(CounterStyle => CounterStyleRule),
         effective_viewport_rules(Viewport => ViewportRule),
         effective_keyframes_rules(Keyframes => KeyframesRule),

@@ -147,8 +147,9 @@ public:
 
   void Forget() { mStream = nullptr; }
 
-  void DoNotifyTrackCreated(TrackID aTrackID, MediaSegment::Type aType,
-                            MediaStream* aInputStream, TrackID aInputTrackID)
+  void DoNotifyTrackCreated(MediaStreamGraph* aGraph, TrackID aTrackID,
+                            MediaSegment::Type aType, MediaStream* aInputStream,
+                            TrackID aInputTrackID)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -186,15 +187,15 @@ public:
 
     RefPtr<MediaStreamTrack> newTrack =
       mStream->CreateDOMTrack(aTrackID, aType, source);
-    NS_DispatchToMainThread(NewRunnableMethod<RefPtr<MediaStreamTrack>>(
+    aGraph->AbstractMainThread()->Dispatch(NewRunnableMethod<RefPtr<MediaStreamTrack>>(
       "DOMMediaStream::AddTrackInternal",
       mStream,
       &DOMMediaStream::AddTrackInternal,
       newTrack));
   }
 
-  void DoNotifyTrackEnded(MediaStream* aInputStream, TrackID aInputTrackID,
-                          TrackID aTrackID)
+  void DoNotifyTrackEnded(MediaStreamGraph* aGraph, MediaStream* aInputStream,
+                          TrackID aInputTrackID, TrackID aTrackID)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -208,7 +209,7 @@ public:
     if (track) {
       LOG(LogLevel::Debug, ("DOMMediaStream %p MediaStreamTrack %p ended at the source. Marking it ended.",
                             mStream, track.get()));
-      NS_DispatchToMainThread(
+      aGraph->AbstractMainThread()->Dispatch(
         NewRunnableMethod("dom::MediaStreamTrack::OverrideEnded",
                           track,
                           &MediaStreamTrack::OverrideEnded));
@@ -223,23 +224,25 @@ public:
   {
     if (aTrackEvents & TrackEventCommand::TRACK_EVENT_CREATED) {
       aGraph->DispatchToMainThreadAfterStreamStateUpdate(
-        NewRunnableMethod<TrackID,
+        NewRunnableMethod<MediaStreamGraph*, TrackID,
                           MediaSegment::Type,
                           RefPtr<MediaStream>,
                           TrackID>(
           "DOMMediaStream::OwnedStreamListener::DoNotifyTrackCreated",
           this,
           &OwnedStreamListener::DoNotifyTrackCreated,
+          aGraph,
           aID,
           aQueuedMedia.GetType(),
           aInputStream,
           aInputTrackID));
     } else if (aTrackEvents & TrackEventCommand::TRACK_EVENT_ENDED) {
       aGraph->DispatchToMainThreadAfterStreamStateUpdate(
-        NewRunnableMethod<RefPtr<MediaStream>, TrackID, TrackID>(
+        NewRunnableMethod<MediaStreamGraph*, RefPtr<MediaStream>, TrackID, TrackID>(
           "DOMMediaStream::OwnedStreamListener::DoNotifyTrackEnded",
           this,
           &OwnedStreamListener::DoNotifyTrackEnded,
+          aGraph,
           aInputStream,
           aInputTrackID,
           aID));
@@ -279,7 +282,8 @@ public:
     // The owned stream listener adds its tracks after another main thread
     // dispatch. We have to do the same to notify of created tracks to stay
     // in sync. (Or NotifyTracksCreated is called before tracks are added).
-    NS_DispatchToMainThread(
+    MOZ_ASSERT(mStream->GetPlaybackStream());
+    mStream->GetPlaybackStream()->Graph()->AbstractMainThread()->Dispatch(
       NewRunnableMethod("DOMMediaStream::NotifyTracksCreated",
                         mStream,
                         &DOMMediaStream::NotifyTracksCreated));
@@ -293,9 +297,10 @@ public:
       return;
     }
 
-    NS_DispatchToMainThread(NewRunnableMethod("DOMMediaStream::NotifyFinished",
-                                              mStream,
-                                              &DOMMediaStream::NotifyFinished));
+    mStream->GetPlaybackStream()->Graph()->AbstractMainThread()->Dispatch(
+        NewRunnableMethod("DOMMediaStream::NotifyFinished",
+                          mStream,
+                          &DOMMediaStream::NotifyFinished));
   }
 
   // The methods below are called on the MediaStreamGraph thread.
@@ -1529,178 +1534,3 @@ DOMAudioNodeMediaStream::CreateTrackUnionStreamAsInput(nsPIDOMWindowInner* aWind
   return stream.forget();
 }
 
-DOMHwMediaStream::DOMHwMediaStream(nsPIDOMWindowInner* aWindow)
-  : DOMLocalMediaStream(aWindow, nullptr)
-{
-#ifdef MOZ_WIDGET_GONK
-  if (!mWindow) {
-    NS_ERROR("Expected window here.");
-    mPrincipalHandle = PRINCIPAL_HANDLE_NONE;
-    return;
-  }
-  nsIDocument* doc = mWindow->GetExtantDoc();
-  if (!doc) {
-    NS_ERROR("Expected document here.");
-    mPrincipalHandle = PRINCIPAL_HANDLE_NONE;
-    return;
-  }
-  mPrincipalHandle = MakePrincipalHandle(doc->NodePrincipal());
-#endif
-}
-
-DOMHwMediaStream::~DOMHwMediaStream()
-{
-}
-
-already_AddRefed<DOMHwMediaStream>
-DOMHwMediaStream::CreateHwStream(nsPIDOMWindowInner* aWindow,
-                                 OverlayImage* aImage)
-{
-  RefPtr<DOMHwMediaStream> stream = new DOMHwMediaStream(aWindow);
-
-  MediaStreamGraph* graph =
-    MediaStreamGraph::GetInstance(MediaStreamGraph::SYSTEM_THREAD_DRIVER,
-                                  AudioChannel::Normal, aWindow);
-  stream->InitSourceStream(graph);
-  stream->Init(stream->GetInputStream(), aImage);
-
-  return stream.forget();
-}
-
-void
-DOMHwMediaStream::Init(MediaStream* stream, OverlayImage* aImage)
-{
-  SourceMediaStream* srcStream = stream->AsSourceStream();
-
-#ifdef MOZ_WIDGET_GONK
-  if (aImage) {
-    mOverlayImage = aImage;
-  } else {
-    Data imageData;
-    imageData.mOverlayId = DEFAULT_IMAGE_ID;
-    imageData.mSize.width = DEFAULT_IMAGE_WIDTH;
-    imageData.mSize.height = DEFAULT_IMAGE_HEIGHT;
-
-    mOverlayImage = new OverlayImage();
-    mOverlayImage->SetData(imageData);
-  }
-#endif
-
-  if (srcStream) {
-    VideoSegment segment;
-#ifdef MOZ_WIDGET_GONK
-    const StreamTime delta = STREAM_TIME_MAX; // Because MediaStreamGraph will run out frames in non-autoplay mode,
-                                              // we must give it bigger frame length to cover this situation.
-
-    RefPtr<Image> image = static_cast<Image*>(mOverlayImage.get());
-    mozilla::gfx::IntSize size = image->GetSize();
-
-    segment.AppendFrame(image.forget(), delta, size, mPrincipalHandle);
-#endif
-    srcStream->AddTrack(TRACK_VIDEO_PRIMARY, 0, new VideoSegment());
-    srcStream->AppendToTrack(TRACK_VIDEO_PRIMARY, &segment);
-    srcStream->AdvanceKnownTracksTime(STREAM_TIME_MAX);
-  }
-}
-
-int32_t
-DOMHwMediaStream::RequestOverlayId()
-{
-#ifdef MOZ_WIDGET_GONK
-  return mOverlayImage->GetOverlayId();
-#else
-  return -1;
-#endif
-}
-
-void
-DOMHwMediaStream::SetImageSize(uint32_t width, uint32_t height)
-{
-#ifdef MOZ_WIDGET_GONK
-  if (mOverlayImage->GetSidebandStream().IsValid()) {
-    OverlayImage::SidebandStreamData imgData;
-    imgData.mStream = mOverlayImage->GetSidebandStream();
-    imgData.mSize = IntSize(width, height);
-    mOverlayImage->SetData(imgData);
-  } else {
-    OverlayImage::Data imgData;
-    imgData.mOverlayId = mOverlayImage->GetOverlayId();
-    imgData.mSize = IntSize(width, height);
-    mOverlayImage->SetData(imgData);
-  }
-#endif
-
-  SourceMediaStream* srcStream = GetInputStream()->AsSourceStream();
-  StreamTracks::Track* track = srcStream->FindTrack(TRACK_VIDEO_PRIMARY);
-
-  if (!track || !track->GetSegment()) {
-    return;
-  }
-
-#ifdef MOZ_WIDGET_GONK
-  // Clear the old segment.
-  // Changing the existing content of segment is a Very BAD thing, and this way will
-  // confuse consumers of MediaStreams.
-  // It is only acceptable for DOMHwMediaStream
-  // because DOMHwMediaStream doesn't have consumers of TV streams currently.
-  track->GetSegment()->Clear();
-
-  // Change the image size.
-  const StreamTime delta = STREAM_TIME_MAX;
-  RefPtr<Image> image = static_cast<Image*>(mOverlayImage.get());
-  mozilla::gfx::IntSize size = image->GetSize();
-  VideoSegment segment;
-
-  segment.AppendFrame(image.forget(), delta, size, mPrincipalHandle);
-  srcStream->AppendToTrack(TRACK_VIDEO_PRIMARY, &segment);
-#endif
-}
-
-void
-DOMHwMediaStream::SetOverlayImage(OverlayImage* aImage)
-{
-  if (!aImage) {
-    return;
-  }
-#ifdef MOZ_WIDGET_GONK
-  mOverlayImage = aImage;
-#endif
-
-  SourceMediaStream* srcStream = GetInputStream()->AsSourceStream();
-  StreamTracks::Track* track = srcStream->FindTrack(TRACK_VIDEO_PRIMARY);
-
-  if (!track || !track->GetSegment()) {
-    return;
-  }
-
-#ifdef MOZ_WIDGET_GONK
-  // Clear the old segment.
-  // Changing the existing content of segment is a Very BAD thing, and this way will
-  // confuse consumers of MediaStreams.
-  // It is only acceptable for DOMHwMediaStream
-  // because DOMHwMediaStream doesn't have consumers of TV streams currently.
-  track->GetSegment()->Clear();
-
-  // Change the image size.
-  const StreamTime delta = STREAM_TIME_MAX;
-  RefPtr<Image> image = static_cast<Image*>(mOverlayImage.get());
-  mozilla::gfx::IntSize size = image->GetSize();
-  VideoSegment segment;
-
-  segment.AppendFrame(image.forget(), delta, size, mPrincipalHandle);
-  srcStream->AppendToTrack(TRACK_VIDEO_PRIMARY, &segment);
-#endif
-}
-
-void
-DOMHwMediaStream::SetOverlayId(int32_t aOverlayId)
-{
-#ifdef MOZ_WIDGET_GONK
-  OverlayImage::Data imgData;
-
-  imgData.mOverlayId = aOverlayId;
-  imgData.mSize = mOverlayImage->GetSize();
-
-  mOverlayImage->SetData(imgData);
-#endif
-}

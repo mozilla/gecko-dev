@@ -100,11 +100,27 @@ Preferences::DirtyCallback()
     // ignore it for now.
     return;
   }
-  if (gHashTable && sPreferences && !sPreferences->mDirty) {
+  if (!gHashTable || !sPreferences) {
+    return;
+  }
+  if (sPreferences->mProfileShutdown) {
+    NS_WARNING("Setting user pref after profile shutdown.");
+    return;
+  }
+  if (!sPreferences->mDirty) {
     sPreferences->mDirty = true;
 
-    NS_WARNING_ASSERTION(!sPreferences->mProfileShutdown,
-                         "Setting user pref after profile shutdown.");
+    if (sPreferences->mCurrentFile &&
+        sPreferences->AllowOffMainThreadSave()
+        && !sPreferences->mSavePending) {
+      sPreferences->mSavePending = true;
+      static const int PREF_DELAY_MS = 500;
+      NS_DelayedDispatchToCurrentThread(
+        mozilla::NewRunnableMethod("Preferences::SavePrefFileAsynchronous",
+                                   sPreferences,
+                                   &Preferences::SavePrefFileAsynchronous),
+        PREF_DELAY_MS);
+    }
   }
 }
 
@@ -362,8 +378,7 @@ public:
       // ref counted pointer off main thread.
       nsresult rvCopy = rv;
       nsCOMPtr<nsIFile> fileCopy(mFile);
-      SystemGroup::Dispatch("Preferences::WriterRunnable",
-                            TaskCategory::Other,
+      SystemGroup::Dispatch(TaskCategory::Other,
                             NS_NewRunnableFunction("Preferences::WriterRunnable", [fileCopy, rvCopy] {
         MOZ_RELEASE_ASSERT(NS_IsMainThread());
         if (NS_FAILED(rvCopy)) {
@@ -772,15 +787,22 @@ Preferences::Init()
 }
 
 // static
-nsresult
-Preferences::ResetAndReadUserPrefs()
+void
+Preferences::InitializeUserPrefs()
 {
-  sPreferences->ResetUserPrefs();
-
   MOZ_ASSERT(!sPreferences->mCurrentFile, "Should only initialize prefs once");
 
-  nsresult rv = sPreferences->UseDefaultPrefFile();
-  sPreferences->UseUserPrefFile();
+  // prefs which are set before we initialize the profile are silently discarded.
+  // This is stupid, but there are various tests which depend on this behavior.
+  sPreferences->ResetUserPrefs();
+
+  nsCOMPtr<nsIFile> prefsFile = sPreferences->ReadSavedPrefs();
+  sPreferences->ReadUserOverridePrefs();
+
+  sPreferences->mDirty = false;
+
+  // Don't set mCurrentFile until we're done so that dirty flags work properly
+  sPreferences->mCurrentFile = prefsFile.forget();
 
   // Migrate the old prerelease telemetry pref
   if (!Preferences::GetBool(kOldTelemetryPref, true)) {
@@ -789,7 +811,6 @@ Preferences::ResetAndReadUserPrefs()
   }
 
   sPreferences->NotifyServiceObservers(NS_PREFSERVICE_READ_TOPIC_ID);
-  return rv;
 }
 
 NS_IMETHODIMP
@@ -1072,17 +1093,15 @@ Preferences::NotifyServiceObservers(const char *aTopic)
   return NS_OK;
 }
 
-nsresult
-Preferences::UseDefaultPrefFile()
+already_AddRefed<nsIFile>
+Preferences::ReadSavedPrefs()
 {
   nsCOMPtr<nsIFile> file;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_PREFS_50_FILE,
                                        getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    return nullptr;
   }
-
-  mCurrentFile = file;
 
   rv = openPrefFile(file);
   if (rv == NS_ERROR_FILE_NOT_FOUND) {
@@ -1097,11 +1116,11 @@ Preferences::UseDefaultPrefFile()
     MakeBackupPrefFile(file);
   }
 
-  return rv;
+  return file.forget();
 }
 
 void
-Preferences::UseUserPrefFile()
+Preferences::ReadUserOverridePrefs()
 {
   nsCOMPtr<nsIFile> aFile;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_PREFS_50_DIR,
@@ -1158,6 +1177,8 @@ Preferences::SavePrefFileInternal(nsIFile *aFile, SaveMethod aSaveMethod)
   // unmodified pref file (see the original bug 160377 when we added this.)
 
   if (nullptr == aFile) {
+    mSavePending = false;
+
     // Off main thread writing only if allowed
     if (!AllowOffMainThreadSave()) {
       aSaveMethod = SaveMethod::Blocking;

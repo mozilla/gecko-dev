@@ -99,7 +99,7 @@ DOMEventMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                      UniqueStacks& aUniqueStacks)
 {
   StreamCommonProps("DOMEvent", aWriter, aProcessStartTime, aUniqueStacks);
-  aWriter.StringProperty("type", NS_ConvertUTF16toUTF8(mType).get());
+  aWriter.StringProperty("eventType", NS_ConvertUTF16toUTF8(mEventType).get());
   aWriter.IntProperty("phase", mPhase);
 }
 
@@ -164,8 +164,8 @@ GCMinorMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   MOZ_ASSERT(mTimingData);
   StreamCommonProps("GCMinor", aWriter, aProcessStartTime, aUniqueStacks);
   if (mTimingData) {
-    aWriter.SplicedJSONProperty("nurseryTimings", mTimingData.get());
+    aWriter.SplicedJSONProperty("nursery", mTimingData.get());
   } else {
-    aWriter.NullProperty("nurseryTimings");
+    aWriter.NullProperty("nursery");
   }
 }

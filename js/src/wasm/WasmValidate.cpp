@@ -50,7 +50,7 @@ bool
 Decoder::fail(size_t errorOffset, const char* msg)
 {
     MOZ_ASSERT(error_);
-    UniqueChars strWithOffset(JS_smprintf("at offset %" PRIuSIZE ": %s", errorOffset, msg));
+    UniqueChars strWithOffset(JS_smprintf("at offset %zu: %s", errorOffset, msg));
     if (!strWithOffset)
         return false;
 
@@ -1642,17 +1642,17 @@ DecodeFunctionNameSubsection(Decoder& d, ModuleEnvironment* env)
         if (funcIndex >= env->numFuncs() || funcIndex < funcNames.length())
             return false;
 
-        if (!funcNames.resize(funcIndex + 1))
-            return false;
-
         uint32_t nameLength = 0;
         if (!d.readVarU32(&nameLength) || nameLength > MaxStringLength)
             return false;
 
-        NameInBytecode func;
-        func.offset = d.currentOffset();
-        func.length = nameLength;
-        funcNames[funcIndex] = func;
+        if (!nameLength)
+            continue;
+
+        if (!funcNames.resize(funcIndex + 1))
+            return false;
+
+        funcNames[funcIndex] = NameInBytecode(d.currentOffset(), nameLength);
 
         if (!d.readBytes(nameLength))
             return false;

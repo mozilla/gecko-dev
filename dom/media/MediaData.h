@@ -567,11 +567,22 @@ public:
   void UpdateDuration(const media::TimeUnit& aDuration);
   void UpdateTimestamp(const media::TimeUnit& aTimestamp);
 
+  void SetNextKeyFrameTime(const media::TimeUnit& aTime)
+  {
+    mNextKeyFrameTime = aTime;
+  }
+
+  const media::TimeUnit& NextKeyFrameTime() const
+  {
+    return mNextKeyFrameTime;
+  }
+
 protected:
   ~VideoData();
 
   bool mSentToCompositor;
   UniquePtr<Listener> mListener;
+  media::TimeUnit mNextKeyFrameTime;
 };
 
 class CryptoTrack
@@ -591,6 +602,8 @@ public:
   nsTArray<uint32_t> mEncryptedSizes;
   nsTArray<uint8_t> mIV;
   nsTArray<nsCString> mSessionIds;
+  nsTArray<nsTArray<uint8_t>> mInitDatas;
+  nsString mInitDataType;
 };
 
 // MediaRawData is a MediaData container used to store demuxed, still compressed

@@ -5,7 +5,6 @@
 "use strict";
 
 const Services = require("Services");
-const { extend } = require("sdk/core/heritage");
 const { AutoRefreshHighlighter } = require("./auto-refresh");
 const {
   CanvasFrameAnonymousContentHelper,
@@ -35,6 +34,7 @@ const LAYOUT_STRINGS_URI = "devtools/client/locales/layout.properties";
 const LAYOUT_L10N = new LocalizationHelper(LAYOUT_STRINGS_URI);
 
 const CSS_GRID_ENABLED_PREF = "layout.css.grid.enabled";
+const NEGATIVE_LINE_NUMBERS_PREF = "devtools.gridinspector.showNegativeLineNumbers";
 
 const DEFAULT_GRID_COLOR = "#4B0082";
 
@@ -344,37 +344,33 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
  *   </div>
  * </div>
  */
-function CssGridHighlighter(highlighterEnv) {
-  AutoRefreshHighlighter.call(this, highlighterEnv);
+class CssGridHighlighter extends AutoRefreshHighlighter {
+  constructor(highlighterEnv) {
+    super(highlighterEnv);
 
-  this.markup = new CanvasFrameAnonymousContentHelper(this.highlighterEnv,
-    this._buildMarkup.bind(this));
+    this.ID_CLASS_PREFIX = "css-grid-";
 
-  this.onNavigate = this.onNavigate.bind(this);
-  this.onPageHide = this.onPageHide.bind(this);
-  this.onWillNavigate = this.onWillNavigate.bind(this);
+    this.markup = new CanvasFrameAnonymousContentHelper(this.highlighterEnv,
+      this._buildMarkup.bind(this));
 
-  this.highlighterEnv.on("navigate", this.onNavigate);
-  this.highlighterEnv.on("will-navigate", this.onWillNavigate);
+    this.onPageHide = this.onPageHide.bind(this);
+    this.onWillNavigate = this.onWillNavigate.bind(this);
 
-  let { pageListenerTarget } = highlighterEnv;
-  pageListenerTarget.addEventListener("pagehide", this.onPageHide);
+    this.highlighterEnv.on("will-navigate", this.onWillNavigate);
 
-  // Initialize the <canvas> position to the top left corner of the page
-  this._canvasPosition = {
-    x: 0,
-    y: 0
-  };
+    let { pageListenerTarget } = highlighterEnv;
+    pageListenerTarget.addEventListener("pagehide", this.onPageHide);
 
-  // Calling `calculateCanvasPosition` anyway since the highlighter could be initialized
-  // on a page that has scrolled already.
-  this.calculateCanvasPosition();
-}
+    // Initialize the <canvas> position to the top left corner of the page
+    this._canvasPosition = {
+      x: 0,
+      y: 0
+    };
 
-CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
-  typeName: "CssGridHighlighter",
-
-  ID_CLASS_PREFIX: "css-grid-",
+    // Calling `calculateCanvasPosition` anyway since the highlighter could be initialized
+    // on a page that has scrolled already.
+    this.calculateCanvasPosition();
+  }
 
   _buildMarkup() {
     let container = createNode(this.win, {
@@ -589,11 +585,10 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     });
 
     return container;
-  },
+  }
 
   destroy() {
     let { highlighterEnv } = this;
-    highlighterEnv.off("navigate", this.onNavigate);
     highlighterEnv.off("will-navigate", this.onWillNavigate);
 
     let { pageListenerTarget } = highlighterEnv;
@@ -606,23 +601,23 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     // Clear the pattern cache to avoid dead object exceptions (Bug 1342051).
     this._clearCache();
     AutoRefreshHighlighter.prototype.destroy.call(this);
-  },
+  }
 
   getElement(id) {
     return this.markup.getElement(this.ID_CLASS_PREFIX + id);
-  },
+  }
 
   get ctx() {
     return this.canvas.getCanvasContext("2d");
-  },
+  }
 
   get canvas() {
     return this.getElement("canvas");
-  },
+  }
 
   get color() {
     return this.options.color || DEFAULT_GRID_COLOR;
-  },
+  }
 
   /**
    * Gets the grid gap pattern used to render the gap regions based on the device
@@ -678,29 +673,28 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     gCachedGridPattern.set(devicePixelRatio, gridPatternMap);
 
     return pattern;
-  },
+  }
 
-  /**
-   * Called when the page navigates. Used to clear the cached gap patterns and avoid
-   * using DeadWrapper objects as gap patterns the next time.
-   */
-  onNavigate() {
-    this._clearCache();
-  },
-
-  onPageHide: function ({ target }) {
+  onPageHide({ target }) {
     // If a page hide event is triggered for current window's highlighter, hide the
     // highlighter.
     if (target.defaultView === this.win) {
       this.hide();
     }
-  },
+  }
 
+  /**
+   * Called when the page will-navigate. Used to hide the grid highlighter and clear
+   * the cached gap patterns and avoid using DeadWrapper obejcts as gap patterns the
+   * next time.
+   */
   onWillNavigate({ isTopLevel }) {
+    this._clearCache();
+
     if (isTopLevel) {
       this.hide();
     }
-  },
+  }
 
   _show() {
     if (Services.prefs.getBoolPref(CSS_GRID_ENABLED_PREF) && !this.isGrid()) {
@@ -715,11 +709,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this._hide();
 
     return this._update();
-  },
+  }
 
   _clearCache() {
     gCachedGridPattern.clear();
-  },
+  }
 
   /**
    * Shows the grid area highlight for the given area name.
@@ -729,14 +723,14 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   showGridArea(areaName) {
     this.renderGridArea(areaName);
-  },
+  }
 
   /**
    * Shows all the grid area highlights for the current grid.
    */
   showAllGridAreas() {
     this.renderGridArea();
-  },
+  }
 
   /**
    * Clear the grid area highlights.
@@ -744,7 +738,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
   clearGridAreas() {
     let areas = this.getElement("areas");
     areas.setAttribute("d", "");
-  },
+  }
 
   /**
    * Shows the grid cell highlight for the given grid cell options.
@@ -758,7 +752,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   showGridCell({ gridFragmentIndex, rowNumber, columnNumber }) {
     this.renderGridCell(gridFragmentIndex, rowNumber, columnNumber);
-  },
+  }
 
   /**
    * Shows the grid line highlight for the given grid line options.
@@ -772,7 +766,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   showGridLineNames({ gridFragmentIndex, lineNumber, type }) {
     this.renderGridLineNames(gridFragmentIndex, lineNumber, type);
-  },
+  }
 
   /**
    * Clear the grid cell highlights.
@@ -780,7 +774,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
   clearGridCell() {
     let cells = this.getElement("cells");
     cells.setAttribute("d", "");
-  },
+  }
 
   /**
    * Checks if the current node has a CSS Grid layout.
@@ -789,7 +783,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   isGrid() {
     return this.currentNode.getGridFragments().length > 0;
-  },
+  }
 
   /**
    * Is a given grid fragment valid? i.e. does it actually have tracks? In some cases, we
@@ -801,7 +795,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   isValidFragment(fragment) {
     return fragment.cols.tracks.length && fragment.rows.tracks.length;
-  },
+  }
 
   /**
    * The AutoRefreshHighlighter's _hasMoved method returns true only if the
@@ -817,7 +811,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     let newGridData = stringifyGridFragments(this.gridData);
 
     return hasMoved || oldGridData !== newGridData;
-  },
+  }
 
   /**
    * Update the highlighter on the current highlighted node (the one that was
@@ -883,7 +877,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     setIgnoreLayoutChanges(false, this.highlighterEnv.document.documentElement);
     return true;
-  },
+  }
 
   /**
    * Update the grid information displayed in the grid area info bar.
@@ -907,7 +901,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       position: "bottom",
       hideIfOffscreen: true
     });
-  },
+  }
 
   /**
    * Update the grid information displayed in the grid cell info bar.
@@ -935,7 +929,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       position: "top",
       hideIfOffscreen: true
     });
-  },
+  }
 
   /**
    * Update the grid information displayed in the grid line info bar.
@@ -956,7 +950,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     let container = this.getElement("line-infobar-container");
     moveInfobar(container,
       getBoundsFromPoints([{x, y}, {x, y}, {x, y}, {x, y}]), this.win);
-  },
+  }
 
   /**
    * The <canvas>'s position needs to be updated if the page scrolls too much, in order
@@ -968,7 +962,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     if (hasPositionChanged) {
       this._update();
     }
-  },
+  }
 
   /**
    * This method is responsible to do the math that updates the <canvas>'s position,
@@ -1028,7 +1022,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     }
 
     return hasUpdated;
-  },
+  }
 
   /**
    * Updates the <canvas> element's style in accordance with the current window's
@@ -1045,7 +1039,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       `width:${size}px;height:${size}px; transform: translate(${x}px, ${y}px);`);
 
     this.ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  },
+  }
 
   /**
    * Updates the current matrices for both canvas drawing and SVG, taking in account the
@@ -1089,23 +1083,23 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     m = multiply(m, translate(paddingLeft + borderLeft, paddingTop + borderTop));
 
     this.currentMatrix = m;
-  },
+  }
 
   getFirstRowLinePos(fragment) {
     return fragment.rows.lines[0].start;
-  },
+  }
 
   getLastRowLinePos(fragment) {
     return fragment.rows.lines[fragment.rows.lines.length - 1].start;
-  },
+  }
 
   getFirstColLinePos(fragment) {
     return fragment.cols.lines[0].start;
-  },
+  }
 
   getLastColLinePos(fragment) {
     return fragment.cols.lines[fragment.cols.lines.length - 1].start;
-  },
+  }
 
   /**
    * Get the GridLine index of the last edge of the explicit grid for a grid dimension.
@@ -1124,7 +1118,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     // The grid line index is the grid track index + 1.
     return trackIndex + 1;
-  },
+  }
 
   renderFragment(fragment) {
     if (!this.isValidFragment(fragment)) {
@@ -1148,8 +1142,37 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
                        this.getFirstRowLinePos(fragment));
       this.renderLineNumbers(fragment.rows, ROWS, "top", "left",
                        this.getFirstColLinePos(fragment));
+
+      if (Services.prefs.getBoolPref(NEGATIVE_LINE_NUMBERS_PREF)) {
+        this.renderNegativeLineNumbers(fragment.cols, COLUMNS, "left", "top",
+                          this.getLastRowLinePos(fragment));
+        this.renderNegativeLineNumbers(fragment.rows, ROWS, "top", "left",
+                          this.getLastColLinePos(fragment));
+      }
     }
-  },
+  }
+
+  /**
+   * Render the negative grid lines given the grid dimension information of the
+   * column or row lines.
+   *
+   * See @param for renderLines.
+   */
+  renderNegativeLineNumbers(gridDimension, dimensionType, mainSide, crossSide,
+            startPos) {
+    let lineStartPos = startPos;
+
+    const { lines } = gridDimension;
+
+    for (let i = 0, line = lines[i]; i < lines.length; line = lines[++i]) {
+      let linePos = line.start;
+
+      const negativeLineNumber = i - lines.length;
+
+      this.renderGridLineNumber(negativeLineNumber, linePos, lineStartPos, line.breadth,
+        dimensionType);
+    }
+  }
 
   /**
    * Renders the grid area overlay on the css grid highlighter canvas.
@@ -1196,7 +1219,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     }
 
     this.ctx.restore();
-  },
+  }
 
   /**
    * Render grid area name on the containing grid area cell.
@@ -1231,7 +1254,8 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
         let column = fragment.cols.tracks[columnNumber - 1];
 
         // Check if the font size is exceeds the bounds of the containing grid cell.
-        if (fontSize > column.breadth || fontSize > row.breadth) {
+        if (fontSize > (column.breadth * displayPixelRatio) ||
+            fontSize > (row.breadth * displayPixelRatio)) {
           fontSize = (column.breadth + row.breadth) / 2;
           this.ctx.font = fontSize + "px " + GRID_FONT_FAMILY;
         }
@@ -1269,7 +1293,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     }
 
     this.ctx.restore();
-  },
+  }
 
   /**
    * Render the grid lines given the grid dimension information of the
@@ -1321,7 +1345,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
                         gridDimension.tracks[i].type);
       }
     }
-  },
+  }
 
   /**
    * Render the grid lines given the grid dimension information of the
@@ -1332,6 +1356,9 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
   renderLineNumbers(gridDimension, dimensionType, mainSide, crossSide,
               startPos) {
     let lineStartPos = startPos;
+
+    // Keep track of the number of collapsed lines per line position
+    let stackedLines = [];
 
     for (let i = 0; i < gridDimension.lines.length; i++) {
       let line = gridDimension.lines[i];
@@ -1349,10 +1376,25 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
         continue;
       }
 
+      // Check for overlapping lines. We render a second box beneath the last overlapping
+      // line number to indicate there are lines beneath it.
+      const gridLine = gridDimension.tracks[line.number - 1];
+      if (gridLine) {
+        const { breadth }  = gridLine;
+        if (breadth === 0) {
+          stackedLines.push(gridDimension.lines[i].number);
+          if (stackedLines.length > 0) {
+            this.renderGridLineNumber(line.number, linePos, lineStartPos, line.breadth,
+              dimensionType, 1);
+          }
+          continue;
+        }
+      }
+
       this.renderGridLineNumber(line.number, linePos, lineStartPos, line.breadth,
         dimensionType);
     }
-  },
+  }
 
   /**
    * Render the grid line on the css grid highlighter canvas.
@@ -1411,7 +1453,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     this.ctx.stroke();
     this.ctx.restore();
-  },
+  }
 
   /**
    * Render the grid line number on the css grid highlighter canvas.
@@ -1427,8 +1469,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    *         The grid line breadth value.
    * @param  {String} dimensionType
    *         The grid dimension type which is either the constant COLUMNS or ROWS.
+   * @param  {Number||undefined} stackedLineIndex
+   *         The line index position of the stacked line.
    */
-  renderGridLineNumber(lineNumber, linePos, startPos, breadth, dimensionType) {
+  renderGridLineNumber(lineNumber, linePos, startPos, breadth, dimensionType,
+    stackedLineIndex) {
     let displayPixelRatio = getDisplayPixelRatio(this.win);
     let { devicePixelRatio } = this.win;
     let offset = (displayPixelRatio / 2) % 1;
@@ -1465,6 +1510,18 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     // centered on the line, and in the middle of the gap if there is any.
     let x, y;
 
+    let startOffset = (boxHeight + 2) / devicePixelRatio;
+
+    if (Services.prefs.getBoolPref(NEGATIVE_LINE_NUMBERS_PREF)) {
+      // If the line number is negative, offset it from the grid container edge,
+      // (downwards if its a column, rightwards if its a row).
+      if (lineNumber < 0) {
+        startPos += startOffset;
+      } else {
+        startPos -= startOffset;
+      }
+    }
+
     if (dimensionType === COLUMNS) {
       x = linePos + breadth / 2;
       y = startPos;
@@ -1477,6 +1534,15 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     x -= boxWidth / 2;
     y -= boxHeight / 2;
+
+    if (stackedLineIndex) {
+      // Offset the stacked line number by half of the box's width/height
+      const xOffset = boxWidth / 4;
+      const yOffset = boxHeight / 4;
+
+      x += xOffset;
+      y += yOffset;
+    }
 
     if (!this.hasNodeTransformations) {
       x = Math.max(x, padding);
@@ -1493,10 +1559,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     // Write the line number inside of the rectangle.
     this.ctx.fillStyle = "black";
-    this.ctx.fillText(lineNumber, x + padding, y + textHeight + padding);
+    const numberText = stackedLineIndex ? "" : lineNumber;
+    this.ctx.fillText(numberText, x + padding, y + textHeight + padding);
 
     this.ctx.restore();
-  },
+  }
 
   /**
    * Render the grid gap area on the css grid highlighter canvas.
@@ -1550,7 +1617,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     }
     this.ctx.fill();
     this.ctx.restore();
-  },
+  }
 
   /**
    * Render the grid area highlight for the given area name or for all the grid areas.
@@ -1610,7 +1677,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     let areas = this.getElement("areas");
     areas.setAttribute("d", paths.join(" "));
-  },
+  }
 
   /**
    * Render the grid cell highlight for the given grid fragment index, row and column
@@ -1665,7 +1732,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     this._showGridCellInfoBar();
     this._updateGridCellInfobar(rowNumber, columnNumber, bounds);
-  },
+  }
 
   /**
    * Render the grid line name highlight for the given grid fragment index, lineNumber,
@@ -1714,7 +1781,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     this._showGridLineInfoBar();
     this._updateGridLineInfobar(names.join(", "), lineNumber, x, y);
-  },
+  }
 
   /**
    * Hide the highlighter, the canvas and the infobars.
@@ -1727,48 +1794,47 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this._hideGridCellInfoBar();
     this._hideGridLineInfoBar();
     setIgnoreLayoutChanges(false, this.highlighterEnv.document.documentElement);
-  },
+  }
 
   _hideGrid() {
     this.getElement("canvas").setAttribute("hidden", "true");
-  },
+  }
 
   _showGrid() {
     this.getElement("canvas").removeAttribute("hidden");
-  },
+  }
 
   _hideGridElements() {
     this.getElement("elements").setAttribute("hidden", "true");
-  },
+  }
 
   _showGridElements() {
     this.getElement("elements").removeAttribute("hidden");
-  },
+  }
 
   _hideGridAreaInfoBar() {
     this.getElement("area-infobar-container").setAttribute("hidden", "true");
-  },
+  }
 
   _showGridAreaInfoBar() {
     this.getElement("area-infobar-container").removeAttribute("hidden");
-  },
+  }
 
   _hideGridCellInfoBar() {
     this.getElement("cell-infobar-container").setAttribute("hidden", "true");
-  },
+  }
 
   _showGridCellInfoBar() {
     this.getElement("cell-infobar-container").removeAttribute("hidden");
-  },
+  }
 
   _hideGridLineInfoBar() {
     this.getElement("line-infobar-container").setAttribute("hidden", "true");
-  },
+  }
 
   _showGridLineInfoBar() {
     this.getElement("line-infobar-container").removeAttribute("hidden");
-  },
-
-});
+  }
+}
 
 exports.CssGridHighlighter = CssGridHighlighter;

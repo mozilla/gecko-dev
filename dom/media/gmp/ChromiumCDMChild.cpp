@@ -15,7 +15,6 @@
 #include "base/time.h"
 #include "GMPUtils.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/SizePrintfMacros.h"
 
 namespace mozilla {
 namespace gmp {
@@ -138,6 +137,10 @@ ChromiumCDMChild::Allocate(uint32_t aCapacity)
           aCapacity,
           ToString(mBuffers).get());
   MOZ_ASSERT(IsOnMessageLoopThread());
+
+  if (mBuffers.IsEmpty()) {
+    Unused << SendIncreaseShmemPoolSize();
+  }
 
   // Find the shmem with the least amount of wasted space if we were to
   // select it for this sized allocation. We need to do this because shmems
@@ -818,7 +821,7 @@ ChromiumCDMChild::GiveBuffer(ipc::Shmem&& aBuffer)
   MOZ_ASSERT(IsOnMessageLoopThread());
   size_t sz = aBuffer.Size<uint8_t>();
   mBuffers.AppendElement(Move(aBuffer));
-  GMP_LOG("ChromiumCDMChild::RecvGiveBuffer(capacity=%" PRIuSIZE
+  GMP_LOG("ChromiumCDMChild::RecvGiveBuffer(capacity=%zu"
           ") bufferSizes={%s} mDecoderInitialized=%d",
           sz,
           ToString(mBuffers).get(),

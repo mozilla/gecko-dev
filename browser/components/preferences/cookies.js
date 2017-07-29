@@ -497,9 +497,10 @@ var gCookiesWindow = {
   formatExpiresString(aExpires) {
     if (aExpires) {
       var date = new Date(1000 * aExpires);
-      const dtOptions = { year: "numeric", month: "long", day: "numeric",
-                          hour: "numeric", minute: "numeric", second: "numeric" };
-      return date.toLocaleString(undefined, dtOptions);
+      const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+        dateStyle: "long", timeStyle: "long"
+      });
+      return dateTimeFormatter.format(date);
     }
     return this._bundle.getString("expireAtEndOfSession");
   },
@@ -728,11 +729,11 @@ var gCookiesWindow = {
   },
 
   onCookieKeyPress(aEvent) {
-    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE) {
+    if (aEvent.keyCode == KeyEvent.DOM_VK_DELETE ||
+        (AppConstants.platform == "macosx" &&
+        aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE)) {
       this.deleteCookie();
-    } else if (AppConstants.platform == "macosx" &&
-               aEvent.keyCode == KeyEvent.DOM_VK_BACK_SPACE) {
-      this.deleteCookie();
+      aEvent.preventDefault();
     }
   },
 

@@ -72,7 +72,7 @@ using mozilla::dom::cache::CacheStorage;
 using mozilla::ipc::PrincipalInfo;
 
 WorkerGlobalScope::WorkerGlobalScope(WorkerPrivate* aWorkerPrivate)
-: mSerialEventTarget(aWorkerPrivate->GetEventTarget())
+: mSerialEventTarget(aWorkerPrivate->HybridEventTarget())
 , mWindowInteractionsAllowed(0)
 , mWorkerPrivate(aWorkerPrivate)
 {
@@ -494,7 +494,7 @@ WorkerGlobalScope::CreateImageBitmap(JSContext* aCx,
 }
 
 nsresult
-WorkerGlobalScope::Dispatch(const char* aName, TaskCategory aCategory,
+WorkerGlobalScope::Dispatch(TaskCategory aCategory,
                             already_AddRefed<nsIRunnable>&& aRunnable)
 {
   return EventTargetFor(aCategory)->Dispatch(Move(aRunnable),
@@ -860,7 +860,7 @@ ServiceWorkerGlobalScope::OpenWindowEnabled(JSContext* aCx, JSObject* aObj)
 WorkerDebuggerGlobalScope::WorkerDebuggerGlobalScope(
                                                   WorkerPrivate* aWorkerPrivate)
 : mWorkerPrivate(aWorkerPrivate)
-, mSerialEventTarget(aWorkerPrivate->GetEventTarget())
+, mSerialEventTarget(aWorkerPrivate->HybridEventTarget())
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -1080,7 +1080,7 @@ WorkerDebuggerGlobalScope::Dump(JSContext* aCx,
 }
 
 nsresult
-WorkerDebuggerGlobalScope::Dispatch(const char* aName, TaskCategory aCategory,
+WorkerDebuggerGlobalScope::Dispatch(TaskCategory aCategory,
                                     already_AddRefed<nsIRunnable>&& aRunnable)
 {
   return EventTargetFor(aCategory)->Dispatch(Move(aRunnable),

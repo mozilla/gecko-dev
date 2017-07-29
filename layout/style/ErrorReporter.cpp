@@ -148,7 +148,7 @@ ErrorReporter::ErrorReporter(const nsCSSScanner& aScanner,
 {
 }
 
-ErrorReporter::ErrorReporter(const StyleSheet* aSheet,
+ErrorReporter::ErrorReporter(const ServoStyleSheet* aSheet,
                              const Loader* aLoader,
                              nsIURI* aURI)
   : mScanner(nullptr), mSheet(aSheet), mLoader(aLoader), mURI(aURI),
@@ -165,8 +165,7 @@ ErrorReporter::~ErrorReporter()
   if (sSpecCache && sSpecCache->IsInUse() && !sSpecCache->IsPending()) {
     nsCOMPtr<nsIRunnable> runnable(sSpecCache);
     nsresult rv =
-      SystemGroup::Dispatch("ShortTermURISpecCache", TaskCategory::Other,
-                            runnable.forget());
+      SystemGroup::Dispatch(TaskCategory::Other, runnable.forget());
     if (NS_FAILED(rv)) {
       // Peform the "deferred" cleanup immediately if the dispatch fails.
       sSpecCache->Run();
@@ -255,13 +254,23 @@ ErrorReporter::OutputError(uint32_t aLineNumber,
                            uint32_t aColNumber,
                            const nsACString& aSourceLine)
 {
-  mErrorLine.Truncate();
-  // This could be a really long string for minified CSS; just leave it empty if we OOM.
-  if (!AppendUTF8toUTF16(aSourceLine, mErrorLine, fallible)) {
+  mErrorLineNumber = aLineNumber;
+  mErrorColNumber = aColNumber;
+
+  // Retrieve the error line once per line, and reuse the same nsString
+  // for all errors on that line.  That causes the text of the line to
+  // be shared among all the nsIScriptError objects.
+  if (mErrorLine.IsEmpty() || mErrorLineNumber != mPrevErrorLineNumber) {
     mErrorLine.Truncate();
+    // This could be a really long string for minified CSS; just leave it empty if we OOM.
+    if (!AppendUTF8toUTF16(aSourceLine, mErrorLine, fallible)) {
+      mErrorLine.Truncate();
+    }
+
+    mPrevErrorLineNumber = aLineNumber;
   }
-  mPrevErrorLineNumber = aLineNumber;
-  OutputError(aLineNumber, aColNumber);
+
+  OutputError();
 }
 
 void
@@ -277,18 +286,22 @@ ErrorReporter::AddToError(const nsString &aErrorText)
 
   if (mError.IsEmpty()) {
     mError = aErrorText;
-    mErrorLineNumber = mScanner ? mScanner->GetLineNumber() : 0;
-    mErrorColNumber = mScanner ? mScanner->GetColumnNumber() : 0;
-    // Retrieve the error line once per line, and reuse the same nsString
-    // for all errors on that line.  That causes the text of the line to
-    // be shared among all the nsIScriptError objects.
-    if (mErrorLine.IsEmpty() || mErrorLineNumber != mPrevErrorLineNumber) {
-      // Be careful here: the error line might be really long and OOM
-      // when we try to make a copy here.  If so, just leave it empty.
-      if (!mScanner || !mErrorLine.Assign(mScanner->GetCurrentLine(), fallible)) {
-        mErrorLine.Truncate();
+    // If this error reporter is being used from Stylo, the equivalent operation occurs
+    // in the OutputError variant that provides source information.
+    if (!IsServo()) {
+      mErrorLineNumber = mScanner->GetLineNumber();
+      mErrorColNumber = mScanner->GetColumnNumber();
+      // Retrieve the error line once per line, and reuse the same nsString
+      // for all errors on that line.  That causes the text of the line to
+      // be shared among all the nsIScriptError objects.
+      if (mErrorLine.IsEmpty() || mErrorLineNumber != mPrevErrorLineNumber) {
+        // Be careful here: the error line might be really long and OOM
+        // when we try to make a copy here.  If so, just leave it empty.
+        if (!mErrorLine.Assign(mScanner->GetCurrentLine(), fallible)) {
+          mErrorLine.Truncate();
+        }
+        mPrevErrorLineNumber = mErrorLineNumber;
       }
-      mPrevErrorLineNumber = mErrorLineNumber;
     }
   } else {
     mError.AppendLiteral("  ");
@@ -302,8 +315,7 @@ ErrorReporter::ReportUnexpected(const char *aMessage)
   if (!ShouldReportErrors()) return;
 
   nsAutoString str;
-  sStringBundle->GetStringFromName(NS_ConvertASCIItoUTF16(aMessage).get(),
-                                   getter_Copies(str));
+  sStringBundle->GetStringFromName(aMessage, getter_Copies(str));
   AddToError(str);
 }
 
@@ -318,7 +330,7 @@ ErrorReporter::ReportUnexpected(const char *aMessage,
   const char16_t *params[1] = { qparam.get() };
 
   nsAutoString str;
-  sStringBundle->FormatStringFromName(NS_ConvertASCIItoUTF16(aMessage).get(),
+  sStringBundle->FormatStringFromName(aMessage,
                                       params, ArrayLength(params),
                                       getter_Copies(str));
   AddToError(str);
@@ -333,7 +345,7 @@ ErrorReporter::ReportUnexpectedUnescaped(const char *aMessage,
   const char16_t *params[1] = { aParam.get() };
 
   nsAutoString str;
-  sStringBundle->FormatStringFromName(NS_ConvertASCIItoUTF16(aMessage).get(),
+  sStringBundle->FormatStringFromName(aMessage,
                                       params, ArrayLength(params),
                                       getter_Copies(str));
   AddToError(str);
@@ -363,7 +375,7 @@ ErrorReporter::ReportUnexpected(const char *aMessage,
   const char16_t *params[2] = { tokenString.get(), charStr };
 
   nsAutoString str;
-  sStringBundle->FormatStringFromName(NS_ConvertASCIItoUTF16(aMessage).get(),
+  sStringBundle->FormatStringFromName(aMessage,
                                       params, ArrayLength(params),
                                       getter_Copies(str));
   AddToError(str);
@@ -381,7 +393,7 @@ ErrorReporter::ReportUnexpected(const char *aMessage,
   const char16_t *params[2] = { qparam.get(), aValue.get() };
 
   nsAutoString str;
-  sStringBundle->FormatStringFromName(NS_ConvertASCIItoUTF16(aMessage).get(),
+  sStringBundle->FormatStringFromName(aMessage,
                                       params, ArrayLength(params),
                                       getter_Copies(str));
   AddToError(str);
@@ -393,12 +405,11 @@ ErrorReporter::ReportUnexpectedEOF(const char *aMessage)
   if (!ShouldReportErrors()) return;
 
   nsAutoString innerStr;
-  sStringBundle->GetStringFromName(NS_ConvertASCIItoUTF16(aMessage).get(),
-                                   getter_Copies(innerStr));
+  sStringBundle->GetStringFromName(aMessage, getter_Copies(innerStr));
   const char16_t *params[1] = { innerStr.get() };
 
   nsAutoString str;
-  sStringBundle->FormatStringFromName(u"PEUnexpEOF2",
+  sStringBundle->FormatStringFromName("PEUnexpEOF2",
                                       params, ArrayLength(params),
                                       getter_Copies(str));
   AddToError(str);
@@ -415,10 +426,16 @@ ErrorReporter::ReportUnexpectedEOF(char16_t aExpected)
   const char16_t *params[1] = { expectedStr };
 
   nsAutoString str;
-  sStringBundle->FormatStringFromName(u"PEUnexpEOF2",
+  sStringBundle->FormatStringFromName("PEUnexpEOF2",
                                       params, ArrayLength(params),
                                       getter_Copies(str));
   AddToError(str);
+}
+
+bool
+ErrorReporter::IsServo() const
+{
+  return !mScanner;
 }
 
 } // namespace css

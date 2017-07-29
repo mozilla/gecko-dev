@@ -17,7 +17,6 @@
 #include "RiceDeltaDecoder.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/SizePrintfMacros.h"
 
 // MOZ_LOG=UrlClassifierProtocolParser:5
 mozilla::LazyLogModule gUrlClassifierProtocolParserLog("UrlClassifierProtocolParser");
@@ -937,7 +936,7 @@ ProtocolParserProtobuf::ProcessRawAddition(TableUpdateV4& aTableUpdate,
     uint32_t* fixedLengthPrefixes = (uint32_t*)prefixes.c_str();
     size_t numOfFixedLengthPrefixes = prefixes.size() / 4;
     PARSER_LOG(("* Raw addition (4 bytes)"));
-    PARSER_LOG(("  - # of prefixes: %" PRIuSIZE, numOfFixedLengthPrefixes));
+    PARSER_LOG(("  - # of prefixes: %zu", numOfFixedLengthPrefixes));
     PARSER_LOG(("  - Memory address: 0x%p", fixedLengthPrefixes));
   } else {
     // TODO: Process variable length prefixes including full hashes.
@@ -970,8 +969,12 @@ ProtocolParserProtobuf::ProcessRawRemoval(TableUpdateV4& aTableUpdate,
   PARSER_LOG(("* Raw removal"));
   PARSER_LOG(("  - # of removal: %d", indices.size()));
 
-  aTableUpdate.NewRemovalIndices((const uint32_t*)indices.data(),
-                                 indices.size());
+  nsresult rv = aTableUpdate.NewRemovalIndices((const uint32_t*)indices.data(),
+                                               indices.size());
+  if (NS_FAILED(rv)) {
+    PARSER_LOG(("Failed to create new removal indices."));
+    return rv;
+  }
 
   return NS_OK;
 }
@@ -1104,7 +1107,11 @@ ProtocolParserProtobuf::ProcessEncodedRemoval(TableUpdateV4& aTableUpdate,
   }
 
   // The encoded prefixes are always 4 bytes.
-  aTableUpdate.NewRemovalIndices(&decoded[0], decoded.Length());
+  rv = aTableUpdate.NewRemovalIndices(&decoded[0], decoded.Length());
+  if (NS_FAILED(rv)) {
+    PARSER_LOG(("Failed to create new removal indices."));
+    return rv;
+  }
 
   return NS_OK;
 }

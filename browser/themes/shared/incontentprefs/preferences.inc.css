@@ -12,12 +12,19 @@
   font-size: 1.25rem;
 }
 
+description.indent,
+.indent > description {
+  font-size: 1.18rem;
+  color: #737373;
+}
+
 * {
   -moz-user-select: text;
 }
 
 button,
-treecol {
+treecol,
+html|option {
   /* override the * rule */
   -moz-user-select: none;
 }
@@ -57,6 +64,26 @@ treecol {
   min-width: 145px;
 }
 
+/* Subcategory title */
+
+/**
+ * The first subcategory title for each category should not have margin-top.
+ */
+#generalCategory,
+#searchCategory,
+#browserPrivacyCategory,
+#firefoxAccountCategory {
+  margin-top: 0;
+}
+
+.header-name {
+  font-size: 2rem;
+}
+
+.subcategory {
+  margin-top: 48px;
+}
+
 /* Category List */
 
 #categories {
@@ -81,8 +108,8 @@ treecol {
   list-style-image: url("chrome://browser/skin/preferences/in-content-new/icons.svg#general");
 }
 
-#category-application > .category-icon {
-  list-style-image: url("chrome://browser/skin/preferences/in-content-new/icons.svg#content");
+#category-search > .category-icon {
+  list-style-image: url("chrome://browser/skin/preferences/in-content-new/icons.svg#search");
 }
 
 #category-privacy > .category-icon {
@@ -91,14 +118,6 @@ treecol {
 
 #category-sync > .category-icon {
   list-style-image: url("chrome://browser/skin/preferences/in-content-new/icons.svg#sync");
-}
-
-#category-advanced > .category-icon {
-  list-style-image: url("chrome://browser/skin/preferences/in-content-new/icons.svg#advanced");
-}
-
-#category-search-results > .category-icon {
-  list-style-image: url("chrome://browser/skin/preferences/in-content-new/icons.svg#searchResults");
 }
 
 @media (max-width: 800px) {
@@ -244,10 +263,6 @@ treecol {
   margin-inline-start: 15px;
 }
 
-#crashReporterGroup {
-  margin-top: 0;
-}
-
 /* Collapse the non-active vboxes in decks to use only the height the
    active vbox needs */
 #historyPane:not([selectedIndex="1"]) > #historyDontRememberPane,
@@ -262,6 +277,10 @@ treecol {
    bug has a solution. */
 description > html|a {
   cursor: pointer;
+}
+
+description > checkbox {
+  vertical-align: middle;
 }
 
 #weavePrefsDeck > vbox > label,
@@ -387,15 +406,18 @@ groupbox {
  */
 
 #fxaProfileImage {
-  max-width: 60px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   list-style-image: url(chrome://browser/skin/fxa/default-avatar.svg);
   margin-inline-end: 15px;
-  image-rendering: -moz-crisp-edges;
+  image-rendering: auto;
+  border: 1px solid transparent;
 }
 
 #fxaLoginStatus[hasName] #fxaProfileImage {
-  max-width: 80px;
+  width: 80px;
+  height: 80px;
 }
 
 #fxaProfileImage.actionable {
@@ -403,11 +425,11 @@ groupbox {
 }
 
 #fxaProfileImage.actionable:hover {
-  box-shadow: 0px 0px 0px 1px #0095DD;
+  border-color: #0095DD;
 }
 
 #fxaProfileImage.actionable:hover:active {
-  box-shadow: 0px 0px 0px 1px #ff9500;
+  border-color: #ff9500;
 }
 
 #noFxaAccount {
@@ -522,11 +544,13 @@ groupbox {
 
 .fxaFirefoxLogo {
   list-style-image: url(chrome://browser/skin/fxa/logo.png);
-  max-width: 64px;
+  width: 64px;
+  height: 64px;
   margin-inline-end: 14px;
 }
 
 .fxaMobilePromo {
+  line-height: 28px;
   margin-bottom: 20px;
   margin-top: 25px;
 }
@@ -542,21 +566,18 @@ groupbox {
 }
 
 .androidLink {
-  background-image: url("chrome://browser/skin/fxa/android.png");
+  list-style-image: url("chrome://browser/skin/fxa/android.png");
 }
 
 .iOSLink {
-  background-image: url("chrome://browser/skin/fxa/ios.png");
+  list-style-image: url("chrome://browser/skin/fxa/ios.png");
 }
 
 .androidLink,
 .iOSLink {
-  margin: 0 0 0 2px;
-  padding-left: 28px;
-  padding-top: 6px;
+  vertical-align: bottom;
+  padding: 0 5px;
   height: 28px;
-  background-repeat: no-repeat;
-  background-size: 24px 28px;
 }
 
 #tosPP-small {
@@ -566,10 +587,10 @@ groupbox {
 
 @media (min-resolution: 1.1dppx) {
   .androidLink {
-    background-image: url("chrome://browser/skin/fxa/android@2x.png");
+    list-style-image: url("chrome://browser/skin/fxa/android@2x.png");
   }
   .iOSLink {
-    background-image: url("chrome://browser/skin/fxa/ios@2x.png");
+    list-style-image: url("chrome://browser/skin/fxa/ios@2x.png");
   }
   .fxaFirefoxLogo {
     list-style-image: url(chrome://browser/skin/fxa/logo@2x.png);

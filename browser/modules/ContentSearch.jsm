@@ -236,6 +236,9 @@ this.ContentSearch = {
     // where === "current"), openUILinkIn will not work because that tab is no
     // longer the current one. For this case we manually load the URI.
     if (where === "current") {
+      // Since we're going to load the search in the same browser, blur the search
+      // UI to prevent further interaction before we start loading.
+      this._reply(msg, "Blur");
       browser.loadURIWithFlags(submission.uri.spec,
                                Ci.nsIWebNavigation.LOAD_FLAGS_NONE, null, null,
                                submission.postData);
@@ -410,14 +413,8 @@ this.ContentSearch = {
     Services.search.currentEngine = Services.search.getEngineByName(data);
   },
 
-  _onMessageManageEngines(msg, data) {
-    let browserWin = msg.target.ownerGlobal;
-    let pref = Services.prefs.getBoolPref("browser.preferences.useOldOrganization");
-    if (pref) {
-      browserWin.openPreferences("paneSearch", {origin: "contentSearch"});
-    } else {
-      browserWin.openPreferences("general-search", {origin: "contentSearch"});
-    }
+  _onMessageManageEngines(msg) {
+    msg.target.ownerGlobal.openPreferences("paneSearch", { origin: "contentSearch" });
   },
 
   async _onMessageGetSuggestions(msg, data) {

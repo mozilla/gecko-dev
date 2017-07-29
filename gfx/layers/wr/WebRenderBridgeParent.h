@@ -39,7 +39,7 @@ class Compositor;
 class CompositorAnimationStorage;
 class CompositorBridgeParentBase;
 class CompositorVsyncScheduler;
-class WebRenderCompositableHolder;
+class AsyncImagePipelineManager;
 class WebRenderImageHost;
 
 class WebRenderBridgeParent final : public PWebRenderBridgeParent
@@ -52,15 +52,15 @@ public:
                         widget::CompositorWidget* aWidget,
                         CompositorVsyncScheduler* aScheduler,
                         RefPtr<wr::WebRenderAPI>&& aApi,
-                        RefPtr<WebRenderCompositableHolder>&& aHolder,
+                        RefPtr<AsyncImagePipelineManager>&& aImageMgr,
                         RefPtr<CompositorAnimationStorage>&& aAnimStorage);
 
-  static WebRenderBridgeParent* CeateDestroyed();
+  static WebRenderBridgeParent* CreateDestroyed();
 
   wr::PipelineId PipelineId() { return mPipelineId; }
   wr::WebRenderAPI* GetWebRenderAPI() { return mApi; }
   wr::Epoch WrEpoch() { return wr::NewEpoch(mWrEpoch); }
-  WebRenderCompositableHolder* CompositableHolder() { return mCompositableHolder; }
+  AsyncImagePipelineManager* AsyncImageManager() { return mAsyncImageManager; }
   CompositorVsyncScheduler* CompositorScheduler() { return mCompositorScheduler.get(); }
 
   mozilla::ipc::IPCResult RecvNewCompositable(const CompositableHandle& aHandle,
@@ -98,21 +98,23 @@ public:
                                     InfallibleTArray<OpDestroy>&& aToDestroy,
                                     const uint64_t& aFwdTransactionId,
                                     const uint64_t& aTransactionId,
-                                    const WrSize& aContentSize,
-                                    const ByteBuffer& dl,
-                                    const WrBuiltDisplayListDescriptor& dlDesc,
+                                    const wr::LayoutSize& aContentSize,
+                                    const wr::ByteBuffer& dl,
+                                    const wr::BuiltDisplayListDescriptor& dlDesc,
                                     const WebRenderScrollData& aScrollData,
-                                    const uint32_t& aIdNameSpace) override;
+                                    const uint32_t& aIdNameSpace,
+                                    const TimeStamp& aFwdTime) override;
   mozilla::ipc::IPCResult RecvDPSyncEnd(const gfx::IntSize& aSize,
                                         InfallibleTArray<WebRenderParentCommand>&& aCommands,
                                         InfallibleTArray<OpDestroy>&& aToDestroy,
                                         const uint64_t& aFwdTransactionId,
                                         const uint64_t& aTransactionId,
-                                        const WrSize& aContentSize,
-                                        const ByteBuffer& dl,
-                                        const WrBuiltDisplayListDescriptor& dlDesc,
+                                        const wr::LayoutSize& aContentSize,
+                                        const wr::ByteBuffer& dl,
+                                        const wr::BuiltDisplayListDescriptor& dlDesc,
                                         const WebRenderScrollData& aScrollData,
-                                        const uint32_t& aIdNameSpace) override;
+                                        const uint32_t& aIdNameSpace,
+                                        const TimeStamp& aFwdTime) override;
   mozilla::ipc::IPCResult RecvParentCommands(nsTArray<WebRenderParentCommand>&& commands) override;
   mozilla::ipc::IPCResult RecvDPGetSnapshot(PTextureParent* aTexture) override;
 
@@ -167,10 +169,10 @@ public:
   void SendPendingAsyncMessages() override;
   void SetAboutToSendAsyncMessages() override;
 
-  void HoldPendingTransactionId(uint32_t aWrEpoch, uint64_t aTransactionId);
+  void HoldPendingTransactionId(uint32_t aWrEpoch, uint64_t aTransactionId, const TimeStamp& aFwdTime);
   uint64_t LastPendingTransactionId();
   uint64_t FlushPendingTransactionIds();
-  uint64_t FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch);
+  uint64_t FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch, const TimeStamp& aEndTime);
 
   TextureFactoryIdentifier GetTextureFactoryIdentifier();
 
@@ -204,7 +206,7 @@ public:
 
   void UpdateWebRender(CompositorVsyncScheduler* aScheduler,
                        wr::WebRenderAPI* aApi,
-                       WebRenderCompositableHolder* aHolder,
+                       AsyncImagePipelineManager* aImageMgr,
                        CompositorAnimationStorage* aAnimStorage);
 
 private:
@@ -217,9 +219,9 @@ private:
   void ProcessWebRenderCommands(const gfx::IntSize &aSize,
                                 InfallibleTArray<WebRenderParentCommand>& commands,
                                 const wr::Epoch& aEpoch,
-                                const WrSize& aContentSize,
-                                const ByteBuffer& dl,
-                                const WrBuiltDisplayListDescriptor& dlDesc,
+                                const wr::LayoutSize& aContentSize,
+                                const wr::ByteBuffer& dl,
+                                const wr::BuiltDisplayListDescriptor& dlDesc,
                                 const uint32_t& aIdNameSpace);
   void ClearResources();
   uint64_t GetChildLayerObserverEpoch() const { return mChildLayerObserverEpoch; }
@@ -229,16 +231,17 @@ private:
                    InfallibleTArray<OpDestroy>&& aToDestroy,
                    const uint64_t& aFwdTransactionId,
                    const uint64_t& aTransactionId,
-                   const WrSize& aContentSize,
-                   const ByteBuffer& dl,
-                   const WrBuiltDisplayListDescriptor& dlDesc,
+                   const wr::LayoutSize& aContentSize,
+                   const wr::ByteBuffer& dl,
+                   const wr::BuiltDisplayListDescriptor& dlDesc,
                    const WebRenderScrollData& aScrollData,
-                   const uint32_t& aIdNameSpace);
+                   const uint32_t& aIdNameSpace,
+                   const TimeStamp& aFwdTime);
   mozilla::ipc::IPCResult HandleShutdown();
 
   void AdvanceAnimations();
-  void SampleAnimations(nsTArray<WrOpacityProperty>& aOpacityArray,
-                        nsTArray<WrTransformProperty>& aTransformArray);
+  void SampleAnimations(nsTArray<wr::WrOpacityProperty>& aOpacityArray,
+                        nsTArray<wr::WrTransformProperty>& aTransformArray);
 
   CompositorBridgeParent* GetRootCompositorBridgeParent() const;
 
@@ -246,27 +249,31 @@ private:
   // animation is in effect and we need to schedule another composition.
   // If scrollbars need their transforms updated, the provided aTransformArray
   // is populated with the property update details.
-  bool PushAPZStateToWR(nsTArray<WrTransformProperty>& aTransformArray);
+  bool PushAPZStateToWR(nsTArray<wr::WrTransformProperty>& aTransformArray);
 
   // Helper method to get an APZC reference from a scroll id. Uses the layers
   // id of this bridge, and may return null if the APZC wasn't found.
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const FrameMetrics::ViewID& aId);
 
+  uint32_t GetNextWrEpoch();
+
 private:
   struct PendingTransactionId {
-    PendingTransactionId(wr::Epoch aEpoch, uint64_t aId)
+    PendingTransactionId(wr::Epoch aEpoch, uint64_t aId, const TimeStamp& aFwdTime)
       : mEpoch(aEpoch)
       , mId(aId)
+      , mFwdTime(aFwdTime)
     {}
     wr::Epoch mEpoch;
     uint64_t mId;
+    TimeStamp mFwdTime;
   };
 
   CompositorBridgeParentBase* MOZ_NON_OWNING_REF mCompositorBridge;
   wr::PipelineId mPipelineId;
   RefPtr<widget::CompositorWidget> mWidget;
   RefPtr<wr::WebRenderAPI> mApi;
-  RefPtr<WebRenderCompositableHolder> mCompositableHolder;
+  RefPtr<AsyncImagePipelineManager> mAsyncImageManager;
   RefPtr<CompositorVsyncScheduler> mCompositorScheduler;
   RefPtr<CompositorAnimationStorage> mAnimStorage;
   std::vector<wr::ImageKey> mKeysToDelete;
@@ -281,6 +288,7 @@ private:
   nsDataHashtable<nsUint64HashKey, RefPtr<WebRenderImageHost>> mExternalImageIds;
   nsTArray<ImageCompositeNotificationInfo> mImageCompositeNotifications;
 
+  TimeStamp mPreviousFrameTimeStamp;
   // These fields keep track of the latest layer observer epoch values in the child and the
   // parent. mChildLayerObserverEpoch is the latest epoch value received from the child.
   // mParentLayerObserverEpoch is the latest epoch value that we have told TabParent about

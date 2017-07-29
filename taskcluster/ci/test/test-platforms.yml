@@ -40,7 +40,6 @@ linux64/debug:
     test-sets:
         - common-tests
         - web-platform-tests
-        - headless
 linux64/opt:
     build-platform: linux64/opt
     test-sets:
@@ -50,7 +49,6 @@ linux64/opt:
         - desktop-screenshot-capture
         - talos
         - awsy
-        - headless
 linux64-nightly/opt:
     build-platform: linux64-nightly/opt
     test-sets:
@@ -58,7 +56,6 @@ linux64-nightly/opt:
         - web-platform-tests
         - opt-only-tests
         - desktop-screenshot-capture
-        - headless
 linux64-devedition/opt:
     build-platform: linux64-devedition-nightly/opt
     test-sets:
@@ -66,8 +63,6 @@ linux64-devedition/opt:
         - web-platform-tests
         - opt-only-tests
         - desktop-screenshot-capture
-        - headless
-        - talos
 
 # TODO: use 'pgo' and 'asan' labels here, instead of -pgo/opt
 linux64-pgo/opt:
@@ -76,34 +71,66 @@ linux64-pgo/opt:
         - common-tests
         - web-platform-tests
         - talos
-        - headless
 
 linux64-asan/opt:
     build-platform: linux64-asan/opt
     test-sets:
         - common-tests
-        - headless
 
 # Stylo builds only run a subset of tests for the moment. So give them
 # their own test set.
+# Stylo doesn't work on 32-bit Linux yet (bug 1385025)
+# linux32-stylo/debug:
+#     build-platform: linux/debug
+#     test-sets:
+#         - stylo-tests
+# linux32-stylo/opt:
+#     build-platform: linux/opt
+#     test-sets:
+#         - stylo-tests
 linux64-stylo/debug:
-    build-platform: linux64-stylo/debug
+    build-platform: linux64/debug
     test-sets:
         - stylo-tests
 linux64-stylo/opt:
-    build-platform: linux64-stylo/opt
+    build-platform: linux64/opt
     test-sets:
         - stylo-tests
         - talos
 linux64-stylo-sequential/debug:
-    build-platform: linux64-stylo/debug
+    build-platform: linux64/debug
     test-sets:
         - stylo-sequential-tests
 linux64-stylo-sequential/opt:
-    build-platform: linux64-stylo/opt
+    build-platform: linux64/opt
     test-sets:
         - stylo-sequential-tests
         - talos
+macosx64-stylo/debug:
+    build-platform: macosx64/debug
+    test-sets:
+        - stylo-tests
+macosx64-stylo/opt:
+    build-platform: macosx64/opt
+    test-sets:
+        - stylo-tests
+# Windows needs more work to green up (bug 1385027)
+# windows7-32-stylo/debug:
+#     build-platform: win32/debug
+#     test-sets:
+#         - stylo-tests
+# windows7-32-stylo/opt:
+#     build-platform: win32/opt
+#     test-sets:
+#         - stylo-tests
+# windows10-64-stylo/debug:
+#     build-platform: win64/debug
+#     test-sets:
+#         - stylo-tests
+# windows10-64-stylo/opt:
+#     build-platform: win64/opt
+#     test-sets:
+#         - stylo-tests
 
 # QR builds just run a subset right now. Note that the tests in this
 # test set are further restricted in tests.yml to run on certain projects
@@ -124,7 +151,6 @@ linux64-ccov/opt:
         - web-platform-tests
         - awsy
         - talos
-        - headless
 linux64-jsdcov/opt:
     build-platform: linux64-jsdcov/opt
     test-sets:
@@ -137,36 +163,99 @@ linux64-jsdcov/opt:
 windows7-32/debug:
     build-platform: win32/debug
     test-sets:
-        - headless
         - windows-tests
 windows7-32/opt:
     build-platform: win32/opt
     test-sets:
         - awsy
         - desktop-screenshot-capture
-        - headless
         - windows-talos
+        - windows-tests
+
+windows7-32-pgo/opt:
+    build-platform: win32-pgo/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - windows-tests
+        - windows-talos
+
+windows7-32-nightly/opt:
+    build-platform: win32-nightly/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - windows-tests
+
+windows7-32-devedition/opt:
+    build-platform: win32-devedition/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
         - windows-tests
 
 # win64
 windows10-64/debug:
     build-platform: win64/debug
     test-sets:
-        - headless
         - windows-tests
+
 windows10-64/opt:
     build-platform: win64/opt
     test-sets:
         - awsy
         - desktop-screenshot-capture
-        - headless
         - windows-talos
+        - windows-tests
+
+windows10-64-pgo/opt:
+    build-platform: win64-pgo/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - windows-talos
+        - windows-tests
+
+windows10-64-nightly/opt:
+    build-platform: win64-nightly/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - windows-tests
+
+windows10-64-devedition/opt:
+    build-platform: win64-devedition/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
         - windows-tests
 
 windows10-64-asan/opt:
     build-platform: win64-asan/opt
     test-sets:
-        - common-tests     
+        - common-tests
+
+# Windows8 tests; all via BBB
+windows8-64/debug:
+    build-platform: win64/debug
+    test-sets:
+        - windows8-tests
+windows8-64/opt:
+    build-platform: win64/opt
+    test-sets:
+        - windows8-tests
+windows8-64-pgo/opt:
+    build-platform: win64-pgo/opt
+    test-sets:
+        - windows8-tests
+windows8-64-nightly/opt:
+    build-platform: win64-nightly/opt
+    test-sets:
+        - windows8-tests
+windows8-64-devedition/opt:
+    build-platform: win64-devedition/opt
+    test-sets:
+        - windows8-tests
 
 ##
 # MacOS X platforms (matching /macosx.*/)
@@ -190,9 +279,8 @@ macosx64-nightly/opt:
         - macosx64-tests
 
 macosx64-devedition/opt:
-    build-platform: macosx64-devedition/opt
+    build-platform: macosx64-devedition-nightly/opt
     test-sets:
-        - macosx64-tests-talos
         - macosx64-tests
 
 ##

@@ -92,6 +92,14 @@ class TTest(object):
             mainthread_io = os.path.join(here, "mainthread_io.log")
             setup.env['MOZ_MAIN_THREAD_IO_LOG'] = mainthread_io
 
+        # As we transition to Stylo, we need to set env vars and output data properly
+        if browser_config['stylo']:
+            setup.env['STYLO_FORCE_ENABLED'] = 1
+
+        # During the Stylo transition, measure different number of threads
+        if browser_config.get('stylothreads', 0) > 0:
+            setup.env['STYLO_THREADS'] = browser_config['stylothreads']
+
         test_config['url'] = utils.interpolate(
             test_config['url'],
             profile=setup.profile_dir,

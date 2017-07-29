@@ -29,6 +29,20 @@ function createFile(path) {
   });
 }
 
+
+// Creates a symlink at |path| and returns a promise that resolves with true
+// if the symlink was successfully created, otherwise false. Include imports
+// so this can be safely serialized and run remotely by ContentTask.spawn.
+function createSymlink(path) {
+  Components.utils.import("resource://gre/modules/osfile.jsm");
+  // source location for the symlink can be anything
+  return OS.File.unixSymLink("/Users", path).then(function(value) {
+    return true;
+  }, function(reason) {
+    return false;
+  });
+}
+
 // Deletes file at |path| and returns a promise that resolves with true
 // if the file was successfully deleted, otherwise false. Include imports
 // so this can be safely serialized and run remotely by ContentTask.spawn.
@@ -207,7 +221,8 @@ async function createFileInHome() {
   }
 }
 
-// Test if the content process can create a temp file, should pass
+// Test if the content process can create a temp file, should pass. Also test
+// that the content process cannot create symlinks or delete files.
 async function createTempFile() {
   let browser = gBrowser.selectedBrowser;
   let path = fileInTempDir().path;
@@ -218,9 +233,14 @@ async function createTempFile() {
   if (isMac()) {
     // On macOS we do not allow file deletion - it is not needed by the content
     // process itself, and macOS uses a different permission to control access
-    // to revoking it is easy.
+    // so revoking it is easy.
     ok(fileDeleted == false,
-       "deleting a file in the content temp is not permitted");
+       "deleting a file in content temp is not permitted");
+
+    let path = fileInTempDir().path;
+    let symlinkCreated = await ContentTask.spawn(browser, path, createSymlink);
+    ok(symlinkCreated == false,
+       "created a symlink in content temp is not permitted");
   } else {
     ok(fileDeleted == true, "deleting a file in content temp is permitted");
   }
@@ -256,14 +276,19 @@ async function testFileAccess() {
   // that will be read from either a web or file process.
   let tests = [];
 
+  // The Linux test runners create the temporary profile in the same
+  // system temp dir we give write access to, so this gives a false
+  // positive.
   let profileDir = GetProfileDir();
-  tests.push({
-    desc:     "profile dir",                // description
-    ok:       false,                        // expected to succeed?
-    browser:  webBrowser,                   // browser to run test in
-    file:     profileDir,                   // nsIFile object
-    minLevel: minProfileReadSandboxLevel(), // min level to enable test
-  });
+  if (!isLinux()) {
+    tests.push({
+      desc:     "profile dir",                // description
+      ok:       false,                        // expected to succeed?
+      browser:  webBrowser,                   // browser to run test in
+      file:     profileDir,                   // nsIFile object
+      minLevel: minProfileReadSandboxLevel(), // min level to enable test
+    });
+  }
   if (fileContentProcessEnabled) {
     tests.push({
       desc:     "profile dir",
@@ -316,19 +341,15 @@ async function testFileAccess() {
     }
   }
 
-  // Should we enable this /var test on Linux? Once we are running
-  // with read access restrictions on Linux, this todo will fail and
-  // should then be removed.
-  if (isLinux()) {
-    todo(level >= minHomeReadSandboxLevel(), "enable /var test on Linux?");
-  }
-  if (isMac()) {
+  if (isMac() || isLinux()) {
     let varDir = GetDir("/var");
 
-    // Mac sandbox rules use /private/var because /var is a symlink
-    // to /private/var on OS X. Make sure that hasn't changed.
-    varDir.normalize();
-    Assert.ok(varDir.path === "/private/var", "/var resolves to /private/var");
+    if (isMac()) {
+      // Mac sandbox rules use /private/var because /var is a symlink
+      // to /private/var on OS X. Make sure that hasn't changed.
+      varDir.normalize();
+      Assert.ok(varDir.path === "/private/var", "/var resolves to /private/var");
+    }
 
     tests.push({
       desc:     "/var",

@@ -121,6 +121,7 @@ class BasePopup {
       if (this.viewNode) {
         this.viewNode.removeEventListener(this.DESTROY_EVENT, this);
         this.viewNode.style.maxHeight = "";
+        delete this.viewNode.customRectGetter;
       }
 
       let {panel} = this;
@@ -228,6 +229,8 @@ class BasePopup {
     browser.setAttribute("tooltip", "aHTMLTooltip");
     browser.setAttribute("contextmenu", "contentAreaContextMenu");
     browser.setAttribute("autocompletepopup", "PopupAutoComplete");
+    browser.setAttribute("selectmenulist", "ContentSelectDropdown");
+    browser.setAttribute("selectmenuconstrained", "false");
     browser.sameProcessAsFrameLoader = this.extension.groupFrameLoader;
 
     if (this.extension.remote) {
@@ -324,6 +327,9 @@ class BasePopup {
       // available to us in the panel.
       height = Math.max(height, this.viewHeight);
       this.viewNode.style.maxHeight = `${height}px`;
+      // Used by the panelmultiview code to figure out sizing without reparenting
+      // (which would destroy the browser and break us).
+      this.lastCalculatedInViewHeight = height;
     } else {
       this.browser.style.width = `${width}px`;
       this.browser.style.minWidth = `${width}px`;
@@ -516,6 +522,10 @@ class ViewPopup extends BasePopup {
     if (this.dimensions && !this.fixedWidth) {
       this.resizeBrowser(this.dimensions);
     }
+
+    this.viewNode.customRectGetter = () => {
+      return {height: this.lastCalculatedInViewHeight || this.viewHeight};
+    };
 
     this.tempPanel.remove();
     this.tempPanel = null;

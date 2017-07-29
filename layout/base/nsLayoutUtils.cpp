@@ -835,6 +835,13 @@ nsLayoutUtils::FindContentFor(ViewID aId)
   }
 }
 
+ViewID
+nsLayoutUtils::ViewIDForASR(const mozilla::ActiveScrolledRoot* aASR)
+{
+  nsIContent* content = aASR->mScrollableFrame->GetScrolledFrame()->GetContent();
+  return nsLayoutUtils::FindOrCreateIDFor(content);
+}
+
 nsIFrame*
 GetScrollFrameFromContent(nsIContent* aContent)
 {
@@ -2437,7 +2444,7 @@ static void ConstrainToCoordValues(float& aStart, float& aSize)
     float excess = aSize - nscoord_MAX;
     excess /= 2;
     aStart += excess;
-    aSize = nscoord_MAX;
+    aSize = (float)nscoord_MAX;
   }
 }
 
@@ -3102,8 +3109,8 @@ static LayoutDeviceIntPoint GetWidgetOffset(nsIWidget* aWidget, nsIWidget*& aRoo
   return offset;
 }
 
-static LayoutDeviceIntPoint
-WidgetToWidgetOffset(nsIWidget* aFrom, nsIWidget* aTo) {
+LayoutDeviceIntPoint
+nsLayoutUtils::WidgetToWidgetOffset(nsIWidget* aFrom, nsIWidget* aTo) {
   nsIWidget* fromRoot;
   LayoutDeviceIntPoint fromOffset = GetWidgetOffset(aFrom, fromRoot);
   nsIWidget* toRoot;
@@ -3903,9 +3910,9 @@ nsLayoutUtils::BinarySearchForPosition(DrawTarget* aDrawTarget,
   return false;
 }
 
-static void
-AddBoxesForFrame(nsIFrame* aFrame,
-                 nsLayoutUtils::BoxCallback* aCallback)
+void
+nsLayoutUtils::AddBoxesForFrame(nsIFrame* aFrame,
+                                nsLayoutUtils::BoxCallback* aCallback)
 {
   nsIAtom* pseudoType = aFrame->StyleContext()->GetPseudo();
 
@@ -6018,7 +6025,8 @@ nsLayoutUtils::PaintTextShadow(const nsIFrame* aFrame,
     nsContextBoxBlur contextBoxBlur;
     gfxContext* shadowContext = contextBoxBlur.Init(shadowRect, 0, blurRadius,
                                                     presCtx->AppUnitsPerDevPixel(),
-                                                    aDestCtx, aDirtyRect, nullptr);
+                                                    aDestCtx, aDirtyRect, nullptr,
+                                                    nsContextBoxBlur::DISABLE_HARDWARE_ACCELERATION_BLUR);
     if (!shadowContext)
       continue;
 

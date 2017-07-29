@@ -16,8 +16,8 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylearc::Arc;
 use style::stylesheets::keyframes_rule::{KeyframesRule, Keyframe, KeyframeSelector};
 use style::values::KeyframesName;
 
@@ -121,7 +121,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
-        let name = KeyframesName::from_ident(value.into());
+        let name = KeyframesName::from_ident(&value);
         let mut guard = self.cssrule.shared_lock().write();
         self.keyframesrule.write_with(&mut guard).name = name;
         Ok(())

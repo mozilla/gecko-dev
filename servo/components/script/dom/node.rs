@@ -30,6 +30,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::cssstylesheet::CSSStyleSheet;
+use dom::customelementregistry::CallbackReaction;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -66,10 +67,12 @@ use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
+use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
 use selectors::parser::SelectorList;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell, RefMut};
@@ -81,7 +84,6 @@ use std::ops::Range;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;
@@ -313,6 +315,10 @@ impl Node {
             // e.g. when removing a <form>.
             vtable_for(&&*node).unbind_from_tree(&context);
             node.style_and_layout_data.get().map(|d| node.dispose(d));
+            // https://dom.spec.whatwg.org/#concept-node-remove step 14
+            if let Some(element) = node.as_custom_element() {
+                ScriptThread::enqueue_callback_reaction(&*element, CallbackReaction::Disconnected);
+            }
         }
 
         self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
@@ -321,6 +327,15 @@ impl Node {
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
         UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
+    }
+
+    pub fn as_custom_element(&self) -> Option<Root<Element>> {
+        self.downcast::<Element>()
+            .and_then(|element| if element.get_custom_element_definition().is_some() {
+                Some(Root::from_ref(element))
+            } else {
+                None
+            })
     }
 }
 
@@ -1401,13 +1416,19 @@ impl Node {
         let old_doc = node.owner_doc();
         // Step 2.
         node.remove_self();
+        // Step 3.
         if &*old_doc != document {
-            // Step 3.
+            // Step 3.1.
             for descendant in node.traverse_preorder() {
                 descendant.set_owner_doc(document);
             }
-            // Step 4.
+            for descendant in node.traverse_preorder().filter_map(|d| d.as_custom_element()) {
+                // Step 3.2.
+                ScriptThread::enqueue_callback_reaction(&*descendant,
+                    CallbackReaction::Adopted(old_doc.clone(), Root::from_ref(document)));
+            }
             for descendant in node.traverse_preorder() {
+                // Step 3.3.
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
@@ -1614,7 +1635,18 @@ impl Node {
         for kid in new_nodes {
             // Step 7.1.
             parent.add_child(*kid, child);
-            // Step 7.2: insertion steps.
+            // Step 7.7.
+            for descendant in kid.traverse_preorder().filter_map(Root::downcast::<Element>) {
+                // Step 7.7.2.
+                if descendant.is_connected() {
+                    // Step 7.7.2.1.
+                    if descendant.get_custom_element_definition().is_some() {
+                        ScriptThread::enqueue_callback_reaction(&*descendant, CallbackReaction::Connected);
+                    }
+                    // TODO: Step 7.7.2.2.
+                    // Try to upgrade descendant.
+                }
+            }
         }
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(
@@ -2490,6 +2522,11 @@ pub enum ChildrenMutation<'a> {
         next: Option<&'a Node>,
     },
     ReplaceAll { removed: &'a [&'a Node], added: &'a [&'a Node] },
+    /// Mutation for when a Text node's data is modified.
+    /// This doesn't change the structure of the list, which is what the other
+    /// variants' fields are stored for at the moment, so this can just have no
+    /// fields.
+    ChangeText,
 }
 
 impl<'a> ChildrenMutation<'a> {
@@ -2541,6 +2578,9 @@ impl<'a> ChildrenMutation<'a> {
     }
 
     /// Get the child that follows the added or removed children.
+    /// Currently only used when this mutation might force us to
+    /// restyle later children (see HAS_SLOW_SELECTOR_LATER_SIBLINGS and
+    /// Element's implementation of VirtualMethods::children_changed).
     pub fn next_child(&self) -> Option<&Node> {
         match *self {
             ChildrenMutation::Append { .. } => None,
@@ -2548,6 +2588,7 @@ impl<'a> ChildrenMutation<'a> {
             ChildrenMutation::Prepend { next, .. } => Some(next),
             ChildrenMutation::Replace { next, .. } => next,
             ChildrenMutation::ReplaceAll { .. } => None,
+            ChildrenMutation::ChangeText => None,
         }
     }
 
@@ -2585,6 +2626,7 @@ impl<'a> ChildrenMutation<'a> {
 
             ChildrenMutation::Replace { prev: None, next: None, .. } => unreachable!(),
             ChildrenMutation::ReplaceAll { .. } => None,
+            ChildrenMutation::ChangeText => None,
         }
     }
 }

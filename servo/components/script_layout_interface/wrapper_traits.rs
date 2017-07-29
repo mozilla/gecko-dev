@@ -13,6 +13,7 @@ use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
 use style::attr::AttrValue;
@@ -22,11 +23,10 @@ use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthesizer, TNode};
 use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
-use style::properties::{CascadeFlags, ServoComputedValues};
+use style::properties::{CascadeFlags, ComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
-use style::stylearc::Arc;
 use style::stylist::RuleInclusion;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {
@@ -87,6 +87,7 @@ pub trait LayoutNode: Debug + GetLayoutData + TNode {
     /// Returns the type ID of this node.
     fn type_id(&self) -> LayoutNodeType;
 
+    unsafe fn initialize_data(&self);
     unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
     unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
 
@@ -180,7 +181,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// it can be used to reach siblings and cousins. A simple immutable borrow
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
-    fn parent_style(&self) -> Arc<ServoComputedValues>;
+    fn parent_style(&self) -> Arc<ComputedValues>;
 
     #[inline]
     fn is_element_or_elements_pseudo(&self) -> bool {
@@ -222,7 +223,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
 
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
 
-    fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
+    fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         if let Some(el) = self.as_element() {
             el.style(context)
         } else {
@@ -233,7 +234,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
         }
     }
 
-    fn selected_style(&self) -> Arc<ServoComputedValues> {
+    fn selected_style(&self) -> Arc<ComputedValues> {
         if let Some(el) = self.as_element() {
             el.selected_style()
         } else {
@@ -346,7 +347,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        if self.style_data().styles.pseudos.has(&PseudoElement::Before) {
+        if self.style_data().styles.pseudos.get(&PseudoElement::Before).is_some() {
             Some(self.with_pseudo(PseudoElementType::Before(None)))
         } else {
             None
@@ -355,7 +356,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        if self.style_data().styles.pseudos.has(&PseudoElement::After) {
+        if self.style_data().styles.pseudos.get(&PseudoElement::After).is_some() {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
             None
@@ -392,7 +393,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     ///
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
-    fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
+    fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         let data = self.style_data();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
@@ -437,7 +438,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     }
 
     #[inline]
-    fn selected_style(&self) -> Arc<ServoComputedValues> {
+    fn selected_style(&self) -> Arc<ComputedValues> {
         let data = self.style_data();
         data.styles.pseudos
             .get(&PseudoElement::Selection).map(|s| s)
@@ -453,7 +454,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     /// This should be used just for querying layout, or when we know the
     /// element style is precomputed, not from general layout itself.
     #[inline]
-    fn resolved_style(&self) -> Arc<ServoComputedValues> {
+    fn resolved_style(&self) -> Arc<ComputedValues> {
         let data = self.style_data();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal

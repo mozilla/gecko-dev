@@ -1061,6 +1061,23 @@ var AudioPlaybackListener = {
 };
 AudioPlaybackListener.init();
 
+var UnselectedTabHoverObserver = {
+  init() {
+    addMessageListener("Browser:UnselectedTabHover", this);
+    addEventListener("UnselectedTabHover:Enable", this);
+    addEventListener("UnselectedTabHover:Disable", this);
+  },
+  receiveMessage(message) {
+    Services.obs.notifyObservers(content.window, "unselected-tab-hover",
+                                 message.data.hovered);
+  },
+  handleEvent(event) {
+    sendAsyncMessage("UnselectedTabHover:Toggle",
+                     { enable: event.type == "UnselectedTabHover:Enable" });
+  }
+};
+UnselectedTabHoverObserver.init();
+
 addMessageListener("Browser:PurgeSessionHistory", function BrowserPurgeHistory() {
   let sessionHistory = docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory;
   if (!sessionHistory) {
@@ -1768,9 +1785,10 @@ let DateTimePickerListener = {
             // element's value.
             value: Object.keys(value).length > 0 ? value
                                                  : this._inputElement.value,
-            step: this._inputElement.step,
-            min: this._inputElement.min,
-            max: this._inputElement.max,
+            min: this._inputElement.getMinimum(),
+            max: this._inputElement.getMaximum(),
+            step: this._inputElement.getStep(),
+            stepBase: this._inputElement.getStepBase(),
           },
         });
         break;

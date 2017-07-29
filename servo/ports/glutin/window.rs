@@ -6,7 +6,7 @@
 
 use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
-use compositing::windowing::{AnimationState, MouseWindowEvent, WindowNavigateMsg};
+use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 #[cfg(target_os = "windows")]
@@ -20,11 +20,12 @@ use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use msg::constellation_msg::{self, Key};
-use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
+use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER, TraversalDirection};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{DevicePixel, LoadData, TouchEventType, TouchpadPressurePhase};
+use script_traits::{LoadData, TouchEventType, TouchpadPressurePhase};
+use servo::ipc_channel::ipc::IpcSender;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
@@ -38,10 +39,11 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
+use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_traits::ScrollLocation;
+use webrender_api::ScrollLocation;
 #[cfg(target_os = "windows")]
 use winapi;
 
@@ -930,10 +932,10 @@ impl Window {
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match (mods, key) {
             (CMD_OR_CONTROL, Key::LeftBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
             }
             (CMD_OR_CONTROL, Key::RightBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
             }
             _ => {}
         }
@@ -1220,10 +1222,10 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::NavigateForward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
             }
             (NONE, None, Key::NavigateBackward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
             }
 
             (NONE, None, Key::Escape) => {
@@ -1233,10 +1235,10 @@ impl WindowMethods for Window {
             }
 
             (CMD_OR_ALT, None, Key::Right) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
             }
             (CMD_OR_ALT, None, Key::Left) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
             }
 
             (NONE, None, Key::PageDown) => {
@@ -1300,8 +1302,10 @@ impl WindowMethods for Window {
         }
     }
 
-    fn allow_navigation(&self, _: ServoUrl) -> bool {
-        true
+    fn allow_navigation(&self, _: ServoUrl, response_chan: IpcSender<bool>) {
+        if let Err(e) = response_chan.send(true) {
+            warn!("Failed to send allow_navigation() response: {}", e);
+        };
     }
 
     fn supports_clipboard(&self) -> bool {

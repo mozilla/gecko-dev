@@ -13,7 +13,8 @@ use media_queries::Device;
 use properties;
 use properties::{ComputedValues, StyleBuilder};
 use std::f32;
-use std::f32::consts::PI;
+use std::f64;
+use std::f64::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
@@ -37,11 +38,11 @@ pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
-pub use super::specified::{BorderStyle, Percentage, UrlOrNone};
+pub use super::specified::{BorderStyle, UrlOrNone};
 pub use super::generics::grid::GridLine;
 pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
-pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength, Percentage};
 pub use self::position::Position;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
@@ -67,22 +68,10 @@ pub struct Context<'a> {
     /// Whether the current element is the root element.
     pub is_root_element: bool,
 
-    /// The Device holds the viewport and other external state.
-    pub device: &'a Device,
-
-    /// The style we're inheriting from.
-    pub inherited_style: &'a ComputedValues,
-
-    /// The style of the layout parent node. This will almost always be
-    /// `inherited_style`, except when `display: contents` is at play, in which
-    /// case it's the style of the last ancestor with a `display` value that
-    /// isn't `contents`.
-    pub layout_parent_style: &'a ComputedValues,
-
     /// Values accessed through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
-    pub style: StyleBuilder<'a>,
+    pub builder: StyleBuilder<'a>,
 
     /// A cached computed system font value, for use by gecko.
     ///
@@ -106,22 +95,39 @@ pub struct Context<'a> {
 
     /// The quirks mode of this context.
     pub quirks_mode: QuirksMode,
+
+    /// Whether this computation is being done for a SMIL animation.
+    ///
+    /// This is used to allow certain properties to generate out-of-range
+    /// values, which SMIL allows.
+    pub for_smil_animation: bool,
 }
 
 impl<'a> Context<'a> {
     /// Whether the current element is the root element.
-    pub fn is_root_element(&self) -> bool { self.is_root_element }
+    pub fn is_root_element(&self) -> bool {
+        self.is_root_element
+    }
+
+    /// The current device.
+    pub fn device(&self) -> &Device {
+        self.builder.device
+    }
+
     /// The current viewport size.
-    pub fn viewport_size(&self) -> Size2D<Au> { self.device.au_viewport_size() }
-    /// The style we're inheriting from.
-    pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
-    /// The current style. Note that only "eager" properties should be accessed
-    /// from here, see the comment in the member.
-    pub fn style(&self) -> &StyleBuilder { &self.style }
-    /// A mutable reference to the current style.
-    pub fn mutate_style(&mut self) -> &mut StyleBuilder<'a> { &mut self.style }
-    /// Get a mutable reference to the current style as well as the device
-    pub fn mutate_style_with_device(&mut self) -> (&mut StyleBuilder<'a>, &Device) { (&mut self.style, &self.device) }
+    pub fn viewport_size(&self) -> Size2D<Au> {
+        self.builder.device.au_viewport_size()
+    }
+
+    /// The default computed style we're getting our reset style from.
+    pub fn default_style(&self) -> &ComputedValues {
+        self.builder.default_style()
+    }
+
+    /// The current style.
+    pub fn style(&self) -> &StyleBuilder {
+        &self.builder
+    }
 }
 
 /// An iterator over a slice of computed values
@@ -313,17 +319,27 @@ impl Angle {
     /// Return the amount of radians this angle represents.
     #[inline]
     pub fn radians(&self) -> CSSFloat {
-        const RAD_PER_DEG: CSSFloat = PI / 180.0;
-        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
-        const RAD_PER_TURN: CSSFloat = PI * 2.0;
+        self.radians64().min(f32::MAX as f64).max(f32::MIN as f64) as f32
+    }
+
+    /// Return the amount of radians this angle represents as a 64-bit float.
+    /// Gecko stores angles as singles, but does this computation using doubles.
+    /// See nsCSSValue::GetAngleValueInRadians.
+    /// This is significant enough to mess up rounding to the nearest
+    /// quarter-turn for 225 degrees, for example.
+    #[inline]
+    pub fn radians64(&self) -> f64 {
+        const RAD_PER_DEG: f64 = PI / 180.0;
+        const RAD_PER_GRAD: f64 = PI / 200.0;
+        const RAD_PER_TURN: f64 = PI * 2.0;
 
         let radians = match *self {
-            Angle::Degree(val) => val * RAD_PER_DEG,
-            Angle::Gradian(val) => val * RAD_PER_GRAD,
-            Angle::Turn(val) => val * RAD_PER_TURN,
-            Angle::Radian(val) => val,
+            Angle::Degree(val) => val as f64 * RAD_PER_DEG,
+            Angle::Gradian(val) => val as f64 * RAD_PER_GRAD,
+            Angle::Turn(val) => val as f64 * RAD_PER_TURN,
+            Angle::Radian(val) => val as f64,
         };
-        radians.min(f32::MAX).max(f32::MIN)
+        radians.min(f64::MAX).max(f64::MIN)
     }
 
     /// Returns an angle that represents a rotation of zero radians.
@@ -390,7 +406,7 @@ impl ToComputedValue for specified::JustifyItems {
         // If the inherited value of `justify-items` includes the `legacy` keyword, `auto` computes
         // to the inherited value.
         if self.0 == align::ALIGN_AUTO {
-            let inherited = context.inherited_style.get_position().clone_justify_items();
+            let inherited = context.builder.get_parent_position().clone_justify_items();
             if inherited.0.contains(align::ALIGN_LEGACY) {
                 return inherited
             }
@@ -549,10 +565,10 @@ pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 /// The computed value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<TrackSize>;
+pub type TrackList = GenericTrackList<LengthOrPercentage>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<TrackSize>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value

@@ -9,6 +9,7 @@
 #include "apz/src/AsyncPanZoomController.h"
 #include "CompositableHost.h"
 #include "gfxPrefs.h"
+#include "gfxEnv.h"
 #include "GeckoProfiler.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
@@ -22,7 +23,7 @@
 #include "mozilla/layers/ImageBridgeParent.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/TextureHost.h"
-#include "mozilla/layers/WebRenderCompositableHolder.h"
+#include "mozilla/layers/AsyncImagePipelineManager.h"
 #include "mozilla/layers/WebRenderImageHost.h"
 #include "mozilla/layers/WebRenderTextureHost.h"
 #include "mozilla/TimeStamp.h"
@@ -54,6 +55,11 @@ bool is_glcontext_egl(void* glcontext_ptr)
     return false;
   }
   return glcontext->GetContextType() == mozilla::gl::GLContextType::EGL;
+}
+
+bool gfx_use_wrench()
+{
+  return gfxEnv::EnableWebRenderRecording();
 }
 
 void gfx_critical_note(const char* msg)
@@ -112,13 +118,13 @@ WebRenderBridgeParent::WebRenderBridgeParent(CompositorBridgeParentBase* aCompos
                                              widget::CompositorWidget* aWidget,
                                              CompositorVsyncScheduler* aScheduler,
                                              RefPtr<wr::WebRenderAPI>&& aApi,
-                                             RefPtr<WebRenderCompositableHolder>&& aHolder,
+                                             RefPtr<AsyncImagePipelineManager>&& aImageMgr,
                                              RefPtr<CompositorAnimationStorage>&& aAnimStorage)
   : mCompositorBridge(aCompositorBridge)
   , mPipelineId(aPipelineId)
   , mWidget(aWidget)
   , mApi(aApi)
-  , mCompositableHolder(aHolder)
+  , mAsyncImageManager(aImageMgr)
   , mCompositorScheduler(aScheduler)
   , mAnimStorage(aAnimStorage)
   , mChildLayerObserverEpoch(0)
@@ -129,9 +135,9 @@ WebRenderBridgeParent::WebRenderBridgeParent(CompositorBridgeParentBase* aCompos
   , mDestroyed(false)
   , mForceRendering(false)
 {
-  MOZ_ASSERT(mCompositableHolder);
+  MOZ_ASSERT(mAsyncImageManager);
   MOZ_ASSERT(mAnimStorage);
-  mCompositableHolder->AddPipeline(mPipelineId);
+  mAsyncImageManager->AddPipeline(mPipelineId);
   if (mWidget) {
     MOZ_ASSERT(!mCompositorScheduler);
     mCompositorScheduler = new CompositorVsyncScheduler(this, mWidget);
@@ -151,7 +157,7 @@ WebRenderBridgeParent::WebRenderBridgeParent()
 }
 
 /* static */ WebRenderBridgeParent*
-WebRenderBridgeParent::CeateDestroyed()
+WebRenderBridgeParent::CreateDestroyed()
 {
   return new WebRenderBridgeParent();
 }
@@ -227,7 +233,7 @@ WebRenderBridgeParent::RecvAddImage(const wr::ImageKey& aImageKey,
   }
 
   // Check if key is obsoleted.
-  if (aImageKey.mNamespace != mIdNameSpace) {
+  if (aImageKey.mNamespace.mHandle != mIdNameSpace) {
     return IPC_OK();
   }
 
@@ -254,7 +260,7 @@ WebRenderBridgeParent::RecvAddBlobImage(const wr::ImageKey& aImageKey,
   }
 
   // Check if key is obsoleted.
-  if (aImageKey.mNamespace != mIdNameSpace) {
+  if (aImageKey.mNamespace.mHandle != mIdNameSpace) {
     return IPC_OK();
   }
 
@@ -279,7 +285,7 @@ WebRenderBridgeParent::RecvAddRawFont(const wr::FontKey& aFontKey,
   }
 
   // Check if key is obsoleted.
-  if (aFontKey.mNamespace != mIdNameSpace) {
+  if (aFontKey.mNamespace.mHandle != mIdNameSpace) {
     return IPC_OK();
   }
 
@@ -302,7 +308,7 @@ WebRenderBridgeParent::RecvDeleteFont(const wr::FontKey& aFontKey)
   MOZ_ASSERT(mApi);
 
   // Check if key is obsoleted.
-  if (aFontKey.mNamespace != mIdNameSpace) {
+  if (aFontKey.mNamespace.mHandle != mIdNameSpace) {
     return IPC_OK();
   }
 
@@ -328,7 +334,7 @@ WebRenderBridgeParent::RecvUpdateImage(const wr::ImageKey& aImageKey,
   MOZ_ASSERT(mApi);
 
   // Check if key is obsoleted.
-  if (aImageKey.mNamespace != mIdNameSpace) {
+  if (aImageKey.mNamespace.mHandle != mIdNameSpace) {
     return IPC_OK();
   }
 
@@ -347,7 +353,7 @@ WebRenderBridgeParent::RecvDeleteImage(const wr::ImageKey& aImageKey)
   MOZ_ASSERT(mApi);
 
   // Check if key is obsoleted.
-  if (aImageKey.mNamespace != mIdNameSpace) {
+  if (aImageKey.mNamespace.mHandle != mIdNameSpace) {
     return IPC_OK();
   }
 
@@ -395,11 +401,12 @@ WebRenderBridgeParent::HandleDPEnd(const gfx::IntSize& aSize,
                                  InfallibleTArray<OpDestroy>&& aToDestroy,
                                  const uint64_t& aFwdTransactionId,
                                  const uint64_t& aTransactionId,
-                                 const WrSize& aContentSize,
-                                 const ByteBuffer& dl,
-                                 const WrBuiltDisplayListDescriptor& dlDesc,
+                                 const wr::LayoutSize& aContentSize,
+                                 const wr::ByteBuffer& dl,
+                                 const wr::BuiltDisplayListDescriptor& dlDesc,
                                  const WebRenderScrollData& aScrollData,
-                                 const uint32_t& aIdNameSpace)
+                                 const uint32_t& aIdNameSpace,
+                                 const TimeStamp& aFwdTime)
 {
   AutoProfilerTracing tracing("Paint", "DPTransaction");
   UpdateFwdTransactionId(aFwdTransactionId);
@@ -415,10 +422,10 @@ WebRenderBridgeParent::HandleDPEnd(const gfx::IntSize& aSize,
   // to early-return from RecvDPEnd without doing so.
   AutoWebRenderBridgeParentAsyncMessageSender autoAsyncMessageSender(this, &aToDestroy);
 
-  ++mWrEpoch; // Update webrender epoch
-  ProcessWebRenderCommands(aSize, aCommands, wr::NewEpoch(mWrEpoch),
+  uint32_t wrEpoch = GetNextWrEpoch();
+  ProcessWebRenderCommands(aSize, aCommands, wr::NewEpoch(wrEpoch),
                            aContentSize, dl, dlDesc, aIdNameSpace);
-  HoldPendingTransactionId(mWrEpoch, aTransactionId);
+  HoldPendingTransactionId(wrEpoch, aTransactionId, aFwdTime);
 
   mScrollData = aScrollData;
   UpdateAPZ();
@@ -475,7 +482,7 @@ WebRenderBridgeParent::UpdateAPZ()
 }
 
 bool
-WebRenderBridgeParent::PushAPZStateToWR(nsTArray<WrTransformProperty>& aTransformArray)
+WebRenderBridgeParent::PushAPZStateToWR(nsTArray<wr::WrTransformProperty>& aTransformArray)
 {
   CompositorBridgeParent* cbp = GetRootCompositorBridgeParent();
   if (!cbp) {
@@ -508,17 +515,18 @@ WebRenderBridgeParent::RecvDPEnd(const gfx::IntSize& aSize,
                                  InfallibleTArray<OpDestroy>&& aToDestroy,
                                  const uint64_t& aFwdTransactionId,
                                  const uint64_t& aTransactionId,
-                                 const WrSize& aContentSize,
-                                 const ByteBuffer& dl,
-                                 const WrBuiltDisplayListDescriptor& dlDesc,
+                                 const wr::LayoutSize& aContentSize,
+                                 const wr::ByteBuffer& dl,
+                                 const wr::BuiltDisplayListDescriptor& dlDesc,
                                  const WebRenderScrollData& aScrollData,
-                                 const uint32_t& aIdNameSpace)
+                                 const uint32_t& aIdNameSpace,
+                                 const TimeStamp& aFwdTime)
 {
   if (mDestroyed) {
     return IPC_OK();
   }
   HandleDPEnd(aSize, Move(aCommands), Move(aToDestroy), aFwdTransactionId, aTransactionId,
-              aContentSize, dl, dlDesc, aScrollData, aIdNameSpace);
+              aContentSize, dl, dlDesc, aScrollData, aIdNameSpace, aFwdTime);
   return IPC_OK();
 }
 
@@ -528,17 +536,18 @@ WebRenderBridgeParent::RecvDPSyncEnd(const gfx::IntSize &aSize,
                                      InfallibleTArray<OpDestroy>&& aToDestroy,
                                      const uint64_t& aFwdTransactionId,
                                      const uint64_t& aTransactionId,
-                                     const WrSize& aContentSize,
-                                     const ByteBuffer& dl,
-                                     const WrBuiltDisplayListDescriptor& dlDesc,
+                                     const wr::LayoutSize& aContentSize,
+                                     const wr::ByteBuffer& dl,
+                                     const wr::BuiltDisplayListDescriptor& dlDesc,
                                      const WebRenderScrollData& aScrollData,
-                                     const uint32_t& aIdNameSpace)
+                                     const uint32_t& aIdNameSpace,
+                                     const TimeStamp& aFwdTime)
 {
   if (mDestroyed) {
     return IPC_OK();
   }
   HandleDPEnd(aSize, Move(aCommands), Move(aToDestroy), aFwdTransactionId, aTransactionId,
-              aContentSize, dl, dlDesc, aScrollData, aIdNameSpace);
+              aContentSize, dl, dlDesc, aScrollData, aIdNameSpace, aFwdTime);
   return IPC_OK();
 }
 
@@ -562,7 +571,7 @@ WebRenderBridgeParent::ProcessWebRenderParentCommands(InfallibleTArray<WebRender
         const OpAddExternalImage& op = cmd.get_OpAddExternalImage();
         Range<const wr::ImageKey> keys(&op.key(), 1);
         // Check if key is obsoleted.
-        if (keys[0].mNamespace != mIdNameSpace) {
+        if (keys[0].mNamespace.mHandle != mIdNameSpace) {
           break;
         }
         MOZ_ASSERT(mExternalImageIds.Get(wr::AsUint64(op.externalImageId())).get());
@@ -574,15 +583,17 @@ WebRenderBridgeParent::ProcessWebRenderParentCommands(InfallibleTArray<WebRender
           NS_ERROR("CompositableHost does not exist");
           break;
         }
-        TextureHost* texture = host->GetAsTextureHostForComposite();
-        if (!texture) {
-          NS_ERROR("TextureHost does not exist");
-          break;
-        }
-        WebRenderTextureHost* wrTexture = texture->AsWebRenderTextureHost();
-        if (wrTexture) {
-          wrTexture->AddWRImage(mApi, keys, wrTexture->GetExternalImageKey());
-          break;
+        if (!gfxEnv::EnableWebRenderRecording()) {
+          TextureHost* texture = host->GetAsTextureHostForComposite();
+          if (!texture) {
+            NS_ERROR("TextureHost does not exist");
+            break;
+          }
+          WebRenderTextureHost* wrTexture = texture->AsWebRenderTextureHost();
+          if (wrTexture) {
+            wrTexture->AddWRImage(mApi, keys, wrTexture->GetExternalImageKey());
+            break;
+          }
         }
         RefPtr<DataSourceSurface> dSurf = host->GetAsSurface();
         if (!dSurf) {
@@ -606,7 +617,7 @@ WebRenderBridgeParent::ProcessWebRenderParentCommands(InfallibleTArray<WebRender
       }
       case WebRenderParentCommand::TOpUpdateAsyncImagePipeline: {
         const OpUpdateAsyncImagePipeline& op = cmd.get_OpUpdateAsyncImagePipeline();
-        mCompositableHolder->UpdateAsyncImagePipeline(op.pipelineId(),
+        mAsyncImageManager->UpdateAsyncImagePipeline(op.pipelineId(),
                                                       op.scBounds(),
                                                       op.scTransform(),
                                                       op.scaleToSize(),
@@ -649,11 +660,11 @@ WebRenderBridgeParent::ProcessWebRenderParentCommands(InfallibleTArray<WebRender
 void
 WebRenderBridgeParent::ProcessWebRenderCommands(const gfx::IntSize &aSize,
                                                 InfallibleTArray<WebRenderParentCommand>& aCommands, const wr::Epoch& aEpoch,
-                                                const WrSize& aContentSize, const ByteBuffer& dl,
-                                                const WrBuiltDisplayListDescriptor& dlDesc,
+                                                const wr::LayoutSize& aContentSize, const wr::ByteBuffer& dl,
+                                                const wr::BuiltDisplayListDescriptor& dlDesc,
                                                 const uint32_t& aIdNameSpace)
 {
-  mCompositableHolder->SetCompositionTime(TimeStamp::Now());
+  mAsyncImageManager->SetCompositionTime(TimeStamp::Now());
   ProcessWebRenderParentCommands(aCommands);
 
   // The command is obsoleted.
@@ -758,7 +769,7 @@ WebRenderBridgeParent::RecvAddPipelineIdForAsyncCompositable(const wr::PipelineI
 
   wrHost->SetWrBridge(this);
   mAsyncCompositables.Put(wr::AsUint64(aPipelineId), wrHost);
-  mCompositableHolder->AddAsyncImagePipeline(aPipelineId, wrHost);
+  mAsyncImageManager->AddAsyncImagePipeline(aPipelineId, wrHost);
 
   return IPC_OK();
 }
@@ -776,7 +787,7 @@ WebRenderBridgeParent::RecvRemovePipelineIdForAsyncCompositable(const wr::Pipeli
   }
 
   wrHost->ClearWrBridge();
-  mCompositableHolder->RemoveAsyncImagePipeline(mApi, aPipelineId);
+  mAsyncImageManager->RemoveAsyncImagePipeline(mApi, aPipelineId);
   mAsyncCompositables.Remove(wr::AsUint64(aPipelineId));
   return IPC_OK();
 }
@@ -839,11 +850,10 @@ WebRenderBridgeParent::RecvClearCachedResources()
   mCompositorBridge->ObserveLayerUpdate(GetLayersId(), GetChildLayerObserverEpoch(), false);
 
   // Clear resources
-  // XXX Can we clear more resources?
-  ++mWrEpoch; // Update webrender epoch
-  mApi->ClearRootDisplayList(wr::NewEpoch(mWrEpoch), mPipelineId);
+  mApi->ClearRootDisplayList(wr::NewEpoch(GetNextWrEpoch()), mPipelineId);
   // Schedule composition to clean up Pipeline
   mCompositorScheduler->ScheduleComposition();
+  DeleteOldImages();
   // Remove animations.
   for (std::unordered_set<uint64_t>::iterator iter = mActiveAnimations.begin(); iter != mActiveAnimations.end(); iter++) {
     mAnimStorage->ClearById(*iter);
@@ -855,13 +865,13 @@ WebRenderBridgeParent::RecvClearCachedResources()
 void
 WebRenderBridgeParent::UpdateWebRender(CompositorVsyncScheduler* aScheduler,
                                        wr::WebRenderAPI* aApi,
-                                       WebRenderCompositableHolder* aHolder,
+                                       AsyncImagePipelineManager* aImageMgr,
                                        CompositorAnimationStorage* aAnimStorage)
 {
   MOZ_ASSERT(!mWidget);
   MOZ_ASSERT(aScheduler);
   MOZ_ASSERT(aApi);
-  MOZ_ASSERT(aHolder);
+  MOZ_ASSERT(aImageMgr);
   MOZ_ASSERT(aAnimStorage);
 
   if (mDestroyed) {
@@ -886,12 +896,12 @@ WebRenderBridgeParent::UpdateWebRender(CompositorVsyncScheduler* aScheduler,
   mCompositorBridge = cBridge;
   mCompositorScheduler = aScheduler;
   mApi = aApi;
-  mCompositableHolder = aHolder;
+  mAsyncImageManager = aImageMgr;
   mAnimStorage = aAnimStorage;
 
-  ++mWrEpoch; // Update webrender epoch
-  // Register pipeline to updated CompositableHolder.
-  mCompositableHolder->AddPipeline(mPipelineId);
+  Unused << GetNextWrEpoch(); // Update webrender epoch
+  // Register pipeline to updated AsyncImageManager.
+  mAsyncImageManager->AddPipeline(mPipelineId);
 }
 
 mozilla::ipc::IPCResult
@@ -1046,12 +1056,21 @@ WebRenderBridgeParent::AdvanceAnimations()
   if (CompositorBridgeParent* cbp = GetRootCompositorBridgeParent()) {
     animTime = cbp->GetTestingTimeStamp().valueOr(animTime);
   }
-  AnimationHelper::SampleAnimations(mAnimStorage, animTime);
+
+  AnimationHelper::SampleAnimations(mAnimStorage,
+                                    !mPreviousFrameTimeStamp.IsNull() ?
+                                    mPreviousFrameTimeStamp : animTime);
+
+  // Reset the previous time stamp if we don't already have any running
+  // animations to avoid using the time which is far behind for newly
+  // started animations.
+  mPreviousFrameTimeStamp =
+    mAnimStorage->AnimatedValueCount() ? animTime : TimeStamp();
 }
 
 void
-WebRenderBridgeParent::SampleAnimations(nsTArray<WrOpacityProperty>& aOpacityArray,
-                                        nsTArray<WrTransformProperty>& aTransformArray)
+WebRenderBridgeParent::SampleAnimations(nsTArray<wr::WrOpacityProperty>& aOpacityArray,
+                                        nsTArray<wr::WrTransformProperty>& aTransformArray)
 {
   AdvanceAnimations();
 
@@ -1079,33 +1098,37 @@ WebRenderBridgeParent::CompositeToTarget(gfx::DrawTarget* aTarget, const gfx::In
     return;
   }
 
-  const uint32_t maxPendingFrameCount = 2;
+  const uint32_t maxPendingFrameCount = 1;
 
   if (!mForceRendering &&
-      wr::RenderThread::Get()->GetPendingFrameCount(mApi->GetId()) > maxPendingFrameCount) {
+      wr::RenderThread::Get()->GetPendingFrameCount(mApi->GetId()) >= maxPendingFrameCount) {
     // Render thread is busy, try next time.
     ScheduleComposition();
     return;
   }
 
   bool scheduleComposite = false;
-  nsTArray<WrOpacityProperty> opacityArray;
-  nsTArray<WrTransformProperty> transformArray;
+  nsTArray<wr::WrOpacityProperty> opacityArray;
+  nsTArray<wr::WrTransformProperty> transformArray;
 
-  mCompositableHolder->SetCompositionTime(TimeStamp::Now());
-  mCompositableHolder->ApplyAsyncImages(mApi);
+  mAsyncImageManager->SetCompositionTime(TimeStamp::Now());
+  mAsyncImageManager->ApplyAsyncImages(mApi);
 
-  if (gfxPrefs::WebRenderOMTAEnabled()) {
-    SampleAnimations(opacityArray, transformArray);
-
-    if (!transformArray.IsEmpty() || !opacityArray.IsEmpty()) {
-      scheduleComposite = true;
-    }
+  SampleAnimations(opacityArray, transformArray);
+  if (!transformArray.IsEmpty() || !opacityArray.IsEmpty()) {
+    scheduleComposite = true;
   }
 
   if (PushAPZStateToWR(transformArray)) {
     scheduleComposite = true;
   }
+
+  wr::RenderThread::Get()->IncPendingFrameCount(mApi->GetId());
+
+#if defined(ENABLE_FRAME_LATENCY_LOG)
+  auto startTime = TimeStamp::Now();
+  mApi->SetFrameStartTime(startTime);
+#endif
 
   if (!transformArray.IsEmpty() || !opacityArray.IsEmpty()) {
     mApi->GenerateFrame(opacityArray, transformArray);
@@ -1113,7 +1136,7 @@ WebRenderBridgeParent::CompositeToTarget(gfx::DrawTarget* aTarget, const gfx::In
     mApi->GenerateFrame();
   }
 
-  if (!mCompositableHolder->GetCompositeUntilTime().IsNull()) {
+  if (!mAsyncImageManager->GetCompositeUntilTime().IsNull()) {
     scheduleComposite = true;
   }
 
@@ -1123,7 +1146,7 @@ WebRenderBridgeParent::CompositeToTarget(gfx::DrawTarget* aTarget, const gfx::In
 }
 
 void
-WebRenderBridgeParent::HoldPendingTransactionId(uint32_t aWrEpoch, uint64_t aTransactionId)
+WebRenderBridgeParent::HoldPendingTransactionId(uint32_t aWrEpoch, uint64_t aTransactionId, const TimeStamp& aFwdTime)
 {
   // The transaction ID might get reset to 1 if the page gets reloaded, see
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1145295#c41
@@ -1133,7 +1156,7 @@ WebRenderBridgeParent::HoldPendingTransactionId(uint32_t aWrEpoch, uint64_t aTra
   if (aTransactionId == 1) {
     FlushPendingTransactionIds();
   }
-  mPendingTransactionIds.push(PendingTransactionId(wr::NewEpoch(aWrEpoch), aTransactionId));
+  mPendingTransactionIds.push(PendingTransactionId(wr::NewEpoch(aWrEpoch), aTransactionId, aFwdTime));
 }
 
 uint64_t
@@ -1158,16 +1181,27 @@ WebRenderBridgeParent::FlushPendingTransactionIds()
 }
 
 uint64_t
-WebRenderBridgeParent::FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch)
+WebRenderBridgeParent::FlushTransactionIdsForEpoch(const wr::Epoch& aEpoch, const TimeStamp& aEndTime)
 {
   uint64_t id = 0;
   while (!mPendingTransactionIds.empty()) {
-    id = mPendingTransactionIds.front().mId;
-    if (mPendingTransactionIds.front().mEpoch == aEpoch) {
-      mPendingTransactionIds.pop();
+    int64_t diff =
+      static_cast<int64_t>(aEpoch.mHandle) - static_cast<int64_t>(mPendingTransactionIds.front().mEpoch.mHandle);
+    if (diff < 0) {
       break;
     }
+#if defined(ENABLE_FRAME_LATENCY_LOG)
+    if (mPendingTransactionIds.front().mFwdTime) {
+      uint32_t latencyMs = round((aEndTime - mPendingTransactionIds.front().mFwdTime).ToMilliseconds());
+      printf_stderr("From EndTransaction to end of generate frame latencyMs %d this %p\n", latencyMs, this);
+    }
+#endif
+
+    id = mPendingTransactionIds.front().mId;
     mPendingTransactionIds.pop();
+    if (diff == 0) {
+      break;
+    }
   }
   return id;
 }
@@ -1252,8 +1286,8 @@ WebRenderBridgeParent::ClearResources()
     return;
   }
 
-  ++mWrEpoch; // Update webrender epoch
-  mApi->ClearRootDisplayList(wr::NewEpoch(mWrEpoch), mPipelineId);
+  uint32_t wrEpoch = GetNextWrEpoch();
+  mApi->ClearRootDisplayList(wr::NewEpoch(wrEpoch), mPipelineId);
   // Schedule composition to clean up Pipeline
   mCompositorScheduler->ScheduleComposition();
   // XXX webrender does not hava a way to delete a group of resources/keys,
@@ -1276,11 +1310,11 @@ WebRenderBridgeParent::ClearResources()
     RefPtr<WebRenderImageHost> host = iter.Data();
     MOZ_ASSERT(host->GetAsyncRef());
     host->ClearWrBridge();
-    mCompositableHolder->RemoveAsyncImagePipeline(mApi, pipelineId);
+    mAsyncImageManager->RemoveAsyncImagePipeline(mApi, pipelineId);
   }
   mAsyncCompositables.Clear();
 
-  mCompositableHolder->RemovePipeline(mPipelineId, wr::NewEpoch(mWrEpoch));
+  mAsyncImageManager->RemovePipeline(mPipelineId, wr::NewEpoch(wrEpoch));
 
   for (std::unordered_set<uint64_t>::iterator iter = mActiveAnimations.begin(); iter != mActiveAnimations.end(); iter++) {
     mAnimStorage->ClearById(*iter);
@@ -1398,6 +1432,13 @@ WebRenderBridgeParent::GetTextureFactoryIdentifier()
                                   XRE_GetProcessType(),
                                   mApi->GetMaxTextureSize(),
                                   mApi->GetUseANGLE());
+}
+
+uint32_t
+WebRenderBridgeParent::GetNextWrEpoch()
+{
+  MOZ_RELEASE_ASSERT(mWrEpoch != UINT32_MAX);
+  return ++mWrEpoch;
 }
 
 } // namespace layers

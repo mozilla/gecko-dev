@@ -16,11 +16,6 @@
 # include <sys/resource.h>
 #endif
 
-#ifdef MOZ_WIDGET_GONK
-#include <sys/types.h>
-#include <sys/wait.h>
-#endif
-
 #include "chrome/common/process_watcher.h"
 
 #include "mozilla/a11y/PDocAccessible.h"
@@ -625,18 +620,6 @@ ContentParent::StartUp()
     return;
   }
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
-  // Require sandboxing on B2G >= KitKat.  This condition must stay
-  // in sync with ContentChild::RecvSetProcessSandbox.
-  if (!SandboxInfo::Get().CanSandboxContent()) {
-    // MOZ_CRASH strings are only for debug builds; make sure the
-    // message is clear on non-debug builds as well:
-    printf_stderr("Sandboxing support is required on this platform.  "
-                  "Recompile kernel with CONFIG_SECCOMP_FILTER=y\n");
-    MOZ_CRASH("Sandboxing support is required on this platform.");
-  }
-#endif
-
   // Note: This reporter measures all ContentParents.
   RegisterStrongMemoryReporter(new ContentParentsMemoryReporter());
 
@@ -1147,31 +1130,6 @@ ContentParent::RecvConnectPluginBridge(const uint32_t& aPluginId,
   uint32_t dummy = 0;
   if (!mozilla::plugins::SetupBridge(aPluginId, this, aRv, &dummy, aEndpoint)) {
     return IPC_FAIL(this, "SetupBridge failed");
-  }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-ContentParent::RecvGetBlocklistState(const uint32_t& aPluginId,
-                                     uint32_t* aState)
-{
-  *aState = nsIBlocklistService::STATE_BLOCKED;
-
-  RefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
-  if (!pluginHost) {
-    NS_WARNING("Plugin host not found");
-    return IPC_FAIL_NO_REASON(this);
-  }
-  nsPluginTag* tag =  pluginHost->PluginWithId(aPluginId);
-
-  if (!tag) {
-    // Default state is blocked anyway
-    NS_WARNING("Plugin tag not found. This should never happen, but to avoid a crash we're forcibly blocking it");
-    return IPC_OK();
-  }
-
-  if (NS_FAILED(tag->GetBlocklistState(aState))) {
-    return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
 }
@@ -2452,8 +2410,9 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
 #ifdef XP_LINUX
   if (shouldSandbox) {
     MOZ_ASSERT(!mSandboxBroker);
+    bool isFileProcess = mRemoteType.EqualsLiteral(FILE_REMOTE_TYPE);
     UniquePtr<SandboxBroker::Policy> policy =
-      sSandboxBrokerPolicyFactory->GetContentPolicy(Pid());
+      sSandboxBrokerPolicyFactory->GetContentPolicy(Pid(), isFileProcess);
     if (policy) {
       brokerFd = FileDescriptor();
       mSandboxBroker = SandboxBroker::Create(Move(policy), Pid(), brokerFd);

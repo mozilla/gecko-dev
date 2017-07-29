@@ -33,6 +33,7 @@ import org.mozilla.gecko.db.BrowserContract.URLColumns;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 import org.mozilla.gecko.home.SearchLoader.SearchCursorLoader;
 import org.mozilla.gecko.preferences.GeckoPreferences;
+import org.mozilla.gecko.skin.SkinConfig;
 import org.mozilla.gecko.toolbar.AutocompleteHandler;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
@@ -43,6 +44,12 @@ import org.mozilla.gecko.util.ThreadUtils;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Typeface;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.StyleSpan;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.database.Cursor;
 import android.net.Uri;
@@ -76,7 +83,8 @@ import android.widget.TextView;
  */
 public class BrowserSearch extends HomeFragment
                            implements BundleEventListener,
-                                      SearchEngineBar.OnSearchBarClickListener {
+                                      SearchEngineBar.OnSearchBarClickListener,
+                                      Tabs.OnTabsChangedListener {
 
     @RobocopTarget
     public interface SuggestClientFactory {
@@ -305,6 +313,7 @@ public class BrowserSearch extends HomeFragment
 
         EventDispatcher.getInstance().unregisterUiThreadListener(this,
             "SearchEngines:Data");
+        Tabs.unregisterOnTabsChangedListener(this);
 
         mSearchEngineBar.setAdapter(null);
         mSearchEngineBar = null;
@@ -402,9 +411,14 @@ public class BrowserSearch extends HomeFragment
             }
         });
 
+        final Tab tab = Tabs.getInstance().getSelectedTab();
+        final boolean isPrivate = (tab != null && tab.isPrivate());
+        mList.setPrivateMode(isPrivate);
+
         registerForContextMenu(mList);
         EventDispatcher.getInstance().registerUiThreadListener(this,
             "SearchEngines:Data");
+        Tabs.registerOnTabsChangedListener(this);
 
         mSearchEngineBar.setOnSearchBarClickListener(this);
     }
@@ -468,6 +482,17 @@ public class BrowserSearch extends HomeFragment
                               final EventCallback callback) {
         if (event.equals("SearchEngines:Data")) {
             setSearchEngines(message);
+        }
+    }
+
+    @Override
+    public void onTabChanged(Tab tab, Tabs.TabEvents msg, String data) {
+        if (tab == null) {
+            return;
+        }
+
+        if (msg == Tabs.TabEvents.SELECTED) {
+            mList.setPrivateMode(tab.isPrivate());
         }
     }
 
@@ -1152,6 +1177,9 @@ public class BrowserSearch extends HomeFragment
         public void bindView(View view, Context context, int position) {
             final int type = getItemViewType(position);
 
+            final Tab tab = Tabs.getInstance().getSelectedTab();
+            final boolean isPrivate = (tab != null && tab.isPrivate());
+
             if (type == ROW_SEARCH || type == ROW_SUGGEST) {
                 final SearchEngineRow row = (SearchEngineRow) view;
                 row.setOnUrlOpenListener(mUrlOpenListener);
@@ -1161,16 +1189,53 @@ public class BrowserSearch extends HomeFragment
 
                 final SearchEngine engine = mSearchEngines.get(position);
                 row.updateSuggestions(mSuggestionsEnabled, engine, mSearchHistorySuggestions);
+                row.setPrivateMode(isPrivate);
             } else {
                 // Account for the search engines
                 position -= getPrimaryEngineCount();
 
                 final Cursor c = getCursor(position);
                 final TwoLinePageRow row = (TwoLinePageRow) view;
+
+                if (SkinConfig.isPhoton()) {
+                    // Highlight all substrings in title field if they matches the search term.
+                    row.setTitleFormatter(mTwoLinePageRowTitleFormatter);
+                }
                 row.updateFromCursor(c);
+                row.setPrivateMode(isPrivate);
             }
         }
     }
+
+    private TwoLinePageRow.TitleFormatter mTwoLinePageRowTitleFormatter = new TwoLinePageRow.TitleFormatter() {
+        @Override
+        public CharSequence format(@NonNull CharSequence title) {
+            // Don't try to search for an empty string - String.indexOf will return 0, which would result
+            // in us iterating with lastIndexOfMatch = 0, which eventually results in an OOM.
+            if (TextUtils.isEmpty(mSearchTerm)) {
+                return title;
+            }
+
+            // Find matching substrings in title field in TwoLinePageRow, ignoring cases.
+            final String titleInLowerCase = title.toString().toLowerCase();
+            final String pattern = mSearchTerm.toLowerCase();
+            final int patternLength = pattern.length();
+
+            final SpannableStringBuilder sb = new SpannableStringBuilder(title);
+
+            int indexOfMatch = 0;
+            int lastIndexOfMatch = 0;
+            while (indexOfMatch != -1) {
+                indexOfMatch = titleInLowerCase.indexOf(pattern, lastIndexOfMatch);
+                lastIndexOfMatch = indexOfMatch + patternLength;
+                if (indexOfMatch != -1) {
+                    final StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
+                    sb.setSpan(boldSpan, indexOfMatch, lastIndexOfMatch, Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                }
+            }
+            return sb;
+        }
+    };
 
     private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
         @Override
@@ -1291,6 +1356,10 @@ public class BrowserSearch extends HomeFragment
 
         public HomeSearchListView(Context context, AttributeSet attrs, int defStyle) {
             super(context, attrs, defStyle);
+
+            final Tab tab = Tabs.getInstance().getSelectedTab();
+            final boolean isPrivate = (tab != null && tab.isPrivate());
+            setSelector(isPrivate);
         }
 
         @Override
@@ -1301,6 +1370,20 @@ public class BrowserSearch extends HomeFragment
             }
 
             return super.onTouchEvent(event);
+        }
+
+        @Override
+        public void setPrivateMode(boolean isPrivate) {
+            final boolean modeChanged = isPrivateMode() != isPrivate;
+            if (modeChanged) {
+                setSelector(isPrivate);
+            }
+
+            super.setPrivateMode(isPrivate);
+        }
+
+        private void setSelector(boolean isPrivate) {
+            setSelector(isPrivate ? R.drawable.search_list_selector_private : R.drawable.search_list_selector);
         }
     }
 }
