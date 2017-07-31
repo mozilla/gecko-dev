@@ -39,6 +39,7 @@ BuildRequires:  system-bookmarks
 BuildRequires:  rust
 BuildRequires:  cargo
 BuildRequires:  llvm-devel
+BuildRequires:  clang
 
 Obsoletes:      mozilla <= 37:1.7.13
 Provides:       webclient
