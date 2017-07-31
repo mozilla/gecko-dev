@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        56.3
+Version:        56.4
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -38,6 +38,7 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  system-bookmarks
 BuildRequires:  rust
 BuildRequires:  cargo
+BuildRequires:  llvm-devel
 
 Obsoletes:      mozilla <= 37:1.7.13
 Provides:       webclient
@@ -257,6 +258,9 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Mon Jul 31 2017 Martin Stransky <stransky@redhat.com> 56.4-1
+- Added build fix for llvm
+
 * Sat Jul 29 2017 Martin Stransky <stransky@redhat.com> 56.3-1
 - merged with upstream
 * Fri Jul 14 2017 Martin Stransky <stransky@redhat.com> 56.2-1
