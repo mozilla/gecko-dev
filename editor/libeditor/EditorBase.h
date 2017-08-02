@@ -7,10 +7,10 @@
 #define mozilla_EditorBase_h
 
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc.
+#include "mozilla/Maybe.h"              // for Maybe
 #include "mozilla/OwningNonNull.h"      // for OwningNonNull
 #include "mozilla/SelectionState.h"     // for RangeUpdater, etc.
 #include "mozilla/StyleSheet.h"         // for StyleSheet
-#include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"            // for WeakPtr
 #include "mozilla/dom/Text.h"
 #include "nsCOMPtr.h"                   // for already_AddRefed, nsCOMPtr
@@ -279,7 +279,8 @@ public:
                                       Text& aTextNode, int32_t aOffset,
                                       bool aSuppressIME = false);
 
-  nsresult SetTextImpl(const nsAString& aString,
+  nsresult SetTextImpl(Selection& aSelection,
+                       const nsAString& aString,
                        Text& aTextNode);
 
   NS_IMETHOD DeleteSelectionImpl(EDirection aAction,
@@ -432,9 +433,6 @@ protected:
     CreateTxnForInsertText(const nsAString& aStringToInsert, Text& aTextNode,
                            int32_t aOffset);
 
-  already_AddRefed<SetTextTransaction>
-    CreateTxnForSetText(const nsAString& aString, Text& aTextNode);
-
   /**
    * Never returns null.
    */
@@ -494,6 +492,10 @@ protected:
    * Called after a transaction is redone successfully.
    */
   void DoAfterRedoTransaction();
+
+  // Note that aSelection is optional and can be nullptr.
+  nsresult DoTransaction(Selection* aSelection,
+                         nsITransaction* aTxn);
 
   enum TDocumentListenerNotification
   {
@@ -1126,12 +1128,12 @@ protected:
   // The form field as an event receiver.
   nsCOMPtr<dom::EventTarget> mEventTarget;
   nsCOMPtr<nsIDOMEventListener> mEventListener;
-  // Weak reference to placeholder for begin/end batch purposes.
-  WeakPtr<PlaceholderTransaction> mPlaceholderTransactionWeak;
+  // Strong reference to placeholder for begin/end batch purposes.
+  RefPtr<PlaceholderTransaction> mPlaceholderTransaction;
   // Name of placeholder transaction.
   nsIAtom* mPlaceholderName;
   // Saved selection state for placeholder transaction batching.
-  mozilla::UniquePtr<SelectionState> mSelState;
+  mozilla::Maybe<SelectionState> mSelState;
   // IME composition this is not null between compositionstart and
   // compositionend.
   RefPtr<TextComposition> mComposition;

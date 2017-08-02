@@ -103,11 +103,6 @@
 #include "winbase.h"
 #endif
 
-#ifdef ANDROID
-#include <android/log.h>
-#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "GeckoPlugins" , ## args)
-#endif
-
 #if MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
@@ -139,7 +134,6 @@ using mozilla::dom::FakePluginMimeEntry;
 static const char *kPrefWhitelist = "plugin.allowed_types";
 static const char *kPrefLoadInParentPrefix = "plugin.load_in_parent_process.";
 static const char *kPrefDisableFullPage = "plugin.disable_full_page_plugin_for_types";
-static const char *kPrefJavaMIME = "plugin.java.mime";
 
 // How long we wait before unloading an idle plugin process.
 // Defaults to 30 seconds.
@@ -279,10 +273,6 @@ nsPluginHost::nsPluginHost()
   if (obsService) {
     obsService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
     obsService->AddObserver(this, "blocklist-updated", false);
-#ifdef MOZ_WIDGET_ANDROID
-    obsService->AddObserver(this, "application-foreground", false);
-    obsService->AddObserver(this, "application-background", false);
-#endif
   }
 
 #ifdef PLUGIN_LOGGING
@@ -746,7 +736,6 @@ nsPluginHost::InstantiatePluginInstance(const nsACString& aMimeType, nsIURI* aUR
   }
 
   if (tagType != nsPluginTagType_Embed &&
-      tagType != nsPluginTagType_Applet &&
       tagType != nsPluginTagType_Object) {
     instanceOwner->Destroy();
     return NS_ERROR_FAILURE;
@@ -878,12 +867,6 @@ nsPluginHost::TrySetUpPluginInstance(const nsACString &aMimeType,
   NS_ASSERTION(pluginTag, "Must have plugin tag here!");
 
   plugin->GetLibrary()->SetHasLocalInstance();
-
-#if defined(MOZ_WIDGET_ANDROID) && defined(MOZ_CRASHREPORTER)
-  if (pluginTag->mIsFlashPlugin) {
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("FlashVersion"), pluginTag->Version());
-  }
-#endif
 
   RefPtr<nsNPAPIPluginInstance> instance = new nsNPAPIPluginInstance();
 
@@ -1554,8 +1537,8 @@ nsPluginHost::RegisterFakePlugin(JS::Handle<JS::Value> aInitDictionary,
 
   mFakePlugins.AppendElement(newTag);
 
-  nsAdoptingCString disableFullPage =
-    Preferences::GetCString(kPrefDisableFullPage);
+  nsAutoCString disableFullPage;
+  Preferences::GetCString(kPrefDisableFullPage, disableFullPage);
   for (uint32_t i = 0; i < newTag->MimeTypes().Length(); i++) {
     if (!IsTypeInList(newTag->MimeTypes()[i], disableFullPage)) {
       RegisterWithCategoryManager(newTag->MimeTypes()[i],
@@ -1816,20 +1799,6 @@ nsPluginHost::GetSpecialType(const nsACString & aMIMEType)
     return eSpecialType_Flash;
   }
 
-  // Java registers variants of its MIME with parameters, e.g.
-  // application/x-java-vm;version=1.3
-  const nsACString &noParam = Substring(aMIMEType, 0, aMIMEType.FindChar(';'));
-
-  // The java mime pref may well not be one of these,
-  // e.g. application/x-java-test used in the test suite
-  nsAdoptingCString javaMIME = Preferences::GetCString(kPrefJavaMIME);
-  if ((!javaMIME.IsEmpty() && noParam.LowerCaseEqualsASCII(javaMIME)) ||
-      noParam.LowerCaseEqualsASCII("application/x-java-vm") ||
-      noParam.LowerCaseEqualsASCII("application/x-java-applet") ||
-      noParam.LowerCaseEqualsASCII("application/x-java-bean")) {
-    return eSpecialType_Java;
-  }
-
   return eSpecialType_None;
 }
 
@@ -1994,8 +1963,7 @@ ShouldAddPlugin(const nsPluginInfo& info, bool flashOnly)
     }
     if (info.fMimeTypeArray[i] &&
         (!strcmp(info.fMimeTypeArray[i], "application/x-test") ||
-         !strcmp(info.fMimeTypeArray[i], "application/x-Second-Test") ||
-         !strcmp(info.fMimeTypeArray[i], "application/x-java-test"))) {
+         !strcmp(info.fMimeTypeArray[i], "application/x-Second-Test"))) {
       return true;
     }
   }
@@ -2013,8 +1981,8 @@ nsPluginHost::AddPluginTag(nsPluginTag* aPluginTag)
   mPlugins = aPluginTag;
 
   if (aPluginTag->IsActive()) {
-    nsAdoptingCString disableFullPage =
-      Preferences::GetCString(kPrefDisableFullPage);
+    nsAutoCString disableFullPage;
+    Preferences::GetCString(kPrefDisableFullPage, disableFullPage);
     for (uint32_t i = 0; i < aPluginTag->MimeTypes().Length(); i++) {
       if (!IsTypeInList(aPluginTag->MimeTypes()[i], disableFullPage)) {
         RegisterWithCategoryManager(aPluginTag->MimeTypes()[i],
@@ -2379,7 +2347,6 @@ nsPluginHost::SetPluginsInContent(uint32_t aPluginEpoch,
                                                nsTArray<nsCString>(tag.mimeTypes()),
                                                nsTArray<nsCString>(tag.mimeDescriptions()),
                                                nsTArray<nsCString>(tag.extensions()),
-                                               tag.isJavaPlugin(),
                                                tag.isFlashPlugin(),
                                                tag.supportsAsyncRender(),
                                                tag.lastModifiedTime(),
@@ -2407,8 +2374,8 @@ nsPluginHost::SetPluginsInContent(uint32_t aPluginEpoch,
                                                       tag.extensions(),
                                                       tag.niceName(),
                                                       tag.sandboxScript()));
-      nsAdoptingCString disableFullPage =
-        Preferences::GetCString(kPrefDisableFullPage);
+      nsAutoCString disableFullPage;
+      Preferences::GetCString(kPrefDisableFullPage, disableFullPage);
       for (uint32_t i = 0; i < pluginTag->MimeTypes().Length(); i++) {
         if (!IsTypeInList(pluginTag->MimeTypes()[i], disableFullPage)) {
           RegisterWithCategoryManager(pluginTag->MimeTypes()[i],
@@ -2484,10 +2451,6 @@ nsresult nsPluginHost::FindPlugins(bool aCreatePluginList, bool * aPluginsChange
       NS_ITERATIVE_UNREF_LIST(RefPtr<nsInvalidPluginTag>, mInvalidPlugins, mNext);
       return NS_OK;
     }
-  } else {
-#ifdef ANDROID
-    LOG("getting plugins dir failed");
-#endif
   }
 
   mPluginsLoaded = true; // at this point 'some' plugins have been loaded,
@@ -2625,7 +2588,6 @@ nsPluginHost::SendPluginsToContent()
                                        tag->MimeTypes(),
                                        tag->MimeDescriptions(),
                                        tag->Extensions(),
-                                       tag->mIsJavaPlugin,
                                        tag->mIsFlashPlugin,
                                        tag->mSupportsAsyncRender,
                                        tag->FileName(),
@@ -2655,8 +2617,8 @@ nsPluginHost::UpdateInMemoryPluginInfo(nsPluginTag* aPluginTag)
   }
 
   // Update types with category manager
-  nsAdoptingCString disableFullPage =
-    Preferences::GetCString(kPrefDisableFullPage);
+  nsAutoCString disableFullPage;
+  Preferences::GetCString(kPrefDisableFullPage, disableFullPage);
   for (uint32_t i = 0; i < aPluginTag->MimeTypes().Length(); i++) {
     nsRegisterType shouldRegister;
 
@@ -2694,8 +2656,9 @@ nsPluginHost::UpdatePluginInfo(nsPluginTag* aPluginTag)
 /* static */ bool
 nsPluginHost::IsTypeWhitelisted(const char *aMimeType)
 {
-  nsAdoptingCString whitelist = Preferences::GetCString(kPrefWhitelist);
-  if (!whitelist.Length()) {
+  nsAutoCString whitelist;
+  Preferences::GetCString(kPrefWhitelist, whitelist);
+  if (whitelist.IsEmpty()) {
     return true;
   }
   nsDependentCString wrap(aMimeType);
@@ -3078,14 +3041,6 @@ nsPluginHost::ReadPluginInfo()
     if (!reader.NextLine())
       return rv;
 
-#if MOZ_WIDGET_ANDROID
-    // Flash on Android does not populate the version field, but it is tacked on to the description.
-    // For example, "Shockwave Flash 11.1 r115"
-    if (PL_strncmp("Shockwave Flash ", description, 16) == 0 && description[16]) {
-      version = &description[16];
-    }
-#endif
-
     const char *name = reader.LinePtr();
     if (!reader.NextLine())
       return rv;
@@ -3151,8 +3106,6 @@ nsPluginHost::ReadPluginInfo()
     mCachedPlugins = tag;
   }
 
-// On Android we always want to try to load a plugin again (Flash). Bug 935676.
-#ifndef MOZ_WIDGET_ANDROID
   if (!ReadSectionHeader(reader, "INVALID")) {
     return rv;
   }
@@ -3174,7 +3127,6 @@ nsPluginHost::ReadPluginInfo()
     }
     mInvalidPlugins = invalidTag;
   }
-#endif
 
   return NS_OK;
 }
@@ -3506,24 +3458,6 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
       SendPluginsToContent();
     }
   }
-#ifdef MOZ_WIDGET_ANDROID
-  if (!strcmp("application-background", aTopic)) {
-    for(uint32_t i = 0; i < mInstances.Length(); i++) {
-      mInstances[i]->NotifyForeground(false);
-    }
-  }
-  if (!strcmp("application-foreground", aTopic)) {
-    for(uint32_t i = 0; i < mInstances.Length(); i++) {
-      if (mInstances[i]->IsOnScreen())
-        mInstances[i]->NotifyForeground(true);
-    }
-  }
-  if (!strcmp("memory-pressure", aTopic)) {
-    for(uint32_t i = 0; i < mInstances.Length(); i++) {
-      mInstances[i]->MemoryPressure();
-    }
-  }
-#endif
   return NS_OK;
 }
 
@@ -3962,8 +3896,7 @@ nsPluginHost::CanUsePluginForMIMEType(const nsACString& aMIMEType)
       MimeTypeIsAllowedForFakePlugin(NS_ConvertUTF8toUTF16(aMIMEType)) ||
       aMIMEType.LowerCaseEqualsLiteral("application/x-test") ||
       aMIMEType.LowerCaseEqualsLiteral("application/x-second-test") ||
-      aMIMEType.LowerCaseEqualsLiteral("application/x-third-test") ||
-      aMIMEType.LowerCaseEqualsLiteral("application/x-java-test")) {
+      aMIMEType.LowerCaseEqualsLiteral("application/x-third-test")) {
     return true;
   }
 

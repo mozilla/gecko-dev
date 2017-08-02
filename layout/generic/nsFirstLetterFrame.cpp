@@ -59,13 +59,13 @@ nsFirstLetterFrame::Init(nsIContent*       aContent,
   if (aPrevInFlow) {
     // Get proper style context for ourselves.  We're creating the frame
     // that represents everything *except* the first letter, so just create
-    // a style context like we would for a text node.
-    nsStyleContext* parentStyleContext = mStyleContext->GetParentAllowServo();
-    if (parentStyleContext) {
-      newSC = PresContext()->StyleSet()->
-        ResolveStyleForFirstLetterContinuation(parentStyleContext);
-      SetStyleContextWithoutNotification(newSC);
-    }
+    // a style context that inherits from our style parent, with no extra rules.
+    nsIFrame* styleParent =
+      CorrectStyleParentFrame(aParent, nsCSSPseudoElements::firstLetter);
+    nsStyleContext* parentStyleContext = styleParent->StyleContext();
+    newSC = PresContext()->StyleSet()->
+      ResolveStyleForFirstLetterContinuation(parentStyleContext);
+    SetStyleContextWithoutNotification(newSC);
   }
 
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
@@ -77,12 +77,12 @@ nsFirstLetterFrame::SetInitialChildList(ChildListID  aListID,
 {
   MOZ_ASSERT(aListID == kPrincipalList, "Principal child list is the only "
              "list that nsFirstLetterFrame should set via this function");
-  RestyleManager* restyleManager = PresContext()->RestyleManager();
-
-  for (nsFrameList::Enumerator e(aChildList); !e.AtEnd(); e.Next()) {
-    NS_ASSERTION(e.get()->GetParent() == this, "Unexpected parent");
-    restyleManager->ReparentStyleContext(e.get());
-    nsLayoutUtils::MarkDescendantsDirty(e.get());
+  for (nsIFrame* f : aChildList) {
+    MOZ_ASSERT(f->GetParent() == this, "Unexpected parent");
+    MOZ_ASSERT(f->IsTextFrame(), "We should not have kids that are containers!");
+    MOZ_ASSERT_IF(f->StyleContext()->IsGecko(),
+                  f->StyleContext()->AsGecko()->GetParent() == StyleContext());
+    nsLayoutUtils::MarkDescendantsDirty(f); // Drops cached textruns
   }
 
   mFrames.SetFrames(aChildList);
@@ -378,14 +378,23 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
   // are reflowed)
   nsIFrame* kid = mFrames.FirstChild();
   if (kid) {
-    RefPtr<nsStyleContext> sc;
     nsIContent* kidContent = kid->GetContent();
     if (kidContent) {
       NS_ASSERTION(kidContent->IsNodeOfType(nsINode::eTEXT),
                    "should contain only text nodes");
-      nsStyleContext* parentSC = prevInFlow ? mStyleContext->GetParentAllowServo() :
-                                              mStyleContext;
-      sc = aPresContext->StyleSet()->ResolveStyleForText(kidContent, parentSC);
+      nsStyleContext* parentSC;
+      if (prevInFlow) {
+        // This is for the rest of the content not in the first-letter.
+        nsIFrame* styleParent =
+          CorrectStyleParentFrame(GetParent(),
+                                  nsCSSPseudoElements::firstLetter);
+        parentSC = styleParent->StyleContext();
+      } else {
+        // And this for the first-letter style.
+        parentSC = mStyleContext;
+      }
+      RefPtr<nsStyleContext> sc =
+        aPresContext->StyleSet()->ResolveStyleForText(kidContent, parentSC);
       kid->SetStyleContext(sc);
       nsLayoutUtils::MarkDescendantsDirty(kid);
     }

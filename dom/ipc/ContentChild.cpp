@@ -984,12 +984,10 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
   // Handle the error which we got back from the parent process, if we got
   // one.
   if (NS_FAILED(rv)) {
-    PRenderFrameChild::Send__delete__(renderFrame);
     return rv;
   }
 
   if (!*aWindowIsNew) {
-    PRenderFrameChild::Send__delete__(renderFrame);
     return NS_ERROR_ABORT;
   }
 
@@ -999,7 +997,6 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
   }
 
   if (layersId == 0) { // if renderFrame is invalid.
-    PRenderFrameChild::Send__delete__(renderFrame);
     renderFrame = nullptr;
   }
 
@@ -1513,13 +1510,15 @@ StartMacOSContentSandbox()
   // These paths are used to whitelist certain directories used by the testing
   // system. They should not be considered a public API, and are only intended
   // for use in automation.
-  nsAdoptingCString testingReadPath1 =
-    Preferences::GetCString("security.sandbox.content.mac.testing_read_path1");
+  nsAutoCString testingReadPath1;
+  Preferences::GetCString("security.sandbox.content.mac.testing_read_path1",
+                          testingReadPath1);
   if (!testingReadPath1.IsEmpty()) {
     info.testingReadPath1.assign(testingReadPath1.get());
   }
-  nsAdoptingCString testingReadPath2 =
-    Preferences::GetCString("security.sandbox.content.mac.testing_read_path2");
+  nsAutoCString testingReadPath2;
+  Preferences::GetCString("security.sandbox.content.mac.testing_read_path2",
+                          testingReadPath2);
   if (!testingReadPath2.IsEmpty()) {
     info.testingReadPath2.assign(testingReadPath2.get());
   }
@@ -1607,11 +1606,12 @@ ContentChild::RecvSetProcessSandbox(const MaybeFileDesc& aBroker)
     }
     // Allow user overrides of seccomp-bpf syscall filtering
     std::vector<int> syscallWhitelist;
-    nsAdoptingCString extraSyscalls =
-      Preferences::GetCString("security.sandbox.content.syscall_whitelist");
-    if (extraSyscalls) {
+    nsAutoCString extraSyscalls;
+    nsresult rv =
+      Preferences::GetCString("security.sandbox.content.syscall_whitelist",
+                              extraSyscalls);
+    if (NS_SUCCEEDED(rv)) {
       for (const nsACString& callNrString : extraSyscalls.Split(',')) {
-        nsresult rv;
         int callNr = PromiseFlatCString(callNrString).ToInteger(&rv);
         if (NS_SUCCEEDED(rv)) {
           syscallWhitelist.push_back(callNr);
@@ -2873,20 +2873,21 @@ ContentChild::RecvShutdown()
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("IPCShutdownState"),
                                      NS_LITERAL_CSTRING("RecvShutdown"));
 #endif
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
-  if (NS_SUCCEEDED(rv) && thread) {
-    RefPtr<nsThread> mainThread(thread.forget().downcast<nsThread>());
-    if (mainThread->RecursionDepth() > 1) {
-      // We're in a nested event loop. Let's delay for an arbitrary period of
-      // time (100ms) in the hopes that the event loop will have finished by
-      // then.
-      MessageLoop::current()->PostDelayedTask(
-        NewRunnableMethod(
-          "dom::ContentChild::RecvShutdown", this, &ContentChild::RecvShutdown),
-        100);
-      return IPC_OK();
-    }
+  MOZ_ASSERT(NS_IsMainThread());
+  RefPtr<nsThread> mainThread = nsThreadManager::get().GetCurrentThread();
+  // Note that we only have to check the recursion count for the current
+  // cooperative thread. Since the Shutdown message is not labeled with a
+  // SchedulerGroup, there can be no other cooperative threads doing work while
+  // we're running.
+  if (mainThread && mainThread->RecursionDepth() > 1) {
+    // We're in a nested event loop. Let's delay for an arbitrary period of
+    // time (100ms) in the hopes that the event loop will have finished by
+    // then.
+    MessageLoop::current()->PostDelayedTask(
+      NewRunnableMethod(
+        "dom::ContentChild::RecvShutdown", this, &ContentChild::RecvShutdown),
+      100);
+    return IPC_OK();
   }
 
   mShuttingDown = true;

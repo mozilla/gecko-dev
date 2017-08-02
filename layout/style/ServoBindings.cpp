@@ -54,7 +54,6 @@
 #include "mozilla/GeckoStyleContext.h"
 #include "mozilla/Keyframe.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/ServoElementSnapshot.h"
 #include "mozilla/ServoRestyleManager.h"
 #include "mozilla/StyleAnimationValue.h"
@@ -89,8 +88,6 @@ SERVO_ARC_TYPE(StyleContext, ServoStyleContext)
 
 static Mutex* sServoFontMetricsLock = nullptr;
 static RWLock* sServoLangFontPrefsLock = nullptr;
-
-static bool sFramesTimingFunctionEnabled;
 
 static
 const nsFont*
@@ -828,11 +825,6 @@ Gecko_GetPositionInSegment(RawGeckoAnimationPropertySegmentBorrowed aSegment,
   return ComputedTimingFunction::GetPortion(aSegment->mTimingFunction,
                                             positionInSegment,
                                             aBeforeFlag);
-}
-
-bool
-Gecko_IsFramesTimingEnabled() {
-  return sFramesTimingFunctionEnabled;
 }
 
 RawServoAnimationValueBorrowedOrNull
@@ -2299,12 +2291,6 @@ Gecko_CSSValue_InitSharedList(nsCSSValueBorrowedMut aCSSValue,
   }
 }
 
-bool
-Gecko_PropertyId_IsPrefEnabled(nsCSSPropertyID id)
-{
-  return nsCSSProps::IsEnabled(id);
-}
-
 void
 Gecko_CSSValue_Drop(nsCSSValueBorrowedMut aCSSValue)
 {
@@ -2424,9 +2410,6 @@ InitializeServo()
 
   sServoFontMetricsLock = new Mutex("Gecko_GetFontMetrics");
   sServoLangFontPrefsLock = new RWLock("nsPresContext::GetDefaultFont");
-
-  Preferences::AddBoolVarCache(&sFramesTimingFunctionEnabled,
-                               "layout.css.frames-timing.enabled");
 }
 
 void
@@ -2494,7 +2477,7 @@ ServoStyleSheet*
 Gecko_LoadStyleSheet(css::Loader* aLoader,
                      ServoStyleSheet* aParent,
                      css::LoaderReusableStyleSheets* aReusableSheets,
-                     RawGeckoURLExtraData* aBaseURLData,
+                     RawGeckoURLExtraData* aURLExtraData,
                      const uint8_t* aURLString,
                      uint32_t aURLStringLength,
                      RawServoMediaListStrong aMediaList)
@@ -2503,14 +2486,14 @@ Gecko_LoadStyleSheet(css::Loader* aLoader,
   MOZ_ASSERT(aLoader, "Should've catched this before");
   MOZ_ASSERT(aParent, "Only used for @import, so parent should exist!");
   MOZ_ASSERT(aURLString, "Invalid URLs shouldn't be loaded!");
-  MOZ_ASSERT(aBaseURLData, "Need base URL data");
+  MOZ_ASSERT(aURLExtraData, "Need URL extra data");
 
   RefPtr<dom::MediaList> media = new ServoMediaList(aMediaList.Consume());
   nsDependentCSubstring urlSpec(reinterpret_cast<const char*>(aURLString),
                                 aURLStringLength);
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), urlSpec, nullptr,
-                          aBaseURLData->BaseURI());
+                          aURLExtraData->BaseURI());
 
   StyleSheet* previousFirstChild = aParent->GetFirstChild();
   if (NS_SUCCEEDED(rv)) {
@@ -2521,11 +2504,21 @@ Gecko_LoadStyleSheet(css::Loader* aLoader,
       !aParent->GetFirstChild() ||
       aParent->GetFirstChild() == previousFirstChild) {
     // Servo and Gecko have different ideas of what a valid URL is, so we might
-    // get in here with a URL string that NS_NewURI can't handle.  If so,
-    // silently do nothing.  Eventually we should be able to assert that the
-    // NS_NewURI succeeds, here.
+    // get in here with a URL string that NS_NewURI can't handle.  We may also
+    // reach here via an import cycle.  For the import cycle case, we need some
+    // sheet object per spec, even if its empty.  DevTools uses the URI to
+    // realize it has hit an import cycle, so we mark it complete to make the
+    // sheet readable from JS.
     RefPtr<ServoStyleSheet> emptySheet =
       aParent->CreateEmptyChildSheet(media.forget());
+    // Make a dummy URI if we don't have one because some methods assume
+    // non-null URIs.
+    if (!uri) {
+      NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING("about:invalid"));
+    }
+    emptySheet->SetURIs(uri, uri, uri);
+    emptySheet->SetPrincipal(aURLExtraData->GetPrincipal());
+    emptySheet->SetComplete();
     aParent->PrependStyleSheet(emptySheet);
     return emptySheet.forget().take();
   }
@@ -2533,12 +2526,6 @@ Gecko_LoadStyleSheet(css::Loader* aLoader,
   RefPtr<ServoStyleSheet> sheet =
     static_cast<ServoStyleSheet*>(aParent->GetFirstChild());
   return sheet.forget().take();
-}
-
-const nsMediaFeature*
-Gecko_GetMediaFeatures()
-{
-  return nsMediaFeatures::features;
 }
 
 nsCSSKeyword
@@ -2743,20 +2730,32 @@ Gecko_ReportUnexpectedCSSError(ErrorReporter* reporter,
                                const char* message,
                                const char* param,
                                uint32_t paramLen,
+                               const char* prefix,
+                               const char* prefixParam,
+                               uint32_t prefixParamLen,
+                               const char* suffix,
                                const char* source,
                                uint32_t sourceLen,
                                uint32_t lineNumber,
-                               uint32_t colNumber,
-                               nsIURI* uri,
-                               const char* followup)
+                               uint32_t colNumber)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  if (prefix) {
+    if (prefixParam) {
+      nsDependentCSubstring paramValue(prefixParam, prefixParamLen);
+      nsAutoString wideParam = NS_ConvertUTF8toUTF16(paramValue);
+      reporter->ReportUnexpectedUnescaped(prefix, wideParam);
+    } else {
+      reporter->ReportUnexpected(prefix);
+    }
+  }
 
   nsDependentCSubstring paramValue(param, paramLen);
   nsAutoString wideParam = NS_ConvertUTF8toUTF16(paramValue);
   reporter->ReportUnexpectedUnescaped(message, wideParam);
-  if (followup) {
-    reporter->ReportUnexpected(followup);
+  if (suffix) {
+    reporter->ReportUnexpected(suffix);
   }
   nsDependentCSubstring sourceValue(source, sourceLen);
   reporter->OutputError(lineNumber, colNumber, sourceValue);

@@ -321,7 +321,7 @@ user_pref("browser.search.countryCode", "US");
 user_pref("browser.search.geoSpecificDefaults", false);
 
 // Make sure Shield doesn't hit the network.
-user_pref("extensions.shield-recipe-client.api_url", "https://example.com/selfsupport-dummy/");
+user_pref("extensions.shield-recipe-client.api_url", "");
 
 user_pref("media.eme.enabled", true);
 
@@ -379,7 +379,7 @@ user_pref("media.openUnsupportedTypeWithExternalApp", false);
 user_pref("signon.rememberSignons", false);
 
 // Enable form autofill feature testing.
-user_pref("extensions.formautofill.experimental", true);
+user_pref("extensions.formautofill.available", "on");
 
 // Disable all recommended Marionette preferences for Gecko tests.
 // The prefs recommended by Marionette are typically geared towards

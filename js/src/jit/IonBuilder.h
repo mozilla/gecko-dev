@@ -672,6 +672,9 @@ class IonBuilder
     InliningResult inlineConstantStringSplitString(CallInfo& callInfo);
     InliningResult inlineStringSplitString(CallInfo& callInfo);
 
+    // Reflect natives.
+    InliningResult inlineReflectGetPrototypeOf(CallInfo& callInfo);
+
     // RegExp intrinsics.
     InliningResult inlineRegExpMatcher(CallInfo& callInfo);
     InliningResult inlineRegExpSearcher(CallInfo& callInfo);
@@ -683,6 +686,7 @@ class IonBuilder
 
     // Object natives and intrinsics.
     InliningResult inlineObjectCreate(CallInfo& callInfo);
+    InliningResult inlineObjectToString(CallInfo& callInfo);
     InliningResult inlineDefineDataProperty(CallInfo& callInfo);
 
     // Atomics natives.

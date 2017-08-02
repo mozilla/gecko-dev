@@ -30,14 +30,10 @@ to mochitest command.
 ## Failures
 
 * Media query support:
-  * "layout.css.prefixes.device-pixel-ratio-webkit" support bug 1366956
-    * test_media_queries.html `-device-pixel-ratio` [27]
-    * test_webkit_device_pixel_ratio.html [3]
   * test_media_queries_dynamic_xbl.html: xbl support bug 1382078 [1]
 * Animation support:
   * SMIL Animation
     * test_restyles_in_smil_animation.html [2]
-* test_font_feature_values_parsing.html: \@font-feature-values support bug 1355721 [3]
 * Unsupported values
   * SVG-in-OpenType values not supported servo/servo#15211 bug 1338764
     * test_value_storage.html `context-` [7]

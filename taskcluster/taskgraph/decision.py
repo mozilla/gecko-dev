@@ -17,7 +17,7 @@ from .generator import TaskGraphGenerator
 from .create import create_tasks
 from .parameters import Parameters
 from .taskgraph import TaskGraph
-from actions import render_actions_json
+from .actions import render_actions_json
 from . import GECKO
 
 from taskgraph.util.templates import Templates
@@ -34,7 +34,7 @@ ARTIFACTS_DIR = 'artifacts'
 # See `taskcluster/docs/parameters.rst` for information on parameters.
 PER_PROJECT_PARAMETERS = {
     'try': {
-        'target_tasks_method': 'try_option_syntax',
+        'target_tasks_method': 'try_tasks',
         # Always perform optimization.  This makes it difficult to use try
         # pushes to run a task that would otherwise be optimized, but is a
         # compromise to avoid essentially disabling optimization in try.

@@ -8,6 +8,7 @@
 
 #include <queue>
 
+#include "CompositableHost.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/Maybe.h"
@@ -33,7 +34,7 @@ class AsyncImagePipelineManager final
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncImagePipelineManager)
 
-  explicit AsyncImagePipelineManager(uint32_t aIdNamespace);
+  explicit AsyncImagePipelineManager(wr::IdNamespace aIdNamespace);
 
 protected:
   ~AsyncImagePipelineManager();
@@ -79,15 +80,25 @@ public:
                                 const wr::MixBlendMode& aMixBlendMode);
   void ApplyAsyncImages(wr::WebRenderAPI* aApi);
 
+  void AppendImageCompositeNotification(const ImageCompositeNotificationInfo& aNotification)
+  {
+    mImageCompositeNotifications.AppendElement(aNotification);
+  }
+
+  void FlushImageNotifications(nsTArray<ImageCompositeNotificationInfo>* aNotifications)
+  {
+    aNotifications->AppendElements(Move(mImageCompositeNotifications));
+  }
+
 private:
   void DeleteOldAsyncImages(wr::WebRenderAPI* aApi);
 
   uint32_t GetNextResourceId() { return ++mResourceId; }
-  uint32_t GetNamespace() { return mIdNamespace; }
+  wr::IdNamespace GetNamespace() { return mIdNamespace; }
   wr::ImageKey GenerateImageKey()
   {
     wr::ImageKey key;
-    key.mNamespace.mHandle = GetNamespace();
+    key.mNamespace = GetNamespace();
     key.mHandle = GetNextResourceId();
     return key;
   }
@@ -130,7 +141,7 @@ private:
                        nsTArray<wr::ImageKey>& aKeys,
                        nsTArray<wr::ImageKey>& aKeysToDelete);
 
-  uint32_t mIdNamespace;
+  wr::IdNamespace mIdNamespace;
   uint32_t mResourceId;
 
   nsClassHashtable<nsUint64HashKey, PipelineTexturesHolder> mPipelineTexturesHolders;
@@ -146,6 +157,8 @@ private:
   // change its rendering at this time. In order not to miss it, we composite
   // on every vsync until this time occurs (this is the latest such time).
   TimeStamp mCompositeUntilTime;
+
+  nsTArray<ImageCompositeNotificationInfo> mImageCompositeNotifications;
 };
 
 } // namespace layers

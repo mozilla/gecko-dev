@@ -1290,4 +1290,16 @@ ServoStyleSet::HasStateDependency(const Element& aElement,
       mRawSet.get(), &aElement, aState.ServoValue());
 }
 
+already_AddRefed<ServoStyleContext>
+ServoStyleSet::ReparentStyleContext(ServoStyleContext* aStyleContext,
+                                    ServoStyleContext* aNewParent,
+                                    ServoStyleContext* aNewParentIgnoringFirstLine,
+                                    ServoStyleContext* aNewLayoutParent,
+                                    Element* aElement)
+{
+  return Servo_ReparentStyle(aStyleContext, aNewParent,
+                             aNewParentIgnoringFirstLine, aNewLayoutParent,
+                             aElement, mRawSet.get()).Consume();
+}
+
 ServoStyleSet* ServoStyleSet::sInServoTraversal = nullptr;

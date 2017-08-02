@@ -21,9 +21,21 @@ extern crate euclid;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
+#[cfg(feature = "servo")] extern crate webrender_api;
+#[cfg(feature = "servo")] extern crate servo_atoms;
+
+#[cfg(feature = "servo")] pub use webrender_api::DevicePixel;
 
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseError;
+#[cfg(feature = "servo")] use servo_atoms::Atom;
+
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+#[cfg(not(feature = "servo"))]
+#[derive(Copy, Clone, Debug)]
+pub enum DevicePixel {}
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from `TNode`.
@@ -58,12 +70,6 @@ impl PinchZoomFactor {
 /// document is zoomed in or out then this scale may be larger or smaller.
 #[derive(Clone, Copy, Debug)]
 pub enum CSSPixel {}
-
-/// One hardware pixel.
-///
-/// This unit corresponds to the smallest addressable element of the display hardware.
-#[derive(Copy, Clone, Debug)]
-pub enum DevicePixel {}
 
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
@@ -118,10 +124,31 @@ pub enum StyleParseError<'i> {
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.
     UnexpectedTokenWithinNamespace(Token<'i>),
+    /// An error was encountered while parsing a property value.
+    ValueError(ValueParseError<'i>),
+}
+
+/// Specific errors that can be encountered while parsing property values.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ValueParseError<'i> {
+    /// An invalid token was encountered while parsing a color value.
+    InvalidColor(Token<'i>),
+}
+
+impl<'i> ValueParseError<'i> {
+    /// Attempt to extract a ValueParseError value from a ParseError.
+    pub fn from_parse_error(this: ParseError<'i>) -> Option<ValueParseError<'i>> {
+        match this {
+            cssparser::ParseError::Custom(
+                SelectorParseError::Custom(
+                    StyleParseError::ValueError(e))) => Some(e),
+            _ => None,
+        }
+    }
 }
 
 /// The result of parsing a property declaration.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),
@@ -130,7 +157,7 @@ pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
-    InvalidValue(CowRcStr<'i>),
+    InvalidValue(CowRcStr<'i>, Option<ValueParseError<'i>>),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///
@@ -180,3 +207,9 @@ impl ParsingMode {
     }
 }
 
+#[cfg(feature = "servo")]
+/// Speculatively execute paint code in the worklet thread pool.
+pub trait SpeculativePainter: Send + Sync {
+    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    fn speculatively_draw_a_paint_image(&self, properties: Vec<(Atom, String)>, arguments: Vec<String>);
+}

@@ -24,6 +24,9 @@
 class nsIWidget;
 
 namespace mozilla {
+
+struct ActiveScrolledRoot;
+
 namespace layers {
 
 class CompositorBridgeChild;
@@ -67,6 +70,16 @@ public:
                  mozilla::wr::DisplayListBuilder& aBuilder,
                  const StackingContextHelper& aSc,
                  const LayerRect& aRect);
+  already_AddRefed<WebRenderFallbackData> GenerateFallbackData(nsDisplayItem* aItem,
+                                                               wr::DisplayListBuilder& aBuilder,
+                                                               nsDisplayListBuilder* aDisplayListBuilder,
+                                                               LayerRect& aImageRect,
+                                                               LayerPoint& aOffset);
+  Maybe<wr::WrImageMask> BuildWrMaskImage(nsDisplayItem* aItem,
+                                          wr::DisplayListBuilder& aBuilder,
+                                          const StackingContextHelper& aSc,
+                                          nsDisplayListBuilder* aDisplayListBuilder,
+                                          const LayerRect& aBounds);
   bool PushItemAsImage(nsDisplayItem* aItem,
                        wr::DisplayListBuilder& aBuilder,
                        const StackingContextHelper& aSc,
@@ -245,6 +258,11 @@ private:
   // We use this as a temporary data structure while building the mScrollData
   // inside a layers-free transaction.
   std::vector<WebRenderLayerScrollData> mLayerScrollData;
+  // We use this as a temporary data structure to track the current display
+  // item's ASR as we recurse in CreateWebRenderCommandsFromDisplayList. We
+  // need this so that WebRenderLayerScrollData items that deeper in the
+  // tree don't duplicate scroll metadata that their ancestors already have.
+  std::vector<const ActiveScrolledRoot*> mAsrStack;
 
   // Layers that have been mutated. If we have an empty transaction
   // then a display item layer will no longer be valid

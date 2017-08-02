@@ -81,7 +81,7 @@
 #include "mozAutoDocUpdate.h"
 #include "nsHtml5Module.h"
 #include "nsITextControlElement.h"
-#include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "HTMLFieldSetElement.h"
 #include "nsTextNode.h"
 #include "HTMLBRElement.h"
@@ -487,7 +487,7 @@ nsGenericHTMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   if (aDocument) {
     RegAccessKey();
-    if (CanHaveName(NodeInfo()->NameAtom()) && HasName()) {
+    if (HasName() && CanHaveName(NodeInfo()->NameAtom())) {
       aDocument->
         AddToNameTable(this, GetParsedAttr(nsGkAtoms::name)->GetAtomValue());
     }
@@ -2978,8 +2978,10 @@ nsGenericHTMLElement::NewURIFromString(const nsAString& aURISpec,
 static bool
 IsOrHasAncestorWithDisplayNone(Element* aElement, nsIPresShell* aPresShell)
 {
-  nsTArray<Element*> elementsToCheck;
-  for (Element* e = aElement; e; e = e->GetParentElement()) {
+  AutoTArray<Element*, 10> elementsToCheck;
+  // Style and layout work on the flattened tree, so this is what we need to
+  // check in order to figure out whether we're in a display: none subtree.
+  for (Element* e = aElement; e; e = e->GetFlattenedTreeParentElement()) {
     if (e->GetPrimaryFrame()) {
       // e definitely isn't display:none and doesn't have a display:none
       // ancestor.
@@ -2992,14 +2994,13 @@ IsOrHasAncestorWithDisplayNone(Element* aElement, nsIPresShell* aPresShell)
     return false;
   }
 
-  // XXXbholley: This could be done more directly with Servo's style system.
   StyleSetHandle styleSet = aPresShell->StyleSet();
   RefPtr<nsStyleContext> sc;
-  for (int32_t i = elementsToCheck.Length() - 1; i >= 0; --i) {
+  for (auto* element : Reversed(elementsToCheck)) {
     if (sc) {
-      sc = styleSet->ResolveStyleFor(elementsToCheck[i], sc, LazyComputeBehavior::Assert);
+      sc = styleSet->ResolveStyleFor(element, sc, LazyComputeBehavior::Assert);
     } else {
-      sc = nsComputedDOMStyle::GetStyleContextNoFlush(elementsToCheck[i],
+      sc = nsComputedDOMStyle::GetStyleContextNoFlush(element,
                                                       nullptr, aPresShell);
     }
     if (sc->StyleDisplay()->mDisplay == StyleDisplay::None) {

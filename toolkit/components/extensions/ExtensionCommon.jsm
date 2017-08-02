@@ -18,8 +18,6 @@ this.EXPORTED_SYMBOLS = ["ExtensionCommon"];
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Locale",
-                                  "resource://gre/modules/Locale.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
                                   "resource://gre/modules/MessageChannel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
@@ -452,10 +450,12 @@ class SchemaAPIInterface {
    * @param {Array} args The parameters for the function.
    * @param {function(*)} [callback] The callback to be called when the function
    *     completes.
+   * @param {boolean} [requireUserInput=false] If true, the function should
+   *                  fail if the browser is not currently handling user input.
    * @returns {Promise|undefined} Must be void if `callback` is set, and a
    *     promise otherwise. The promise is resolved when the function completes.
    */
-  callAsyncFunction(args, callback) {
+  callAsyncFunction(args, callback, requireUserInput = false) {
     throw new Error("Not implemented");
   }
 
@@ -561,9 +561,16 @@ class LocalAPIImplementation extends SchemaAPIInterface {
     this.pathObj[this.name](...args);
   }
 
-  callAsyncFunction(args, callback) {
+  callAsyncFunction(args, callback, requireUserInput) {
     let promise;
     try {
+      if (requireUserInput) {
+        let winUtils = this.context.contentWindow
+                           .getInterface(Ci.nsIDOMWindowUtils);
+        if (!winUtils.isHandlingUserInput) {
+          throw new ExtensionError(`${this.name} may only be called from a user input handler`);
+        }
+      }
       promise = this.pathObj[this.name](...args) || Promise.resolve();
     } catch (e) {
       promise = Promise.reject(e);
@@ -1242,8 +1249,7 @@ LocaleData.prototype = {
     if (message == "@@ui_locale") {
       return this.uiLocale;
     } else if (message.startsWith("@@bidi_")) {
-      let registry = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
-      let rtl = registry.isLocaleRTL("global");
+      let rtl = Services.locale.isAppLocaleRTL;
 
       if (message == "@@bidi_dir") {
         return rtl ? "rtl" : "ltr";
@@ -1348,7 +1354,7 @@ LocaleData.prototype = {
   get uiLocale() {
     // Return the browser locale, but convert it to a Chrome-style
     // locale code.
-    return Locale.getLocale().replace(/-/g, "_");
+    return Services.locale.getAppLocaleAsBCP47().replace(/-/g, "_");
   },
 };
 

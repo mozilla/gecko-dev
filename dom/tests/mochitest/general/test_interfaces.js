@@ -29,6 +29,8 @@ var ecmaGlobals =
     "ArrayBuffer",
     "Atomics",
     "Boolean",
+    {name: "ByteLengthQueuingStrategy", disabled: !SpecialPowers.Cu.getJSTestingFunctions().streamsAreEnabled()},
+    {name: "CountQueuingStrategy", disabled: !SpecialPowers.Cu.getJSTestingFunctions().streamsAreEnabled()},
     "DataView",
     "Date",
     "Error",
@@ -55,6 +57,7 @@ var ecmaGlobals =
     "Promise",
     "Proxy",
     "RangeError",
+    {name: "ReadableStream", disabled: !SpecialPowers.Cu.getJSTestingFunctions().streamsAreEnabled()},
     "ReferenceError",
     "Reflect",
     "RegExp",
@@ -393,8 +396,6 @@ var interfaceNamesInGlobalScope =
     "HTMLAllCollection",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "HTMLAnchorElement",
-// IMPORTANT: Do not change this list without review from a DOM peer!
-    "HTMLAppletElement",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "HTMLAreaElement",
 // IMPORTANT: Do not change this list without review from a DOM peer!

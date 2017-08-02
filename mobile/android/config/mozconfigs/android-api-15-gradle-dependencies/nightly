@@ -15,8 +15,8 @@ NO_NDK=1
 
 # We want to download Gradle.
 ac_add_options --with-gradle
-# We want to use (and populate!) the local Nexus repository.
-export GRADLE_MAVEN_REPOSITORY="http://localhost:8081/nexus/content/repositories/jcenter/"
+# We want to use (and populate!) the local Nexus repositories.
+export GRADLE_MAVEN_REPOSITORIES="http://localhost:8081/nexus/content/repositories/jcenter/","http://localhost:8081/nexus/content/repositories/google/"
 
 # From here on, just like ../android-api-15-frontend/nightly.
 
@@ -44,3 +44,9 @@ export MOZILLA_OFFICIAL=1
 export MOZ_TELEMETRY_REPORTING=1
 
 . "$topsrcdir/mobile/android/config/mozconfigs/common.override"
+
+# End ../android-api-15-frontend/nightly.
+
+# Populated after checking out the sources and before building the
+# tree as part of the dependencies task bin/ scripts.
+ac_add_options --with-android-sdk="/home/worker/.mozbuild/android-sdk-linux"

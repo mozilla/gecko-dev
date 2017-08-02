@@ -152,9 +152,9 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
 
   // If there are any characters that are unsafe for URIs, reescape those.
   if (mUnsafeChars.IsEmpty()) {
-    nsAdoptingString blacklist;
+    nsAutoString blacklist;
     nsresult rv = mozilla::Preferences::GetString("network.IDN.blacklist_chars",
-                                                  &blacklist);
+                                                  blacklist);
     if (NS_SUCCEEDED(rv)) {
       // we allow SPACE and IDEOGRAPHIC SPACE in this method
       blacklist.StripChars(u" \u3000");

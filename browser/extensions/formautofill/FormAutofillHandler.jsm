@@ -31,6 +31,28 @@ function FormAutofillHandler(form) {
   this.fieldDetails = [];
   this.winUtils = this.form.rootElement.ownerGlobal.QueryInterface(Ci.nsIInterfaceRequestor)
     .getInterface(Ci.nsIDOMWindowUtils);
+
+  this.address = {
+    /**
+     * Similar to the `fieldDetails` above but contains address fields only.
+     */
+    fieldDetails: [],
+    /**
+     * String of the filled address' guid.
+     */
+    filledRecordGUID: null,
+  };
+
+  this.creditCard = {
+    /**
+     * Similar to the `fieldDetails` above but contains credit card fields only.
+     */
+    fieldDetails: [],
+    /**
+     * String of the filled creditCard's guid.
+     */
+    filledRecordGUID: null,
+  };
 }
 
 FormAutofillHandler.prototype = {
@@ -57,29 +79,14 @@ FormAutofillHandler.prototype = {
   fieldDetails: null,
 
   /**
-   * Similiar to `fieldDetails`, and `addressFieldDetails` contains the address
-   * records only.
+   * Subcategory of handler that contains address related data.
    */
-  addressFieldDetails: null,
+  address: null,
 
   /**
-   * Similiar to `fieldDetails`, and `creditCardFieldDetails` contains the
-   * Credit Card records only.
+   * Subcategory of handler that contains credit card related data.
    */
-  creditCardFieldDetails: null,
-
-  get isValidAddressForm() {
-    return this.addressFieldDetails.length >= FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD;
-  },
-
-  get isValidCreditCardForm() {
-    return this.creditCardFieldDetails.some(i => i.fieldName == "cc-number");
-  },
-
-  /**
-   * String of the filled profile's guid.
-   */
-  filledProfileGUID: null,
+  creditCard: null,
 
   /**
    * A WindowUtils reference of which Window the form belongs
@@ -108,6 +115,8 @@ FormAutofillHandler.prototype = {
 
   /**
    * Set fieldDetails from the form about fields that can be autofilled.
+
+   * @returns {Array} The valid address and credit card details.
    */
   collectFormFields() {
     this._cacheValue.allFieldNames = null;
@@ -116,12 +125,27 @@ FormAutofillHandler.prototype = {
     this.fieldDetails = fieldDetails ? fieldDetails : [];
     log.debug("Collected details on", this.fieldDetails.length, "fields");
 
-    this.addressFieldDetails = this.fieldDetails.filter(
+    this.address.fieldDetails = this.fieldDetails.filter(
       detail => FormAutofillUtils.isAddressField(detail.fieldName)
     );
-    this.creditCardFieldDetails = this.fieldDetails.filter(
+    this.creditCard.fieldDetails = this.fieldDetails.filter(
       detail => FormAutofillUtils.isCreditCardField(detail.fieldName)
     );
+
+    if (this.address.fieldDetails.length < FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD) {
+      log.debug("Ignoring address related fields since it has only",
+                this.address.fieldDetails.length,
+                "field(s)");
+      this.address.fieldDetails = [];
+    }
+
+    if (!this.creditCard.fieldDetails.some(i => i.fieldName == "cc-number")) {
+      log.debug("Ignoring credit card related fields since it's without credit card number field");
+      this.creditCard.fieldDetails = [];
+    }
+
+    return Array.of(...(this.address.fieldDetails),
+                    ...(this.creditCard.fieldDetails));
   },
 
   getFieldDetailByName(fieldName) {
@@ -131,6 +155,7 @@ FormAutofillHandler.prototype = {
   _cacheValue: {
     allFieldNames: null,
     oneLineStreetAddress: null,
+    matchingSelectOption: null,
   },
 
   get allFieldNames() {
@@ -174,9 +199,48 @@ FormAutofillHandler.prototype = {
     }
   },
 
+  _matchSelectOptions(profile) {
+    if (!this._cacheValue.matchingSelectOption) {
+      this._cacheValue.matchingSelectOption = new WeakMap();
+    }
+
+    for (let fieldName in profile) {
+      let fieldDetail = this.getFieldDetailByName(fieldName);
+      if (!fieldDetail) {
+        continue;
+      }
+
+      let element = fieldDetail.elementWeakRef.get();
+      if (!(element instanceof Ci.nsIDOMHTMLSelectElement)) {
+        continue;
+      }
+
+      let cache = this._cacheValue.matchingSelectOption.get(element) || {};
+      let value = profile[fieldName];
+      if (cache[value] && cache[value].get()) {
+        continue;
+      }
+
+      let option = FormAutofillUtils.findSelectOption(element, profile, fieldName);
+      if (option) {
+        cache[value] = Cu.getWeakReference(option);
+        this._cacheValue.matchingSelectOption.set(element, cache);
+      } else {
+        if (cache[value]) {
+          delete cache[value];
+          this._cacheValue.matchingSelectOption.set(element, cache);
+        }
+        // Delete the field so the phishing hint won't treat it as a "also fill"
+        // field.
+        delete profile[fieldName];
+      }
+    }
+  },
+
   getAdaptedProfiles(originalProfiles) {
     for (let profile of originalProfiles) {
       this._addressTransformer(profile);
+      this._matchSelectOptions(profile);
     }
     return originalProfiles;
   },
@@ -193,8 +257,8 @@ FormAutofillHandler.prototype = {
   autofillFormFields(profile, focusedInput) {
     log.debug("profile in autofillFormFields:", profile);
 
-    this.filledProfileGUID = profile.guid;
-    for (let fieldDetail of this.addressFieldDetails) {
+    this.address.filledRecordGUID = profile.guid;
+    for (let fieldDetail of this.address.fieldDetails) {
       // Avoid filling field value in the following cases:
       // 1. the focused input which is filled in FormFillController.
       // 2. a non-empty input field
@@ -213,7 +277,8 @@ FormAutofillHandler.prototype = {
         }
         this.changeFieldState(fieldDetail, "AUTO_FILLED");
       } else if (element instanceof Ci.nsIDOMHTMLSelectElement) {
-        let option = FormAutofillUtils.findSelectOption(element, profile, fieldDetail.fieldName);
+        let cache = this._cacheValue.matchingSelectOption.get(element) || {};
+        let option = cache[value] && cache[value].get();
         if (!option) {
           continue;
         }
@@ -255,7 +320,7 @@ FormAutofillHandler.prototype = {
         return;
       }
 
-      for (let fieldDetail of this.addressFieldDetails) {
+      for (let fieldDetail of this.address.fieldDetails) {
         let element = fieldDetail.elementWeakRef.get();
 
         if (!element) {
@@ -273,7 +338,7 @@ FormAutofillHandler.prototype = {
       if (!hasFilledFields) {
         this.form.rootElement.removeEventListener("input", onChangeHandler);
         this.form.rootElement.removeEventListener("reset", onChangeHandler);
-        this.filledProfileGUID = null;
+        this.address.filledRecordGUID = null;
       }
     };
 
@@ -290,7 +355,7 @@ FormAutofillHandler.prototype = {
   previewFormFields(profile) {
     log.debug("preview profile in autofillFormFields:", profile);
 
-    for (let fieldDetail of this.addressFieldDetails) {
+    for (let fieldDetail of this.address.fieldDetails) {
       let element = fieldDetail.elementWeakRef.get();
       let value = profile[fieldDetail.fieldName] || "";
 
@@ -302,17 +367,21 @@ FormAutofillHandler.prototype = {
       if (element instanceof Ci.nsIDOMHTMLSelectElement) {
         // Unlike text input, select element is always previewed even if
         // the option is already selected.
-        let option = FormAutofillUtils.findSelectOption(element, profile, fieldDetail.fieldName);
-        element.previewValue = option ? option.text : "";
-        this.changeFieldState(fieldDetail, option ? "PREVIEW" : "NORMAL");
-      } else {
-        // Skip the field if it already has text entered
-        if (element.value) {
-          continue;
+        if (value) {
+          let cache = this._cacheValue.matchingSelectOption.get(element) || {};
+          let option = cache[value] && cache[value].get();
+          if (option) {
+            value = option.text || "";
+          } else {
+            value = "";
+          }
         }
-        element.previewValue = value;
-        this.changeFieldState(fieldDetail, value ? "PREVIEW" : "NORMAL");
+      } else if (element.value) {
+        // Skip the field if it already has text entered.
+        continue;
       }
+      element.previewValue = value;
+      this.changeFieldState(fieldDetail, value ? "PREVIEW" : "NORMAL");
     }
   },
 
@@ -322,7 +391,7 @@ FormAutofillHandler.prototype = {
   clearPreviewedFormFields() {
     log.debug("clear previewed fields in:", this.form);
 
-    for (let fieldDetail of this.addressFieldDetails) {
+    for (let fieldDetail of this.address.fieldDetails) {
       let element = fieldDetail.elementWeakRef.get();
       if (!element) {
         log.warn(fieldDetail.fieldName, "is unreachable");
@@ -379,25 +448,47 @@ FormAutofillHandler.prototype = {
   },
 
   /**
-   * Return the profile that is converted from fieldDetails and only non-empty fields
-   * are included.
+   * Return the records that is converted from address/creditCard fieldDetails and
+   * only valid form records are included.
    *
    * @returns {Object} The new profile that convert from details with trimmed result.
    */
-  createProfile() {
-    let profile = {};
+  createRecords() {
+    let records = {};
 
-    this.addressFieldDetails.forEach(detail => {
-      let element = detail.elementWeakRef.get();
-      // Remove the unnecessary spaces
-      let value = element && element.value.trim();
-      if (!value) {
+    ["address", "creditCard"].forEach(type => {
+      let details = this[type].fieldDetails;
+      if (!details || details.length == 0) {
         return;
       }
 
-      profile[detail.fieldName] = value;
+      let recordName = `${type}Record`;
+      records[recordName] = {};
+      details.forEach(detail => {
+        let element = detail.elementWeakRef.get();
+        // Remove the unnecessary spaces
+        let value = element && element.value.trim();
+        if (!value) {
+          return;
+        }
+
+        records[recordName][detail.fieldName] = value;
+      });
     });
 
-    return profile;
+    if (records.addressRecord &&
+        Object.keys(records.addressRecord).length < FormAutofillUtils.AUTOFILL_FIELDS_THRESHOLD) {
+      log.debug("No address record saving since there are only",
+                     Object.keys(records.addressRecord).length,
+                     "usable fields");
+      delete records.addressRecord;
+    }
+
+    if (records.creditCardRecord && !records.creditCardRecord["cc-number"]) {
+      log.debug("No credit card record saving since card number is empty");
+      delete records.creditCardRecord;
+    }
+
+    return records;
   },
 };

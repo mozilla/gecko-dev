@@ -13,7 +13,9 @@ use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
+use properties::ComputedValues;
 use properties::PropertyFlags;
+use properties::longhands::display::computed_value as display;
 use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
@@ -39,6 +41,8 @@ pub enum PseudoElement {
     Before,
     Selection,
     // If/when :first-letter is added, update is_first_letter accordingly.
+
+    // If/when :first-line is added, update is_first_line accordingly.
 
     // If/when ::first-letter, ::first-line, or ::placeholder are added, adjust
     // our property_restriction implementation to do property filtering for
@@ -123,6 +127,12 @@ impl PseudoElement {
         false
     }
 
+    /// Whether the current pseudo element is :first-line
+    #[inline]
+    pub fn is_first_line(&self) -> bool {
+        false
+    }
+
     /// Whether this pseudo-element is eagerly-cascaded.
     #[inline]
     pub fn is_eager(&self) -> bool {
@@ -180,6 +190,21 @@ impl PseudoElement {
     #[inline]
     pub fn property_restriction(&self) -> Option<PropertyFlags> {
         None
+    }
+
+    /// Whether this pseudo-element should actually exist if it has
+    /// the given styles.
+    pub fn should_exist(&self, style: &ComputedValues) -> bool
+    {
+        let display = style.get_box().clone_display();
+        if display == display::T::none {
+            return false;
+        }
+        if self.is_before_or_after() && style.ineffective_content_property() {
+            return false;
+        }
+
+        true
     }
 }
 

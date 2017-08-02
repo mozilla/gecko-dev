@@ -490,20 +490,30 @@ AnyKidsNeedBlockParent(nsIFrame *aFrameList)
 static void
 ReparentFrame(RestyleManager* aRestyleManager,
               nsContainerFrame* aNewParentFrame,
-              nsIFrame* aFrame)
+              nsIFrame* aFrame,
+              bool aForceStyleReparent)
 {
   aFrame->SetParent(aNewParentFrame);
-  aRestyleManager->ReparentStyleContext(aFrame);
+  // We reparent frames for two reasons: to put them inside ::first-line, and to
+  // put them inside some wrapper anonymous boxes.
+  //
+  // The latter shouldn't affect any styles in practice, so only needs style
+  // context reparenting in the Gecko backend, to make our style context tree
+  // assertions happy.  The former passes aForceStyleReparent == true.
+  if (aForceStyleReparent || aRestyleManager->IsGecko()) {
+    aRestyleManager->ReparentStyleContext(aFrame);
+  }
 }
 
 static void
 ReparentFrames(nsCSSFrameConstructor* aFrameConstructor,
                nsContainerFrame* aNewParentFrame,
-               const nsFrameList& aFrameList)
+               const nsFrameList& aFrameList,
+               bool aForceStyleReparent)
 {
   RestyleManager* restyleManager = aFrameConstructor->RestyleManager();
-  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
-    ReparentFrame(restyleManager, aNewParentFrame, e.get());
+  for (nsIFrame* f : aFrameList) {
+    ReparentFrame(restyleManager, aNewParentFrame, f, aForceStyleReparent);
   }
 }
 
@@ -3695,7 +3705,6 @@ nsCSSFrameConstructor::FindHTMLData(Element* aElement,
     SIMPLE_TAG_CREATE(textarea, NS_NewTextControlFrame),
     COMPLEX_TAG_CREATE(select, &nsCSSFrameConstructor::ConstructSelectFrame),
     SIMPLE_TAG_CHAIN(object, nsCSSFrameConstructor::FindObjectData),
-    SIMPLE_TAG_CHAIN(applet, nsCSSFrameConstructor::FindObjectData),
     SIMPLE_TAG_CHAIN(embed, nsCSSFrameConstructor::FindObjectData),
     COMPLEX_TAG_CREATE(fieldset,
                        &nsCSSFrameConstructor::ConstructFieldSetFrame),
@@ -3837,7 +3846,7 @@ nsCSSFrameConstructor::FindObjectData(Element* aElement,
   } else {
     nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(aElement));
     NS_ASSERTION(objContent,
-                 "applet, embed and object must implement "
+                 "embed and object must implement "
                  "nsIObjectLoadingContent!");
 
     objContent->GetDisplayedType(&type);
@@ -5156,6 +5165,7 @@ nsCSSFrameConstructor::ResolveStyleContext(nsStyleContext* aParentStyleContext,
                                            Element* aOriginatingElementOrNull)
 {
   StyleSetHandle styleSet = mPresShell->StyleSet();
+  aContent->OwnerDoc()->FlushPendingLinkUpdates();
 
   RefPtr<nsStyleContext> result;
   if (aContent->IsElement()) {
@@ -5257,7 +5267,7 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   blockFrame->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
 
   InitAndRestoreFrame(aState, aContent, aParentFrame, blockFrame);
-  ReparentFrames(this, blockFrame, aBlockItems);
+  ReparentFrames(this, blockFrame, aBlockItems, false);
   // abs-pos and floats are disabled in MathML children so we don't have to
   // worry about messing up those.
   blockFrame->SetInitialChildList(kPrincipalList, aBlockItems);
@@ -5875,7 +5885,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
       }
 
       if (resolveStyle) {
-        if (aContent->IsStyledByServo()) {
+        if (styleContext->IsServo()) {
           Element* element = aContent->AsElement();
           ServoStyleSet* styleSet = mPresShell->StyleSet()->AsServo();
 
@@ -5895,7 +5905,8 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
                                       LazyComputeBehavior::Assert);
         } else {
           styleContext =
-            ResolveStyleContext(styleContext->GetParent(), aContent, &aState);
+            ResolveStyleContext(styleContext->AsGecko()->GetParent(),
+                                aContent, &aState);
         }
 
         display = styleContext->StyleDisplay();
@@ -9637,7 +9648,7 @@ nsCSSFrameConstructor::MaybeRecreateFramesForElement(Element* aElement)
 
   // The parent has a frame, so try resolving a new context.
   RefPtr<nsStyleContext> newContext = mPresShell->StyleSet()->
-    ResolveStyleFor(aElement, oldContext->GetParent(),
+    ResolveStyleFor(aElement, oldContext->AsGecko()->GetParent(),
                     LazyComputeBehavior::Assert);
 
   if (oldDisplay == StyleDisplay::None) {
@@ -11360,7 +11371,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     InitAndRestoreFrame(aState, aContent, aFrame, blockFrame, false);
 
     NS_ASSERTION(!blockFrame->HasView(), "need to do view reparenting");
-    ReparentFrames(this, blockFrame, aFrameItems);
+    ReparentFrames(this, blockFrame, aFrameItems, false);
 
     blockFrame->SetInitialChildList(kPrincipalList, aFrameItems);
     NS_ASSERTION(aFrameItems.IsEmpty(), "How did that happen?");
@@ -11430,7 +11441,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
   }
 
   // Give the inline frames to the lineFrame <b>after</b> reparenting them
-  ReparentFrames(this, aLineFrame, firstLineChildren);
+  ReparentFrames(this, aLineFrame, firstLineChildren, true);
   if (aLineFrame->PrincipalChildList().IsEmpty() &&
       (aLineFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     aLineFrame->SetInitialChildList(kPrincipalList, firstLineChildren);
@@ -11691,9 +11702,12 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   nsIContent* aTextContent,
   nsIFrame* aTextFrame,
   nsContainerFrame* aParentFrame,
+  nsStyleContext* aParentStyleContext,
   nsStyleContext* aStyleContext,
   nsFrameItems& aResult)
 {
+  MOZ_ASSERT(aParentStyleContext);
+
   nsFirstLetterFrame* letterFrame =
     NS_NewFirstLetterFrame(mPresShell, aStyleContext);
   // We don't want to use a text content for a non-text frame (because we want
@@ -11725,13 +11739,9 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
     // Create continuation
     nextTextFrame =
       CreateContinuingFrame(aState.mPresContext, aTextFrame, aParentFrame);
-    // Repair the continuations style context
-    nsStyleContext* parentStyleContext = aStyleContext->GetParentAllowServo();
-    if (parentStyleContext) {
-      RefPtr<nsStyleContext> newSC = styleSet->
-        ResolveStyleForText(aTextContent, parentStyleContext);
-      nextTextFrame->SetStyleContext(newSC);
-    }
+    RefPtr<nsStyleContext> newSC = styleSet->
+      ResolveStyleForText(aTextContent, aParentStyleContext);
+    nextTextFrame->SetStyleContext(newSC);
   }
 
   NS_ASSERTION(aResult.IsEmpty(), "aResult should be an empty nsFrameItems!");
@@ -11782,8 +11792,8 @@ nsCSSFrameConstructor::CreateLetterFrame(nsContainerFrame* aBlockFrame,
   nsIContent* blockContent = aBlockFrame->GetContent();
 
   // Create first-letter style rule
-  RefPtr<nsStyleContext> sc = GetFirstLetterStyle(blockContent,
-                                                    parentStyleContext);
+  RefPtr<nsStyleContext> sc =
+    GetFirstLetterStyle(blockContent, parentStyleContext);
   if (sc) {
     RefPtr<nsStyleContext> textSC = mPresShell->StyleSet()->
       ResolveStyleForText(aTextContent, sc);
@@ -11814,7 +11824,8 @@ nsCSSFrameConstructor::CreateLetterFrame(nsContainerFrame* aBlockFrame,
         !nsSVGUtils::IsInSVGTextSubtree(aParentFrame)) {
       // Make a floating first-letter frame
       letterFrame = CreateFloatingLetterFrame(state, aTextContent, textFrame,
-                                              aParentFrame, sc, aResult);
+                                              aParentFrame, parentStyleContext,
+                                              sc, aResult);
     }
     else {
       // Make an inflow first-letter frame

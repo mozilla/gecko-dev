@@ -5,8 +5,17 @@
 %endif
 @namespace html "http://www.w3.org/1999/xhtml";
 
-#mainPrefPane {
+.main-content {
+  padding-top: 0;
+}
+
+.pane-container {
+  display: block;
   max-width: 800px;
+}
+
+#mainPrefPane {
+  width: 100%;
   padding: 0;
   font: message-box;
   font-size: 1.25rem;
@@ -640,6 +649,18 @@ groupbox {
   text-decoration: none;
 }
 
+.search-container {
+  position: sticky;
+  background-color: var(--in-content-page-background);
+  width: 100%;
+  top: 0;
+  z-index: 1;
+}
+
+#searchInput {
+  margin: 20px 0;
+}
+
 .search-tooltip {
   font-size: 1.25rem;
   position: absolute;
@@ -647,6 +668,7 @@ groupbox {
   background-color: #ffe900;
   border: 1px solid #d7b600;
   -moz-user-select: none;
+  bottom: 35px;
 }
 
 .search-tooltip:hover,
@@ -678,17 +700,18 @@ groupbox {
 
 menulist[indicator=true] > menupopup menuitem:not([image]) > .menu-iconic-left {
   display: -moz-box;
-  width: 8px;
   min-width: auto; /* Override the min-width defined in menu.css */
-  height: 10px;
   margin-inline-end: 6px;
+}
+
+menulist[indicator=true] > menupopup menuitem:not([image]) > .menu-iconic-left > .menu-iconic-icon {
+  width: 8px;
+  height: 10px;
+  margin: 0;
 }
 
 menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .menu-iconic-left > .menu-iconic-icon {
   list-style-image: url(chrome://browser/skin/preferences/in-content-new/search-arrow-indicator.svg);
-  width: 8px;
-  height: 10px;
-  margin: 0;
 }
 
 menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .menu-iconic-left > .menu-iconic-icon:-moz-locale-dir(rtl) {

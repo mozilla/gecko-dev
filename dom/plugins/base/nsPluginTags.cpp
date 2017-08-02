@@ -230,7 +230,6 @@ nsPluginTag::nsPluginTag(nsPluginInfo* aPluginInfo,
     mContentProcessRunningCount(0),
     mHadLocalInstance(false),
     mLibrary(nullptr),
-    mIsJavaPlugin(false),
     mIsFlashPlugin(false),
     mSupportsAsyncRender(false),
     mFullPath(aPluginInfo->fFullPath),
@@ -266,7 +265,6 @@ nsPluginTag::nsPluginTag(const char* aName,
     mContentProcessRunningCount(0),
     mHadLocalInstance(false),
     mLibrary(nullptr),
-    mIsJavaPlugin(false),
     mIsFlashPlugin(false),
     mSupportsAsyncRender(false),
     mFullPath(aFullPath),
@@ -293,7 +291,6 @@ nsPluginTag::nsPluginTag(uint32_t aId,
                          nsTArray<nsCString> aMimeTypes,
                          nsTArray<nsCString> aMimeDescriptions,
                          nsTArray<nsCString> aExtensions,
-                         bool aIsJavaPlugin,
                          bool aIsFlashPlugin,
                          bool aSupportsAsyncRender,
                          int64_t aLastModifiedTime,
@@ -305,7 +302,6 @@ nsPluginTag::nsPluginTag(uint32_t aId,
     mId(aId),
     mContentProcessRunningCount(0),
     mLibrary(nullptr),
-    mIsJavaPlugin(aIsJavaPlugin),
     mIsFlashPlugin(aIsFlashPlugin),
     mSupportsAsyncRender(aSupportsAsyncRender),
     mLastModifiedTime(aLastModifiedTime),
@@ -350,9 +346,6 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
 
     // Look for certain special plugins.
     switch (nsPluginHost::GetSpecialType(mimeType)) {
-      case nsPluginHost::eSpecialType_Java:
-        mIsJavaPlugin = true;
-        break;
       case nsPluginHost::eSpecialType_Flash:
         // VLC sometimes claims to implement the Flash MIME type, and we want
         // to allow users to control that separately from Adobe Flash.
@@ -688,11 +681,6 @@ nsPluginTag::GetNiceFileName()
     return mNiceFileName;
   }
 
-  if (mIsJavaPlugin) {
-    mNiceFileName.AssignLiteral("java");
-    return mNiceFileName;
-  }
-
   mNiceFileName = MakeNiceFileName(mFileName);
   return mNiceFileName;
 }
@@ -707,11 +695,6 @@ nsPluginTag::GetNiceName(nsACString & aResult)
 NS_IMETHODIMP
 nsPluginTag::GetBlocklistState(uint32_t *aResult)
 {
-#if defined(MOZ_WIDGET_ANDROID)
-  *aResult = nsIBlocklistService::STATE_NOT_BLOCKED;
-  return NS_OK;
-#else
-
   // If we're in the content process, assume our cache state to always be valid,
   // as the only way it can be updated is via a plugin list push from the
   // parent process.
@@ -737,7 +720,6 @@ nsPluginTag::GetBlocklistState(uint32_t *aResult)
   mCachedBlocklistState = (uint16_t) *aResult;
   mCachedBlocklistStateValid = true;
   return NS_OK;
-#endif // defined(MOZ_WIDGET_ANDROID)
 }
 
 void

@@ -405,9 +405,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       nsRect copy = dirty;
       haveDisplayPort = rootScrollableFrame->DecideScrollableLayer(aBuilder,
                           &copy, /* aAllowCreateDisplayPort = */ true);
-
-      if (!gfxPrefs::LayoutUseContainersForRootFrames() ||
-          !aBuilder->IsPaintingToWindow()) {
+      if (!gfxPrefs::LayoutUseContainersForRootFrames()) {
         haveDisplayPort = false;
       }
 
@@ -1255,7 +1253,7 @@ nsSubDocumentFrame::ObtainIntrinsicSizeFrame()
 {
   nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(GetContent());
   if (olc) {
-    // We are an HTML <object>, <embed> or <applet> (a replaced element).
+    // We are an HTML <object> or <embed> (a replaced element).
 
     // Try to get an nsIFrame for our sub-document's document element
     nsIFrame* subDocRoot = nullptr;

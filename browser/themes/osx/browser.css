@@ -1571,8 +1571,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 %ifdef MOZ_PHOTON_THEME
 :root:-moz-any([inFullscreen], [tabsintitlebar]) #TabsToolbar:not(:-moz-lwtheme) {
-  -moz-appearance: none;
-  background-color: #232323;
+  -moz-appearance: -moz-mac-vibrancy-dark;
   color: hsl(240, 9%, 98%);
   text-shadow: none;
 }
@@ -1851,17 +1850,16 @@ html|*.addon-webext-perm-list {
   height: 14px;
   vertical-align: bottom;
   margin-bottom: 1px;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .addon-addon-icon {
-  list-style-image: url("chrome://browser/skin/menuPanel.svg");
-  -moz-image-region: rect(0px, 288px, 32px, 256px);
+  list-style-image: url("chrome://browser/skin/addons.svg");
 }
 
 .addon-toolbar-icon {
   list-style-image: url("chrome://browser/skin/menu.svg");
-  -moz-context-properties: fill;
-  fill: var(--toolbarbutton-icon-fill);
 }
 
 /* Status panel */

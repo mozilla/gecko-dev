@@ -38,7 +38,7 @@ use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError};
-use style_traits::{PropertyDeclarationParseError, StyleParseError};
+use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -1184,8 +1184,9 @@ impl PropertyId {
                 }
             % endif
             % if product == "gecko":
+                use gecko_bindings::structs;
                 let id = self.to_nscsspropertyid().unwrap();
-                unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) }
+                unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] }
             % endif
         };
 
@@ -1488,7 +1489,8 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into())),
+                        Err(e) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into(),
+                        ValueParseError::from_parse_error(e))),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(name, value));
@@ -1501,13 +1503,14 @@ impl PropertyDeclaration {
                     input.look_for_var_functions();
                     let start = input.position();
                     input.parse_entirely(|input| id.parse_value(context, input))
-                    .or_else(|_| {
+                    .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
                             let (first_token_type, css) =
-                                ::custom_properties::parse_non_custom_with_var(input).map_err(|_| {
-                                    PropertyDeclarationParseError::InvalidValue(id.name().into())
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                    PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                        ValueParseError::from_parse_error(e))
                                 })?;
                             Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1516,7 +1519,8 @@ impl PropertyDeclaration {
                                 from_shorthand: None,
                             })))
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into()))
+                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                ValueParseError::from_parse_error(err)))
                         }
                     })
                 }).map(|declaration| {
@@ -1538,13 +1542,14 @@ impl PropertyDeclaration {
                     let start = input.position();
                     // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
                     // needs to do so *before* pushing to `declarations`.
-                    id.parse_into(declarations, context, input).or_else(|_| {
+                    id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
                             let (first_token_type, css) =
-                                ::custom_properties::parse_non_custom_with_var(input).map_err(|_| {
-                                    PropertyDeclarationParseError::InvalidValue(id.name().into())
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                    PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                        ValueParseError::from_parse_error(e))
                                 })?;
                             let unparsed = Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1563,7 +1568,8 @@ impl PropertyDeclaration {
                             }
                             Ok(())
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into()))
+                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                ValueParseError::from_parse_error(err)))
                         }
                     })
                 }
@@ -1707,6 +1713,13 @@ pub mod style_structs {
                     #[inline]
                     pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
                         self.${longhand.ident} = other.${longhand.ident}.clone();
+                    }
+
+                    /// Reset ${longhand.name} from the initial struct.
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn reset_${longhand.ident}(&mut self, other: &Self) {
+                        self.copy_${longhand.ident}_from(other)
                     }
                     % if longhand.need_clone:
                         /// Get the computed value for ${longhand.name}.
@@ -2605,13 +2618,13 @@ impl<'a> StyleBuilder<'a> {
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
-        % if property.style_struct.inherited:
         let inherited_struct =
+        % if property.style_struct.inherited:
             self.inherited_style.get_${property.style_struct.name_lower}();
         % else:
-        let inherited_struct =
             self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
         % endif
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -2624,9 +2637,11 @@ impl<'a> StyleBuilder<'a> {
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
-        let reset_struct = self.reset_style.get_${property.style_struct.name_lower}();
+        let reset_struct =
+            self.reset_style.get_${property.style_struct.name_lower}();
+
         self.${property.style_struct.ident}.mutate()
-            .copy_${property.ident}_from(
+            .reset_${property.ident}(
                 reset_struct,
                 % if property.logical:
                 self.writing_mode,

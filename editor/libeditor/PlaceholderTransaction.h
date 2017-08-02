@@ -8,13 +8,11 @@
 
 #include "EditAggregateTransaction.h"
 #include "mozilla/EditorUtils.h"
-#include "mozilla/UniquePtr.h"
-#include "mozilla/WeakPtr.h"
+#include "mozilla/Maybe.h"
 #include "nsIAbsorbingTransaction.h"
 #include "nsIDOMNode.h"
 #include "nsCOMPtr.h"
 #include "nsWeakPtr.h"
-#include "nsWeakReference.h"
 
 namespace mozilla {
 
@@ -30,15 +28,12 @@ class CompositionTransaction;
 class PlaceholderTransaction final
  : public EditAggregateTransaction
  , public nsIAbsorbingTransaction
- , public SupportsWeakPtr<PlaceholderTransaction>
 {
 public:
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(PlaceholderTransaction)
-
   NS_DECL_ISUPPORTS_INHERITED
 
   PlaceholderTransaction(EditorBase& aEditorBase, nsIAtom* aName,
-                         UniquePtr<SelectionState> aSelState);
+                         Maybe<SelectionState>&& aSelState);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PlaceholderTransaction,
                                            EditAggregateTransaction)
@@ -86,8 +81,7 @@ protected:
   // at the end.  This is so that UndoTransaction() and RedoTransaction() can
   // restore the selection properly.
 
-  // Use a pointer because this is constructed before we exist.
-  UniquePtr<SelectionState> mStartSel;
+  SelectionState mStartSel;
   SelectionState mEndSel;
 
   // The editor for this transaction.

@@ -264,7 +264,6 @@ double Gecko_GetPositionInSegment(
   RawGeckoAnimationPropertySegmentBorrowed aSegment,
   double aProgress,
   mozilla::ComputedTimingFunction::BeforeFlag aBeforeFlag);
-bool Gecko_IsFramesTimingEnabled();
 // Get servo's AnimationValue for |aProperty| from the cached base style
 // |aBaseStyles|.
 // |aBaseStyles| is nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>.
@@ -565,7 +564,6 @@ void Gecko_CSSValue_SetPairList(nsCSSValueBorrowedMut css_value, uint32_t len);
 void Gecko_CSSValue_InitSharedList(nsCSSValueBorrowedMut css_value, uint32_t len);
 void Gecko_CSSValue_Drop(nsCSSValueBorrowedMut css_value);
 NS_DECL_THREADSAFE_FFI_REFCOUNTING(nsCSSValueSharedList, CSSValueSharedList);
-bool Gecko_PropertyId_IsPrefEnabled(nsCSSPropertyID id);
 
 void Gecko_nsStyleFont_SetLang(nsStyleFont* font, nsIAtom* atom);
 void Gecko_nsStyleFont_CopyLangFrom(nsStyleFont* aFont, const nsStyleFont* aSource);
@@ -606,7 +604,6 @@ mozilla::ServoStyleSheet* Gecko_StyleSheet_Clone(
 void Gecko_StyleSheet_AddRef(const mozilla::ServoStyleSheet* aSheet);
 void Gecko_StyleSheet_Release(const mozilla::ServoStyleSheet* aSheet);
 
-const nsMediaFeature* Gecko_GetMediaFeatures();
 nsCSSKeyword Gecko_LookupCSSKeyword(const uint8_t* string, uint32_t len);
 const char* Gecko_CSSKeywordString(nsCSSKeyword keyword, uint32_t* len);
 
@@ -683,12 +680,14 @@ void Gecko_ReportUnexpectedCSSError(mozilla::css::ErrorReporter* reporter,
                                     const char* message,
                                     const char* param,
                                     uint32_t paramLen,
+                                    const char* prefix,
+                                    const char* prefixParam,
+                                    uint32_t prefixParamLen,
+                                    const char* suffix,
                                     const char* source,
                                     uint32_t sourceLen,
                                     uint32_t lineNumber,
-                                    uint32_t colNumber,
-                                    nsIURI* aURI,
-                                    const char* followup);
+                                    uint32_t colNumber);
 
 } // extern "C"
 

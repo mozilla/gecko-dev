@@ -128,7 +128,6 @@ using namespace widget;
 
 EditorBase::EditorBase()
   : mPlaceholderName(nullptr)
-  , mSelState(nullptr)
   , mModCount(0)
   , mFlags(0)
   , mUpdateCount(0)
@@ -175,6 +174,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(EditorBase)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocStateListeners)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEventTarget)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEventListener)
+ NS_IMPL_CYCLE_COLLECTION_UNLINK(mPlaceholderTransaction)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSavedSel);
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mRangeUpdater);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -195,6 +195,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(EditorBase)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocStateListeners)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEventTarget)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEventListener)
+ NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPlaceholderTransaction)
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSavedSel);
  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRangeUpdater);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -688,15 +689,18 @@ EditorBase::GetSelection(SelectionType aSelectionType)
 NS_IMETHODIMP
 EditorBase::DoTransaction(nsITransaction* aTxn)
 {
-  if (mPlaceholderBatch && !mPlaceholderTransactionWeak) {
-    RefPtr<PlaceholderTransaction> placeholderTransaction =
+  return DoTransaction(nullptr, aTxn);
+}
+
+nsresult
+EditorBase::DoTransaction(Selection* aSelection, nsITransaction* aTxn)
+{
+  if (mPlaceholderBatch && !mPlaceholderTransaction) {
+    mPlaceholderTransaction =
       new PlaceholderTransaction(*this, mPlaceholderName, Move(mSelState));
 
-    // Save off weak reference to placeholder transaction
-    mPlaceholderTransactionWeak = placeholderTransaction;
-
     // We will recurse, but will not hit this case in the nested call
-    DoTransaction(placeholderTransaction);
+    DoTransaction(mPlaceholderTransaction);
 
     if (mTxnMgr) {
       nsCOMPtr<nsITransaction> topTransaction = mTxnMgr->PeekUndoStack();
@@ -710,7 +714,7 @@ EditorBase::DoTransaction(nsITransaction* aTxn)
           // is either the one we just created, or an earlier one that we are
           // now merging into.  From here on out remember this placeholder
           // instead of the one we just created.
-          mPlaceholderTransactionWeak = topPlaceholderTransaction;
+          mPlaceholderTransaction = topPlaceholderTransaction;
         }
       }
     }
@@ -737,7 +741,7 @@ EditorBase::DoTransaction(nsITransaction* aTxn)
     // XXX: re-entry during initial reflow. - kin
 
     // get the selection and start a batch change
-    RefPtr<Selection> selection = GetSelection();
+    RefPtr<Selection> selection = aSelection ? aSelection : GetSelection();
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
     selection->StartBatchChanges();
@@ -965,11 +969,11 @@ EditorBase::BeginPlaceHolderTransaction(nsIAtom* aName)
     NotifyEditorObservers(eNotifyEditorObserversOfBefore);
     // time to turn on the batch
     BeginUpdateViewBatch();
-    mPlaceholderTransactionWeak = nullptr;
+    mPlaceholderTransaction = nullptr;
     mPlaceholderName = aName;
     RefPtr<Selection> selection = GetSelection();
     if (selection) {
-      mSelState = MakeUnique<SelectionState>();
+      mSelState.emplace();
       mSelState->SaveSelection(selection);
       // Composition transaction can modify multiple nodes and it merges text
       // node for ime into single text node.
@@ -1034,18 +1038,17 @@ EditorBase::EndPlaceHolderTransaction()
       if (mPlaceholderName == nsGkAtoms::IMETxnName) {
         mRangeUpdater.DropSelectionState(*mSelState);
       }
-      mSelState = nullptr;
+      mSelState.reset();
     }
     // We might have never made a placeholder if no action took place.
-    if (mPlaceholderTransactionWeak) {
-      RefPtr<PlaceholderTransaction> placeholderTransaction =
-        mPlaceholderTransactionWeak.get();
-      placeholderTransaction->EndPlaceHolderBatch();
+    if (mPlaceholderTransaction) {
+      mPlaceholderTransaction->EndPlaceHolderBatch();
       // notify editor observers of action but if composing, it's done by
       // compositionchange event handler.
       if (!mComposition) {
         NotifyEditorObservers(eNotifyEditorObserversOfEnd);
       }
+      mPlaceholderTransaction = nullptr;
     } else {
       NotifyEditorObservers(eNotifyEditorObserversOfCancel);
     }
@@ -2716,13 +2719,10 @@ EditorBase::NotifyDocumentListeners(
 }
 
 nsresult
-EditorBase::SetTextImpl(const nsAString& aString, Text& aCharData)
+EditorBase::SetTextImpl(Selection& aSelection, const nsAString& aString,
+                        Text& aCharData)
 {
-  RefPtr<SetTextTransaction> transaction =
-    CreateTxnForSetText(aString, aCharData);
-  if (NS_WARN_IF(!transaction)) {
-    return NS_ERROR_FAILURE;
-  }
+  SetTextTransaction transaction(aCharData, aString, *this, &mRangeUpdater);
 
   uint32_t length = aCharData.Length();
 
@@ -2746,7 +2746,10 @@ EditorBase::SetTextImpl(const nsAString& aString, Text& aCharData)
     }
   }
 
-  nsresult rv = DoTransaction(transaction);
+  // We don't support undo here, so we don't really need all of the transaction
+  // machinery, therefore we can run our transaction directly, breaking all of
+  // the rules!
+  nsresult rv = transaction.DoTransaction();
 
   // Let listeners know what happened
   {
@@ -2776,15 +2779,6 @@ EditorBase::CreateTxnForInsertText(const nsAString& aStringToInsert,
   RefPtr<InsertTextTransaction> transaction =
     new InsertTextTransaction(aTextNode, aOffset, aStringToInsert, *this,
                               &mRangeUpdater);
-  return transaction.forget();
-}
-
-already_AddRefed<SetTextTransaction>
-EditorBase::CreateTxnForSetText(const nsAString& aString,
-                                Text& aTextNode)
-{
-  RefPtr<SetTextTransaction> transaction =
-    new SetTextTransaction(aTextNode, aString, *this, &mRangeUpdater);
   return transaction.forget();
 }
 

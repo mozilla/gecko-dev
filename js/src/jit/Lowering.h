@@ -173,6 +173,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitWasmTruncateToInt32(MWasmTruncateToInt32* truncate);
     void visitWrapInt64ToInt32(MWrapInt64ToInt32* ins);
     void visitToString(MToString* convert);
+    void visitToObject(MToObject* convert);
     void visitToObjectOrNull(MToObjectOrNull* convert);
     void visitRegExp(MRegExp* ins);
     void visitRegExpMatcher(MRegExpMatcher* ins);
@@ -298,6 +299,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitIsTypedArray(MIsTypedArray* ins);
     void visitIsObject(MIsObject* ins);
     void visitHasClass(MHasClass* ins);
+    void visitObjectClassToString(MObjectClassToString* ins);
     void visitWasmAddOffset(MWasmAddOffset* ins);
     void visitWasmLoadTls(MWasmLoadTls* ins);
     void visitWasmBoundsCheck(MWasmBoundsCheck* ins);
@@ -345,6 +347,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitDebugCheckSelfHosted(MDebugCheckSelfHosted* ins);
     void visitFinishBoundFunctionInit(MFinishBoundFunctionInit* ins);
     void visitIsPackedArray(MIsPackedArray* ins);
+    void visitGetPrototypeOf(MGetPrototypeOf* ins);
 };
 
 } // namespace jit

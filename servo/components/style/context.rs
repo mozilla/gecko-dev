@@ -18,10 +18,12 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
+#[cfg(feature = "servo")] use properties::PropertyId;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
+#[cfg(feature = "servo")] use servo_atoms::Atom;
 use shared_lock::StylesheetGuards;
 use sharing::StyleSharingCandidateCache;
 use std::fmt;
@@ -30,6 +32,7 @@ use std::ops;
 #[cfg(feature = "servo")] use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
+#[cfg(feature = "servo")] use style_traits::SpeculativePainter;
 use stylist::Stylist;
 use thread_state;
 use time;
@@ -151,6 +154,10 @@ pub struct SharedStyleContext<'a> {
     #[cfg(feature = "servo")]
     pub expired_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
+    /// Paint worklets
+    #[cfg(feature = "servo")]
+    pub registered_speculative_painters: &'a RegisteredSpeculativePainters,
+
     /// Data needed to create the thread-local style context from the shared one.
     #[cfg(feature = "servo")]
     pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
@@ -191,7 +198,7 @@ pub struct CascadeInputs {
 
 impl CascadeInputs {
     /// Construct inputs from previous cascade results, if any.
-    pub fn new_from_style(style: &Arc<ComputedValues>) -> Self {
+    pub fn new_from_style(style: &ComputedValues) -> Self {
         CascadeInputs {
             rules: style.rules.clone(),
             visited_rules: style.get_visited_style().and_then(|v| v.rules.clone()),
@@ -232,7 +239,7 @@ impl Clone for EagerPseudoCascadeInputs {
 impl EagerPseudoCascadeInputs {
     /// Construct inputs from previous cascade results, if any.
     fn new_from_style(styles: &EagerPseudoStyles) -> Self {
-        EagerPseudoCascadeInputs(styles.as_array().map(|styles| {
+        EagerPseudoCascadeInputs(styles.as_optional_array().map(|styles| {
             let mut inputs: [Option<CascadeInputs>; EAGER_PSEUDO_COUNT] = Default::default();
             for i in 0..EAGER_PSEUDO_COUNT {
                 inputs[i] = styles[i].as_ref().map(|s| CascadeInputs::new_from_style(s));
@@ -676,4 +683,20 @@ pub enum ReflowGoal {
     ForDisplay,
     /// We're reflowing in order to satisfy a script query. No display list will be created.
     ForScriptQuery,
+}
+
+/// A registered painter
+#[cfg(feature = "servo")]
+pub trait RegisteredSpeculativePainter: SpeculativePainter {
+    /// The name it was registered with
+    fn name(&self) -> Atom;
+    /// The properties it was registered with
+    fn properties(&self) -> &FnvHashMap<Atom, PropertyId>;
+}
+
+/// A set of registered painters
+#[cfg(feature = "servo")]
+pub trait RegisteredSpeculativePainters: Sync {
+    /// Look up a speculative painter
+    fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter>;
 }

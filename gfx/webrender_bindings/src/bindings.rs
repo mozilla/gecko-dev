@@ -28,6 +28,7 @@ type WrEpoch = Epoch;
 /// cbindgen:field-names=[mHandle]
 /// cbindgen:derive-lt=true
 /// cbindgen:derive-lte=true
+/// cbindgen:derive-neq=true
 type WrIdNamespace = IdNamespace;
 
 /// cbindgen:field-names=[mNamespace, mHandle]
@@ -566,6 +567,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         blob_image_renderer: Some(Box::new(Moz2dImageRenderer::new(workers.clone()))),
         workers: Some(workers.clone()),
         cache_expiry_frames: 60, // see https://github.com/servo/webrender/pull/1294#issuecomment-304318800
+        enable_render_on_scroll: false,
         ..Default::default()
     };
 

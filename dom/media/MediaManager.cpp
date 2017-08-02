@@ -530,6 +530,8 @@ public:
 
   void StopSharing();
 
+  void StopRawID(const nsString& removedDeviceID);
+
   /**
    * Called by one of our SourceListeners when one of its tracks has stopped.
    * Schedules an event for the next stable state to update chrome.
@@ -1699,16 +1701,16 @@ MediaManager::EnumerateRawDevices(uint64_t aWindowId,
   RefPtr<PledgeSourceSet> p = new PledgeSourceSet();
   uint32_t id = mOutstandingPledges.Append(*p);
 
-  nsAdoptingCString audioLoopDev, videoLoopDev;
+  nsAutoCString audioLoopDev, videoLoopDev;
   if (!aFake) {
     // Fake stream not requested. The entire device stack is available.
     // Loop in loopback devices if they are set, and their respective type is
     // requested. This is currently used for automated media tests only.
     if (aVideoType == MediaSourceEnum::Camera) {
-      videoLoopDev = Preferences::GetCString("media.video_loopback_dev");
+      Preferences::GetCString("media.video_loopback_dev", videoLoopDev);
     }
     if (aAudioType == MediaSourceEnum::Microphone) {
-      audioLoopDev = Preferences::GetCString("media.audio_loopback_dev");
+      Preferences::GetCString("media.audio_loopback_dev", audioLoopDev);
     }
   }
 
@@ -1728,6 +1730,8 @@ MediaManager::EnumerateRawDevices(uint64_t aWindowId,
     if ((!fakeCams && hasVideo) || (!fakeMics && hasAudio)) {
       RefPtr<MediaManager> manager = MediaManager_GetInstance();
       realBackend = manager->GetBackend(aWindowId);
+      // We need to listen to this event even JS didn't listen to it.
+      realBackend->AddDeviceChangeCallback(manager);
     }
 
     auto result = MakeUnique<SourceSet>();
@@ -1735,7 +1739,8 @@ MediaManager::EnumerateRawDevices(uint64_t aWindowId,
     if (hasVideo) {
       nsTArray<RefPtr<VideoDevice>> videos;
       GetSources(fakeCams? fakeBackend : realBackend, aVideoType,
-                 &MediaEngine::EnumerateVideoDevices, videos, videoLoopDev);
+                 &MediaEngine::EnumerateVideoDevices, videos,
+                 videoLoopDev.get());
       for (auto& source : videos) {
         result->AppendElement(source);
       }
@@ -1743,7 +1748,8 @@ MediaManager::EnumerateRawDevices(uint64_t aWindowId,
     if (hasAudio) {
       nsTArray<RefPtr<AudioDevice>> audios;
       GetSources(fakeMics? fakeBackend : realBackend, aAudioType,
-                 &MediaEngine::EnumerateAudioDevices, audios, audioLoopDev);
+                 &MediaEngine::EnumerateAudioDevices, audios,
+                 audioLoopDev.get());
       for (auto& source : audios) {
         result->AppendElement(source);
       }
@@ -2037,7 +2043,6 @@ int MediaManager::AddDeviceChangeCallback(DeviceChangeCallback* aCallback)
   bool fakeDeviceChangeEventOn = mPrefs.mFakeDeviceChangeEventOn;
   MediaManager::PostTask(NewTaskFrom([fakeDeviceChangeEventOn]() {
     RefPtr<MediaManager> manager = MediaManager_GetInstance();
-    manager->GetBackend(0)->AddDeviceChangeCallback(manager);
     if (fakeDeviceChangeEventOn)
       manager->GetBackend(0)->SetFakeDeviceChangeEvents();
   }));
@@ -2045,11 +2050,61 @@ int MediaManager::AddDeviceChangeCallback(DeviceChangeCallback* aCallback)
   return DeviceChangeCallback::AddDeviceChangeCallback(aCallback);
 }
 
+static void
+StopRawIDCallback(MediaManager *aThis,
+                   uint64_t aWindowID,
+                   GetUserMediaWindowListener *aListener,
+                   void *aData)
+{
+  if (!aListener || !aData) {
+    return;
+  }
+
+  nsString* removedDeviceID = static_cast<nsString*>(aData);
+  aListener->StopRawID(*removedDeviceID);
+}
+
+
 void MediaManager::OnDeviceChange() {
   RefPtr<MediaManager> self(this);
-  NS_DispatchToMainThread(media::NewRunnableFrom([self,this]() mutable {
+  NS_DispatchToMainThread(media::NewRunnableFrom([self]() mutable {
     MOZ_ASSERT(NS_IsMainThread());
-    DeviceChangeCallback::OnDeviceChange();
+    self->DeviceChangeCallback::OnDeviceChange();
+
+    // On some Windows machine, if we call EnumertaeRawDevices immediately after receiving
+    // devicechange event, sometimes we would get outdated devices list.
+    PR_Sleep(PR_MillisecondsToInterval(100));
+    RefPtr<PledgeSourceSet> p = self->EnumerateRawDevices(0, MediaSourceEnum::Camera, MediaSourceEnum::Microphone, false);
+    p->Then([self](SourceSet*& aDevices) mutable {
+      UniquePtr<SourceSet> devices(aDevices);
+      nsTArray<nsString> deviceIDs;
+
+      for (auto& device : *devices) {
+        nsString id;
+        device->GetId(id);
+        id.ReplaceSubstring(NS_LITERAL_STRING("default: "), NS_LITERAL_STRING(""));
+        if (!deviceIDs.Contains(id)) {
+          deviceIDs.AppendElement(id);
+        }
+      }
+
+      for (auto& id : self->mDeviceIDs) {
+        if (!deviceIDs.Contains(id)) {
+          // Stop the coresponding SourceListener
+          nsGlobalWindow::WindowByIdTable* windowsById = nsGlobalWindow::GetWindowsTable();
+          if (windowsById) {
+            for (auto iter = windowsById->Iter(); !iter.Done(); iter.Next()) {
+              nsGlobalWindow* window = iter.Data();
+              if (window->IsInnerWindow()) {
+                self->IterateWindowListeners(window->AsInner(), StopRawIDCallback, &id);
+              }
+            }
+          }
+        }
+      }
+
+      self->mDeviceIDs = deviceIDs;
+    }, [](MediaStreamError*& reason) {});
     return NS_OK;
   }));
 }
@@ -2650,7 +2705,12 @@ MediaManager::EnumerateDevicesImpl(uint64_t aWindowId,
 
     RefPtr<PledgeSourceSet> p = mgr->EnumerateRawDevices(aWindowId, aVideoType,
                                                          aAudioType, aFake);
-    p->Then([id, aWindowId, aOriginKey](SourceSet*& aDevices) mutable {
+    p->Then([id,
+             aWindowId,
+             aOriginKey,
+             aFake,
+             aVideoType,
+             aAudioType](SourceSet*& aDevices) mutable {
       UniquePtr<SourceSet> devices(aDevices); // secondary result
 
       // Only run if window is still on our active list.
@@ -2658,6 +2718,21 @@ MediaManager::EnumerateDevicesImpl(uint64_t aWindowId,
       if (!mgr) {
         return NS_OK;
       }
+
+      if (aVideoType == MediaSourceEnum::Camera &&
+          aAudioType == MediaSourceEnum::Microphone &&
+          !aFake) {
+        mgr->mDeviceIDs.Clear();
+        for (auto& device : *devices) {
+          nsString id;
+          device->GetId(id);
+          id.ReplaceSubstring(NS_LITERAL_STRING("default: "), NS_LITERAL_STRING(""));
+          if (!mgr->mDeviceIDs.Contains(id)) {
+            mgr->mDeviceIDs.AppendElement(id);
+          }
+        }
+      }
+
       RefPtr<PledgeSourceSet> p = mgr->mOutstandingPledges.Remove(id);
       if (!p || !mgr->IsWindowStillActive(aWindowId)) {
         return NS_OK;
@@ -2985,6 +3060,7 @@ MediaManager::Shutdown()
   mActiveCallbacks.Clear();
   mCallIds.Clear();
   mPendingGUMRequest.Clear();
+  mDeviceIDs.Clear();
 #ifdef MOZ_WEBRTC
   StopWebRtcLog();
 #endif
@@ -3972,6 +4048,29 @@ GetUserMediaWindowListener::StopSharing()
 
   for (auto& source : mActiveListeners) {
     source->StopSharing();
+  }
+}
+
+void
+GetUserMediaWindowListener::StopRawID(const nsString& removedDeviceID)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread");
+
+  for (auto& source : mActiveListeners) {
+    if (source->GetAudioDevice()) {
+      nsString id;
+      source->GetAudioDevice()->GetRawId(id);
+      if (removedDeviceID.Equals(id)) {
+        source->Stop();
+      }
+    }
+    if (source->GetVideoDevice()) {
+      nsString id;
+      source->GetVideoDevice()->GetRawId(id);
+      if (removedDeviceID.Equals(id)) {
+        source->Stop();
+      }
+    }
   }
 }
 

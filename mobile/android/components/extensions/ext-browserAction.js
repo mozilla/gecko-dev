@@ -2,8 +2,8 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
-                                  "resource://devtools/shared/event-emitter.js");
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-utils.js */
 
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
@@ -145,6 +145,13 @@ this.browserAction = class extends ExtensionAPI {
     const {extension} = context;
     const {tabManager} = extension;
 
+    function getTab(tabId) {
+      if (tabId !== null) {
+        return tabTracker.getTab(tabId);
+      }
+      return null;
+    }
+
     return {
       browserAction: {
         onClicked: new EventManager(context, "browserAction.onClicked", fire => {
@@ -159,13 +166,13 @@ this.browserAction = class extends ExtensionAPI {
 
         setTitle: function(details) {
           let {tabId, title} = details;
-          let tab = tabId ? tabTracker.getTab(tabId) : null;
+          let tab = getTab(tabId);
           browserActionMap.get(extension).setProperty(tab, "name", title);
         },
 
         getTitle: function(details) {
           let {tabId} = details;
-          let tab = tabId ? tabTracker.getTab(tabId) : null;
+          let tab = getTab(tabId);
           let title = browserActionMap.get(extension).getProperty(tab, "name");
           return Promise.resolve(title);
         },
