@@ -18,6 +18,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/WindowsVersion.h"
+#include "nsIGfxInfo.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 #include "mozilla/Telemetry.h"
@@ -1453,6 +1454,21 @@ gfxWindowsPlatform::InitializeD3D11Config()
   }
 
   d3d11.EnableByDefault();
+
+  if (!IsWin8OrLater() &&
+      !DeviceManagerDx::Get()->CheckRemotePresentSupport()) {
+    nsCOMPtr<nsIGfxInfo> gfxInfo;
+    gfxInfo = services::GetGfxInfo();
+    nsAutoString adaptorId;
+    gfxInfo->GetAdapterDeviceID(adaptorId);
+    // Blacklist Intel HD Graphics 510/520/530 on Windows 7 without platform
+    // update due to the crashes in Bug 1351349.
+    if (adaptorId.EqualsLiteral("0x1912") || adaptorId.EqualsLiteral("0x1916") ||
+        adaptorId.EqualsLiteral("0x1902")) {
+      d3d11.Disable(FeatureStatus::Blacklisted, "Blacklisted, see bug 1351349",
+                    NS_LITERAL_CSTRING("FEATURE_FAILURE_BUG_1351349"));
+    }
+  }
 
   // If the user prefers D3D9, act as though they disabled D3D11.
   if (gfxPrefs::LayersPreferD3D9()) {
