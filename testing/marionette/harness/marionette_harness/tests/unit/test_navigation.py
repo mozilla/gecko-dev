@@ -190,6 +190,11 @@ class TestBackForwardNavigation(WindowManagerMixin, MarionetteTestCase):
         self.run_test(test_pages)
 
     def test_timeout_error(self):
+        # Bug 1354908 - Disabled on Windows XP due to intermittent failures
+        caps = self.marionette.session_capabilities
+        if caps["platformName"] == "windows_nt" and float(caps["platformVersion"]) < 6:
+            return
+
         urls = [
             self.marionette.absolute_url('slow'),
             self.test_page,
