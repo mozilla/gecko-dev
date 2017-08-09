@@ -197,18 +197,19 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
   // values
   NS_NAMED_LITERAL_STRING(kPageAndTotal, "&PT");
   if (aStr.Find(kPageAndTotal) != kNotFound) {
-    char16_t * uStr = nsTextFormatter::smprintf(mPD->mPageNumAndTotalsFormat.get(), mPageNum, mTotNumPages);
-    aNewStr.ReplaceSubstring(kPageAndTotal, nsDependentString(uStr));
-    free(uStr);
+    nsAutoString uStr;
+    nsTextFormatter::ssprintf(uStr, mPD->mPageNumAndTotalsFormat.get(),
+                              mPageNum, mTotNumPages);
+    aNewStr.ReplaceSubstring(kPageAndTotal, uStr);
   }
 
   // Search to see if the page number code is in the string
   // and replace the page number code with the actual value
   NS_NAMED_LITERAL_STRING(kPage, "&P");
   if (aStr.Find(kPage) != kNotFound) {
-    char16_t * uStr = nsTextFormatter::smprintf(mPD->mPageNumFormat.get(), mPageNum);
-    aNewStr.ReplaceSubstring(kPage, nsDependentString(uStr));
-    free(uStr);
+    nsAutoString uStr;
+    nsTextFormatter::ssprintf(uStr, mPD->mPageNumFormat.get(), mPageNum);
+    aNewStr.ReplaceSubstring(kPage, uStr);
   }
 
   NS_NAMED_LITERAL_STRING(kTitle, "&T");
@@ -223,9 +224,9 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
 
   NS_NAMED_LITERAL_STRING(kPageTotal, "&L");
   if (aStr.Find(kPageTotal) != kNotFound) {
-    char16_t * uStr = nsTextFormatter::smprintf(mPD->mPageNumFormat.get(), mTotNumPages);
-    aNewStr.ReplaceSubstring(kPageTotal, nsDependentString(uStr));
-    free(uStr);
+    nsAutoString uStr;
+    nsTextFormatter::ssprintf(uStr, mPD->mPageNumFormat.get(), mTotNumPages);
+    aNewStr.ReplaceSubstring(kPageTotal, uStr);
   }
 }
 
@@ -639,7 +640,7 @@ nsPageFrame::PaintHeaderFooter(gfxContext& aRenderingContext,
   }
 
   // print document headers and footers
-  nsXPIDLString headerLeft, headerCenter, headerRight;
+  nsString headerLeft, headerCenter, headerRight;
   mPD->mPrintSettings->GetHeaderStrLeft(getter_Copies(headerLeft));
   mPD->mPrintSettings->GetHeaderStrCenter(getter_Copies(headerCenter));
   mPD->mPrintSettings->GetHeaderStrRight(getter_Copies(headerRight));
@@ -647,7 +648,7 @@ nsPageFrame::PaintHeaderFooter(gfxContext& aRenderingContext,
                    headerLeft, headerCenter, headerRight,
                    rect, ascent, visibleHeight);
 
-  nsXPIDLString footerLeft, footerCenter, footerRight;
+  nsString footerLeft, footerCenter, footerRight;
   mPD->mPrintSettings->GetFooterStrLeft(getter_Copies(footerLeft));
   mPD->mPrintSettings->GetFooterStrCenter(getter_Copies(footerCenter));
   mPD->mPrintSettings->GetFooterStrRight(getter_Copies(footerRight));

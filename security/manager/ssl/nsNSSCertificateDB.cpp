@@ -108,8 +108,13 @@ nsNSSCertificateDB::FindCertByDBKey(const nsACString& aDBKey,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   UniqueCERTCertificate cert;
-  nsresult rv = FindCertByDBKey(aDBKey, cert);
+  rv = FindCertByDBKey(aDBKey, cert);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -303,10 +308,10 @@ nsNSSCertificateDB::handleCACertDownload(NotNull<nsIArray*> x509Certs,
     certn_2 = do_QueryElementAt(x509Certs, numCerts-2);
     certn_1 = do_QueryElementAt(x509Certs, numCerts-1);
 
-    nsXPIDLString cert0SubjectName;
-    nsXPIDLString cert1IssuerName;
-    nsXPIDLString certn_2IssuerName;
-    nsXPIDLString certn_1SubjectName;
+    nsAutoString cert0SubjectName;
+    nsAutoString cert1IssuerName;
+    nsAutoString certn_2IssuerName;
+    nsAutoString certn_1SubjectName;
 
     cert0->GetSubjectName(cert0SubjectName);
     cert1->GetIssuerName(cert1IssuerName);
@@ -892,6 +897,12 @@ nsNSSCertificateDB::IsCertTrusted(nsIX509Cert *cert,
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   SECStatus srv;
   UniqueCERTCertificate nsscert(cert->GetCert());
   CERTCertTrust nsstrust;
@@ -1002,6 +1013,10 @@ nsNSSCertificateDB::ImportPKCS12File(nsIFile* aFile)
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   NS_ENSURE_ARG(aFile);
   nsPKCS12Blob blob;
@@ -1019,6 +1034,10 @@ nsNSSCertificateDB::ExportPKCS12File(nsIFile* aFile, uint32_t count,
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   NS_ENSURE_ARG(aFile);
   if (count == 0) {
@@ -1035,6 +1054,11 @@ nsNSSCertificateDB::FindCertByEmailAddress(const nsACString& aEmailAddress,
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   RefPtr<SharedCertVerifier> certVerifier(GetDefaultCertVerifier());
@@ -1156,6 +1180,10 @@ nsNSSCertificateDB::get_default_nickname(CERTCertificate *cert,
 
   nsresult rv;
   CK_OBJECT_HANDLE keyHandle;
+
+  if (NS_FAILED(BlockUntilLoadableRootsLoaded())) {
+    return;
+  }
 
   CERTCertDBHandle *defaultcertdb = CERT_GetDefaultCertDB();
   nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));

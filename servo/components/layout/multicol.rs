@@ -98,20 +98,20 @@ impl Flow for MulticolFlow {
             let column_style = self.block_flow.fragment.style.get_column();
 
             let column_gap = match column_style.column_gap {
-                Either::First(len) => len,
-                Either::Second(_normal) => self.block_flow.fragment.style.get_font().font_size,
+                Either::First(len) => len.0,
+                Either::Second(_normal) => self.block_flow.fragment.style.get_font().font_size.0,
             };
 
             let mut column_count;
             if let Either::First(column_width) = column_style.column_width {
                 column_count =
-                    max(1, (content_inline_size + column_gap).0 / (column_width + column_gap).0);
+                    max(1, (content_inline_size + column_gap).0 / (column_width.0 + column_gap).0);
                 if let Either::First(specified_column_count) = column_style.column_count {
-                    column_count = min(column_count, specified_column_count as i32);
+                    column_count = min(column_count, specified_column_count.0 as i32);
                 }
             } else {
                 column_count = match column_style.column_count {
-                    Either::First(n) => n,
+                    Either::First(n) => n.0,
                     _ => unreachable!(),
                 }
             }
@@ -166,8 +166,8 @@ impl Flow for MulticolFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context);
+    fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_stacking_relative_position(layout_context);
         let pitch = LogicalSize::new(self.block_flow.base.writing_mode, self.column_pitch, Au(0));
         let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
         for (i, child) in self.block_flow.base.children.iter_mut().enumerate() {
@@ -254,8 +254,8 @@ impl Flow for MulticolColumnFlow {
         Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context)
+    fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_stacking_relative_position(layout_context)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {

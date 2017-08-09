@@ -13,6 +13,7 @@ import android.text.format.DateUtils;
 import org.mozilla.gecko.activitystream.Utils;
 import org.mozilla.gecko.activitystream.ranking.HighlightCandidateCursorIndices;
 import org.mozilla.gecko.activitystream.ranking.HighlightsRanking;
+import org.mozilla.gecko.db.BrowserContract;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +36,6 @@ public class Highlight implements Item {
     private final String title;
     private final String url;
     private final Utils.HighlightSource source;
-    private final long time;
 
     private long historyId;
 
@@ -55,7 +55,6 @@ public class Highlight implements Item {
         title = cursor.getString(cursorIndices.titleColumnIndex);
         url = cursor.getString(cursorIndices.urlColumnIndex);
         source = Utils.highlightSource(cursor, cursorIndices);
-        time = cursor.getLong(cursorIndices.highlightsDateColumnIndex);
 
         historyId = cursor.getLong(cursorIndices.historyIDColumnIndex);
 
@@ -192,11 +191,6 @@ public class Highlight implements Item {
     @Override
     public void updatePinned(boolean pinned) {
         this.isPinned = pinned;
-    }
-
-    public String getRelativeTimeSpan() {
-        return DateUtils.getRelativeTimeSpanString(
-                        time, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS, 0).toString();
     }
 
     public Utils.HighlightSource getSource() {

@@ -175,24 +175,20 @@ static const char contentSandboxRules[] = R"(
     (allow file-read*
            (home-regex (string-append "/Library/Preferences/" (regex-quote domain)))))
 
-  (allow ipc-posix-shm
-      (ipc-posix-name-regex "^/tmp/com.apple.csseed:")
-      (ipc-posix-name-regex "^CFPBS:")
-      (ipc-posix-name-regex "^AudioIO"))
+  (allow ipc-posix-shm-read-data ipc-posix-shm-write-data
+    (ipc-posix-name-regex "^CFPBS:"))
+  (allow ipc-posix-shm-read* ipc-posix-shm-write-data
+    (ipc-posix-name-regex "^AudioIO"))
 
   (allow signal (target self))
 
   (allow mach-lookup
       (global-name "com.apple.coreservices.launchservicesd")
       (global-name "com.apple.pasteboard.1")
-      (global-name "com.apple.window_proxies")
-      (global-name "com.apple.windowserver.active")
       (global-name "com.apple.audio.coreaudiod")
       (global-name "com.apple.audio.audiohald")
       (global-name "com.apple.SystemConfiguration.configd")
-      (global-name "com.apple.iconservices")
-      (global-name "com.apple.cache_delete")
-      (global-name "com.apple.pluginkit.pkd"))
+      (global-name "com.apple.iconservices"))
 
 ; bug 1376163
   (if (>= macosMinorVersion 13)

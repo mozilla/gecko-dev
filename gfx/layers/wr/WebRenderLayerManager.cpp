@@ -378,6 +378,8 @@ PaintItemByDrawTarget(nsDisplayItem* aItem,
                       const LayerPoint& aOffset,
                       nsDisplayListBuilder* aDisplayListBuilder)
 {
+  MOZ_ASSERT(aDT);
+
   aDT->ClearRect(aImageRect.ToUnknownRect());
   RefPtr<gfxContext> context = gfxContext::CreateOrNull(aDT, aOffset.ToUnknownPoint());
   MOZ_ASSERT(context);
@@ -483,6 +485,9 @@ WebRenderLayerManager::GenerateFallbackData(nsDisplayItem* aItem,
         UpdateImageHelper helper(imageContainer, imageClient, imageSize.ToUnknownSize(), format);
         {
           RefPtr<gfx::DrawTarget> dt = helper.GetDrawTarget();
+          if (!dt) {
+            return nullptr;
+          }
           PaintItemByDrawTarget(aItem, dt, aImageRect, aOffset, aDisplayListBuilder);
         }
         if (!helper.UpdateImage()) {
@@ -668,6 +673,14 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
   bool sync = mTarget != nullptr;
   mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
 
+  // Skip the synchronization for buffer since we also skip the painting during
+  // device-reset status.
+  if (!gfxPlatform::GetPlatform()->DidRenderingDeviceReset()) {
+    if (WrBridge()->GetSyncObject() &&
+        WrBridge()->GetSyncObject()->IsSyncObjectValid()) {
+      WrBridge()->GetSyncObject()->Synchronize();
+    }
+  }
   {
     AutoProfilerTracing
       tracing("Paint", sync ? "ForwardDPTransactionSync":"ForwardDPTransaction");

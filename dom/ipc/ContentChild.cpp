@@ -35,8 +35,6 @@
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/dom/ProcessGlobal.h"
 #include "mozilla/dom/PushNotifier.h"
-#include "mozilla/dom/LocalStorage.h"
-#include "mozilla/dom/StorageIPC.h"
 #include "mozilla/dom/TabGroup.h"
 #include "mozilla/dom/workers/ServiceWorkerManager.h"
 #include "mozilla/dom/nsIContentChild.h"
@@ -449,7 +447,7 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage)
     return NS_OK;
   }
 
-  nsXPIDLString msg;
+  nsString msg;
   nsresult rv = aMessage->GetMessageMoz(getter_Copies(msg));
   NS_ENSURE_SUCCESS(rv, rv);
   mChild->SendConsoleMessage(msg);
@@ -491,7 +489,6 @@ ContentChild::ContentChild()
  , mMainChromeTid(0)
  , mMsaaID(0)
 #endif
- , mCanOverrideProcessName(true)
  , mIsAlive(true)
  , mShuttingDown(false)
 {
@@ -626,18 +623,14 @@ ContentChild::Init(MessageLoop* aIOLoop,
   mID = aChildID;
   mIsForBrowser = aIsForBrowser;
 
-  SetProcessName(NS_LITERAL_STRING("Web Content"), true);
+  SetProcessName(NS_LITERAL_STRING("Web Content"));
 
   return true;
 }
 
 void
-ContentChild::SetProcessName(const nsAString& aName, bool aDontOverride)
+ContentChild::SetProcessName(const nsAString& aName)
 {
-  if (!mCanOverrideProcessName) {
-    return;
-  }
-
   char* name;
   if ((name = PR_GetEnv("MOZ_DEBUG_APP_PROCESS")) &&
     aName.EqualsASCII(name)) {
@@ -656,10 +649,6 @@ ContentChild::SetProcessName(const nsAString& aName, bool aDontOverride)
 
   mProcessName = aName;
   mozilla::ipc::SetThisProcessName(NS_LossyConvertUTF16toASCII(aName).get());
-
-  if (aDontOverride) {
-    mCanOverrideProcessName = false;
-  }
 }
 
 NS_IMETHODIMP
@@ -2113,21 +2102,6 @@ ContentChild::DeallocPMediaChild(media::PMediaChild *aActor)
   return media::DeallocPMediaChild(aActor);
 }
 
-PStorageChild*
-ContentChild::AllocPStorageChild()
-{
-  MOZ_CRASH("We should never be manually allocating PStorageChild actors");
-  return nullptr;
-}
-
-bool
-ContentChild::DeallocPStorageChild(PStorageChild* aActor)
-{
-  StorageDBChild* child = static_cast<StorageDBChild*>(aActor);
-  child->ReleaseIPDLReference();
-  return true;
-}
-
 PSpeechSynthesisChild*
 ContentChild::AllocPSpeechSynthesisChild()
 {
@@ -2325,7 +2299,7 @@ ContentChild::ProcessingError(Result aCode, const char* aReason)
       MOZ_CRASH("not reached");
   }
 
-#if defined(MOZ_CRASHREPORTER) && !defined(MOZ_B2G)
+#if defined(MOZ_CRASHREPORTER)
   nsDependentCString reason(aReason);
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ipc_channel_error"), reason);
 #endif
@@ -2627,6 +2601,17 @@ ContentChild::RecvRemoteType(const nsString& aRemoteType)
   MOZ_ASSERT(DOMStringIsNull(mRemoteType));
 
   mRemoteType.Assign(aRemoteType);
+
+  // For non-default ("web") types, update the process name so about:memory's
+  // process names are more obvious.
+  if (aRemoteType.EqualsLiteral(FILE_REMOTE_TYPE)) {
+    SetProcessName(NS_LITERAL_STRING("file:// Content"));
+  } else if (aRemoteType.EqualsLiteral(EXTENSION_REMOTE_TYPE)) {
+    SetProcessName(NS_LITERAL_STRING("WebExtensions"));
+  } else if (aRemoteType.EqualsLiteral(LARGE_ALLOCATION_REMOTE_TYPE)) {
+    SetProcessName(NS_LITERAL_STRING("Large Allocation Web Content"));
+  }
+
   return IPC_OK();
 }
 
@@ -3241,19 +3226,6 @@ ContentChild::RecvBlobURLUnregistration(const nsCString& aURI)
 {
   nsHostObjectProtocolHandler::RemoveDataEntry(aURI,
                                                /* aBroadcastToOtherProcesses = */ false);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-ContentChild::RecvDispatchLocalStorageChange(const nsString& aDocumentURI,
-                                             const nsString& aKey,
-                                             const nsString& aOldValue,
-                                             const nsString& aNewValue,
-                                             const IPC::Principal& aPrincipal,
-                                             const bool& aIsPrivate)
-{
-  LocalStorage::DispatchStorageEvent(aDocumentURI, aKey, aOldValue, aNewValue,
-                                     aPrincipal, aIsPrivate, nullptr, true);
   return IPC_OK();
 }
 

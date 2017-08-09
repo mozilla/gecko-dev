@@ -823,6 +823,9 @@ public:
 
   const RefPtr<UnscaledFont>& GetUnscaledFont() const { return mUnscaledFont; }
 
+  virtual cairo_scaled_font_t* GetCairoScaledFont() { return nullptr; }
+  virtual void SetCairoScaledFont(cairo_scaled_font_t* font) {}
+
 protected:
   explicit ScaledFont(const RefPtr<UnscaledFont>& aUnscaledFont)
     : mUnscaledFont(aUnscaledFont)
@@ -882,7 +885,7 @@ class DrawTargetCapture;
  * may be used either through a Snapshot or by flushing the target and directly
  * accessing the backing store a DrawTarget was created with.
  */
-class DrawTarget : public RefCounted<DrawTarget>
+class DrawTarget : public external::AtomicRefCounted<DrawTarget>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTarget)

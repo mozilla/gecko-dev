@@ -137,8 +137,8 @@ impl FlexItem {
             min_size: Au(0),
             max_size: MAX_AU,
             index: index,
-            flex_grow: flex_grow,
-            flex_shrink: flex_shrink,
+            flex_grow: flex_grow.into(),
+            flex_shrink: flex_shrink.into(),
             order: order,
             is_frozen: false,
             is_strut: false
@@ -949,8 +949,8 @@ impl Flow for FlexFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context)
+    fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_stacking_relative_position(layout_context)
     }
 
     fn place_float_if_applicable<'a>(&mut self) {

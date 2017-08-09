@@ -1688,6 +1688,9 @@ var gBrowserInit = {
     if (AppConstants.MOZ_DATA_REPORTING)
       gDataNotificationInfoBar.init();
 
+    if (!AppConstants.MOZILLA_OFFICIAL)
+      DevelopmentHelpers.init();
+
     requestIdleCallback(() => {
       // setup simple gestures support
       gGestureSupport.init(true);
@@ -4197,7 +4200,6 @@ function OpenBrowserWindow(options) {
   Services.obs.addObserver(newDocumentShown, "document-shown");
   Services.obs.addObserver(windowClosed, "domwindowclosed");
 
-  var charsetArg = new String();
   var handler = Components.classes["@mozilla.org/browser/clh;1"]
                           .getService(Components.interfaces.nsIBrowserHandler);
   var defaultArgs = handler.defaultArgs;
@@ -4233,7 +4235,7 @@ function OpenBrowserWindow(options) {
   var win;
   if (window && (wintype == "navigator:browser") && window.content && window.content.document) {
     var DocCharset = window.content.document.characterSet;
-    charsetArg = "charset=" + DocCharset;
+    let charsetArg = "charset=" + DocCharset;
 
     // we should "inherit" the charset menu setting in a new window
     win = window.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no" + extraFeatures, defaultArgs, charsetArg);
@@ -5062,8 +5064,7 @@ var CombinedStopReload = {
       this.timeWhenSwitchedToStop = window.performance.now();
     }
 
-    let shouldAnimate = AppConstants.MOZ_PHOTON_ANIMATIONS &&
-                        aRequest &&
+    let shouldAnimate = aRequest &&
                         aWebProgress.isTopLevel &&
                         aWebProgress.isLoadingDocument &&
                         !gBrowser.tabAnimationsInProgress &&
@@ -5086,8 +5087,7 @@ var CombinedStopReload = {
       return;
     }
 
-    let shouldAnimate = AppConstants.MOZ_PHOTON_ANIMATIONS &&
-                        aRequest &&
+    let shouldAnimate = aRequest &&
                         aWebProgress.isTopLevel &&
                         !aWebProgress.isLoadingDocument &&
                         !gBrowser.tabAnimationsInProgress &&
@@ -6777,7 +6777,7 @@ var MailIntegration = {
        Cc["@mozilla.org/uriloader/external-protocol-service;1"]
          .getService(Ci.nsIExternalProtocolService);
     if (extProtocolSvc)
-      extProtocolSvc.loadUrl(aURL);
+      extProtocolSvc.loadURI(aURL);
   }
 };
 

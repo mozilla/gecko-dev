@@ -142,7 +142,6 @@ var StarUI = {
                               .transact().catch(Cu.reportError);
           } else if (this._isNewBookmark &&
                      Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled") &&
-                     AppConstants.MOZ_PHOTON_ANIMATIONS &&
                      (libraryButton = document.getElementById("library-button")) &&
                      libraryButton.getAttribute("cui-areatype") != "menu-panel" &&
                      libraryButton.getAttribute("overflowedItem") != "true" &&
@@ -1284,32 +1283,12 @@ var BookmarkingUI = {
   },
 
   get star() {
-    if (AppConstants.MOZ_PHOTON_THEME) {
-      delete this.star;
-      return this.star = document.getElementById(this.STAR_ID);
-    }
-    /* Can't make this a self-deleting getter because it's anonymous content
-     * and might lose/regain bindings at some point. */
-    return document.getAnonymousElementByAttribute(this.button, "anonid",
-                                                   "button");
+    delete this.star;
+    return this.star = document.getElementById(this.STAR_ID);
   },
 
   get anchor() {
-    if (AppConstants.MOZ_PHOTON_THEME) {
-      return this.star;
-    }
-    if (!this._shouldUpdateStarState()) {
-      return null;
-    }
-    let widget = CustomizableUI.getWidget(this.BOOKMARK_BUTTON_ID)
-                               .forWindow(window);
-    if (widget.overflowed)
-      return widget.anchor;
-
-    let star = this.star;
-    return star ? document.getAnonymousElementByAttribute(star, "class",
-                                                          "toolbarbutton-icon")
-                : null;
+    return this.star;
   },
 
   get notifier() {
@@ -1332,9 +1311,6 @@ var BookmarkingUI = {
   STATUS_UNSTARRED: 0,
   STATUS_STARRED: 1,
   get status() {
-    if (!this._shouldUpdateStarState()) {
-      return this.STATUS_UNSTARRED;
-    }
     if (this._pendingUpdate)
       return this.STATUS_UPDATING;
     return this.broadcaster.hasAttribute("starred") ? this.STATUS_STARRED
@@ -1362,17 +1338,6 @@ var BookmarkingUI = {
   },
 
   /**
-   * The type of the area in which the button is currently located.
-   * When in the panel, we don't update the button's icon.
-   */
-  _currentAreaType: null,
-  _shouldUpdateStarState() {
-    // Remove everything checking _shouldUpdateStarState when non-photon goes away.
-    return AppConstants.MOZ_PHOTON_THEME ||
-           this._currentAreaType == CustomizableUI.TYPE_TOOLBAR;
-  },
-
-  /**
    * The popup contents must be updated when the user customizes the UI, or
    * changes the personal toolbar collapsed status.  In such a case, any needed
    * change should be handled in the popupshowing helper, for performance
@@ -1395,7 +1360,7 @@ var BookmarkingUI = {
     // Separately, in Photon, if the button is in the dynamic portion of the
     // overflow panel, we want to show a subview instead.
     if (this.button.getAttribute("cui-areatype") == CustomizableUI.TYPE_MENU_PANEL ||
-        (AppConstants.MOZ_PHOTON_THEME && this.button.hasAttribute("overflowedItem"))) {
+        this.button.hasAttribute("overflowedItem")) {
       this._showSubView();
       event.preventDefault();
       event.stopPropagation();
@@ -1618,11 +1583,6 @@ var BookmarkingUI = {
     Services.prefs.setBoolPref(this.RECENTLY_BOOKMARKED_PREF, false);
   },
 
-  _updateCustomizationState: function BUI__updateCustomizationState() {
-    let placement = CustomizableUI.getPlacementOfWidget(this.BOOKMARK_BUTTON_ID);
-    this._currentAreaType = placement && CustomizableUI.getAreaType(placement.area);
-  },
-
   _uninitView: function BUI__uninitView() {
     // When an element with a placesView attached is removed and re-inserted,
     // XBL reapplies the binding causing any kind of issues and possible leaks,
@@ -1678,13 +1638,6 @@ var BookmarkingUI = {
   },
 
   _onWidgetWasMoved: function BUI_widgetWasMoved() {
-    let usedToUpdateStarState = this._shouldUpdateStarState();
-    this._updateCustomizationState();
-    if (!usedToUpdateStarState && this._shouldUpdateStarState()) {
-      this.updateStarState();
-    } else if (usedToUpdateStarState && !this._shouldUpdateStarState()) {
-      this._updateStar();
-    }
     // If we're moved outside of customize mode, we need to uninit
     // our view so it gets reconstructed.
     if (!this._isCustomizing) {
@@ -1701,12 +1654,8 @@ var BookmarkingUI = {
 
   init() {
     CustomizableUI.addListener(this);
-    if (!AppConstants.MOZ_PHOTON_THEME) {
-      this._updateCustomizationState();
-    }
 
-    if (AppConstants.MOZ_PHOTON_ANIMATIONS &&
-        Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled")) {
+    if (Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled")) {
       let starButtonBox = document.getElementById("star-button-box");
       starButtonBox.setAttribute("animationsenabled", "true");
       this.star.addEventListener("mouseover", this, {once: true});
@@ -1719,9 +1668,7 @@ var BookmarkingUI = {
     this.updateBookmarkPageMenuItem(true);
     CustomizableUI.removeListener(this);
 
-    if (AppConstants.MOZ_PHOTON_ANIMATIONS) {
-      this.star.removeEventListener("mouseover", this);
-    }
+    this.star.removeEventListener("mouseover", this);
 
     this._uninitView();
 
@@ -1783,32 +1730,15 @@ var BookmarkingUI = {
   },
 
   _updateStar: function BUI__updateStar() {
-    if (!this._shouldUpdateStarState()) {
-      if (this.broadcaster.hasAttribute("starred")) {
-        this.broadcaster.removeAttribute("starred");
-        this.broadcaster.removeAttribute("buttontooltiptext");
-        this.broadcaster.removeAttribute("tooltiptext");
-      }
-      return;
-    }
-
     if (this._itemGuids.size > 0) {
       this.broadcaster.setAttribute("starred", "true");
       this.broadcaster.setAttribute("buttontooltiptext", this._starredTooltip);
       this.broadcaster.setAttribute("tooltiptext", this._starredTooltip);
-      if (!AppConstants.MOZ_PHOTON_THEME && this.button.getAttribute("overflowedItem") == "true") {
-        this.button.setAttribute("label", this._starButtonOverflowedStarredLabel);
-      }
     } else {
-      if (AppConstants.MOZ_PHOTON_ANIMATIONS) {
-        this.star.removeAttribute("animate");
-      }
+      this.star.removeAttribute("animate");
       this.broadcaster.removeAttribute("starred");
       this.broadcaster.setAttribute("buttontooltiptext", this._unstarredTooltip);
       this.broadcaster.setAttribute("tooltiptext", this._unstarredTooltip);
-      if (!AppConstants.MOZ_PHOTON_THEME && this.button.getAttribute("overflowedItem") == "true") {
-        this.button.setAttribute("label", this._starButtonOverflowedLabel);
-      }
     }
   },
 
@@ -1934,11 +1864,7 @@ var BookmarkingUI = {
     // Ignore non-left clicks on the star, or if we are updating its state.
     if (!this._pendingUpdate && (aEvent.type != "click" || aEvent.button == 0)) {
       let isBookmarked = this._itemGuids.size > 0;
-      // Disable the old animation in photon
-      if (!isBookmarked && !AppConstants.MOZ_PHOTON_THEME)
-        this._showBookmarkedNotification();
-      // Set up variables for new animation in Photon
-      if (!isBookmarked && AppConstants.MOZ_PHOTON_ANIMATIONS) {
+      if (!isBookmarked) {
         BrowserUtils.setToolbarButtonHeightProperty(this.star);
         this.star.setAttribute("animate", "true");
       }
@@ -1953,9 +1879,7 @@ var BookmarkingUI = {
   handleEvent: function BUI_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "mouseover":
-        if (AppConstants.MOZ_PHOTON_ANIMATIONS) {
-          this.star.setAttribute("preloadanimations", "true");
-        }
+        this.star.setAttribute("preloadanimations", "true");
         break;
       case "ViewShowing":
         this.onPanelMenuViewShowing(aEvent);
@@ -1988,10 +1912,6 @@ var BookmarkingUI = {
       "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
       "&maxResults=42&excludeQueries=1";
 
-    // XPCOMUtils.defineLazyScriptGetter can't return class constructors, so
-    // trigger the getter once without using the result before calling
-    // PlacesPanelview as a constructor.
-    PlacesPanelview;
     this._panelMenuView = new PlacesPanelview(document.getElementById("panelMenu_bookmarksMenu"),
       panelview, query);
     panelview.removeEventListener("ViewShowing", this);
@@ -2067,35 +1987,6 @@ var BookmarkingUI = {
   onItemVisited() {},
   onItemMoved() {},
 
-  // CustomizableUI events:
-  _starButtonLabel: null,
-  get _starButtonOverflowedLabel() {
-    delete this._starButtonOverflowedLabel;
-    return this._starButtonOverflowedLabel =
-      gNavigatorBundle.getString("starButtonOverflowed.label");
-  },
-  get _starButtonOverflowedStarredLabel() {
-    delete this._starButtonOverflowedStarredLabel;
-    return this._starButtonOverflowedStarredLabel =
-      gNavigatorBundle.getString("starButtonOverflowedStarred.label");
-  },
-  onWidgetOverflow(aNode, aContainer) {
-    let win = aNode.ownerGlobal;
-    if (AppConstants.MOZ_PHOTON_THEME || aNode.id != this.BOOKMARK_BUTTON_ID || win != window)
-      return;
-
-
-    let currentLabel = aNode.getAttribute("label");
-    if (!this._starButtonLabel)
-      this._starButtonLabel = currentLabel;
-
-    if (currentLabel == this._starButtonLabel) {
-      let desiredLabel = this._itemGuids.size > 0 ? this._starButtonOverflowedStarredLabel
-                                                  : this._starButtonOverflowedLabel;
-      aNode.setAttribute("label", desiredLabel);
-    }
-  },
-
   onWidgetUnderflow(aNode, aContainer) {
     let win = aNode.ownerGlobal;
     if (aNode.id != this.BOOKMARK_BUTTON_ID || win != window)
@@ -2104,12 +1995,6 @@ var BookmarkingUI = {
     // The view gets broken by being removed and reinserted. Uninit
     // here so popupshowing will generate a new one:
     this._uninitView();
-
-    if (AppConstants.MOZ_PHOTON_THEME)
-      return;
-
-    if (aNode.getAttribute("label") != this._starButtonLabel)
-      aNode.setAttribute("label", this._starButtonLabel);
   },
 
   QueryInterface: XPCOMUtils.generateQI([

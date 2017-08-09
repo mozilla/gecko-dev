@@ -222,16 +222,6 @@ fn test_insert() {
     assert!(selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).is_none());
 }
 
-#[test]
-fn test_get_universal_rules() {
-    thread_state::initialize(thread_state::LAYOUT);
-    let (map, _shared_lock) = get_mock_map(&["*|*", "#foo > *|*", "*|* > *|*", ".klass", "#id"]);
-
-    let decls = map.get_universal_rules(CascadeLevel::UserNormal);
-
-    assert_eq!(decls.len(), 1, "{:?}", decls);
-}
-
 fn mock_stylist() -> Stylist {
     let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32), ScaleFactor::new(1.0));
     Stylist::new(device, QuirksMode::NoQuirks)
@@ -239,6 +229,7 @@ fn mock_stylist() -> Stylist {
 
 #[test]
 fn test_stylist_device_accessors() {
+    thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
     assert_eq!(stylist.device().media_type(), MediaType::Screen);
     let mut stylist_mut = mock_stylist();
@@ -247,6 +238,7 @@ fn test_stylist_device_accessors() {
 
 #[test]
 fn test_stylist_rule_tree_accessors() {
+    thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
     stylist.rule_tree();
     stylist.rule_tree().root();

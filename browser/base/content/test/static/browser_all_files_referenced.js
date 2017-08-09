@@ -121,6 +121,9 @@ var whitelist = [
   // Needed by Normandy
   {file: "resource://gre/modules/IndexedDB.jsm"},
 
+  // New L10n API that is not yet used in production
+  {file: "resource://gre/modules/Localization.jsm"},
+
   // Starting from here, files in the whitelist are bugs that need fixing.
   // Bug 1339420
   {file: "chrome://branding/content/icon128.png"},
@@ -174,19 +177,6 @@ var whitelist = [
 
 ];
 
-if (!AppConstants.MOZ_PHOTON_THEME) {
-  whitelist.push(
-    // Bug 1343824
-    {file: "chrome://browser/skin/customizableui/customize-illustration-rtl@2x.png",
-     platforms: ["linux", "win"]},
-    {file: "chrome://browser/skin/customizableui/customize-illustration@2x.png",
-     platforms: ["linux", "win"]},
-    {file: "chrome://browser/skin/customizableui/info-icon-customizeTip@2x.png",
-     platforms: ["linux", "win"]},
-    {file: "chrome://browser/skin/customizableui/panelarrow-customizeTip@2x.png",
-     platforms: ["linux", "win"]});
-}
-
 whitelist = new Set(whitelist.filter(item =>
   ("isFromDevTools" in item) == isDevtools &&
   (!item.skipNightly || !AppConstants.NIGHTLY_BUILD) &&
@@ -235,8 +225,8 @@ if (!isDevtools) {
 }
 
 const gInterestingCategories = new Set([
-  "agent-style-sheets", "addon-provider-module", "webextension-scripts",
-  "webextension-schemas", "webextension-scripts-addon",
+  "agent-style-sheets", "addon-provider-module", "webextension-modules",
+  "webextension-scripts", "webextension-schemas", "webextension-scripts-addon",
   "webextension-scripts-content", "webextension-scripts-devtools"
 ]);
 
@@ -503,13 +493,13 @@ add_task(async function checkAllTheFiles() {
   findChromeUrlsFromArray(uint16, "chrome://");
   findChromeUrlsFromArray(uint16, "resource://");
 
-  const kCodeExtensions = [".xul", ".xml", ".xsl", ".js", ".jsm", ".html", ".xhtml"];
+  const kCodeExtensions = [".xul", ".xml", ".xsl", ".js", ".jsm", ".json", ".html", ".xhtml"];
 
   let appDir = Services.dirsvc.get("GreD", Ci.nsIFile);
   // This asynchronously produces a list of URLs (sadly, mostly sync on our
   // test infrastructure because it runs against jarfiles there, and
   // our zipreader APIs are all sync)
-  let uris = await generateURIsFromDirTree(appDir, [".css", ".manifest", ".json", ".jpg", ".png", ".gif", ".svg",  ".dtd", ".properties"].concat(kCodeExtensions));
+  let uris = await generateURIsFromDirTree(appDir, [".css", ".manifest", ".jpg", ".png", ".gif", ".svg",  ".dtd", ".properties"].concat(kCodeExtensions));
 
   // Parse and remove all manifests from the list.
   // NOTE that this must be done before filtering out devtools paths

@@ -157,7 +157,7 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 gecko_pref_ident=None, vector=False):
+                 gecko_pref_ident=None, vector=False, need_animatable=False):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -304,18 +304,8 @@ class StyleStruct(object):
 
 
 class PropertiesData(object):
-    """
-        The `testing` parameter means that we're running tests.
-
-        In this situation, the `product` value is ignored while choosing
-        which shorthands and longhands to generate; and instead all properties for
-        which code exists for either servo or stylo are generated. Note that we skip
-        this behavior when the style crate is being built in gecko mode, because we
-        need manual glue for such properties and we don't have it.
-    """
-    def __init__(self, product, testing):
+    def __init__(self, product):
         self.product = product
-        self.testing = testing and product != "gecko"
         self.style_structs = []
         self.current_style_struct = None
         self.longhands = []
@@ -338,9 +328,9 @@ class PropertiesData(object):
             for prefix in property.extra_prefixes:
                 property.alias.append('-%s-%s' % (prefix, property.name))
 
-    def declare_longhand(self, name, products="gecko servo", disable_when_testing=False, **kwargs):
+    def declare_longhand(self, name, products="gecko servo", **kwargs):
         products = products.split()
-        if self.product not in products and not (self.testing and not disable_when_testing):
+        if self.product not in products:
             return
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
@@ -354,10 +344,9 @@ class PropertiesData(object):
 
         return longhand
 
-    def declare_shorthand(self, name, sub_properties, products="gecko servo",
-                          disable_when_testing=False, *args, **kwargs):
+    def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
         products = products.split()
-        if self.product not in products and not (self.testing and not disable_when_testing):
+        if self.product not in products:
             return
 
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]

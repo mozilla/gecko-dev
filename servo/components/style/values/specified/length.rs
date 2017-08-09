@@ -15,12 +15,14 @@ use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::Mul;
 use style_traits::{HasViewportPercentage, ToCss, ParseError, StyleParseError};
-use style_traits::values::specified::{AllowedLengthType, AllowedNumericType};
+use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
-use super::{AllowQuirks, Number, ToComputedValue};
+use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
 use values::ExtremumLength;
 use values::computed::{self, Context};
+use values::generics::NonNegative;
+use values::specified::NonNegativeNumber;
 use values::specified::calc::CalcNode;
 
 pub use values::specified::calc::CalcLengthOrPercentage;
@@ -92,8 +94,8 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
             FontBaseSize::Custom(size) => size,
-            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
-            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size(),
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().0,
+            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size().0,
         }
     }
 }
@@ -703,123 +705,56 @@ impl<T: Parse> Either<Length, T> {
     }
 }
 
-/// A percentage value.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Percentage {
-    /// The percentage value as a float.
-    ///
-    /// [0 .. 100%] maps to [0.0 .. 1.0]
-    value: CSSFloat,
-    /// If this percentage came from a calc() expression, this tells how
-    /// clamping should be done on the value.
-    calc_clamping_mode: Option<AllowedNumericType>,
-}
+/// A wrapper of Length, whose value must be >= 0.
+pub type NonNegativeLength = NonNegative<Length>;
 
-no_viewport_percentage!(Percentage);
-
-impl ToCss for Percentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        if self.calc_clamping_mode.is_some() {
-            dest.write_str("calc(")?;
-        }
-
-        write!(dest, "{}%", self.value * 100.)?;
-
-        if self.calc_clamping_mode.is_some() {
-            dest.write_str(")")?;
-        }
-        Ok(())
+impl From<NoCalcLength> for NonNegativeLength {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        NonNegative::<Length>(Length::NoCalc(len))
     }
 }
 
-impl Percentage {
-    /// Create a percentage from a numeric value.
-    pub fn new(value: CSSFloat) -> Self {
-        Self {
-            value,
-            calc_clamping_mode: None,
+impl From<Length> for NonNegativeLength {
+    #[inline]
+    fn from(len: Length) -> Self {
+        NonNegative::<Length>(len)
+    }
+}
+
+impl<T: Parse> Parse for Either<NonNegativeLength, T> {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        if let Ok(v) = input.try(|input| T::parse(context, input)) {
+            return Ok(Either::Second(v));
         }
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
+            .map(NonNegative::<Length>).map(Either::First)
     }
+}
 
-    /// Get the underlying value for this float.
-    pub fn get(&self) -> CSSFloat {
-        self.calc_clamping_mode.map_or(self.value, |mode| mode.clamp(self.value))
-    }
-
-    /// Reverse this percentage, preserving calc-ness.
-    ///
-    /// For example: If it was 20%, convert it into 80%.
-    pub fn reverse(&mut self) {
-        let new_value = 1. - self.value;
-        self.value = new_value;
-    }
-
-
-    /// Parse a specific kind of percentage.
-    pub fn parse_with_clamping_mode<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        num_context: AllowedNumericType,
-    ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove early returns when lifetimes are non-lexical
-        match *input.next()? {
-            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
-                return Ok(Percentage::new(unit_value))
-            }
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into())
-        }
-
-        let result = input.parse_nested_block(|i| {
-            CalcNode::parse_percentage(context, i)
-        })?;
-
-        // TODO(emilio): -moz-image-rect is the only thing that uses
-        // the clamping mode... I guess we could disallow it...
-        Ok(Percentage {
-            value: result,
-            calc_clamping_mode: Some(num_context),
-        })
-    }
-
-    /// Parses a percentage token, but rejects it if it's negative.
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext,
-                                      input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
-        Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
-    }
-
-    /// 0%
+impl NonNegativeLength {
+    /// Returns a `zero` length.
     #[inline]
     pub fn zero() -> Self {
-        Percentage {
-            value: 0.,
-            calc_clamping_mode: None,
-        }
+        Length::zero().into()
     }
 
-    /// 100%
+    /// Get an absolute length from a px value.
     #[inline]
-    pub fn hundred() -> Self {
-        Percentage {
-            value: 1.,
-            calc_clamping_mode: None,
-        }
+    pub fn from_px(px_value: CSSFloat) -> Self {
+        Length::from_px(px_value.max(0.)).into()
     }
 }
 
-impl Parse for Percentage {
-    #[inline]
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>
-    ) -> Result<Self, ParseError<'i>> {
-        Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
-    }
-}
+/// Either a NonNegativeLength or the `normal` keyword.
+pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
+
+/// Either a NonNegativeLength or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
+
+/// Either a NonNegativeLength or a NonNegativeNumber value.
+pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber>;
 
 /// A length or a percentage value.
 #[allow(missing_docs)]
@@ -1182,6 +1117,41 @@ impl Parse for LengthOrPercentageOrNone {
     #[inline]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
+    }
+}
+
+/// A wrapper of LengthOrPercentage, whose value must be >= 0.
+pub type NonNegativeLengthOrPercentage = NonNegative<LengthOrPercentage>;
+
+impl From<NoCalcLength> for NonNegativeLengthOrPercentage {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        NonNegative::<LengthOrPercentage>(LengthOrPercentage::from(len))
+    }
+}
+
+impl Parse for NonNegativeLengthOrPercentage {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        LengthOrPercentage::parse_non_negative(context, input).map(NonNegative::<LengthOrPercentage>)
+    }
+}
+
+impl NonNegativeLengthOrPercentage {
+    #[inline]
+    /// Returns a `zero` length.
+    pub fn zero() -> Self {
+        NonNegative::<LengthOrPercentage>(LengthOrPercentage::zero())
+    }
+
+    /// Parses a length or a percentage, allowing the unitless length quirk.
+    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    #[inline]
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
+        LengthOrPercentage::parse_non_negative_quirky(context, input, allow_quirks)
+            .map(NonNegative::<LengthOrPercentage>)
     }
 }
 

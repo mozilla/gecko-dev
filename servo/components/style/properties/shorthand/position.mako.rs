@@ -46,12 +46,13 @@
                     extra_prefixes="webkit"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
-    use values::specified::Number;
+    use parser::Parse;
+    use values::specified::NonNegativeNumber;
 
     fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                 -> Result<(Number, Option<Number>),ParseError<'i>> {
-        let grow = Number::parse_non_negative(context, input)?;
-        let shrink = input.try(|i| Number::parse_non_negative(context, i)).ok();
+                                 -> Result<(NonNegativeNumber, Option<NonNegativeNumber>),ParseError<'i>> {
+        let grow = NonNegativeNumber::parse(context, input)?;
+        let shrink = input.try(|i| NonNegativeNumber::parse(context, i)).ok();
         Ok((grow, shrink))
     }
 
@@ -63,8 +64,8 @@
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(expanded! {
-                flex_grow: Number::new(0.0),
-                flex_shrink: Number::new(0.0),
+                flex_grow: NonNegativeNumber::new(0.0),
+                flex_shrink: NonNegativeNumber::new(0.0),
                 flex_basis: longhands::flex_basis::SpecifiedValue::auto(),
             })
         }
@@ -89,8 +90,8 @@
             return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(expanded! {
-            flex_grow: grow.unwrap_or(Number::new(1.0)),
-            flex_shrink: shrink.unwrap_or(Number::new(1.0)),
+            flex_grow: grow.unwrap_or(NonNegativeNumber::new(1.0)),
+            flex_shrink: shrink.unwrap_or(NonNegativeNumber::new(1.0)),
             // Per spec, this should be SpecifiedValue::zero(), but all
             // browsers currently agree on using `0%`. This is a spec
             // change which hasn't been adopted by browsers:
@@ -238,7 +239,6 @@
 <%helpers:shorthand name="grid-template"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
-                    disable_when_testing="True"
                     products="gecko">
     use parser::Parse;
     use properties::longhands::grid_template_areas::TemplateAreas;
@@ -451,14 +451,13 @@
                                     grid-auto-rows grid-auto-columns grid-row-gap grid-column-gap
                                     grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
-                    disable_when_testing="True"
                     products="gecko">
     use parser::Parse;
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
     use values::generics::grid::{GridTemplateComponent, TrackListType};
-    use values::specified::{GenericGridTemplateComponent, LengthOrPercentage, TrackSize};
+    use values::specified::{GenericGridTemplateComponent, NonNegativeLengthOrPercentage, TrackSize};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -519,8 +518,8 @@
             grid_auto_columns: auto_cols,
             grid_auto_flow: flow,
             // This shorthand also resets grid gap
-            grid_row_gap: LengthOrPercentage::zero(),
-            grid_column_gap: LengthOrPercentage::zero(),
+            grid_row_gap: NonNegativeLengthOrPercentage::zero(),
+            grid_column_gap: NonNegativeLengthOrPercentage::zero(),
         })
     }
 
@@ -538,8 +537,8 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             // `grid` shorthand resets these properties. If they are not zero, that means they
             // are changed by longhands and in that case we should fail serializing `grid`.
-            if *self.grid_row_gap != LengthOrPercentage::zero() ||
-               *self.grid_column_gap != LengthOrPercentage::zero() {
+            if *self.grid_row_gap != NonNegativeLengthOrPercentage::zero() ||
+               *self.grid_column_gap != NonNegativeLengthOrPercentage::zero() {
                 return Ok(());
             }
 
@@ -611,7 +610,7 @@
 
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
-                    products="gecko" disable_when_testing="True">
+                    products="gecko">
     use properties::longhands::align_content;
     use properties::longhands::justify_content;
 
@@ -647,7 +646,7 @@
 
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
-                    products="gecko" disable_when_testing="True">
+                    products="gecko">
     use values::specified::align::AlignJustifySelf;
     use parser::Parse;
 
@@ -683,7 +682,7 @@
 
 <%helpers:shorthand name="place-items" sub_properties="align-items justify-items"
                     spec="https://drafts.csswg.org/css-align/#place-items-property"
-                    products="gecko" disable_when_testing="True">
+                    products="gecko">
     use values::specified::align::{AlignItems, JustifyItems};
     use parser::Parse;
 

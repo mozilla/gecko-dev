@@ -1305,7 +1305,7 @@ nsDocShell::LoadURI(nsIURI* aURI,
   uint32_t referrerPolicy = mozilla::net::RP_Unset;
   bool isSrcdoc = false;
   nsCOMPtr<nsISHEntry> shEntry;
-  nsXPIDLString target;
+  nsString target;
   nsAutoString srcdoc;
   nsCOMPtr<nsIDocShell> sourceDocShell;
   nsCOMPtr<nsIURI> baseURI;
@@ -4288,7 +4288,6 @@ nsDocShell::FindChildWithName(const nsAString& aName,
     return NS_OK;
   }
 
-  nsXPIDLString childName;
   nsTObserverArray<nsDocLoader*>::ForwardIterator iter(mChildList);
   while (iter.HasMore()) {
     nsCOMPtr<nsIDocShellTreeItem> child = do_QueryObject(iter.GetNext());
@@ -13504,24 +13503,9 @@ nsDocShell::EnsureScriptEnvironment()
   uint32_t chromeFlags;
   browserChrome->GetChromeFlags(&chromeFlags);
 
-  bool isModalContentWindow =
-    (mItemType == typeContent) &&
-    (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL_CONTENT_WINDOW);
-  // There can be various other content docshells associated with the
-  // top-level window, like sidebars. Make sure that we only create an
-  // nsGlobalModalWindow for the primary content shell.
-  if (isModalContentWindow) {
-    nsCOMPtr<nsIDocShellTreeItem> primaryItem;
-    nsresult rv =
-      mTreeOwner->GetPrimaryContentShell(getter_AddRefs(primaryItem));
-    NS_ENSURE_SUCCESS(rv, rv);
-    isModalContentWindow = (primaryItem == this);
-  }
-
   // If our window is modal and we're not opened as chrome, make
   // this window a modal content window.
-  mScriptGlobal =
-    NS_NewScriptGlobalObject(mItemType == typeChrome, isModalContentWindow);
+  mScriptGlobal = NS_NewScriptGlobalObject(mItemType == typeChrome);
   MOZ_ASSERT(mScriptGlobal);
 
   mScriptGlobal->SetDocShell(this);

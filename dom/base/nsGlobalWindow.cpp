@@ -257,10 +257,6 @@
 #include "mozilla/dom/SpeechSynthesis.h"
 #endif
 
-#ifdef MOZ_B2G
-#include "nsPISocketTransportService.h"
-#endif
-
 // Apple system headers seem to have a check() macro.  <sigh>
 #ifdef check
 class nsIScriptTimeoutHandler;
@@ -1029,7 +1025,6 @@ nsPIDOMWindow<T>::nsPIDOMWindow(nsPIDOMWindowOuter *aOuterWindow)
   mMayHaveMouseEnterLeaveEventListener(false),
   mMayHavePointerEnterLeaveEventListener(false),
   mInnerObjectsFreed(false),
-  mIsModalContentWindow(false),
   mIsActive(false), mIsBackground(false),
   mMediaSuspend(Preferences::GetBool("media.block-autoplay-until-in-foreground", true) ?
     nsISuspendedTypes::SUSPENDED_BLOCK : nsISuspendedTypes::NONE_SUSPENDED),
@@ -1624,10 +1619,6 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
 #ifdef DEBUG
     mSetOpenerWindowCalled(false),
 #endif
-#ifdef MOZ_B2G
-    mNetworkUploadObserverEnabled(false),
-    mNetworkDownloadObserverEnabled(false),
-#endif
     mCleanedUp(false),
     mDialogAbuseCount(0),
     mAreDialogsEnabled(true),
@@ -1972,11 +1963,6 @@ nsGlobalWindow::CleanUp()
      sns->Unregister(mObserver);
     }
 
-#ifdef MOZ_B2G
-    DisableNetworkEvent(eNetworkUpload);
-    DisableNetworkEvent(eNetworkDownload);
-#endif // MOZ_B2G
-
     if (mIdleService) {
       mIdleService->RemoveIdleObserver(mObserver, MIN_IDLE_NOTIFICATION_TIME_S);
     }
@@ -2048,9 +2034,6 @@ nsGlobalWindow::CleanUp()
     DisableVRUpdates();
     mHasVREvents = false;
     mHasVRDisplayActivateEvents = false;
-#ifdef MOZ_B2G
-    DisableTimeChangeNotifications();
-#endif
     DisableIdleCallbackRequests();
   } else {
     MOZ_ASSERT(!mHasGamepad);
@@ -2068,7 +2051,6 @@ nsGlobalWindow::CleanUp()
   }
 
   mArguments = nullptr;
-  mDialogArguments = nullptr;
 
   CleanupCachedXBLHandlers(this);
 
@@ -2306,7 +2288,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindow)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mControllers)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mArguments)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDialogArguments)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReturnValue)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNavigator)
 
@@ -2390,7 +2371,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mControllers)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mArguments)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDialogArguments)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mReturnValue)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mNavigator)
 
@@ -3151,8 +3131,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     } else {
       if (thisChrome) {
         newInnerWindow = nsGlobalChromeWindow::Create(this);
-      } else if (mIsModalContentWindow) {
-        newInnerWindow = nsGlobalModalWindow::Create(this);
       } else {
         newInnerWindow = nsGlobalWindow::Create(this);
       }
@@ -4076,18 +4054,10 @@ nsGlobalWindow::SetArguments(nsIArray *aArguments)
   //
   // So we need to demultiplex the two cases here.
   nsGlobalWindow *currentInner = GetCurrentInnerWindowInternal();
-  if (mIsModalContentWindow) {
-    // nsWindowWatcher blindly converts the original nsISupports into an array
-    // of length 1. We need to recover it, and then cast it back to the concrete
-    // object we know it to be.
-    nsCOMPtr<nsISupports> supports = do_QueryElementAt(aArguments, 0, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    mDialogArguments = static_cast<DialogValueHolder*>(supports.get());
-  } else {
-    mArguments = aArguments;
-    rv = currentInner->DefineArgumentsProperty(aArguments);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+
+  mArguments = aArguments;
+  rv = currentInner->DefineArgumentsProperty(aArguments);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -4096,7 +4066,6 @@ nsresult
 nsGlobalWindow::DefineArgumentsProperty(nsIArray *aArguments)
 {
   MOZ_ASSERT(IsInnerWindow());
-  MOZ_ASSERT(!mIsModalContentWindow); // Handled separately.
 
   nsIScriptContext *ctx = GetOuterWindowInternal()->mContext;
   NS_ENSURE_TRUE(aArguments && ctx, NS_ERROR_NOT_INITIALIZED);
@@ -5269,21 +5238,6 @@ nsGlobalWindow::IsPrivilegedChromeWindow(JSContext* aCx, JSObject* aObj)
   // For now, have to deal with XPConnect objects here.
   return xpc::WindowOrNull(aObj)->IsChromeWindow() &&
          nsContentUtils::ObjectPrincipal(aObj) == nsContentUtils::GetSystemPrincipal();
-}
-
-/* static */ bool
-nsGlobalWindow::IsShowModalDialogEnabled(JSContext*, JSObject*)
-{
-  static bool sAddedPrefCache = false;
-  static bool sIsDisabled;
-  static const char sShowModalDialogPref[] = "dom.disable_window_showModalDialog";
-
-  if (!sAddedPrefCache) {
-    Preferences::AddBoolVarCache(&sIsDisabled, sShowModalDialogPref, false);
-    sAddedPrefCache = true;
-  }
-
-  return !sIsDisabled && !XRE_IsContentProcess();
 }
 
 /* static */ bool
@@ -10087,130 +10041,6 @@ nsGlobalWindow::ConvertDialogOptions(const nsAString& aOptions,
   }
 }
 
-already_AddRefed<nsIVariant>
-nsGlobalWindow::ShowModalDialogOuter(const nsAString& aUrl,
-                                     nsIVariant* aArgument,
-                                     const nsAString& aOptions,
-                                     nsIPrincipal& aSubjectPrincipal,
-                                     ErrorResult& aError)
-{
-  MOZ_RELEASE_ASSERT(IsOuterWindow());
-
-  if (mDoc) {
-    mDoc->WarnOnceAbout(nsIDocument::eShowModalDialog);
-  }
-
-  if (!IsShowModalDialogEnabled()) {
-    aError.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
-  RefPtr<DialogValueHolder> argHolder =
-    new DialogValueHolder(&aSubjectPrincipal, aArgument);
-
-  // Before bringing up the window/dialog, unsuppress painting and flush
-  // pending reflows.
-  EnsureReflowFlushAndPaint();
-
-  if (!AreDialogsEnabled()) {
-    // We probably want to keep throwing here; silently doing nothing is a bit
-    // weird given the typical use cases of showModalDialog().
-    aError.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
-  if (ShouldPromptToBlockDialogs() && !ConfirmDialogIfNeeded()) {
-    aError.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
-  nsCOMPtr<nsPIDOMWindowOuter> dlgWin;
-  nsAutoString options(NS_LITERAL_STRING("-moz-internal-modal=1,status=1"));
-
-  ConvertDialogOptions(aOptions, options);
-
-  options.AppendLiteral(",scrollbars=1,centerscreen=1,resizable=0");
-
-  EnterModalState();
-  uint32_t oldMicroTaskLevel = nsContentUtils::MicroTaskLevel();
-  nsContentUtils::SetMicroTaskLevel(0);
-  aError = OpenInternal(aUrl, EmptyString(), options,
-                        false,          // aDialog
-                        true,           // aContentModal
-                        true,           // aCalledNoScript
-                        true,           // aDoJSFixups
-                        true,           // aNavigate
-                        nullptr, argHolder, // args
-                        nullptr,        // aLoadInfo
-                        false,          // aForceNoOpener
-                        getter_AddRefs(dlgWin));
-  nsContentUtils::SetMicroTaskLevel(oldMicroTaskLevel);
-  LeaveModalState();
-  if (aError.Failed()) {
-    return nullptr;
-  }
-
-  nsCOMPtr<nsIDOMModalContentWindow> dialog = do_QueryInterface(dlgWin);
-  if (!dialog) {
-    return nullptr;
-  }
-
-  nsCOMPtr<nsIVariant> retVal;
-  aError = dialog->GetReturnValue(getter_AddRefs(retVal));
-  MOZ_ASSERT(!aError.Failed());
-
-  return retVal.forget();
-}
-
-already_AddRefed<nsIVariant>
-nsGlobalWindow::ShowModalDialog(const nsAString& aUrl, nsIVariant* aArgument,
-                                const nsAString& aOptions,
-                                nsIPrincipal& aSubjectPrincipal,
-                                ErrorResult& aError)
-{
-  FORWARD_TO_OUTER_OR_THROW(ShowModalDialogOuter,
-                            (aUrl, aArgument, aOptions, aSubjectPrincipal,
-                             aError), aError, nullptr);
-}
-
-void
-nsGlobalWindow::ShowModalDialog(JSContext* aCx, const nsAString& aUrl,
-                                JS::Handle<JS::Value> aArgument,
-                                const nsAString& aOptions,
-                                JS::MutableHandle<JS::Value> aRetval,
-                                nsIPrincipal& aSubjectPrincipal,
-                                ErrorResult& aError)
-{
-  MOZ_ASSERT(IsInnerWindow());
-
-  nsCOMPtr<nsIVariant> args;
-  aError = nsContentUtils::XPConnect()->JSToVariant(aCx,
-                                                    aArgument,
-                                                    getter_AddRefs(args));
-  if (aError.Failed()) {
-    return;
-  }
-
-  nsCOMPtr<nsIVariant> retVal =
-    ShowModalDialog(aUrl, args, aOptions, aSubjectPrincipal, aError);
-  if (aError.Failed()) {
-    return;
-  }
-
-  JS::Rooted<JS::Value> result(aCx);
-  if (retVal) {
-    JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
-    if (!global) {
-      global = FastGetGlobalJSObject();
-    }
-    aError = nsContentUtils::XPConnect()->VariantToJS(aCx,
-                                                      global,
-                                                      retVal, aRetval);
-  } else {
-    aRetval.setNull();
-  }
-}
-
 class ChildCommandDispatcher : public Runnable
 {
 public:
@@ -12322,27 +12152,6 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
-#ifdef MOZ_B2G
-  if (!nsCRT::strcmp(aTopic, NS_NETWORK_ACTIVITY_BLIP_UPLOAD_TOPIC) ||
-      !nsCRT::strcmp(aTopic, NS_NETWORK_ACTIVITY_BLIP_DOWNLOAD_TOPIC)) {
-    MOZ_ASSERT(IsInnerWindow());
-    if (!AsInner()->IsCurrentInnerWindow()) {
-      return NS_OK;
-    }
-
-    RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
-    event->InitEvent(
-      !nsCRT::strcmp(aTopic, NS_NETWORK_ACTIVITY_BLIP_UPLOAD_TOPIC)
-        ? NETWORK_UPLOAD_EVENT_NAME
-        : NETWORK_DOWNLOAD_EVENT_NAME,
-      false, false);
-    event->SetTrusted(true);
-
-    bool dummy;
-    return DispatchEvent(event, &dummy);
-  }
-#endif // MOZ_B2G
-
   if (!nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     MOZ_ASSERT(!NS_strcmp(aData, u"intl.accept_languages"));
     MOZ_ASSERT(IsInnerWindow());
@@ -13478,7 +13287,7 @@ nsGlobalWindow::SecurityCheckURL(const char *aURL)
   nsresult rv = NS_NewURI(getter_AddRefs(uri), nsDependentCString(aURL),
                           encoding, baseURI);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
   if (NS_FAILED(nsContentUtils::GetSecurityManager()->
@@ -14635,70 +14444,6 @@ nsGlobalChromeWindow::TakeOpenerForInitialContentBrowser(mozIDOMWindowProxy** aO
   return NS_OK;
 }
 
-// nsGlobalModalWindow implementation
-
-// QueryInterface implementation for nsGlobalModalWindow
-NS_INTERFACE_MAP_BEGIN(nsGlobalModalWindow)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMModalContentWindow)
-NS_INTERFACE_MAP_END_INHERITING(nsGlobalWindow)
-
-NS_IMPL_ADDREF_INHERITED(nsGlobalModalWindow, nsGlobalWindow)
-NS_IMPL_RELEASE_INHERITED(nsGlobalModalWindow, nsGlobalWindow)
-
-
-void
-nsGlobalWindow::GetDialogArgumentsOuter(JSContext* aCx,
-                                        JS::MutableHandle<JS::Value> aRetval,
-                                        nsIPrincipal& aSubjectPrincipal,
-                                        ErrorResult& aError)
-{
-  MOZ_RELEASE_ASSERT(IsOuterWindow());
-  MOZ_ASSERT(IsModalContentWindow(),
-             "This should only be called on modal windows!");
-
-  if (!mDialogArguments) {
-    MOZ_ASSERT(mIsClosed, "This window should be closed!");
-    aRetval.setUndefined();
-    return;
-  }
-
-  // This does an internal origin check, and returns undefined if the subject
-  // does not subsumes the origin of the arguments.
-  JS::Rooted<JSObject*> wrapper(aCx, GetWrapper());
-  JSAutoCompartment ac(aCx, wrapper);
-  mDialogArguments->Get(aCx, wrapper, &aSubjectPrincipal, aRetval, aError);
-}
-
-void
-nsGlobalWindow::GetDialogArguments(JSContext* aCx,
-                                   JS::MutableHandle<JS::Value> aRetval,
-                                   nsIPrincipal& aSubjectPrincipal,
-                                   ErrorResult& aError)
-{
-  FORWARD_TO_OUTER_OR_THROW(GetDialogArgumentsOuter,
-                            (aCx, aRetval, aSubjectPrincipal, aError),
-                            aError, );
-}
-
-/* static */ already_AddRefed<nsGlobalModalWindow>
-nsGlobalModalWindow::Create(nsGlobalWindow *aOuterWindow)
-{
-  RefPtr<nsGlobalModalWindow> window = new nsGlobalModalWindow(aOuterWindow);
-  window->InitWasOffline();
-  return window.forget();
-}
-
-NS_IMETHODIMP
-nsGlobalModalWindow::GetDialogArguments(nsIVariant **aArguments)
-{
-  FORWARD_TO_OUTER_MODAL_CONTENT_WINDOW(GetDialogArguments, (aArguments),
-                                        NS_ERROR_NOT_INITIALIZED);
-
-  // This does an internal origin check, and returns undefined if the subject
-  // does not subsumes the origin of the arguments.
-  return mDialogArguments->Get(nsContentUtils::SubjectPrincipal(), aArguments);
-}
-
 /* static */ already_AddRefed<nsGlobalWindow>
 nsGlobalWindow::Create(nsGlobalWindow *aOuterWindow)
 {
@@ -14711,96 +14456,6 @@ void
 nsGlobalWindow::InitWasOffline()
 {
   mWasOffline = NS_IsOffline();
-}
-
-void
-nsGlobalWindow::GetReturnValueOuter(JSContext* aCx,
-                                    JS::MutableHandle<JS::Value> aReturnValue,
-                                    nsIPrincipal& aSubjectPrincipal,
-                                    ErrorResult& aError)
-{
-  MOZ_RELEASE_ASSERT(IsOuterWindow());
-  MOZ_ASSERT(IsModalContentWindow(),
-             "This should only be called on modal windows!");
-
-  if (mReturnValue) {
-    JS::Rooted<JSObject*> wrapper(aCx, GetWrapper());
-    JSAutoCompartment ac(aCx, wrapper);
-    mReturnValue->Get(aCx, wrapper, &aSubjectPrincipal, aReturnValue, aError);
-  } else {
-    aReturnValue.setUndefined();
-  }
-}
-
-void
-nsGlobalWindow::GetReturnValue(JSContext* aCx,
-                               JS::MutableHandle<JS::Value> aReturnValue,
-                               nsIPrincipal& aSubjectPrincipal,
-                               ErrorResult& aError)
-{
-  FORWARD_TO_OUTER_OR_THROW(GetReturnValueOuter,
-                            (aCx, aReturnValue, aSubjectPrincipal, aError),
-                            aError, );
-}
-
-NS_IMETHODIMP
-nsGlobalModalWindow::GetReturnValue(nsIVariant **aRetVal)
-{
-  FORWARD_TO_OUTER_MODAL_CONTENT_WINDOW(GetReturnValue, (aRetVal), NS_OK);
-
-  if (!mReturnValue) {
-    nsCOMPtr<nsIVariant> variant = CreateVoidVariant();
-    variant.forget(aRetVal);
-    return NS_OK;
-  }
-  return mReturnValue->Get(nsContentUtils::SubjectPrincipal(), aRetVal);
-}
-
-void
-nsGlobalWindow::SetReturnValueOuter(JSContext* aCx,
-                                    JS::Handle<JS::Value> aReturnValue,
-                                    nsIPrincipal& aSubjectPrincipal,
-                                    ErrorResult& aError)
-{
-  MOZ_RELEASE_ASSERT(IsOuterWindow());
-  MOZ_ASSERT(IsModalContentWindow(),
-             "This should only be called on modal windows!");
-
-  nsCOMPtr<nsIVariant> returnValue;
-  aError =
-    nsContentUtils::XPConnect()->JSToVariant(aCx, aReturnValue,
-                                             getter_AddRefs(returnValue));
-  if (!aError.Failed()) {
-    mReturnValue = new DialogValueHolder(&aSubjectPrincipal, returnValue);
-  }
-}
-
-void
-nsGlobalWindow::SetReturnValue(JSContext* aCx,
-                               JS::Handle<JS::Value> aReturnValue,
-                               nsIPrincipal& aSubjectPrincipal,
-                               ErrorResult& aError)
-{
-  FORWARD_TO_OUTER_OR_THROW(SetReturnValueOuter,
-                            (aCx, aReturnValue, aSubjectPrincipal, aError),
-                            aError, );
-}
-
-NS_IMETHODIMP
-nsGlobalModalWindow::SetReturnValue(nsIVariant *aRetVal)
-{
-  FORWARD_TO_OUTER_MODAL_CONTENT_WINDOW(SetReturnValue, (aRetVal), NS_OK);
-
-  mReturnValue = new DialogValueHolder(nsContentUtils::SubjectPrincipal(),
-                                       aRetVal);
-  return NS_OK;
-}
-
-/* static */
-bool
-nsGlobalWindow::IsModalContentWindow(JSContext* aCx, JSObject* aGlobal)
-{
-  return xpc::WindowOrNull(aGlobal)->IsModalContentWindow();
 }
 
 #if defined(MOZ_WIDGET_ANDROID)
@@ -14974,80 +14629,6 @@ nsGlobalWindow::ReportLargeAllocStatus()
                                   nsContentUtils::eDOM_PROPERTIES,
                                   message);
 }
-
-#ifdef MOZ_B2G
-void
-nsGlobalWindow::EnableNetworkEvent(EventMessage aEventMessage)
-{
-  MOZ_ASSERT(IsInnerWindow());
-
-  nsCOMPtr<nsIPermissionManager> permMgr =
-    services::GetPermissionManager();
-  if (!permMgr) {
-    NS_ERROR("No PermissionManager available!");
-    return;
-  }
-
-  uint32_t permission = nsIPermissionManager::DENY_ACTION;
-  permMgr->TestExactPermissionFromPrincipal(GetPrincipal(), "network-events",
-                                            &permission);
-
-  if (permission != nsIPermissionManager::ALLOW_ACTION) {
-    return;
-  }
-
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (!os) {
-    NS_ERROR("ObserverService should be available!");
-    return;
-  }
-
-  switch (aEventMessage) {
-    case eNetworkUpload:
-      if (!mNetworkUploadObserverEnabled) {
-        mNetworkUploadObserverEnabled = true;
-        os->AddObserver(mObserver, NS_NETWORK_ACTIVITY_BLIP_UPLOAD_TOPIC, false);
-      }
-      break;
-    case eNetworkDownload:
-      if (!mNetworkDownloadObserverEnabled) {
-        mNetworkDownloadObserverEnabled = true;
-        os->AddObserver(mObserver, NS_NETWORK_ACTIVITY_BLIP_DOWNLOAD_TOPIC, false);
-      }
-      break;
-    default:
-      break;
-  }
-}
-
-void
-nsGlobalWindow::DisableNetworkEvent(EventMessage aEventMessage)
-{
-  MOZ_ASSERT(IsInnerWindow());
-
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (!os) {
-    return;
-  }
-
-  switch (aEventMessage) {
-    case eNetworkUpload:
-      if (mNetworkUploadObserverEnabled) {
-        mNetworkUploadObserverEnabled = false;
-        os->RemoveObserver(mObserver, NS_NETWORK_ACTIVITY_BLIP_UPLOAD_TOPIC);
-      }
-      break;
-    case eNetworkDownload:
-      if (mNetworkDownloadObserverEnabled) {
-        mNetworkDownloadObserverEnabled = false;
-        os->RemoveObserver(mObserver, NS_NETWORK_ACTIVITY_BLIP_DOWNLOAD_TOPIC);
-      }
-      break;
-    default:
-      break;
-  }
-}
-#endif // MOZ_B2G
 
 void
 nsGlobalWindow::RedefineProperty(JSContext* aCx, const char* aPropName,

@@ -18,6 +18,7 @@ use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{self, Context, ToComputedValue};
+use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
 use values::computed::ComputedValueAsSpecified;
@@ -40,10 +41,11 @@ pub use self::length::{AbsoluteLength, CalcLengthOrPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNone, LengthOrNumber};
 pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
-pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
+pub use self::length::{NoCalcLength, ViewportPercentageLength};
+pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
@@ -533,6 +535,33 @@ impl ToCss for Number {
     }
 }
 
+/// A Number which is >= 0.0.
+pub type NonNegativeNumber = NonNegative<Number>;
+
+impl Parse for NonNegativeNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+            .map(NonNegative::<Number>)
+    }
+}
+
+impl NonNegativeNumber {
+    /// Returns a new non-negative number with the value `val`.
+    pub fn new(val: CSSFloat) -> Self {
+        NonNegative::<Number>(Number::new(val.max(0.)))
+    }
+}
+
+/// A Number which is >= 1.0.
+pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<Number>;
+
+impl Parse for GreaterThanOrEqualToOneNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
+            .map(GreaterThanOrEqualToOne::<Number>)
+    }
+}
+
 /// <number> | <percentage>
 ///
 /// Accepts only non-negative numbers.
@@ -713,6 +742,19 @@ impl IntegerOrAuto {
     }
 }
 
+/// A wrapper of Integer, with value >= 1.
+pub type PositiveInteger = GreaterThanOrEqualToOne<Integer>;
+
+impl Parse for PositiveInteger {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
+    }
+}
+
+/// PositiveInteger | auto
+pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
+
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
@@ -732,19 +774,8 @@ pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
-impl LengthOrPercentageOrNumber {
-    /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
-        // NB: Parse numbers before Lengths so we are consistent about how to
-        // recognize and serialize "0".
-        if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
-            return Ok(Either::First(num))
-        }
-
-        LengthOrPercentage::parse_non_negative(context, input).map(Either::Second)
-    }
-}
+/// NonNegativeLengthOrPercentage | NonNegativeNumber
+pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1015,3 +1046,121 @@ impl ToCss for Attr {
 }
 
 impl ComputedValueAsSpecified for Attr {}
+
+/// A percentage value.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Percentage {
+    /// The percentage value as a float.
+    ///
+    /// [0 .. 100%] maps to [0.0 .. 1.0]
+    value: CSSFloat,
+    /// If this percentage came from a calc() expression, this tells how
+    /// clamping should be done on the value.
+    calc_clamping_mode: Option<AllowedNumericType>,
+}
+
+no_viewport_percentage!(Percentage);
+
+impl ToCss for Percentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if self.calc_clamping_mode.is_some() {
+            dest.write_str("calc(")?;
+        }
+
+        write!(dest, "{}%", self.value * 100.)?;
+
+        if self.calc_clamping_mode.is_some() {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
+
+impl Percentage {
+    /// Create a percentage from a numeric value.
+    pub fn new(value: CSSFloat) -> Self {
+        Self {
+            value,
+            calc_clamping_mode: None,
+        }
+    }
+
+    /// Get the underlying value for this float.
+    pub fn get(&self) -> CSSFloat {
+        self.calc_clamping_mode.map_or(self.value, |mode| mode.clamp(self.value))
+    }
+
+    /// Reverse this percentage, preserving calc-ness.
+    ///
+    /// For example: If it was 20%, convert it into 80%.
+    pub fn reverse(&mut self) {
+        let new_value = 1. - self.value;
+        self.value = new_value;
+    }
+
+
+    /// Parse a specific kind of percentage.
+    pub fn parse_with_clamping_mode<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        num_context: AllowedNumericType,
+    ) -> Result<Self, ParseError<'i>> {
+        // FIXME: remove early returns when lifetimes are non-lexical
+        match *input.next()? {
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                return Ok(Percentage::new(unit_value))
+            }
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into())
+        }
+
+        let result = input.parse_nested_block(|i| {
+            CalcNode::parse_percentage(context, i)
+        })?;
+
+        // TODO(emilio): -moz-image-rect is the only thing that uses
+        // the clamping mode... I guess we could disallow it...
+        Ok(Percentage {
+            value: result,
+            calc_clamping_mode: Some(num_context),
+        })
+    }
+
+    /// Parses a percentage token, but rejects it if it's negative.
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext,
+                                      input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+    }
+
+    /// 0%
+    #[inline]
+    pub fn zero() -> Self {
+        Percentage {
+            value: 0.,
+            calc_clamping_mode: None,
+        }
+    }
+
+    /// 100%
+    #[inline]
+    pub fn hundred() -> Self {
+        Percentage {
+            value: 1.,
+            calc_clamping_mode: None,
+        }
+    }
+}
+
+impl Parse for Percentage {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
+    }
+}

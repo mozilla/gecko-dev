@@ -22,8 +22,8 @@ use properties::{AnimationRules, PropertyDeclarationBlock};
 use properties::INHERIT_ALL;
 use properties::IS_LINK;
 use rule_tree::{CascadeLevel, RuleTree, StyleSource};
-use selector_map::{SelectorMap, SelectorMapEntry};
-use selector_parser::{SelectorImpl, PseudoElement};
+use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
+use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
@@ -98,14 +98,14 @@ pub struct Stylist {
     rule_tree: RuleTree,
 
     /// A map with all the animations indexed by name.
-    animations: FnvHashMap<Atom, KeyframesAnimation>,
+    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
     ///
     /// FIXME(emilio): Use the rule tree!
-    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
+    precomputed_pseudo_element_decls: PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>,
 
     /// A monotonically increasing counter to represent the order on which a
     /// style rule appears in a stylesheet, needed to sort them by source order.
@@ -168,7 +168,7 @@ pub struct ExtraStyleData<'a> {
     /// A list of effective font-face rules and their origin.
     pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
     /// A map of effective counter-style rules.
-    pub counter_styles: &'a mut FnvHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: &'a mut PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 #[cfg(feature = "gecko")]
@@ -240,7 +240,7 @@ impl Stylist {
 
             cascade_data: CascadeData::new(),
             animations: Default::default(),
-            precomputed_pseudo_element_decls: Default::default(),
+            precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
             invalidation_map: InvalidationMap::new(),
@@ -308,7 +308,7 @@ impl Stylist {
         // preserve current quirks_mode value
         self.cascade_data.clear();
         self.animations.clear(); // Or set to Default::default()?
-        self.precomputed_pseudo_element_decls = Default::default();
+        self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
         self.invalidation_map.clear();
@@ -403,13 +403,6 @@ impl Stylist {
             self.add_stylesheet(stylesheet, guards.author, extra_data);
         }
 
-        SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
-            if let Some(map) = self.cascade_data.user_agent.pseudos_map.remove(&pseudo) {
-                let declarations = map.get_universal_rules(CascadeLevel::UANormal);
-                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
-            }
-        });
-
         self.is_device_dirty = false;
         true
     }
@@ -470,17 +463,48 @@ impl Stylist {
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
+                        let map = match selector.pseudo_element() {
+                            Some(pseudo) if pseudo.is_precomputed() => {
+                                if !selector.is_universal() ||
+                                   !matches!(origin, Origin::UserAgent) {
+                                    // ::-moz-tree selectors may appear in
+                                    // non-UA sheets (even though they never
+                                    // match).
+                                    continue;
+                                }
+
+                                self.precomputed_pseudo_element_decls
+                                    .get_or_insert_with(&pseudo.canonical(), Vec::new)
+                                    .expect("Unexpected tree pseudo-element?")
+                                    .push(ApplicableDeclarationBlock::new(
+                                        StyleSource::Style(locked.clone()),
+                                        self.rules_source_order,
+                                        CascadeLevel::UANormal,
+                                        selector.specificity()
+                                    ));
+
+                                continue;
+                            }
+                            None => &mut origin_cascade_data.element_map,
+                            Some(pseudo) => {
+                                origin_cascade_data
+                                    .pseudos_map
+                                    .get_or_insert_with(&pseudo.canonical(), SelectorMap::new)
+                                    .expect("Unexpected tree pseudo-element?")
+                            }
+                        };
+
                         let hashes =
                             AncestorHashes::new(&selector, self.quirks_mode);
 
-                        origin_cascade_data
-                            .borrow_mut_for_pseudo_or_insert(selector.pseudo_element())
-                            .insert(
-                                Rule::new(selector.clone(),
-                                          hashes.clone(),
-                                          locked.clone(),
-                                          self.rules_source_order),
-                                self.quirks_mode);
+                        let rule = Rule::new(
+                            selector.clone(),
+                            hashes.clone(),
+                            locked.clone(),
+                            self.rules_source_order
+                        );
+
+                        map.insert(rule, self.quirks_mode);
 
                         self.invalidation_map.note_selector(selector, self.quirks_mode);
                         let mut visitor = StylistSelectorVisitor {
@@ -1305,7 +1329,7 @@ impl Stylist {
 
     /// Returns the map of registered `@keyframes` animations.
     #[inline]
-    pub fn animations(&self) -> &FnvHashMap<Atom, KeyframesAnimation> {
+    pub fn animations(&self) -> &PrecomputedHashMap<Atom, KeyframesAnimation> {
         &self.animations
     }
 
@@ -1641,19 +1665,15 @@ struct PerOriginCascadeData {
 
     /// Rules from stylesheets at this `CascadeData`'s origin that correspond
     /// to a given pseudo-element.
-    pseudos_map: FnvHashMap<PseudoElement, SelectorMap<Rule>>,
+    pseudos_map: PerPseudoElementMap<SelectorMap<Rule>>,
 }
 
 impl PerOriginCascadeData {
     fn new() -> Self {
-        let mut data = PerOriginCascadeData {
+        Self {
             element_map: SelectorMap::new(),
-            pseudos_map: Default::default(),
-        };
-        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            data.pseudos_map.insert(pseudo, SelectorMap::new());
-        });
-        data
+            pseudos_map: PerPseudoElementMap::default(),
+        }
     }
 
     #[inline]
@@ -1664,30 +1684,12 @@ impl PerOriginCascadeData {
         }
     }
 
-    #[inline]
-    fn borrow_mut_for_pseudo_or_insert(&mut self, pseudo: Option<&PseudoElement>) -> &mut SelectorMap<Rule> {
-        match pseudo {
-            Some(pseudo) => {
-                self.pseudos_map
-                    .entry(pseudo.canonical())
-                    .or_insert_with(SelectorMap::new)
-            }
-            None => &mut self.element_map,
-        }
-    }
-
     fn clear(&mut self) {
-        self.element_map = SelectorMap::new();
-        self.pseudos_map = Default::default();
-        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            self.pseudos_map.insert(pseudo, SelectorMap::new());
-        });
+        *self = Self::new();
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        // FIXME(emilio): We should probably make the pseudos map be an
-        // enumerated array.
-        self.pseudos_map.contains_key(pseudo)
+        self.pseudos_map.get(pseudo).is_some()
     }
 }
 
@@ -1728,14 +1730,17 @@ impl Rule {
 
     /// Turns this rule into an `ApplicableDeclarationBlock` for the given
     /// cascade level.
-    pub fn to_applicable_declaration_block(&self,
-                                           level: CascadeLevel)
-                                           -> ApplicableDeclarationBlock {
+    pub fn to_applicable_declaration_block(
+        &self,
+        level: CascadeLevel
+    ) -> ApplicableDeclarationBlock {
         let source = StyleSource::Style(self.style_rule.clone());
-        ApplicableDeclarationBlock::new(source,
-                                        self.source_order,
-                                        level,
-                                        self.specificity())
+        ApplicableDeclarationBlock::new(
+            source,
+            self.source_order,
+            level,
+            self.specificity()
+        )
     }
 
     /// Creates a new Rule.

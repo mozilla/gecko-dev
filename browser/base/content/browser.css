@@ -18,11 +18,7 @@
   color: var(--lwt-text-color) !important;
 }
 
-%ifndef MOZ_PHOTON_THEME
-:root:-moz-lwtheme:not([customization-lwtheme]) {
-%else
 :root:-moz-lwtheme {
-%endif
   background-color: var(--lwt-accent-color) !important;
   background-image: var(--lwt-header-image), var(--lwt-additional-images) !important;
   background-position: var(--lwt-background-alignment) !important;
@@ -690,15 +686,9 @@ html|input.urlbar-input[textoverflow]:not([focused]) {
 }
 
 #urlbar[pageproxystate="invalid"] > #urlbar-icons > .urlbar-icon,
-%ifdef MOZ_PHOTON_THEME
 #urlbar[pageproxystate="invalid"] > #urlbar-icons > #star-button-box > .urlbar-icon,
 .urlbar-go-button[pageproxystate="valid"],
 .urlbar-go-button:not([parentfocused="true"]),
-%else
-#urlbar[pageproxystate="invalid"][focused="true"] > #urlbar-go-button ~ toolbarbutton,
-#urlbar[pageproxystate="valid"] > #urlbar-go-button,
-#urlbar:not([focused="true"]) > #urlbar-go-button,
-%endif
 #urlbar[pageproxystate="invalid"] > #identity-box > #blocked-permissions-container,
 #urlbar[pageproxystate="invalid"] > #identity-box > #notification-popup-box,
 #urlbar[pageproxystate="invalid"] > #identity-box > #identity-icon-labels {
@@ -1134,7 +1124,6 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
   -moz-image-region: auto;
 }
 
-%ifdef MOZ_PHOTON_ANIMATIONS
 %ifdef MOZ_WIDGET_COCOA
 
 /* On Mac, use the properties "-moz-window-transform" and "-moz-window-opacity"
@@ -1198,103 +1187,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
 }
 %endif
 
-%else
-%ifdef MOZ_WIDGET_COCOA
-#BMB_bookmarksPopup {
-  -moz-window-transform: scale(.4);
-  -moz-window-opacity: 0;
-  transition-property: -moz-window-transform, -moz-window-opacity;
-  transition-duration: 0.15s;
-  transition-timing-function: ease-out;
-}
-
-#BMB_bookmarksPopup[animate="open"] {
-  -moz-window-transform: none;
-  -moz-window-opacity: 1.0;
-}
-
-#BMB_bookmarksPopup[animate="cancel"] {
-  -moz-window-transform: none;
-}
-
-#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(rtl) {
-  -moz-window-transform-origin: 20px top;
-}
-
-#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(rtl) {
-  -moz-window-transform-origin: calc(100% - 20px) top;
-}
-
-#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(rtl) {
-  -moz-window-transform-origin: 20px bottom;
-}
-
-#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(rtl) {
-  -moz-window-transform-origin: calc(100% - 20px) bottom;
-}
-
-%elifndef MOZ_WIDGET_GTK
-
-#BMB_bookmarksPopup {
-  transform: scale(.4);
-  opacity: 0;
-  transition-property: transform, opacity;
-  transition-duration: 0.15s;
-  transition-timing-function: ease-out;
-}
-
-#BMB_bookmarksPopup[animate="open"] {
-  transform: none;
-  opacity: 1.0;
-}
-
-#BMB_bookmarksPopup[animate="cancel"] {
-  transform: none;
-}
-
-#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(rtl) {
-  transform-origin: 20px top;
-}
-
-#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(rtl) {
-  transform-origin: calc(100% - 20px) top;
-}
-
-#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(rtl) {
-  transform-origin: 20px bottom;
-}
-
-#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(ltr),
-#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(rtl) {
-  transform-origin: calc(100% - 20px) bottom;
-}
-%endif
-%endif
-
 /* Customize mode */
-%ifndef MOZ_PHOTON_THEME
-#navigator-toolbox,
-#browser-bottombox,
-#content-deck {
-  transition-property: margin-left, margin-right;
-  transition-duration: 200ms;
-  transition-timing-function: linear;
-}
-
-#tab-view-deck[fastcustomizeanimation] #navigator-toolbox,
-#tab-view-deck[fastcustomizeanimation] #content-deck {
-  transition-duration: 1ms;
-  transition-timing-function: linear;
-}
-%endif
-
 #PanelUI-contents > .panel-customization-placeholder > .panel-customization-placeholder-child {
   list-style-image: none;
 }
@@ -1510,12 +1403,10 @@ toolbarpaletteitem[place="palette"][hidden] {
   -moz-window-shadow: none;
 }
 
-%ifdef MOZ_PHOTON_THEME
 /* Page action panel */
 #pageAction-panel-sendToDevice-subview-body:not([state="notready"]) > #pageAction-panel-sendToDevice-notReady,
 #pageAction-urlbar-sendToDevice-subview-body:not([state="notready"]) > #pageAction-urlbar-sendToDevice-notReady {
   display: none;
 }
-%endif
 
 %include theme-vars.inc.css
