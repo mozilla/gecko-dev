@@ -13,23 +13,42 @@ use dom::TElement;
 use servo_arc::Arc;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 
-/// Whether, given two elements, they have pointer-equal computed values.
+/// Whether styles may be shared across the children of the given parent elements.
+/// This is used to share style across cousins.
 ///
 /// Both elements need to be styled already.
-///
-/// This is used to know whether we can share style across cousins (if the two
-/// parents have the same style).
-pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
+pub fn can_share_style_across_parents<E>(first: Option<E>, second: Option<E>) -> bool
     where E: TElement,
 {
-    let (a, b) = match (first, second) {
+    let (first, second) = match (first, second) {
         (Some(f), Some(s)) => (f, s),
         _ => return false,
     };
 
-    let eq = Arc::ptr_eq(a.borrow_data().unwrap().styles.primary(),
-                         b.borrow_data().unwrap().styles.primary());
-    eq
+    debug_assert_ne!(first, second);
+
+    let first_data = first.borrow_data().unwrap();
+    let second_data = second.borrow_data().unwrap();
+
+    // If a parent element was already styled and we traversed past it without
+    // restyling it, that may be because our clever invalidation logic was able
+    // to prove that the styles of that element would remain unchanged despite
+    // changes to the id or class attributes. However, style sharing relies in
+    // the strong guarantee that all the classes and ids up the respective parent
+    // chains are identical. As such, if we skipped styling for one (or both) of
+    // the parents on this traversal, we can't share styles across cousins.
+    //
+    // This is a somewhat conservative check. We could tighten it by having the
+    // invalidation logic explicitly flag elements for which it ellided styling.
+    if first_data.restyle.traversed_without_styling() ||
+       second_data.restyle.traversed_without_styling() {
+        return false;
+    }
+
+    let same_computed_values =
+        Arc::ptr_eq(first_data.styles.primary(), second_data.styles.primary());
+
+    same_computed_values
 }
 
 /// Whether two elements have the same same style attribute (by pointer identity).

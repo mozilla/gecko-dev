@@ -65,6 +65,7 @@ headers = [
     "mozilla/ServoBindings.h",
     "mozilla/ServoMediaList.h",
     "mozilla/ServoStyleContext.h",
+    "mozilla/SizeOfState.h",
     "nsCSSCounterStyleRule.h",
     "nsCSSFontFaceRule.h",
     "nsMediaFeatures.h",
@@ -123,6 +124,7 @@ whitelist-types = [
     "mozilla::ComputedTiming",
     "mozilla::ComputedTimingFunction",
     "mozilla::ComputedTimingFunction::BeforeFlag",
+    "mozilla::SeenPtrs",
     "mozilla::ServoElementSnapshot.*",
     "mozilla::ServoStyleContext",
     "mozilla::ServoStyleSheetInner",
@@ -232,6 +234,7 @@ whitelist-types = [
     "nsStylePadding",
     "nsStylePosition",
     "nsStyleSVG",
+    "nsStyleSVGOpacitySource",
     "nsStyleSVGPaint",
     "nsStyleSVGReset",
     "nsStyleTable",
@@ -296,6 +299,7 @@ opaque-types = [
     "nsAutoPtr_Proxy_member_function",
     "mozilla::detail::PointerType",
     "mozilla::Pair_Base",
+    "mozilla::SeenPtrs",
     "mozilla::SupportsWeakPtr",
     "SupportsWeakPtr",
     "mozilla::detail::WeakReference",
@@ -353,6 +357,7 @@ raw-lines = [
     "pub type ServoStyleContextBorrowed<'a> = &'a ::properties::ComputedValues;",
     "pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;",
     "pub type ServoComputedDataBorrowed<'a> = &'a ServoComputedData;",
+    "pub type RawServoAnimationValueTableBorrowed<'a> = &'a ();"
 ]
 whitelist-functions = ["Servo_.*", "Gecko_.*"]
 structs-types = [
@@ -385,7 +390,7 @@ structs-types = [
     "RawGeckoPresContext",
     "RawGeckoPresContextOwned",
     "RawGeckoStyleAnimationList",
-    "RawGeckoStyleChildrenIteratorBorrowedMut",
+    "RawGeckoStyleChildrenIterator",
     "RawGeckoServoStyleRuleList",
     "RawGeckoURLExtraData",
     "RawGeckoXBLBinding",
@@ -402,6 +407,7 @@ structs-types = [
     "IterationCompositeOperation",
     "Keyframe",
     "PropertyValuePair",
+    "SeenPtrs",
     "ServoBundledURI",
     "ServoElementSnapshot",
     "ServoElementSnapshotTable",
@@ -458,6 +464,7 @@ structs-types = [
     "nsStylePosition",
     "nsStyleQuoteValues",
     "nsStyleSVG",
+    "nsStyleSVGOpacitySource",
     "nsStyleSVGPaint",
     "nsStyleSVGReset",
     "nsStyleTable",
@@ -520,6 +527,7 @@ servo-borrow-types = [
     "RawGeckoFontFaceRuleList",
     "RawGeckoServoStyleRuleList",
     "RawGeckoServoAnimationValueList",
+    "RawGeckoStyleChildrenIterator",
 ]
 fixups = [
     # hack for gecko-owned string

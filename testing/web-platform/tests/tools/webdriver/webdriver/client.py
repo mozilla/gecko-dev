@@ -263,7 +263,6 @@ class Window(object):
         body = {"x": x, "y": y}
         self.session.send_session_command("POST", "window/rect", body)
 
-    @property
     @command
     def maximize(self):
         return self.session.send_session_command("POST", "window/maximize")
@@ -376,6 +375,7 @@ class Session(object):
 
         value = self.send_command("POST", "session", body=body)
         self.session_id = value["sessionId"]
+        self.capabilities = value["capabilities"]
 
         if self.extension_cls:
             self.extension = self.extension_cls(self)
@@ -390,10 +390,6 @@ class Session(object):
         self.send_command("DELETE", url)
 
         self.session_id = None
-        self.timeouts = None
-        self.window = None
-        self.find = None
-        self.extension = None
 
     def send_command(self, method, url, body=None):
         """

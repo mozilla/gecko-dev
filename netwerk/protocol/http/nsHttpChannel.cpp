@@ -344,10 +344,13 @@ nsHttpChannel::nsHttpChannel()
     , mLocalBlocklist(false)
     , mWarningReporter(nullptr)
     , mIsReadingFromCache(false)
+    , mFirstResponseSource(RESPONSE_PENDING)
     , mOnCacheAvailableCalled(false)
     , mRaceCacheWithNetwork(false)
     , mRaceDelay(0)
     , mCacheAsyncOpenCalled(false)
+    , mIgnoreCacheEntry(false)
+    , mRCWNLock("nsHttpChannel.mRCWNLock")
     , mDidReval(false)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
@@ -538,8 +541,9 @@ nsHttpChannel::Connect()
         // otherwise, let's just proceed without using the cache.
     }
 
-    if (mRaceCacheWithNetwork && mCacheEntry && !mCachedContentIsValid &&
-        (mDidReval || mCachedContentIsPartial)) {
+    if (mRaceCacheWithNetwork &&
+        ((mCacheEntry && !mCachedContentIsValid && (mDidReval || mCachedContentIsPartial)) ||
+        mIgnoreCacheEntry)) {
         // We won't send the conditional request because the unconditional
         // request was already sent (see bug 1377223).
         AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent);
@@ -1052,6 +1056,36 @@ nsHttpChannel::SetupTransaction()
 
     nsresult rv;
 
+    mozilla::MutexAutoLock lock(mRCWNLock);
+
+    // If we're racing cache with network, conditional or byte range header
+    // could be added in OnCacheEntryCheck. We cannot send conditional request
+    // without having the entry, so we need to remove the headers here and
+    // ignore the cache entry in OnCacheEntryAvailable.
+    if (mRaceCacheWithNetwork && !mOnCacheAvailableCalled) {
+        if (mDidReval) {
+            LOG(("  Removing conditional request headers"));
+            UntieValidationRequest();
+            mDidReval = false;
+            mIgnoreCacheEntry = true;
+        }
+
+        if (mCachedContentIsPartial) {
+            LOG(("  Removing byte range request headers"));
+            UntieByteRangeRequest();
+            mCachedContentIsPartial = false;
+            mIgnoreCacheEntry = true;
+        }
+
+        if (mIgnoreCacheEntry) {
+            if (!mAvailableCachedAltDataType.IsEmpty()) {
+                mAvailableCachedAltDataType.Truncate();
+                mAltDataLength = 0;
+            }
+            mCacheInputStream.CloseAndRelease();
+        }
+    }
+
     mUsedNetwork = 1;
 
     if (!mAllowSpdy) {
@@ -1067,7 +1101,7 @@ nsHttpChannel::SetupTransaction()
     nsCString* requestURI;
 
     // This is the normal e2e H1 path syntax "/index.html"
-    rv = mURI->GetPath(path);
+    rv = mURI->GetPathQueryRef(path);
     if (NS_FAILED(rv)) {
         return rv;
     }
@@ -2775,11 +2809,9 @@ nsHttpChannel::PromptTempRedirect()
     rv = bundleService->CreateBundle(NECKO_MSGS_URL, getter_AddRefs(stringBundle));
     if (NS_FAILED(rv)) return rv;
 
-    nsXPIDLString messageString;
-    rv = stringBundle->GetStringFromName("RepostFormData",
-                                         getter_Copies(messageString));
-    // GetStringFromName can return NS_OK and nullptr messageString.
-    if (NS_SUCCEEDED(rv) && messageString) {
+    nsAutoString messageString;
+    rv = stringBundle->GetStringFromName("RepostFormData", messageString);
+    if (NS_SUCCEEDED(rv)) {
         bool repost = false;
 
         nsCOMPtr<nsIPrompt> prompt;
@@ -2787,7 +2819,7 @@ nsHttpChannel::PromptTempRedirect()
         if (!prompt)
             return NS_ERROR_NO_INTERFACE;
 
-        prompt->Confirm(nullptr, messageString, &repost);
+        prompt->Confirm(nullptr, messageString.get(), &repost);
         if (!repost)
             return NS_ERROR_FAILURE;
     }
@@ -3992,6 +4024,8 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
     LOG(("nsHttpChannel::OnCacheEntryCheck enter [channel=%p entry=%p]",
         this, entry));
 
+    mozilla::MutexAutoLock lock(mRCWNLock);
+
     if (mRaceCacheWithNetwork && mFirstResponseSource == RESPONSE_FROM_NETWORK) {
         LOG(("Not using cached response because we've already got one from the network\n"));
         *aResult = ENTRY_NOT_WANTED;
@@ -4379,6 +4413,17 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntry *entry,
         return mStatus;
     }
 
+    if (mIgnoreCacheEntry) {
+        if (!entry || aNew) {
+            // We use this flag later to decide whether to report
+            // LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent. We didn't have
+            // an usable entry, so drop the flag.
+            mIgnoreCacheEntry = false;
+        }
+        entry = nullptr;
+        status = NS_ERROR_NOT_AVAILABLE;
+    }
+
     if (aAppCache) {
         if (mApplicationCache == aAppCache && !mCacheEntry) {
             rv = OnOfflineCacheEntryAvailable(entry, aNew, aAppCache, status);
@@ -4413,8 +4458,9 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntry *entry,
         return NS_OK;
     }
 
-    if (mRaceCacheWithNetwork && mCacheEntry && !mCachedContentIsValid &&
-        (mDidReval || mCachedContentIsPartial)) {
+    if (mRaceCacheWithNetwork &&
+        ((mCacheEntry && !mCachedContentIsValid && (mDidReval || mCachedContentIsPartial)) ||
+        mIgnoreCacheEntry)) {
         // We won't send the conditional request because the unconditional
         // request was already sent (see bug 1377223).
         AccumulateCategorical(Telemetry::LABELS_NETWORK_RACE_CACHE_VALIDATION::NotSent);
@@ -4445,6 +4491,12 @@ nsHttpChannel::OnNormalCacheEntryAvailable(nsICacheEntry *aEntry,
             LOG(("  Removing conditional request headers"));
             UntieValidationRequest();
             mDidReval = false;
+        }
+
+        if (mCachedContentIsPartial) {
+            LOG(("  Removing byte range request headers"));
+            UntieByteRangeRequest();
+            mCachedContentIsPartial = false;
         }
 
         if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
@@ -6978,7 +7030,7 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 
     if (mRaceCacheWithNetwork) {
         LOG(("  racingNetAndCache - mFirstResponseSource:%d fromCache:%d fromNet:%d\n",
-             mFirstResponseSource, request == mCachePump, request == mTransactionPump));
+             static_cast<int32_t>(mFirstResponseSource), request == mCachePump, request == mTransactionPump));
         if (mFirstResponseSource == RESPONSE_PENDING) {
             // When the cache wins mFirstResponseSource is set to RESPONSE_FROM_CACHE
             // earlier in ReadFromCache, so this must be a response from the network.
@@ -7137,7 +7189,8 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     LOG(("nsHttpChannel::OnStopRequest [this=%p request=%p status=%" PRIx32 "]\n",
          this, request, static_cast<uint32_t>(status)));
 
-    LOG(("OnStopRequest %p requestFromCache: %d mFirstResponseSource: %d\n", this, request == mCachePump, mFirstResponseSource));
+    LOG(("OnStopRequest %p requestFromCache: %d mFirstResponseSource: %d\n",
+        this, request == mCachePump, static_cast<int32_t>(mFirstResponseSource)));
 
     MOZ_ASSERT(NS_IsMainThread(),
                "OnStopRequest should only be called from the main thread");
@@ -7530,7 +7583,7 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
         this, request, offset, count));
 
     LOG(("  requestFromCache: %d mFirstResponseSource: %d\n",
-        request == mCachePump, mFirstResponseSource));
+        request == mCachePump, static_cast<int32_t>(mFirstResponseSource)));
 
     // don't send out OnDataAvailable notifications if we've been canceled.
     if (mCanceled)
@@ -8385,14 +8438,8 @@ nsHttpChannel::CreateNewURI(const char *loc, nsIURI **newURI)
     nsresult rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
     if (NS_FAILED(rv)) return rv;
 
-    // the new uri should inherit the origin charset of the current uri
-    nsAutoCString originCharset;
-    rv = mURI->GetOriginCharset(originCharset);
-    if (NS_FAILED(rv))
-        originCharset.Truncate();
-
     return ioService->NewURI(nsDependentCString(loc),
-                             originCharset.get(),
+                             nullptr,
                              mURI,
                              newURI);
 }

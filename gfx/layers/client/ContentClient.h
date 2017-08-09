@@ -96,7 +96,9 @@ public:
   virtual gfx::DrawTarget* BorrowDrawTargetForPainting(RotatedContentBuffer::PaintState& aPaintState,
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) = 0;
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) = 0;
-
+  virtual gfx::DrawTarget* BorrowDrawTargetForRecording(RotatedContentBuffer::PaintState& aPaintState,
+                                                        RotatedContentBuffer::DrawIterator* aIter,
+                                                        gfx::Matrix* aOutTransform) = 0;
   // Called as part of the layers transation reply. Conveys data about our
   // buffer(s) from the compositor. If appropriate we should swap references
   // to our buffers.
@@ -150,6 +152,12 @@ public:
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) override
   {
     return RotatedContentBuffer::BorrowDrawTargetForPainting(aPaintState, aIter);
+  }
+  virtual gfx::DrawTarget* BorrowDrawTargetForRecording(PaintState& aPaintState,
+                                                       RotatedContentBuffer::DrawIterator* aIter,
+                                                       gfx::Matrix* aOutTransform) override
+  {
+    return RotatedContentBuffer::BorrowDrawTargetForRecording(aPaintState, aIter, aOutTransform);
   }
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) override
   {
@@ -233,6 +241,12 @@ public:
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) override
   {
     return RotatedContentBuffer::BorrowDrawTargetForPainting(aPaintState, aIter);
+  }
+  virtual gfx::DrawTarget* BorrowDrawTargetForRecording(PaintState& aPaintState,
+                                                        RotatedContentBuffer::DrawIterator* aIter,
+                                                        gfx::Matrix* aOutTransform) override
+  {
+    return RotatedContentBuffer::BorrowDrawTargetForRecording(aPaintState, aIter, aOutTransform);
   }
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) override
   {

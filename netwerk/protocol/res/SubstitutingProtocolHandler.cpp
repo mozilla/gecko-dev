@@ -122,7 +122,6 @@ SubstitutingProtocolHandler::CollectSubstitutions(InfallibleTArray<SubstitutionM
     if (uri) {
       nsresult rv = uri->GetSpec(serialized.spec);
       NS_ENSURE_SUCCESS(rv, rv);
-      uri->GetOriginCharset(serialized.charset);
     }
     SubstitutionMapping substitution = { mScheme, nsCString(iter.Key()), serialized };
     aMappings.AppendElement(substitution);
@@ -150,7 +149,6 @@ SubstitutingProtocolHandler::SendSubstitution(const nsACString& aRoot, nsIURI* a
   if (aBaseURI) {
     nsresult rv = aBaseURI->GetSpec(mapping.resolvedURI.spec);
     NS_ENSURE_SUCCESS(rv, rv);
-    aBaseURI->GetOriginCharset(mapping.resolvedURI.charset);
   }
 
   for (uint32_t i = 0; i < parents.Length(); i++) {
@@ -367,7 +365,7 @@ SubstitutingProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
   rv = uri->GetAsciiHost(host);
   if (NS_FAILED(rv)) return rv;
 
-  rv = uri->GetPath(path);
+  rv = uri->GetPathQueryRef(path);
   if (NS_FAILED(rv)) return rv;
 
   rv = url->GetFilePath(pathname);

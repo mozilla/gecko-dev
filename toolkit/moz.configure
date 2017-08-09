@@ -86,12 +86,20 @@ option('--with-l10n-base', nargs=1, env='L10NBASEDIR',
 
 @depends('--with-l10n-base')
 @imports(_from='os.path', _import='isdir')
+@imports(_from='os.path', _import='expanduser')
+@imports(_from='os', _import='environ')
 def l10n_base(value):
     if value:
         path = value[0]
         if not isdir(path):
             die("Invalid value --with-l10n-base, %s doesn't exist", path)
-        return os.path.realpath(os.path.abspath(path))
+    else:
+        path = os.path.join(
+            environ.get(
+                'MOZBUILD_STATE_PATH',
+                expanduser(os.path.join('~', '.mozbuild'))),
+            'l10n-central')
+    return os.path.realpath(os.path.abspath(path))
 
 set_config('L10NBASEDIR', l10n_base)
 
@@ -714,6 +722,7 @@ with only_when(building_stylo_bindgen):
     @depends(llvm_config, '--with-libclang-path', '--with-clang-path',
              host_library_name_info, host)
     @imports('os.path')
+    @imports('glob')
     @imports(_from='textwrap', _import='dedent')
     def bindgen_config_paths(llvm_config, libclang_path, clang_path,
                              library_name_info, host):
@@ -728,6 +737,9 @@ with only_when(building_stylo_bindgen):
                                                    library_name_info.dll.suffix))
             if host.kernel == 'Linux':
                 libclang_choices.append('libclang.so.1')
+
+            if host.os == 'OpenBSD':
+                libclang_choices = glob.glob(path + '/libclang.so.*.*')
 
             # At least one of the choices must be found.
             for choice in libclang_choices:

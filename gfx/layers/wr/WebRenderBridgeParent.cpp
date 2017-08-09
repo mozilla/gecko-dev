@@ -745,8 +745,9 @@ WebRenderBridgeParent::RecvDPGetSnapshot(PTextureParent* aTexture)
 }
 
 mozilla::ipc::IPCResult
-WebRenderBridgeParent::RecvAddPipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId,
-                                                             const CompositableHandle& aHandle)
+WebRenderBridgeParent::RecvAddPipelineIdForCompositable(const wr::PipelineId& aPipelineId,
+                                                        const CompositableHandle& aHandle,
+                                                        const bool& aAsync)
 {
   if (mDestroyed) {
     return IPC_OK();
@@ -754,11 +755,16 @@ WebRenderBridgeParent::RecvAddPipelineIdForAsyncCompositable(const wr::PipelineI
 
   MOZ_ASSERT(!mAsyncCompositables.Get(wr::AsUint64(aPipelineId)).get());
 
-  RefPtr<ImageBridgeParent> imageBridge = ImageBridgeParent::GetInstance(OtherPid());
-  if (!imageBridge) {
-     return IPC_FAIL_NO_REASON(this);
+  RefPtr<CompositableHost> host;
+  if (aAsync) {
+    RefPtr<ImageBridgeParent> imageBridge = ImageBridgeParent::GetInstance(OtherPid());
+    if (!imageBridge) {
+       return IPC_FAIL_NO_REASON(this);
+    }
+    host = imageBridge->FindCompositable(aHandle);
+  } else {
+    host = FindCompositable(aHandle);
   }
-  RefPtr<CompositableHost> host = imageBridge->FindCompositable(aHandle);
   if (!host) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -776,7 +782,7 @@ WebRenderBridgeParent::RecvAddPipelineIdForAsyncCompositable(const wr::PipelineI
 }
 
 mozilla::ipc::IPCResult
-WebRenderBridgeParent::RecvRemovePipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId)
+WebRenderBridgeParent::RecvRemovePipelineIdForCompositable(const wr::PipelineId& aPipelineId)
 {
   if (mDestroyed) {
     return IPC_OK();
@@ -803,7 +809,6 @@ WebRenderBridgeParent::RecvAddExternalImageIdForCompositable(const ExternalImage
   MOZ_ASSERT(!mExternalImageIds.Get(wr::AsUint64(aImageId)).get());
 
   RefPtr<CompositableHost> host = FindCompositable(aHandle);
-  MOZ_ASSERT(host->AsWebRenderImageHost());
   WebRenderImageHost* wrHost = host->AsWebRenderImageHost();
   if (!wrHost) {
     return IPC_OK();
@@ -1309,7 +1314,6 @@ WebRenderBridgeParent::ClearResources()
   for (auto iter = mAsyncCompositables.Iter(); !iter.Done(); iter.Next()) {
     wr::PipelineId pipelineId = wr::AsPipelineId(iter.Key());
     RefPtr<WebRenderImageHost> host = iter.Data();
-    MOZ_ASSERT(host->GetAsyncRef());
     host->ClearWrBridge();
     mAsyncImageManager->RemoveAsyncImagePipeline(mApi, pipelineId);
   }
@@ -1387,7 +1391,7 @@ WebRenderBridgeParent::RecvNewCompositable(const CompositableHandle& aHandle,
   if (mDestroyed) {
     return IPC_OK();
   }
-  if (!AddCompositable(aHandle, aInfo)) {
+  if (!AddCompositable(aHandle, aInfo, /* aUseWebRender */ true)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
@@ -1432,7 +1436,11 @@ WebRenderBridgeParent::GetTextureFactoryIdentifier()
   return TextureFactoryIdentifier(LayersBackend::LAYERS_WR,
                                   XRE_GetProcessType(),
                                   mApi->GetMaxTextureSize(),
-                                  mApi->GetUseANGLE());
+                                  mApi->GetUseANGLE(),
+                                  false,
+                                  false,
+                                  false,
+                                  mApi->GetSyncHandle());
 }
 
 uint32_t

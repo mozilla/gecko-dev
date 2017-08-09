@@ -15,22 +15,22 @@ function insertClassNameToMenuChildren(parentMenu) {
 
 function checkSubviewButtonClass(menuId, buttonId, subviewId) {
   return async function() {
+    // Initialize DevTools before starting the test in order to create menuitems in
+    // menuWebDeveloperPopup.
+    Cu.import("resource://devtools/shared/Loader.jsm", {})
+        .require("devtools/client/framework/devtools-browser");
+
     info("Checking for items without the subviewbutton class in " + buttonId + " widget");
     let menu = document.getElementById(menuId);
     insertClassNameToMenuChildren(menu);
 
-    let placement = CustomizableUI.getPlacementOfWidget(buttonId);
-    let changedPlacement = false;
-    if (!placement || placement.area != CustomizableUI.AREA_PANEL) {
-      CustomizableUI.addWidgetToArea(buttonId, CustomizableUI.AREA_PANEL);
-      changedPlacement = true;
-    }
-    await PanelUI.show();
+    CustomizableUI.addWidgetToArea(buttonId, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
+    await document.getElementById("nav-bar").overflowable.show();
 
     let button = document.getElementById(buttonId);
     button.click();
 
-    await waitForCondition(() => !PanelUI.multiView.hasAttribute("transitioning"));
+    await BrowserTestUtils.waitForEvent(PanelUI.overflowPanel, "ViewShown");
     let subview = document.getElementById(subviewId);
     ok(subview.firstChild, "Subview should have a kid");
     let subviewchildren = subview.querySelectorAll("toolbarbutton");
@@ -43,18 +43,13 @@ function checkSubviewButtonClass(menuId, buttonId, subviewId) {
       }
     }
 
-    let panelHiddenPromise = promisePanelHidden(window);
-    PanelUI.hide();
+    let panelHiddenPromise = promiseOverflowHidden(window);
+    PanelUI.overflowPanel.hidePopup();
     await panelHiddenPromise;
 
-    if (changedPlacement) {
-      CustomizableUI.reset();
-    }
+    CustomizableUI.reset();
   };
 }
-add_task(async function() {
-  await SpecialPowers.pushPrefEnv({set: [["browser.photon.structure.enabled", false]]});
-});
 
 add_task(checkSubviewButtonClass("menuWebDeveloperPopup", "developer-button", "PanelUI-developerItems"));
 

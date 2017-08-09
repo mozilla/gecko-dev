@@ -260,21 +260,40 @@ def target_tasks_mozilla_beta(full_task_graph, parameters):
         if not standard_filter(task, parameters):
             return False
         platform = task.attributes.get('build_platform')
-        if platform in ('linux64-pgo', 'linux-pgo', 'android-api-15-nightly',
-                        'android-x86-nightly'):
+        if platform in (
+                # On beta, Nightly builds are already PGOs
+                'linux-pgo', 'linux64-pgo',
+                'win32-pgo', 'win64-pgo',
+                'android-api-15-nightly', 'android-x86-nightly'
+                ):
             return False
-        if platform in ('linux64', 'linux'):
+
+        if platform in (
+                'linux', 'linux64',
+                'macosx64',
+                'win32', 'win64',
+                ):
             if task.attributes['build_type'] == 'opt' and \
                task.attributes.get('unittest_suite') != 'talos':
                 return False
+
         # skip l10n, beetmover, balrog
         if task.kind in [
-            'balrog', 'beetmover', 'beetmover-checksums', 'beetmover-l10n',
-            'checksums-signing', 'nightly-l10n', 'nightly-l10n-signing',
-            'push-apk', 'push-apk-breakpoint', 'beetmover-repackage',
-            'beetmover-repackage-signing',
+            'balrog',
+            'beetmover', 'beetmover-checksums', 'beetmover-l10n',
+            'beetmover-repackage', 'beetmover-repackage-signing',
+            'checksums-signing',
+            'nightly-l10n', 'nightly-l10n-signing',
+            'push-apk', 'push-apk-breakpoint',
+            'repackage-l10n',
         ]:
             return False
+
+        # No l10n repacks per push. They may be triggered by kinds which depend
+        # on l10n builds/repacks. For instance: "repackage-signing"
+        if task.attributes.get('locale', '') != '':
+            return False
+
         return True
 
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]

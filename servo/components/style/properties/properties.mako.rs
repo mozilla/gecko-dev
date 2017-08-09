@@ -30,7 +30,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use parser::{Parse, ParserContext};
+use parser::ParserContext;
 use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use selector_parser::PseudoElement;
@@ -421,12 +421,11 @@ impl CSSWideKeyword {
     }
 }
 
-impl Parse for CSSWideKeyword {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let ident = input.expect_ident()?.clone();
-        input.expect_exhausted()?;
-        CSSWideKeyword::from_ident(&ident)
-            .ok_or(SelectorParseError::UnexpectedIdent(ident).into())
+impl CSSWideKeyword {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        let ident = input.expect_ident().map_err(|_| ())?.clone();
+        input.expect_exhausted().map_err(|_| ())?;
+        CSSWideKeyword::from_ident(&ident).ok_or(())
     }
 }
 
@@ -608,6 +607,7 @@ impl LonghandId {
             LonghandId::AnimationName |
             LonghandId::TransitionProperty |
             LonghandId::XLang |
+            LonghandId::XTextZoom |
             LonghandId::MozScriptLevel |
             LonghandId::MozMinFontSizeRatio |
             % endif
@@ -1485,9 +1485,9 @@ impl PropertyDeclaration {
         id.check_allowed_in(rule_type, context.stylesheet_origin)?;
         match id {
             PropertyId::Custom(name) => {
-                let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                let value = match input.try(|i| CSSWideKeyword::parse(i)) {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
-                    Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
+                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
                         Err(e) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into(),
                         ValueParseError::from_parse_error(e))),
@@ -1497,9 +1497,9 @@ impl PropertyDeclaration {
                 Ok(())
             }
             PropertyId::Longhand(id) => {
-                input.try(|i| CSSWideKeyword::parse(context, i)).map(|keyword| {
+                input.try(|i| CSSWideKeyword::parse(i)).map(|keyword| {
                     PropertyDeclaration::CSSWideKeyword(id, keyword)
-                }).or_else(|_| {
+                }).or_else(|()| {
                     input.look_for_var_functions();
                     let start = input.position();
                     input.parse_entirely(|input| id.parse_value(context, input))
@@ -1528,7 +1528,7 @@ impl PropertyDeclaration {
                 })
             }
             PropertyId::Shorthand(id) => {
-                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {
+                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(i)) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
@@ -2496,14 +2496,15 @@ pub struct StyleBuilder<'a> {
     /// a subtree.
     parent_style: Option<<&'a ComputedValues>,
 
-    /// The pseudo-element this style will represent.
-    pseudo: Option<<&'a PseudoElement>,
-
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
 
     custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+
+    /// The pseudo-element this style will represent.
+    pseudo: Option<<&'a PseudoElement>,
+
     /// The writing mode flags.
     ///
     /// TODO(emilio): Make private.
@@ -2698,6 +2699,11 @@ impl<'a> StyleBuilder<'a> {
     /// Returns whether we have a visited style.
     pub fn has_visited_style(&self) -> bool {
         self.visited_style.is_some()
+    }
+
+    /// Returns whether we're a pseudo-elements style.
+    pub fn is_pseudo_element(&self) -> bool {
+        self.pseudo.map_or(false, |p| !p.is_anon_box())
     }
 
     /// Returns the style we're getting reset properties from.
@@ -3207,6 +3213,23 @@ where
             let mut _skip_font_family = false;
 
             % if product == "gecko":
+
+                // <svg:text> is not affected by text zoom, and it uses a preshint to
+                // disable it. We fix up the struct when this happens by unzooming
+                // its contained font values, which will have been zoomed in the parent
+                if seen.contains(LonghandId::XTextZoom) {
+                    let zoom = context.builder.get_font().gecko().mAllowZoom;
+                    let parent_zoom = context.style().get_parent_font().gecko().mAllowZoom;
+                    if  zoom != parent_zoom {
+                        debug_assert!(!zoom,
+                                      "We only ever disable text zoom (in svg:text), never enable it");
+                        // can't borrow both device and font, use the take/put machinery
+                        let mut font = context.builder.take_font();
+                        font.unzoom_fonts(context.device());
+                        context.builder.put_font(font);
+                    }
+                }
+
                 // Whenever a single generic value is specified, gecko will do a bunch of
                 // recalculation walking up the rule tree, including handling the font-size stuff.
                 // It basically repopulates the font struct with the default font for a given
@@ -3419,49 +3442,13 @@ macro_rules! css_properties_accessors {
     }
 }
 
-
+#[macro_export]
 macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in data.longhands:
-                ${property.ident}
+                { ${property.ident}, ${"true" if property.boxed else "false"} }
             % endfor
         }
-    }
-}
-
-/// Testing function to check the size of all SpecifiedValues.
-#[cfg(feature = "testing")]
-pub fn test_size_of_specified_values() {
-    use std::mem::size_of;
-    let threshold = 24;
-
-    let mut longhands = vec![];
-    % for property in data.longhands:
-        longhands.push(("${property.name}",
-                       size_of::<longhands::${property.ident}::SpecifiedValue>(),
-                       ${"true" if property.boxed else "false"}));
-    % endfor
-
-    let mut failing_messages = vec![];
-
-    for specified_value in longhands {
-        if specified_value.1 > threshold && !specified_value.2 {
-            failing_messages.push(
-                format!("Your changes have increased the size of {} SpecifiedValue to {}. The threshold is \
-                        currently {}. SpecifiedValues affect size of PropertyDeclaration enum and \
-                        increasing the size may negative affect style system performance. Please consider \
-                        using `boxed=\"True\"` in this longhand.",
-                        specified_value.0, specified_value.1, threshold));
-        } else if specified_value.1 <= threshold && specified_value.2 {
-            failing_messages.push(
-                format!("Your changes have decreased the size of {} SpecifiedValue to {}. Good work! \
-                        The threshold is currently {}. Please consider removing `boxed=\"True\"` from this longhand.",
-                        specified_value.0, specified_value.1, threshold));
-        }
-    }
-
-    if !failing_messages.is_empty() {
-        panic!("{}", failing_messages.join("\n\n"));
     }
 }

@@ -254,25 +254,13 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     Unused << hc->GetResponseHeader(NS_LITERAL_CSTRING("Accept-Ranges"),
                                     ranges);
     bool acceptsRanges = ranges.EqualsLiteral("bytes");
-    // True if this channel will not return an unbounded amount of data
-    bool dataIsBounded = false;
 
     int64_t contentLength = -1;
     const bool isCompressed = IsPayloadCompressed(hc);
     if (!isCompressed) {
       hc->GetContentLength(&contentLength);
     }
-    if (contentLength >= 0 &&
-        (responseStatus == HTTP_OK_CODE ||
-         responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
-      // "OK" status means Content-Length is for the whole resource.
-      // Since that's bounded, we know we have a finite-length resource.
-      dataIsBounded = true;
-    }
 
-    // Assume Range requests have a bounded upper limit unless the
-    // Content-Range header tells us otherwise.
-    bool boundedSeekLimit = true;
     // Check response code for byte-range requests (seeking, chunk requests).
     // We don't expect to get a 206 response for a compressed stream, but
     // double check just to be sure.
@@ -291,9 +279,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
         // Notify media cache about the length and start offset of data received.
         // Note: If aRangeTotal == -1, then the total bytes is unknown at this stage.
         //       For now, tell the decoder that the stream is infinite.
-        if (rangeTotal == -1) {
-          boundedSeekLimit = false;
-        } else {
+        if (rangeTotal != -1) {
           contentLength = std::max(contentLength, rangeTotal);
         }
         // Give some warnings if the ranges are unexpected.
@@ -327,13 +313,6 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     // and the server isn't sending Accept-Ranges:bytes then we don't
     // support seeking. We also can't seek in compressed streams.
     seekable = !isCompressed && acceptsRanges;
-    if (seekable && boundedSeekLimit) {
-      // If range requests are supported, and we did not see an unbounded
-      // upper range limit, we assume the resource is bounded.
-      dataIsBounded = true;
-    }
-
-    mCallback->SetInfinite(!dataIsBounded);
   }
   mCacheStream.SetTransportSeekable(seekable);
 
@@ -663,7 +642,8 @@ bool ChannelMediaResource::CanClone()
   return mCacheStream.IsAvailableForSharing();
 }
 
-already_AddRefed<MediaResource> ChannelMediaResource::CloneData(MediaResourceCallback* aCallback)
+already_AddRefed<BaseMediaResource>
+ChannelMediaResource::CloneData(MediaResourceCallback* aCallback)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   NS_ASSERTION(mCacheStream.IsAvailableForSharing(), "Stream can't be cloned");
@@ -1434,9 +1414,10 @@ int64_t FileMediaResource::Tell()
   return offset;
 }
 
-already_AddRefed<MediaResource>
-MediaResource::Create(MediaResourceCallback* aCallback,
-                      nsIChannel* aChannel, bool aIsPrivateBrowsing)
+already_AddRefed<BaseMediaResource>
+BaseMediaResource::Create(MediaResourceCallback* aCallback,
+                          nsIChannel* aChannel,
+                          bool aIsPrivateBrowsing)
 {
   NS_ASSERTION(NS_IsMainThread(),
                "MediaResource::Open called on non-main thread");
@@ -1455,7 +1436,7 @@ MediaResource::Create(MediaResourceCallback* aCallback,
     return nullptr;
   }
 
-  RefPtr<MediaResource> resource;
+  RefPtr<BaseMediaResource> resource;
 
   // Let's try to create a FileMediaResource in case the channel is a nsIFile
   nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(aChannel);
@@ -1569,6 +1550,10 @@ MediaResourceIndex::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
     return rv;
   }
   mOffset += *aBytes;
+  if (mOffset < 0) {
+    // Very unlikely overflow; just return to position 0.
+    mOffset = 0;
+  }
   return NS_OK;
 }
 
@@ -1597,6 +1582,10 @@ MediaResourceIndex::ReadAt(int64_t aOffset,
   }
 
   const int64_t endOffset = aOffset + aCount;
+  if (aOffset < 0 || endOffset < aOffset) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
   const int64_t lastBlockOffset = CacheOffsetContaining(endOffset - 1);
 
   if (mCachedBytes != 0 && mCachedOffset + mCachedBytes >= aOffset &&
@@ -1909,6 +1898,9 @@ MediaResourceIndex::UncachedReadAt(int64_t aOffset,
                                    uint32_t* aBytes) const
 {
   *aBytes = 0;
+  if (aOffset < 0) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
   if (aCount != 0) {
     for (;;) {
       uint32_t bytesRead = 0;
@@ -1925,6 +1917,10 @@ MediaResourceIndex::UncachedReadAt(int64_t aOffset,
         break;
       }
       aOffset += bytesRead;
+      if (aOffset < 0) {
+        // Very unlikely overflow.
+        return NS_ERROR_FAILURE;
+      }
       aBuffer += bytesRead;
     }
   }
@@ -1940,6 +1936,9 @@ MediaResourceIndex::UncachedRangedReadAt(int64_t aOffset,
 {
   *aBytes = 0;
   uint32_t count = aRequestedCount + aExtraCount;
+  if (aOffset < 0 || count < aRequestedCount) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
   if (count != 0) {
     for (;;) {
       uint32_t bytesRead = 0;
@@ -1957,6 +1956,10 @@ MediaResourceIndex::UncachedRangedReadAt(int64_t aOffset,
         break;
       }
       aOffset += bytesRead;
+      if (aOffset < 0) {
+        // Very unlikely overflow.
+        return NS_ERROR_FAILURE;
+      }
       aBuffer += bytesRead;
     }
   }
@@ -1985,6 +1988,9 @@ MediaResourceIndex::Seek(int32_t aWhence, int64_t aOffset)
       return NS_ERROR_FAILURE;
   }
 
+  if (aOffset < 0) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
   mOffset = aOffset;
 
   return NS_OK;

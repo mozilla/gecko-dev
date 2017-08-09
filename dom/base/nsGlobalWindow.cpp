@@ -293,7 +293,6 @@ using mozilla::dom::cache::CacheStorage;
 static LazyLogModule gDOMLeakPRLog("DOMLeak");
 
 nsGlobalWindow::WindowByIdTable *nsGlobalWindow::sWindowsById = nullptr;
-bool nsGlobalWindow::sWarnedAboutWindowInternal = false;
 bool nsGlobalWindow::sIdleObserversAPIFuzzTimeDisabled = false;
 
 static int32_t              gRefCnt                    = 0;
@@ -2222,16 +2221,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   // Make sure this matches the cast in nsGlobalWindow::FromWrapper()
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMEventTarget)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindow)
-  if (aIID.Equals(NS_GET_IID(nsIDOMWindowInternal))) {
-    foundInterface = static_cast<nsIDOMWindowInternal*>(this);
-    if (!sWarnedAboutWindowInternal) {
-      sWarnedAboutWindowInternal = true;
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      NS_LITERAL_CSTRING("Extensions"), mDoc,
-                                      nsContentUtils::eDOM_PROPERTIES,
-                                      "nsIDOMWindowInternalWarning");
-    }
-  } else
   NS_INTERFACE_MAP_ENTRY(nsIGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIScriptGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIScriptObjectPrincipal)
@@ -3905,7 +3894,7 @@ nsGlobalWindow::ConfirmDialogIfNeeded()
   nsAutoPopupStatePusher popupStatePusher(openAbused, true);
 
   bool disableDialog = false;
-  nsXPIDLString label, title;
+  nsAutoString label, title;
   nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
                                      "ScriptDialogLabel", label);
   nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
@@ -7519,12 +7508,10 @@ nsGlobalWindow::MakeScriptDialogTitle(nsAString& aOutTitle,
 
           NS_ConvertUTF8toUTF16 ucsPrePath(prepath);
           const char16_t *formatStrings[] = { ucsPrePath.get() };
-          nsXPIDLString tempString;
           nsContentUtils::FormatLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
                                                 "ScriptDlgHeading",
                                                 formatStrings,
-                                                tempString);
-          aOutTitle = tempString;
+                                                aOutTitle);
         }
       }
     }
@@ -7532,11 +7519,9 @@ nsGlobalWindow::MakeScriptDialogTitle(nsAString& aOutTitle,
 
   if (aOutTitle.IsEmpty()) {
     // We didn't find a host so use the generic heading
-    nsXPIDLString tempString;
     nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
                                        "ScriptDlgGenericHeading",
-                                       tempString);
-    aOutTitle = tempString;
+                                       aOutTitle);
   }
 
   // Just in case
@@ -7660,7 +7645,7 @@ nsGlobalWindow::AlertOrConfirm(bool aAlert,
   nsAutoSyncOperation sync(mDoc);
   if (ShouldPromptToBlockDialogs()) {
     bool disallowDialog = false;
-    nsXPIDLString label;
+    nsAutoString label;
     nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
                                        "ScriptDialogLabel", label);
 
@@ -7795,7 +7780,8 @@ nsGlobalWindow::PromptOuter(const nsAString& aMessage,
   char16_t *inoutValue = ToNewUnicode(fixedInitial);
   bool disallowDialog = false;
 
-  nsXPIDLString label;
+  nsAutoString label;
+  label.SetIsVoid(true);
   if (ShouldPromptToBlockDialogs()) {
     nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
                                        "ScriptDialogLabel", label);
@@ -7803,8 +7789,9 @@ nsGlobalWindow::PromptOuter(const nsAString& aMessage,
 
   nsAutoSyncOperation sync(mDoc);
   bool ok;
-  aError = prompt->Prompt(title.get(), fixedMessage.get(),
-                          &inoutValue, label.get(), &disallowDialog, &ok);
+  aError = prompt->Prompt(title.get(), fixedMessage.get(), &inoutValue,
+                          label.IsVoid() ? nullptr : label.get(),
+                          &disallowDialog, &ok);
 
   if (disallowDialog) {
     DisableDialogs();
@@ -7865,7 +7852,7 @@ nsGlobalWindow::FocusOuter(ErrorResult& aError)
   // (bugs 355482 and 369306).
   bool canFocus = CanSetProperty("dom.disable_window_flip") ||
                     (opener == callerOuter &&
-                     RevisePopupAbuseLevel(gPopupControlState) < openAbused);
+                     RevisePopupAbuseLevel(gPopupControlState) < openBlocked);
 
   nsCOMPtr<mozIDOMWindowProxy> activeDOMWindow;
   fm->GetActiveWindow(getter_AddRefs(activeDOMWindow));
@@ -8155,7 +8142,7 @@ nsGlobalWindow::PrintOuter(ErrorResult& aError)
       if (printSettingsAreGlobal) {
         printSettingsService->GetGlobalPrintSettings(getter_AddRefs(printSettings));
 
-        nsXPIDLString printerName;
+        nsAutoString printerName;
         printSettings->GetPrinterName(getter_Copies(printerName));
 
         bool shouldGetDefaultPrinterName = printerName.IsEmpty();
@@ -8171,9 +8158,10 @@ nsGlobalWindow::PrintOuter(ErrorResult& aError)
 #endif
         if (shouldGetDefaultPrinterName) {
           printSettingsService->GetDefaultPrinterName(getter_Copies(printerName));
-          printSettings->SetPrinterName(printerName);
+          printSettings->SetPrinterName(printerName.get());
         }
-        printSettingsService->InitPrintSettingsFromPrinter(printerName, printSettings);
+        printSettingsService->InitPrintSettingsFromPrinter(printerName.get(),
+                                                           printSettings);
         printSettingsService->InitPrintSettingsFromPrefs(printSettings,
                                                          true,
                                                          nsIPrintSettings::kInitSaveAll);
@@ -8860,10 +8848,15 @@ nsGlobalWindow::RevisePopupAbuseLevel(PopupControlState aControl)
   PopupControlState abuse = aControl;
   switch (abuse) {
   case openControlled:
-  case openAbused:
+  case openBlocked:
   case openOverridden:
     if (PopupWhitelisted())
       abuse = PopupControlState(abuse - 1);
+    break;
+  case openAbused:
+    if (PopupWhitelisted())
+      //Skip openBlocked
+      abuse = openControlled;
     break;
   case openAllowed: break;
   default:
@@ -8871,7 +8864,9 @@ nsGlobalWindow::RevisePopupAbuseLevel(PopupControlState aControl)
   }
 
   // limit the number of simultaneously open popups
-  if (abuse == openAbused || abuse == openControlled) {
+  if (abuse == openAbused ||
+      abuse == openBlocked ||
+      abuse == openControlled) {
     int32_t popupMax = Preferences::GetInt("dom.popup_maximum", -1);
     if (popupMax >= 0 && gOpenPopupSpamCount >= popupMax)
       abuse = openOverridden;
@@ -9191,7 +9186,7 @@ nsGlobalWindow::PostMessageMozOuter(JSContext* aCx, JS::Handle<JS::Value> aMessa
     }
 
     if (NS_FAILED(originURI->SetUserPass(EmptyCString())) ||
-        NS_FAILED(originURI->SetPath(EmptyCString()))) {
+        NS_FAILED(originURI->SetPathQueryRef(EmptyCString()))) {
       return;
     }
 
@@ -11960,7 +11955,7 @@ nsGlobalWindow::ShowSlowScriptDialog()
   bool showDebugButton = !!debugCallback;
 
   // Get localizable strings
-  nsXPIDLString title, msg, stopButton, waitButton, debugButton, neverShowDlg;
+  nsAutoString title, msg, stopButton, waitButton, debugButton, neverShowDlg;
 
   rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                           "KillScriptTitle",
@@ -11987,7 +11982,6 @@ nsGlobalWindow::ShowSlowScriptDialog()
     rv = tmp;
   }
 
-
   if (showDebugButton) {
     tmp = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                              "DebugScriptButton",
@@ -12012,16 +12006,14 @@ nsGlobalWindow::ShowSlowScriptDialog()
     }
   }
 
-  // GetStringFromName can return NS_OK and still give nullptr string
-  if (NS_FAILED(rv) || !title || !msg || !stopButton || !waitButton ||
-      (!debugButton && showDebugButton) || !neverShowDlg) {
+  if (NS_FAILED(rv)) {
     NS_ERROR("Failed to get localized strings.");
     return ContinueSlowScript;
   }
 
   // Append file and line number information, if available
   if (filename.get()) {
-    nsXPIDLString scriptLocation;
+    nsAutoString scriptLocation;
     // We want to drop the middle part of too-long locations.  We'll
     // define "too-long" as longer than 60 UTF-16 code units.  Just
     // have to be a bit careful about unpaired surrogates.
@@ -12054,7 +12046,7 @@ nsGlobalWindow::ShowSlowScriptDialog()
                                                formatParams,
                                                scriptLocation);
 
-    if (NS_SUCCEEDED(rv) && scriptLocation) {
+    if (NS_SUCCEEDED(rv)) {
       msg.AppendLiteral("\n\n");
       msg.Append(scriptLocation);
       msg.Append(':');
@@ -12076,9 +12068,10 @@ nsGlobalWindow::ShowSlowScriptDialog()
     // Null out the operation callback while we're re-entering JS here.
     AutoDisableJSInterruptCallback disabler(cx);
     // Open the dialog.
-    rv = prompt->ConfirmEx(title, msg, buttonFlags, waitButton, stopButton,
-                          debugButton, neverShowDlg, &neverShowDlgChk,
-                          &buttonPressed);
+    rv = prompt->ConfirmEx(title.get(), msg.get(), buttonFlags,
+                           waitButton.get(), stopButton.get(),
+                           debugButton.get(), neverShowDlg.get(),
+                           &neverShowDlgChk, &buttonPressed);
   }
 
   if (NS_SUCCEEDED(rv) && (buttonPressed == 0)) {
@@ -12993,7 +12986,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
   PopupControlState abuseLevel = gPopupControlState;
   if (checkForPopup) {
     abuseLevel = RevisePopupAbuseLevel(abuseLevel);
-    if (abuseLevel >= openAbused) {
+    if (abuseLevel >= openBlocked) {
       if (!aCalledNoScript) {
         // If script in some other window is doing a window.open on us and
         // it's being blocked, then it's OK to close us afterwards, probably.
@@ -13031,9 +13024,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
   nsCOMPtr<nsPIWindowWatcher> pwwatch(do_QueryInterface(wwatch));
   NS_ENSURE_STATE(pwwatch);
 
-  MOZ_ASSERT_IF(checkForPopup, abuseLevel < openAbused);
+  MOZ_ASSERT_IF(checkForPopup, abuseLevel < openBlocked);
   // At this point we should know for a fact that if checkForPopup then
-  // abuseLevel < openAbused, so we could just check for abuseLevel ==
+  // abuseLevel < openBlocked, so we could just check for abuseLevel ==
   // openControlled.  But let's be defensive just in case and treat anything
   // that fails the above assert as a spam popup too, if it ever happens.
   bool isPopupSpamWindow = checkForPopup && (abuseLevel >= openControlled);

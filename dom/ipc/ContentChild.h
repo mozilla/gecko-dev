@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_ContentChild_h
 #define mozilla_dom_ContentChild_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/ContentBridgeParent.h"
 #include "mozilla/dom/nsIContentChild.h"
@@ -144,6 +145,8 @@ public:
 
   static void AppendProcessId(nsACString& aName);
 
+  static void UpdateCookieStatus(nsIChannel *aChannel);
+
   mozilla::ipc::IPCResult
   RecvInitContentBridgeChild(Endpoint<PContentBridgeChild>&& aEndpoint) override;
 
@@ -174,6 +177,8 @@ public:
     Endpoint<PVRManagerChild>&& aVRBridge,
     Endpoint<PVideoDecoderManagerChild>&& aVideoManager,
     nsTArray<uint32_t>&& namespaces) override;
+
+  virtual mozilla::ipc::IPCResult RecvAudioDefaultDeviceChange() override;
 
   mozilla::ipc::IPCResult RecvReinitRenderingForDeviceReset() override;
 
@@ -755,7 +760,7 @@ private:
 
   nsClassHashtable<nsUint64HashKey, AnonymousTemporaryFileCallback> mPendingAnonymousTemporaryFiles;
 
-  bool mShuttingDown;
+  mozilla::Atomic<bool> mShuttingDown;
 
   DISALLOW_EVIL_CONSTRUCTORS(ContentChild);
 };

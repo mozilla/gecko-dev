@@ -7,7 +7,6 @@
 #define MP4Decoder_h_
 
 #include "ChannelMediaDecoder.h"
-#include "MediaFormatReader.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/layers/KnowsCompositor.h"
 
@@ -20,16 +19,6 @@ class MP4Decoder : public ChannelMediaDecoder
 {
 public:
   explicit MP4Decoder(MediaDecoderInit& aInit);
-
-  ChannelMediaDecoder* Clone(MediaDecoderInit& aInit) override
-  {
-    if (!IsEnabled()) {
-      return nullptr;
-    }
-    return new MP4Decoder(aInit);
-  }
-
-  MediaDecoderStateMachine* CreateStateMachine() override;
 
   // Returns true if aContainerType is an MP4 type that we think we can render
   // with the a platform decoder backend.
@@ -54,6 +43,15 @@ public:
   IsVideoAccelerated(layers::KnowsCompositor* aKnowsCompositor, nsIGlobalObject* aParent);
 
   void GetMozDebugReaderData(nsACString& aString) override;
+
+private:
+  ChannelMediaDecoder* CloneImpl(MediaDecoderInit& aInit) override
+  {
+    if (!IsEnabled()) {
+      return nullptr;
+    }
+    return new MP4Decoder(aInit);
+  }
 };
 
 } // namespace mozilla

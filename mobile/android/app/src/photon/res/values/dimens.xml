@@ -17,6 +17,7 @@
          Our design is to make pressed-highlight region to be square. this vertical spacing value
          helps drawable xml to set padding: (56 - 48) / 2 -->
     <dimen name="browser_toolbar_image_button_v_spacing">4dp</dimen>
+    <dimen name="browser_toolbar_image_button_h_spacing">0dp</dimen>
 
     <!-- This value is the height of the Tabs Panel header view
          (browser_toolbar_height) minus the height of the indicator
@@ -29,19 +30,20 @@
     <dimen name="browser_toolbar_button_padding">12dp</dimen>
     <dimen name="browser_toolbar_icon_width">48dp</dimen>
     <dimen name="browser_toolbar_menu_icon_height">16dp</dimen>
+    <dimen name="browser_toolbar_menu_radius">2dp</dimen>
 
     <!-- favicon_size includes 4dp of right padding. We can't use margin (which would allow us to
          specify the actual size) because that would decrease the size of our hit target. -->
     <dimen name="browser_toolbar_favicon_size">21.33dip</dimen>
-    <dimen name="browser_toolbar_shadow_size">2dp</dimen>
+    <dimen name="browser_toolbar_shadow_size">1dp</dimen>
 
     <!-- If you update one of these values, update the others. -->
-    <dimen name="tablet_nav_button_width">42dp</dimen>
+    <dimen name="tablet_nav_button_width">48dp</dimen>
     <dimen name="tablet_nav_button_width_half">21dp</dimen>
-    <dimen name="tablet_nav_button_width_plus_half">63dp</dimen>
+    <dimen name="tablet_nav_button_width_plus_half">36dp</dimen>
 
-    <dimen name="tablet_fwd_button_padding_start">18dp</dimen>
-    <dimen name="tablet_fwd_button_padding_end">0dp</dimen>
+    <dimen name="tablet_fwd_button_padding_start">4dp</dimen>
+    <dimen name="tablet_fwd_button_padding_end">4dp</dimen>
 
     <!-- This is the system default for the vertical padding for the divider of the TabWidget.
          Used to mimic the divider padding on the tablet tabs panel back button. -->
@@ -50,7 +52,7 @@
     <dimen name="tablet_tab_strip_height">48dp</dimen>
     <dimen name="tablet_tab_strip_item_width">178dp</dimen>
     <dimen name="tablet_tab_strip_item_height">40dp</dimen>
-    <dimen name="tablet_tab_strip_fading_edge_size">0dp</dimen>
+    <dimen name="tablet_tab_strip_fading_edge_size">15dp</dimen>
     <dimen name="tablet_tab_strip_item_margin">0dp</dimen>
     <dimen name="tablet_tab_strip_divider_width">1dp</dimen>
     <dimen name="tablet_tab_strip_divider_height">30dp</dimen>
@@ -165,20 +167,29 @@
     <dimen name="validation_message_margin_top">6dp</dimen>
 
     <dimen name="tab_thumbnail_width">121dp</dimen>
-    <dimen name="tab_thumbnail_height">90dp</dimen>
-    <dimen name="tab_panel_item_width">129dp</dimen>
-    <dimen name="tab_panel_grid_hpadding">20dp</dimen>
-    <!-- Top and bottom tab panel grid padding is split between tab_panel_grid_vpadding (the
-         RecyclerView padding) and tab_panel_grid_item_vpadding (individual item padding). -->
-    <dimen name="tab_panel_grid_vpadding">9dp</dimen>
-    <dimen name="tab_panel_grid_ideal_item_hspacing">20dp</dimen>
-    <dimen name="tab_panel_grid_min_item_hspacing">2dp</dimen>
-    <dimen name="tab_panel_grid_item_vpadding">10dp</dimen>
 
-    <dimen name="tab_highlight_stroke_width">4dp</dimen>
+    <!-- AutoFitTabsGridLayout -->
+    <dimen name="tab_panel_item_width_autofit">129dp</dimen>
+    <dimen name="tab_panel_grid_hpadding_autofit">30dp</dimen>
+    <dimen name="tab_panel_grid_vpadding_autofit">7dp</dimen>
+    <dimen name="tab_panel_grid_item_hpadding_autofit">10dp</dimen>
+    <dimen name="tab_panel_grid_item_vpadding_autofit">8dp</dimen>
+    <dimen name="tab_panel_grid_min_item_hspacing_autofit">2dp</dimen>
+
+    <!-- CompactTabsGridLayout -->
+    <dimen name="tab_panel_grid_hpadding_compact">15dp</dimen>
+    <dimen name="tab_panel_grid_vpadding_compact">7dp</dimen>
+    <dimen name="tab_panel_grid_item_hpadding_compact">10dp</dimen>
+    <dimen name="tab_panel_grid_item_vpadding_compact">6dp</dimen>
+
+    <!-- TabsListLayout -->
+    <dimen name="tab_panel_list_item_top_padding">6dp</dimen>
+
+
+    <dimen name="tab_highlight_stroke_width">5dp</dimen>
 
     <!-- PageActionButtons dimensions -->
-    <dimen name="page_action_button_width">32dp</dimen>
+    <dimen name="page_action_button_width">48dp</dimen>
 
     <!-- Banner -->
     <dimen name="home_banner_height">72dp</dimen>

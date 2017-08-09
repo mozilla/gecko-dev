@@ -29,8 +29,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
                                   "resource://testing-common/httpd.js");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
-                                  "resource://testing-common/PlacesTestUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -293,7 +291,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   }
 
   let fileExtension = null, mimeInfo = null;
-  let match = sourceURI.path.match(/\.([^.\/]+)$/);
+  let match = sourceURI.pathQueryRef.match(/\.([^.\/]+)$/);
   if (match) {
     fileExtension = match[1];
   }

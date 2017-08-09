@@ -7,21 +7,23 @@
 #ifndef HLSDecoder_h_
 #define HLSDecoder_h_
 
-#include "ChannelMediaDecoder.h"
+#include "HLSResource.h"
+#include "MediaDecoder.h"
 
 namespace mozilla {
-class MediaFormatReader;
 
-class HLSDecoder final : public ChannelMediaDecoder
+class HLSDecoder final : public MediaDecoder
 {
 public:
   // MediaDecoder interface.
   explicit HLSDecoder(MediaDecoderInit& aInit)
-    : ChannelMediaDecoder(aInit)
+    : MediaDecoder(aInit)
   {
   }
 
-  ChannelMediaDecoder* Clone(MediaDecoderInit& aInit) override;
+  MediaResource* GetResource() const override final;
+
+  void Shutdown() override;
 
   MediaDecoderStateMachine* CreateStateMachine() override;
 
@@ -33,14 +35,14 @@ public:
   // If provided, codecs are checked for support.
   static bool IsSupportedType(const MediaContainerType& aContainerType);
 
-  nsresult Load(nsIChannel* aChannel,
-                bool aIsPrivateBrowsing,
-                nsIStreamListener**) override;
-  nsresult Load(MediaResource*) override;
+  nsresult Load(nsIChannel* aChannel);
 
   nsresult Play() override;
 
   void Pause() override;
+
+private:
+  RefPtr<HLSResource> mResource;
 };
 
 } // namespace mozilla

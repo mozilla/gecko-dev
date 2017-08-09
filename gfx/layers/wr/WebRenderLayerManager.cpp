@@ -15,6 +15,7 @@
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "mozilla/layers/UpdateImageHelper.h"
 #include "WebRenderCanvasLayer.h"
+#include "WebRenderCanvasRenderer.h"
 #include "WebRenderColorLayer.h"
 #include "WebRenderContainerLayer.h"
 #include "WebRenderImageLayer.h"
@@ -319,13 +320,17 @@ WebRenderLayerManager::CreateImageKey(nsDisplayItem* aItem,
       LayoutDeviceRect::FromAppUnits(bounds, appUnitsPerDevPixel),
       PixelCastJustification::WebRenderHasUnitResolution);
     LayerRect scBounds(0, 0, rect.width, rect.height);
+    MaybeIntSize scaleToSize;
+    if (!aContainer->GetScaleHint().IsEmpty()) {
+      scaleToSize = Some(aContainer->GetScaleHint());
+    }
     imageData->CreateAsyncImageWebRenderCommands(aBuilder,
                                                  aContainer,
                                                  aSc,
                                                  rect,
                                                  scBounds,
                                                  gfx::Matrix4x4(),
-                                                 Nothing(),
+                                                 scaleToSize,
                                                  wr::ImageRendering::Auto,
                                                  wr::MixBlendMode::Normal);
     return Nothing();
@@ -350,6 +355,11 @@ WebRenderLayerManager::PushImage(nsDisplayItem* aItem,
 {
   gfx::IntSize size;
   Maybe<wr::ImageKey> key = CreateImageKey(aItem, aContainer, aBuilder, aSc, size);
+  if (aContainer->IsAsync()) {
+    // Async ImageContainer does not create ImageKey, instead it uses Pipeline.
+    MOZ_ASSERT(key.isNothing());
+    return true;
+  }
   if (!key) {
     return false;
   }
@@ -593,6 +603,7 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
       mParentCommands.Clear();
       mScrollData = WebRenderScrollData();
       MOZ_ASSERT(mLayerScrollData.empty());
+      mLastCanvasDatas.Clear();
 
       CreateWebRenderCommandsFromDisplayList(aDisplayList, aDisplayListBuilder, sc, builder);
 
@@ -608,6 +619,12 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
         mScrollData.AddLayerData(*i);
       }
       mLayerScrollData.clear();
+    } else {
+      for (auto iter = mLastCanvasDatas.Iter(); !iter.Done(); iter.Next()) {
+        RefPtr<WebRenderCanvasData> canvasData = iter.Get()->GetKey();
+        WebRenderCanvasRendererAsync* canvas = canvasData->GetCanvasRenderer();
+        canvas->UpdateCompositableClient();
+      }
     }
 
     builder.PushBuiltDisplayList(mBuiltDisplayList);

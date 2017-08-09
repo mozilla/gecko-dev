@@ -1582,7 +1582,7 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
   if (NS_FAILED(rv)) return rv;
   if (match) {
     nsAutoCString path;
-    rv = referrer->GetPath(path);
+    rv = referrer->GetPathQueryRef(path);
     if (NS_FAILED(rv)) return rv;
 
     uint32_t pathLength = path.Length();
@@ -1594,14 +1594,9 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
     int32_t slashIndex = path.FindChar('/', 2);
     if (slashIndex == kNotFound) return NS_ERROR_FAILURE;
 
-    // Get charset of the original URI so we can pass it to our fixed up URI.
-    nsAutoCString charset;
-    referrer->GetOriginCharset(charset);
-
     // Replace |referrer| with a URI without wyciwyg://123/.
     rv = NS_NewURI(getter_AddRefs(referrerGrip),
-                   Substring(path, slashIndex + 1, pathLength - slashIndex - 1),
-                   charset.get());
+                   Substring(path, slashIndex + 1, pathLength - slashIndex - 1));
     if (NS_FAILED(rv)) return rv;
 
     referrer = referrerGrip.get();
@@ -1829,7 +1824,7 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
       case 2: // scheme+host+port+/
         spec.AppendLiteral("/");
         // This nukes any query/ref present as well in the case of nsStandardURL
-        rv = clone->SetPath(EmptyCString());
+        rv = clone->SetPathQueryRef(EmptyCString());
         if (NS_FAILED(rv)) return rv;
         break;
     }
@@ -2492,23 +2487,20 @@ HttpBaseChannel::AddSecurityMessage(const nsAString &aMessageTag,
 
   auto innerWindowID = loadInfo->GetInnerWindowID();
 
-  nsXPIDLString errorText;
+  nsAutoString errorText;
   rv = nsContentUtils::GetLocalizedString(
           nsContentUtils::eSECURITY_PROPERTIES,
           NS_ConvertUTF16toUTF8(aMessageTag).get(),
           errorText);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString spec;
-  if (mURI) {
-    spec = mURI->GetSpecOrDefault();
-  }
-
   nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-  error->InitWithWindowID(errorText, NS_ConvertUTF8toUTF16(spec),
-                          EmptyString(), 0, 0, nsIScriptError::warningFlag,
-                          NS_ConvertUTF16toUTF8(aMessageCategory),
-                          innerWindowID);
+  error->InitWithSourceURI(errorText, mURI,
+                           EmptyString(), 0, 0,
+                           nsIScriptError::warningFlag,
+                           NS_ConvertUTF16toUTF8(aMessageCategory),
+                           innerWindowID);
+
   console->LogMessage(error);
 
   return NS_OK;
@@ -3955,7 +3947,7 @@ HttpBaseChannel::GetPerformance()
   }
 
   // We don't need to report the resource timing entry for a TYPE_DOCUMENT load.
-  if (mLoadInfo->GetExternalContentPolicyType() == nsIContentPolicyBase::TYPE_DOCUMENT) {
+  if (mLoadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT) {
     return nullptr;
   }
 

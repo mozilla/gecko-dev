@@ -544,8 +544,25 @@ Toolbox.prototype = {
       return this._sourceMapService;
     }
     // Uses browser loader to access the `Worker` global.
-    this._sourceMapService =
-      this.browserRequire("devtools/client/shared/source-map/index");
+    let service = this.browserRequire("devtools/client/shared/source-map/index");
+
+    // Provide a wrapper for the service that reports errors more nicely.
+    this._sourceMapService = new Proxy(service, {
+      get: (target, name) => {
+        if (name === "getOriginalURLs") {
+          return (urlInfo) => {
+            return target.getOriginalURLs(urlInfo)
+              .catch(text => {
+                let message = L10N.getFormatStr("toolbox.sourceMapFailure",
+                                                text, urlInfo.url, urlInfo.sourceMapURL);
+                this.target.logErrorInPage(message, "source map");
+              });
+          };
+        }
+        return target[name];
+      },
+    });
+
     this._sourceMapService.startSourceMapWorker(SOURCE_MAP_WORKER);
     return this._sourceMapService;
   },

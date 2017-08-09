@@ -66,6 +66,7 @@
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/Likely.h"
+#include "mozilla/ManualNAC.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Selection.h"
@@ -863,20 +864,20 @@ nsContentUtils::InitializeModifierStrings()
   }
 
   NS_ASSERTION(NS_SUCCEEDED(rv) && bundle, "chrome://global/locale/platformKeys.properties could not be loaded");
-  nsXPIDLString shiftModifier;
-  nsXPIDLString metaModifier;
-  nsXPIDLString osModifier;
-  nsXPIDLString altModifier;
-  nsXPIDLString controlModifier;
-  nsXPIDLString modifierSeparator;
+  nsAutoString shiftModifier;
+  nsAutoString metaModifier;
+  nsAutoString osModifier;
+  nsAutoString altModifier;
+  nsAutoString controlModifier;
+  nsAutoString modifierSeparator;
   if (bundle) {
     //macs use symbols for each modifier key, so fetch each from the bundle, which also covers i18n
-    bundle->GetStringFromName("VK_SHIFT", getter_Copies(shiftModifier));
-    bundle->GetStringFromName("VK_META", getter_Copies(metaModifier));
-    bundle->GetStringFromName("VK_WIN", getter_Copies(osModifier));
-    bundle->GetStringFromName("VK_ALT", getter_Copies(altModifier));
-    bundle->GetStringFromName("VK_CONTROL", getter_Copies(controlModifier));
-    bundle->GetStringFromName("MODIFIER_SEPARATOR", getter_Copies(modifierSeparator));
+    bundle->GetStringFromName("VK_SHIFT", shiftModifier);
+    bundle->GetStringFromName("VK_META", metaModifier);
+    bundle->GetStringFromName("VK_WIN", osModifier);
+    bundle->GetStringFromName("VK_ALT", altModifier);
+    bundle->GetStringFromName("VK_CONTROL", controlModifier);
+    bundle->GetStringFromName("MODIFIER_SEPARATOR", modifierSeparator);
   }
   //if any of these don't exist, we get  an empty string
   sShiftText = new nsString(shiftModifier);
@@ -3956,13 +3957,12 @@ nsContentUtils::EnsureStringBundle(PropertiesFile aFile)
 /* static */
 nsresult nsContentUtils::GetLocalizedString(PropertiesFile aFile,
                                             const char* aKey,
-                                            nsXPIDLString& aResult)
+                                            nsAString& aResult)
 {
   nsresult rv = EnsureStringBundle(aFile);
   NS_ENSURE_SUCCESS(rv, rv);
   nsIStringBundle *bundle = sStringBundles[aFile];
-
-  return bundle->GetStringFromName(aKey, getter_Copies(aResult));
+  return bundle->GetStringFromName(aKey, aResult);
 }
 
 /* static */
@@ -3970,19 +3970,17 @@ nsresult nsContentUtils::FormatLocalizedString(PropertiesFile aFile,
                                                const char* aKey,
                                                const char16_t **aParams,
                                                uint32_t aParamsLength,
-                                               nsXPIDLString& aResult)
+                                               nsAString& aResult)
 {
   nsresult rv = EnsureStringBundle(aFile);
   NS_ENSURE_SUCCESS(rv, rv);
   nsIStringBundle *bundle = sStringBundles[aFile];
 
   if (!aParams || !aParamsLength) {
-    return bundle->GetStringFromName(aKey, getter_Copies(aResult));
+    return bundle->GetStringFromName(aKey, aResult);
   }
 
-  return bundle->FormatStringFromName(aKey,
-                                      aParams, aParamsLength,
-                                      getter_Copies(aResult));
+  return bundle->FormatStringFromName(aKey, aParams, aParamsLength, aResult);
 }
 
 /* static */
@@ -3990,7 +3988,7 @@ nsresult nsContentUtils::FormatLocalizedString(
                                           PropertiesFile aFile,
                                           const char* aKey,
                                           const nsTArray<nsString>& aParamArray,
-                                          nsXPIDLString& aResult)
+                                          nsAString& aResult)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -4043,7 +4041,7 @@ nsContentUtils::ReportToConsole(uint32_t aErrorFlags,
                "parameters and 0.");
 
   nsresult rv;
-  nsXPIDLString errorText;
+  nsAutoString errorText;
   if (aParams) {
     rv = FormatLocalizedString(aFile, aMessageName, aParams, aParamsLength,
                                errorText);
@@ -4107,20 +4105,26 @@ nsContentUtils::ReportToConsoleByWindowID(const nsAString& aErrorText,
       nsJSUtils::GetCallingLocation(cx, spec, &aLineNumber, &aColumnNumber);
     }
   }
-  if (spec.IsEmpty() && aURI) {
-    spec = aURI->GetSpecOrDefault();
-  }
 
   nsCOMPtr<nsIScriptError> errorObject =
       do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = errorObject->InitWithWindowID(aErrorText,
-                                     NS_ConvertUTF8toUTF16(spec), // file name
-                                     aSourceLine,
-                                     aLineNumber, aColumnNumber,
-                                     aErrorFlags, aCategory,
-                                     aInnerWindowID);
+  if (!spec.IsEmpty()) {
+    rv = errorObject->InitWithWindowID(aErrorText,
+                                       NS_ConvertUTF8toUTF16(spec), // file name
+                                       aSourceLine,
+                                       aLineNumber, aColumnNumber,
+                                       aErrorFlags, aCategory,
+                                       aInnerWindowID);
+  } else {
+    rv = errorObject->InitWithSourceURI(aErrorText,
+                                        aURI,
+                                        aSourceLine,
+                                        aLineNumber, aColumnNumber,
+                                        aErrorFlags, aCategory,
+                                        aInnerWindowID);
+  }
   NS_ENSURE_SUCCESS(rv, rv);
 
   return sConsoleService->LogMessage(errorObject);
@@ -6510,7 +6514,7 @@ nsContentUtils::GetUTFOrigin(nsIURI* aURI, nsAString& aOrigin)
 
       if (isBlobURL) {
         nsAutoCString path;
-        rv = aURI->GetPath(path);
+        rv = aURI->GetPathQueryRef(path);
         NS_ENSURE_SUCCESS(rv, rv);
 
         nsCOMPtr<nsIURI> uri;
@@ -10348,7 +10352,7 @@ nsContentUtils::AppendNativeAnonymousChildren(
     }
 
     // Get manually created NAC (editor resize handles, etc.).
-    if (auto nac = static_cast<ManualNAC*>(
+    if (auto nac = static_cast<ManualNACArray*>(
           aContent->GetProperty(nsGkAtoms::manualNACProperty))) {
       aKids.AppendElements(*nac);
     }

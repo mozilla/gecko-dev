@@ -57,7 +57,7 @@ AutoscrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration& a
 
   // Avoid long jumps when the browser hangs for more than |maxTimeDelta| ms.
   static const TimeDuration maxTimeDelta = TimeDuration::FromMilliseconds(100);
-  TimeDuration timeDelta = TimeDuration::Max(aDelta, maxTimeDelta);
+  TimeDuration timeDelta = TimeDuration::Min(aDelta, maxTimeDelta);
 
   float timeCompensation = timeDelta.ToMilliseconds() / 20;
 
@@ -83,6 +83,20 @@ AutoscrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration& a
   // AsyncPanZoomController::StopAutoscroll() will stop it via
   // CancelAnimation().
   return true;
+}
+
+void
+AutoscrollAnimation::Cancel(CancelAnimationFlags aFlags)
+{
+  // The cancellation was initiated by browser.xml, so there's no need to
+  // notify it.
+  if (aFlags & TriggeredExternally) {
+    return;
+  }
+
+  if (RefPtr<GeckoContentController> controller = mApzc.GetGeckoContentController()) {
+    controller->CancelAutoscroll(mApzc.GetGuid());
+  }
 }
 
 } // namespace layers

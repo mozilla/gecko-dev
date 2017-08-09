@@ -61,6 +61,7 @@
 #include "mozilla/layout/RenderFrameChild.h"
 #include "mozilla/loader/ScriptCacheActors.h"
 #include "mozilla/net/NeckoChild.h"
+#include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/CaptivePortalService.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/plugins/PluginModuleParent.h"
@@ -170,6 +171,7 @@
 #include <process.h>
 #define getpid _getpid
 #include "mozilla/widget/AudioSession.h"
+#include "mozilla/audio/AudioNotificationReceiver.h"
 #endif
 
 #ifdef MOZ_X11
@@ -1333,6 +1335,15 @@ ContentChild::RecvReinitRendering(Endpoint<PCompositorManagerChild>&& aComposito
 }
 
 mozilla::ipc::IPCResult
+ContentChild::RecvAudioDefaultDeviceChange()
+{
+#ifdef XP_WIN
+  audio::AudioNotificationReceiver::NotifyDefaultDeviceChanged();
+#endif
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
 ContentChild::RecvReinitRenderingForDeviceReset()
 {
   gfxPlatform::GetPlatform()->CompositorUpdated();
@@ -1934,6 +1945,16 @@ mozilla::ipc::IPCResult
 ContentChild::RecvPTestShellConstructor(PTestShellChild* actor)
 {
   return IPC_OK();
+}
+
+void
+ContentChild::UpdateCookieStatus(nsIChannel   *aChannel)
+{
+  RefPtr<CookieServiceChild> csChild =
+    CookieServiceChild::GetSingleton();
+  NS_ASSERTION(csChild, "Couldn't get CookieServiceChild");
+
+  csChild->TrackCookieLoad(aChannel);
 }
 
 PScriptCacheChild*

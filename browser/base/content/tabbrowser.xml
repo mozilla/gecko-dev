@@ -126,6 +126,10 @@
         0
       </field>
 
+      <field name="tabAnimationsInProgress">
+        0
+      </field>
+
       <property name="_numPinnedTabs" readonly="true">
         <getter><![CDATA[
           for (var i = 0; i < this.tabs.length; i++) {
@@ -397,19 +401,6 @@
       ]]>
       </field>
 
-      <method name="_getTabForBrowser">
-        <parameter name="aBrowser" />
-        <body>
-        <![CDATA[
-          let Deprecated = Components.utils.import("resource://gre/modules/Deprecated.jsm", {}).Deprecated;
-          let text = "_getTabForBrowser` is now deprecated, please use `getTabForBrowser";
-          let url = "https://developer.mozilla.org/docs/Mozilla/Tech/XUL/Method/getTabForBrowser";
-          Deprecated.warning(text, url);
-          return this.getTabForBrowser(aBrowser);
-        ]]>
-        </body>
-      </method>
-
       <method name="getTabForBrowser">
         <parameter name="aBrowser"/>
         <body>
@@ -526,7 +517,7 @@
           }
 
           // Specially handle about:blank as local
-          if (aURI.path === "blank") {
+          if (aURI.pathQueryRef === "blank") {
             return true;
           }
 
@@ -2626,7 +2617,7 @@
               // Unless we know for sure we're not inheriting principals,
               // force the about:blank viewer to have the right principal:
               if (!aURIObject ||
-                  (Services.io.getProtocolFlags(aURIObject.scheme) & URI_INHERITS_SECURITY_CONTEXT)) {
+                  (doGetProtocolFlags(aURIObject) & URI_INHERITS_SECURITY_CONTEXT)) {
                 b.createAboutBlankContentViewer(aOriginPrincipal);
               }
             }
@@ -2680,6 +2671,10 @@
               this.moveTabTo(t, newTabPos);
               this._lastRelatedTab = t;
             }
+
+            // This field is updated regardless if we actually animate
+            // since it's important that we keep this count correct in all cases.
+            this.tabAnimationsInProgress++;
 
             if (animate) {
               requestAnimationFrame(function() {
@@ -2885,7 +2880,6 @@
             // We're animating, so we can cancel the non-animation stopwatch.
             TelemetryStopwatch.cancel("FX_TAB_CLOSE_TIME_NO_ANIM_MS", aTab);
 
-            this._blurTab(aTab);
             aTab.style.maxWidth = ""; // ensure that fade-out transition happens
             aTab.removeAttribute("fadein");
 
@@ -2920,10 +2914,17 @@
 
             var browser = this.getBrowserForTab(aTab);
 
-            if (!aTab._pendingPermitUnload &&
-                !aSkipPermitUnload &&
-                aTab.linkedPanel &&
-                !aAdoptedByTab) {
+            let checkPermitUnload = !aSkipPermitUnload &&
+                                    !aAdoptedByTab &&
+                                    aTab.linkedPanel &&
+                                    !aTab._pendingPermitUnload;
+
+            if (checkPermitUnload && browser.isRemoteBrowser) {
+              checkPermitUnload = browser.frameLoader.tabParent &&
+                                  browser.frameLoader.tabParent.hasBeforeUnload;
+            }
+
+            if (checkPermitUnload) {
               TelemetryStopwatch.start("FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS", aTab);
 
               // We need to block while calling permitUnload() because it
@@ -2943,6 +2944,7 @@
               }
             }
 
+            this._blurTab(aTab);
 
             var closeWindow = false;
             var newTab = false;
@@ -2971,6 +2973,14 @@
 
               newTab = true;
             }
+
+            if (!aTab._fullyOpen) {
+              // If the opening tab animation hasn't finished before we start closing the
+              // tab, decrement the animation count since _handleNewTab will not get called.
+              this.tabAnimationsInProgress--;
+            }
+
+            this.tabAnimationsInProgress++;
 
             // Mute audio immediately to improve perceived speed of tab closure.
             if (!aAdoptedByTab && aTab.hasAttribute("soundplaying")) {
@@ -3053,6 +3063,8 @@
               aCloseWindow = false;
               aNewTab = false;
             }
+
+            this.tabAnimationsInProgress--;
 
             this._lastRelatedTab = null;
 
@@ -3546,7 +3558,7 @@
               this.showTab(tab);
           }
 
-          this.tabContainer._handleTabSelect(false);
+          this.tabContainer._handleTabSelect(true);
         ]]>
         </body>
       </method>
@@ -3756,7 +3768,7 @@
           if (wasFocused)
             this.mCurrentTab.focus();
 
-          this.tabContainer._handleTabSelect(false);
+          this.tabContainer._handleTabSelect(true);
 
           if (aTab.pinned)
             this.tabContainer._positionPinnedTabs();
@@ -5607,59 +5619,6 @@
         ]]>
       </destructor>
 
-      <!-- Deprecated stuff, implemented for backwards compatibility. -->
-      <method name="enterTabbedMode">
-        <body>
-          Services.console.logStringMessage("enterTabbedMode is an obsolete method and " +
-                                            "will be removed in a future release.");
-        </body>
-      </method>
-      <field name="mTabbedMode" readonly="true">true</field>
-      <method name="setStripVisibilityTo">
-        <parameter name="aShow"/>
-        <body>
-          this.tabContainer.visible = aShow;
-        </body>
-      </method>
-      <method name="getStripVisibility">
-        <body>
-          return this.tabContainer.visible;
-        </body>
-      </method>
-
-      <property name="mContextTab" readonly="true"
-                onget="return TabContextMenu.contextTab;"/>
-      <property name="mPrefs" readonly="true"
-                onget="return Services.prefs;"/>
-      <property name="mTabContainer" readonly="true"
-                onget="return this.tabContainer;"/>
-      <property name="mTabs" readonly="true"
-                onget="return this.tabs;"/>
-      <!--
-        - Compatibility hack: several extensions depend on this property to
-        - access the tab context menu or tab container, so keep that working for
-        - now. Ideally we can remove this once extensions are using
-        - tabbrowser.tabContextMenu and tabbrowser.tabContainer directly.
-        -->
-      <property name="mStrip" readonly="true">
-        <getter>
-        <![CDATA[
-          return ({
-            self: this,
-            childNodes: [null, this.tabContextMenu, this.tabContainer],
-            firstChild: { nextSibling: this.tabContextMenu },
-            getElementsByAttribute(attr, attrValue) {
-              if (attr == "anonid" && attrValue == "tabContextMenu")
-                return [this.self.tabContextMenu];
-              return [];
-            },
-            // Also support adding event listeners (forward to the tab container)
-            addEventListener(a, b, c) { this.self.tabContainer.addEventListener(a, b, c); },
-            removeEventListener(a, b, c) { this.self.tabContainer.removeEventListener(a, b, c); }
-          });
-        ]]>
-        </getter>
-      </property>
       <field name="_soundPlayingAttrRemovalTimer">0</field>
       <field name="_hoverTabTimer">null</field>
     </implementation>
@@ -5904,34 +5863,6 @@
           return !tab.pinned && !tab.hidden;
         ]]></body>
       </method>
-      <field name="_tabMarginLeft">null</field>
-      <field name="_tabMarginRight">null</field>
-      <method name="_calcTabMargins">
-        <parameter name="aTab"/>
-        <body><![CDATA[
-          if (this._tabMarginLeft === null || this._tabMarginRight === null) {
-            let tabMiddle = document.getAnonymousElementByAttribute(aTab, "class", "tab-background-middle");
-            let tabMiddleStyle = window.getComputedStyle(tabMiddle);
-            this._tabMarginLeft = parseFloat(tabMiddleStyle.marginLeft);
-            this._tabMarginRight = parseFloat(tabMiddleStyle.marginRight);
-          }
-        ]]></body>
-      </method>
-      <method name="_adjustElementStartAndEnd">
-        <parameter name="aTab"/>
-        <parameter name="tabStart"/>
-        <parameter name="tabEnd"/>
-        <body><![CDATA[
-          this._calcTabMargins(aTab);
-          if (this._tabMarginLeft < 0) {
-            tabStart = tabStart + this._tabMarginLeft;
-          }
-          if (this._tabMarginRight < 0) {
-            tabEnd = tabEnd - this._tabMarginRight;
-          }
-          return [tabStart, tabEnd];
-        ]]></body>
-      </method>
     </implementation>
 
     <handlers>
@@ -5965,7 +5896,7 @@
         var tabs = document.getBindingParent(this);
         tabs.setAttribute("overflow", "true");
         tabs._positionPinnedTabs();
-        tabs._handleTabSelect(false);
+        tabs._handleTabSelect(true);
       ]]></handler>
     </handlers>
   </binding>
@@ -5993,12 +5924,10 @@
   button, necessary due to the previous hack.
 -->
         <children/>
-        <xul:toolbarbutton class="tabs-newtab-button"
+        <xul:toolbarbutton class="tabs-newtab-button toolbarbutton-1"
                            anonid="tabs-newtab-button"
                            command="cmd_newNavigatorTab"
                            onclick="checkForMiddleClick(this, event);"
-                           onmouseover="document.getBindingParent(this)._enterNewTab();"
-                           onmouseout="document.getBindingParent(this)._leaveNewTab();"
                            tooltip="dynamic-shortcut-tooltip"/>
         <xul:hbox class="restore-tabs-button-wrapper"
                   anonid="restore-tabs-button-wrapper">
@@ -6256,26 +6185,6 @@
         ]]></setter>
       </property>
 
-      <method name="_enterNewTab">
-        <body><![CDATA[
-          let visibleTabs = this.tabbrowser.visibleTabs;
-          let candidate = visibleTabs[visibleTabs.length - 1];
-          if (!candidate.selected) {
-            this._beforeHoveredTab = candidate;
-            candidate.setAttribute("beforehovered", "true");
-          }
-        ]]></body>
-      </method>
-
-      <method name="_leaveNewTab">
-        <body><![CDATA[
-          if (this._beforeHoveredTab) {
-            this._beforeHoveredTab.removeAttribute("beforehovered");
-            this._beforeHoveredTab = null;
-          }
-        ]]></body>
-      </method>
-
       <method name="_propagateVisibility">
         <body><![CDATA[
           let visible = this.visible;
@@ -6344,10 +6253,10 @@
       </method>
 
       <method name="_handleTabSelect">
-        <parameter name="aSmoothScroll"/>
+        <parameter name="aInstant"/>
         <body><![CDATA[
           if (this.getAttribute("overflow") == "true")
-            this.mTabstrip.ensureElementIsVisible(this.selectedItem, aSmoothScroll);
+            this.mTabstrip.ensureElementIsVisible(this.selectedItem, aInstant);
         ]]></body>
       </method>
 
@@ -6477,7 +6386,6 @@
               let tabstrip = this.mTabstrip;
               layoutData = this._pinnedTabsLayoutCache = {
                 pinnedTabWidth: this.childNodes[0].getBoundingClientRect().width,
-                paddingStart: tabstrip.scrollboxPaddingStart,
                 scrollButtonWidth: tabstrip._scrollButtonDown.getBoundingClientRect().width
               };
             }
@@ -6486,10 +6394,9 @@
             for (let i = numPinned - 1; i >= 0; i--) {
               let tab = this.childNodes[i];
               width += layoutData.pinnedTabWidth;
-              tab.style.marginInlineStart =
-                -(width + layoutData.scrollButtonWidth + layoutData.paddingStart) + "px";
+              tab.style.marginInlineStart = -(width + layoutData.scrollButtonWidth) + "px";
             }
-            this.style.paddingInlineStart = width + layoutData.paddingStart + "px";
+            this.style.paddingInlineStart = width + "px";
           } else {
             this.removeAttribute("positionpinnedtabs");
 
@@ -6503,7 +6410,7 @@
 
           if (this._lastNumPinned != numPinned) {
             this._lastNumPinned = numPinned;
-            this._handleTabSelect(false);
+            this._handleTabSelect(true);
           }
         ]]></body>
       </method>
@@ -6545,7 +6452,7 @@
           let tabScreenX = draggedTab.boxObject.screenX;
           let translateX = screenX - draggedTab._dragData.screenX;
           if (!pinned)
-            translateX += this.mTabstrip.scrollPosition - draggedTab._dragData.scrollX;
+            translateX += this.mTabstrip._scrollbox.scrollLeft - draggedTab._dragData.scrollX;
           let leftBound = leftTab.boxObject.screenX - tabScreenX;
           let rightBound = (rightTab.boxObject.screenX + rightTab.boxObject.width) -
                            (tabScreenX + tabWidth);
@@ -6640,7 +6547,7 @@
               var width = this.mTabstrip.boxObject.width;
               if (width != this.mTabstripWidth) {
                 this.adjustTabstrip();
-                this._handleTabSelect(false);
+                this._handleTabSelect(true);
                 this.mTabstripWidth = width;
                 this.updateSessionRestoreVisibility();
               }
@@ -6671,7 +6578,6 @@
 
           var scrollRect = this.mTabstrip.scrollClientRect;
           var tab = aTab.getBoundingClientRect();
-          this.mTabstrip._calcTabMargins(aTab);
 
           // DOMRect left/right properties are immutable.
           tab = {left: tab.left, right: tab.right};
@@ -6683,15 +6589,6 @@
           if (this.mTabstrip.smoothScroll) {
             let selected = !this.selectedItem.pinned &&
                            this.selectedItem.getBoundingClientRect();
-            if (selected) {
-              selected = {left: selected.left, right: selected.right};
-              // Need to take in to account the width of the left/right margins on tabs.
-              selected.left = selected.left + this.mTabstrip._tabMarginLeft;
-              selected.right = selected.right - this.mTabstrip._tabMarginRight;
-            }
-
-            tab.left += this.mTabstrip._tabMarginLeft;
-            tab.right -= this.mTabstrip._tabMarginRight;
 
             // Can we make both the new tab and the selected tab completely visible?
             if (!selected ||
@@ -6701,9 +6598,9 @@
               return;
             }
 
-            this.mTabstrip._smoothScrollByPixels(this.mTabstrip._isRTLScrollbox ?
-                                                 selected.right - scrollRect.right :
-                                                 selected.left - scrollRect.left);
+            this.mTabstrip.scrollByPixels(this.mTabstrip._isRTLScrollbox ?
+                                          selected.right - scrollRect.right :
+                                          selected.left - scrollRect.left);
           }
 
           if (!this._animateElement.hasAttribute("highlight")) {
@@ -6791,6 +6688,7 @@
           if (tab.parentNode != this)
             return;
           tab._fullyOpen = true;
+          this.tabbrowser.tabAnimationsInProgress--;
 
           this.adjustTabstrip();
 
@@ -6835,10 +6733,6 @@
         ]]>
         </body>
       </method>
-
-      <!-- Deprecated stuff, implemented for backwards compatibility. -->
-      <property name="mAllTabsPopup" readonly="true"
-                onget="return document.getElementById('alltabs-popup');"/>
     </implementation>
 
     <handlers>
@@ -7102,7 +6996,7 @@
         tab._dragData = {
           offsetX: event.screenX - window.screenX - tabOffsetX,
           offsetY: event.screenY - window.screenY,
-          scrollX: this.mTabstrip.scrollPosition,
+          scrollX: this.mTabstrip._scrollbox.scrollLeft,
           screenX: event.screenX
         };
 
@@ -7442,15 +7336,13 @@
 
     <content context="tabContextMenu">
       <xul:stack class="tab-stack" flex="1">
-        <xul:hbox xbl:inherits="pinned,selected=visuallyselected,fadein"
+        <xul:vbox xbl:inherits="selected=visuallyselected,fadein"
                   class="tab-background">
-          <xul:hbox xbl:inherits="pinned,selected=visuallyselected"
-                    class="tab-background-start"/>
-          <xul:hbox xbl:inherits="pinned,selected=visuallyselected"
-                    class="tab-background-middle"/>
-          <xul:hbox xbl:inherits="pinned,selected=visuallyselected"
-                    class="tab-background-end"/>
-        </xul:hbox>
+          <xul:hbox xbl:inherits="selected=visuallyselected"
+                    class="tab-line"/>
+          <xul:spacer flex="1"/>
+          <xul:hbox class="tab-bottom-line"/>
+        </xul:vbox>
         <xul:hbox xbl:inherits="pinned,selected=visuallyselected,titlechanged,attention"
                   class="tab-content" align="center">
           <xul:image xbl:inherits="fadein,pinned,busy,progress,selected=visuallyselected"
@@ -7462,7 +7354,7 @@
                      class="tab-icon-image"
                      validate="never"
                      role="presentation"/>
-          <xul:image xbl:inherits="sharing,selected=visuallyselected"
+          <xul:image xbl:inherits="sharing,selected=visuallyselected,pinned"
                      anonid="sharing-icon"
                      class="tab-sharing-icon-overlay"
                      role="presentation"/>
@@ -7655,6 +7547,9 @@
             this.linkedBrowser.unselectedTabHover(true);
             this.startUnselectedTabHoverTimer();
           }
+
+          // Prepare connection to host beforehand.
+          SessionStore.speculativeConnectOnTabHover(this);
         ]]></body>
       </method>
 

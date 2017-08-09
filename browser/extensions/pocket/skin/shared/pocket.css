@@ -15,12 +15,6 @@ panelmultiview[mainViewId=PanelUI-pocketView] > .panel-viewcontainer > .panel-vi
 
 #pocket-button {
   list-style-image: url("chrome://pocket-shared/skin/pocket.svg");
-  -moz-context-properties: fill;
-  fill: var(--toolbarbutton-icon-fill);
-}
-
-toolbar[brighttext] #pocket-button {
-  fill: var(--toolbarbutton-icon-fill-inverted);
 }
 
 #pocket-button[open="true"][animationsenabled] > .toolbarbutton-icon {
@@ -178,13 +172,14 @@ toolbar[brighttext] #pocket-button {
 
 #library-button[animate="pocket"] > .toolbarbutton-animatable-box > .toolbarbutton-animatable-image {
   height: var(--toolbarbutton-height); /* Height must be equal to height of toolbarbutton padding-box */
+  min-height: 54px; /* Minimum height must be equal to the height of the SVG sprite */
 }
 
 #library-button[animate="pocket"] > .toolbarbutton-animatable-box > .toolbarbutton-animatable-image {
   background-image: url("chrome://pocket-shared/skin/library-pocket-animation.svg");
   width: 1078px;
   animation-name: library-pocket-animation;
-  animation-duration: 768ms;
+  animation-duration: 800ms;
   animation-timing-function: steps(48);
 }
 
@@ -247,4 +242,9 @@ toolbar[brighttext] #pocket-button {
   #panelMenu_pocket > .toolbarbutton-icon {
     width: 16px;
   }
+}
+
+#pageAction-panel-pocket,
+#pageAction-urlbar-pocket {
+  list-style-image: url("chrome://pocket-shared/skin/pocket.svg");
 }

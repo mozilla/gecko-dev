@@ -25,7 +25,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "SafeBrowsing",
 
 // lazy module getters
 
-/* global AboutHome:false, AboutNewTab:false, AddonManager:false, AppMenuNotifications:false,
+/* global AboutHome:false, AddonManager:false, AppMenuNotifications:false,
           AsyncPrefs: false, AsyncShutdown:false, AutoCompletePopup:false, BookmarkHTMLUtils:false,
           BookmarkJSONUtils:false, BrowserUITelemetry:false, BrowserUsageTelemetry:false,
           ContentClick:false, ContentPrefServiceParent:false, ContentSearch:false,
@@ -54,7 +54,6 @@ let initializedModules = {};
 
 [
   ["AboutHome", "resource:///modules/AboutHome.jsm", "init"],
-  ["AboutNewTab", "resource:///modules/AboutNewTab.jsm"],
   ["AddonManager", "resource://gre/modules/AddonManager.jsm"],
   ["AppMenuNotifications", "resource://gre/modules/AppMenuNotifications.jsm"],
   ["AsyncPrefs", "resource://gre/modules/AsyncPrefs.jsm"],
@@ -624,8 +623,8 @@ BrowserGlue.prototype = {
 
       LightweightThemeManager.addBuiltInTheme({
         id: "firefox-compact-light@mozilla.org",
-        name: gBrowserBundle.GetStringFromName("compactLightTheme.name"),
-        description: gBrowserBundle.GetStringFromName("compactLightTheme.description"),
+        name: gBrowserBundle.GetStringFromName("lightTheme.name"),
+        description: gBrowserBundle.GetStringFromName("lightTheme.description"),
         headerURL: "resource:///chrome/browser/content/browser/defaultthemes/compact.header.png",
         iconURL: "resource:///chrome/browser/content/browser/defaultthemes/compactlight.icon.svg",
         textcolor: "black",
@@ -634,8 +633,8 @@ BrowserGlue.prototype = {
       });
       LightweightThemeManager.addBuiltInTheme({
         id: "firefox-compact-dark@mozilla.org",
-        name: gBrowserBundle.GetStringFromName("compactDarkTheme.name"),
-        description: gBrowserBundle.GetStringFromName("compactDarkTheme.description"),
+        name: gBrowserBundle.GetStringFromName("darkTheme.name"),
+        description: gBrowserBundle.GetStringFromName("darkTheme.description"),
         headerURL: "resource:///chrome/browser/content/browser/defaultthemes/compact.header.png",
         iconURL: "resource:///chrome/browser/content/browser/defaultthemes/compactdark.icon.svg",
         textcolor: "white",
@@ -969,7 +968,6 @@ BrowserGlue.prototype = {
     DirectoryLinksProvider.init();
     NewTabUtils.init();
     NewTabUtils.links.addProvider(DirectoryLinksProvider);
-    AboutNewTab.init();
 
     PageActions.init();
 
@@ -1030,7 +1028,6 @@ BrowserGlue.prototype = {
     BrowserUsageTelemetry.uninit();
 
     PageThumbs.uninit();
-    AboutNewTab.uninit();
     NewTabUtils.uninit();
     AutoCompletePopup.uninit();
     DateTimePickerHelper.uninit();
@@ -1735,7 +1732,7 @@ BrowserGlue.prototype = {
 
   // eslint-disable-next-line complexity
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 50;
+    const UI_VERSION = 51;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
 
     let currentUIVersion;
@@ -1896,7 +1893,7 @@ BrowserGlue.prototype = {
 
       // Typed behavior will be used only for results from history.
       if (defaultBehavior != -1 &&
-          !!(defaultBehavior & Ci.mozIPlacesAutoComplete["BEHAVIOR_TYPED"])) {
+          !!(defaultBehavior & Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED)) {
         Services.prefs.setBoolPref("browser.urlbar.suggest.history.onlyTyped", true);
       }
     }
@@ -2092,6 +2089,16 @@ BrowserGlue.prototype = {
         }
       } catch (ex) {
         // It's ok if a pref is missing.
+      }
+    }
+
+    if (currentUIVersion < 51) {
+      // Switch to compact UI density if the user is using a formerly compact
+      // dark or light theme.
+      let currentTheme = Services.prefs.getCharPref("lightweightThemes.selectedThemeID", "");
+      if (currentTheme == "firefox-compact-dark@mozilla.org" ||
+          currentTheme == "firefox-compact-light@mozilla.org") {
+        Services.prefs.setIntPref("browser.uidensity", 1);
       }
     }
 

@@ -13,6 +13,7 @@ const CACHED_STYLESHEETS = new WeakMap();
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FormAutofillParent",
                                   "resource://formautofill/FormAutofillParent.jsm");
 
@@ -40,10 +41,25 @@ function onMaybeOpenPopup(evt) {
   insertStyleSheet(domWindow, STYLESHEET_URI);
 }
 
-function startup() {
+function startup(data) {
   if (Services.prefs.getStringPref("extensions.formautofill.available") != "on") {
+    Services.prefs.clearUserPref("dom.forms.autocomplete.formautofill");
     return;
   }
+
+  if (data.hasOwnProperty("instanceID") && data.instanceID) {
+    AddonManager.addUpgradeListener(data.instanceID, (upgrade) => {
+      // don't install the upgrade by doing nothing here.
+      // The upgrade will be installed upon next restart.
+    });
+  } else {
+    throw Error("no instanceID passed to bootstrap startup");
+  }
+
+  // This pref is used for web contents to detect the autocomplete feature.
+  // When it's true, "element.autocomplete" will return tokens we currently
+  // support -- otherwise it'll return an empty string.
+  Services.prefs.setBoolPref("dom.forms.autocomplete.formautofill", true);
 
   // Listen for the autocomplete popup message to lazily append our stylesheet related to the popup.
   Services.mm.addMessageListener("FormAutoComplete:MaybeOpenPopup", onMaybeOpenPopup);

@@ -17,7 +17,7 @@ function run_test() {
   var homeDir = dirSvc.get("Home", Ci.nsIFile);
 
   var env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-  var expected = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+  var expected = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
   expected.initWithPath(env.get(envVar));
 
   do_check_eq(homeDir.path, expected.path);

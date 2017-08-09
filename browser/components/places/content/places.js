@@ -283,9 +283,9 @@ var PlacesOrganizer = {
     let itemId = aNode.itemId;
 
     if (PlacesUtils.nodeIsHistoryContainer(aNode) ||
-        itemId == PlacesUIUtils.leftPaneQueries["History"]) {
+        itemId == PlacesUIUtils.leftPaneQueries.History) {
       PlacesQueryBuilder.setScope("history");
-    } else if (itemId == PlacesUIUtils.leftPaneQueries["Downloads"]) {
+    } else if (itemId == PlacesUIUtils.leftPaneQueries.Downloads) {
       PlacesQueryBuilder.setScope("downloads");
     } else {
       // Default to All Bookmarks for all other nodes, per bug 469437.
@@ -478,7 +478,7 @@ var PlacesOrganizer = {
   onRestoreBookmarksFromFile: function PO_onRestoreBookmarksFromFile() {
     let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
                  getService(Ci.nsIProperties);
-    let backupsDir = dirSvc.get("Desk", Ci.nsILocalFile);
+    let backupsDir = dirSvc.get("Desk", Ci.nsIFile);
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     let fpCallback = aResult => {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
@@ -540,7 +540,7 @@ var PlacesOrganizer = {
   backupBookmarks: function PO_backupBookmarks() {
     let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
                  getService(Ci.nsIProperties);
-    let backupsDir = dirSvc.get("Desk", Ci.nsILocalFile);
+    let backupsDir = dirSvc.get("Desk", Ci.nsIFile);
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     let fpCallback = function fpCallback_done(aResult) {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
@@ -784,7 +784,6 @@ var PlacesSearchBox = {
     }
 
     let currentView = ContentArea.currentView;
-    let currentOptions = PO.getCurrentOptions();
 
     // Search according to the current scope, which was set by
     // PQB_setScope()
@@ -793,6 +792,7 @@ var PlacesSearchBox = {
         currentView.applyFilter(filterString, this.folders);
         break;
       case "history": {
+        let currentOptions = PO.getCurrentOptions();
         if (currentOptions.queryType != Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
           let query = PlacesUtils.history.getNewQuery();
           query.searchTerms = filterString;
@@ -810,20 +810,8 @@ var PlacesSearchBox = {
         break;
       }
       case "downloads": {
-        if (currentView == ContentTree.view) {
-          let query = PlacesUtils.history.getNewQuery();
-          query.searchTerms = filterString;
-          query.setTransitions([Ci.nsINavHistoryService.TRANSITION_DOWNLOAD], 1);
-          let options = currentOptions.clone();
-          // Make sure we're getting uri results.
-          options.resultType = currentOptions.RESULTS_AS_URI;
-          options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
-          options.includeHidden = true;
-          currentView.load([query], options);
-        } else {
-          // The new downloads view doesn't use places for searching downloads.
-          currentView.searchTerm = filterString;
-        }
+        // The new downloads view doesn't use places for searching downloads.
+        currentView.searchTerm = filterString;
         break;
       }
       default:

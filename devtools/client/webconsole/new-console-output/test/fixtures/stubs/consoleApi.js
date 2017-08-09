@@ -267,7 +267,6 @@ stubPreparedMessages.set("console.assert(false, {message: 'foobar'})", new Conso
       "columnNumber": 27,
       "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
       "functionName": "triggerPacket",
-      "language": 2,
       "lineNumber": 1
     }
   ],
@@ -558,11 +557,11 @@ stubPreparedMessages.set("console.log('myobject', {red: 'redValue', green: 'gree
   "indent": 0
 }));
 
-stubPreparedMessages.set("console.map('mymap')", new ConsoleMessage({
+stubPreparedMessages.set("console.log('mymap')", new ConsoleMessage({
   "id": "1",
   "allowRepeating": true,
   "source": "console-api",
-  "timeStamp": 1493125410207,
+  "timeStamp": 1501506737042,
   "type": "log",
   "helperType": null,
   "level": "log",
@@ -571,7 +570,7 @@ stubPreparedMessages.set("console.map('mymap')", new ConsoleMessage({
     "mymap",
     {
       "type": "object",
-      "actor": "server1.conn0.child1/obj36",
+      "actor": "server1.conn0.child1/obj37",
       "class": "Map",
       "extensible": true,
       "frozen": false,
@@ -593,11 +592,54 @@ stubPreparedMessages.set("console.map('mymap')", new ConsoleMessage({
       }
     }
   ],
-  "repeatId": "{\"frame\":{\"source\":\"http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html\",\"line\":5,\"column\":1},\"groupId\":null,\"indent\":0,\"level\":\"log\",\"messageText\":null,\"parameters\":[\"mymap\",{\"type\":\"object\",\"actor\":\"server1.conn0.child1/obj36\",\"class\":\"Map\",\"extensible\":true,\"frozen\":false,\"sealed\":false,\"ownPropertyLength\":0,\"preview\":{\"kind\":\"MapLike\",\"size\":2,\"entries\":[[\"key1\",\"value1\"],[\"key2\",\"value2\"]]}}],\"source\":\"console-api\",\"type\":\"log\",\"userProvidedStyles\":[]}",
+  "repeatId": "{\"frame\":{\"source\":\"http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html\",\"line\":5,\"column\":1},\"groupId\":null,\"indent\":0,\"level\":\"log\",\"messageText\":null,\"parameters\":[\"mymap\",{\"type\":\"object\",\"actor\":\"server1.conn0.child1/obj37\",\"class\":\"Map\",\"extensible\":true,\"frozen\":false,\"sealed\":false,\"ownPropertyLength\":0,\"preview\":{\"kind\":\"MapLike\",\"size\":2,\"entries\":[[\"key1\",\"value1\"],[\"key2\",\"value2\"]]}}],\"source\":\"console-api\",\"type\":\"log\",\"userProvidedStyles\":[]}",
   "stacktrace": null,
   "frame": {
     "source": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
     "line": 5,
+    "column": 1
+  },
+  "groupId": null,
+  "exceptionDocURL": null,
+  "userProvidedStyles": [],
+  "notes": null,
+  "indent": 0
+}));
+
+stubPreparedMessages.set("console.log('myset')", new ConsoleMessage({
+  "id": "1",
+  "allowRepeating": true,
+  "source": "console-api",
+  "timeStamp": 1501506737051,
+  "type": "log",
+  "helperType": null,
+  "level": "log",
+  "messageText": null,
+  "parameters": [
+    "myset",
+    {
+      "type": "object",
+      "actor": "server1.conn0.child1/obj38",
+      "class": "Set",
+      "extensible": true,
+      "frozen": false,
+      "sealed": false,
+      "ownPropertyLength": 0,
+      "preview": {
+        "kind": "ArrayLike",
+        "length": 2,
+        "items": [
+          "a",
+          "b"
+        ]
+      }
+    }
+  ],
+  "repeatId": "{\"frame\":{\"source\":\"http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html\",\"line\":2,\"column\":1},\"groupId\":null,\"indent\":0,\"level\":\"log\",\"messageText\":null,\"parameters\":[\"myset\",{\"type\":\"object\",\"actor\":\"server1.conn0.child1/obj38\",\"class\":\"Set\",\"extensible\":true,\"frozen\":false,\"sealed\":false,\"ownPropertyLength\":0,\"preview\":{\"kind\":\"ArrayLike\",\"length\":2,\"items\":[\"a\",\"b\"]}}],\"source\":\"console-api\",\"type\":\"log\",\"userProvidedStyles\":[]}",
+  "stacktrace": null,
+  "frame": {
+    "source": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
+    "line": 2,
     "column": 1
   },
   "groupId": null,
@@ -623,21 +665,18 @@ stubPreparedMessages.set("console.trace()", new ConsoleMessage({
       "columnNumber": 3,
       "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
       "functionName": "testStacktraceFiltering",
-      "language": 2,
       "lineNumber": 3
     },
     {
       "columnNumber": 3,
       "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
       "functionName": "foo",
-      "language": 2,
       "lineNumber": 6
     },
     {
       "columnNumber": 1,
       "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
       "functionName": "triggerPacket",
-      "language": 2,
       "lineNumber": 9
     }
   ],
@@ -1419,7 +1458,6 @@ stubPackets.set("console.assert(false, {message: 'foobar'})", {
         "columnNumber": 27,
         "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
         "functionName": "triggerPacket",
-        "language": 2,
         "lineNumber": 1
       }
     ],
@@ -1689,7 +1727,7 @@ stubPackets.set("console.log('myobject', {red: 'redValue', green: 'greenValue', 
   }
 });
 
-stubPackets.set("console.map('mymap')", {
+stubPackets.set("console.log('mymap')", {
   "from": "server1.conn0.child1/consoleActor2",
   "type": "consoleAPICall",
   "message": {
@@ -1698,7 +1736,7 @@ stubPackets.set("console.map('mymap')", {
       "mymap",
       {
         "type": "object",
-        "actor": "server1.conn0.child1/obj36",
+        "actor": "server1.conn0.child1/obj37",
         "class": "Map",
         "extensible": true,
         "frozen": false,
@@ -1729,7 +1767,48 @@ stubPackets.set("console.map('mymap')", {
     "lineNumber": 5,
     "private": false,
     "styles": [],
-    "timeStamp": 1493125410207,
+    "timeStamp": 1501506737042,
+    "timer": null,
+    "workerType": "none",
+    "category": "webdev"
+  }
+});
+
+stubPackets.set("console.log('myset')", {
+  "from": "server1.conn0.child1/consoleActor2",
+  "type": "consoleAPICall",
+  "message": {
+    "addonId": "",
+    "arguments": [
+      "myset",
+      {
+        "type": "object",
+        "actor": "server1.conn0.child1/obj38",
+        "class": "Set",
+        "extensible": true,
+        "frozen": false,
+        "sealed": false,
+        "ownPropertyLength": 0,
+        "preview": {
+          "kind": "ArrayLike",
+          "length": 2,
+          "items": [
+            "a",
+            "b"
+          ]
+        }
+      }
+    ],
+    "columnNumber": 1,
+    "counter": null,
+    "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
+    "functionName": "triggerPacket",
+    "groupName": "",
+    "level": "log",
+    "lineNumber": 2,
+    "private": false,
+    "styles": [],
+    "timeStamp": 1501506737051,
     "timer": null,
     "workerType": "none",
     "category": "webdev"
@@ -1757,21 +1836,18 @@ stubPackets.set("console.trace()", {
         "columnNumber": 3,
         "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
         "functionName": "testStacktraceFiltering",
-        "language": 2,
         "lineNumber": 3
       },
       {
         "columnNumber": 3,
         "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
         "functionName": "foo",
-        "language": 2,
         "lineNumber": 6
       },
       {
         "columnNumber": 1,
         "filename": "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-console-api.html",
         "functionName": "triggerPacket",
-        "language": 2,
         "lineNumber": 9
       }
     ],

@@ -2401,7 +2401,10 @@ public:
    */
   template<typename Item, typename Comparator>
   void Sort(const Comparator& aComparator) {
-    nsTArray<Item> items;
+    // Some casual local browsing testing suggests that a local preallocated
+    // array of 20 items should be able to avoid a lot of dynamic allocations
+    // here.
+    AutoTArray<Item, 20> items;
 
     while (nsDisplayItem* item = RemoveBottom()) {
       items.AppendElement(Item(item));
@@ -4050,6 +4053,11 @@ public:
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
                                    const ContainerLayerParameters& aParameters) override;
+  bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                               const StackingContextHelper& aSc,
+                               nsTArray<WebRenderParentCommand>& aParentCommands,
+                               mozilla::layers::WebRenderLayerManager* aManager,
+                               nsDisplayListBuilder* aDisplayListBuilder) override;
   virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                  nsRegion* aVisibleRegion) override;
   virtual bool TryMerge(nsDisplayItem* aItem) override;
@@ -4085,6 +4093,11 @@ public:
     virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                      LayerManager* aManager,
                                      const ContainerLayerParameters& aParameters) override;
+    bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                 const StackingContextHelper& aSc,
+                                 nsTArray<WebRenderParentCommand>& aParentCommands,
+                                 mozilla::layers::WebRenderLayerManager* aManager,
+                                 nsDisplayListBuilder* aDisplayListBuilder) override;
     virtual bool TryMerge(nsDisplayItem* aItem) override;
     virtual bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) override {
       return false;
@@ -4150,6 +4163,11 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
+  virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
+                                       nsTArray<WebRenderParentCommand>& aParentCommands,
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder) override;
   virtual bool UpdateScrollData(mozilla::layers::WebRenderScrollData* aData,
                                 mozilla::layers::WebRenderLayerScrollData* aLayerData) override;
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
@@ -4175,6 +4193,7 @@ protected:
   // and can be ignored.
   ScrollThumbData mThumbData;
   bool mForceActive;
+  uint64_t mWrAnimationId;
 };
 
 /**
@@ -4576,6 +4595,16 @@ public:
   void PaintAsLayer(nsDisplayListBuilder* aBuilder,
                     gfxContext* aCtx,
                     LayerManager* aManager);
+
+  virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
+                                       nsTArray<WebRenderParentCommand>& aParentCommands,
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder) override;
+
+private:
+  // relative to mFrame
+  nsRect mEffectsBounds;
 };
 
 /* A display item that applies a transformation to all of its descendant

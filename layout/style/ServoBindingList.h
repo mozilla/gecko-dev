@@ -20,6 +20,8 @@
 
 // Element data
 SERVO_BINDING_FUNC(Servo_Element_ClearData, void, RawGeckoElementBorrowed node)
+SERVO_BINDING_FUNC(Servo_Element_SizeOfExcludingThis, size_t, mozilla::MallocSizeOf,
+                   mozilla::SeenPtrs* seen_ptrs, RawGeckoElementBorrowed node)
 
 // Styleset and Stylesheet management
 SERVO_BINDING_FUNC(Servo_StyleSheet_FromUTF8Bytes, RawServoStyleSheetContentsStrong,
@@ -45,10 +47,10 @@ SERVO_BINDING_FUNC(Servo_StyleSheet_SizeOfIncludingThis, size_t,
 SERVO_BINDING_FUNC(Servo_StyleSet_Init, RawServoStyleSetOwned, RawGeckoPresContextOwned pres_context)
 SERVO_BINDING_FUNC(Servo_StyleSet_Clear, void,
                    RawServoStyleSetBorrowed set)
-SERVO_BINDING_FUNC(Servo_StyleSet_RebuildData, void,
+SERVO_BINDING_FUNC(Servo_StyleSet_RebuildCachedData, void,
                    RawServoStyleSetBorrowed set)
-SERVO_BINDING_FUNC(Servo_StyleSet_MediumFeaturesChanged, nsRestyleHint,
-                   RawServoStyleSetBorrowed set, bool viewport_changed)
+SERVO_BINDING_FUNC(Servo_StyleSet_MediumFeaturesChanged, bool,
+                   RawServoStyleSetBorrowed set, bool* viewport_units_used)
 SERVO_BINDING_FUNC(Servo_StyleSet_Drop, void, RawServoStyleSetOwned set)
 SERVO_BINDING_FUNC(Servo_StyleSet_CompatModeChanged, void,
                    RawServoStyleSetBorrowed raw_data)
@@ -377,10 +379,10 @@ SERVO_BINDING_FUNC(Servo_DeclarationBlock_HasCSSWideKeyword, bool,
                    nsCSSPropertyID property)
 // Compose animation value for a given property.
 // |base_values| is nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>.
-// We use void* to avoid exposing nsRefPtrHashtable in FFI.
+// We use RawServoAnimationValueTableBorrowed to avoid exposing nsRefPtrHashtable in FFI.
 SERVO_BINDING_FUNC(Servo_AnimationCompose, void,
                    RawServoAnimationValueMapBorrowedMut animation_values,
-                   void* base_values,
+                   RawServoAnimationValueTableBorrowed base_values,
                    nsCSSPropertyID property,
                    RawGeckoAnimationPropertySegmentBorrowed animation_segment,
                    RawGeckoAnimationPropertySegmentBorrowed last_segment,
@@ -537,7 +539,8 @@ SERVO_BINDING_FUNC(Servo_ResolveStyleLazily, ServoStyleContextStrong,
                    mozilla::CSSPseudoElementType pseudo_type,
                    mozilla::StyleRuleInclusion rule_inclusion,
                    const mozilla::ServoElementSnapshotTable* snapshots,
-                   RawServoStyleSetBorrowed set)
+                   RawServoStyleSetBorrowed set,
+                   bool ignore_existing_styles)
 
 // Reparents style to the new parents.
 SERVO_BINDING_FUNC(Servo_ReparentStyle, ServoStyleContextStrong,

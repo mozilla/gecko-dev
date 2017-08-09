@@ -1228,13 +1228,14 @@ nsresult nsWebBrowserPersist::SendErrorStatusChange(
     rv = s->CreateBundle(kWebBrowserPersistStringBundle, getter_AddRefs(bundle));
     NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && bundle, NS_ERROR_FAILURE);
 
-    nsXPIDLString msgText;
+    nsAutoString msgText;
     const char16_t *strings[1];
     strings[0] = path.get();
-    rv = bundle->FormatStringFromName(msgId, strings, 1, getter_Copies(msgText));
+    rv = bundle->FormatStringFromName(msgId, strings, 1, msgText);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
-    mProgressListener->OnStatusChange(nullptr, aRequest, aResult, msgText);
+    mProgressListener->OnStatusChange(nullptr, aRequest, aResult,
+                                      msgText.get());
 
     return NS_OK;
 }
@@ -1285,7 +1286,7 @@ nsWebBrowserPersist::AppendPathToURI(nsIURI *aURI, const nsAString & aPath)
     NS_ENSURE_ARG_POINTER(aURI);
 
     nsAutoCString newPath;
-    nsresult rv = aURI->GetPath(newPath);
+    nsresult rv = aURI->GetPathQueryRef(newPath);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
     // Append a forward slash if necessary
@@ -1297,7 +1298,7 @@ nsWebBrowserPersist::AppendPathToURI(nsIURI *aURI, const nsAString & aPath)
 
     // Store the path back on the URI
     AppendUTF16toUTF8(aPath, newPath);
-    aURI->SetPath(newPath);
+    aURI->SetPathQueryRef(newPath);
 
     return NS_OK;
 }

@@ -45,6 +45,11 @@ web-platform-tests:
     - web-platform-tests-reftests
     - web-platform-tests-wdspec
 
+web-platform-tests-headless:
+    - web-platform-tests-headless
+    - web-platform-tests-reftests-headless
+    - web-platform-tests-wdspec-headless
+
 opt-only-tests:
     - mochitest-valgrind
 
@@ -64,6 +69,12 @@ talos:
 
 awsy:
     - awsy
+
+awsy-stylo:
+    - awsy-stylo
+
+awsy-stylo-sequential:
+    - awsy-stylo-sequential
 
 ##
 # Limited test sets for specific platforms
@@ -143,8 +154,9 @@ windows-talos:
     - talos-svgr
     - talos-tp5o
     - talos-xperf
-    - talos-quantum-pageload
-    - talos-quantum-pageload-stylo
+    - talos-tp6
+    - talos-tp6-stylo
+    - talos-tp6-stylo-threads
 
 macosx64-tests:
     - cppunit
@@ -255,4 +267,6 @@ windows8-tests:
     - mochitest-webgl
     - mochitest-clipboard
     - mochitest-chrome
-    - xpcshell
+
+devtools-tests:
+    - mochitest-devtools-chrome

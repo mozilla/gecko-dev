@@ -35,6 +35,15 @@
   <color name="restricted_profile_background_gold">#ffffcb51</color>
   <color name="restricted_profile_background_green">#1aaa86</color>
 
+  <!-- Status bar background color -->
+  <color name="status_bar_bg_color">@android:color/transparent</color>
+  <color name="status_bar_bg_color_private">@android:color/transparent</color>
+  <color name="status_bar_bg_color_tablet">@android:color/transparent</color>
+
+  <!-- Toolbar menu item tint color -->
+  <color name="menu_item_tint">@color/toolbar_icon_grey</color>
+  <color name="menu_item_tint_private">@color/toolbar_icon_grey</color>
+
   <!-- Non-palette colors -->
 
   <!-- Synced w/ toolbar_grey -->
@@ -103,6 +112,15 @@
   <color name="url_bar_text_highlight">@color/fennec_ui_orange</color>
   <color name="url_bar_text_highlight_private">#FFD06BFF</color>
   <color name="tab_row_pressed">#4D000000</color>
+
+  <!-- Tab Tray -->
+  <color name="tab_item_normal_bg">#F9F9FA</color>
+  <color name="tab_item_private_bg">#38383D</color>
+  <color name="tab_item_normal_highlight_bg">#0a84ff</color>
+  <color name="tab_item_normal_highlight_bg_80">#CC0a84ff</color>
+  <color name="tab_item_private_highlight_bg">#AC39FF</color>
+  <color name="tab_item_private_highlight_bg_80">#CCAC39FF</color>
+  <color name="tab_item_thumbnail_default_bg">#E4E4E4</color>
 
   <color name="url_bar_urltext">#AFB1B3</color>
   <color name="url_bar_urltext_private">#777777</color>

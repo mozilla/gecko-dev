@@ -47,8 +47,8 @@ XPCOMUtils.defineLazyPreferenceGetter(this, "processCount", "dom.ipc.processCoun
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
+                                  "resource://gre/modules/AddonManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionAPIs",
@@ -69,12 +69,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
-                                  "resource://gre/modules/Preferences.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "require",
-                                  "resource://devtools/shared/Loader.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
                                   "resource://gre/modules/Schemas.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "setTimeout",
@@ -200,7 +194,7 @@ const COMMENT_REGEXP = new RegExp(String.raw`
 // returns the UUID for a given add-on ID.
 var UUIDMap = {
   _read() {
-    let pref = Preferences.get(UUID_MAP_PREF, "{}");
+    let pref = Services.prefs.getStringPref(UUID_MAP_PREF, "{}");
     try {
       return JSON.parse(pref);
     } catch (e) {
@@ -210,7 +204,7 @@ var UUIDMap = {
   },
 
   _write(map) {
-    Preferences.set(UUID_MAP_PREF, JSON.stringify(map));
+    Services.prefs.setStringPref(UUID_MAP_PREF, JSON.stringify(map));
   },
 
   get(id, create = true) {
@@ -581,7 +575,7 @@ this.ExtensionData = class {
     let whitelist = [];
     for (let perm of this.manifest.permissions) {
       if (perm === "geckoProfiler") {
-        const acceptedExtensions = Preferences.get("extensions.geckoProfiler.acceptedExtensionIds");
+        const acceptedExtensions = Services.prefs.getStringPref("extensions.geckoProfiler.acceptedExtensionIds", "");
         if (!acceptedExtensions.split(",").includes(this.id)) {
           this.manifestError("Only whitelisted extensions are allowed to access the geckoProfiler.");
           continue;
@@ -758,6 +752,36 @@ const PROXIED_EVENTS = new Set(["test-harness-message", "add-permissions", "remo
 
 const shutdownPromises = new Map();
 
+class BootstrapScope {
+  install(data, reason) {}
+  uninstall(data, reason) {}
+
+  startup(data, reason) {
+    this.extension = new Extension(data, this.BOOTSTRAP_REASON_TO_STRING_MAP[reason]);
+    return this.extension.startup();
+  }
+
+  shutdown(data, reason) {
+    this.extension.shutdown(this.BOOTSTRAP_REASON_TO_STRING_MAP[reason]);
+    this.extension = null;
+  }
+}
+
+XPCOMUtils.defineLazyGetter(BootstrapScope.prototype, "BOOTSTRAP_REASON_TO_STRING_MAP", () => {
+  const {BOOTSTRAP_REASONS} = AddonManagerPrivate;
+
+  return Object.freeze({
+    [BOOTSTRAP_REASONS.APP_STARTUP]: "APP_STARTUP",
+    [BOOTSTRAP_REASONS.APP_SHUTDOWN]: "APP_SHUTDOWN",
+    [BOOTSTRAP_REASONS.ADDON_ENABLE]: "ADDON_ENABLE",
+    [BOOTSTRAP_REASONS.ADDON_DISABLE]: "ADDON_DISABLE",
+    [BOOTSTRAP_REASONS.ADDON_INSTALL]: "ADDON_INSTALL",
+    [BOOTSTRAP_REASONS.ADDON_UNINSTALL]: "ADDON_UNINSTALL",
+    [BOOTSTRAP_REASONS.ADDON_UPGRADE]: "ADDON_UPGRADE",
+    [BOOTSTRAP_REASONS.ADDON_DOWNGRADE]: "ADDON_DOWNGRADE",
+  });
+});
+
 // We create one instance of this class per extension. |addonData|
 // comes directly from bootstrap.js when initializing.
 this.Extension = class extends ExtensionData {
@@ -846,6 +870,10 @@ this.Extension = class extends ExtensionData {
       this.policy.allowedOrigins = this.whiteListedHosts;
     });
     /* eslint-enable mozilla/balanced-listeners */
+  }
+
+  static getBootstrapScope(id, file) {
+    return new BootstrapScope();
   }
 
   get groupFrameLoader() {

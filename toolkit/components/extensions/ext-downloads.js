@@ -13,8 +13,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
                                   "resource://gre/modules/EventEmitter.jsm");
 
@@ -417,6 +415,10 @@ this.downloads = class extends ExtensionAPI {
             if (path.components.some(component => component == "..")) {
               return Promise.reject({message: "filename must not contain back-references (..)"});
             }
+
+            if (AppConstants.platform === "win" && /[|"*?:<>]/.test(filename)) {
+              return Promise.reject({message: "filename must not contain illegal characters"});
+            }
           }
 
           if (options.conflictAction == "prompt") {
@@ -461,13 +463,13 @@ this.downloads = class extends ExtensionAPI {
             if (filename) {
               target = OS.Path.join(downloadsDir, filename);
             } else {
-              let uri = NetUtil.newURI(options.url);
+              let uri = Services.io.newURI(options.url);
 
-              let remote = "download";
+              let remote;
               if (uri instanceof Ci.nsIURL) {
                 remote = uri.fileName;
               }
-              target = OS.Path.join(downloadsDir, remote);
+              target = OS.Path.join(downloadsDir, remote || "download");
             }
 
             // Create any needed subdirectories if required by filename.
@@ -525,6 +527,7 @@ this.downloads = class extends ExtensionAPI {
             .then(target => {
               const source = {
                 url: options.url,
+                isPrivate: options.incognito,
               };
 
               if (options.method || options.headers || options.body) {

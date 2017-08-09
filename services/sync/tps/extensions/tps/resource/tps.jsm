@@ -507,10 +507,10 @@ var TPS = {
         for (let bookmark of bookmarks[folder]) {
           Logger.clearPotentialError();
           let placesItem;
-          bookmark["location"] = folder;
+          bookmark.location = folder;
 
           if (last_item_pos != -1)
-            bookmark["last_item_pos"] = last_item_pos;
+            bookmark.last_item_pos = last_item_pos;
           let item_id = -1;
 
           if (action != ACTION_MODIFY && action != ACTION_DELETE)
@@ -1035,7 +1035,7 @@ var TPS = {
 
   RunMozmillTest: function TPS__RunMozmillTest(testfile) {
     var mozmillfile = Cc["@mozilla.org/file/local;1"]
-                      .createInstance(Ci.nsILocalFile);
+                      .createInstance(Ci.nsIFile);
     if (hh.oscpu.toLowerCase().indexOf("windows") > -1) {
       let re = /\/(\w)\/(.*)/;
       this.config.testdir = this.config.testdir.replace(re, "$1://$2").replace(/\//g, "\\");

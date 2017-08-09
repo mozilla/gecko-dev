@@ -229,14 +229,18 @@ impl nsStyleImage {
                         }
                     },
                     LineDirection::Vertical(y) => {
-                        // Y::Bottom (to bottom) is ignored because it is the default value.
-                        if y == Y::Top {
-                            unsafe {
-                                (*gecko_gradient).mBgPosX
-                                                 .set_value(CoordDataValue::Percent(0.5));
-                                (*gecko_gradient).mBgPosY
-                                                 .set_value(CoordDataValue::Percent(0.0));
-                            }
+                        // Although bottom is the default value, we can not ignore
+                        // it here, because the rendering code of Gecko relies on
+                        // this to behave correctly for legacy mode.
+                        let y = match y {
+                            Y::Top => 0.0,
+                            Y::Bottom => 1.0,
+                        };
+                        unsafe {
+                            (*gecko_gradient).mBgPosX
+                                                .set_value(CoordDataValue::Percent(0.5));
+                            (*gecko_gradient).mBgPosY
+                                                .set_value(CoordDataValue::Percent(y));
                         }
                     },
                     LineDirection::Corner(horiz, vert) => {
@@ -307,7 +311,7 @@ impl nsStyleImage {
                     Gecko_CreateGradient(gecko_shape,
                                          gecko_size,
                                          gradient.repeating,
-                                         gradient.compat_mode != CompatMode::Modern,
+                                         gradient.compat_mode == CompatMode::Moz,
                                          gradient.compat_mode == CompatMode::Moz,
                                          stop_count as u32)
                 };
@@ -810,7 +814,8 @@ impl TrackSize<LengthOrPercentage> {
 
         if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
             debug_assert!(gecko_max.unit() == nsStyleUnit::eStyleUnit_Coord ||
-                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent);
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent ||
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Calc);
             return TrackSize::FitContent(LengthOrPercentage::from_gecko_style_coord(gecko_max)
                                          .expect("gecko_max could not convert to LengthOrPercentage"));
         }

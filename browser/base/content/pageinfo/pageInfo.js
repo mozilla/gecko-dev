@@ -362,8 +362,7 @@ function loadPageInfo(frameOuterWindowID, imageElement, browser) {
     pageInfoData = message.data;
     let docInfo = pageInfoData.docInfo;
     let windowInfo = pageInfoData.windowInfo;
-    let uri = makeURI(docInfo.documentURIObject.spec,
-                      docInfo.documentURIObject.originCharset);
+    let uri = makeURI(docInfo.documentURIObject.spec);
     let principal = docInfo.principal;
     gDocInfo = docInfo;
 
@@ -669,14 +668,14 @@ function getSelectedRow(tree) {
 }
 
 function selectSaveFolder(aCallback) {
-  const nsILocalFile = Components.interfaces.nsILocalFile;
+  const nsIFile = Components.interfaces.nsIFile;
   const nsIFilePicker = Components.interfaces.nsIFilePicker;
   let titleText = gBundle.getString("mediaSelectFolder");
   let fp = Components.classes["@mozilla.org/filepicker;1"].
            createInstance(nsIFilePicker);
   let fpCallback = function fpCallback_done(aResult) {
     if (aResult == nsIFilePicker.returnOK) {
-      aCallback(fp.file.QueryInterface(nsILocalFile));
+      aCallback(fp.file.QueryInterface(nsIFile));
     } else {
       aCallback(null);
     }
@@ -687,7 +686,7 @@ function selectSaveFolder(aCallback) {
   try {
     let prefs = Components.classes[PREFERENCES_CONTRACTID].
                 getService(Components.interfaces.nsIPrefBranch);
-    let initialDir = prefs.getComplexValue("browser.download.dir", nsILocalFile);
+    let initialDir = prefs.getComplexValue("browser.download.dir", nsIFile);
     if (initialDir) {
       fp.displayDirectory = initialDir;
     }

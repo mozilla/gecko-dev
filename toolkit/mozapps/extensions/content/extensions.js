@@ -107,7 +107,7 @@ XPCOMUtils.defineLazyPreferenceGetter(this, "legacyWarningExceptions",
                                       raw => raw.split(","));
 XPCOMUtils.defineLazyPreferenceGetter(this, "legacyExtensionsEnabled",
                                       PREF_LEGACY_ENABLED, true,
-                                      () => gLegacyView.refresh());
+                                      () => gLegacyView.refreshVisibility());
 
 document.addEventListener("load", initialize, true);
 window.addEventListener("unload", shutdown);
@@ -483,7 +483,7 @@ if (window.QueryInterface(Ci.nsIInterfaceRequestor)
 
 var gEventManager = {
   _listeners: {},
-  _installListeners: [],
+  _installListeners: new Set(),
 
   initialize() {
     const ADDON_EVENTS = ["onEnabling", "onEnabled", "onDisabling",
@@ -569,32 +569,22 @@ var gEventManager = {
 
   registerAddonListener(aListener, aAddonId) {
     if (!(aAddonId in this._listeners))
-      this._listeners[aAddonId] = [];
-    else if (this._listeners[aAddonId].indexOf(aListener) != -1)
-      return;
-    this._listeners[aAddonId].push(aListener);
+      this._listeners[aAddonId] = new Set();
+    this._listeners[aAddonId].add(aListener);
   },
 
   unregisterAddonListener(aListener, aAddonId) {
     if (!(aAddonId in this._listeners))
       return;
-    var index = this._listeners[aAddonId].indexOf(aListener);
-    if (index == -1)
-      return;
-    this._listeners[aAddonId].splice(index, 1);
+    this._listeners[aAddonId].delete(aListener);
   },
 
   registerInstallListener(aListener) {
-    if (this._installListeners.indexOf(aListener) != -1)
-      return;
-    this._installListeners.push(aListener);
+    this._installListeners.add(aListener);
   },
 
   unregisterInstallListener(aListener) {
-    var i = this._installListeners.indexOf(aListener);
-    if (i == -1)
-      return;
-    this._installListeners.splice(i, 1);
+    this._installListeners.delete(aListener);
   },
 
   delegateAddonEvent(aEvent, aParams) {
@@ -602,16 +592,23 @@ var gEventManager = {
     if (!(addon.id in this._listeners))
       return;
 
-    var listeners = this._listeners[addon.id];
-    for (let listener of listeners) {
+    function tryListener(listener) {
       if (!(aEvent in listener))
-        continue;
+        return;
       try {
         listener[aEvent].apply(listener, aParams);
       } catch (e) {
         // this shouldn't be fatal
         Cu.reportError(e);
       }
+    }
+
+    for (let listener of this._listeners[addon.id]) {
+      tryListener(listener);
+    }
+    // eslint-disable-next-line dot-notation
+    for (let listener of this._listeners["ANY"]) {
+      tryListener(listener);
     }
   },
 
@@ -737,12 +734,12 @@ var gViewController = {
     this.headeredViews = document.getElementById("headered-views");
     this.headeredViewsDeck = document.getElementById("headered-views-content");
 
-    this.viewObjects["search"] = gSearchView;
-    this.viewObjects["discover"] = gDiscoverView;
-    this.viewObjects["list"] = gListView;
-    this.viewObjects["legacy"] = gLegacyView;
-    this.viewObjects["detail"] = gDetailView;
-    this.viewObjects["updates"] = gUpdatesView;
+    this.viewObjects.search = gSearchView;
+    this.viewObjects.discover = gDiscoverView;
+    this.viewObjects.list = gListView;
+    this.viewObjects.legacy = gLegacyView;
+    this.viewObjects.detail = gDetailView;
+    this.viewObjects.updates = gUpdatesView;
 
     for (let type in this.viewObjects) {
       let view = this.viewObjects[type];
@@ -2788,7 +2785,17 @@ var gLegacyView = {
 
     document.getElementById("legacy-learnmore").href = SUPPORT_URL + "webextensions";
 
-    this.refresh();
+    gEventManager.registerAddonListener(this, "ANY");
+
+    this.refreshVisibility();
+  },
+
+  shutdown() {
+    gEventManager.unregisterAddonListener(this, "ANY");
+  },
+
+  onUninstalled() {
+    this.refreshVisibility();
   },
 
   async show(type, request) {
@@ -2824,7 +2831,7 @@ var gLegacyView = {
     return null;
   },
 
-  async refresh() {
+  async refreshVisibility() {
     if (legacyExtensionsEnabled) {
       this._categoryItem.disabled = true;
       return;
@@ -2852,6 +2859,16 @@ var gLegacyView = {
       this._categoryItem.disabled = true;
     }
   },
+
+  getListItemForID(aId) {
+    var listitem = this._listBox.firstChild;
+    while (listitem) {
+      if (listitem.getAttribute("status") == "installed" && listitem.mAddon.id == aId)
+        return listitem;
+      listitem = listitem.nextSibling;
+    }
+    return null;
+  }
 };
 
 var gListView = {
@@ -3643,16 +3660,18 @@ var gDetailView = {
 
     try {
       if (this._addon.optionsType == AddonManager.OPTIONS_TYPE_INLINE_BROWSER) {
-        whenViewLoaded(() => {
-          this.createOptionsBrowser(rows).then(browser => {
-            // Make sure the browser is unloaded as soon as we change views,
-            // rather than waiting for the next detail view to load.
-            document.addEventListener("ViewChanged", function() {
-              browser.remove();
-            }, {once: true});
+        whenViewLoaded(async () => {
+          await this._addon.startupPromise;
 
-            finish(browser);
-          });
+          let browser = await this.createOptionsBrowser(rows);
+
+          // Make sure the browser is unloaded as soon as we change views,
+          // rather than waiting for the next detail view to load.
+          document.addEventListener("ViewChanged", function() {
+            browser.remove();
+          }, {once: true});
+
+          finish(browser);
         });
 
         if (aCallback)

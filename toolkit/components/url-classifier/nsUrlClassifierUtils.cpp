@@ -201,7 +201,7 @@ nsUrlClassifierUtils::GetKeyForURI(nsIURI * uri, nsACString & _retval)
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoCString path;
-  rv = innerURI->GetPath(path);
+  rv = innerURI->GetPathQueryRef(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // strip out anchors
@@ -227,10 +227,11 @@ static const struct {
   const char* mListName;
   uint32_t mThreatType;
 } THREAT_TYPE_CONV_TABLE[] = {
-  { "goog-malware-proto",  MALWARE_THREAT},            // 1
-  { "googpub-phish-proto", SOCIAL_ENGINEERING_PUBLIC}, // 2
-  { "goog-unwanted-proto", UNWANTED_SOFTWARE},         // 3
-  { "goog-phish-proto", SOCIAL_ENGINEERING},           // 5
+  { "goog-malware-proto",  MALWARE_THREAT},                  // 1
+  { "googpub-phish-proto", SOCIAL_ENGINEERING_PUBLIC},       // 2
+  { "goog-unwanted-proto", UNWANTED_SOFTWARE},               // 3
+  { "goog-harmful-proto",  POTENTIALLY_HARMFUL_APPLICATION}, // 4
+  { "goog-phish-proto",    SOCIAL_ENGINEERING},              // 5
 
   // For application reputation
   { "goog-badbinurl-proto", MALICIOUS_BINARY},         // 7

@@ -818,8 +818,8 @@ HTMLInputElement::IsPopupBlocked() const
     return true;
   }
 
-  // Check if page is allowed to open the popup
-  if (win->GetPopupControlState() <= openControlled) {
+  // Check if page can open a popup without abuse regardless of allowed events
+  if (win->GetPopupControlState() <= openBlocked) {
     return false;
   }
 
@@ -854,7 +854,7 @@ HTMLInputElement::InitColorPicker()
   }
 
   // Get Loc title
-  nsXPIDLString title;
+  nsAutoString title;
   nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
                                      "ColorPicker", title);
 
@@ -901,8 +901,8 @@ HTMLInputElement::InitFilePicker(FilePickerType aType)
   }
 
   // Get Loc title
-  nsXPIDLString title;
-  nsXPIDLString okButtonLabel;
+  nsAutoString title;
+  nsAutoString okButtonLabel;
   if (aType == FILE_PICKER_DIRECTORY) {
     nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
                                        "DirectoryUpload", title);
@@ -1451,6 +1451,13 @@ HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
         // UpdateBarredFromConstraintValidation and
         // UpdateValueMissingValidityState depend on our disabled state.
         UpdateDisabledState(aNotify);
+      }
+
+      if (aName == nsGkAtoms::required && DoesRequiredApply()) {
+        // This *has* to be called *before* UpdateValueMissingValidityState
+        // because UpdateValueMissingValidityState depends on our required
+        // state.
+        UpdateRequiredState(!!aValue, aNotify);
       }
 
       UpdateValueMissingValidityState();
@@ -2762,7 +2769,7 @@ HTMLInputElement::GetDisplayFileName(nsAString& aValue) const
     return;
   }
 
-  nsXPIDLString value;
+  nsAutoString value;
 
   if (mFileData->mFilesOrDirectories.IsEmpty()) {
     if ((IsDirPickerEnabled() && Allowdirs()) ||
@@ -5005,6 +5012,17 @@ HTMLInputElement::HandleTypeChange(uint8_t aNewType, bool aNotify)
     mFocusedValue.Truncate();
   }
 
+  // Update or clear our required states since we may have changed from a
+  // required input type to a non-required input type or viceversa.
+  if (DoesRequiredApply()) {
+    bool isRequired = HasAttr(kNameSpaceID_None, nsGkAtoms::required);
+    UpdateRequiredState(isRequired, aNotify);
+  } else if (aNotify) {
+    RemoveStates(REQUIRED_STATES);
+  } else {
+    RemoveStatesSilently(REQUIRED_STATES);
+  }
+
   UpdateHasRange();
 
   // Do not notify, it will be done after if needed.
@@ -6397,7 +6415,7 @@ HTMLInputElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission)
   if (mType == NS_FORM_INPUT_SUBMIT && value.IsEmpty() &&
       !HasAttr(kNameSpaceID_None, nsGkAtoms::value)) {
     // Get our default value, which is the same as our default label
-    nsXPIDLString defaultValue;
+    nsAutoString defaultValue;
     nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
                                        "Submit", defaultValue);
     value = defaultValue;
@@ -6410,18 +6428,30 @@ HTMLInputElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission)
 NS_IMETHODIMP
 HTMLInputElement::SaveState()
 {
-  RefPtr<HTMLInputElementState> inputState;
+  nsPresState* state = nullptr;
   switch (GetValueMode()) {
     case VALUE_MODE_DEFAULT_ON:
       if (mCheckedChanged) {
-        inputState = new HTMLInputElementState();
+        state = GetPrimaryPresState();
+        if (!state) {
+          return NS_OK;
+        }
+
+        RefPtr<HTMLInputElementState> inputState = new HTMLInputElementState();
         inputState->SetChecked(mChecked);
+        state->SetStateProperty(inputState);
       }
       break;
     case VALUE_MODE_FILENAME:
       if (!mFileData->mFilesOrDirectories.IsEmpty()) {
-        inputState = new HTMLInputElementState();
+        state = GetPrimaryPresState();
+        if (!state) {
+          return NS_OK;
+        }
+
+        RefPtr<HTMLInputElementState> inputState = new HTMLInputElementState();
         inputState->SetFilesOrDirectories(mFileData->mFilesOrDirectories);
+        state->SetStateProperty(inputState);
       }
       break;
     case VALUE_MODE_VALUE:
@@ -6434,7 +6464,12 @@ HTMLInputElement::SaveState()
         break;
       }
 
-      inputState = new HTMLInputElementState();
+      state = GetPrimaryPresState();
+      if (!state) {
+        return NS_OK;
+      }
+
+      RefPtr<HTMLInputElementState> inputState = new HTMLInputElementState();
       nsAutoString value;
       GetValue(value, CallerType::System);
 
@@ -6451,18 +6486,14 @@ HTMLInputElement::SaveState()
       }
 
       inputState->SetValue(value);
+      state->SetStateProperty(inputState);
       break;
   }
 
-  if (inputState) {
-    nsPresState* state = GetPrimaryPresState();
-    if (state) {
-      state->SetStateProperty(inputState);
-    }
-  }
-
   if (mDisabledChanged) {
-    nsPresState* state = GetPrimaryPresState();
+    if (!state) {
+      state = GetPrimaryPresState();
+    }
     if (state) {
       // We do not want to save the real disabled state but the disabled
       // attribute.
@@ -6539,12 +6570,6 @@ HTMLInputElement::IntrinsicState() const
     }
   } else if (mType == NS_FORM_INPUT_IMAGE) {
     state |= nsImageLoadingContent::ImageState();
-  }
-
-  if (DoesRequiredApply() && HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
-    state |= NS_EVENT_STATE_REQUIRED;
-  } else {
-    state |= NS_EVENT_STATE_OPTIONAL;
   }
 
   if (IsCandidateForConstraintValidation()) {
@@ -6739,7 +6764,7 @@ HTMLInputElement::AddedToRadioGroup()
   if (container) {
     nsAutoString name;
     GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-    container->AddToRadioGroup(name, static_cast<nsIFormControl*>(this));
+    container->AddToRadioGroup(name, this);
 
     // We initialize the validity of the element to the validity of the group
     // because we assume UpdateValueMissingState() will be called after.
@@ -6772,7 +6797,7 @@ HTMLInputElement::WillRemoveFromRadioGroup()
   // We need to call UpdateValueMissingValidityStateForRadio before to make sure
   // the group validity is updated (with this element being ignored).
   UpdateValueMissingValidityStateForRadio(true);
-  container->RemoveFromRadioGroup(name, static_cast<nsIFormControl*>(this));
+  container->RemoveFromRadioGroup(name, this);
 }
 
 bool
@@ -7219,6 +7244,9 @@ HTMLInputElement::UpdateTooShortValidityState()
 void
 HTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
 {
+  MOZ_ASSERT(mType == NS_FORM_INPUT_RADIO,
+             "This should be called only for radio input types");
+
   bool notify = mDoneCreating;
   nsCOMPtr<nsIDOMHTMLInputElement> selection = GetSelectedRadioButton();
 
@@ -7227,7 +7255,7 @@ HTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
   // If there is no selection, that might mean the radio is not in a group.
   // In that case, we can look for the checked state of the radio.
   bool selected = selection || (!aIgnoreSelf && mChecked);
-  bool required = !aIgnoreSelf && HasAttr(kNameSpaceID_None, nsGkAtoms::required);
+  bool required = !aIgnoreSelf && IsRequired();
   bool valueMissing = false;
 
   nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
@@ -7244,7 +7272,7 @@ HTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
   // If the current radio is required and not ignored, we can assume the entire
   // group is required.
   if (!required) {
-    required = (aIgnoreSelf && HasAttr(kNameSpaceID_None, nsGkAtoms::required))
+    required = (aIgnoreSelf && IsRequired())
                  ? container->GetRequiredRadioCount(name) - 1
                  : container->GetRequiredRadioCount(name);
   }
@@ -7542,15 +7570,15 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
     if (token.EqualsLiteral("image/*")) {
       filterMask = nsIFilePicker::filterImages;
       filterBundle->GetStringFromName("imageFilter",
-                                      getter_Copies(extensionListStr));
+                                      extensionListStr);
     } else if (token.EqualsLiteral("audio/*")) {
       filterMask = nsIFilePicker::filterAudio;
       filterBundle->GetStringFromName("audioFilter",
-                                      getter_Copies(extensionListStr));
+                                      extensionListStr);
     } else if (token.EqualsLiteral("video/*")) {
       filterMask = nsIFilePicker::filterVideo;
       filterBundle->GetStringFromName("videoFilter",
-                                      getter_Copies(extensionListStr));
+                                      extensionListStr);
     } else if (token.First() == '.') {
       if (token.Contains(';') || token.Contains('*')) {
         // Ignore this filter as it contains reserved characters
@@ -7653,7 +7681,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
 
   // Add "All Supported Types" filter
   if (filters.Length() > 1) {
-    nsXPIDLString title;
+    nsAutoString title;
     nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
                                        "AllSupportedTypes", title);
     filePicker->AppendFilter(title, allExtensionsList);

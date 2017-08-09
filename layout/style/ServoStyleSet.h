@@ -55,16 +55,8 @@ enum class StylistState : uint8_t {
   NotDirty = 0,
 
   /** The style sheets have changed, so we need to update the style data. */
-  StyleSheetsDirty = 1 << 0,
-
-  /**
-   * All style data is dirty and both style sheet data and default computed
-   * values need to be recomputed.
-   */
-  FullyDirty = 1 << 1,
+  StyleSheetsDirty,
 };
-
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(StylistState)
 
 /**
  * The set of style sheets that apply to a document, backed by a Servo
@@ -115,7 +107,7 @@ public:
     return StylistNeedsUpdate();
   }
 
-  nsRestyleHint MediumFeaturesChanged(bool aViewportChanged) const;
+  nsRestyleHint MediumFeaturesChanged(bool aViewportChanged);
 
   void InvalidateStyleForCSSRuleChanges();
 
@@ -182,24 +174,15 @@ public:
                             dom::Element* aPseudoElement);
 
   // Resolves style for a (possibly-pseudo) Element without assuming that the
-  // style has been resolved, and without worrying about setting the style
-  // context up to live in the style context tree (a null parent is used).
-  // |aPeudoTag| and |aPseudoType| must match.
+  // style has been resolved. If the element was unstyled and a new style
+  // context was resolved, it is not stored in the DOM. (That is, the element
+  // remains unstyled.) |aPeudoTag| and |aPseudoType| must match.
   already_AddRefed<ServoStyleContext>
-  ResolveTransientStyle(dom::Element* aElement,
-                        CSSPseudoElementType aPseudoType,
-                        nsIAtom* aPseudoTag,
-                        StyleRuleInclusion aRules =
-                          StyleRuleInclusion::All);
-
-  // Similar to ResolveTransientStyle() but doesn't update the context state
-  // Unlike ResolveServoStyle() this function calls PreTraverseSync().
-  already_AddRefed<ServoStyleContext>
-  ResolveTransientServoStyle(dom::Element* aElement,
-                             CSSPseudoElementType aPseudoType,
-                             nsIAtom* aPseudoTag,
-                             StyleRuleInclusion aRules =
-                               StyleRuleInclusion::All);
+  ResolveStyleLazily(dom::Element* aElement,
+                     CSSPseudoElementType aPseudoType,
+                     nsIAtom* aPseudoTag,
+                     StyleRuleInclusion aRules =
+                       StyleRuleInclusion::All);
 
   // Get a style context for an anonymous box.  aPseudoTag is the pseudo-tag to
   // use and must be non-null.  It must be an anon box, and must be one that
@@ -313,7 +296,7 @@ public:
   void ForceAllStyleDirty();
 
   /**
-   * Helper for correctly calling RebuildStylist without paying the cost of an
+   * Helper for correctly calling UpdateStylist without paying the cost of an
    * extra function call in the common no-rebuild-needed case.
    */
   void UpdateStylistIfNeeded()
@@ -345,11 +328,15 @@ public:
 #endif
 
   /**
-   * Clears the style data, both style sheet data and cached non-inheriting
-   * style contexts, and marks the stylist as needing an unconditional full
-   * rebuild, including a device reset.
+   * Clears any cached style data that may depend on all sorts of computed
+   * values.
+   *
+   * Right now this clears the non-inheriting style context cache, and resets
+   * the default computed values.
+   *
+   * This does _not_, however, clear the stylist.
    */
-  void ClearDataAndMarkDeviceDirty();
+  void ClearCachedStyleData();
 
   /**
    * Notifies the Servo stylesheet that the document's compatibility mode has changed.
@@ -495,12 +482,6 @@ private:
   };
 
   /**
-   * Rebuild the style data. This will force a stylesheet flush, and also
-   * recompute the default computed styles.
-   */
-  void RebuildData();
-
-  /**
    * Gets the pending snapshots to handle from the restyle manager.
    */
   const SnapshotTable& Snapshots();
@@ -548,7 +529,7 @@ private:
    */
   void SetStylistStyleSheetsDirty()
   {
-    mStylistState |= StylistState::StyleSheetsDirty;
+    mStylistState = StylistState::StyleSheetsDirty;
   }
 
   bool StylistNeedsUpdate() const
@@ -564,12 +545,13 @@ private:
   void UpdateStylist();
 
   already_AddRefed<ServoStyleContext>
-    ResolveStyleLazily(dom::Element* aElement,
-                       CSSPseudoElementType aPseudoType,
-                       nsIAtom* aPseudoTag,
-                       const ServoStyleContext* aParentContext,
-                       StyleRuleInclusion aRules =
-                         StyleRuleInclusion::All);
+    ResolveStyleLazilyInternal(dom::Element* aElement,
+                               CSSPseudoElementType aPseudoType,
+                               nsIAtom* aPseudoTag,
+                               const ServoStyleContext* aParentContext,
+                               StyleRuleInclusion aRules =
+                                 StyleRuleInclusion::All,
+                               bool aIgnoreExistingStyles = false);
 
   void RunPostTraversalTasks();
 

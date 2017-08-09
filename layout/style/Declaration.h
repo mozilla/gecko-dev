@@ -125,8 +125,6 @@ public:
 
   void GetPropertyValue(const nsAString& aProperty, nsAString& aValue) const;
   void GetPropertyValueByID(nsCSSPropertyID aPropID, nsAString& aValue) const;
-  void GetAuthoredPropertyValue(const nsAString& aProperty,
-                                nsAString& aValue) const;
   bool GetPropertyIsImportant(const nsAString& aProperty) const;
   void RemoveProperty(const nsAString& aProperty);
   void RemovePropertyByID(nsCSSPropertyID aProperty);
@@ -312,15 +310,12 @@ private:
   bool operator==(const Declaration& aCopy) const = delete;
 
   void GetPropertyValueInternal(nsCSSPropertyID aProperty, nsAString& aValue,
-                                nsCSSValue::Serialization aValueSerialization,
                                 bool* aIsTokenStream = nullptr) const;
   bool GetPropertyIsImportantByID(nsCSSPropertyID aProperty) const;
 
   static void AppendImportanceToString(bool aIsImportant, nsAString& aString);
   // return whether there was a value in |aValue| (i.e., it had a non-null unit)
-  bool AppendValueToString(nsCSSPropertyID aProperty, nsAString& aResult) const;
   bool AppendValueToString(nsCSSPropertyID aProperty, nsAString& aResult,
-                           nsCSSValue::Serialization aValueSerialization,
                            bool* aIsTokenStream = nullptr) const;
   // Helper for ToString with strange semantics regarding aValue.
   void AppendPropertyAndValueToString(nsCSSPropertyID aProperty,
@@ -334,12 +329,10 @@ private:
 
   void GetImageLayerValue(nsCSSCompressedDataBlock *data,
                           nsAString& aValue,
-                          nsCSSValue::Serialization aSerialization,
                           const nsCSSPropertyID aTable[]) const;
 
   void GetImageLayerPositionValue(nsCSSCompressedDataBlock *data,
                                   nsAString& aValue,
-                                  nsCSSValue::Serialization aSerialization,
                                   const nsCSSPropertyID aTable[]) const;
 
 public:

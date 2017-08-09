@@ -5,6 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ChannelMediaDecoder.h"
+#include "DecoderTraits.h"
+#include "MediaDecoderStateMachine.h"
+#include "MediaFormatReader.h"
 #include "MediaResource.h"
 #include "MediaShutdownManager.h"
 
@@ -42,15 +45,6 @@ ChannelMediaDecoder::ResourceCallback::GetMediaOwner() const
 {
   MOZ_ASSERT(NS_IsMainThread());
   return mDecoder ? mDecoder->GetOwner() : nullptr;
-}
-
-void
-ChannelMediaDecoder::ResourceCallback::SetInfinite(bool aInfinite)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder->SetInfinite(aInfinite);
-  }
 }
 
 void
@@ -161,6 +155,50 @@ ChannelMediaDecoder::ChannelMediaDecoder(MediaDecoderInit& aInit)
   mResourceCallback->Connect(this);
 }
 
+bool
+ChannelMediaDecoder::CanClone()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  return mResource && mResource->CanClone();
+}
+
+already_AddRefed<ChannelMediaDecoder>
+ChannelMediaDecoder::Clone(MediaDecoderInit& aInit)
+{
+  if (!mResource) {
+    return nullptr;
+  }
+  RefPtr<ChannelMediaDecoder> decoder = CloneImpl(aInit);
+  if (!decoder) {
+    return nullptr;
+  }
+  nsresult rv = decoder->Load(mResource);
+  if (NS_FAILED(rv)) {
+    decoder->Shutdown();
+    return nullptr;
+  }
+  return decoder.forget();
+}
+
+MediaResource*
+ChannelMediaDecoder::GetResource() const
+{
+  return mResource;
+}
+
+MediaDecoderStateMachine* ChannelMediaDecoder::CreateStateMachine()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MediaFormatReaderInit init;
+  init.mVideoFrameContainer = GetVideoFrameContainer();
+  init.mKnowsCompositor = GetCompositor();
+  init.mCrashHelper = GetOwner()->CreateGMPCrashHelper();
+  init.mFrameStats = mFrameStats;
+  init.mResource = mResource;
+  mReader = DecoderTraits::CreateReader(ContainerType(), init);
+  return new MediaDecoderStateMachine(this, mReader);
+}
+
 void
 ChannelMediaDecoder::Shutdown()
 {
@@ -187,7 +225,7 @@ ChannelMediaDecoder::Load(nsIChannel* aChannel,
   MOZ_ASSERT(!mResource);
 
   mResource =
-    MediaResource::Create(mResourceCallback, aChannel, aIsPrivateBrowsing);
+    BaseMediaResource::Create(mResourceCallback, aChannel, aIsPrivateBrowsing);
   if (!mResource) {
     return NS_ERROR_FAILURE;
   }
@@ -207,7 +245,7 @@ ChannelMediaDecoder::Load(nsIChannel* aChannel,
 }
 
 nsresult
-ChannelMediaDecoder::Load(MediaResource* aOriginal)
+ChannelMediaDecoder::Load(BaseMediaResource* aOriginal)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mResource);

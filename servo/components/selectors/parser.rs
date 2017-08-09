@@ -1528,7 +1528,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                 }
 
                 builder.push_simple_selector(Component::PseudoElement(p));
-                for state_selector in state_selectors.into_iter() {
+                for state_selector in state_selectors.drain() {
                     builder.push_simple_selector(state_selector);
                 }
 
@@ -1586,10 +1586,10 @@ where Impl: SelectorImpl, F: FnOnce(i32, i32) -> Component<Impl> {
 /// double-colon syntax, which can be used for all pseudo-elements).
 pub fn is_css2_pseudo_element<'i>(name: &CowRcStr<'i>) -> bool {
     // ** Do not add to this list! **
-    return name.eq_ignore_ascii_case("before") ||
-           name.eq_ignore_ascii_case("after") ||
-           name.eq_ignore_ascii_case("first-line") ||
-           name.eq_ignore_ascii_case("first-letter");
+    match_ignore_ascii_case! { name,
+        "before" | "after" | "first-line" | "first-letter" => true,
+        _ => false,
+    }
 }
 
 /// Parse a simple selector other than a type selector.

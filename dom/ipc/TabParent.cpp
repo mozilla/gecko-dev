@@ -1718,7 +1718,11 @@ TabParent::RecvShowTooltip(const uint32_t& aX, const uint32_t& aY, const nsStrin
     return IPC_OK();
   }
 
-  xulBrowserWindow->ShowTooltip(aX, aY, aTooltip, aDirection);
+  nsCOMPtr<nsIFrameLoaderOwner> frame = do_QueryInterface(mFrameElement);
+  if (!frame)
+    return IPC_OK();
+
+  xulBrowserWindow->ShowTooltip(aX, aY, aTooltip, aDirection, frame);
   return IPC_OK();
 }
 
@@ -2335,6 +2339,7 @@ TabParent::RecvSetInputContext(const int32_t& aIMEEnabled,
                                const nsString& aType,
                                const nsString& aInputmode,
                                const nsString& aActionHint,
+                               const bool& aInPrivateBrowsing,
                                const int32_t& aCause,
                                const int32_t& aFocusChange)
 {
@@ -2345,6 +2350,7 @@ TabParent::RecvSetInputContext(const int32_t& aIMEEnabled,
   context.mHTMLInputInputmode.Assign(aInputmode);
   context.mActionHint.Assign(aActionHint);
   context.mOrigin = InputContext::ORIGIN_CONTENT;
+  context.mInPrivateBrowsing = aInPrivateBrowsing;
 
   InputContextAction action(
     static_cast<InputContextAction::Cause>(aCause),
@@ -3279,7 +3285,8 @@ TabParent::StartApzAutoscroll(float aAnchorX, float aAnchorY,
       // The anchor coordinates that are passed in are relative to the origin
       // of the screen, but we are sending them to APZ which only knows about
       // coordinates relative to the widget, so convert them accordingly.
-      LayoutDeviceIntPoint anchor = RoundedToInt(LayoutDevicePoint{aAnchorX, aAnchorY});
+      CSSPoint anchorCss{aAnchorX, aAnchorY};
+      LayoutDeviceIntPoint anchor = RoundedToInt(anchorCss * widget->GetDefaultScale());
       anchor -= widget->WidgetToScreenOffset();
 
       widget->StartAsyncAutoscroll(

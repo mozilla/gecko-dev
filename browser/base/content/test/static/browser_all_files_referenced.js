@@ -23,6 +23,9 @@ var gExceptionPaths = [
   // https://github.com/mozilla/normandy/issues/577
   "resource://shield-recipe-client/test/",
 
+  // https://github.com/mozilla/activity-stream/issues/3053
+  "resource://activity-stream/data/content/tippytop/images/",
+
   // browser/extensions/pdfjs/content/build/pdf.js#1999
   "resource://pdf.js/web/images/",
 ];
@@ -115,6 +118,9 @@ var whitelist = [
   // browser/extensions/pdfjs/content/web/viewer.js#7450
   {file: "resource://pdf.js/web/debugger.js"},
 
+  // Needed by Normandy
+  {file: "resource://gre/modules/IndexedDB.jsm"},
+
   // Starting from here, files in the whitelist are bugs that need fixing.
   // Bug 1339420
   {file: "chrome://branding/content/icon128.png"},
@@ -167,14 +173,6 @@ var whitelist = [
   {file: "resource://gre/modules/sdk/bootstrap.js"},
 
 ];
-
-// Temporary whitelisted while WebPayments in construction
-// See Bug 1381141
-if (AppConstants.NIGHTLY_BUILD && AppConstants.MOZ_BUILD_APP == "browser") {
-  whitelist.push(
-    {file: "chrome://payments/content/paymentRequest.xhtml"}
-  );
-}
 
 if (!AppConstants.MOZ_PHOTON_THEME) {
   whitelist.push(
@@ -234,10 +232,6 @@ if (!isDevtools) {
     whitelist.add("resource://services-sync/engines/" + module);
   }
 
-  // intl/unicharutil/nsEntityConverter.h
-  for (let name of ["html40Latin1", "html40Symbols", "html40Special", "mathml20"]) {
-    whitelist.add("resource://gre/res/entityTables/" + name + ".properties");
-  }
 }
 
 const gInterestingCategories = new Set([
@@ -522,7 +516,7 @@ add_task(async function checkAllTheFiles() {
   // so that all chrome paths can be recorded.
   let manifestPromises = [];
   uris = uris.filter(uri => {
-    let path = uri.path;
+    let path = uri.pathQueryRef;
     if (path.endsWith(".manifest")) {
       manifestPromises.push(parseManifest(uri));
       return false;
@@ -539,7 +533,7 @@ add_task(async function checkAllTheFiles() {
   let allPromises = [];
 
   for (let uri of uris) {
-    let path = uri.path;
+    let path = uri.pathQueryRef;
     if (path.endsWith(".css"))
       allPromises.push(parseCSSFile(uri));
     else if (kCodeExtensions.some(ext => path.endsWith(ext)))

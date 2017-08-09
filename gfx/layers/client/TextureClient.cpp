@@ -543,22 +543,23 @@ TextureClient::Unlock()
   }
 
   if (mBorrowedDrawTarget) {
-    if (mOpenMode & OpenMode::OPEN_WRITE) {
-      mBorrowedDrawTarget->Flush();
-      if (mReadbackSink && !mData->ReadBack(mReadbackSink)) {
-        // Fallback implementation for reading back, because mData does not
-        // have a backend-specific implementation and returned false.
-        RefPtr<SourceSurface> snapshot = mBorrowedDrawTarget->Snapshot();
-        RefPtr<DataSourceSurface> dataSurf = snapshot->GetDataSurface();
-        mReadbackSink->ProcessReadback(dataSurf);
+    if (!(mOpenMode & OpenMode::OPEN_ASYNC_WRITE)) {
+      if (mOpenMode & OpenMode::OPEN_WRITE) {
+        mBorrowedDrawTarget->Flush();
+        if (mReadbackSink && !mData->ReadBack(mReadbackSink)) {
+          // Fallback implementation for reading back, because mData does not
+          // have a backend-specific implementation and returned false.
+          RefPtr<SourceSurface> snapshot = mBorrowedDrawTarget->Snapshot();
+          RefPtr<DataSourceSurface> dataSurf = snapshot->GetDataSurface();
+          mReadbackSink->ProcessReadback(dataSurf);
+        }
       }
-    }
 
-    mBorrowedDrawTarget->DetachAllSnapshots();
-    // If this assertion is hit, it means something is holding a strong reference
-    // to our DrawTarget externally, which is not allowed.
-    MOZ_ASSERT_IF(!(mOpenMode & OpenMode::OPEN_ASYNC_WRITE),
-                  mBorrowedDrawTarget->refCount() <= mExpectedDtRefs);
+      mBorrowedDrawTarget->DetachAllSnapshots();
+      // If this assertion is hit, it means something is holding a strong reference
+      // to our DrawTarget externally, which is not allowed.
+      MOZ_ASSERT(mBorrowedDrawTarget->refCount() <= mExpectedDtRefs);
+    }
 
     mBorrowedDrawTarget = nullptr;
   }
@@ -1742,25 +1743,6 @@ UpdateYCbCrTextureClient(TextureClient* aTexture, const PlanarYCbCrData& aData)
     aTexture->MarkImmutable();
   }
   return true;
-}
-
-already_AddRefed<SyncObject>
-SyncObject::CreateSyncObject(SyncHandle aHandle
-#ifdef XP_WIN
-                             , ID3D11Device* aDevice
-#endif
-                             )
-{
-  if (!aHandle) {
-    return nullptr;
-  }
-
-#ifdef XP_WIN
-  return MakeAndAddRef<SyncObjectD3D11>(aHandle, aDevice);
-#else
-  MOZ_ASSERT_UNREACHABLE();
-  return nullptr;
-#endif
 }
 
 already_AddRefed<TextureClient>

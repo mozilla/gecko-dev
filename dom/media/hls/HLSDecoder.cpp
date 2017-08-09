@@ -19,14 +19,29 @@
 
 namespace mozilla {
 
+MediaResource*
+HLSDecoder::GetResource() const
+{
+  return mResource;
+}
+
+void
+HLSDecoder::Shutdown()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mResource) {
+    mResource->Detach();
+  }
+  MediaDecoder::Shutdown();
+}
+
 MediaDecoderStateMachine*
 HLSDecoder::CreateStateMachine()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  MediaResource* resource = GetResource();
-  MOZ_ASSERT(resource);
-  auto resourceWrapper = static_cast<HLSResource*>(resource)->GetResourceWrapper();
+  MOZ_ASSERT(mResource);
+  auto resourceWrapper = mResource->GetResourceWrapper();
   MOZ_ASSERT(resourceWrapper);
   MediaFormatReaderInit init;
   init.mVideoFrameContainer = GetVideoFrameContainer();
@@ -37,13 +52,6 @@ HLSDecoder::CreateStateMachine()
     new MediaFormatReader(init, new HLSDemuxer(resourceWrapper->GetPlayerId()));
 
   return new MediaDecoderStateMachine(this, mReader);
-}
-
-ChannelMediaDecoder*
-HLSDecoder::Clone(MediaDecoderInit& aInit)
-{
-  MOZ_CRASH("Clone is not supported");
-  return nullptr;
 }
 
 bool
@@ -60,9 +68,7 @@ HLSDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 }
 
 nsresult
-HLSDecoder::Load(nsIChannel* aChannel,
-                 bool aIsPrivateBrowsing,
-                 nsIStreamListener**)
+HLSDecoder::Load(nsIChannel* aChannel)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mResource);
@@ -73,7 +79,7 @@ HLSDecoder::Load(nsIChannel* aChannel,
     return rv;
   }
 
-  mResource = new HLSResource(mResourceCallback, aChannel, uri);
+  mResource = new HLSResource(this, aChannel, uri);
 
   rv = MediaShutdownManager::Instance().Register(this);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -87,19 +93,11 @@ HLSDecoder::Load(nsIChannel* aChannel,
 }
 
 nsresult
-HLSDecoder::Load(MediaResource*)
-{
-  MOZ_CRASH("Clone is not supported");
-  return NS_ERROR_FAILURE;
-}
-
-nsresult
 HLSDecoder::Play()
 {
   MOZ_ASSERT(NS_IsMainThread());
   HLS_DEBUG("HLSDecoder", "MediaElement called Play");
-  auto resourceWrapper =
-        static_cast<HLSResource*>(GetResource())->GetResourceWrapper();
+  auto resourceWrapper = mResource->GetResourceWrapper();
   resourceWrapper->Play();
   return MediaDecoder::Play();
 }
@@ -109,8 +107,7 @@ HLSDecoder::Pause()
 {
   MOZ_ASSERT(NS_IsMainThread());
   HLS_DEBUG("HLSDecoder", "MediaElement called Pause");
-  auto resourceWrapper =
-      static_cast<HLSResource*>(GetResource())->GetResourceWrapper();
+  auto resourceWrapper = mResource->GetResourceWrapper();
   resourceWrapper->Pause();
   return MediaDecoder::Pause();
 }

@@ -11,8 +11,8 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
   "resource://gre/modules/AppConstants.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "CustomizableWidgets",
-  "resource:///modules/CustomizableWidgets.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
+  "resource:///modules/CustomizableUI.jsm");
 
 /**
  * Simple implementation of the sliding window pattern; panels are added to a
@@ -676,14 +676,9 @@ this.PanelMultiView = class {
    */
   _dispatchViewEvent(viewNode, eventName, anchor, detail) {
     let cancel = false;
-    if (this.panelViews) {
-      let custWidget = CustomizableWidgets.find(widget => widget.viewId == viewNode.id);
-      let method = "on" + eventName;
-      if (custWidget && custWidget[method]) {
-        if (anchor && custWidget.onInit)
-          custWidget.onInit(anchor);
-        custWidget[method]({ target: viewNode, preventDefault: () => cancel = true, detail });
-      }
+    if (eventName != "PanelMultiViewHidden" && eventName != "destructed") {
+      // Don't need to do this for PanelMultiViewHidden or "destructed" events
+      CustomizableUI.ensureSubviewListeners(viewNode);
     }
 
     let evt = new this.window.CustomEvent(eventName, {
@@ -1022,12 +1017,10 @@ this.PanelMultiView = class {
       buttons = navMap.buttons = this._getNavigableElements(view);
       // Set the 'tabindex' attribute on the buttons to make sure they're focussable.
       for (let button of buttons) {
-        if (button.classList.contains("subviewbutton-back"))
-          continue;
-        // If we've been here before, forget about it!
-        if (button.hasAttribute("tabindex"))
-          break;
-        button.setAttribute("tabindex", 0);
+        if (!button.classList.contains("subviewbutton-back") &&
+            !button.hasAttribute("tabindex")) {
+          button.setAttribute("tabindex", 0);
+        }
       }
     }
     if (!buttons.length)
@@ -1078,14 +1071,21 @@ this.PanelMultiView = class {
           break;
         // Fall-through...
       }
+      case "Space":
       case "Enter": {
         let button = buttons[navMap.selected];
         if (!button)
           break;
         stop();
-        // Unfortunately, 'tabindex' doesn't not execute the default action, so
+
+        // Unfortunately, 'tabindex' doesn't execute the default action, so
         // we explicitly do this here.
-        button.click();
+        // We are sending a command event and then a click event.
+        // This is done in order to mimic a "real" mouse click event.
+        // The command event executes the action, then the click event closes the menu.
+        button.doCommand();
+        let clickEvent = new event.target.ownerGlobal.MouseEvent("click", {"bubbles": true});
+        button.dispatchEvent(clickEvent);
         break;
       }
     }

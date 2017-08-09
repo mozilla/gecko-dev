@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use atomic_refcell::AtomicRefMut;
 use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
@@ -14,8 +13,7 @@ use std::fmt::Write;
 use std::ptr;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
-use style::data::{ElementData, ElementStyles, RestyleData};
-use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
+use style::data::ElementStyles;
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::element_state::ElementState;
 use style::error_reporting::{NullReporter, ParseErrorReporter};
@@ -26,7 +24,6 @@ use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::GeckoElement;
-use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
@@ -62,6 +59,7 @@ use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
+use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -77,6 +75,7 @@ use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::MallocSizeOf;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
+use style::gecko_bindings::structs::SeenPtrs;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::ServoTraversalFlags;
 use style::gecko_bindings::structs::StyleRuleInclusion;
@@ -91,7 +90,7 @@ use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, 
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::style_structs;
-use style::invalidation::element::restyle_hints::{self, RestyleHint};
+use style::invalidation::element::restyle_hints;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{ParserContext, self};
@@ -110,8 +109,9 @@ use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
-use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard, MediaRule};
-use style::stylesheets::{NamespaceRule, Origin, PageRule, StyleRule, SupportsRule};
+use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard};
+use style::stylesheets::{MallocSizeOfWithRepeats, MediaRule};
+use style::stylesheets::{NamespaceRule, Origin, PageRule, SizeOfState, StyleRule, SupportsRule};
 use style::stylesheets::StylesheetContents;
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
@@ -375,7 +375,7 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
 
 #[no_mangle]
 pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowedMut,
-                                         base_values: *mut ::std::os::raw::c_void,
+                                         base_values: RawServoAnimationValueTableBorrowed,
                                          css_property: nsCSSPropertyID,
                                          segment: RawGeckoAnimationPropertySegmentBorrowed,
                                          last_segment: RawGeckoAnimationPropertySegmentBorrowed,
@@ -748,6 +748,24 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_Element_SizeOfExcludingThis(malloc_size_of: MallocSizeOf,
+                                                    seen_ptrs: *mut SeenPtrs,
+                                                    element: RawGeckoElementBorrowed) -> usize {
+    let malloc_size_of = malloc_size_of.unwrap();
+    let element = GeckoElement(element);
+    let borrow = element.borrow_data();
+    if let Some(data) = borrow {
+        let mut state = SizeOfState {
+            malloc_size_of: malloc_size_of,
+            seen_ptrs: seen_ptrs,
+        };
+        (*data).malloc_size_of_children(&mut state)
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetContentsStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let origin = match mode {
@@ -833,8 +851,8 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
-    viewport_changed: bool,
-) -> nsRestyleHint {
+    viewport_units_used: *mut bool,
+) -> bool {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -850,19 +868,16 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     // less often.
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
 
-    let viewport_units_used = data.stylist.device().used_viewport_size();
+    unsafe {
+        *viewport_units_used = data.stylist.device().used_viewport_size();
+    }
     data.stylist.device_mut().reset_computed_values();
     let rules_changed = data.stylist.media_features_change_changed_style(
         data.stylesheets.iter(),
         &guard,
     );
-    if rules_changed {
-        structs::nsRestyleHint_eRestyle_Subtree
-    } else if viewport_changed && viewport_units_used {
-        structs::nsRestyleHint_eRestyle_ForceDescendants
-    } else {
-        nsRestyleHint(0)
-    }
+
+    rules_changed
 }
 
 #[no_mangle]
@@ -1766,6 +1781,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBorrowed) -> u64 {
     use style::properties::computed_value_flags::*;
+    // FIXME(emilio): We could do this more efficiently I'm quite sure.
     let flags = values.flags;
     let mut result = 0;
     if flags.contains(IS_RELEVANT_LINK_VISITED) {
@@ -1779,6 +1795,12 @@ pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBor
     }
     if flags.contains(IS_TEXT_COMBINED) {
         result |= structs::NS_STYLE_IS_TEXT_COMBINED as u64;
+    }
+    if flags.contains(IS_IN_PSEUDO_ELEMENT_SUBTREE) {
+        result |= structs::NS_STYLE_HAS_PSEUDO_ELEMENT_DATA as u64;
+    }
+    if flags.contains(IS_IN_DISPLAY_NONE_SUBTREE) {
+        result |= structs::NS_STYLE_IN_DISPLAY_NONE_SUBTREE as u64;
     }
     result
 }
@@ -1828,14 +1850,9 @@ pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed) {
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
-
+pub extern "C" fn Servo_StyleSet_RebuildCachedData(raw_data: RawServoStyleSetBorrowed) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylist.device_mut().reset();
-    data.stylesheets.force_dirty();
-    data.flush_stylesheets::<GeckoElement>(&guard, None);
+    data.stylist.device_mut().rebuild_cached_data();
 }
 
 #[no_mangle]
@@ -2723,57 +2740,11 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     }
 }
 
-/// Only safe to call on the main thread, with exclusive access to the element and
-/// its ancestors.
-unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
-                            element: GeckoElement,
-                            animation_only: bool)
-    -> Option<&'a mut RestyleData>
-{
-    // Don't generate a useless RestyleData if the element hasn't been styled.
-    if !data.has_styles() {
-        return None;
-    }
-
-    // Propagate the bit up the chain.
-    if let Some(p) = element.traversal_parent() {
-        if animation_only {
-            p.note_descendants::<AnimationOnlyDirtyDescendants>();
-        } else {
-            p.note_descendants::<DirtyDescendants>();
-        }
-    };
-
-    bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(element.0);
-
-    // Ensure and return the RestyleData.
-    Some(&mut data.restyle)
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
                                           restyle_hint: nsRestyleHint,
                                           change_hint: nsChangeHint) {
-    let element = GeckoElement(element);
-    let damage = GeckoRestyleDamage::new(change_hint);
-    debug!("Servo_NoteExplicitHints: {:?}, restyle_hint={:?}, change_hint={:?}",
-           element, restyle_hint, change_hint);
-
-    let restyle_hint: RestyleHint = restyle_hint.into();
-    debug_assert!(!(restyle_hint.has_animation_hint() &&
-                    restyle_hint.has_non_animation_hint()),
-                  "Animation restyle hints should not appear with non-animation restyle hints");
-
-    let mut maybe_data = element.mutate_data();
-    let maybe_restyle_data = maybe_data.as_mut().and_then(|d| unsafe {
-        maybe_restyle(d, element, restyle_hint.has_animation_hint())
-    });
-    if let Some(restyle_data) = maybe_restyle_data {
-        restyle_data.hint.insert(restyle_hint.into());
-        restyle_data.damage |= damage;
-    } else {
-        debug!("(Element not styled, discarding hints)");
-    }
+    GeckoElement(element).note_explicit_hints(restyle_hint, change_hint);
 }
 
 #[no_mangle]
@@ -2860,7 +2831,8 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                            pseudo_type: CSSPseudoElementType,
                                            rule_inclusion: StyleRuleInclusion,
                                            snapshots: *const ServoElementSnapshotTable,
-                                           raw_data: RawServoStyleSetBorrowed)
+                                           raw_data: RawServoStyleSetBorrowed,
+                                           ignore_existing_styles: bool)
      -> ServoStyleContextStrong
 {
     debug_assert!(!snapshots.is_null());
@@ -2891,8 +2863,9 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
 
     // In the common case we already have the style. Check that before setting
     // up all the computation machinery. (Don't use it when we're getting
-    // default styles, though.)
-    if rule_inclusion == RuleInclusion::All {
+    // default styles or in a bfcached document (as indicated by
+    // ignore_existing_styles), though.)
+    if rule_inclusion == RuleInclusion::All && !ignore_existing_styles {
         let styles = element.mutate_data().and_then(|d| {
             if d.has_styles() {
                 Some(finish(&d.styles))
@@ -2917,7 +2890,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         thread_local: &mut tlc,
     };
 
-    let styles = resolve_style(&mut context, element, rule_inclusion);
+    let styles = resolve_style(&mut context, element, rule_inclusion, ignore_existing_styles);
     finish(&styles).into()
 }
 

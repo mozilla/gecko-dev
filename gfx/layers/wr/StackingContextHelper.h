@@ -12,6 +12,10 @@
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "Units.h"
 
+class nsDisplayListBuilder;
+class nsDisplayItem;
+class nsDisplayList;
+
 namespace mozilla {
 namespace layers {
 
@@ -45,12 +49,15 @@ public:
   // The constructor for layers-free mode.
   StackingContextHelper(const StackingContextHelper& aParentSC,
                         wr::DisplayListBuilder& aBuilder,
-                        LayerRect aBoundForSC,
-                        LayerPoint aOrigin,
+                        nsDisplayListBuilder* aDisplayListBuilder,
+                        nsDisplayItem* aItem,
+                        nsDisplayList* aDisplayList,
+                        gfx::Matrix4x4Typed<LayerPixel, LayerPixel>* aBoundTransform,
                         uint64_t aAnimationsId,
                         float* aOpacityPtr,
                         gfx::Matrix4x4* aTransformPtr,
-                        const nsTArray<wr::WrFilterOp>& aFilters = nsTArray<wr::WrFilterOp>());
+                        const nsTArray<wr::WrFilterOp>& aFilters = nsTArray<wr::WrFilterOp>(),
+                        const gfx::CompositionOp& aMixBlendMode = gfx::CompositionOp::OP_OVER);
   // This version of the constructor should only be used at the root level
   // of the tree, so that we have a StackingContextHelper to pass down into
   // the RenderLayer traversal, but don't actually want it to push a stacking

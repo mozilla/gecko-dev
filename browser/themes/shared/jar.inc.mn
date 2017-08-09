@@ -31,7 +31,6 @@
 * skin/classic/browser/controlcenter/tracking-protection.svg   (../shared/controlcenter/tracking-protection.svg)
   skin/classic/browser/controlcenter/warning-gray.svg          (../shared/controlcenter/warning-gray.svg)
   skin/classic/browser/controlcenter/warning-yellow.svg        (../shared/controlcenter/warning-yellow.svg)
-  skin/classic/browser/customizableui/customizeFavicon.ico     (../shared/customizableui/customizeFavicon.ico)
   skin/classic/browser/customizableui/menuPanel-customizeFinish.png  (../shared/customizableui/menuPanel-customizeFinish.png)
   skin/classic/browser/customizableui/menuPanel-customizeFinish@2x.png  (../shared/customizableui/menuPanel-customizeFinish@2x.png)
 #ifdef MOZ_PHOTON_THEME
@@ -61,6 +60,9 @@
   skin/classic/browser/downloads/download-summary.svg          (../shared/downloads/download-summary.svg)
 #ifdef MOZ_PHOTON_THEME
   skin/classic/browser/downloads/download-icons.svg            (../shared/downloads/download-icons.svg)
+#endif
+#ifdef MOZ_PHOTON_ANIMATIONS
+  skin/classic/browser/downloads/notification-start-animation.svg  (../shared/downloads/notification-start-animation.svg)
 #endif
   skin/classic/browser/drm-icon.svg                            (../shared/drm-icon.svg)
   skin/classic/browser/fullscreen/insecure.svg                 (../shared/fullscreen/insecure.svg)
@@ -92,13 +94,12 @@
   skin/classic/browser/panel-icon-magnifier.svg                (../shared/panel-icon-magnifier.svg)
 #endif
   skin/classic/browser/panel-icon-retry.svg                    (../shared/panel-icon-retry.svg)
-  skin/classic/browser/preferences/in-content-new/favicon.ico      (../shared/incontentprefs/favicon.ico)
   skin/classic/browser/preferences/in-content-new/icons.svg        (../shared/incontentprefs/icons.svg)
+  skin/classic/browser/preferences/in-content-new/no-search-results.svg     (../shared/incontentprefs/no-search-results.svg)
   skin/classic/browser/preferences/in-content-new/search-arrow-indicator.svg  (../shared/incontentprefs/search-arrow-indicator.svg)
   skin/classic/browser/preferences/in-content-new/search.css       (../shared/incontentprefs/search.css)
   skin/classic/browser/preferences/in-content-new/siteDataSettings.css (../shared/incontentprefs/siteDataSettings.css)
 * skin/classic/browser/preferences/in-content-new/containers.css   (../shared/incontentprefs/containers.css)
-  skin/classic/browser/preferences/in-content/favicon.ico      (../shared/incontentprefs-old/favicon.ico)
   skin/classic/browser/preferences/in-content/icons.svg        (../shared/incontentprefs-old/icons.svg)
   skin/classic/browser/preferences/in-content/search.css       (../shared/incontentprefs-old/search.css)
 * skin/classic/browser/preferences/in-content/containers.css   (../shared/incontentprefs-old/containers.css)
@@ -114,7 +115,8 @@
 
 
   skin/classic/browser/addons.svg                     (../shared/icons/addons.svg)
-  skin/classic/browser/arrow-dropdown.svg             (../shared/icons/arrow-dropdown.svg)
+  skin/classic/browser/arrow-dropdown-12.svg          (../shared/icons/arrow-dropdown-12.svg)
+  skin/classic/browser/arrow-dropdown-16.svg          (../shared/icons/arrow-dropdown-16.svg)
   skin/classic/browser/arrow-left.svg                 (../shared/icons/arrow-left.svg)
   skin/classic/browser/back.svg                       (../shared/icons/back.svg)
 #ifndef MOZ_PHOTON_THEME
@@ -213,7 +215,6 @@
   skin/classic/browser/search-indicator-magnifying-glass.svg   (../shared/search/search-indicator-magnifying-glass.svg)
   skin/classic/browser/search-arrow-go.svg                     (../shared/search/search-arrow-go.svg)
   skin/classic/browser/gear.svg                                (../shared/search/gear.svg)
-  skin/classic/browser/sidebar/close.svg                       (../shared/sidebar/close.svg)
   skin/classic/browser/tabbrowser/connecting.png               (../shared/tabbrowser/connecting.png)
   skin/classic/browser/tabbrowser/connecting@2x.png            (../shared/tabbrowser/connecting@2x.png)
   skin/classic/browser/tabbrowser/crashed.svg                  (../shared/tabbrowser/crashed.svg)
@@ -228,7 +229,6 @@
   skin/classic/browser/tabbrowser/tab-audio-small.svg          (../shared/tabbrowser/tab-audio-small.svg)
   skin/classic/browser/tabbrowser/tab-overflow-indicator.png   (../shared/tabbrowser/tab-overflow-indicator.png)
   skin/classic/browser/toolbarbutton-dropdown-arrow.png        (../shared/toolbarbutton-dropdown-arrow.png)
-  skin/classic/browser/toolbarbutton-dropdown-arrow-inverted.png (../shared/toolbarbutton-dropdown-arrow-inverted.png)
   skin/classic/browser/translating-16.png                      (../shared/translation/translating-16.png)
   skin/classic/browser/translating-16@2x.png                   (../shared/translation/translating-16@2x.png)
   skin/classic/browser/translation-16.png                      (../shared/translation/translation-16.png)

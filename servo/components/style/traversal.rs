@@ -391,6 +391,7 @@ pub fn resolve_style<E>(
     context: &mut StyleContext<E>,
     element: E,
     rule_inclusion: RuleInclusion,
+    ignore_existing_style: bool,
 ) -> ElementStyles
 where
     E: TElement,
@@ -398,6 +399,7 @@ where
     use style_resolver::StyleResolverForElement;
 
     debug_assert!(rule_inclusion == RuleInclusion::DefaultOnly ||
+                  ignore_existing_style ||
                   element.borrow_data().map_or(true, |d| !d.has_styles()),
                   "Why are we here?");
     let mut ancestors_requiring_style_resolution = SmallVec::<[E; 16]>::new();
@@ -408,7 +410,7 @@ where
     let mut style = None;
     let mut ancestor = element.traversal_parent();
     while let Some(current) = ancestor {
-        if rule_inclusion == RuleInclusion::All {
+        if rule_inclusion == RuleInclusion::All && !ignore_existing_style {
             if let Some(data) = current.borrow_data() {
                 if let Some(ancestor_style) = data.styles.get_primary() {
                     style = Some(ancestor_style.clone());
@@ -526,6 +528,9 @@ where
         // evaluate the worklet code. In the case that the size hasn't changed,
         // this will result in increased concurrency between script and layout.
         notify_paint_worklet(context, data);
+    } else {
+        debug_assert!(data.has_styles());
+        data.restyle.set_traversed_without_styling();
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to

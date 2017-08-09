@@ -2412,6 +2412,10 @@ nsFrameLoader::MaybeCreateDocShell()
   mIsTopLevelContent =
     AddTreeItemToTreeOwner(mDocShell, parentTreeOwner, parentType, docShell);
 
+  if (mIsTopLevelContent) {
+    mDocShell->SetCreatedDynamically(false);
+  }
+
   // Make sure all shells have links back to the content element
   // in the nearest enclosing chrome shell.
   nsCOMPtr<nsIDOMEventTarget> chromeEventHandler;
@@ -2661,7 +2665,7 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
   nsAutoCString buffer;
   rv = aURI->GetScheme(buffer);
   if (NS_SUCCEEDED(rv) && buffer.EqualsLiteral("about")) {
-    rv = aURI->GetPath(buffer);
+    rv = aURI->GetPathQueryRef(buffer);
     if (NS_SUCCEEDED(rv) && buffer.EqualsLiteral("srcdoc")) {
       // Duplicates allowed up to depth limits
       return NS_OK;

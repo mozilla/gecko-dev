@@ -34,17 +34,10 @@ to mochitest command.
 * Animation support:
   * SMIL Animation
     * test_restyles_in_smil_animation.html [2]
-* Unsupported values
-  * SVG-in-OpenType values not supported servo/servo#15211 bug 1338764
-    * test_value_storage.html `context-` [7]
-    * test_bug798843_pref.html [3]
 * Incorrect serialization
   * place-{content,items,self} shorthands bug 1363971
     * test_align_shorthand_serialization.html [6]
-  * radial gradients are not serialized using modern unprefixed style bug 1380259
-    * test_computed_style.html `gradient` [1]
 * Unit should be preserved after parsing servo/servo#15346
-  * test_units_time.html [1]
 * test_author_specified_style.html: support serializing color as author specified bug 1348165 [27]
 * browser_newtab_share_rule_processors.js: agent style sheet sharing [1]
 * test_selectors_on_anonymous_content.html: xbl and :nth-child bug 1382102 [1]
@@ -53,12 +46,6 @@ to mochitest command.
 
 ## Need Gecko change
 
-* test_specified_value_serialization.html `-webkit-radial-gradient`: bug 1380259 [1]
-
 ## Unknown / Unsure
 
 ## Ignore
-
-* Ignore for now since should be mostly identical to test_value_storage.html
-  * test_value_cloning.html [*]
-  * test_value_computation.html [*]

@@ -65,7 +65,7 @@ GetRequiredScopeStringPrefix(nsIURI* aScriptURI, nsACString& aPrefix,
     aPrefix.Append(dir);
   } else if (aPrefixMode == eUsePath) {
     nsAutoCString path;
-    rv = aScriptURI->GetPath(path);
+    rv = aScriptURI->GetPathQueryRef(path);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -401,7 +401,7 @@ ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
   }
 
   if (!StringBeginsWith(mRegistration->mScope, maxPrefix)) {
-    nsXPIDLString message;
+    nsAutoString message;
     NS_ConvertUTF8toUTF16 reportScope(mRegistration->mScope);
     NS_ConvertUTF8toUTF16 reportMaxPrefix(maxPrefix);
     const char16_t* params[] = { reportScope.get(), reportMaxPrefix.get() };

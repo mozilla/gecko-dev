@@ -8,7 +8,7 @@
 #include "nsXULAppAPI.h"
 
 #include "nsPrefBranch.h"
-#include "nsILocalFile.h" // nsILocalFile used for backwards compatibility
+#include "nsIFile.h"
 #include "nsIObserverService.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
@@ -103,8 +103,6 @@ NS_IMPL_RELEASE(nsPrefBranch)
 NS_INTERFACE_MAP_BEGIN(nsPrefBranch)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIPrefBranch)
   NS_INTERFACE_MAP_ENTRY(nsIPrefBranch)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIPrefBranch2, !mIsDefault)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIPrefBranchInternal, !mIsDefault)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END
@@ -325,8 +323,8 @@ NS_IMETHODIMP nsPrefBranch::GetComplexValue(const char *aPrefName, const nsIID &
     // if we need to fetch the default value, do that instead, otherwise use the
     // value we pulled in at the top of this function
     if (bNeedDefault) {
-      nsXPIDLString utf16String;
-      rv = GetDefaultFromPropertiesFile(pref.get(), getter_Copies(utf16String));
+      nsAutoString utf16String;
+      rv = GetDefaultFromPropertiesFile(pref.get(), utf16String);
       if (NS_SUCCEEDED(rv)) {
         theString->SetData(utf16String.get());
       }
@@ -350,8 +348,7 @@ NS_IMETHODIMP nsPrefBranch::GetComplexValue(const char *aPrefName, const nsIID &
     return rv;
   }
 
-  // also check nsILocalFile, for backwards compatibility
-  if (aType.Equals(NS_GET_IID(nsIFile)) || aType.Equals(NS_GET_IID(nsILocalFile))) {
+  if (aType.Equals(NS_GET_IID(nsIFile))) {
     if (GetContentChild()) {
       NS_ERROR("cannot get nsIFile pref from content process");
       return NS_ERROR_NOT_AVAILABLE;
@@ -500,8 +497,7 @@ NS_IMETHODIMP nsPrefBranch::SetComplexValue(const char *aPrefName, const nsIID &
 
   nsresult   rv = NS_NOINTERFACE;
 
-  // also check nsILocalFile, for backwards compatibility
-  if (aType.Equals(NS_GET_IID(nsIFile)) || aType.Equals(NS_GET_IID(nsILocalFile))) {
+  if (aType.Equals(NS_GET_IID(nsIFile))) {
     nsCOMPtr<nsIFile> file = do_QueryInterface(aValue);
     if (!file)
       return NS_NOINTERFACE;
@@ -838,7 +834,9 @@ nsPrefBranch::RemoveExpiredCallback(PrefCallback *aCallback)
   mObservers.Remove(aCallback);
 }
 
-nsresult nsPrefBranch::GetDefaultFromPropertiesFile(const char *aPrefName, char16_t **return_buf)
+nsresult
+nsPrefBranch::GetDefaultFromPropertiesFile(const char *aPrefName,
+                                           nsAString& aReturn)
 {
   nsresult rv;
 
@@ -860,7 +858,7 @@ nsresult nsPrefBranch::GetDefaultFromPropertiesFile(const char *aPrefName, char1
   if (NS_FAILED(rv))
     return rv;
 
-  return bundle->GetStringFromName(aPrefName, return_buf);
+  return bundle->GetStringFromName(aPrefName, aReturn);
 }
 
 nsPrefBranch::PrefName

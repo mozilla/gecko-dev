@@ -15,6 +15,7 @@
 #include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
+#include "nsISupportsPrimitives.h"
 #include "nsPrintfCString.h"
 #include <cctype>
 
@@ -212,7 +213,7 @@ nsStyleUtil::AppendEscapedCSSFontFamilyList(
   size_t i, len = fontlist.Length();
   for (i = 0; i < len; i++) {
     if (i != 0) {
-      aResult.Append(',');
+      aResult.AppendLiteral(", ");
     }
     const FontFamilyName& name = fontlist[i];
     switch (name.mType) {
@@ -849,11 +850,16 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
   }
 
+  nsCOMPtr<nsISupportsString> styleText(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID));
+  if (styleText) {
+    styleText->SetData(aStyleText);
+  }
+
   bool allowInlineStyle = true;
   rv = csp->GetAllowsInline(nsIContentPolicy::TYPE_STYLESHEET,
                             nonce,
                             false, // aParserCreated only applies to scripts
-                            aStyleText, aLineNumber,
+                            styleText, aLineNumber,
                             &allowInlineStyle);
   NS_ENSURE_SUCCESS(rv, false);
 

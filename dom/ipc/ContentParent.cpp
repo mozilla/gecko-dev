@@ -27,6 +27,7 @@
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
 #include "mozilla/a11y/AccessibleWrap.h"
 #endif
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/DataStorage.h"
@@ -80,6 +81,8 @@
 #include "mozilla/media/MediaParent.h"
 #include "mozilla/Move.h"
 #include "mozilla/net/NeckoParent.h"
+#include "mozilla/net/CookieServiceParent.h"
+#include "mozilla/net/PCookieServiceParent.h"
 #include "mozilla/plugins/PluginBridge.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProcessHangMonitor.h"
@@ -108,6 +111,7 @@
 #include "nsHashPropertyBag.h"
 #include "nsIAlertsService.h"
 #include "nsIClipboard.h"
+#include "nsICookie.h"
 #include "nsContentPermissionHelper.h"
 #include "nsIContentProcess.h"
 #include "nsICycleCollectorListener.h"
@@ -237,6 +241,7 @@
 #endif
 
 #ifdef XP_WIN
+#include "mozilla/audio/AudioNotificationSender.h"
 #include "mozilla/widget/AudioSession.h"
 #endif
 
@@ -559,7 +564,7 @@ uint64_t ContentParent::sNextTabParentId = 0;
 nsDataHashtable<nsUint64HashKey, TabParent*> ContentParent::sNextTabParents;
 
 // This is true when subprocess launching is enabled.  This is the
-// case between StartUp() and ShutDown() or JoinAllSubprocesses().
+// case between StartUp() and ShutDown().
 static bool sCanLaunchSubprocesses;
 
 // Set to true if the DISABLE_UNSAFE_CPOW_WARNINGS environment variable is
@@ -587,6 +592,8 @@ static const char* sObserverTopics[] = {
   "cacheservice:empty-cache",
   "intl:app-locales-changed",
   "intl:requested-locales-changed",
+  "cookie-changed",
+  "private-cookie-changed",
 };
 
 // PreallocateProcess is called by the PreallocatedProcessManager.
@@ -644,53 +651,6 @@ ContentParent::ShutDown()
 #if defined(XP_LINUX) && defined(MOZ_CONTENT_SANDBOX)
   sSandboxBrokerPolicyFactory = nullptr;
 #endif
-}
-
-/*static*/ void
-ContentParent::JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
-                                     Monitor* aMonitor, bool* aDone)
-{
-  const nsTArray<ContentParent*>& processes = *aProcesses;
-  for (uint32_t i = 0; i < processes.Length(); ++i) {
-    if (GeckoChildProcessHost* process = processes[i]->mSubprocess) {
-      process->Join();
-    }
-  }
-  {
-    MonitorAutoLock lock(*aMonitor);
-    *aDone = true;
-    lock.Notify();
-  }
-  // Don't touch any arguments to this function from now on.
-}
-
-/*static*/ void
-ContentParent::JoinAllSubprocesses()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  AutoTArray<ContentParent*, 8> processes;
-  GetAll(processes);
-  if (processes.IsEmpty()) {
-    printf_stderr("There are no live subprocesses.");
-    return;
-  }
-
-  printf_stderr("Subprocesses are still alive.  Doing emergency join.\n");
-
-  bool done = false;
-  Monitor monitor("mozilla.dom.ContentParent.JoinAllSubprocesses");
-  XRE_GetIOMessageLoop()->PostTask(NewRunnableFunction(
-                                     &ContentParent::JoinProcessesIOThread,
-                                     &processes, &monitor, &done));
-  {
-    MonitorAutoLock lock(monitor);
-    while (!done) {
-      lock.Wait();
-    }
-  }
-
-  sCanLaunchSubprocesses = false;
 }
 
 /*static*/ uint32_t
@@ -2136,11 +2096,16 @@ ContentParent::ContentParent(ContentParent* aOpener,
   // PID along with the warning.
   nsDebugImpl::SetMultiprocessMode("Parent");
 
-#if defined(XP_WIN) && !defined(MOZ_B2G)
+#if defined(XP_WIN)
+  if (XRE_IsParentProcess()) {
+    audio::AudioNotificationSender::Init();
+  }
+#if !defined(MOZ_B2G)
   // Request Windows message deferral behavior on our side of the PContent
   // channel. Generally only applies to the situation where we get caught in
   // a deadlock with the plugin process when sending CPOWs.
   GetIPCChannel()->SetChannelFlags(MessageChannel::REQUIRE_DEFERRED_MESSAGE_PROTECTION);
+#endif
 #endif
 
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
@@ -2829,6 +2794,41 @@ ContentParent::Observe(nsISupports* aSubject,
     nsTArray<nsCString> requestedLocales;
     LocaleService::GetInstance()->GetRequestedLocales(requestedLocales);
     Unused << SendUpdateRequestedLocales(requestedLocales);
+  }
+  else if (!strcmp(aTopic, "cookie-changed") ||
+           !strcmp(aTopic, "private-cookie-changed")) {
+    if (!aData) {
+      return NS_ERROR_UNEXPECTED;
+    }
+    PNeckoParent *neckoParent = LoneManagedOrNullAsserts(ManagedPNeckoParent());
+    if (!neckoParent) {
+      return NS_OK;
+    }
+    PCookieServiceParent *csParent = LoneManagedOrNullAsserts(neckoParent->ManagedPCookieServiceParent());
+    if (!csParent) {
+      return NS_OK;
+    }
+    auto *cs = static_cast<CookieServiceParent*>(csParent);
+    if (!nsCRT::strcmp(aData, u"batch-deleted")) {
+      nsCOMPtr<nsIArray> cookieList = do_QueryInterface(aSubject);
+      NS_ASSERTION(cookieList, "couldn't get cookie list");
+      cs->RemoveBatchDeletedCookies(cookieList);
+      return NS_OK;
+    }
+
+    if (!nsCRT::strcmp(aData, u"cleared")) {
+      cs->RemoveAll();
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsICookie> xpcCookie = do_QueryInterface(aSubject);
+    NS_ASSERTION(xpcCookie, "couldn't get cookie");
+    if (!nsCRT::strcmp(aData, u"deleted")) {
+      cs->RemoveCookie(xpcCookie);
+    } else if ((!nsCRT::strcmp(aData, u"added")) ||
+               (!nsCRT::strcmp(aData, u"changed"))) {
+      cs->AddCookie(xpcCookie);
+    }
   }
   return NS_OK;
 }
@@ -5086,6 +5086,17 @@ ContentParent::ForceTabPaint(TabParent* aTabParent, uint64_t aLayerObserverEpoch
   ProcessHangMonitor::ForcePaint(mHangMonitorActor, aTabParent, aLayerObserverEpoch);
 }
 
+void
+ContentParent::UpdateCookieStatus(nsIChannel   *aChannel)
+{
+  PNeckoParent *neckoParent = LoneManagedOrNullAsserts(ManagedPNeckoParent());
+  PCookieServiceParent *csParent = LoneManagedOrNullAsserts(neckoParent->ManagedPCookieServiceParent());
+  if (csParent) {
+    auto *cs = static_cast<CookieServiceParent*>(csParent);
+    cs->TrackCookieLoad(aChannel);
+  }
+}
+
 nsresult
 ContentParent::AboutToLoadHttpFtpWyciwygDocumentForChild(nsIChannel* aChannel)
 {
@@ -5109,6 +5120,14 @@ ContentParent::AboutToLoadHttpFtpWyciwygDocumentForChild(nsIChannel* aChannel)
 
   rv = TransmitPermissionsForPrincipal(principal);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsLoadFlags newLoadFlags;
+  aChannel->GetLoadFlags(&newLoadFlags);
+  bool isDocument = false;
+  aChannel->GetIsDocument(&isDocument);
+  if (newLoadFlags & nsIRequest::LOAD_DOCUMENT_NEEDS_COOKIE && isDocument) {
+    UpdateCookieStatus(aChannel);
+  }
 
   return NS_OK;
 }

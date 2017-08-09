@@ -16,7 +16,6 @@
 #include "nsError.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValueInlines.h"
-#include "nsISaveAsCharset.h"
 #include "nsIFile.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsStringStream.h"
@@ -239,14 +238,14 @@ HandleMailtoSubject(nsCString& aPath)
     }
 
     // Get the default subject
-    nsXPIDLString brandName;
+    nsAutoString brandName;
     nsresult rv =
       nsContentUtils::GetLocalizedString(nsContentUtils::eBRAND_PROPERTIES,
                                          "brandShortName", brandName);
     if (NS_FAILED(rv))
       return;
     const char16_t *formatStrings[] = { brandName.get() };
-    nsXPIDLString subjectStr;
+    nsAutoString subjectStr;
     rv = nsContentUtils::FormatLocalizedString(
                                            nsContentUtils::eFORMS_PROPERTIES,
                                            "DefaultFormSubject",
@@ -280,7 +279,7 @@ FSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
     if (isMailto) {
 
       nsAutoCString path;
-      rv = aURI->GetPath(path);
+      rv = aURI->GetPathQueryRef(path);
       NS_ENSURE_SUCCESS(rv, rv);
 
       HandleMailtoSubject(path);
@@ -293,7 +292,7 @@ FSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 
       path += NS_LITERAL_CSTRING("&force-plain-text=Y&body=") + escapedBody;
 
-      rv = aURI->SetPath(path);
+      rv = aURI->SetPathQueryRef(path);
 
     } else {
 
@@ -332,7 +331,7 @@ FSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
     }
     else {
       nsAutoCString path;
-      rv = aURI->GetPath(path);
+      rv = aURI->GetPathQueryRef(path);
       NS_ENSURE_SUCCESS(rv, rv);
       // Bug 42616: Trim off named anchor and save it to add later
       int32_t namedAnchorPos = path.FindChar('#');
@@ -353,7 +352,7 @@ FSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
       // Bug 42616: Add named anchor to end after query string
       path.Append(mQueryString + namedAnchor);
 
-      aURI->SetPath(path);
+      aURI->SetPathQueryRef(path);
     }
   }
 
@@ -725,7 +724,7 @@ FSTextPlain::GetEncodedSubmission(nsIURI* aURI,
   aURI->SchemeIs("mailto", &isMailto);
   if (isMailto) {
     nsAutoCString path;
-    rv = aURI->GetPath(path);
+    rv = aURI->GetPathQueryRef(path);
     NS_ENSURE_SUCCESS(rv, rv);
 
     HandleMailtoSubject(path);
@@ -739,7 +738,7 @@ FSTextPlain::GetEncodedSubmission(nsIURI* aURI,
 
     path += NS_LITERAL_CSTRING("&force-plain-text=Y&body=") + escapedBody;
 
-    rv = aURI->SetPath(path);
+    rv = aURI->SetPathQueryRef(path);
 
   } else {
     // Create data stream.

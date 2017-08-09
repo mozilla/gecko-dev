@@ -919,11 +919,11 @@ HTMLFormElement::DoSecureToInsecureSubmitCheck(nsIURI* aActionURL,
   nsAutoString message;
   nsAutoString cont;
   stringBundle->GetStringFromName(
-    "formPostSecureToInsecureWarning.title", getter_Copies(title));
+    "formPostSecureToInsecureWarning.title", title);
   stringBundle->GetStringFromName(
-    "formPostSecureToInsecureWarning.message", getter_Copies(message));
+    "formPostSecureToInsecureWarning.message", message);
   stringBundle->GetStringFromName(
-    "formPostSecureToInsecureWarning.continue", getter_Copies(cont));
+    "formPostSecureToInsecureWarning.continue", cont);
   int32_t buttonPressed;
   bool checkState = false; // this is unused (ConfirmEx requires this parameter)
   rv = prompt->ConfirmEx(title.get(), message.get(),
@@ -2309,12 +2309,9 @@ HTMLFormElement::WalkRadioGroup(const nsAString& aName,
 
 void
 HTMLFormElement::AddToRadioGroup(const nsAString& aName,
-                                 nsIFormControl* aRadio)
+                                 HTMLInputElement* aRadio)
 {
-  nsCOMPtr<nsIContent> element = do_QueryInterface(aRadio);
-  NS_ASSERTION(element, "radio controls have to be content elements!");
-
-  if (element->HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
+  if (aRadio->IsRequired()) {
     auto entry = mRequiredRadioButtonCounts.LookupForAdd(aName);
     if (!entry) {
       entry.OrInsert([]() { return 1; });
@@ -2326,12 +2323,9 @@ HTMLFormElement::AddToRadioGroup(const nsAString& aName,
 
 void
 HTMLFormElement::RemoveFromRadioGroup(const nsAString& aName,
-                                      nsIFormControl* aRadio)
+                                      HTMLInputElement* aRadio)
 {
-  nsCOMPtr<nsIContent> element = do_QueryInterface(aRadio);
-  NS_ASSERTION(element, "radio controls have to be content elements!");
-
-  if (element->HasAttr(kNameSpaceID_None, nsGkAtoms::required)) {
+  if (aRadio->IsRequired()) {
     auto entry = mRequiredRadioButtonCounts.Lookup(aName);
     if (!entry) {
       MOZ_ASSERT_UNREACHABLE("At least one radio button has to be required!");

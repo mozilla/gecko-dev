@@ -47,6 +47,7 @@
 #include "nsIRedirectChannelRegistrar.h"
 #include "nsIRequestObserverProxy.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsISensitiveInfoHiddenURI.h"
 #include "nsISimpleStreamListener.h"
 #include "nsISocketProvider.h"
 #include "nsISocketProviderService.h"
@@ -1579,6 +1580,26 @@ NS_NewURI(nsIURI **result,
 }
 
 nsresult
+NS_GetSanitizedURIStringFromURI(nsIURI *aUri, nsAString &aSanitizedSpec)
+{
+    aSanitizedSpec.Truncate();
+
+    nsCOMPtr<nsISensitiveInfoHiddenURI> safeUri = do_QueryInterface(aUri);
+    nsAutoCString cSpec;
+    nsresult rv;
+    if (safeUri) {
+        rv = safeUri->GetSensitiveInfoHiddenSpec(cSpec);
+    } else {
+        rv = aUri->GetSpec(cSpec);
+    }
+
+    if (NS_SUCCEEDED(rv)) {
+        aSanitizedSpec.Assign(NS_ConvertUTF8toUTF16(cSpec));
+    }
+    return rv;
+}
+
+nsresult
 NS_LoadPersistentPropertiesFromURISpec(nsIPersistentProperties **outResult,
                                        const nsACString         &aSpec)
 {
@@ -2396,16 +2417,8 @@ NS_GetContentDispositionFromHeader(const nsACString &aHeader,
   if (NS_FAILED(rv))
     return nsIChannel::DISPOSITION_ATTACHMENT;
 
-  nsAutoCString fallbackCharset;
-  if (aChan) {
-    nsCOMPtr<nsIURI> uri;
-    aChan->GetURI(getter_AddRefs(uri));
-    if (uri)
-      uri->GetOriginCharset(fallbackCharset);
-  }
-
   nsAutoString dispToken;
-  rv = mimehdrpar->GetParameterHTTP(aHeader, "", fallbackCharset, true, nullptr,
+  rv = mimehdrpar->GetParameterHTTP(aHeader, "", EmptyCString(), true, nullptr,
                                     dispToken);
 
   if (NS_FAILED(rv)) {
@@ -2431,14 +2444,9 @@ NS_GetFilenameFromDisposition(nsAString &aFilename,
   if (NS_FAILED(rv))
     return rv;
 
-  nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
-
-  nsAutoCString fallbackCharset;
-  if (url)
-    url->GetOriginCharset(fallbackCharset);
   // Get the value of 'filename' parameter
   rv = mimehdrpar->GetParameterHTTP(aDisposition, "filename",
-                                    fallbackCharset, true, nullptr,
+                                    EmptyCString(), true, nullptr,
                                     aFilename);
 
   if (NS_FAILED(rv)) {

@@ -1099,7 +1099,7 @@ class GTestCommands(MachCommandBase):
 
         # Note: we must normalize the path here so that gtest on Windows sees
         # a MOZ_GMP_PATH which has only Windows dir seperators, because
-        # nsILocalFile cannot open the paths with non-Windows dir seperators.
+        # nsIFile cannot open the paths with non-Windows dir seperators.
         xre_path = os.path.join(os.path.normpath(self.topobjdir), "dist", "bin")
         gtest_env["MOZ_XRE_DIR"] = xre_path
         gtest_env["MOZ_GMP_PATH"] = os.pathsep.join(
@@ -1877,13 +1877,20 @@ class PackageFrontend(MachCommandBase):
 
             toolchains = tasks('toolchain')
 
+            aliases = {}
+            for t in toolchains.values():
+                alias = t.attributes.get('toolchain-alias')
+                if alias:
+                    aliases['toolchain-{}'.format(alias)] = \
+                        t.task['metadata']['name']
+
             for b in from_build:
                 user_value = b
 
                 if not b.startswith('toolchain-'):
                     b = 'toolchain-{}'.format(b)
 
-                task = toolchains.get(b)
+                task = toolchains.get(aliases.get(b, b))
                 if not task:
                     self.log(logging.ERROR, 'artifact', {'build': user_value},
                              'Could not find a toolchain build named `{build}`')

@@ -22,16 +22,6 @@
   .menu-iconic-accel {
     color: graytext;
   }
-%ifndef MOZ_PHOTON_THEME
-  @media (-moz-os-version: windows-win7) {
-    #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(:-moz-lwtheme),
-    #browser-bottombox:not(:-moz-lwtheme),
-    .browserContainer > findbar,
-    .tab-background-middle[selected=true]:not(:-moz-lwtheme) {
-      background-color: @customToolbarColor@;
-    }
-  }
-%endif
 }
 
 @media (-moz-windows-compositor) {
@@ -190,12 +180,18 @@
 
       @media (-moz-windows-default-theme) {
 %ifdef MOZ_PHOTON_THEME
-        .titlebar-button:hover {
-          background-color: hsla(0,0%,100%,.12);
+        #main-menubar > menu {
+          -moz-appearance: none;
         }
-        .titlebar-button:hover:active {
+
+        #main-menubar > menu[_moz-menuactive="true"],
+        .titlebar-button:hover {
           background-color: hsla(0,0%,100%,.22);
         }
+        .titlebar-button:hover:active {
+          background-color: hsla(0,0%,100%,.32);
+        }
+        #main-menubar > menu[_moz-menuactive="true"]:-moz-lwtheme-darktext,
         .titlebar-button:-moz-lwtheme-darktext:hover {
           background-color: hsla(0,0%,0%,.12);
         }

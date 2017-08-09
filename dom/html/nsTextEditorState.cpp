@@ -296,6 +296,7 @@ public:
   NS_IMETHOD GetSelectionFlags(int16_t *aOutEnable) override;
   NS_IMETHOD GetSelection(RawSelectionType aRawSelectionType,
                           nsISelection** aSelection) override;
+  Selection* GetDOMSelection(RawSelectionType aRawSelectionType) override;
   NS_IMETHOD ScrollSelectionIntoView(RawSelectionType aRawSelectionType,
                                      int16_t aRegion, int16_t aFlags) override;
   NS_IMETHOD RepaintSelection(RawSelectionType aRawSelectionType) override;
@@ -355,7 +356,9 @@ nsTextInputSelectionImpl::nsTextInputSelectionImpl(nsFrameSelection *aSel,
   {
     mFrameSelection = aSel;//we are the owner now!
     mLimiter = aLimiter;
-    mFrameSelection->Init(aShell, mLimiter);
+    bool accessibleCaretEnabled =
+      PresShell::AccessibleCaretEnabled(aLimiter->OwnerDoc()->GetDocShell());
+    mFrameSelection->Init(aShell, mLimiter, accessibleCaretEnabled);
     mPresShellWeak = do_GetWeakReference(aShell);
   }
 }
@@ -430,6 +433,12 @@ nsTextInputSelectionImpl::GetSelection(RawSelectionType aRawSelectionType,
 
   NS_ADDREF(*aSelection);
   return NS_OK;
+}
+
+Selection*
+nsTextInputSelectionImpl::GetDOMSelection(RawSelectionType aRawSelectionType)
+{
+  return GetSelection(ToSelectionType(aRawSelectionType));
 }
 
 NS_IMETHODIMP
@@ -2220,6 +2229,8 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   }
 
   mBoundFrame = nullptr;
+  // Clear mRootNode so that we don't unexpectedly notify below.
+  nsCOMPtr<Element> rootNode = mRootNode.forget();
 
   // Now that we don't have a frame any more, store the value in the text buffer.
   // The only case where we don't do this is if a value transfer is in progress.
@@ -2229,15 +2240,15 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
     NS_ENSURE_TRUE_VOID(success);
   }
 
-  if (mRootNode && mMutationObserver) {
-    mRootNode->RemoveMutationObserver(mMutationObserver);
+  if (rootNode && mMutationObserver) {
+    rootNode->RemoveMutationObserver(mMutationObserver);
     mMutationObserver = nullptr;
   }
 
   // Unbind the anonymous content from the tree.
   // We actually hold a reference to the content nodes so that
   // they're not actually destroyed.
-  nsContentUtils::DestroyAnonymousContent(&mRootNode);
+  nsContentUtils::DestroyAnonymousContent(&rootNode);
   nsContentUtils::DestroyAnonymousContent(&mPlaceholderDiv);
   nsContentUtils::DestroyAnonymousContent(&mPreviewDiv);
 }

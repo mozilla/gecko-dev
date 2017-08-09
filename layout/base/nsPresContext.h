@@ -1028,7 +1028,7 @@ public:
   // Callback for catching invalidations in ContainerLayers
   // Passed to LayerProperties::ComputeDifference
   static void NotifySubDocInvalidation(mozilla::layers::ContainerLayer* aContainer,
-                                       const nsIntRegion& aRegion);
+                                       const nsIntRegion* aRegion);
   void SetNotifySubDocInvalidationData(mozilla::layers::ContainerLayer* aContainer);
   static void ClearNotifySubDocInvalidationData(mozilla::layers::ContainerLayer* aContainer);
   bool IsDOMPaintEventPending();
@@ -1188,6 +1188,7 @@ protected:
   friend class nsRunnableMethod<nsPresContext>;
   void ThemeChangedInternal();
   void SysColorChangedInternal();
+  void RefreshSystemMetrics();
 
   // update device context's resolution from the widget
   void UIResolutionChangedInternal();

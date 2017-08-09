@@ -19,9 +19,6 @@ XPCOMUtils.defineLazyGetter(this, "extensionNameFromURI", () => {
   return Cu.import("resource://gre/modules/ExtensionParent.jsm", {}).extensionNameFromURI;
 });
 
-XPCOMUtils.defineLazyPreferenceGetter(this, "gPhotonStructure",
-  "browser.photon.structure.enabled", false);
-
 // lazy module getters
 
 /* global AboutHome:false,
@@ -1332,10 +1329,6 @@ var gBrowserInit = {
     mm.loadFrameScript("chrome://browser/content/content-UITour.js", true);
     mm.loadFrameScript("chrome://global/content/manifestMessages.js", true);
 
-    // initialize observers and listeners
-    // and give C++ access to gBrowser
-    XULBrowserWindow.init();
-
     window.messageManager.addMessageListener("Browser:LoadURI", RedirectLoad);
 
     if (!gMultiProcessBrowser) {
@@ -1458,6 +1451,11 @@ var gBrowserInit = {
     gBrowser.addEventListener("PermissionStateChange", function() {
       gIdentityHandler.refreshIdentityBlock();
     });
+
+    // Get the service so that it initializes and registers listeners for new
+    // tab pages in order to be ready for any early-loading about:newtab pages,
+    // e.g., start/home page, command line / startup uris to load, sessionstore
+    gAboutNewTabService.QueryInterface(Ci.nsISupports);
 
     let uriToLoad = this._getUriToLoad();
     if (uriToLoad && uriToLoad != "about:blank") {
@@ -1715,7 +1713,6 @@ var gBrowserInit = {
     window.addEventListener("dragover", MousePosTracker);
 
     gNavToolbox.addEventListener("customizationstarting", CustomizationHandler);
-    gNavToolbox.addEventListener("customizationchange", CustomizationHandler);
     gNavToolbox.addEventListener("customizationending", CustomizationHandler);
 
     // End startup crash tracking after a delay to catch crashes while restoring
@@ -2366,7 +2363,7 @@ var gLastOpenDirectory = {
     if (!this._lastDir || !this._lastDir.exists()) {
       try {
         this._lastDir = gPrefService.getComplexValue("browser.open.lastDir",
-                                                     Ci.nsILocalFile);
+                                                     Ci.nsIFile);
         if (!this._lastDir.exists())
           this._lastDir = null;
       } catch (e) {}
@@ -2384,7 +2381,7 @@ var gLastOpenDirectory = {
 
     // Don't save the last open directory pref inside the Private Browsing mode
     if (!PrivateBrowsingUtils.isWindowPrivate(window))
-      gPrefService.setComplexValue("browser.open.lastDir", Ci.nsILocalFile,
+      gPrefService.setComplexValue("browser.open.lastDir", Ci.nsIFile,
                                    this._lastDir);
   },
   reset() {
@@ -2402,7 +2399,7 @@ function BrowserOpenFileWindow() {
         try {
           if (fp.file) {
             gLastOpenDirectory.path =
-              fp.file.parent.QueryInterface(Ci.nsILocalFile);
+              fp.file.parent.QueryInterface(Ci.nsIFile);
           }
         } catch (ex) {
         }
@@ -3149,9 +3146,12 @@ var BrowserOnClick = {
     } else if (reason === "unwanted") {
       sendTelemetry = true;
       bucketName = "WARNING_UNWANTED_PAGE_";
+    } else if (reason === "harmful") {
+      sendTelemetry = true;
+      bucketName = "WARNING_HARMFUL_PAGE_";
     }
-    let secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
-    let nsISecTel = Ci.nsISecurityUITelemetry;
+    let secHistogram = Services.telemetry.getHistogramById("URLCLASSIFIER_UI_EVENTS");
+    let nsISecTel = Ci.IUrlClassifierUITelemetry;
     bucketName += isTopFrame ? "TOP_" : "FRAME_";
     switch (elementId) {
       case "getMeOutButton":
@@ -4097,8 +4097,10 @@ function FillHistoryMenu(aParent) {
       item.setAttribute("historyindex", j - index);
 
       if (j != index) {
-        item.setAttribute("image",
-                          PlacesUtils.urlWithSizeRef(window, "page-icon:" + uri, 16));
+        // Use list-style-image rather than the image attribute in order to
+        // allow CSS to override this.
+        item.style.listStyleImage =
+          "url(" + PlacesUtils.urlWithSizeRef(window, "page-icon:" + uri, 16) + ")";
       }
 
       if (j < index) {
@@ -4293,7 +4295,7 @@ function updateEditUIVisibility() {
     let placement = CustomizableUI.getPlacementOfWidget("edit-controls");
     let areaType = placement ? CustomizableUI.getAreaType(placement.area) : "";
     if (areaType == CustomizableUI.TYPE_MENU_PANEL) {
-      let customizablePanel = gPhotonStructure ? PanelUI.overflowPanel : PanelUI.panel;
+      let customizablePanel = PanelUI.overflowPanel;
       gEditUIVisible = kOpenPopupStates.includes(customizablePanel.state);
     } else if (areaType == CustomizableUI.TYPE_TOOLBAR && window.toolbar.visible) {
       // The edit controls are on a toolbar, so they are visible,
@@ -4308,8 +4310,8 @@ function updateEditUIVisibility() {
     }
   }
 
-  // Now check the main menu panel if we're using photon
-  if (!gEditUIVisible && gPhotonStructure) {
+  // Now check the main menu panel
+  if (!gEditUIVisible) {
     gEditUIVisible = kOpenPopupStates.includes(PanelUI.panel.state);
   }
 
@@ -4453,12 +4455,6 @@ var XULBrowserWindow = {
     return this.canViewSource = document.getElementById("canViewSource");
   },
 
-  init() {
-    // Initialize the security button's state and tooltip text.
-    var securityUI = gBrowser.securityUI;
-    this.onSecurityChange(null, null, securityUI.state, true);
-  },
-
   setJSStatus() {
     // unsupported
   },
@@ -4497,7 +4493,7 @@ var XULBrowserWindow = {
     LinkTargetDisplay.update();
   },
 
-  showTooltip(x, y, tooltip, direction) {
+  showTooltip(x, y, tooltip, direction, browser) {
     if (Cc["@mozilla.org/widget/dragservice;1"].getService(Ci.nsIDragService).
         getCurrentSession()) {
       return;
@@ -4509,8 +4505,7 @@ var XULBrowserWindow = {
     elt.label = tooltip;
     elt.style.direction = direction;
 
-    let anchor = gBrowser.selectedBrowser;
-    elt.openPopupAtScreen(anchor.boxObject.screenX + x, anchor.boxObject.screenY + y, false, null);
+    elt.openPopupAtScreen(browser.boxObject.screenX + x, browser.boxObject.screenY + y, false, null);
   },
 
   hideTooltip() {
@@ -4874,6 +4869,9 @@ var XULBrowserWindow = {
   onUpdateCurrentBrowser: function XWB_onUpdateCurrentBrowser(aStateFlags, aStatus, aMessage, aTotalProgress) {
     if (FullZoom.updateBackgroundTabs)
       FullZoom.onLocationChange(gBrowser.currentURI, true);
+
+    CombinedStopReload.onTabSwitch();
+
     var nsIWebProgressListener = Components.interfaces.nsIWebProgressListener;
     var loadingDone = aStateFlags & nsIWebProgressListener.STATE_STOP;
     // use a pseudo-object instead of a (potentially nonexistent) channel for getting
@@ -4978,6 +4976,7 @@ var CombinedStopReload = {
     this.reload = reload;
     this.stop = stop;
     this.stopReloadContainer = this.reload.parentNode;
+    this.timeWhenSwitchedToStop = 0;
 
     // Disable animations until the browser has fully loaded.
     this.animate = false;
@@ -5045,14 +5044,30 @@ var CombinedStopReload = {
     });
   },
 
+  onTabSwitch() {
+    // Reset the time in the event of a tabswitch since the stored time
+    // would have been associated with the previous tab.
+    this.timeWhenSwitchedToStop = 0;
+  },
+
   switchToStop(aRequest, aWebProgress) {
-    if (!this._initialized || !this._shouldSwitch(aRequest))
+    if (!this._initialized || !this._shouldSwitch(aRequest, aWebProgress)) {
       return;
+    }
+
+    // Store the time that we switched to the stop button only if a request
+    // is active. Requests are null if the switch is related to a tabswitch.
+    // This is used to determine if we should show the stop->reload animation.
+    if (aRequest) {
+      this.timeWhenSwitchedToStop = window.performance.now();
+    }
 
     let shouldAnimate = AppConstants.MOZ_PHOTON_ANIMATIONS &&
-                        aRequest instanceof Ci.nsIRequest &&
+                        aRequest &&
                         aWebProgress.isTopLevel &&
                         aWebProgress.isLoadingDocument &&
+                        !gBrowser.tabAnimationsInProgress &&
+                        this.stopReloadContainer.closest("#nav-bar-customization-target") &&
                         this.animate;
 
     this._cancelTransition();
@@ -5066,14 +5081,18 @@ var CombinedStopReload = {
   },
 
   switchToReload(aRequest, aWebProgress) {
-    if (!this._initialized || !this._shouldSwitch(aRequest) ||
-        !this.reload.hasAttribute("displaystop"))
+    if (!this._initialized || !this._shouldSwitch(aRequest, aWebProgress) ||
+        !this.reload.hasAttribute("displaystop")) {
       return;
+    }
 
     let shouldAnimate = AppConstants.MOZ_PHOTON_ANIMATIONS &&
-                        aRequest instanceof Ci.nsIRequest &&
+                        aRequest &&
                         aWebProgress.isTopLevel &&
                         !aWebProgress.isLoadingDocument &&
+                        !gBrowser.tabAnimationsInProgress &&
+                        this._loadTimeExceedsMinimumForAnimation() &&
+                        this.stopReloadContainer.closest("#nav-bar-customization-target") &&
                         this.animate;
 
     if (shouldAnimate) {
@@ -5106,15 +5125,25 @@ var CombinedStopReload = {
     }, 650, this);
   },
 
-  _shouldSwitch(aRequest) {
-    if (!aRequest ||
-        !aRequest.originalURI ||
-        aRequest.originalURI.spec.startsWith("about:reader"))
-      return true;
+  _loadTimeExceedsMinimumForAnimation() {
+    // If the time between switching to the stop button then switching to
+    // the reload button exceeds 150ms, then we will show the animation.
+    // If we don't know when we switched to stop (a tabswitch occured while
+    // the page was loading), then we will not prevent the animation from
+    // occuring.
+    return !this.timeWhenSwitchedToStop ||
+           window.performance.now() - this.timeWhenSwitchedToStop > 150;
+  },
 
-    if (aRequest.originalURI.schemeIs("chrome") ||
-        aRequest.originalURI.schemeIs("about"))
+  _shouldSwitch(aRequest, aWebProgress) {
+    if (aRequest &&
+        aRequest.originalURI &&
+        (aRequest.originalURI.schemeIs("chrome") ||
+         (aRequest.originalURI.schemeIs("about") &&
+          aWebProgress.isTopLevel &&
+          !aRequest.originalURI.spec.startsWith("about:reader")))) {
       return false;
+    }
 
     return true;
   },
@@ -5562,7 +5591,6 @@ var TabletModeUpdater = {
     }
     if (wasInTabletMode != isInTabletMode) {
       gUIDensity.update();
-      TabsInTitlebar.updateAppearance(true);
     }
   },
 };
@@ -5659,6 +5687,8 @@ var gUIDensity = {
       doc.removeAttribute("uidensity");
       break;
     }
+
+    TabsInTitlebar.updateAppearance(true);
   },
 };
 
@@ -5765,19 +5795,6 @@ function UpdateDynamicShortcutTooltipText(aTooltip) {
     gDynamicTooltipCache.set(nodeId, gNavigatorBundle.getFormattedString(strId, args));
   }
   aTooltip.setAttribute("label", gDynamicTooltipCache.get(nodeId));
-}
-
-function getBrowserSelection(aCharLen) {
-  Deprecated.warning("getBrowserSelection",
-                     "https://bugzilla.mozilla.org/show_bug.cgi?id=1134769");
-
-  let focusedElement = document.activeElement;
-  if (focusedElement && focusedElement.localName == "browser" &&
-      focusedElement.isRemoteBrowser) {
-    throw "getBrowserSelection doesn't support child process windows";
-  }
-
-  return BrowserUtils.getSelectionDetails(window, aCharLen).text;
 }
 
 var gWebPanelURI;
@@ -6575,7 +6592,7 @@ var IndexedDBPromptHelper = {
     }
 
     // Get the host name if available or the file path otherwise.
-    var host = browser.currentURI.asciiHost || browser.currentURI.path;
+    var host = browser.currentURI.asciiHost || browser.currentURI.pathQueryRef;
 
     var message;
     var responseTopic;
@@ -7354,7 +7371,6 @@ var gIdentityHandler = {
     // Check this._uri because we don't want to refresh the user interface if
     // this is called before the first page load in the window for any reason.
     if (!this._uri) {
-      Cu.reportError("Unexpected early call to refreshForInsecureLoginForms.");
       return;
     }
     this.refreshIdentityBlock();
@@ -7696,7 +7712,7 @@ var gIdentityHandler = {
     }
 
     let whitelist = /^(?:accounts|addons|cache|config|crashes|customizing|downloads|healthreport|home|license|newaddon|permissions|preferences|privatebrowsing|rights|searchreset|sessionrestore|support|welcomeback)(?:[?#]|$)/i;
-    this._isSecureInternalUI = uri.schemeIs("about") && whitelist.test(uri.path);
+    this._isSecureInternalUI = uri.schemeIs("about") && whitelist.test(uri.pathQueryRef);
 
     this._isExtensionPage = uri.schemeIs("moz-extension");
 
@@ -7710,7 +7726,7 @@ var gIdentityHandler = {
       if (resolvedURI.schemeIs("jar")) {
         // Given a URI "jar:<jar-file-uri>!/<jar-entry>"
         // create a new URI using <jar-file-uri>!/<jar-entry>
-        resolvedURI = NetUtil.newURI(resolvedURI.path);
+        resolvedURI = NetUtil.newURI(resolvedURI.pathQueryRef);
       }
       // Check the URI again after resolving.
       this._isURILoadedFromFile = resolvedURI.schemeIs("file");
@@ -8022,9 +8038,6 @@ function getTabModalPromptBox(aWindow) {
 function getBrowser() {
   return gBrowser;
 }
-function getNavToolbox() {
-  return gNavToolbox;
-}
 
 var gPrivateBrowsingUI = {
   init: function PBUI_init() {
@@ -8292,11 +8305,6 @@ var MenuTouchModeObserver = {
 
   handleEvent(event) {
     let target = event.originalTarget;
-    // Only resize non-context menus in Photon.
-    if (target.localName != "menupopup" && !gPhotonStructure) {
-      return;
-    }
-
     if (event.mozInputSource == MouseEvent.MOZ_SOURCE_TOUCH) {
       target.setAttribute("touchmode", "true");
     } else {

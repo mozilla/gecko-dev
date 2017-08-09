@@ -1,16 +1,16 @@
 [data-identity-color="blue"] {
-  --identity-tab-color: #0996f8;
-  --identity-icon-color: #00a7e0;
+  --identity-tab-color: #37adff;
+  --identity-icon-color: #37adff;
 }
 
 [data-identity-color="turquoise"] {
-  --identity-tab-color: #01bdad;
-  --identity-icon-color: #01bdad;
+  --identity-tab-color: #00c79a;
+  --identity-icon-color: #00c79a;
 }
 
 [data-identity-color="green"] {
-  --identity-tab-color: #57bd35;
-  --identity-icon-color:  #7dc14c;
+  --identity-tab-color: #51cd00;
+  --identity-icon-color: #51cd00;
 }
 
 [data-identity-color="yellow"] {
@@ -19,23 +19,23 @@
 }
 
 [data-identity-color="orange"] {
-  --identity-tab-color: #ff9216;
-  --identity-icon-color: #ff9216;
+  --identity-tab-color: #ff9f00;
+  --identity-icon-color: #ff9f00;
 }
 
 [data-identity-color="red"] {
-  --identity-tab-color: #d92215;
-  --identity-icon-color: #d92215;
+  --identity-tab-color: #ff613d;
+  --identity-icon-color: #ff613d;
 }
 
 [data-identity-color="pink"] {
-  --identity-tab-color: #ea385e;
-  --identity-icon-color: #ee5195;
+  --identity-tab-color: #ff4bda;
+  --identity-icon-color: #ff4bda;
 }
 
 [data-identity-color="purple"] {
-  --identity-tab-color: #7a2f7a;
-  --identity-icon-color: #7a2f7a;
+  --identity-tab-color: #af51f5;
+  --identity-icon-color: #af51f5;
 }
 
 [data-identity-icon="fingerprint"] {
@@ -58,6 +58,34 @@
   --identity-icon: url("chrome://browser/content/usercontext-circle.svg");
 }
 
+[data-identity-icon="vacation"] {
+  --identity-icon: url("chrome://browser/content/usercontext-vacation.svg");
+}
+
+[data-identity-icon="gift"] {
+  --identity-icon: url("chrome://browser/content/usercontext-gift.svg");
+}
+
+[data-identity-icon="food"] {
+  --identity-icon: url("chrome://browser/content/usercontext-food.svg");
+}
+
+[data-identity-icon="fruit"] {
+  --identity-icon: url("chrome://browser/content/usercontext-fruit.svg");
+}
+
+[data-identity-icon="pet"] {
+  --identity-icon: url("chrome://browser/content/usercontext-pet.svg");
+}
+
+[data-identity-icon="tree"] {
+  --identity-icon: url("chrome://browser/content/usercontext-tree.svg");
+}
+
+[data-identity-icon="chill"] {
+  --identity-icon: url("chrome://browser/content/usercontext-chill.svg");
+}
+
 #userContext-indicator {
   height: 16px;
   width: 16px;
@@ -72,10 +100,13 @@
   -moz-box-align: center;
 }
 
-.tabbrowser-tab[usercontextid] {
-  background-image: linear-gradient(to right, transparent 20%, var(--identity-tab-color) 30%, var(--identity-tab-color) 70%, transparent 80%);
-  background-size: auto 2px;
-  background-repeat: no-repeat;
+.tabbrowser-tab[usercontextid] > .tab-stack > .tab-background > .tab-bottom-line {
+  background: linear-gradient(to right, transparent 10%, var(--identity-tab-color) 10%, var(--identity-tab-color) 90%, transparent 90%);
+  height: 2px;
+}
+
+.tabbrowser-tab[pinned][usercontextid] > .tab-stack > .tab-background > .tab-bottom-line {
+  background: linear-gradient(to right, transparent 30%, var(--identity-tab-color) 30%, var(--identity-tab-color) 70%, transparent 70%);
 }
 
 .userContext-icon,

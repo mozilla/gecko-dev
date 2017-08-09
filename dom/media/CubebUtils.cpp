@@ -307,7 +307,7 @@ void InitBrandName()
   if (sBrandName) {
     return;
   }
-  nsXPIDLString brandName;
+  nsAutoString brandName;
   nsCOMPtr<nsIStringBundleService> stringBundleService =
     mozilla::services::GetStringBundleService();
   if (stringBundleService) {
@@ -315,8 +315,7 @@ void InitBrandName()
     nsresult rv = stringBundleService->CreateBundle(kBrandBundleURL,
                                            getter_AddRefs(brandBundle));
     if (NS_SUCCEEDED(rv)) {
-      rv = brandBundle->GetStringFromName("brandShortName",
-                                          getter_Copies(brandName));
+      rv = brandBundle->GetStringFromName("brandShortName", brandName);
       NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rv), "Could not get the program name for a cubeb stream.");
     }
@@ -610,9 +609,9 @@ void GetDeviceCollection(nsTArray<RefPtr<AudioDeviceInfo>>& aDeviceInfos,
       for (unsigned int i = 0; i < collection.count; ++i) {
         auto device = collection.device[i];
         RefPtr<AudioDeviceInfo> info =
-          new AudioDeviceInfo(NS_ConvertASCIItoUTF16(device.friendly_name),
-                              NS_ConvertASCIItoUTF16(device.group_id),
-                              NS_ConvertASCIItoUTF16(device.vendor_name),
+          new AudioDeviceInfo(NS_ConvertUTF8toUTF16(device.friendly_name),
+                              NS_ConvertUTF8toUTF16(device.group_id),
+                              NS_ConvertUTF8toUTF16(device.vendor_name),
                               ConvertCubebType(device.type),
                               ConvertCubebState(device.state),
                               ConvertCubebPreferred(device.preferred),

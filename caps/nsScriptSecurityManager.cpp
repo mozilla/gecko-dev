@@ -45,6 +45,7 @@
 #include "nsIWindowWatcher.h"
 #include "nsIConsoleService.h"
 #include "nsIObserverService.h"
+#include "nsIOService.h"
 #include "nsIContent.h"
 #include "nsDOMJSUtils.h"
 #include "nsAboutProtocolUtils.h"
@@ -265,6 +266,61 @@ nsScriptSecurityManager::GetChannelResultPrincipalIfNotSandboxed(nsIChannel* aCh
                                    /*aIgnoreSandboxing*/ true);
 }
 
+static void
+InheritAndSetCSPOnPrincipalIfNeeded(nsIChannel* aChannel, nsIPrincipal* aPrincipal)
+{
+  // loading a data: URI into an iframe, or loading frame[srcdoc] need
+  // to inherit the CSP (see Bug 1073952, 1381761).
+  MOZ_ASSERT(aChannel && aPrincipal, "need a valid channel and principal");
+  if (!aChannel) {
+    return;
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
+  if (!loadInfo ||
+      loadInfo->GetExternalContentPolicyType() != nsIContentPolicy::TYPE_SUBDOCUMENT) {
+    return;
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = aChannel->GetURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS_VOID(rv);
+  nsAutoCString URISpec;
+  rv = uri->GetSpec(URISpec);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  bool isSrcDoc = URISpec.EqualsLiteral("about:srcdoc");
+  bool isData = (NS_SUCCEEDED(uri->SchemeIs("data", &isData)) && isData);
+
+  if (!isSrcDoc && !isData) {
+    return;
+  }
+
+  nsCOMPtr<nsIPrincipal> principalToInherit = loadInfo->PrincipalToInherit();
+  if (!principalToInherit) {
+    principalToInherit = loadInfo->TriggeringPrincipal();
+  }
+  nsCOMPtr<nsIContentSecurityPolicy> originalCSP;
+  principalToInherit->GetCsp(getter_AddRefs(originalCSP));
+  if (!originalCSP) {
+    return;
+  }
+
+  // if the principalToInherit had a CSP, add it to the before
+  // created NullPrincipal (unless it already has one)
+  MOZ_ASSERT(aPrincipal->GetIsNullPrincipal(),
+             "inheriting the CSP only valid for NullPrincipal");
+  nsCOMPtr<nsIContentSecurityPolicy> nullPrincipalCSP;
+  aPrincipal->GetCsp(getter_AddRefs(nullPrincipalCSP));
+  if (nullPrincipalCSP) {
+    MOZ_ASSERT(nullPrincipalCSP == originalCSP,
+               "There should be no other CSP here.");
+    // CSPs are equal, no need to set it again.
+    return;
+  }
+  aPrincipal->SetCsp(originalCSP);
+}
+
 nsresult
 nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
                                                    nsIPrincipal** aPrincipal,
@@ -295,40 +351,7 @@ nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
         if (!aIgnoreSandboxing && loadInfo->GetLoadingSandboxed()) {
           MOZ_ALWAYS_TRUE(NS_SUCCEEDED(loadInfo->GetSandboxedLoadingPrincipal(aPrincipal)));
           MOZ_ASSERT(*aPrincipal);
-            // if the new NullPrincipal (above) loads an iframe[srcdoc], we
-            // need to inherit an existing CSP to avoid bypasses (bug 1073952).
-            // We continue inheriting for nested frames with e.g., data: URLs.
-            if (loadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_SUBDOCUMENT) {
-              nsCOMPtr<nsIURI> uri;
-              aChannel->GetURI(getter_AddRefs(uri));
-              nsAutoCString URISpec;
-              uri->GetSpec(URISpec);
-              bool isData = (NS_SUCCEEDED(uri->SchemeIs("data", &isData)) && isData);
-              if (URISpec.EqualsLiteral("about:srcdoc") || isData) {
-                nsCOMPtr<nsIPrincipal> principalToInherit = loadInfo->PrincipalToInherit();
-                if (!principalToInherit) {
-                  principalToInherit = loadInfo->TriggeringPrincipal();
-                }
-                nsCOMPtr<nsIContentSecurityPolicy> originalCSP;
-                principalToInherit->GetCsp(getter_AddRefs(originalCSP));
-                if (originalCSP) {
-                  // if the principalToInherit had a CSP,
-                  // add it to the newly created NullPrincipal
-                  // (unless it already has one)
-                  nsCOMPtr<nsIContentSecurityPolicy> nullPrincipalCSP;
-                  (*aPrincipal)->GetCsp(getter_AddRefs(nullPrincipalCSP));
-                  if (nullPrincipalCSP) {
-                    MOZ_ASSERT(nullPrincipalCSP == originalCSP,
-                              "There should be no other CSP here.");
-                    // CSPs are equal, no need to set it again.
-                    return NS_OK;
-                  } else {
-                    nsresult rv = (*aPrincipal)->SetCsp(originalCSP);
-                    NS_ENSURE_SUCCESS(rv, rv);
-                  }
-                }
-              }
-            }
+          InheritAndSetCSPOnPrincipalIfNeeded(aChannel, *aPrincipal);
           return NS_OK;
         }
 
@@ -376,7 +399,10 @@ nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
       }
     }
   }
-  return GetChannelURIPrincipal(aChannel, aPrincipal);
+  nsresult rv = GetChannelURIPrincipal(aChannel, aPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  InheritAndSetCSPOnPrincipalIfNeeded(aChannel, *aPrincipal);
+  return NS_OK;
 }
 
 /* The principal of the URI that this channel is loading. This is never
@@ -977,14 +1003,14 @@ nsScriptSecurityManager::CheckLoadURIFlags(nsIURI *aSourceURI,
                              &hasSubsumersFlag);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!hasFlags && !hasSubsumersFlag) {
-        nsXPIDLString message;
+        nsAutoString message;
         NS_ConvertASCIItoUTF16 ucsTargetScheme(targetScheme);
         const char16_t* formatStrings[] = { ucsTargetScheme.get() };
         rv = sStrBundle->
             FormatStringFromName("ProtocolFlagError",
                                  formatStrings,
                                  ArrayLength(formatStrings),
-                                 getter_Copies(message));
+                                 message);
         if (NS_SUCCEEDED(rv)) {
             nsCOMPtr<nsIConsoleService> console(
               do_GetService("@mozilla.org/consoleservice;1"));
@@ -1015,14 +1041,14 @@ nsScriptSecurityManager::ReportError(JSContext* cx, const char* aMessageTag,
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Localize the error message
-    nsXPIDLString message;
+    nsAutoString message;
     NS_ConvertASCIItoUTF16 ucsSourceSpec(sourceSpec);
     NS_ConvertASCIItoUTF16 ucsTargetSpec(targetSpec);
     const char16_t *formatStrings[] = { ucsSourceSpec.get(), ucsTargetSpec.get() };
     rv = sStrBundle->FormatStringFromName(aMessageTag,
                                           formatStrings,
                                           ArrayLength(formatStrings),
-                                          getter_Copies(message));
+                                          message);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // If a JS context was passed in, set a JS exception.
@@ -1259,20 +1285,20 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     NS_ConvertUTF8toUTF16 originUnicode(origin);
     NS_ConvertUTF8toUTF16 classInfoName(objClassInfo.GetName());
     nsresult rv;
-    nsXPIDLString errorMsg;
+    nsAutoString errorMsg;
     if (originUnicode.IsEmpty()) {
         const char16_t* formatStrings[] = { classInfoName.get() };
         rv = sStrBundle->FormatStringFromName("CreateWrapperDenied",
                                               formatStrings,
                                               1,
-                                              getter_Copies(errorMsg));
+                                              errorMsg);
     } else {
         const char16_t* formatStrings[] = { classInfoName.get(),
                                             originUnicode.get() };
         rv = sStrBundle->FormatStringFromName("CreateWrapperDeniedForOrigin",
                                               formatStrings,
                                               2,
-                                              getter_Copies(errorMsg));
+                                              errorMsg);
     }
     NS_ENSURE_SUCCESS(rv, rv);
 

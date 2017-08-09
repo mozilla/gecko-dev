@@ -198,7 +198,7 @@ test_description_schema = Schema({
     # without e10s; if true, run with e10s; if 'both', run one task with and
     # one task without e10s.  E10s tasks have "-e10s" appended to the test name
     # and treeherder group.
-    Required('e10s', default='both'): optionally_keyed_by(
+    Required('e10s', default='true'): optionally_keyed_by(
         'test-platform', 'project',
         Any(bool, 'both')),
 
@@ -230,7 +230,7 @@ test_description_schema = Schema({
     # name of the docker image or in-tree docker image to run the task in.  If
     # in-tree, then a dependency will be created automatically.  This is
     # generally `desktop-test`, or an image that acts an awful lot like it.
-    Required('docker-image', default={'in-tree': 'desktop-test'}): optionally_keyed_by(
+    Required('docker-image', default={'in-tree': 'desktop1604-test'}): optionally_keyed_by(
         'test-platform',
         Any(
             # a raw Docker image path (repo/image:tag)
@@ -405,7 +405,7 @@ def set_defaults(config, tests):
         else:
             # all non-android tests want to run the bits that require node
             test['mozharness']['set-moz-node-path'] = True
-            test.setdefault('e10s', 'both')
+            test.setdefault('e10s', 'true')
 
         # software-gl-layers is only meaningful on linux unittests, where it defaults to True
         if test['test-platform'].startswith('linux') and test['suite'] != 'talos':

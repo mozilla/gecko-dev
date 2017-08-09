@@ -96,7 +96,7 @@ nsresult nsJSThunk::Init(nsIURI* uri)
     NS_ENSURE_ARG_POINTER(uri);
 
     // Get the script string to evaluate...
-    nsresult rv = uri->GetPath(mScript);
+    nsresult rv = uri->GetPathQueryRef(mScript);
     if (NS_FAILED(rv)) return rv;
 
     // Get the url.
@@ -182,7 +182,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         rv = csp->GetAllowsInline(nsIContentPolicy::TYPE_SCRIPT,
                                   EmptyString(), // aNonce
                                   true,         // aParserCreated
-                                  EmptyString(), // aContent
+                                  nullptr, // aContent
                                   0,             // aLineNumber
                                   &allowsInlineScript);
 

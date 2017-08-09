@@ -1,17 +1,17 @@
 "use strict";
 
+/* global windowTracker */
+
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
-                                  "resource://gre/modules/Preferences.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "gThemesEnabled", () => {
-  return Preferences.get("extensions.webextensions.themes.enabled");
+  return Services.prefs.getBoolPref("extensions.webextensions.themes.enabled");
 });
 
-const ICONS = Preferences.get("extensions.webextensions.themes.icons.buttons", "").split(",");
+const ICONS = Services.prefs.getStringPref("extensions.webextensions.themes.icons.buttons", "").split(",");
 
 /** Class representing a theme. */
 class Theme {
@@ -38,8 +38,16 @@ class Theme {
    *
    * @param {Object} details Theme part of the manifest. Supported
    *   properties can be found in the schema under ThemeType.
+   * @param {Object} targetWindow The window to apply the theme to. Omitting
+   *   this parameter will apply the theme globally.
    */
-  load(details) {
+  load(details, targetWindow) {
+    if (targetWindow) {
+      this.lwtStyles.window = targetWindow
+        .QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+    }
+
     if (details.colors) {
       this.loadColors(details.colors);
     }
@@ -64,6 +72,9 @@ class Theme {
       Services.obs.notifyObservers(null,
         "lightweight-theme-styling-update",
         JSON.stringify(this.lwtStyles));
+    } else {
+      this.logger.warn("Your theme doesn't include one of the following required " +
+        "properties: 'headerURL', 'accentcolor' or 'textcolor'");
     }
   }
 
@@ -93,6 +104,9 @@ class Theme {
         case "textcolor":
         case "tab_text":
           this.lwtStyles.textcolor = cssColor;
+          break;
+        case "toolbar":
+          this.lwtStyles.toolbarColor = cssColor;
           break;
       }
     }
@@ -133,7 +147,7 @@ class Theme {
    * @param {Object} icons Dictionary mapping icon properties to extension URLs.
    */
   loadIcons(icons) {
-    if (!Preferences.get("extensions.webextensions.themes.icons.enabled")) {
+    if (!Services.prefs.getBoolPref("extensions.webextensions.themes.icons.enabled")) {
       // Return early if icons are disabled.
       return;
     }
@@ -269,7 +283,7 @@ this.theme = class extends ExtensionAPI {
 
     return {
       theme: {
-        update: (details) => {
+        update: (windowId, details) => {
           if (!gThemesEnabled) {
             // Return early if themes are disabled.
             return;
@@ -282,7 +296,11 @@ this.theme = class extends ExtensionAPI {
             this.theme = new Theme(extension.baseURI, extension.logger);
           }
 
-          this.theme.load(details);
+          let browserWindow;
+          if (windowId !== null) {
+            browserWindow = windowTracker.getWindow(windowId, context);
+          }
+          this.theme.load(details, browserWindow);
         },
         reset: () => {
           if (!gThemesEnabled) {

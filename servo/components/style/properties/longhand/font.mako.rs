@@ -96,7 +96,20 @@ macro_rules! impl_gecko_keyword_conversions {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct FamilyName {
             pub name: Atom,
-            pub quoted: bool,
+            pub syntax: FamilyNameSyntax,
+        }
+
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+        pub enum FamilyNameSyntax {
+            /// The family name was specified in a quoted form, e.g. "Font Name"
+            /// or 'Font Name'.
+            Quoted,
+
+            /// The family name was specified in an unquoted form as a sequence of
+            /// identifiers.  The `String` is the serialization of the sequence of
+            /// identifiers.
+            Identifiers(String),
         }
 
         impl FontFamily {
@@ -139,7 +152,7 @@ macro_rules! impl_gecko_keyword_conversions {
                 // quoted by default.
                 FontFamily::FamilyName(FamilyName {
                     name: input,
-                    quoted: true,
+                    syntax: FamilyNameSyntax::Quoted,
                 })
             }
 
@@ -148,7 +161,7 @@ macro_rules! impl_gecko_keyword_conversions {
                 if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
                     return Ok(FontFamily::FamilyName(FamilyName {
                         name: Atom::from(&*value),
-                        quoted: true,
+                        syntax: FamilyNameSyntax::Quoted,
                     }))
                 }
                 let first_ident = input.expect_ident()?.clone();
@@ -182,20 +195,27 @@ macro_rules! impl_gecko_keyword_conversions {
                 }
 
                 let mut value = first_ident.as_ref().to_owned();
+                let mut serialization = String::new();
+                serialize_identifier(&first_ident, &mut serialization).unwrap();
+
                 // These keywords are not allowed by themselves.
                 // The only way this value can be valid with with another keyword.
                 if css_wide_keyword {
                     let ident = input.expect_ident()?;
-                    value.push_str(" ");
+                    value.push(' ');
                     value.push_str(&ident);
+                    serialization.push(' ');
+                    serialize_identifier(&ident, &mut serialization).unwrap();
                 }
                 while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
-                    value.push_str(" ");
+                    value.push(' ');
                     value.push_str(&ident);
+                    serialization.push(' ');
+                    serialize_identifier(&ident, &mut serialization).unwrap();
                 }
                 Ok(FontFamily::FamilyName(FamilyName {
                     name: Atom::from(value),
-                    quoted: false,
+                    syntax: FamilyNameSyntax::Identifiers(serialization),
                 }))
             }
 
@@ -229,12 +249,17 @@ macro_rules! impl_gecko_keyword_conversions {
 
         impl ToCss for FamilyName {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.quoted {
-                    dest.write_char('"')?;
-                    write!(CssStringWriter::new(dest), "{}", self.name)?;
-                    dest.write_char('"')
-                } else {
-                    serialize_identifier(&*self.name.to_string(), dest)
+                match self.syntax {
+                    FamilyNameSyntax::Quoted => {
+                        dest.write_char('"')?;
+                        write!(CssStringWriter::new(dest), "{}", self.name)?;
+                        dest.write_char('"')
+                    }
+                    FamilyNameSyntax::Identifiers(ref serialization) => {
+                        // Note that `serialization` is already escaped/
+                        // serialized appropriately.
+                        dest.write_str(&*serialization)
+                    }
                 }
             }
         }
@@ -830,17 +855,17 @@ ${helpers.single_keyword_system("font-variant-caps",
                     value.to_computed_value(base_size.resolve(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context)
+                    context.maybe_zoom_text(l.to_computed_value(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
                     base_size.resolve(context).scale_by(pc.0)
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value(context);
+                    let calc = calc.to_computed_value_zoomed(context);
                     calc.to_used_value(Some(base_size.resolve(context))).unwrap()
                 }
                 SpecifiedValue::Keyword(ref key, fraction) => {
-                    key.to_computed_value(context).scale_by(fraction)
+                    context.maybe_zoom_text(key.to_computed_value(context).scale_by(fraction))
                 }
                 SpecifiedValue::Smaller => {
                     FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
@@ -960,7 +985,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
                 if let Some((kw, ratio)) = context.builder.font_size_keyword {
-                    computed = kw.to_computed_value(context).scale_by(ratio);
+                    computed = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio));
                 }
             }
         % endif
@@ -990,7 +1015,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
         let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio)| {
-            SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
+            context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio).to_computed_value(context))
         });
         let parent_kw;
         let device = context.builder.device;
@@ -1015,8 +1040,10 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let computed = longhands::font_size::get_initial_specified_value()
-                            .to_computed_value(context);
+        let computed = context.maybe_zoom_text(
+                            longhands::font_size::get_initial_specified_value()
+                                .to_computed_value(context)
+                        );
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;
@@ -2381,6 +2408,41 @@ ${helpers.single_keyword("-moz-math-variant",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="-x-text-zoom" products="gecko" animation_value_type="none" internal="True"
+                   spec="Internal (not web-exposed)">
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        use std::fmt;
+        use style_traits::ToCss;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                Ok(())
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        /// text-zoom. Enable if true, disable if false
+        pub struct T(pub bool);
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(true)
+    }
+
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+</%helpers:longhand>
 
 % if product == "gecko":
     pub mod system_font {
@@ -2471,7 +2533,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     use properties::longhands::font_family::computed_value::*;
                     FontFamily::FamilyName(FamilyName {
                         name: (&*font.mName).into(),
-                        quoted: true
+                        syntax: FamilyNameSyntax::Quoted,
                     })
                 }).collect::<Vec<_>>();
                 let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);

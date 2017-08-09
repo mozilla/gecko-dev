@@ -695,6 +695,8 @@ var ClickEventHandler = {
       reason = "malware";
     } else if (/e=unwantedBlocked/.test(ownerDoc.documentURI)) {
       reason = "unwanted";
+    } else if (/e=harmfulBlocked/.test(ownerDoc.documentURI)) {
+      reason = "harmful";
     }
 
     let docShell = ownerDoc.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -1210,7 +1212,6 @@ var PageInfoListener = {
 
     let documentURIObject = {};
     documentURIObject.spec = document.documentURIObject.spec;
-    documentURIObject.originCharset = document.documentURIObject.originCharset;
     docInfo.documentURIObject = documentURIObject;
 
     docInfo.isContentWindowPrivate = PrivateBrowsingUtils.isContentWindowPrivate(content);

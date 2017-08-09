@@ -50,6 +50,7 @@ namespace mozilla {
   };
   enum class UpdateAnimationsTasks : uint8_t;
   struct LangGroupFontPrefs;
+  class SeenPtrs;
   class ServoStyleContext;
   class ServoStyleSheet;
   class ServoElementSnapshotTable;
@@ -267,9 +268,9 @@ double Gecko_GetPositionInSegment(
 // Get servo's AnimationValue for |aProperty| from the cached base style
 // |aBaseStyles|.
 // |aBaseStyles| is nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>.
-// We use void* to avoid exposing nsRefPtrHashtable in FFI.
+// We use RawServoAnimationValueTableBorrowed to avoid exposing nsRefPtrHashtable in FFI.
 RawServoAnimationValueBorrowedOrNull Gecko_AnimationGetBaseStyle(
-  void* aBaseStyles,
+  RawServoAnimationValueTableBorrowed aBaseStyles,
   nsCSSPropertyID aProperty);
 void Gecko_StyleTransition_SetUnsupportedProperty(
   mozilla::StyleTransition* aTransition,
@@ -396,6 +397,10 @@ Gecko_GetElementSnapshot(const mozilla::ServoElementSnapshotTable* table,
                          RawGeckoElementBorrowed element);
 
 void Gecko_DropElementSnapshot(ServoElementSnapshotOwned snapshot);
+
+// Have we seen this pointer before?
+bool
+Gecko_HaveSeenPtr(mozilla::SeenPtrs* table, const void* ptr);
 
 // `array` must be an nsTArray
 // If changing this signature, please update the
@@ -649,8 +654,6 @@ int32_t Gecko_RegisterNamespace(nsIAtom* ns);
   void Gecko_Destroy_nsStyle##name(nsStyle##name* ptr);
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
-
-void Gecko_Construct_nsStyleVariables(nsStyleVariables* ptr);
 
 void Gecko_RegisterProfilerThread(const char* name);
 void Gecko_UnregisterProfilerThread();

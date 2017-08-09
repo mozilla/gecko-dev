@@ -8,7 +8,8 @@ import unittest
 from marionette_driver.by import By
 from marionette_driver.errors import (
     ElementNotAccessibleException,
-    ElementNotInteractableException
+    ElementNotInteractableException,
+    ElementClickInterceptedException,
 )
 
 from marionette_harness import MarionetteTestCase
@@ -82,8 +83,15 @@ class TestAccessibility(MarionetteTestCase):
 
     disabled_elementIDs = ["button11", "no_accessible_but_disabled"]
 
-    # Elements that are enabled but otherwise disabled or not explorable via the accessibility API
-    disabled_accessibility_elementIDs = ["button12", "button15", "button16"]
+    # Elements that are enabled but otherwise disabled or not explorable
+    # via the accessibility API
+    aria_disabled_elementIDs = ["button12"]
+
+    # pointer-events: "none", which will return
+    # ElementClickInterceptedException if clicked
+    # when Marionette switches
+    # to using WebDriver conforming interaction
+    pointer_events_none_elementIDs = ["button15", "button16"]
 
     # Elements that are reporting selected state
     valid_option_elementIDs = ["option1", "option2"]
@@ -95,8 +103,7 @@ class TestAccessibility(MarionetteTestCase):
 
     def setup_accessibility(self, enable_a11y_checks=True, navigate=True):
         self.marionette.delete_session()
-        self.marionette.start_session(
-            {"requiredCapabilities": {"moz:accessibilityChecks": enable_a11y_checks}})
+        self.marionette.start_session({"moz:accessibilityChecks": enable_a11y_checks})
         self.assertEqual(
             self.marionette.session_capabilities["moz:accessibilityChecks"],
             enable_a11y_checks)
@@ -167,20 +174,31 @@ class TestAccessibility(MarionetteTestCase):
     def test_element_is_not_enabled_to_accessbility(self):
         self.setup_accessibility()
         # Buttons are enabled but disabled/not-explorable via the accessibility API
-        self.run_element_test(self.disabled_accessibility_elementIDs,
+        self.run_element_test(self.aria_disabled_elementIDs,
+                              lambda element: self.assertRaises(ElementNotAccessibleException,
+                                                                element.is_enabled))
+        self.run_element_test(self.pointer_events_none_elementIDs,
                               lambda element: self.assertRaises(ElementNotAccessibleException,
                                                                 element.is_enabled))
 
-        # Buttons are enabled but disabled/not-explorable via the accessibility API and thus are not
-        # clickable via the accessibility API
-        self.run_element_test(self.disabled_accessibility_elementIDs,
+        # Buttons are enabled but disabled/not-explorable via
+        # the accessibility API and thus are not clickable via the
+        # accessibility API.
+        self.run_element_test(self.aria_disabled_elementIDs,
+                              lambda element: self.assertRaises(ElementNotAccessibleException,
+                                                                element.click))
+        self.run_element_test(self.pointer_events_none_elementIDs,
                               lambda element: self.assertRaises(ElementNotAccessibleException,
                                                                 element.click))
 
         self.setup_accessibility(False, False)
-        self.run_element_test(self.disabled_accessibility_elementIDs,
+        self.run_element_test(self.aria_disabled_elementIDs,
                               lambda element: element.is_enabled())
-        self.run_element_test(self.disabled_accessibility_elementIDs,
+        self.run_element_test(self.pointer_events_none_elementIDs,
+                              lambda element: element.is_enabled())
+        self.run_element_test(self.aria_disabled_elementIDs,
+                              lambda element: element.click())
+        self.run_element_test(self.pointer_events_none_elementIDs,
                               lambda element: element.click())
 
     def test_element_is_enabled_to_accessibility(self):

@@ -161,7 +161,7 @@ element.Store = class {
    * @returns {nsIDOMElement}
    *     Element associated with reference.
    *
-   * @throws {JavaScriptError}
+   * @throws {NoSuchElementError}
    *     If the provided reference is unknown.
    * @throws {StaleElementReferenceError}
    *     If element has gone stale, indicating it is no longer attached to
@@ -170,7 +170,8 @@ element.Store = class {
   get(uuid, container) {
     let el = this.els[uuid];
     if (!el) {
-      throw new JavaScriptError(`Element reference not seen before: ${uuid}`);
+      throw new NoSuchElementError(`Element reference not seen before: ` +
+                                   `${uuid}`);
     }
 
     try {
@@ -873,6 +874,8 @@ element.isObscured = function(el) {
   return !el.contains(tree[0]);
 };
 
+// TODO(ato): Only used by deprecated action API
+// https://bugzil.la/1354578
 /**
  * Calculate the in-view centre point of the area of the given DOM client
  * rectangle that is inside the viewport.

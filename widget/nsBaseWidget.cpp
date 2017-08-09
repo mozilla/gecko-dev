@@ -166,7 +166,6 @@ nsBaseWidget::nsBaseWidget()
 , mPopupLevel(ePopupLevelTop)
 , mPopupType(ePopupTypeAny)
 , mHasRemoteContent(false)
-, mCompositorWidgetDelegate(nullptr)
 , mUpdateCursor(true)
 , mUseAttachedEvents(false)
 , mIMEHasFocus(false)
@@ -281,7 +280,7 @@ void nsBaseWidget::DestroyCompositor()
   if (mCompositorSession) {
     ReleaseContentController();
     mAPZC = nullptr;
-    mCompositorWidgetDelegate = nullptr;
+    SetCompositorWidgetDelegate(nullptr);
     mCompositorBridgeChild = nullptr;
 
     // XXX CompositorBridgeChild and CompositorBridgeParent might be re-created in
@@ -1294,12 +1293,7 @@ nsBaseWidget::CreateCompositorSession(int aWidth,
       if (textureFactoryIdentifier.mParentBackend != LayersBackend::LAYERS_WR) {
         retry = true;
         DestroyCompositor();
-        // Disable WebRender
-        gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER).ForceDisable(
-          gfx::FeatureStatus::Unavailable,
-          "WebRender initialization failed",
-          NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_INITIALIZE"));
-        gfx::gfxVars::SetUseWebRender(false);
+        gfx::GPUProcessManager::Get()->DisableWebRender();
       }
     }
 
@@ -1347,7 +1341,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 
   MOZ_ASSERT(mCompositorSession);
   mCompositorBridgeChild = mCompositorSession->GetCompositorBridgeChild();
-  mCompositorWidgetDelegate = mCompositorSession->GetCompositorWidgetDelegate();
+  SetCompositorWidgetDelegate(mCompositorSession->GetCompositorWidgetDelegate());
 
   if (options.UseAPZ()) {
     mAPZC = mCompositorSession->GetAPZCTreeManager();

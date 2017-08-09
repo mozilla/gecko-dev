@@ -55,6 +55,12 @@ nsLookAndFeel::nsLookAndFeel()
 {
 }
 
+void
+nsLookAndFeel::NativeInit()
+{
+    EnsureInit();
+}
+
 nsLookAndFeel::~nsLookAndFeel()
 {
 #if (MOZ_WIDGET_GTK == 2)
@@ -1074,6 +1080,9 @@ nsLookAndFeel::EnsureInit()
     if (mInitialized)
         return;
     mInitialized = true;
+
+    // gtk does non threadsafe refcounting
+    MOZ_ASSERT(NS_IsMainThread());
 
 #if (MOZ_WIDGET_GTK == 2)
     NS_ASSERTION(!mStyle, "already initialized");

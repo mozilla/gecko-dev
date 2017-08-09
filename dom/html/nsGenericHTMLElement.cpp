@@ -109,6 +109,7 @@
 #include "mozilla/StyleSetHandleInlines.h"
 #include "ReferrerPolicy.h"
 #include "mozilla/dom/HTMLLabelElement.h"
+#include "mozilla/dom/HTMLInputElement.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2426,6 +2427,40 @@ void nsGenericHTMLFormElement::UpdateDisabledState(bool aNotify)
 }
 
 void
+nsGenericHTMLFormElement::UpdateRequiredState(bool aIsRequired, bool aNotify)
+{
+#ifdef DEBUG
+  int32_t type = ControlType();
+#endif
+  MOZ_ASSERT((type & NS_FORM_INPUT_ELEMENT) ||
+              type == NS_FORM_SELECT ||
+              type == NS_FORM_TEXTAREA,
+             "This should be called only on types that @required applies");
+
+#ifdef DEBUG
+  HTMLInputElement* input = HTMLInputElement::FromContent(this);
+  if (input) {
+    MOZ_ASSERT(input->DoesRequiredApply(),
+               "This should be called only on input types that @required applies");
+  }
+#endif
+
+  EventStates requiredStates;
+  if (aIsRequired) {
+    requiredStates |= NS_EVENT_STATE_REQUIRED;
+  } else {
+    requiredStates |= NS_EVENT_STATE_OPTIONAL;
+  }
+
+  EventStates oldRequiredStates = State() & REQUIRED_STATES;
+  EventStates changedStates = requiredStates ^ oldRequiredStates;
+
+  if (!changedStates.IsEmpty()) {
+    ToggleStates(changedStates, aNotify);
+  }
+}
+
+void
 nsGenericHTMLFormElement::FieldSetDisabledChanged(bool aNotify)
 {
   UpdateDisabledState(aNotify);
@@ -2998,7 +3033,15 @@ IsOrHasAncestorWithDisplayNone(Element* aElement, nsIPresShell* aPresShell)
   RefPtr<nsStyleContext> sc;
   for (auto* element : Reversed(elementsToCheck)) {
     if (sc) {
-      sc = styleSet->ResolveStyleFor(element, sc, LazyComputeBehavior::Assert);
+      if (styleSet->IsGecko()) {
+        sc = styleSet->ResolveStyleFor(element, sc,
+                                       LazyComputeBehavior::Assert);
+      } else {
+        // Call ResolveStyleLazily to protect against stale element data in
+        // the tree when styled by Servo.
+        sc = styleSet->AsServo()->ResolveStyleLazily(
+            element, CSSPseudoElementType::NotPseudo, nullptr);
+      }
     } else {
       sc = nsComputedDOMStyle::GetStyleContextNoFlush(element,
                                                       nullptr, aPresShell);
@@ -3017,7 +3060,10 @@ nsGenericHTMLElement::GetInnerText(mozilla::dom::DOMString& aValue,
 {
   if (!GetPrimaryFrame(FlushType::Layout)) {
     nsIPresShell* presShell = nsComputedDOMStyle::GetPresShellForContent(this);
-    if (!presShell || IsOrHasAncestorWithDisplayNone(this, presShell)) {
+    // NOTE(emilio): We need to check the presshell is initialized in order to
+    // ensure the document is styled.
+    if (!presShell || !presShell->DidInitialize() ||
+        IsOrHasAncestorWithDisplayNone(this, presShell)) {
       GetTextContentInternal(aValue, aError);
       return;
     }

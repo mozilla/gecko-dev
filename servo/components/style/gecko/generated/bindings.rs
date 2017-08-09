@@ -8,6 +8,7 @@ type nsAString_internal = nsAString;
 pub type ServoStyleContextBorrowed<'a> = &'a ::properties::ComputedValues;
 pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
 pub type ServoComputedDataBorrowed<'a> = &'a ServoComputedData;
+pub type RawServoAnimationValueTableBorrowed<'a> = &'a ();
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::ErrorReporter;
 use gecko_bindings::structs::mozilla::css::ImageValue;
@@ -37,7 +38,7 @@ use gecko_bindings::structs::RawServoStyleRule;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::RawGeckoStyleAnimationList;
-use gecko_bindings::structs::RawGeckoStyleChildrenIteratorBorrowedMut;
+use gecko_bindings::structs::RawGeckoStyleChildrenIterator;
 use gecko_bindings::structs::RawGeckoServoStyleRuleList;
 use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RawGeckoXBLBinding;
@@ -54,6 +55,7 @@ use gecko_bindings::structs::GeckoFontMetrics;
 use gecko_bindings::structs::IterationCompositeOperation;
 use gecko_bindings::structs::Keyframe;
 use gecko_bindings::structs::PropertyValuePair;
+use gecko_bindings::structs::SeenPtrs;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
@@ -172,6 +174,9 @@ unsafe impl Sync for nsStyleQuoteValues {}
 use gecko_bindings::structs::nsStyleSVG;
 unsafe impl Send for nsStyleSVG {}
 unsafe impl Sync for nsStyleSVG {}
+use gecko_bindings::structs::nsStyleSVGOpacitySource;
+unsafe impl Send for nsStyleSVGOpacitySource {}
+unsafe impl Sync for nsStyleSVGOpacitySource {}
 use gecko_bindings::structs::nsStyleSVGPaint;
 unsafe impl Send for nsStyleSVGPaint {}
 unsafe impl Sync for nsStyleSVGPaint {}
@@ -316,6 +321,10 @@ pub type RawGeckoServoAnimationValueListBorrowed<'a> = &'a RawGeckoServoAnimatio
 pub type RawGeckoServoAnimationValueListBorrowedOrNull<'a> = Option<&'a RawGeckoServoAnimationValueList>;
 pub type RawGeckoServoAnimationValueListBorrowedMut<'a> = &'a mut RawGeckoServoAnimationValueList;
 pub type RawGeckoServoAnimationValueListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoServoAnimationValueList>;
+pub type RawGeckoStyleChildrenIteratorBorrowed<'a> = &'a RawGeckoStyleChildrenIterator;
+pub type RawGeckoStyleChildrenIteratorBorrowedOrNull<'a> = Option<&'a RawGeckoStyleChildrenIterator>;
+pub type RawGeckoStyleChildrenIteratorBorrowedMut<'a> = &'a mut RawGeckoStyleChildrenIterator;
+pub type RawGeckoStyleChildrenIteratorBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoStyleChildrenIterator>;
 pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
 pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
 pub type ServoCssRulesBorrowedOrNull<'a> = Option<&'a ServoCssRules>;
@@ -836,7 +845,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_AnimationGetBaseStyle(aBaseStyles:
-                                           *mut ::std::os::raw::c_void,
+                                           RawServoAnimationValueTableBorrowed,
                                        aProperty: nsCSSPropertyID)
      -> RawServoAnimationValueBorrowedOrNull;
 }
@@ -1077,6 +1086,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_DropElementSnapshot(snapshot: ServoElementSnapshotOwned);
+}
+extern "C" {
+    pub fn Gecko_HaveSeenPtr(table: *mut SeenPtrs,
+                             ptr: *const ::std::os::raw::c_void) -> bool;
 }
 extern "C" {
     pub fn Gecko_ResizeTArrayForStrings(array: *mut nsTArray<nsStringRepr>,
@@ -1876,6 +1889,12 @@ extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
+    pub fn Servo_Element_SizeOfExcludingThis(arg1: MallocSizeOf,
+                                             seen_ptrs: *mut SeenPtrs,
+                                             node: RawGeckoElementBorrowed)
+     -> usize;
+}
+extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                           gecko_stylesheet:
                                               *mut ServoStyleSheet,
@@ -1920,12 +1939,12 @@ extern "C" {
     pub fn Servo_StyleSet_Clear(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleSet_RebuildData(set: RawServoStyleSetBorrowed);
+    pub fn Servo_StyleSet_RebuildCachedData(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed,
-                                                viewport_changed: bool)
-     -> nsRestyleHint;
+                                                viewport_units_used:
+                                                    *mut bool) -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
@@ -2588,7 +2607,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_AnimationCompose(animation_values:
                                       RawServoAnimationValueMapBorrowedMut,
-                                  base_values: *mut ::std::os::raw::c_void,
+                                  base_values:
+                                      RawServoAnimationValueTableBorrowed,
                                   property: nsCSSPropertyID,
                                   animation_segment:
                                       RawGeckoAnimationPropertySegmentBorrowed,
@@ -2807,7 +2827,8 @@ extern "C" {
                                     rule_inclusion: StyleRuleInclusion,
                                     snapshots:
                                         *const ServoElementSnapshotTable,
-                                    set: RawServoStyleSetBorrowed)
+                                    set: RawServoStyleSetBorrowed,
+                                    ignore_existing_styles: bool)
      -> ServoStyleContextStrong;
 }
 extern "C" {

@@ -1139,7 +1139,7 @@ KeyframeEffectReadOnly::GetProperties(
       NS_ConvertASCIItoUTF16(nsCSSProps::GetStringValue(property.mProperty));
     propertyDetails.mRunningOnCompositor = property.mIsRunningOnCompositor;
 
-    nsXPIDLString localizedString;
+    nsAutoString localizedString;
     if (property.mPerformanceWarning &&
         property.mPerformanceWarning->ToLocalizedString(localizedString)) {
       propertyDetails.mWarning.Construct(localizedString);
@@ -1255,7 +1255,7 @@ KeyframeEffectReadOnly::GetKeyframes(JSContext*& aCx,
          // works with token stream values if we pass eCSSProperty_UNKNOWN as
          // the property.
          propertyValue.mValue.AppendToString(
-           eCSSProperty_UNKNOWN, stringValue, nsCSSValue::eNormalized);
+           eCSSProperty_UNKNOWN, stringValue);
       } else {
         nsCSSValue cssValue = propertyValue.mValue;
         if (cssValue.GetUnit() == eCSSUnit_Null) {
@@ -1276,8 +1276,7 @@ KeyframeEffectReadOnly::GetKeyframes(JSContext*& aCx,
           MOZ_ASSERT(cssValue.GetUnit() != eCSSUnit_Null,
                      "Got null computed value");
         }
-        cssValue.AppendToString(propertyValue.mProperty,
-                                stringValue, nsCSSValue::eNormalized);
+        cssValue.AppendToString(propertyValue.mProperty, stringValue);
       }
 
       const char* name = nsCSSProps::PropertyIDLName(propertyValue.mProperty);
@@ -1622,7 +1621,7 @@ KeyframeEffectReadOnly::SetPerformanceWarning(
          *property.mPerformanceWarning != aWarning)) {
       property.mPerformanceWarning = Some(aWarning);
 
-      nsXPIDLString localizedString;
+      nsAutoString localizedString;
       if (nsLayoutUtils::IsAnimationLoggingEnabled() &&
           property.mPerformanceWarning->ToLocalizedString(localizedString)) {
         nsAutoCString logMessage = NS_ConvertUTF16toUTF8(localizedString);

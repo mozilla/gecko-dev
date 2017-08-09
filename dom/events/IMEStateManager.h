@@ -148,7 +148,7 @@ public:
   // widget.  So, the caller must have focus.
   static void UpdateIMEState(const IMEState &aNewIMEState,
                              nsIContent* aContent,
-                             EditorBase& aEditorBase);
+                             EditorBase* aEditorBase);
 
   // This method is called when user operates mouse button in focused editor
   // and before the editor handles it.
@@ -260,6 +260,7 @@ protected:
                                         nsIContent* aContent,
                                         InputContextAction aAction);
   static void SetIMEState(const IMEState &aState,
+                          nsPresContext* aPresContext,
                           nsIContent* aContent,
                           nsIWidget* aWidget,
                           InputContextAction aAction,

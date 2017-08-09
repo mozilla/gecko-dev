@@ -552,14 +552,8 @@ pref("media.navigator.audio.full_duplex", true);
 pref("media.peerconnection.capture_delay", 100);
 pref("media.getusermedia.playout_delay", 100);
 pref("media.navigator.audio.full_duplex", true);
-// enable Webrtc Hardware acceleration in nightly
-#ifdef NIGHTLY_BUILD
 pref("media.navigator.hardware.vp8_encode.acceleration_enabled", true);
 pref("media.navigator.hardware.vp8_encode.acceleration_remote_enabled", true);
-#else
-pref("media.navigator.hardware.vp8_encode.acceleration_enabled", false);
-pref("media.navigator.hardware.vp8_encode.acceleration_remote_enabled", false);
-#endif
 pref("media.navigator.hardware.vp8_decode.acceleration_enabled", false);
 #elif defined(XP_LINUX)
 pref("media.peerconnection.capture_delay", 70);
@@ -720,6 +714,7 @@ pref("apz.keyboard.enabled", true);
 #else
 pref("apz.keyboard.enabled", false);
 #endif
+pref("apz.keyboard.passive-listeners", false);
 pref("apz.max_velocity_inches_per_ms", "-1.0");
 pref("apz.max_velocity_queue_size", 5);
 pref("apz.min_skate_speed", "1.0");
@@ -1380,8 +1375,9 @@ pref("content.sink.pending_event_mode", 0);
 // Disable popups from plugins by default
 //   0 = openAllowed
 //   1 = openControlled
-//   2 = openAbused
-pref("privacy.popups.disable_from_plugins", 2);
+//   2 = openBlocked
+//   3 = openAbused
+pref("privacy.popups.disable_from_plugins", 3);
 
 // send "do not track" HTTP header, disabled by default
 pref("privacy.donottrackheader.enabled",    false);
@@ -2183,6 +2179,10 @@ pref("network.http.throttle.resume-for", 100);
 // response has finished.  Prevents resuming too soon during an active page load
 // at which sub-resource reqeusts quickly come and go.
 pref("network.http.throttle.resume-background-in", 1000);
+// After the last transaction activation or last data chunk response we only
+// throttle for this period of time.  This prevents comet and unresponsive
+// http requests to engage long-standing throttling.
+pref("network.http.throttle.time-window", 3000);
 
 // Give higher priority to requests resulting from a user interaction event
 // like click-to-play, image fancy-box zoom, navigation.
@@ -2211,6 +2211,7 @@ pref("network.cookie.cookieBehavior",       0); // Keep the old default of accep
 #endif
 pref("network.cookie.thirdparty.sessionOnly", false);
 pref("network.cookie.leave-secure-alone",   true);
+pref("network.cookie.ipc.sync",             false);
 pref("network.cookie.lifetimePolicy",       0); // 0-accept, 1-dontUse 2-acceptForSession, 3-acceptForNDays
 pref("network.cookie.prefsMigrated",        false);
 pref("network.cookie.lifetime.days",        90); // Ignored unless network.cookie.lifetimePolicy is 3.
@@ -5318,7 +5319,7 @@ pref("dom.flyweb.enabled", false);
 pref("dom.mapped_arraybuffer.enabled", true);
 
 // The tables used for Safebrowsing phishing and malware checks.
-pref("urlclassifier.malwareTable", "goog-malware-shavar,goog-unwanted-shavar,test-malware-simple,test-unwanted-simple");
+pref("urlclassifier.malwareTable", "goog-malware-shavar,goog-unwanted-shavar,test-malware-simple,test-unwanted-simple,test-harmful-simple");
 
 #ifdef MOZILLA_OFFICIAL
 // In the official build, we are allowed to use google's private
@@ -5332,7 +5333,7 @@ pref("urlclassifier.phishTable", "googpub-phish-shavar,test-phish-simple");
 pref("urlclassifier.downloadAllowTable", "goog-downloadwhite-proto");
 pref("urlclassifier.downloadBlockTable", "goog-badbinurl-proto");
 
-pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,test-unwanted-simple,test-track-simple,test-trackwhite-simple,test-block-simple,goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256");
+pref("urlclassifier.disallow_completions", "test-malware-simple,test-harmful-simple,test-phish-simple,test-unwanted-simple,test-track-simple,test-trackwhite-simple,test-block-simple,goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256");
 
 // The table and update/gethash URLs for Safebrowsing phishing and malware
 // checks.
@@ -5382,7 +5383,7 @@ pref("browser.safebrowsing.provider.google.advisoryName", "Google Safe Browsing.
 
 // Prefs for v4.
 pref("browser.safebrowsing.provider.google4.pver", "4");
-pref("browser.safebrowsing.provider.google4.lists", "goog-badbinurl-proto,goog-downloadwhite-proto,goog-phish-proto,googpub-phish-proto,goog-malware-proto,goog-unwanted-proto");
+pref("browser.safebrowsing.provider.google4.lists", "goog-badbinurl-proto,goog-downloadwhite-proto,goog-phish-proto,googpub-phish-proto,goog-malware-proto,goog-unwanted-proto,goog-harmful-proto");
 pref("browser.safebrowsing.provider.google4.updateURL", "https://safebrowsing.googleapis.com/v4/threatListUpdates:fetch?$ct=application/x-protobuf&key=%GOOGLE_API_KEY%&$httpMethod=POST");
 pref("browser.safebrowsing.provider.google4.gethashURL", "https://safebrowsing.googleapis.com/v4/fullHashes:find?$ct=application/x-protobuf&key=%GOOGLE_API_KEY%&$httpMethod=POST");
 pref("browser.safebrowsing.provider.google4.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
@@ -5714,11 +5715,7 @@ pref("dom.webkitBlink.dirPicker.enabled", true);
 pref("dom.webkitBlink.filesystem.enabled", true);
 #endif
 
-#ifdef RELEASE_OR_BETA
-pref("media.block-autoplay-until-in-foreground", false);
-#else
 pref("media.block-autoplay-until-in-foreground", true);
-#endif
 
 // Is Stylo CSS support built and enabled?
 // Only define this pref if Stylo support is actually built in.
@@ -5854,3 +5851,6 @@ pref("toolkit.crashreporter.include_context_heap", true);
 
 // Open noopener links in a new process
 pref("dom.noopener.newprocess.enabled", true);
+
+pref("layers.omtp.enabled", false);
+pref("layers.omtp.force-sync", false);

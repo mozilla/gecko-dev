@@ -193,7 +193,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         }
 
         nsAutoCString path;
-        rv = uri->GetPath(path);
+        rv = uri->GetPathQueryRef(path);
         if (NS_FAILED(rv)) return rv;
 
         if (!path.EqualsLiteral("//") && !path.LowerCaseEqualsLiteral("/%2f")) {
@@ -226,7 +226,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
 
     } else if (NS_SUCCEEDED(uri->SchemeIs("jar", &isScheme)) && isScheme) {
         nsAutoCString path;
-        rv = uri->GetPath(path);
+        rv = uri->GetPathQueryRef(path);
         if (NS_FAILED(rv)) return rv;
 
         // a top-level jar directory URL is of the form jar:foo.zip!/
@@ -244,12 +244,12 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         // default behavior for other protocols is to assume the channel's
         // URL references a directory ending in '/' -- fixup if necessary.
         nsAutoCString path;
-        rv = uri->GetPath(path);
+        rv = uri->GetPathQueryRef(path);
         if (NS_FAILED(rv)) return rv;
         if (baseUri.Last() != '/') {
             baseUri.Append('/');
             path.Append('/');
-            uri->SetPath(path);
+            uri->SetPathQueryRef(path);
         }
         if (!path.EqualsLiteral("/")) {
             rv = uri->Resolve(NS_LITERAL_CSTRING(".."), parentStr);
@@ -494,15 +494,8 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         if (NS_FAILED(rv)) return rv;
     }
 
-    nsXPIDLCString encoding;
-    rv = uri->GetOriginCharset(encoding);
-    if (NS_FAILED(rv)) return rv;
-    if (encoding.IsEmpty()) {
-      encoding.AssignLiteral("UTF-8");
-    }
-
     nsAutoString unEscapeSpec;
-    rv = mTextToSubURI->UnEscapeAndConvert(encoding, titleUri, unEscapeSpec);
+    rv = mTextToSubURI->UnEscapeAndConvert(NS_LITERAL_CSTRING("UTF-8"), titleUri, unEscapeSpec);
     // unescape may fail because
     // 1. file URL may be encoded in platform charset for backward compatibility
     // 2. query part may not be encoded in UTF-8 (see bug 261929)
@@ -522,7 +515,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     htmlEscSpec.Adopt(nsEscapeHTML2(unEscapeSpec.get(),
                                     unEscapeSpec.Length()));
 
-    nsXPIDLString title;
+    nsAutoString title;
     const char16_t* formatTitle[] = {
         htmlEscSpec.get()
     };
@@ -530,7 +523,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     rv = mBundle->FormatStringFromName("DirTitle",
                                        formatTitle,
                                        sizeof(formatTitle)/sizeof(char16_t*),
-                                       getter_Copies(title));
+                                       title);
     if (NS_FAILED(rv)) return rv;
 
     // we want to convert string bundle to NCR
@@ -583,16 +576,15 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     rv = mBundle->FormatStringFromName("DirTitle",
                                        formatHeading,
                                        sizeof(formatHeading)/sizeof(char16_t*),
-                                       getter_Copies(title));
+                                       title);
     if (NS_FAILED(rv)) return rv;
 
     AppendNonAsciiToNCR(title, buffer);
     buffer.AppendLiteral("</h1>\n");
 
     if (!parentStr.IsEmpty()) {
-        nsXPIDLString parentText;
-        rv = mBundle->GetStringFromName("DirGoUp",
-                                        getter_Copies(parentText));
+        nsAutoString parentText;
+        rv = mBundle->GetStringFromName("DirGoUp", parentText);
         if (NS_FAILED(rv)) return rv;
 
         buffer.AppendLiteral("<p id=\"UI_goUp\"><a class=\"up\" href=\"");
@@ -606,9 +598,8 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     }
 
     if (isSchemeFile) {
-        nsXPIDLString showHiddenText;
-        rv = mBundle->GetStringFromName("ShowHidden",
-                                        getter_Copies(showHiddenText));
+        nsAutoString showHiddenText;
+        rv = mBundle->GetStringFromName("ShowHidden", showHiddenText);
         if (NS_FAILED(rv)) return rv;
 
         buffer.AppendLiteral("<p id=\"UI_showHidden\" style=\"display:none\"><label><input type=\"checkbox\" checked onchange=\"updateHidden()\">");
@@ -616,30 +607,25 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         buffer.AppendLiteral("</label></p>\n");
     }
 
-    buffer.AppendLiteral("<table>\n");
-
-    nsXPIDLString columnText;
-
-    buffer.AppendLiteral(" <thead>\n"
+    buffer.AppendLiteral("<table>\n"
+                         " <thead>\n"
                          "  <tr>\n"
                          "   <th>");
 
-    rv = mBundle->GetStringFromName("DirColName",
-                                    getter_Copies(columnText));
+    nsAutoString columnText;
+    rv = mBundle->GetStringFromName("DirColName", columnText);
     if (NS_FAILED(rv)) return rv;
     AppendNonAsciiToNCR(columnText, buffer);
     buffer.AppendLiteral("</th>\n"
                          "   <th>");
 
-    rv = mBundle->GetStringFromName("DirColSize",
-                                    getter_Copies(columnText));
+    rv = mBundle->GetStringFromName("DirColSize", columnText);
     if (NS_FAILED(rv)) return rv;
     AppendNonAsciiToNCR(columnText, buffer);
     buffer.AppendLiteral("</th>\n"
                          "   <th colspan=\"2\">");
 
-    rv = mBundle->GetStringFromName("DirColMTime",
-                                    getter_Copies(columnText));
+    rv = mBundle->GetStringFromName("DirColMTime", columnText);
     if (NS_FAILED(rv)) return rv;
     AppendNonAsciiToNCR(columnText, buffer);
     buffer.AppendLiteral("</th>\n"
@@ -799,9 +785,8 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
         }
         pushBuffer.AppendLiteral("?size=16\" alt=\"");
 
-        nsXPIDLString altText;
-        rv = mBundle->GetStringFromName("DirFileLabel",
-                                        getter_Copies(altText));
+        nsAutoString altText;
+        rv = mBundle->GetStringFromName("DirFileLabel", altText);
         if (NS_FAILED(rv)) return rv;
         AppendNonAsciiToNCR(altText, pushBuffer);
         pushBuffer.AppendLiteral("\">");

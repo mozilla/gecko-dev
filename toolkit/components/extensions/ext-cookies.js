@@ -3,8 +3,6 @@
 // The ext-* files are imported into the same scopes.
 /* import-globals-from ext-toolkit.js */
 
-XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
-                                  "resource://gre/modules/ContextualIdentityService.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
@@ -227,7 +225,7 @@ const query = function* (detailsIn, props, context) {
         return false;
       }
 
-      if (!pathMatches(uri.path)) {
+      if (!pathMatches(uri.pathQueryRef)) {
         return false;
       }
     }

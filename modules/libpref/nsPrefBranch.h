@@ -9,7 +9,6 @@
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
-#include "nsIPrefBranchInternal.h"
 #include "nsIPrefLocalizedString.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
@@ -176,7 +175,7 @@ class PrefCallback : public PLDHashEntryHdr {
     }
 };
 
-class nsPrefBranch final : public nsIPrefBranchInternal,
+class nsPrefBranch final : public nsIPrefBranch,
                            public nsIObserver,
                            public nsSupportsWeakReference
 {
@@ -184,7 +183,6 @@ class nsPrefBranch final : public nsIPrefBranchInternal,
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPREFBRANCH
-  NS_DECL_NSIPREFBRANCH2
   NS_DECL_NSIOBSERVER
 
   nsPrefBranch(const char *aPrefRoot, bool aDefaultBranch);
@@ -242,7 +240,7 @@ protected:
 
   virtual ~nsPrefBranch();
 
-  nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, char16_t **return_buf);
+  nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, nsAString& aReturn);
   // As SetCharPref, but without any check on the length of |aValue|
   nsresult   SetCharPrefInternal(const char *aPrefName, const char *aValue);
   // Reject strings that are more than 1Mb, warn if strings are more than 16kb

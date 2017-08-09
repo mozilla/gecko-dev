@@ -20,7 +20,7 @@ use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{Stylist, Rule};
-use style::stylist::needs_revalidation;
+use style::stylist::needs_revalidation_for_testing;
 use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.
@@ -83,13 +83,12 @@ fn test_revalidation_selectors() {
         "div > span",
 
         // ID selectors.
-        "#foo1", // FIXME(bz) This one should not be a revalidation
-                // selector once we fix
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+        "#foo1",
         "#foo2::before",
         "#foo3 > span",
-        "#foo1 > span", // FIXME(bz) This one should not be a
-                        // revalidation selector either.
+        "#foo1 > span", // FIXME(bz): This one should not be a
+                        // revalidation selector, since #foo1 should be in the
+                        // rule hash.
 
         // Attribute selectors.
         "div[foo]",
@@ -126,13 +125,11 @@ fn test_revalidation_selectors() {
         // Selectors in the ancestor chain (needed for cousin sharing).
         "p:first-child span",
     ]).into_iter()
-      .filter(|s| needs_revalidation(&s))
+      .filter(|s| needs_revalidation_for_testing(&s))
       .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[
         // ID selectors.
-        "#foo1",
-        "#foo2::before",
         "#foo3 > span",
         "#foo1 > span",
 

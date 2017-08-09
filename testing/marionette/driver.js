@@ -19,7 +19,10 @@ Cu.import("chrome://marionette/content/accessibility.js");
 Cu.import("chrome://marionette/content/addon.js");
 Cu.import("chrome://marionette/content/assert.js");
 Cu.import("chrome://marionette/content/atom.js");
-Cu.import("chrome://marionette/content/browser.js");
+const {
+  browser,
+  WindowState,
+} = Cu.import("chrome://marionette/content/browser.js", {});
 Cu.import("chrome://marionette/content/capture.js");
 Cu.import("chrome://marionette/content/cert.js");
 Cu.import("chrome://marionette/content/cookie.js");
@@ -48,7 +51,7 @@ Cu.import("chrome://marionette/content/modal.js");
 Cu.import("chrome://marionette/content/proxy.js");
 Cu.import("chrome://marionette/content/reftest.js");
 Cu.import("chrome://marionette/content/session.js");
-Cu.import("chrome://marionette/content/wait.js");
+const {wait, TimedPromise} = Cu.import("chrome://marionette/content/wait.js", {});
 
 Cu.importGlobalProperties(["URL"]);
 
@@ -148,7 +151,7 @@ this.GeckoDriver = function(appName, server) {
   this.appName = appName;
   this._server = server;
 
-  this.sessionId = null;
+  this.sessionID = null;
   this.wins = new browser.Windows();
   this.browsers = {};
   // points to current browser
@@ -656,22 +659,125 @@ GeckoDriver.prototype.listeningPromise = function() {
   });
 };
 
-/** Create a new session. */
+/**
+ * Create a new WebDriver session.
+ *
+ * It is expected that the caller performs the necessary checks on
+ * the requested capabilities to be WebDriver conforming.  The WebDriver
+ * service offered by Marionette does not match or negotiate capabilities
+ * beyond type- and bounds checks.
+ *
+ * <h3>Capabilities</h3>
+ *
+ * <dl>
+ *  <dt><code>pageLoadStrategy</code> (string)
+ *  <dd>The page load strategy to use for the current session.  Must be
+ *   one of "<tt>none</tt>", "<tt>eager</tt>", and "<tt>normal</tt>".
+ *
+ *  <dt><code>acceptInsecureCerts</code> (boolean)
+ *  <dd>Indicates whether untrusted and self-signed TLS certificates
+ *   are implicitly trusted on navigation for the duration of the session.
+ *
+ *  <dt><code>timeouts</code> (Timeouts object)
+ *  <dd>Describes the timeouts imposed on certian session operations.
+ *
+ *  <dt><code>proxy</code> (Proxy object)
+ *  <dd>Defines the proxy configuration.
+ *
+ *  <dt><code>specificationLevel</code> (number)
+ *  <dd>If set to 1, a WebDriver conforming <i>WebDriver::ElementClick</i>
+ *   implementation will be used.
+ *
+ *  <dt><code>moz:accessibilityChecks</code> (boolean)
+ *  <dd>Run a11y checks when clicking elements.
+ * </dl>
+ *
+ * <h4>Timeouts object</h4>
+ *
+ * <dl>
+ *  <dt><code>script</code> (number)
+ *  <dd>Determines when to interrupt a script that is being evaluates.
+ *
+ *  <dt><code>pageLoad</code> (number)
+ *  <dd>Provides the timeout limit used to interrupt navigation of the
+ *   browsing context.
+ *
+ *  <dt><code>implicit</code> (number)
+ *  <dd>Gives the timeout of when to abort when locating an element.
+ * </dl>
+ *
+ * <h4>Proxy object</h4>
+ *
+ * <dl>
+ *  <dt><code>proxyType</code> (string)
+ *  <dd>Indicates the type of proxy configuration.  Must be one
+ *   of "<tt>pac</tt>", "<tt>direct</tt>", "<tt>autodetect</tt>",
+ *   "<tt>system</tt>", or "<tt>manual</tt>".
+ *
+ *  <dt><code>proxyAutoconfigUrl</code> (string)
+ *  <dd>Defines the URL for a proxy auto-config file if
+ *   <code>proxyType</code> is equal to "<tt>pac</tt>".
+ *
+ *  <dt><code>ftpProxy</code> (string)
+ *  <dd>Defines the proxy host for FTP traffic when the
+ *   <code>proxyType</code> is "<tt>manual</tt>".
+ *
+ *  <dt><code>httpProxy</code> (string)
+ *  <dd>Defines the proxy host for HTTP traffic when the
+ *   <code>proxyType</code> is "<tt>manual</tt>".
+ *
+ *  <dt><code>noProxy</code> (string)
+ *  <dd>Lists the adress for which the proxy should be bypassed when
+ *   the <code>proxyType</code> is "<tt>manual</tt>".  Must be a JSON
+ *   List containing any number of any of domains, IPv4 addresses, or IPv6
+ *   addresses.
+ *
+ *  <dt><code>sslProxy</code> (string)
+ *  <dd>Defines the proxy host for encrypted TLS traffic when the
+ *   <code>proxyType</code> is "<tt>manual</tt>".
+ *
+ *  <dt><code>socksProxy</code> (string)
+ *  <dd>Defines the proxy host for a SOCKS proxy traffic when the
+ *   <code>proxyType</code> is "<tt>manual</tt>".
+ *
+ *  <dt><code>socksVersion</code> (string)
+ *  <dd>Defines the SOCKS proxy version when the <code>proxyType</code> is
+ *   "<tt>manual</tt>".  It must be any integer between 0 and 255
+ *   inclusive.
+ * </dl>
+ *
+ * <h3>Example</h3>
+ *
+ * Input:
+ *
+ * <pre><code>
+ *     {"capabilities": {"acceptInsecureCerts": true}}
+ * </code></pre>
+ *
+ * @param {string=} sessionId
+ *     Normally a unique ID is given to a new session, however this can
+ *     be overriden by providing this field.
+ * @param {Object.<string, *>=} capabilities
+ *     JSON Object containing any of the recognised capabilities listed
+ *     above.
+ *
+ * @return {Object}
+ *     Session ID and capabilities offered by the WebDriver service.
+ *
+ * @throws {SessionNotCreatedError}
+ *     If, for whatever reason, a session could not be created.
+ */
 GeckoDriver.prototype.newSession = function* (cmd, resp) {
-  if (this.sessionId) {
+  if (this.sessionID) {
     throw new SessionNotCreatedError("Maximum number of active sessions");
   }
 
-  this.sessionId = cmd.parameters.sessionId ||
-      cmd.parameters.session_id ||
-      element.generateUUID();
+  this.sessionID = cmd.parameters.sessionId || element.generateUUID();
   this.newSessionCommandId = cmd.id;
 
   try {
     this.capabilities = session.Capabilities.fromJSON(
-        cmd.parameters.capabilities, {merge: true});
-    logger.config("Matched capabilities: " +
-        JSON.stringify(this.capabilities));
+        cmd.parameters.capabilities);
   } catch (e) {
     throw new SessionNotCreatedError(e);
   }
@@ -750,7 +856,7 @@ GeckoDriver.prototype.newSession = function* (cmd, resp) {
   this.dialog = modal.findModalDialogs(this.curBrowser);
 
   return {
-    sessionId: this.sessionId,
+    sessionId: this.sessionID,
     capabilities: this.capabilities,
   };
 };
@@ -2088,7 +2194,7 @@ GeckoDriver.prototype.getActiveElement = function* (cmd, resp) {
  * @throws {UnexpectedAlertOpenError}
  *     A modal dialog is open, blocking this operation.
  */
-GeckoDriver.prototype.clickElement = function* (cmd, resp) {
+GeckoDriver.prototype.clickElement = async function(cmd, resp) {
   const win = assert.window(this.getCurrentWindow());
   assert.noUserPrompt(this.dialog);
 
@@ -2097,7 +2203,7 @@ GeckoDriver.prototype.clickElement = function* (cmd, resp) {
   switch (this.context) {
     case Context.CHROME:
       let el = this.curBrowser.seenEls.get(id, {frame: win});
-      yield interaction.clickElement(el, this.a11yChecks);
+      await interaction.clickElement(el, this.a11yChecks);
       break;
 
     case Context.CONTENT:
@@ -2126,7 +2232,7 @@ GeckoDriver.prototype.clickElement = function* (cmd, resp) {
             parameters);
       });
 
-      yield click;
+      await click;
       break;
   }
 };
@@ -2759,7 +2865,7 @@ GeckoDriver.prototype.deleteSession = function(cmd, resp) {
   this.sandboxes.clear();
   cert.uninstallOverride();
 
-  this.sessionId = null;
+  this.sessionID = null;
   this.capabilities = new session.Capabilities();
 };
 
@@ -2911,26 +3017,17 @@ GeckoDriver.prototype.minimizeWindow = function* (cmd, resp) {
   const win = assert.window(this.getCurrentWindow());
   assert.noUserPrompt(this.dialog);
 
-  let state;
   yield new Promise(resolve => {
     win.addEventListener("sizemodechange", resolve, {once: true});
 
     if (win.windowState == win.STATE_MINIMIZED) {
       win.restore();
-      state = "normal";
     } else {
       win.minimize();
-      state = "minimized";
     }
   });
 
-  resp.body = {
-    x: win.screenX,
-    y: win.screenY,
-    width: win.outerWidth,
-    height: win.outerHeight,
-    state,
-  };
+  return this.curBrowser.rect;
 };
 
 /**
@@ -2939,7 +3036,7 @@ GeckoDriver.prototype.minimizeWindow = function* (cmd, resp) {
  *
  * Not supported on Fennec.
  *
- * @return {Map.<string, number>}
+ * @return {Object.<string, number>}
  *     Window rect.
  *
  * @throws {UnsupportedOperationError}
@@ -2949,27 +3046,68 @@ GeckoDriver.prototype.minimizeWindow = function* (cmd, resp) {
  * @throws {UnexpectedAlertOpenError}
  *     A modal dialog is open, blocking this operation.
  */
-GeckoDriver.prototype.maximizeWindow = function* (cmd, resp) {
+GeckoDriver.prototype.maximizeWindow = async function(cmd, resp) {
   assert.firefox();
   const win = assert.window(this.getCurrentWindow());
   assert.noUserPrompt(this.dialog);
 
-  yield new Promise(resolve => {
-    win.addEventListener("resize", resolve, {once: true});
+  const origSize = {
+    outerWidth: win.outerWidth,
+    outerHeight: win.outerHeight,
+  };
+
+  // Wait for the window size to change.
+  async function windowSizeChange(from) {
+    return wait.until((resolve, reject) => {
+      let curSize = {
+        outerWidth: win.outerWidth,
+        outerHeight: win.outerHeight,
+      };
+      if (curSize.outerWidth != origSize.outerWidth ||
+          curSize.outerHeight != origSize.outerHeight) {
+        resolve();
+      } else {
+        reject();
+      }
+    });
+  }
+
+  let modeChangeEv;
+  await new TimedPromise(resolve => {
+    modeChangeEv = resolve;
+    win.addEventListener("sizemodechange", modeChangeEv, {once: true});
 
     if (win.windowState == win.STATE_MAXIMIZED) {
       win.restore();
     } else {
       win.maximize();
     }
-  });
+  }, {throws: null});
+  win.removeEventListener("sizemodechange", modeChangeEv);
 
-  resp.body = {
-    x: win.screenX,
-    y: win.screenY,
-    width: win.outerWidth,
-    height: win.outerHeight,
-  };
+  // Transitioning into a window state is asynchronous on Linux, and we
+  // cannot rely on sizemodechange to accurately tell us when the
+  // transition has completed.
+  //
+  // To counter for this we wait for the window size to change, which
+  // it usually will.  On platforms where the transition is synchronous,
+  // the wait will have the cost of one iteration because the size will
+  // have changed as part of the transition.  Where the platform
+  // is asynchronous, the cost may be greater as we have to poll
+  // continuously until we see a change, but it ensures conformity in
+  // behaviour.
+  //
+  // Certain window managers, however, do not have a concept of maximised
+  // windows and here sizemodechange may never fire.  Indeed, if the
+  // window covers the maximum available screen real estate, the window
+  // size may also not change.  In this circumstance, which admittedly
+  // is a somewhat bizarre edge case, we assume that the timeout of
+  // waiting for sizemodechange to fire is sufficient to give the window
+  // enough time to transition itself into whatever form or shape the
+  // WM is programmed to give it.
+  await windowSizeChange();
+
+  return this.curBrowser.rect;
 };
 
 /**
@@ -2996,16 +3134,10 @@ GeckoDriver.prototype.fullscreen = function* (cmd, resp) {
 
   yield new Promise(resolve => {
     win.addEventListener("sizemodechange", resolve, {once: true});
-
     win.fullScreen = !win.fullScreen;
   });
 
-  resp.body = {
-    x: win.screenX,
-    y: win.screenY,
-    width: win.outerWidth,
-    height: win.outerHeight,
-  };
+  return this.curBrowser.rect;
 };
 
 /**

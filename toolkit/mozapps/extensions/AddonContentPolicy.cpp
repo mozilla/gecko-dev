@@ -72,15 +72,13 @@ LogMessage(const nsAString &aMessage, nsIURI* aSourceURI, const nsAString &aSour
   nsCOMPtr<nsIScriptError> error = do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
   NS_ENSURE_TRUE(error, NS_ERROR_OUT_OF_MEMORY);
 
-  nsCString sourceName = aSourceURI->GetSpecOrDefault();
-
   uint64_t windowID = 0;
   GetWindowIDFromContext(aContext, &windowID);
 
   nsresult rv =
-    error->InitWithWindowID(aMessage, NS_ConvertUTF8toUTF16(sourceName),
-                            aSourceSample, 0, 0, nsIScriptError::errorFlag,
-                            "JavaScript", windowID);
+    error->InitWithSourceURI(aMessage, aSourceURI,
+                             aSourceSample, 0, 0, nsIScriptError::errorFlag,
+                             "JavaScript", windowID);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIConsoleService> console = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
@@ -198,6 +196,7 @@ class CSPValidator final : public nsCSPSrcVisitor {
     {
       // Start with the default error message for a missing directive, since no
       // visitors will be called if the directive isn't present.
+      mError.SetIsVoid(true);
       if (aDirectiveRequired) {
         FormatError("csp.error.missing-directive");
       }
@@ -368,8 +367,8 @@ class CSPValidator final : public nsCSPSrcVisitor {
       nsCOMPtr<nsIStringBundle> stringBundle = GetStringBundle();
 
       if (stringBundle) {
-        rv = stringBundle->FormatStringFromName(aName, aParams, aLength,
-                                                getter_Copies(mError));
+        rv =
+          stringBundle->FormatStringFromName(aName, aParams, aLength, mError);
       }
 
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -382,7 +381,7 @@ class CSPValidator final : public nsCSPSrcVisitor {
 
     nsAutoString mURL;
     NS_ConvertASCIItoUTF16 mDirective;
-    nsXPIDLString mError;
+    nsString mError;
 
     bool mFoundSelf;
 };
