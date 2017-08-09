@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        56.5
+Version:        57.0
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -259,6 +259,9 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Wed Aug 9 2017 Martin Stransky <stransky@redhat.com> 57.0-1
+- Merged with upstream
+
 * Mon Jul 31 2017 Martin Stransky <stransky@redhat.com> 56.5-1
 - Added clang build req (stransky@redhat.com)
 
