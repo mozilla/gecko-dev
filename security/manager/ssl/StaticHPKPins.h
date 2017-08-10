@@ -656,15 +656,13 @@ static const StaticFingerprints kPinset_swehackCom = {
 };
 
 static const char* const kPinset_ncsccs_Data[] = {
-  kCOMODO_Certification_AuthorityFingerprint,
+  kCOMODO_ECC_Certification_AuthorityFingerprint,
   kDigiCert_Assured_ID_Root_CAFingerprint,
-  kVeriSign_Class_3_Public_Primary_Certification_Authority___G5Fingerprint,
-  kVeriSign_Class_3_Public_Primary_Certification_Authority___G4Fingerprint,
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
   kBaltimore_CyberTrust_RootFingerprint,
   kGOOGLE_PIN_LetsEncryptAuthorityPrimary_X1_X3Fingerprint,
+  kCOMODO_RSA_Certification_AuthorityFingerprint,
   kAddTrust_External_RootFingerprint,
-  kVeriSign_Universal_Root_Certification_AuthorityFingerprint,
   kDigiCert_Global_Root_CAFingerprint,
   kGOOGLE_PIN_LetsEncryptAuthorityBackup_X2_X4Fingerprint,
 };
@@ -1089,7 +1087,6 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "script.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "se.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
-  { "secretintelligence.0.me.uk", true, true, false, -1, &kPinset_ncsccs },
   { "secure.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "security.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "services.mozilla.com", true, false, true, 6, &kPinset_mozilla_services },
@@ -1160,8 +1157,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "zh.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
 };
 
-// Pinning Preload List Length = 473;
+// Pinning Preload List Length = 472;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1510765651830000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1510851092448000);
