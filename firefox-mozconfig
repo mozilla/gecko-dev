@@ -10,5 +10,6 @@ ac_add_options --disable-updater
 ac_add_options --with-mozilla-api-keyfile=../mozilla-api-key
 ac_add_options --enable-release
 ac_add_options --disable-crashreporter
+ac_add_options --with-gl-provider=EGL
 
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/objdir
