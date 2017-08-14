@@ -1004,6 +1004,14 @@ nsDocumentEncoder::EncodeToString(nsAString& aOutputString)
   return EncodeToStringWithMaxLength(0, aOutputString);
 }
 
+static bool ParentIsTR(nsIContent* aContent) {
+  mozilla::dom::Element* parent = aContent->GetParentElement();
+  if (!parent) {
+    return false;
+  }
+  return parent->IsHTMLElement(nsGkAtoms::tr);
+}
+
 NS_IMETHODIMP
 nsDocumentEncoder::EncodeToStringWithMaxLength(uint32_t aMaxLength,
                                                nsAString& aOutputString)
@@ -1071,7 +1079,7 @@ nsDocumentEncoder::EncodeToStringWithMaxLength(uint32_t aMaxLength,
           NS_ENSURE_SUCCESS(rv, rv);
         }
         nsCOMPtr<nsIContent> content = do_QueryInterface(node);
-        if (content && content->IsHTMLElement(nsGkAtoms::tr)) {
+        if (content && content->IsHTMLElement(nsGkAtoms::tr) && !ParentIsTR(content)) {
           nsINode* n = content;
           if (!prevNode) {
             // Went from a non-<tr> to a <tr>
