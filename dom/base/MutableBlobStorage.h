@@ -95,6 +95,10 @@ private:
   nsresult mErrorResult;
 
   RefPtr<TaskQueue> mTaskQueue;
+
+  nsCOMPtr<nsISupports> mPendingParent;
+  nsCString mPendingContentType;
+  RefPtr<MutableBlobStorageCallback> mPendingCallback;
 };
 
 } // namespace dom
