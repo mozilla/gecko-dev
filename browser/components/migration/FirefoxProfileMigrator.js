@@ -127,8 +127,8 @@ FirefoxProfileMigrator.prototype._getResourcesInternal = function(sourceProfileD
   }.bind(this);
 
   let types = MigrationUtils.resourceTypes;
-  let places = getFileResource(types.HISTORY, ["places.sqlite"]);
-  let cookies = getFileResource(types.COOKIES, ["cookies.sqlite"]);
+  let places = getFileResource(types.HISTORY, ["places.sqlite", "places.sqlite-wal"]);
+  let cookies = getFileResource(types.COOKIES, ["cookies.sqlite", "cookies.sqlite-wal"]);
   let passwords = getFileResource(types.PASSWORDS,
                                   ["signons.sqlite", "logins.json", "key3.db",
                                    "signedInUser.json"]);
