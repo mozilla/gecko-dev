@@ -362,8 +362,6 @@ public:
 
   NS_IMETHOD SelectAll() override;
 
-  NS_IMETHOD GetRootElement(nsIDOMElement** aRootElement) override;
-
   // nsICSSLoaderObserver
   NS_IMETHOD StyleSheetLoaded(StyleSheet* aSheet,
                               bool aWasAlternate, nsresult aStatus) override;
@@ -476,7 +474,7 @@ protected:
   virtual void RemoveEventListeners() override;
 
   bool ShouldReplaceRootElement();
-  void ResetRootElementAndEventTarget();
+  void NotifyRootChanged();
   nsresult GetBodyElement(nsIDOMHTMLElement** aBody);
 
   /**
@@ -943,6 +941,8 @@ protected:
   bool IsInObservedSubtree(nsIDocument* aDocument,
                            nsIContent* aContainer,
                            nsIContent* aChild);
+
+  void UpdateRootElement();
 
   // resizing
   bool mIsObjectResizingEnabled;
