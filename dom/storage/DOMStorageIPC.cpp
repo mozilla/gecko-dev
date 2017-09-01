@@ -450,6 +450,7 @@ public:
   virtual bool LoadItem(const nsAString& aKey, const nsString& aValue)
   {
     // Called on the aCache background thread
+    MOZ_ASSERT(!mLoaded);
     if (mLoaded) {
       return false;
     }
@@ -464,8 +465,12 @@ public:
   {
     // Called on the aCache background thread
     MonitorAutoLock monitor(mMonitor);
+    MOZ_ASSERT(!mLoaded && mRv);
     mLoaded = true;
-    *mRv = aRv;
+    if (mRv) {
+      *mRv = aRv;
+      mRv = nullptr;
+    }
     monitor.Notify();
   }
 
