@@ -59,7 +59,8 @@ GraphDriver::GraphDriver(MediaStreamGraphImpl* aGraphImpl)
     mWaitState(WAITSTATE_RUNNING),
     mCurrentTimeStamp(TimeStamp::Now()),
     mPreviousDriver(nullptr),
-    mNextDriver(nullptr)
+    mNextDriver(nullptr),
+    mScheduled(false)
 { }
 
 void GraphDriver::SetGraphTime(GraphDriver* aPreviousDriver,
@@ -153,6 +154,12 @@ void GraphDriver::SetPreviousDriver(GraphDriver* aPreviousDriver)
   mPreviousDriver = aPreviousDriver;
 }
 
+bool GraphDriver::Scheduled()
+{
+  GraphImpl()->GetMonitor().AssertCurrentThreadOwns();
+  return mScheduled;
+}
+
 ThreadedDriver::ThreadedDriver(MediaStreamGraphImpl* aGraphImpl)
   : GraphDriver(aGraphImpl)
 { }
@@ -202,7 +209,7 @@ public:
     LIFECYCLE_LOG("Starting a new system driver for graph %p\n",
                   mDriver->mGraphImpl);
 
-    GraphDriver* previousDriver = nullptr;
+    RefPtr<GraphDriver> previousDriver;
     {
       MonitorAutoLock mon(mDriver->mGraphImpl->GetMonitor());
       previousDriver = mDriver->PreviousDriver();
@@ -243,7 +250,8 @@ ThreadedDriver::Start()
     // Note: mThread may be null during event->Run() if we pass to NewNamedThread!  See AudioInitTask
     nsresult rv = NS_NewNamedThread("MediaStreamGrph", getter_AddRefs(mThread));
     if (NS_SUCCEEDED(rv)) {
-      mThread->Dispatch(event, NS_DISPATCH_NORMAL);
+      rv = mThread->Dispatch(event, NS_DISPATCH_NORMAL);
+      mScheduled = NS_SUCCEEDED(rv);
     }
   }
 }
@@ -788,7 +796,8 @@ AudioCallbackDriver::Start()
                 "to ensure it runs after previous shutdown.");
   RefPtr<AsyncCubebTask> initEvent =
     new AsyncCubebTask(AsAudioCallbackDriver(), AsyncCubebOperation::INIT);
-  initEvent->Dispatch();
+  nsresult rv = initEvent->Dispatch();
+  mScheduled = NS_SUCCEEDED(rv);
 }
 
 void
@@ -1040,9 +1049,16 @@ AudioCallbackDriver::StateCallback(cubeb_state aState)
 {
   STREAM_LOG(LogLevel::Debug, ("AudioCallbackDriver State: %d", aState));
   if (aState == CUBEB_STATE_ERROR) {
+    MonitorAutoLock lock(GraphImpl()->GetMonitor());
+
+    if (NextDriver() && NextDriver()->Scheduled()) {
+      // We are switching to another driver that has already been scheduled
+      // to be initialized and started. There's nothing for us to do here.
+      return;
+    }
+
     // Fall back to a driver using a normal thread. If needed,
     // the graph will try to re-open an audio stream later.
-    MonitorAutoLock lock(GraphImpl()->GetMonitor());
     SystemClockDriver* nextDriver = new SystemClockDriver(GraphImpl());
     SetNextDriver(nextDriver);
     RemoveCallback();
