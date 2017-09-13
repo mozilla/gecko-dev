@@ -16,7 +16,11 @@ using namespace mozilla::Compression;
 
 namespace {
 
+extern "C" {
+
 #include "lz4.c"
+
+}
 
 }/* anonymous namespace */
 
@@ -27,7 +31,8 @@ LZ4::compress(const char* aSource, size_t aInputSize, char* aDest)
 {
   CheckedInt<int> inputSizeChecked = aInputSize;
   MOZ_ASSERT(inputSizeChecked.isValid());
-  return LZ4_compress(aSource, aDest, inputSizeChecked.value());
+  return LZ4_compress_default(aSource, aDest, inputSizeChecked.value(),
+                              LZ4_compressBound(inputSizeChecked.value()));
 }
 
 size_t
@@ -38,8 +43,8 @@ LZ4::compressLimitedOutput(const char* aSource, size_t aInputSize, char* aDest,
   MOZ_ASSERT(inputSizeChecked.isValid());
   CheckedInt<int> maxOutputSizeChecked = aMaxOutputSize;
   MOZ_ASSERT(maxOutputSizeChecked.isValid());
-  return LZ4_compress_limitedOutput(aSource, aDest, inputSizeChecked.value(),
-                                    maxOutputSizeChecked.value());
+  return LZ4_compress_default(aSource, aDest, inputSizeChecked.value(),
+                              maxOutputSizeChecked.value());
 }
 
 bool
