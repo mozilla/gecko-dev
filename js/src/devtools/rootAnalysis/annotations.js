@@ -228,6 +228,9 @@ var ignoreFunctions = {
     "calloc" : true,
 };
 
+function extraGCFunctions() {
+    return ["ffi_call"].filter(f => f in readableNames);
+}
 function isProtobuf(name)
 {
     return name.match(/\bgoogle::protobuf\b/) ||
@@ -247,7 +250,7 @@ function isGTest(name)
 
 function ignoreGCFunction(mangled)
 {
-    assert(mangled in readableNames);
+    assert(mangled in readableNames, mangled + " not in readableNames");
     var fun = readableNames[mangled][0];
 
     if (fun in ignoreFunctions)
@@ -363,6 +366,9 @@ function isOverridableField(initialCSU, csu, field)
 {
     if (csu != 'nsISupports')
         return false;
+
+    // Now that binary XPCOM is dead, all these annotations should be replaced
+    // with something based on bug 1347999.
     if (field == 'GetCurrentJSContext')
         return false;
     if (field == 'IsOnCurrentThread')
@@ -377,6 +383,12 @@ function isOverridableField(initialCSU, csu, field)
         return false;
     if (initialCSU == 'nsIXPConnect' && field == 'GetSafeJSContext')
         return false;
+
+    // nsIScriptSecurityManager is not [builtinclass], but smaug says "the
+    // interface definitely should be builtinclass", which is good enough.
+    if (initialCSU == 'nsIScriptSecurityManager' && field == 'IsSystemPrincipal')
+        return false;
+
     if (initialCSU == 'nsIScriptContext') {
         if (field == 'GetWindowProxy' || field == 'GetWindowProxyPreserveColor')
             return false;

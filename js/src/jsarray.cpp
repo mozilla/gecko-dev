@@ -1078,7 +1078,7 @@ ArrayJoinDenseKernel(JSContext* cx, SeparatorOp sepOp, HandleObject obj, uint32_
         if (!CheckForInterrupt(cx))
             return DenseElementResult::Failure;
 
-        const Value& elem = GetBoxedOrUnboxedDenseElement<Type>(obj, *numProcessed);
+        Value elem = GetBoxedOrUnboxedDenseElement<Type>(obj, *numProcessed);
 
         if (elem.isString()) {
             if (!sb.append(elem.toString()))
@@ -3774,10 +3774,10 @@ bool
 js::ArrayInfo(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    JSObject* obj;
+    RootedObject obj(cx);
 
     for (unsigned i = 0; i < args.length(); i++) {
-        RootedValue arg(cx, args[i]);
+        HandleValue arg = args[i];
 
         UniqueChars bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, arg, nullptr);
         if (!bytes)
