@@ -13,7 +13,6 @@
 #include "mozilla/dom/RegisterWorkletBindings.h"
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "nsIInputStreamPump.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsNetUtil.h"
 #include "nsScriptLoader.h"
