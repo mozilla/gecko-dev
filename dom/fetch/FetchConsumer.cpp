@@ -394,7 +394,6 @@ FetchBodyConsumer<Derived>::FetchBodyConsumer(nsIGlobalObject* aGlobalObject,
   , mBodyConsumed(false)
   , mShuttingDown(false)
 {
-  MOZ_ASSERT(aMainThreadEventTarget);
   MOZ_ASSERT(aBody);
   MOZ_ASSERT(aBodyStream);
   MOZ_ASSERT(aPromise);
