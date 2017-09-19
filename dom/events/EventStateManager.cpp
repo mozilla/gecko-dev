@@ -1233,8 +1233,9 @@ EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
     return remote->SendRealTouchEvent(*aEvent->AsTouchEvent());
   }
   case eDragEventClass: {
-    if (remote->Manager()->IsContentParent()) {
-      remote->Manager()->AsContentParent()->MaybeInvokeDragSession(remote);
+    RefPtr<TabParent> tabParent = remote;
+    if (tabParent->Manager()->IsContentParent()) {
+      tabParent->Manager()->AsContentParent()->MaybeInvokeDragSession(tabParent);
     }
 
     nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
@@ -1250,8 +1251,8 @@ EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
       }
     }
 
-    bool retval = remote->SendRealDragEvent(*aEvent->AsDragEvent(),
-                                            action, dropEffect);
+    bool retval = tabParent->SendRealDragEvent(*aEvent->AsDragEvent(),
+                                               action, dropEffect);
 
     return retval;
   }
