@@ -120,10 +120,11 @@ protected:
   void ProcessSelectionChanged(SelData* aSelData);
 
 private:
-  // Currently focused control.
-  nsWeakFrame mCurrCtrlFrame;
   int32_t mCaretOffset;
   HyperTextAccessible* mAccWithCaret;
+  // Currently focused controls.
+  nsWeakPtr mCurrCtrlNormalSel;
+  nsWeakPtr mCurrCtrlSpellSel;
 };
 
 } // namespace a11y
