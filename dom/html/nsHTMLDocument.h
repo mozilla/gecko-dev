@@ -17,12 +17,11 @@
 #include "PLDHashTable.h"
 #include "nsIHttpChannel.h"
 #include "nsHTMLStyleSheet.h"
-
+#include "nsThreadUtils.h"
 #include "nsICommandManager.h"
 #include "mozilla/dom/HTMLSharedElement.h"
 #include "mozilla/dom/BindingDeclarations.h"
 
-class nsIEditor;
 class nsIURI;
 class nsIDocShell;
 class nsICachingChannel;
@@ -76,9 +75,12 @@ public:
 
   virtual nsIContent* GetUnfocusedKeyEventTarget() override;
 
-  virtual nsContentList* GetForms() override;
+  nsContentList* GetForms();
 
-  virtual nsContentList* GetFormControls() override;
+  nsContentList* GetExistingForms() const
+  {
+    return mForms;
+  }
 
   // nsIDOMDocument interface
   using nsDocument::CreateElement;
@@ -105,7 +107,7 @@ public:
   virtual void AddedForm() override;
   virtual void RemovedForm() override;
   virtual int32_t GetNumFormsSynchronous() override;
-  virtual void TearingDownEditor(nsIEditor *aEditor) override;
+  virtual void TearingDownEditor() override;
   virtual void SetIsXHTML(bool aXHTML) override
   {
     mType = (aXHTML ? eXHTML : eHTML);
@@ -160,7 +162,7 @@ public:
     return nsDocument::GetElementById(aElementId);
   }
 
-  virtual void DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const override;
+  virtual void DocAddSizeOfExcludingThis(nsWindowSizes& aWindowSizes) const override;
   // DocAddSizeOfIncludingThis is inherited from nsIDocument.
 
   virtual bool WillIgnoreCharsetOverride() override;
@@ -202,7 +204,7 @@ public:
   already_AddRefed<nsIDocument> Open(JSContext* cx,
                                      const nsAString& aType,
                                      const nsAString& aReplace,
-                                     mozilla::ErrorResult& rv);
+                                     mozilla::ErrorResult& aError);
   already_AddRefed<nsPIDOMWindowOuter>
   Open(JSContext* cx,
        const nsAString& aURL,
@@ -251,7 +253,6 @@ public:
   {
     // Deprecated
   }
-  mozilla::dom::Selection* GetSelection(mozilla::ErrorResult& aRv);
   // The XPCOM CaptureEvents works fine for us.
   // The XPCOM ReleaseEvents works fine for us.
   // We're picking up GetLocation from Document
@@ -262,6 +263,11 @@ public:
 
   virtual nsHTMLDocument* AsHTMLDocument() override { return this; }
 
+  static bool MatchFormControls(Element* aElement, int32_t aNamespaceID,
+                                nsIAtom* aAtom, void* aData);
+
+  void GetFormsAndFormControls(nsContentList** aFormList,
+                               nsContentList** aFormControlList);
 protected:
   ~nsHTMLDocument();
 
@@ -308,6 +314,37 @@ protected:
 
   void *GenerateParserKey(void);
 
+  // A helper class to keep nsContentList objects alive for a short period of
+  // time. Note, when the final Release is called on an nsContentList object, it
+  // removes itself from MutationObserver list.
+  class ContentListHolder : public mozilla::Runnable
+  {
+  public:
+    ContentListHolder(nsHTMLDocument* aDocument,
+                      nsContentList* aFormList,
+                      nsContentList* aFormControlList)
+      : mozilla::Runnable("ContentListHolder")
+      , mDocument(aDocument)
+      , mFormList(aFormList)
+      , mFormControlList(aFormControlList)
+    {
+    }
+
+    ~ContentListHolder()
+    {
+      MOZ_ASSERT(!mDocument->mContentListHolder ||
+                 mDocument->mContentListHolder == this);
+      mDocument->mContentListHolder = nullptr;
+    }
+
+    RefPtr<nsHTMLDocument> mDocument;
+    RefPtr<nsContentList> mFormList;
+    RefPtr<nsContentList> mFormControlList;
+  };
+
+  friend class ContentListHolder;
+  ContentListHolder* mContentListHolder;
+
   RefPtr<nsContentList> mImages;
   RefPtr<nsEmptyContentList> mApplets;
   RefPtr<nsContentList> mEmbeds;
@@ -315,7 +352,6 @@ protected:
   RefPtr<nsContentList> mAnchors;
   RefPtr<nsContentList> mScripts;
   RefPtr<nsContentList> mForms;
-  RefPtr<nsContentList> mFormControls;
 
   RefPtr<mozilla::dom::HTMLAllCollection> mAll;
 

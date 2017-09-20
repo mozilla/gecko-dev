@@ -9,6 +9,9 @@
  * be executed only on a worker thread.
  */
 
+/* eslint-env node */
+/* global OS */
+
 if (typeof Components != "undefined") {
   throw new Error("osfile_shared_front.jsm cannot be used from the main thread");
 }
@@ -19,7 +22,7 @@ var SharedAll =
 var Path = require("resource://gre/modules/osfile/ospath.jsm");
 var Lz4 =
   require("resource://gre/modules/lz4.js");
-var LOG = SharedAll.LOG.bind(SharedAll, "Shared front-end");
+SharedAll.LOG.bind(SharedAll, "Shared front-end");
 var clone = SharedAll.clone;
 
 /**
@@ -81,9 +84,9 @@ AbstractFile.prototype = {
     }
     if (pos == bytes) {
       return buffer;
-    } else {
-      return buffer.subarray(0, pos);
     }
+      return buffer.subarray(0, pos);
+
   },
 
   /**
@@ -132,12 +135,12 @@ AbstractFile.prototype = {
  */
 AbstractFile.openUnique = function openUnique(path, options = {}) {
   let mode = {
-    create : true
+    create: true
   };
 
   let dirName = Path.dirname(path);
   let leafName = Path.basename(path);
-  let lastDotCharacter = leafName.lastIndexOf('.');
+  let lastDotCharacter = leafName.lastIndexOf(".");
   let fileName = leafName.substring(0, lastDotCharacter != -1 ? lastDotCharacter : leafName.length);
   let suffix = (lastDotCharacter != -1 ? leafName.substring(lastDotCharacter) : "");
   let uniquePath = "";
@@ -149,7 +152,7 @@ AbstractFile.openUnique = function openUnique(path, options = {}) {
 
   try {
     return {
-      path: path,
+      path,
       file: OS.File.open(path, mode)
     };
   } catch (ex) {
@@ -176,6 +179,7 @@ AbstractFile.openUnique = function openUnique(path, options = {}) {
       }
       throw OS.File.Error.exists("could not find an unused file name.", path);
     }
+    throw ex;
   }
 };
 
@@ -186,9 +190,9 @@ AbstractFile.AbstractIterator = function AbstractIterator() {
 };
 AbstractFile.AbstractIterator.prototype = {
   /**
-   * Allow iterating with |for|
+   * Allow iterating with |for-of|
    */
-  __iterator__: function __iterator__() {
+  [Symbol.iterator]() {
     return this;
   },
   /**
@@ -203,7 +207,7 @@ AbstractFile.AbstractIterator.prototype = {
    */
   forEach: function forEach(cb) {
     let index = 0;
-    for (let entry in this) {
+    for (let entry of this) {
       cb(entry, index++, this);
     }
   },
@@ -221,7 +225,7 @@ AbstractFile.AbstractIterator.prototype = {
   nextBatch: function nextBatch(length) {
     let array = [];
     let i = 0;
-    for (let entry in this) {
+    for (let entry of this) {
       array.push(entry);
       if (++i >= length) {
         return array;
@@ -499,7 +503,7 @@ AbstractFile.removeRecursive = function(path, options = {}) {
   }
 
   try {
-    for (let entry in iterator) {
+    for (let entry of iterator) {
       if (entry.isDir) {
         if (entry.isLink) {
           // Unlike Unix symlinks, NTFS junctions or NTFS symlinks to

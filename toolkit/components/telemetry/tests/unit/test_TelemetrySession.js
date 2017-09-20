@@ -9,6 +9,7 @@
  */
 
 Cu.import("resource://services-common/utils.js");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/ClientID.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
@@ -165,7 +166,7 @@ function checkPayloadInfo(data) {
   let positiveNumberCheck = arg => { return numberCheck(arg) && (arg >= 0); };
   let stringCheck = arg => { return (typeof arg == "string") && (arg != ""); };
   let revisionCheck = arg => {
-    return (Services.appinfo.isOfficial) ? stringCheck(arg) : (typeof arg == "string");
+    return (AppConstants.MOZILLA_OFFICIAL) ? stringCheck(arg) : (typeof arg == "string");
   };
   let uuidCheck = arg => {
     return UUID_REGEX.test(arg);
@@ -756,8 +757,6 @@ add_task(async function test_checkSubsessionHistograms() {
   const KEYED_ID = "TELEMETRY_TEST_KEYED_COUNT";
   const count = Telemetry.getHistogramById(COUNT_ID);
   const keyed = Telemetry.getKeyedHistogramById(KEYED_ID);
-  const registeredIds =
-    new Set(Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []));
 
   const stableHistograms = new Set([
     "TELEMETRY_TEST_FLAG",
@@ -774,6 +773,13 @@ add_task(async function test_checkSubsessionHistograms() {
     "TELEMETRY_TEST_KEYED_RELEASE_OPTOUT",
   ]);
 
+  // List of prefixes of histograms that could anomalously be present in
+  // the subsession snapshot but not the session snapshot.
+  // If you add something to this list, please reference a bug#
+  const possibleAnomalyPrefixes = [
+    "CYCLE_COLLECTOR_WORKER", // non-MT CC can happen between payload gathering - bug 1398431
+  ];
+
   // Compare the two sets of histograms.
   // The "subsession" histograms should match the registered
   // "classic" histograms. However, histograms can change
@@ -781,10 +787,9 @@ add_task(async function test_checkSubsessionHistograms() {
   // check for deep equality on known stable histograms.
   let checkHistograms = (classic, subsession, message) => {
     for (let id of Object.keys(subsession)) {
-      if (!registeredIds.has(id)) {
+      if (possibleAnomalyPrefixes.some(prefix => id.startsWith(prefix))) {
         continue;
       }
-
       Assert.ok(id in classic, message + ` (${id})`);
       if (stableHistograms.has(id)) {
         Assert.deepEqual(classic[id],
@@ -799,10 +804,6 @@ add_task(async function test_checkSubsessionHistograms() {
   // Same as above, except for keyed histograms.
   let checkKeyedHistograms = (classic, subsession, message) => {
     for (let id of Object.keys(subsession)) {
-      if (!registeredIds.has(id)) {
-        continue;
-      }
-
       Assert.ok(id in classic, message);
       if (stableKeyedHistograms.has(id)) {
         Assert.deepEqual(classic[id],
@@ -1376,8 +1377,6 @@ add_task(async function test_sendShutdownPing() {
     return;
   }
 
-  const OSSHUTDOWN_SCALAR = "telemetry.os_shutting_down";
-
   let checkPendingShutdownPing = async function() {
     let pendingPings = await TelemetryStorage.loadPendingPingList();
     Assert.equal(pendingPings.length, 2,
@@ -1394,8 +1393,6 @@ add_task(async function test_sendShutdownPing() {
               "The 'saved-session' ping must be saved to disk.");
     Assert.equal("shutdown", shutdownPing.payload.info.reason,
                  "The 'shutdown' ping must be saved to disk.");
-    Assert.ok(shutdownPing.payload.processes.parent.scalars[OSSHUTDOWN_SCALAR],
-              "The OS shutdown scalar must be set to true.");
   };
 
   Preferences.set(TelemetryUtils.Preferences.ShutdownPingSender, true);
@@ -1414,8 +1411,6 @@ add_task(async function test_sendShutdownPing() {
   checkPingFormat(ping, ping.type, true, true);
   Assert.equal(ping.payload.info.reason, REASON_SHUTDOWN);
   Assert.equal(ping.clientId, gClientID);
-  Assert.ok(!(OSSHUTDOWN_SCALAR in ping.payload.processes.parent.scalars),
-            "The OS shutdown scalar must not be set.");
   // Try again, this time disable ping upload. The PingSender
   // should not be sending any ping!
   PingServer.registerPingHandler(() => Assert.ok(false, "Telemetry must not send pings if not allowed to."));
@@ -1494,6 +1489,126 @@ add_task(async function test_sendShutdownPing() {
   // Reset the pref and restart Telemetry.
   Preferences.set(TelemetryUtils.Preferences.ShutdownPingSender, false);
   Preferences.set(TelemetryUtils.Preferences.ShutdownPingSenderFirstSession, false);
+  Preferences.reset(TelemetryUtils.Preferences.FirstRun);
+  PingServer.resetPingHandler();
+});
+
+add_task(async function test_sendFirstShutdownPing() {
+  if (gIsAndroid ||
+      (AppConstants.platform == "linux" && OS.Constants.Sys.bits == 32)) {
+    // We don't support the pingsender on Android, yet, see bug 1335917.
+    // We also don't suppor the pingsender testing on Treeherder for
+    // Linux 32 bit (due to missing libraries). So skip it there too.
+    // See bug 1310703 comment 78.
+    return;
+  }
+
+  let storageContainsFirstShutdown = async function() {
+    let pendingPings = await TelemetryStorage.loadPendingPingList();
+    let pings = await Promise.all(
+      pendingPings.map(async (p) => {
+        return TelemetryStorage.loadPendingPing(p.id)
+      })
+    );
+    return pings.find(p => p.type == "first-shutdown")
+  }
+
+  let checkShutdownNotSent = async function() {
+    // The failure-mode of the ping-sender is used to check that a ping was
+    // *not* sent. This can be combined with the state of the storage to infer
+    // the appropriate behavior from the preference flags.
+
+    // Assert failure if we recive a ping.
+    PingServer.registerPingHandler((req, res) => {
+      const receivedPing = decodeRequestPayload(req);
+      Assert.ok(false, `No ping should be received in this test (got ${receivedPing.id}).`);
+    });
+
+    // Assert that pings are sent on first run, forcing a forced application
+    // quit. This should be equivalent to the first test in this suite.
+    Preferences.set(TelemetryUtils.Preferences.FirstRun, true);
+    TelemetryReportingPolicy.testUpdateFirstRun();
+
+    await TelemetryController.testReset();
+    Services.obs.notifyObservers(null, "quit-application-forced");
+    await TelemetryController.testShutdown();
+    Assert.ok(await storageContainsFirstShutdown(),
+              "The 'first-shutdown' ping must be saved to disk.")
+
+    await TelemetryStorage.testClearPendingPings();
+
+    // Assert that it's not sent during subsequent runs
+    Preferences.set(TelemetryUtils.Preferences.FirstRun, false);
+    TelemetryReportingPolicy.testUpdateFirstRun();
+
+    await TelemetryController.testReset();
+    Services.obs.notifyObservers(null, "quit-application-forced");
+    await TelemetryController.testShutdown();
+    Assert.ok(!(await storageContainsFirstShutdown()),
+              "The 'first-shutdown' ping should only be written during first run.")
+
+    await TelemetryStorage.testClearPendingPings();
+
+    // Assert that the the ping is only sent if the flag is enabled.
+    Preferences.set(TelemetryUtils.Preferences.FirstRun, true);
+    Preferences.set(TelemetryUtils.Preferences.FirstShutdownPingEnabled, false);
+    TelemetryReportingPolicy.testUpdateFirstRun();
+
+    await TelemetryController.testReset();
+    await TelemetryController.testShutdown();
+    Assert.ok(!(await storageContainsFirstShutdown()),
+              "The 'first-shutdown' ping should only be written if enabled")
+
+    await TelemetryStorage.testClearPendingPings();
+
+    // Assert that the the ping is not collected when the ping-sender is disabled.
+    // The information would be made irrelevant by the main-ping in the second session.
+    Preferences.set(TelemetryUtils.Preferences.FirstShutdownPingEnabled, true);
+    Preferences.set(TelemetryUtils.Preferences.ShutdownPingSender, false);
+    TelemetryReportingPolicy.testUpdateFirstRun();
+
+    await TelemetryController.testReset();
+    await TelemetryController.testShutdown();
+    Assert.ok(!(await storageContainsFirstShutdown()),
+              "The 'first-shutdown' ping should only be written if ping-sender is enabled")
+
+    // Clear the state and prepare for the next test.
+    await TelemetryStorage.testClearPendingPings();
+    PingServer.clearRequests();
+    PingServer.resetPingHandler();
+  }
+
+  // Remove leftover pending pings from other tests
+  await TelemetryStorage.testClearPendingPings();
+  PingServer.clearRequests();
+  Telemetry.clearScalars();
+
+  // Set testing invariants for FirstShutdownPingEnabled
+  Preferences.set(TelemetryUtils.Preferences.ShutdownPingSender, true);
+  Preferences.set(TelemetryUtils.Preferences.ShutdownPingSenderFirstSession, false)
+
+  // Set primary conditions of the 'first-shutdown' ping
+  Preferences.set(TelemetryUtils.Preferences.FirstShutdownPingEnabled, true);
+  Preferences.set(TelemetryUtils.Preferences.FirstRun, true);
+  TelemetryReportingPolicy.testUpdateFirstRun();
+
+  // Assert general 'first-shutdown' use-case.
+  await TelemetryController.testReset();
+  await TelemetryController.testShutdown();
+  let ping = await PingServer.promiseNextPing();
+  checkPingFormat(ping, "first-shutdown", true, true);
+  Assert.equal(ping.payload.info.reason, REASON_SHUTDOWN);
+  Assert.equal(ping.clientId, gClientID);
+
+  await TelemetryStorage.testClearPendingPings();
+
+  // Assert that the shutdown is not sent under various conditions
+  await checkShutdownNotSent();
+
+  // Reset the pref and restart Telemetry.
+  Preferences.set(TelemetryUtils.Preferences.ShutdownPingSender, false);
+  Preferences.set(TelemetryUtils.Preferences.ShutdownPingSenderFirstSession, false);
+  Preferences.set(TelemetryUtils.Preferences.FirstShutdownPingEnabled, false);
   Preferences.reset(TelemetryUtils.Preferences.FirstRun);
   PingServer.resetPingHandler();
 });
@@ -1723,29 +1838,6 @@ add_task(async function test_abortedSession() {
   await TelemetryController.testShutdown();
   Assert.ok(!(await OS.File.exists(ABORTED_FILE)),
             "No aborted session ping must be available after a shutdown.");
-
-  // Write the ping to the aborted-session file. TelemetrySession will add it to the
-  // saved pings directory when it starts.
-  await TelemetryStorage.savePingToFile(abortedSessionPing, ABORTED_FILE, false);
-  Assert.ok((await OS.File.exists(ABORTED_FILE)),
-            "The aborted session ping must exist in the aborted session ping directory.");
-
-  await TelemetryStorage.testClearPendingPings();
-  PingServer.clearRequests();
-  await TelemetryController.testReset();
-
-  Assert.ok(!(await OS.File.exists(ABORTED_FILE)),
-            "The aborted session ping must be removed from the aborted session ping directory.");
-
-  // Restarting Telemetry again to trigger sending pings in TelemetrySend.
-  await TelemetryController.testReset();
-
-  // We should have received an aborted-session ping.
-  const receivedPing = await PingServer.promiseNextPing();
-  Assert.equal(receivedPing.type, PING_TYPE_MAIN, "Should have the correct type");
-  Assert.equal(receivedPing.payload.info.reason, REASON_ABORTED_SESSION, "Ping should have the correct reason");
-
-  await TelemetryController.testShutdown();
 });
 
 add_task(async function test_abortedSession_Shutdown() {
@@ -1842,8 +1934,9 @@ add_task(async function test_schedulerComputerSleep() {
 
   const ABORTED_FILE = OS.Path.join(DATAREPORTING_PATH, ABORTED_PING_FILE_NAME);
 
-  await TelemetryStorage.testClearPendingPings();
   await TelemetryController.testReset();
+  await TelemetryController.testShutdown();
+  await TelemetryStorage.testClearPendingPings();
   PingServer.clearRequests();
 
   // Remove any aborted-session ping from the previous tests.
@@ -1929,7 +2022,8 @@ add_task(async function test_schedulerEnvironmentReschedules() {
 
   // We don't expect to receive any daily ping in this test, so assert if we do.
   PingServer.registerPingHandler((req, res) => {
-    Assert.ok(false, "No ping should be sent/received in this test.");
+    const receivedPing = decodeRequestPayload(req);
+    Assert.ok(false, `No ping should be received in this test (got ${receivedPing.id}).`);
   });
 
   // Execute one scheduler tick. It should not trigger a daily ping.
@@ -1953,7 +2047,8 @@ add_task(async function test_schedulerNothingDue() {
 
   // We don't expect to receive any ping in this test, so assert if we do.
   PingServer.registerPingHandler((req, res) => {
-    Assert.ok(false, "No ping should be sent/received in this test.");
+    const receivedPing = decodeRequestPayload(req);
+    Assert.ok(false, `No ping should be received in this test (got ${receivedPing.id}).`);
   });
 
   // Set a current date/time away from midnight, so that the daily ping doesn't get
@@ -1980,7 +2075,7 @@ add_task(async function test_schedulerNothingDue() {
 
 add_task(async function test_pingExtendedStats() {
   const EXTENDED_PAYLOAD_FIELDS = [
-    "chromeHangs", "threadHangStats", "log", "slowSQL", "fileIOReports", "lateWrites",
+    "chromeHangs", "log", "slowSQL", "fileIOReports", "lateWrites",
     "addonDetails", "webrtc"
   ];
 

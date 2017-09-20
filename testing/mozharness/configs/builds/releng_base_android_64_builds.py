@@ -17,9 +17,6 @@ config = {
         'update',  # decided by query_is_nightly()
     ],
     "buildbot_json_path": "buildprops.json",
-    'exes': {
-        "buildbot": "/tools/buildbot/bin/buildbot",
-    },
     'app_ini_path': '%(obj_dir)s/dist/bin/application.ini',
     # decides whether we want to use moz_sign_cmd in env
     'enable_signing': True,
@@ -97,13 +94,13 @@ config = {
         'HG_SHARE_BASE_DIR': '/builds/hg-shared',
         'MOZ_OBJDIR': 'obj-firefox',
         'TINDERBOX_OUTPUT': '1',
-        'TOOLTOOL_CACHE': '/home/worker/tooltool-cache',
+        'TOOLTOOL_CACHE': '/builds/worker/tooltool-cache',
         'TOOLTOOL_HOME': '/builds',
         'CCACHE_DIR': '/builds/ccache',
         'CCACHE_COMPRESS': '1',
         'CCACHE_UMASK': '002',
         'LC_ALL': 'C',
-        'PATH': '/tools/buildbot/bin:/usr/local/bin:/bin:/usr/bin',
+        'PATH': '/usr/local/bin:/bin:/usr/bin',
         'SHIP_LICENSED_FONTS': '1',
     },
     'upload_env': {

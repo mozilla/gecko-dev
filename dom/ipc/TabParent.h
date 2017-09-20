@@ -10,7 +10,6 @@
 #include "js/TypeDecls.h"
 #include "LiveResizeListener.h"
 #include "mozilla/ContentCache.h"
-#include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/PContent.h"
@@ -195,7 +194,7 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvNotifyIMEFocus(const ContentCache& aContentCache,
                      const widget::IMENotification& aEventMessage,
-                     widget::IMENotificationRequests* aRequests) override;
+                     NotifyIMEFocusResolver&& aResolve) override;
 
   virtual mozilla::ipc::IPCResult
   RecvNotifyIMETextChange(const ContentCache& aContentCache,
@@ -604,6 +603,9 @@ public:
   void LiveResizeStarted() override;
   void LiveResizeStopped() override;
 
+  void SetReadyToHandleInputEvents() { mIsReadyToHandleInputEvents = true; }
+  bool IsReadyToHandleInputEvents() { return mIsReadyToHandleInputEvents; }
+
 protected:
   bool ReceiveMessage(const nsString& aMessage,
                       bool aSync,
@@ -628,6 +630,8 @@ protected:
   virtual bool DeallocPRenderFrameParent(PRenderFrameParent* aFrame) override;
 
   virtual mozilla::ipc::IPCResult RecvRemotePaintIsReady() override;
+
+  virtual mozilla::ipc::IPCResult RecvRemoteIsReadyToHandleInputEvents() override;
 
   virtual mozilla::ipc::IPCResult RecvForcePaintNoOp(const uint64_t& aLayerObserverEpoch) override;
 
@@ -749,6 +753,12 @@ private:
 
   bool mHasContentOpener;
 
+  // When dropping links we perform a roundtrip from
+  // Parent (SendRealDragEvent) -> Child -> Parent (RecvDropLinks)
+  // and have to ensure that the child did not modify links to be loaded.
+  bool QueryDropLinksForVerification();
+  nsTArray<nsString> mVerifyDropLinks;
+
 #ifdef DEBUG
   int32_t mActiveSupressDisplayportCount;
 #endif
@@ -778,6 +788,14 @@ private:
   // True if at least one window hosted in the TabChild has added a
   // beforeunload event listener.
   bool mHasBeforeUnload;
+
+  // True when the remote browser is created and ready to handle input events.
+  bool mIsReadyToHandleInputEvents;
+
+  // True if we suppress the eMouseEnterIntoWidget event due to the TabChild was
+  // not ready to handle it. We will resend it when the next time we fire a
+  // mouse event and the TabChild is ready.
+  bool mIsMouseEnterIntoWidgetEventSuppressed;
 
 public:
   static TabParent* GetTabParentFromLayersId(uint64_t aLayersId);

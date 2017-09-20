@@ -18,29 +18,21 @@ this.EXPORTED_SYMBOLS = ["ExtensionParent"];
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DeferredSave",
-                                  "resource://gre/modules/DeferredSave.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
-                                  "resource:///modules/E10SUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
-                                  "resource://gre/modules/MessageChannel.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NativeApp",
-                                  "resource://gre/modules/NativeMessaging.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
-                                  "resource://gre/modules/Schemas.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AppConstants: "resource://gre/modules/AppConstants.jsm",
+  DeferredSave: "resource://gre/modules/DeferredSave.jsm",
+  E10SUtils: "resource:///modules/E10SUtils.jsm",
+  MessageChannel: "resource://gre/modules/MessageChannel.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
+  NativeApp: "resource://gre/modules/NativeMessaging.jsm",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
+  Schemas: "resource://gre/modules/Schemas.jsm",
+});
 
-XPCOMUtils.defineLazyServiceGetter(this, "gAddonPolicyService",
-                                   "@mozilla.org/addons/policy-service;1",
-                                   "nsIAddonPolicyService");
-XPCOMUtils.defineLazyServiceGetter(this, "aomStartup",
-                                   "@mozilla.org/addons/addon-manager-startup;1",
-                                   "amIAddonManagerStartup");
+XPCOMUtils.defineLazyServiceGetters(this, {
+  gAddonPolicyService: ["@mozilla.org/addons/policy-service;1", "nsIAddonPolicyService"],
+  aomStartup: ["@mozilla.org/addons/addon-manager-startup;1", "amIAddonManagerStartup"],
+});
 
 Cu.import("resource://gre/modules/ExtensionCommon.jsm");
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
@@ -53,13 +45,13 @@ var {
 } = ExtensionCommon;
 
 var {
+  DefaultMap,
   DefaultWeakMap,
   ExtensionError,
   MessageManagerProxy,
   defineLazyGetter,
   promiseDocumentLoaded,
   promiseEvent,
-  promiseFileContents,
   promiseObserved,
 } = ExtensionUtils;
 
@@ -87,7 +79,9 @@ let apiManager = new class extends SchemaAPIManager {
       let promises = [];
       for (let apiName of this.eventModules.get("startup")) {
         promises.push(this.asyncGetAPI(apiName, extension).then(api => {
-          api.onStartup(extension.startupReason);
+          if (api) {
+            api.onStartup(extension.startupReason);
+          }
         }));
       }
 
@@ -126,13 +120,13 @@ let apiManager = new class extends SchemaAPIManager {
 
       // Load order matters here. The base manifest defines types which are
       // extended by other schemas, so needs to be loaded first.
-      return Schemas.load(BASE_SCHEMA).then(() => {
+      return Schemas.load(BASE_SCHEMA, AppConstants.DEBUG).then(() => {
         let promises = [];
         for (let [/* name */, url] of XPCOMUtils.enumerateCategoryEntries(CATEGORY_EXTENSION_SCHEMAS)) {
           promises.push(Schemas.load(url));
         }
-        for (let url of this.schemaURLs) {
-          promises.push(Schemas.load(url));
+        for (let [url, {content}] of this.schemaURLs) {
+          promises.push(Schemas.load(url, content));
         }
         for (let url of schemaURLs) {
           promises.push(Schemas.load(url));
@@ -231,14 +225,14 @@ ProxyMessenger = {
       responseType,
     });
 
-    if (!extension.isEmbedded || !extension.remote) {
+    if (!(extension.isEmbedded || recipient.toProxyScript) || !extension.remote) {
       return promise1;
     }
 
-    // If we have a remote, embedded extension, the legacy side is
-    // running in a different process than the WebExtension side.
-    // As a result, we need to dispatch the message to both the parent
-    // and extension processes, and manually merge the results.
+    // If we have a proxy script sandbox or a remote, embedded extension, where
+    // the legacy side is running in a different process than the WebExtension
+    // side. As a result, we need to dispatch the message to both the parent and
+    // extension processes, and manually merge the results.
     let promise2 = MessageChannel.sendMessage(Services.ppmm.getChildAt(0), messageName, data, {
       sender,
       recipient,
@@ -278,15 +272,22 @@ ProxyMessenger = {
    * @returns {object|null} The message manager matching the recipient if found.
    */
   getMessageManagerForRecipient(recipient) {
-    let {tabId} = recipient;
     // tabs.sendMessage / tabs.connect
-    if (tabId) {
+    if ("tabId" in recipient) {
       // `tabId` being set implies that the tabs API is supported, so we don't
       // need to check whether `tabTracker` exists.
-      let tab = apiManager.global.tabTracker.getTab(tabId, null);
+      let tab = apiManager.global.tabTracker.getTab(recipient.tabId, null);
       if (!tab) {
         return null;
       }
+
+      // There can be no recipients in a tab pending restore,
+      // So we bail early to avoid instantiating the lazy browser.
+      let node = tab.browser || tab;
+      if (node.getAttribute("pending") === "true") {
+        return null;
+      }
+
       let browser = tab.linkedBrowser || tab.browser;
 
       // Options panels in the add-on manager currently require
@@ -414,6 +415,12 @@ class ProxyContextParent extends BaseContext {
     return this.sandbox;
   }
 
+  applySafe(callback, args) {
+    // There's no need to clone when calling listeners for a proxied
+    // context.
+    return this.applySafeWithoutClone(callback, args);
+  }
+
   get xulBrowser() {
     return this.messageManagerProxy.eventTarget;
   }
@@ -448,7 +455,7 @@ defineLazyGetter(ProxyContextParent.prototype, "apiObj", function() {
 });
 
 defineLazyGetter(ProxyContextParent.prototype, "sandbox", function() {
-  return Cu.Sandbox(this.principal);
+  return Cu.Sandbox(this.principal, {sandboxName: this.uri.spec});
 });
 
 /**
@@ -477,8 +484,7 @@ class ExtensionPageContextParent extends ProxyContextParent {
   // The window that contains this context. This may change due to moving tabs.
   get xulWindow() {
     let win = this.xulBrowser.ownerGlobal;
-    return win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDocShell)
-              .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
+    return win.document.docShell.rootTreeItem
               .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
   }
 
@@ -565,17 +571,26 @@ class DevToolsExtensionPageContextParent extends ExtensionPageContextParent {
 ParentAPIManager = {
   proxyContexts: new Map(),
 
+  parentMessageManagers: new Set(),
+
   init() {
     Services.obs.addObserver(this, "message-manager-close");
+    Services.obs.addObserver(this, "ipc:content-created");
 
     Services.mm.addMessageListener("API:CreateProxyContext", this);
     Services.mm.addMessageListener("API:CloseProxyContext", this, true);
     Services.mm.addMessageListener("API:Call", this);
     Services.mm.addMessageListener("API:AddListener", this);
     Services.mm.addMessageListener("API:RemoveListener", this);
+
+    this.schemaHook = this.schemaHook.bind(this);
   },
 
-  observe(subject, topic, data) {
+  attachMessageManager(extension, processMessageManager) {
+    extension.parentMessageManager = processMessageManager;
+  },
+
+  async observe(subject, topic, data) {
     if (topic === "message-manager-close") {
       let mm = subject;
       for (let [childId, context] of this.proxyContexts) {
@@ -590,6 +605,23 @@ ParentAPIManager = {
           extension.parentMessageManager = null;
         }
       }
+
+      this.parentMessageManagers.delete(mm);
+    } else if (topic === "ipc:content-created") {
+      let mm = subject.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIMessageSender);
+      if (mm.remoteType === E10SUtils.EXTENSION_REMOTE_TYPE) {
+        this.parentMessageManagers.add(mm);
+        mm.sendAsyncMessage("Schema:Add", Schemas.schemaJSON);
+
+        Schemas.schemaHook = this.schemaHook;
+      }
+    }
+  },
+
+  schemaHook(schemas) {
+    for (let mm of this.parentMessageManagers) {
+      mm.sendAsyncMessage("Schema:Add", schemas);
     }
   },
 
@@ -649,7 +681,7 @@ ParentAPIManager = {
       if (!extension.parentMessageManager) {
         let expectedRemoteType = extension.remote ? E10SUtils.EXTENSION_REMOTE_TYPE : null;
         if (target.remoteType === expectedRemoteType) {
-          extension.parentMessageManager = processMessageManager;
+          this.attachMessageManager(extension, processMessageManager);
         }
       }
 
@@ -700,7 +732,7 @@ ParentAPIManager = {
     };
 
     try {
-      let args = data.noClone ? data.args : Cu.cloneInto(data.args, context.sandbox);
+      let args = data.args;
       let pendingBrowser = context.pendingEventBrowser;
       let fun = await context.apiCan.asyncFindAPIPath(data.path);
       let result = context.withPendingBrowser(pendingBrowser,
@@ -756,7 +788,7 @@ ParentAPIManager = {
 
     context.listenerProxies.set(data.listenerId, listener);
 
-    let args = Cu.cloneInto(data.args, context.sandbox);
+    let args = data.args;
     let promise = context.apiCan.asyncFindAPIPath(data.path);
 
     // Store pending listener additions so we can be sure they're all
@@ -1189,13 +1221,13 @@ function extensionNameFromURI(uri) {
   return GlobalManager.getExtension(id).name;
 }
 
-const INTEGER = /^[1-9]\d*$/;
-
 // Manages icon details for toolbar buttons in the |pageAction| and
 // |browserAction| APIs.
 let IconDetails = {
-  // WeakMap<Extension -> Map<url-string -> object>>
-  iconCache: new DefaultWeakMap(() => new Map()),
+  // WeakMap<Extension -> Map<url-string -> Map<iconType-string -> object>>>
+  iconCache: new DefaultWeakMap(() => {
+    return new DefaultMap(() => new DefaultMap(() => new Map()));
+  }),
 
   // Normalizes the various acceptable input formats into an object
   // with icon size as key and icon URL as value.
@@ -1207,16 +1239,22 @@ let IconDetails = {
   // If no context is specified, instead of throwing an error, this
   // function simply logs a warning message.
   normalize(details, extension, context = null) {
-    if (!details.imageData && typeof details.path === "string") {
-      let icons = this.iconCache.get(extension);
+    if (!details.imageData && details.path) {
+      // Pick a cache key for the icon paths. If the path is a string,
+      // use it directly. Otherwise, stringify the path object.
+      let key = details.path;
+      if (typeof key !== "string") {
+        key = uneval(key);
+      }
 
-      let baseURI = context ? context.uri : extension.baseURI;
-      let url = baseURI.resolve(details.path);
+      let icons = this.iconCache.get(extension)
+                      .get(context && context.uri.spec)
+                      .get(details.iconType);
 
-      let icon = icons.get(url);
+      let icon = icons.get(key);
       if (!icon) {
         icon = this._normalize(details, extension, context);
-        icons.set(url, icon);
+        icons.set(key, icon);
       }
       return icon;
     }
@@ -1236,9 +1274,6 @@ let IconDetails = {
         }
 
         for (let size of Object.keys(imageData)) {
-          if (!INTEGER.test(size)) {
-            throw new ExtensionError(`Invalid icon size ${size}, must be an integer`);
-          }
           result[size] = imageData[size];
         }
       }
@@ -1251,17 +1286,13 @@ let IconDetails = {
         }
 
         for (let size of Object.keys(path)) {
-          if (!INTEGER.test(size)) {
-            throw new ExtensionError(`Invalid icon size ${size}, must be an integer`);
-          }
-
           let url = baseURI.resolve(path[size]);
 
           // The Chrome documentation specifies these parameters as
           // relative paths. We currently accept absolute URLs as well,
           // which means we need to check that the extension is allowed
           // to load them. This will throw an error if it's not allowed.
-          this._checkURL(url, extension.principal);
+          this._checkURL(url, extension);
 
           result[size] = url;
         }
@@ -1272,8 +1303,8 @@ let IconDetails = {
           let lightURL = baseURI.resolve(light);
           let darkURL = baseURI.resolve(dark);
 
-          this._checkURL(lightURL, extension.principal);
-          this._checkURL(darkURL, extension.principal);
+          this._checkURL(lightURL, extension);
+          this._checkURL(darkURL, extension);
 
           let defaultURL = result[size];
           result[size] = {
@@ -1299,12 +1330,8 @@ let IconDetails = {
 
   // Checks if the extension is allowed to load the given URL with the specified principal.
   // This will throw an error if the URL is not allowed.
-  _checkURL(url, principal) {
-    try {
-      Services.scriptSecurityManager.checkLoadURIStrWithPrincipal(
-        principal, url,
-        Services.scriptSecurityManager.DISALLOW_SCRIPT);
-    } catch (e) {
+  _checkURL(url, extension) {
+    if (!extension.checkLoadURL(url, {allowInheritsPrincipal: true})) {
       throw new ExtensionError(`Illegal URL ${url}`);
     }
   },
@@ -1381,13 +1408,16 @@ StartupCache = {
 
   STORE_NAMES: Object.freeze(["general", "locales", "manifests", "other", "permissions", "schemas"]),
 
-  get file() {
-    return FileUtils.getFile("ProfLD", ["startupCache", "webext.sc.lz4"]);
-  },
+  file: OS.Path.join(OS.Constants.Path.localProfileDir, "startupCache", "webext.sc.lz4"),
 
   get saver() {
     if (!this._saver) {
-      this._saver = new DeferredSave(this.file.path,
+      OS.File.makeDir(OS.Path.dirname(this.file), {
+        ignoreExisting: true,
+        from: OS.Constants.Path.localProfileDir,
+      });
+
+      this._saver = new DeferredSave(this.file,
                                      () => this.getBlob(),
                                      {delay: 5000});
     }
@@ -1406,9 +1436,9 @@ StartupCache = {
   async _readData() {
     let result = new Map();
     try {
-      let data = await promiseFileContents(this.file);
+      let {buffer} = await OS.File.read(this.file);
 
-      result = aomStartup.decodeBlob(data);
+      result = aomStartup.decodeBlob(buffer);
     } catch (e) {
       if (!e.becauseNoSuchFile) {
         Cu.reportError(e);
@@ -1501,6 +1531,13 @@ class CacheStore {
     }
 
     return result;
+  }
+
+  async set(path, value) {
+    let [store, key] = await this.getStore(path);
+
+    store.set(key, value);
+    StartupCache.save();
   }
 
   async getAll() {

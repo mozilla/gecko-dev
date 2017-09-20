@@ -504,10 +504,11 @@ nsTextInputSelectionImpl::SetCaretReadOnly(bool aReadOnly)
   {
     RefPtr<nsCaret> caret = shell->GetCaret();
     if (caret) {
-      nsISelection* domSel =
+      Selection* selection =
         mFrameSelection->GetSelection(SelectionType::eNormal);
-      if (domSel)
+      if (selection) {
         caret->SetCaretReadOnly(aReadOnly);
+      }
       return NS_OK;
     }
   }
@@ -547,10 +548,11 @@ nsTextInputSelectionImpl::SetCaretVisibilityDuringSelection(bool aVisibility)
   {
     RefPtr<nsCaret> caret = shell->GetCaret();
     if (caret) {
-      nsISelection* domSel =
+      Selection* selection =
         mFrameSelection->GetSelection(SelectionType::eNormal);
-      if (domSel)
+      if (selection) {
         caret->SetVisibilityDuringSelection(aVisibility);
+      }
       return NS_OK;
     }
   }
@@ -1184,6 +1186,7 @@ nsTextEditorState::Construct(nsITextControlElement* aOwningElement,
     state->mPlaceholderVisibility = false;
     state->mPreviewVisibility = false;
     state->mIsCommittingComposition = false;
+    state->ClearValueCache();
     // When adding more member variable initializations here, add the same
     // also to the constructor.
     return state;
@@ -1338,22 +1341,16 @@ nsTextEditorState::BindToFrame(nsTextControlFrame* aFrame)
   mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
 
   // Get the caret and make it a selection listener.
-  RefPtr<nsISelection> domSelection;
-  if (NS_SUCCEEDED(mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
-                                         getter_AddRefs(domSelection))) &&
-      domSelection) {
-    nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(domSelection));
+  // FYI: It's safe to use raw pointer for calling
+  //      Selection::AddSelectionListner() because it only appends the listener
+  //      to its internal array.
+  Selection* selection = mSelCon->GetSelection(SelectionType::eNormal);
+  if (selection) {
     RefPtr<nsCaret> caret = shell->GetCaret();
-    nsCOMPtr<nsISelectionListener> listener;
     if (caret) {
-      listener = do_QueryInterface(caret);
-      if (listener) {
-        selPriv->AddSelectionListener(listener);
-      }
+      selection->AddSelectionListener(caret);
     }
-
-    selPriv->AddSelectionListener(static_cast<nsISelectionListener*>
-                                             (mTextListener));
+    selection->AddSelectionListener(mTextListener);
   }
 
   // If an editor exists from before, prepare it for usage
@@ -1416,6 +1413,8 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     return NS_ERROR_NOT_INITIALIZED;
   }
 
+  ClearValueCache();
+
   // Note that we don't check mTextEditor here, because we might already have
   // one around, in which case we don't create a new one, and we'll just tie
   // the required machinery to it.
@@ -1424,9 +1423,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
   nsIPresShell *shell = presContext->GetPresShell();
 
   // Setup the editor flags
-  uint32_t editorFlags = 0;
-  if (IsPlainTextControl())
-    editorFlags |= nsIPlaintextEditor::eEditorPlaintextMask;
+  uint32_t editorFlags = nsIPlaintextEditor::eEditorPlaintextMask;
   if (IsSingleLineTextControl())
     editorFlags |= nsIPlaintextEditor::eEditorSingleLineMask;
   if (IsPasswordTextControl())
@@ -1568,8 +1565,9 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
       editorFlags |= nsIPlaintextEditor::eEditorDisabledMask;
 
     // Disable the selection if necessary.
-    if (editorFlags & nsIPlaintextEditor::eEditorDisabledMask)
+    if (newTextEditor->IsDisabled()) {
       mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_OFF);
+    }
 
     newTextEditor->SetFlags(editorFlags);
   }
@@ -2207,14 +2205,13 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
 
   if (mSelCon) {
     if (mTextListener) {
-      RefPtr<nsISelection> domSelection;
-      if (NS_SUCCEEDED(mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
-                                             getter_AddRefs(domSelection))) &&
-          domSelection) {
-        nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(domSelection));
-
-        selPriv->RemoveSelectionListener(static_cast<nsISelectionListener*>
-                                         (mTextListener));
+      // FYI: It's safe to use raw pointer for calling
+      //      Selection::RemoveSelectionListener() because it only removes the
+      //      listener from its array.
+      Selection* selection =
+        mSelCon->GetSelection(SelectionType::eNormal);
+      if (selection) {
+        selection->RemoveSelectionListener(mTextListener);
       }
     }
 
@@ -2263,9 +2260,9 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   // Unbind the anonymous content from the tree.
   // We actually hold a reference to the content nodes so that
   // they're not actually destroyed.
-  nsContentUtils::DestroyAnonymousContent(&rootNode);
-  nsContentUtils::DestroyAnonymousContent(&mPlaceholderDiv);
-  nsContentUtils::DestroyAnonymousContent(&mPreviewDiv);
+  aFrame->DestroyAnonymousContent(rootNode.forget());
+  aFrame->DestroyAnonymousContent(mPlaceholderDiv.forget());
+  aFrame->DestroyAnonymousContent(mPreviewDiv.forget());
 }
 
 nsresult
@@ -2290,11 +2287,8 @@ nsTextEditorState::CreateRootNode()
                                   NOT_FROM_PARSER);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!IsSingleLineTextControl()) {
-    mMutationObserver = new nsAnonDivObserver(this);
-    mRootNode->AddMutationObserver(mMutationObserver);
-  }
-
+  mMutationObserver = new nsAnonDivObserver(this);
+  mRootNode->AddMutationObserver(mMutationObserver);
   return rv;
 }
 
@@ -2358,6 +2352,7 @@ nsTextEditorState::CreateEmptyDivNode()
 
   // Create the text node for DIV
   RefPtr<nsTextNode> textNode = new nsTextNode(pNodeInfoManager);
+  textNode->MarkAsMaybeModifiedFrequently();
 
   element->AppendChildTo(textNode, false);
 
@@ -2440,8 +2435,7 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
 
   if (mTextEditor && mBoundFrame &&
       (mEditorInitialized || !IsSingleLineTextControl())) {
-    bool canCache = aIgnoreWrap && !IsSingleLineTextControl();
-    if (canCache && !mCachedValue.IsEmpty()) {
+    if (aIgnoreWrap && !mCachedValue.IsVoid()) {
       aValue = mCachedValue;
       return;
     }
@@ -2450,13 +2444,8 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
 
     uint32_t flags = (nsIDocumentEncoder::OutputLFLineBreak |
                       nsIDocumentEncoder::OutputPreformatted |
-                      nsIDocumentEncoder::OutputPersistNBSP);
-
-    if (IsPlainTextControl())
-    {
-      flags |= nsIDocumentEncoder::OutputBodyOnly;
-    }
-
+                      nsIDocumentEncoder::OutputPersistNBSP |
+                      nsIDocumentEncoder::OutputBodyOnly);
     if (!aIgnoreWrap) {
       nsITextControlElement::nsHTMLTextWrap wrapProp;
       nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
@@ -2485,10 +2474,12 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
       mTextEditor->OutputToString(NS_LITERAL_STRING("text/plain"), flags,
                                   aValue);
     }
-    if (canCache) {
-      mCachedValue = aValue;
+    // Only when the result doesn't include line breaks caused by hard-wrap,
+    // mCacheValue should cache the value.
+    if (!(flags & nsIDocumentEncoder::OutputWrap)) {
+      const_cast<nsTextEditorState*>(this)->SetValueCache(aValue);
     } else {
-      mCachedValue.Truncate();
+      const_cast<nsTextEditorState*>(this)->ClearValueCache();
     }
   } else {
     if (!mTextCtrlElement->ValueChanged() || !mValue) {
@@ -2572,7 +2563,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, const nsAString* aOldValue,
         mValueBeingSet = aValue;
         mIsCommittingComposition = true;
         RefPtr<TextEditor> textEditor = mTextEditor;
-        nsresult rv = textEditor->ForceCompositionEnd();
+        nsresult rv = textEditor->CommitComposition();
         if (!self.get()) {
           return true;
         }
@@ -2645,11 +2636,11 @@ nsTextEditorState::SetValue(const nsAString& aValue, const nsAString* aOldValue,
       {
         AutoNoJSAPI nojsapi;
 
-        nsCOMPtr<nsISelection> domSel;
-        mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
-                              getter_AddRefs(domSel));
-        SelectionBatcher selectionBatcher(domSel ? domSel->AsSelection() :
-                                                   nullptr);
+        // FYI: It's safe to use raw pointer for selection here because
+        //      SelectionBatcher will grab it with RefPtr.
+        Selection* selection =
+          mSelCon->GetSelection(SelectionType::eNormal);
+        SelectionBatcher selectionBatcher(selection);
 
         if (NS_WARN_IF(!weakFrame.IsAlive())) {
           return true;
@@ -2692,10 +2683,12 @@ nsTextEditorState::SetValue(const nsAString& aValue, const nsAString* aOldValue,
             }
           } else {
             AutoDisableUndo disableUndo(textEditor);
-            if (domSel) {
+            if (selection) {
               // Since we don't use undo transaction, we don't need to store
               // selection state.  SetText will set selection to tail.
-              domSel->RemoveAllRanges();
+              // Note that textEditor will collapse selection to the end.
+              // Therefore, it's safe to use RemoveAllRangesTemporarily() here.
+              selection->RemoveAllRangesTemporarily();
             }
 
             textEditor->SetText(newValue);
@@ -2727,10 +2720,10 @@ nsTextEditorState::SetValue(const nsAString& aValue, const nsAString* aOldValue,
           return true;
         }
 
-        if (!IsSingleLineTextControl()) {
-          if (!mCachedValue.Assign(newValue, fallible)) {
-            return false;
-          }
+        // The new value never includes line breaks caused by hard-wrap.
+        // So, mCachedValue can always cache the new value.
+        if (!SetValueCache(newValue, fallible)) {
+          return false;
         }
       }
     }
@@ -2793,7 +2786,7 @@ nsTextEditorState::HasNonEmptyValue()
   if (mTextEditor && mBoundFrame && mEditorInitialized &&
       !mIsCommittingComposition) {
     bool empty;
-    nsresult rv = mTextEditor->GetDocumentIsEmpty(&empty);
+    nsresult rv = mTextEditor->DocumentIsEmpty(&empty);
     if (NS_SUCCEEDED(rv)) {
       return !empty;
     }

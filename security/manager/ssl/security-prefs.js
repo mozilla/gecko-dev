@@ -43,6 +43,14 @@ pref("security.remember_cert_checkbox_default_setting", true);
 pref("security.ask_for_password",        0);
 pref("security.password_lifetime",       30);
 
+// If true, use the modern sqlite-backed certificate and key databases in NSS.
+// If false, use the default format. Currently the default in NSS is the old
+// BerkeleyDB format, but this will change in bug 1377940.
+// Changing this requires a restart to take effect.
+// Note that the environment variable MOZPSM_NSSDBDIR_OVERRIDE can override both
+// the behavior of this preference and the NSS default.
+pref("security.use_sqldb", false);
+
 // The supported values of this pref are:
 // 0: disable detecting Family Safety mode and importing the root
 // 1: only attempt to detect Family Safety mode (don't import the root)
@@ -56,11 +64,7 @@ pref("security.enterprise_roots.enabled", false);
 // 0: do not fetch OCSP
 // 1: fetch OCSP for DV and EV certificates
 // 2: fetch OCSP only for EV certificates
-#ifdef RELEASE_OR_BETA
 pref("security.OCSP.enabled", 1);
-#else
-pref("security.OCSP.enabled", 2);
-#endif
 pref("security.OCSP.require", false);
 pref("security.OCSP.GET.enabled", false);
 #ifdef RELEASE_OR_BETA
@@ -109,13 +113,13 @@ pref("security.pki.netscape_step_up_policy", 2);
 // 1: Only collect telemetry. CT qualification checks are not performed.
 pref("security.pki.certificate_transparency.mode", 0);
 
+// Hardware Origin-bound Second Factor Support
 pref("security.webauth.u2f", false);
-pref("security.webauth.u2f_enable_softtoken", false);
-pref("security.webauth.u2f_enable_usbtoken", false);
-
 pref("security.webauth.webauthn", false);
+// Only one of "enable_softtoken" and "enable_usbtoken" can be true
+// at a time.
 pref("security.webauth.webauthn_enable_softtoken", false);
-pref("security.webauth.webauthn_enable_usbtoken", false);
+pref("security.webauth.webauthn_enable_usbtoken", true);
 
 pref("security.ssl.errorReporting.enabled", true);
 pref("security.ssl.errorReporting.url", "https://incoming.telemetry.mozilla.org/submit/sslreports/");

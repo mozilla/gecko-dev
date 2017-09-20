@@ -7,7 +7,7 @@
 #![deny(missing_docs)]
 
 use attr::NamespaceConstraint;
-use parser::{Combinator, Component, SelectorImpl, SelectorIter};
+use parser::{Combinator, Component, SelectorImpl};
 
 /// A trait to visit selector properties.
 ///
@@ -39,7 +39,6 @@ pub trait SelectorVisitor {
     /// Gets the combinator to the right of the selector, or `None` if the
     /// selector is the rightmost one.
     fn visit_complex_selector(&mut self,
-                              _: SelectorIter<Self::Impl>,
                               _combinator_to_right: Option<Combinator>)
                               -> bool {
         true

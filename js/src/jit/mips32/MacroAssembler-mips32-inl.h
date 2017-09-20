@@ -141,6 +141,8 @@ MacroAssembler::addPtr(ImmWord imm, Register dest)
 void
 MacroAssembler::add64(Register64 src, Register64 dest)
 {
+    MOZ_ASSERT(dest.low != src.low);
+
     as_addu(dest.low, dest.low, src.low);
     as_sltu(ScratchRegister, dest.low, src.low);
     as_addu(dest.high, dest.high, src.high);
@@ -190,6 +192,10 @@ MacroAssembler::subPtr(Imm32 imm, Register dest)
 void
 MacroAssembler::sub64(Register64 src, Register64 dest)
 {
+    MOZ_ASSERT(dest.low != src.high);
+    MOZ_ASSERT(dest.high != src.low);
+    MOZ_ASSERT(dest.high != src.high);
+
     as_sltu(ScratchRegister, dest.low, src.low);
     as_subu(dest.high, dest.high, ScratchRegister);
     as_subu(dest.low, dest.low, src.low);
@@ -314,8 +320,9 @@ MacroAssembler::neg64(Register64 reg)
 void
 MacroAssembler::mulBy3(Register src, Register dest)
 {
-    as_addu(dest, src, src);
-    as_addu(dest, dest, src);
+    MOZ_ASSERT(src != ScratchRegister);
+    as_addu(ScratchRegister, src, src);
+    as_addu(dest, ScratchRegister, src);
 }
 
 void
@@ -434,6 +441,8 @@ MacroAssembler::rshift64(Register unmaskedShift, Register64 dest)
     ScratchRegisterScope shift(*this);
 
     ma_and(shift, unmaskedShift, Imm32(0x3f));
+    ma_b(shift, Imm32(0), &done, Equal);
+
     ma_srl(dest.low, dest.low, shift);
     ma_subu(shift, shift, Imm32(32));
     ma_b(shift, Imm32(0), &less, LessThan);
@@ -480,6 +489,7 @@ MacroAssembler::rshift64Arithmetic(Register unmaskedShift, Register64 dest)
 
     ScratchRegisterScope shift(*this);
     ma_and(shift, unmaskedShift, Imm32(0x3f));
+    ma_b(shift, Imm32(0), &done, Equal);
 
     ma_srl(dest.low, dest.low, shift);
     ma_subu(shift, shift, Imm32(32));
@@ -541,12 +551,13 @@ MacroAssembler::rotateLeft64(Register shift, Register64 src, Register64 dest, Re
     MOZ_ASSERT(temp != src.low && temp != src.high);
     MOZ_ASSERT(shift != src.low && shift != src.high);
     MOZ_ASSERT(temp != InvalidReg);
+    MOZ_ASSERT(src != dest);
 
     ScratchRegisterScope shift_value(*this);
-    Label high, done, zero;
-
+    Label high, swap, done, zero;
     ma_and(temp, shift, Imm32(0x3f));
-    ma_b(temp, Imm32(32), &high, GreaterThanOrEqual);
+    ma_b(temp, Imm32(32), &swap, Equal);
+    ma_b(temp, Imm32(32), &high, GreaterThan);
 
     // high = high << shift | low >> 32 - shift
     // low = low << shift | high >> 32 - shift
@@ -567,7 +578,11 @@ MacroAssembler::rotateLeft64(Register shift, Register64 src, Register64 dest, Re
     ma_move(dest.low, src.low);
     ma_move(dest.high, src.high);
     ma_b(&done);
-
+    bind(&swap);
+    ma_move(SecondScratchReg, src.low);
+    ma_move(dest.low, src.high);
+    ma_move(dest.high, SecondScratchReg);
+    ma_b(&done);
     // A 32 - 64 shift is a 0 - 32 shift in the other direction.
     bind(&high);
     ma_and(shift, shift, Imm32(0x3f));
@@ -624,12 +639,14 @@ MacroAssembler::rotateRight64(Register shift, Register64 src, Register64 dest, R
     MOZ_ASSERT(temp != src.low && temp != src.high);
     MOZ_ASSERT(shift != src.low && shift != src.high);
     MOZ_ASSERT(temp != InvalidReg);
+    MOZ_ASSERT(src != dest);
 
     ScratchRegisterScope shift_value(*this);
-    Label high, done, zero;
+    Label high, swap, done, zero;
 
     ma_and(temp, shift, Imm32(0x3f));
-    ma_b(temp, Imm32(32), &high, GreaterThanOrEqual);
+    ma_b(temp, Imm32(32), &swap, Equal);
+    ma_b(temp, Imm32(32), &high, GreaterThan);
 
     // high = high >> shift | low << 32 - shift
     // low = low >> shift | high << 32 - shift
@@ -654,7 +671,11 @@ MacroAssembler::rotateRight64(Register shift, Register64 src, Register64 dest, R
     ma_move(dest.low, src.low);
     ma_move(dest.high, src.high);
     ma_b(&done);
-
+    bind(&swap);
+    ma_move(SecondScratchReg, src.low);
+    ma_move(dest.low, src.high);
+    ma_move(dest.high, SecondScratchReg);
+    ma_b(&done);
     // A 32 - 64 shift is a 0 - 32 shift in the other direction.
     bind(&high);
     ma_and(shift, shift, Imm32(0x3f));
@@ -1015,6 +1036,24 @@ MacroAssembler::branchTestMagic(Condition cond, const Address& valaddr, JSWhyMag
     bind(&notMagic);
 }
 
+void
+MacroAssembler::branchToComputedAddress(const BaseIndex& addr)
+{
+    int32_t shift = Imm32::ShiftOf(addr.scale).value;
+    if (shift) {
+        // 4 instructions : lui ori jr nop
+        ma_mul(ScratchRegister, addr.index, Imm32(4 * 4));
+        as_addu(ScratchRegister, addr.base, ScratchRegister);
+    } else {
+        as_addu(ScratchRegister, addr.base, addr.index);
+    }
+
+    if (addr.offset)
+        asMasm().addPtr(Imm32(addr.offset), ScratchRegister);
+    as_jr(ScratchRegister);
+    as_nop();
+}
+
 // ========================================================================
 // Memory access primitives.
 void
@@ -1048,18 +1087,16 @@ template <class L>
 void
 MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Register boundsCheckLimit, L label)
 {
-    MOZ_CRASH("NYI - patching is no longer available");
-    // BufferOffset bo = ma_BoundsCheck(ScratchRegister);
-    // append(wasm::BoundsCheck(bo.getOffset()));
-
-    // ma_b(index, ScratchRegister, label, cond);
+     ma_b(index, boundsCheckLimit, label, cond);
 }
 
 template <class L>
 void
 MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Address boundsCheckLimit, L label)
 {
-    MOZ_CRASH("NYI - patching is no longer available");
+    SecondScratchRegisterScope scratch2(*this);
+    load32(boundsCheckLimit,SecondScratchReg);
+    ma_b(index, SecondScratchReg, label, cond);
 }
 
 //}}} check_macroassembler_style

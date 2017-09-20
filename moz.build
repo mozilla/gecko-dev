@@ -16,9 +16,6 @@ with Files('LEGAL'):
 with Files('aclocal.m4'):
     BUG_COMPONENT = ('Core', 'Build Config')
 
-with Files('Android.mk'):
-    BUG_COMPONENT = ('Firefox for Android', 'Build Config & IDE Support')
-
 with Files('client.*'):
     BUG_COMPONENT = ('Core', 'Build Config')
 
@@ -72,6 +69,7 @@ DIRS += [
 if not CONFIG['JS_STANDALONE']:
     # These python manifests are included here so they get picked up without an objdir
     PYTHON_UNITTEST_MANIFESTS += [
+        'layout/tools/reftest/selftest/python.ini',
         'testing/marionette/harness/marionette_harness/tests/harness_unit/python.ini',
         'testing/mochitest/tests/python/python.ini',
     ]
@@ -98,6 +96,7 @@ if not CONFIG['JS_STANDALONE']:
 
     DIRS += [
         'build',
+        'tools',
         'probes',
     ]
 

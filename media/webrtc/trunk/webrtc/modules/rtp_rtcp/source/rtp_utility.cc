@@ -461,8 +461,12 @@ void RtpHeaderParser::ParseOneByteExtensionHeader(
           break;
         }
         case kRtpExtensionRepairedRtpStreamId: {
-          header->extension.repairedStreamId.Set(
+          header->extension.repairedRtpStreamId.Set(
               rtc::MakeArrayView(ptr, len + 1));
+          break;
+        }
+        case kRtpExtensionMId: {
+          header->extension.mId.Set(rtc::MakeArrayView(ptr, len + 1));
           break;
         }
         default:

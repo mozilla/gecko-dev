@@ -67,7 +67,6 @@
 #include "CacheObserver.h"
 #include "DisplayItemClip.h"
 #include "ActiveLayerTracker.h"
-#include "CounterStyleManager.h"
 #include "FrameLayerBuilder.h"
 #include "AnimationCommon.h"
 #include "LayerAnimationInfo.h"
@@ -286,8 +285,6 @@ nsLayoutStatics::Initialize()
 
   CacheObserver::Init();
 
-  CounterStyleManager::InitializeBuiltinCounterStyles();
-
   IMEStateManager::Init();
 
   ServiceWorkerRegistrar::Initialize();
@@ -304,7 +301,9 @@ nsLayoutStatics::Initialize()
   mozilla::dom::WebCryptoThreadPool::Initialize();
 
 #ifdef MOZ_STYLO
-  InitializeServo();
+  if (XRE_IsParentProcess() || XRE_IsContentProcess()) {
+    InitializeServo();
+  }
 #endif
 
 #ifndef MOZ_WIDGET_ANDROID
@@ -326,8 +325,10 @@ nsLayoutStatics::Shutdown()
   // memory reporter manager.
 
 #ifdef MOZ_STYLO
-  ShutdownServo();
-  URLExtraData::ReleaseDummy();
+  if (XRE_IsParentProcess() || XRE_IsContentProcess()) {
+    ShutdownServo();
+    URLExtraData::ReleaseDummy();
+  }
 #endif
 
   nsMessageManagerScriptExecutor::Shutdown();

@@ -95,7 +95,7 @@ js::BoxNonStrictThis(JSContext* cx, HandleValue thisv, MutableHandleValue vp)
     MOZ_ASSERT(!thisv.isMagic());
 
     if (thisv.isNullOrUndefined()) {
-        vp.set(GetThisValue(cx->global()));
+        vp.set(cx->global()->lexicalEnvironment().thisValue());
         return true;
     }
 
@@ -127,6 +127,32 @@ js::GetFunctionThis(JSContext* cx, AbstractFramePtr frame, MutableHandleValue re
     }
 
     RootedValue thisv(cx, frame.thisArgument());
+
+    // If there is a NSVO on environment chain, use it as basis for fallback
+    // global |this|. This gives a consistent definition of global lexical
+    // |this| between function and global contexts.
+    //
+    // NOTE: If only non-syntactic WithEnvironments are on the chain, we use the
+    // global lexical |this| value. This is for compatibility with the Subscript
+    // Loader.
+    if (frame.script()->hasNonSyntacticScope() && thisv.isNullOrUndefined()) {
+        RootedObject env(cx, frame.environmentChain());
+        while (true) {
+            if (IsNSVOLexicalEnvironment(env) || IsGlobalLexicalEnvironment(env)) {
+                res.set(GetThisValueOfLexical(env));
+                return true;
+            }
+            if (!env->enclosingEnvironment()) {
+                // This can only happen in Debugger eval frames: in that case we
+                // don't always have a global lexical env, see EvaluateInEnv.
+                MOZ_ASSERT(env->is<GlobalObject>());
+                res.set(GetThisValue(env));
+                return true;
+            }
+            env = env->enclosingEnvironment();
+        }
+    }
+
     return BoxNonStrictThis(cx, thisv, res);
 }
 
@@ -136,7 +162,7 @@ js::GetNonSyntacticGlobalThis(JSContext* cx, HandleObject envChain, MutableHandl
     RootedObject env(cx, envChain);
     while (true) {
         if (IsExtensibleLexicalEnvironment(env)) {
-            res.set(env->as<LexicalEnvironmentObject>().thisValue());
+            res.set(GetThisValueOfLexical(env));
             return;
         }
         if (!env->enclosingEnvironment()) {
@@ -1439,44 +1465,37 @@ JS_STATIC_ASSERT(JSOP_IFNE_LENGTH == JSOP_IFEQ_LENGTH);
 JS_STATIC_ASSERT(JSOP_IFNE == JSOP_IFEQ + 1);
 
 /*
- * Compute the implicit |this| parameter for a call expression where the callee
- * funval was resolved from an unqualified name reference to a property on obj
- * (an object on the env chain).
+ * Compute the implicit |this| value used by a call expression with an
+ * unqualified name reference. The environment the binding was found on is
+ * passed as argument, env.
  *
- * We can avoid computing |this| eagerly and push the implicit callee-coerced
- * |this| value, undefined, if either of these conditions hold:
+ * The implicit |this| is |undefined| for all environment types except
+ * WithEnvironmentObject. This is the case for |with(...) {...}| expressions or
+ * if the embedding uses a non-syntactic WithEnvironmentObject.
  *
- * 1. The nominal |this|, obj, is a global object.
- *
- * 2. The nominal |this|, obj, has one of LexicalEnvironment or Call class (this
- *    is what IsCacheableEnvironment tests). Such objects-as-envs must be
- *    censored with undefined.
- *
- * Otherwise, we bind |this| to the result of GetThisValue(). Only names inside
- * |with| statements and embedding-specific environment objects fall into this
- * category.
- *
- * If the callee is a strict mode function, then code implementing JSOP_THIS
- * in the interpreter and JITs will leave undefined as |this|. If funval is a
- * function not in strict mode, JSOP_THIS code replaces undefined with funval's
- * global.
+ * NOTE: A non-syntactic WithEnvironmentObject may have a corresponding
+ * extensible LexicalEnviornmentObject, but it will not be considered as an
+ * implicit |this|. This is for compatibility with the Gecko subscript loader.
  */
 static inline Value
-ComputeImplicitThis(JSObject* obj)
+ComputeImplicitThis(JSObject* env)
 {
-    if (obj->is<GlobalObject>())
+    // Fast-path for GlobalObject
+    if (env->is<GlobalObject>())
         return UndefinedValue();
 
-    if (IsCacheableEnvironment(obj))
-        return UndefinedValue();
+    // WithEnvironmentObjects have an actual implicit |this|
+    if (env->is<WithEnvironmentObject>())
+        return GetThisValueOfWith(env);
 
     // Debugger environments need special casing, as despite being
     // non-syntactic, they wrap syntactic environments and should not be
     // treated like other embedding-specific non-syntactic environments.
-    if (obj->is<DebugEnvironmentProxy>())
-        return ComputeImplicitThis(&obj->as<DebugEnvironmentProxy>().environment());
+    if (env->is<DebugEnvironmentProxy>())
+        return ComputeImplicitThis(&env->as<DebugEnvironmentProxy>().environment());
 
-    return GetThisValue(obj);
+    MOZ_ASSERT(env->is<EnvironmentObject>());
+    return UndefinedValue();
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -1985,7 +2004,7 @@ CASE(EnableInterruptsPseudoOpcode)
 CASE(JSOP_NOP)
 CASE(JSOP_NOP_DESTRUCTURING)
 CASE(JSOP_TRY_DESTRUCTURING_ITERCLOSE)
-CASE(JSOP_UNUSED222)
+CASE(JSOP_ITERNEXT)
 CASE(JSOP_UNUSED223)
 CASE(JSOP_CONDSWITCH)
 {
@@ -4470,7 +4489,7 @@ js::DefFunOperation(JSContext* cx, HandleScript script, HandleObject envChain,
 
     /* Steps 5d, 5f. */
     if (!prop || pobj != parent) {
-        if (!DefineProperty(cx, parent, name, rval, nullptr, nullptr, attrs))
+        if (!DefineDataProperty(cx, parent, name, rval, attrs))
             return false;
 
         return parent->is<GlobalObject>() ? parent->compartment()->addToVarNames(cx, name) : true;
@@ -4489,7 +4508,7 @@ js::DefFunOperation(JSContext* cx, HandleScript script, HandleObject envChain,
     if (parent->is<GlobalObject>()) {
         Shape* shape = prop.shape();
         if (shape->configurable()) {
-            if (!DefineProperty(cx, parent, name, rval, nullptr, nullptr, attrs))
+            if (!DefineDataProperty(cx, parent, name, rval, attrs))
                 return false;
         } else {
             MOZ_ASSERT(shape->isDataDescriptor());
@@ -4693,7 +4712,7 @@ js::AtomicIsLockFree(JSContext* cx, HandleValue in, int* out)
     int i;
     if (!ToInt32(cx, in, &i))
         return false;
-    *out = js::jit::AtomicOperations::isLockfree(i);
+    *out = js::jit::AtomicOperations::isLockfreeJS(i);
     return true;
 }
 
@@ -4807,8 +4826,7 @@ js::InitGetterSetterOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, H
         attrs |= JSPROP_SETTER;
     }
 
-    RootedValue scratch(cx);
-    return DefineProperty(cx, obj, id, scratch, getter, setter, attrs);
+    return DefineAccessorProperty(cx, obj, id, getter, setter, attrs);
 }
 
 bool

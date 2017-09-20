@@ -58,8 +58,6 @@ protected:
 public:
   void Destroy();
 
-  HostLayerManager* layer_manager() const { return mLayerManager; }
-
   void SetLayerManager(HostLayerManager* aLayerManager, CompositorAnimationStorage* aAnimStorage);
 
   uint64_t GetId() const { return mId; }
@@ -83,7 +81,13 @@ public:
   virtual bool IsSameProcess() const override;
 
   const uint64_t& GetPendingTransactionId() { return mPendingTransaction; }
-  void SetPendingTransactionId(uint64_t aId) { mPendingTransaction = aId; }
+  void SetPendingTransactionId(uint64_t aId, const TimeStamp& aTxnStartTime, const TimeStamp& aFwdTime)
+  {
+    mPendingTransaction = aId;
+    mTxnStartTime = aTxnStartTime;
+    mFwdTime = aFwdTime;
+  }
+  uint64_t FlushTransactionId(TimeStamp& aCompositeEnd);
 
   // CompositableParentManager
   virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) override;
@@ -199,6 +203,8 @@ private:
   uint64_t mParentEpoch;
 
   uint64_t mPendingTransaction;
+  TimeStamp mTxnStartTime;
+  TimeStamp mFwdTime;
 
   // When the widget/frame/browser stuff in this process begins its
   // destruction process, we need to Disconnect() all the currently

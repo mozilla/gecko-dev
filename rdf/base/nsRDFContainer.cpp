@@ -42,7 +42,6 @@
 #include "nsIServiceManager.h"
 #include "nsRDFCID.h"
 #include "nsString.h"
-#include "nsXPIDLString.h"
 #include "rdf.h"
 
 #define RDF_SEQ_LIST_LIMIT   8
@@ -687,8 +686,7 @@ RDFContainerImpl::GetNextValue(nsIRDFResource** aResult)
     }
 
     static const char kRDFNameSpaceURI[] = RDF_NAMESPACE_URI;
-    char buf[sizeof(kRDFNameSpaceURI) + 16];
-    nsFixedCString nextValStr(buf, sizeof(buf), 0);
+    nsAutoCStringN<sizeof(kRDFNameSpaceURI) + 16> nextValStr;
     nextValStr = kRDFNameSpaceURI;
     nextValStr.Append('_');
     nextValStr.AppendInt(nextVal, 10);

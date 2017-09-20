@@ -47,7 +47,7 @@ const {require, loader} = Cu.import("resource://devtools/shared/Loader.jsm", {})
 
 const Editor = require("devtools/client/sourceeditor/editor");
 const TargetFactory = require("devtools/client/framework/target").TargetFactory;
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const {DevToolsWorker} = require("devtools/shared/worker/worker");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const flags = require("devtools/shared/flags");
@@ -82,7 +82,7 @@ loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
 loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/main", true);
 loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice");
+loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice", true);
 
 XPCOMUtils.defineLazyGetter(this, "REMOTE_TIMEOUT", () =>
   Services.prefs.getIntPref("devtools.debugger.remote-timeout"));
@@ -1736,7 +1736,7 @@ var Scratchpad = {
       this.populateRecentFilesMenu();
       PreferenceObserver.init();
       CloseObserver.init();
-    }).catch((err) => console.error(err));
+    }).catch(console.error);
     this._setupCommandListeners();
     this._updateViewMenuItems();
     this._setupPopupShowingListeners();

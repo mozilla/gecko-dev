@@ -52,7 +52,7 @@
 #include "nsIXMLContentSink.h"
 #include "nsRDFCID.h"
 #include "nsTArray.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "mozilla/Logging.h"
 #include "rdf.h"
 #include "rdfutil.h"
@@ -315,10 +315,10 @@ RDFContentSinkImpl::~RDFContentSinkImpl()
             // XXX we should save line numbers on the context stack: this'd
             // be about 1000x more helpful.
             if (resource && MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
-                nsXPIDLCString uri;
+                nsCString uri;
                 resource->GetValue(getter_Copies(uri));
                 MOZ_LOG(gLog, LogLevel::Debug,
-                       ("rdfxml:   uri=%s", (const char*) uri));
+                       ("rdfxml:   uri=%s", uri.get()));
             }
 
             NS_IF_RELEASE(resource);

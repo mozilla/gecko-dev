@@ -333,8 +333,14 @@ nsresult
 AttachDatabase(nsCOMPtr<mozIStorageConnection>& aDBConn,
                const nsACString& aPath,
                const nsACString& aName) {
-  nsresult rv = aDBConn->ExecuteSimpleSQL(
-    NS_LITERAL_CSTRING("ATTACH DATABASE '") + aPath + NS_LITERAL_CSTRING("' AS ") + aName);
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = aDBConn->CreateStatement(
+    NS_LITERAL_CSTRING("ATTACH DATABASE :path AS ") + aName,
+    getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("path"), aPath);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
   // The journal limit must be set apart for each database.
@@ -1105,7 +1111,15 @@ Database::InitSchema(bool* aDatabaseMigrated)
         rv = MigrateV38Up();
         NS_ENSURE_SUCCESS(rv, rv);
       }
+
       // Firefox 56 uses schema version 38.
+
+      if (currentSchemaVersion < 39) {
+        rv = MigrateV39Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      // Firefox 57 uses schema version 39.
 
       // Schema Upgrades must add migration code here.
 
@@ -1162,6 +1176,8 @@ Database::InitSchema(bool* aDatabaseMigrated)
     rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_PARENTPOSITION);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_PLACELASTMODIFIED);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_DATEADDED);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_GUID);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2314,6 +2330,17 @@ Database::MigrateV38Up()
     ));
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV39Up() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  // Create an index on dateAdded.
+  nsresult rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_BOOKMARKS_DATEADDED);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }

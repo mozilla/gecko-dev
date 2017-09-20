@@ -33,7 +33,7 @@
 #include "nsCCUncollectableMarker.h"
 #include "mozAutoDocUpdate.h"
 #include "nsTextNode.h"
-
+#include "nsBidiUtils.h"
 #include "PLDHashTable.h"
 #include "mozilla/Sprintf.h"
 #include "nsWrapperCacheInlines.h"
@@ -135,9 +135,9 @@ NS_INTERFACE_MAP_BEGIN(nsGenericDOMDataNode)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContent)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(nsGenericDOMDataNode)
-NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(nsGenericDOMDataNode,
-                                                   nsNodeUtils::LastRelease(this))
+NS_IMPL_MAIN_THREAD_ONLY_CYCLE_COLLECTING_ADDREF(nsGenericDOMDataNode)
+NS_IMPL_MAIN_THREAD_ONLY_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(nsGenericDOMDataNode,
+                                                                    nsNodeUtils::LastRelease(this))
 
 
 void
@@ -163,7 +163,8 @@ nsresult
 nsGenericDOMDataNode::GetData(nsAString& aData) const
 {
   if (mText.Is2b()) {
-    aData.Assign(mText.Get2b(), mText.GetLength());
+    aData.Truncate();
+    mText.AppendTo(aData);
   } else {
     // Must use Substring() since nsDependentCString() requires null
     // terminated strings.
@@ -319,35 +320,52 @@ nsGenericDOMDataNode::SetTextInternal(uint32_t aOffset, uint32_t aCount,
   if (aOffset == 0 && endOffset == textLength) {
     // Replacing whole text or old text was empty.  Don't bother to check for
     // bidi in this string if the document already has bidi enabled.
-    bool ok = mText.SetTo(aBuffer, aLength, !document || !document->GetBidiEnabled());
+    // If this is marked as "maybe modified frequently", the text should be
+    // stored as char16_t since converting char* to char16_t* is expensive.
+    bool ok =
+      mText.SetTo(aBuffer, aLength, !document || !document->GetBidiEnabled(),
+                  HasFlag(NS_MAYBE_MODIFIED_FREQUENTLY));
     NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   }
   else if (aOffset == textLength) {
     // Appending to existing
-    bool ok = mText.Append(aBuffer, aLength, !document || !document->GetBidiEnabled());
+    bool ok =
+      mText.Append(aBuffer, aLength, !document || !document->GetBidiEnabled(),
+                   HasFlag(NS_MAYBE_MODIFIED_FREQUENTLY));
     NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   }
   else {
     // Merging old and new
 
+    bool bidi = mText.IsBidi();
+
     // Allocate new buffer
     int32_t newLength = textLength - aCount + aLength;
-    char16_t* to = new char16_t[newLength];
+    // Use nsString and not nsAutoString so that we get a nsStringBuffer which
+    // can be just AddRefed in nsTextFragment.
+    nsString to;
+    to.SetCapacity(newLength);
 
     // Copy over appropriate data
     if (aOffset) {
-      mText.CopyTo(to, 0, aOffset);
+      mText.AppendTo(to, 0, aOffset);
     }
     if (aLength) {
-      memcpy(to + aOffset, aBuffer, aLength * sizeof(char16_t));
+      to.Append(aBuffer, aLength);
+      if (!bidi && (!document || !document->GetBidiEnabled())) {
+        bidi = HasRTLChars(aBuffer, aLength);
+      }
     }
     if (endOffset != textLength) {
-      mText.CopyTo(to + aOffset + aLength, endOffset, textLength - endOffset);
+      mText.AppendTo(to, endOffset, textLength - endOffset);
     }
 
-    bool ok = mText.SetTo(to, newLength, !document || !document->GetBidiEnabled());
-
-    delete [] to;
+    // If this is marked as "maybe modified frequently", the text should be
+    // stored as char16_t since converting char* to char16_t* is expensive.
+    // Use char16_t also when we have bidi characters.
+    bool use2b = HasFlag(NS_MAYBE_MODIFIED_FREQUENTLY) || bidi;
+    bool ok = mText.SetTo(to, false, use2b);
+    mText.SetBidi(bidi);
 
     NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   }
@@ -663,13 +681,6 @@ nsGenericDOMDataNode::GetChildAt(uint32_t aIndex) const
   return nullptr;
 }
 
-nsIContent * const *
-nsGenericDOMDataNode::GetChildArray(uint32_t* aChildCount) const
-{
-  *aChildCount = 0;
-  return nullptr;
-}
-
 int32_t
 nsGenericDOMDataNode::IndexOf(const nsINode* aPossibleChild) const
 {
@@ -859,6 +870,9 @@ nsGenericDOMDataNode::SplitData(uint32_t aOffset, nsIContent** aReturn,
   if (!newContent) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
+  // nsRange expects the CharacterDataChanged notification is followed
+  // by an insertion of |newContent|. If you change this code,
+  // make sure you make the appropriate changes in nsRange.
   newContent->SetText(cutText, true); // XXX should be false?
 
   CharacterDataChangeInfo::Details details = {
@@ -964,7 +978,7 @@ nsGenericDOMDataNode::GetText()
 uint32_t
 nsGenericDOMDataNode::TextLength() const
 {
-  return mText.GetLength();
+  return TextDataLength();
 }
 
 nsresult
@@ -1109,11 +1123,11 @@ nsGenericDOMDataNode::GetAttributeChangeHint(const nsIAtom* aAttribute,
   return nsChangeHint(0);
 }
 
-size_t
-nsGenericDOMDataNode::SizeOfExcludingThis(SizeOfState& aState) const
+void
+nsGenericDOMDataNode::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
+                                             size_t* aNodeSize) const
 {
-  size_t n = nsIContent::SizeOfExcludingThis(aState);
-  n += mText.SizeOfExcludingThis(aState.mMallocSizeOf);
-  return n;
+  nsIContent::AddSizeOfExcludingThis(aSizes, aNodeSize);
+  *aNodeSize += mText.SizeOfExcludingThis(aSizes.mState.mMallocSizeOf);
 }
 

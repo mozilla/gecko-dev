@@ -654,6 +654,10 @@ cfg_if! {
             pub static nsGkAtoms_disablehistory: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms17disablefullscreenE"]
             pub static nsGkAtoms_disablefullscreen: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms17disclosure_closedE"]
+            pub static nsGkAtoms_disclosure_closed: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms15disclosure_openE"]
+            pub static nsGkAtoms_disclosure_open: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7displayE"]
             pub static nsGkAtoms_display: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11displayModeE"]
@@ -842,6 +846,8 @@ cfg_if! {
             pub static nsGkAtoms_equalsize: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5errorE"]
             pub static nsGkAtoms_error: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16ethiopic_numericE"]
+            pub static nsGkAtoms_ethiopic_numeric: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4evenE"]
             pub static nsGkAtoms_even: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5eventE"]
@@ -1004,6 +1010,8 @@ cfg_if! {
             pub static nsGkAtoms_header: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7headersE"]
             pub static nsGkAtoms_headers: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms6hebrewE"]
+            pub static nsGkAtoms_hebrew: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6heightE"]
             pub static nsGkAtoms_height: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6hgroupE"]
@@ -1132,6 +1140,10 @@ cfg_if! {
             pub static nsGkAtoms_itemscope: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8itemtypeE"]
             pub static nsGkAtoms_itemtype: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms15japanese_formalE"]
+            pub static nsGkAtoms_japanese_formal: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms17japanese_informalE"]
+            pub static nsGkAtoms_japanese_informal: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3kbdE"]
             pub static nsGkAtoms_kbd: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms17keepcurrentinviewE"]
@@ -1160,6 +1172,12 @@ cfg_if! {
             pub static nsGkAtoms_keyup: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4kindE"]
             pub static nsGkAtoms_kind: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms20korean_hangul_formalE"]
+            pub static nsGkAtoms_korean_hangul_formal: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms19korean_hanja_formalE"]
+            pub static nsGkAtoms_korean_hanja_formal: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms21korean_hanja_informalE"]
+            pub static nsGkAtoms_korean_hanja_informal: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5labelE"]
             pub static nsGkAtoms_label: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6labelsE"]
@@ -1780,6 +1798,8 @@ cfg_if! {
             pub static nsGkAtoms_only: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9onmessageE"]
             pub static nsGkAtoms_onmessage: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14onmessageerrorE"]
+            pub static nsGkAtoms_onmessageerror: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11onmousedownE"]
             pub static nsGkAtoms_onmousedown: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12onmouseenterE"]
@@ -1812,16 +1832,10 @@ cfg_if! {
             pub static nsGkAtoms_onmozpointerlockchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onmozpointerlockerrorE"]
             pub static nsGkAtoms_onmozpointerlockerror: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15onmoztimechangeE"]
-            pub static nsGkAtoms_onmoztimechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onMozMousePixelScrollE"]
             pub static nsGkAtoms_onMozMousePixelScroll: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms24onMozScrolledAreaChangedE"]
             pub static nsGkAtoms_onMozScrolledAreaChanged: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18onmoznetworkuploadE"]
-            pub static nsGkAtoms_onmoznetworkupload: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20onmoznetworkdownloadE"]
-            pub static nsGkAtoms_onmoznetworkdownload: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onmapfolderlistingreqE"]
             pub static nsGkAtoms_onmapfolderlistingreq: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23onmapmessageslistingreqE"]
@@ -2426,6 +2440,10 @@ cfg_if! {
             pub static nsGkAtoms_showresizer: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6simpleE"]
             pub static nsGkAtoms_simple: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms19simp_chinese_formalE"]
+            pub static nsGkAtoms_simp_chinese_formal: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms21simp_chinese_informalE"]
+            pub static nsGkAtoms_simp_chinese_informal: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6singleE"]
             pub static nsGkAtoms_single: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4sizeE"]
@@ -2654,6 +2672,10 @@ cfg_if! {
             pub static nsGkAtoms_tr: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5trackE"]
             pub static nsGkAtoms_track: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms19trad_chinese_formalE"]
+            pub static nsGkAtoms_trad_chinese_formal: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms21trad_chinese_informalE"]
+            pub static nsGkAtoms_trad_chinese_informal: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8trailingE"]
             pub static nsGkAtoms_trailing: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9transformE"]
@@ -4038,6 +4060,16 @@ cfg_if! {
             pub static nsGkAtoms_moz_extension: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18all_urlsPermissionE"]
             pub static nsGkAtoms_all_urlsPermission: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13clipboardReadE"]
+            pub static nsGkAtoms_clipboardRead: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14clipboardWriteE"]
+            pub static nsGkAtoms_clipboardWrite: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms8debuggerE"]
+            pub static nsGkAtoms_debugger: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms4tabsE"]
+            pub static nsGkAtoms_tabs: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms18webRequestBlockingE"]
+            pub static nsGkAtoms_webRequestBlocking: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4httpE"]
             pub static nsGkAtoms_http: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5httpsE"]
@@ -4328,6 +4360,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms19forcemessagemanagerE"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16isPreloadBrowserE"]
+            pub static nsGkAtoms_isPreloadBrowser: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms22color_picker_availableE"]
             pub static nsGkAtoms_color_picker_available: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms24scrollbar_start_backwardE"]
@@ -5785,6 +5819,10 @@ cfg_if! {
             pub static nsGkAtoms_disablehistory: *mut nsIAtom;
             #[link_name = "?disablefullscreen@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_disablefullscreen: *mut nsIAtom;
+            #[link_name = "?disclosure_closed@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_disclosure_closed: *mut nsIAtom;
+            #[link_name = "?disclosure_open@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_disclosure_open: *mut nsIAtom;
             #[link_name = "?display@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_display: *mut nsIAtom;
             #[link_name = "?displayMode@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -5973,6 +6011,8 @@ cfg_if! {
             pub static nsGkAtoms_equalsize: *mut nsIAtom;
             #[link_name = "?error@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_error: *mut nsIAtom;
+            #[link_name = "?ethiopic_numeric@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_ethiopic_numeric: *mut nsIAtom;
             #[link_name = "?even@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_even: *mut nsIAtom;
             #[link_name = "?event@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6135,6 +6175,8 @@ cfg_if! {
             pub static nsGkAtoms_header: *mut nsIAtom;
             #[link_name = "?headers@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_headers: *mut nsIAtom;
+            #[link_name = "?hebrew@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_hebrew: *mut nsIAtom;
             #[link_name = "?height@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_height: *mut nsIAtom;
             #[link_name = "?hgroup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6263,6 +6305,10 @@ cfg_if! {
             pub static nsGkAtoms_itemscope: *mut nsIAtom;
             #[link_name = "?itemtype@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_itemtype: *mut nsIAtom;
+            #[link_name = "?japanese_formal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_japanese_formal: *mut nsIAtom;
+            #[link_name = "?japanese_informal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_japanese_informal: *mut nsIAtom;
             #[link_name = "?kbd@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_kbd: *mut nsIAtom;
             #[link_name = "?keepcurrentinview@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6291,6 +6337,12 @@ cfg_if! {
             pub static nsGkAtoms_keyup: *mut nsIAtom;
             #[link_name = "?kind@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_kind: *mut nsIAtom;
+            #[link_name = "?korean_hangul_formal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_korean_hangul_formal: *mut nsIAtom;
+            #[link_name = "?korean_hanja_formal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_korean_hanja_formal: *mut nsIAtom;
+            #[link_name = "?korean_hanja_informal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_korean_hanja_informal: *mut nsIAtom;
             #[link_name = "?label@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_label: *mut nsIAtom;
             #[link_name = "?labels@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6911,6 +6963,8 @@ cfg_if! {
             pub static nsGkAtoms_only: *mut nsIAtom;
             #[link_name = "?onmessage@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmessage: *mut nsIAtom;
+            #[link_name = "?onmessageerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onmessageerror: *mut nsIAtom;
             #[link_name = "?onmousedown@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmousedown: *mut nsIAtom;
             #[link_name = "?onmouseenter@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6943,16 +6997,10 @@ cfg_if! {
             pub static nsGkAtoms_onmozpointerlockchange: *mut nsIAtom;
             #[link_name = "?onmozpointerlockerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmozpointerlockerror: *mut nsIAtom;
-            #[link_name = "?onmoztimechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmoztimechange: *mut nsIAtom;
             #[link_name = "?onMozMousePixelScroll@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onMozMousePixelScroll: *mut nsIAtom;
             #[link_name = "?onMozScrolledAreaChanged@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onMozScrolledAreaChanged: *mut nsIAtom;
-            #[link_name = "?onmoznetworkupload@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmoznetworkupload: *mut nsIAtom;
-            #[link_name = "?onmoznetworkdownload@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmoznetworkdownload: *mut nsIAtom;
             #[link_name = "?onmapfolderlistingreq@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmapfolderlistingreq: *mut nsIAtom;
             #[link_name = "?onmapmessageslistingreq@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -7557,6 +7605,10 @@ cfg_if! {
             pub static nsGkAtoms_showresizer: *mut nsIAtom;
             #[link_name = "?simple@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_simple: *mut nsIAtom;
+            #[link_name = "?simp_chinese_formal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_simp_chinese_formal: *mut nsIAtom;
+            #[link_name = "?simp_chinese_informal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_simp_chinese_informal: *mut nsIAtom;
             #[link_name = "?single@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_single: *mut nsIAtom;
             #[link_name = "?size@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -7785,6 +7837,10 @@ cfg_if! {
             pub static nsGkAtoms_tr: *mut nsIAtom;
             #[link_name = "?track@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_track: *mut nsIAtom;
+            #[link_name = "?trad_chinese_formal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_trad_chinese_formal: *mut nsIAtom;
+            #[link_name = "?trad_chinese_informal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_trad_chinese_informal: *mut nsIAtom;
             #[link_name = "?trailing@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_trailing: *mut nsIAtom;
             #[link_name = "?transform@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9169,6 +9225,16 @@ cfg_if! {
             pub static nsGkAtoms_moz_extension: *mut nsIAtom;
             #[link_name = "?all_urlsPermission@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_all_urlsPermission: *mut nsIAtom;
+            #[link_name = "?clipboardRead@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_clipboardRead: *mut nsIAtom;
+            #[link_name = "?clipboardWrite@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_clipboardWrite: *mut nsIAtom;
+            #[link_name = "?debugger@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_debugger: *mut nsIAtom;
+            #[link_name = "?tabs@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_tabs: *mut nsIAtom;
+            #[link_name = "?webRequestBlocking@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_webRequestBlocking: *mut nsIAtom;
             #[link_name = "?http@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_http: *mut nsIAtom;
             #[link_name = "?https@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9459,6 +9525,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsIAtom;
             #[link_name = "?forcemessagemanager@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsIAtom;
+            #[link_name = "?isPreloadBrowser@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_isPreloadBrowser: *mut nsIAtom;
             #[link_name = "?color_picker_available@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_color_picker_available: *mut nsIAtom;
             #[link_name = "?scrollbar_start_backward@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10916,6 +10984,10 @@ cfg_if! {
             pub static nsGkAtoms_disablehistory: *mut nsIAtom;
             #[link_name = "\x01?disablefullscreen@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_disablefullscreen: *mut nsIAtom;
+            #[link_name = "\x01?disclosure_closed@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_disclosure_closed: *mut nsIAtom;
+            #[link_name = "\x01?disclosure_open@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_disclosure_open: *mut nsIAtom;
             #[link_name = "\x01?display@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_display: *mut nsIAtom;
             #[link_name = "\x01?displayMode@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11104,6 +11176,8 @@ cfg_if! {
             pub static nsGkAtoms_equalsize: *mut nsIAtom;
             #[link_name = "\x01?error@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_error: *mut nsIAtom;
+            #[link_name = "\x01?ethiopic_numeric@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_ethiopic_numeric: *mut nsIAtom;
             #[link_name = "\x01?even@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_even: *mut nsIAtom;
             #[link_name = "\x01?event@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11266,6 +11340,8 @@ cfg_if! {
             pub static nsGkAtoms_header: *mut nsIAtom;
             #[link_name = "\x01?headers@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_headers: *mut nsIAtom;
+            #[link_name = "\x01?hebrew@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_hebrew: *mut nsIAtom;
             #[link_name = "\x01?height@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_height: *mut nsIAtom;
             #[link_name = "\x01?hgroup@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11394,6 +11470,10 @@ cfg_if! {
             pub static nsGkAtoms_itemscope: *mut nsIAtom;
             #[link_name = "\x01?itemtype@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_itemtype: *mut nsIAtom;
+            #[link_name = "\x01?japanese_formal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_japanese_formal: *mut nsIAtom;
+            #[link_name = "\x01?japanese_informal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_japanese_informal: *mut nsIAtom;
             #[link_name = "\x01?kbd@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_kbd: *mut nsIAtom;
             #[link_name = "\x01?keepcurrentinview@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11422,6 +11502,12 @@ cfg_if! {
             pub static nsGkAtoms_keyup: *mut nsIAtom;
             #[link_name = "\x01?kind@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_kind: *mut nsIAtom;
+            #[link_name = "\x01?korean_hangul_formal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_korean_hangul_formal: *mut nsIAtom;
+            #[link_name = "\x01?korean_hanja_formal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_korean_hanja_formal: *mut nsIAtom;
+            #[link_name = "\x01?korean_hanja_informal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_korean_hanja_informal: *mut nsIAtom;
             #[link_name = "\x01?label@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_label: *mut nsIAtom;
             #[link_name = "\x01?labels@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12042,6 +12128,8 @@ cfg_if! {
             pub static nsGkAtoms_only: *mut nsIAtom;
             #[link_name = "\x01?onmessage@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmessage: *mut nsIAtom;
+            #[link_name = "\x01?onmessageerror@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onmessageerror: *mut nsIAtom;
             #[link_name = "\x01?onmousedown@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmousedown: *mut nsIAtom;
             #[link_name = "\x01?onmouseenter@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12074,16 +12162,10 @@ cfg_if! {
             pub static nsGkAtoms_onmozpointerlockchange: *mut nsIAtom;
             #[link_name = "\x01?onmozpointerlockerror@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmozpointerlockerror: *mut nsIAtom;
-            #[link_name = "\x01?onmoztimechange@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmoztimechange: *mut nsIAtom;
             #[link_name = "\x01?onMozMousePixelScroll@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onMozMousePixelScroll: *mut nsIAtom;
             #[link_name = "\x01?onMozScrolledAreaChanged@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onMozScrolledAreaChanged: *mut nsIAtom;
-            #[link_name = "\x01?onmoznetworkupload@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmoznetworkupload: *mut nsIAtom;
-            #[link_name = "\x01?onmoznetworkdownload@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmoznetworkdownload: *mut nsIAtom;
             #[link_name = "\x01?onmapfolderlistingreq@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmapfolderlistingreq: *mut nsIAtom;
             #[link_name = "\x01?onmapmessageslistingreq@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12688,6 +12770,10 @@ cfg_if! {
             pub static nsGkAtoms_showresizer: *mut nsIAtom;
             #[link_name = "\x01?simple@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_simple: *mut nsIAtom;
+            #[link_name = "\x01?simp_chinese_formal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_simp_chinese_formal: *mut nsIAtom;
+            #[link_name = "\x01?simp_chinese_informal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_simp_chinese_informal: *mut nsIAtom;
             #[link_name = "\x01?single@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_single: *mut nsIAtom;
             #[link_name = "\x01?size@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12916,6 +13002,10 @@ cfg_if! {
             pub static nsGkAtoms_tr: *mut nsIAtom;
             #[link_name = "\x01?track@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_track: *mut nsIAtom;
+            #[link_name = "\x01?trad_chinese_formal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_trad_chinese_formal: *mut nsIAtom;
+            #[link_name = "\x01?trad_chinese_informal@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_trad_chinese_informal: *mut nsIAtom;
             #[link_name = "\x01?trailing@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_trailing: *mut nsIAtom;
             #[link_name = "\x01?transform@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14300,6 +14390,16 @@ cfg_if! {
             pub static nsGkAtoms_moz_extension: *mut nsIAtom;
             #[link_name = "\x01?all_urlsPermission@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_all_urlsPermission: *mut nsIAtom;
+            #[link_name = "\x01?clipboardRead@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_clipboardRead: *mut nsIAtom;
+            #[link_name = "\x01?clipboardWrite@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_clipboardWrite: *mut nsIAtom;
+            #[link_name = "\x01?debugger@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_debugger: *mut nsIAtom;
+            #[link_name = "\x01?tabs@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_tabs: *mut nsIAtom;
+            #[link_name = "\x01?webRequestBlocking@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_webRequestBlocking: *mut nsIAtom;
             #[link_name = "\x01?http@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_http: *mut nsIAtom;
             #[link_name = "\x01?https@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14590,6 +14690,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsIAtom;
             #[link_name = "\x01?forcemessagemanager@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsIAtom;
+            #[link_name = "\x01?isPreloadBrowser@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_isPreloadBrowser: *mut nsIAtom;
             #[link_name = "\x01?color_picker_available@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_color_picker_available: *mut nsIAtom;
             #[link_name = "\x01?scrollbar_start_backward@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -16050,6 +16152,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disablehistory as *mut _) } };
 ("disablefullscreen") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disablefullscreen as *mut _) } };
+("disclosure-closed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disclosure_closed as *mut _) } };
+("disclosure-open") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disclosure_open as *mut _) } };
 ("display") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_display as *mut _) } };
 ("display-mode") =>
@@ -16238,6 +16344,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalsize as *mut _) } };
 ("error") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_error as *mut _) } };
+("ethiopic-numeric") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ethiopic_numeric as *mut _) } };
 ("even") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_even as *mut _) } };
 ("event") =>
@@ -16400,6 +16508,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_header as *mut _) } };
 ("headers") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headers as *mut _) } };
+("hebrew") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hebrew as *mut _) } };
 ("height") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_height as *mut _) } };
 ("hgroup") =>
@@ -16528,6 +16638,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemscope as *mut _) } };
 ("itemtype") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemtype as *mut _) } };
+("japanese-formal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_japanese_formal as *mut _) } };
+("japanese-informal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_japanese_informal as *mut _) } };
 ("kbd") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kbd as *mut _) } };
 ("keepcurrentinview") =>
@@ -16556,6 +16670,12 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyup as *mut _) } };
 ("kind") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kind as *mut _) } };
+("korean-hangul-formal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_korean_hangul_formal as *mut _) } };
+("korean-hanja-formal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_korean_hanja_formal as *mut _) } };
+("korean-hanja-informal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_korean_hanja_informal as *mut _) } };
 ("label") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_label as *mut _) } };
 ("labels") =>
@@ -17176,6 +17296,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_only as *mut _) } };
 ("onmessage") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmessage as *mut _) } };
+("onmessageerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmessageerror as *mut _) } };
 ("onmousedown") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousedown as *mut _) } };
 ("onmouseenter") =>
@@ -17208,16 +17330,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockchange as *mut _) } };
 ("onmozpointerlockerror") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockerror as *mut _) } };
-("onmoztimechange") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoztimechange as *mut _) } };
 ("onMozMousePixelScroll") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMousePixelScroll as *mut _) } };
 ("onMozScrolledAreaChanged") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozScrolledAreaChanged as *mut _) } };
-("onmoznetworkupload") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkupload as *mut _) } };
-("onmoznetworkdownload") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkdownload as *mut _) } };
 ("onmapfolderlistingreq") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapfolderlistingreq as *mut _) } };
 ("onmapmessageslistingreq") =>
@@ -17822,6 +17938,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_showresizer as *mut _) } };
 ("simple") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_simple as *mut _) } };
+("simp-chinese-formal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_simp_chinese_formal as *mut _) } };
+("simp-chinese-informal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_simp_chinese_informal as *mut _) } };
 ("single") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_single as *mut _) } };
 ("size") =>
@@ -18050,6 +18170,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tr as *mut _) } };
 ("track") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_track as *mut _) } };
+("trad-chinese-formal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_trad_chinese_formal as *mut _) } };
+("trad-chinese-informal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_trad_chinese_informal as *mut _) } };
 ("trailing") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_trailing as *mut _) } };
 ("transform") =>
@@ -19434,6 +19558,16 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_extension as *mut _) } };
 ("<all_urls>") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_all_urlsPermission as *mut _) } };
+("clipboardRead") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clipboardRead as *mut _) } };
+("clipboardWrite") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clipboardWrite as *mut _) } };
+("debugger") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_debugger as *mut _) } };
+("tabs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabs as *mut _) } };
+("webRequestBlocking") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_webRequestBlocking as *mut _) } };
 ("http") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_http as *mut _) } };
 ("https") =>
@@ -19724,6 +19858,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AsyncScrollLayerCreationFailed as *mut _) } };
 ("forcemessagemanager") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forcemessagemanager as *mut _) } };
+("isPreloadBrowser") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isPreloadBrowser as *mut _) } };
 ("color-picker-available") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color_picker_available as *mut _) } };
 ("scrollbar-start-backward") =>

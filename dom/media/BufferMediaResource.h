@@ -8,7 +8,6 @@
 
 #include "MediaResource.h"
 #include "nsISeekableStream.h"
-#include "nsIPrincipal.h"
 #include <algorithm>
 
 namespace mozilla {
@@ -20,13 +19,10 @@ namespace mozilla {
 class BufferMediaResource : public MediaResource
 {
 public:
-  BufferMediaResource(const uint8_t* aBuffer,
-                      uint32_t aLength,
-                      nsIPrincipal* aPrincipal)
+  BufferMediaResource(const uint8_t* aBuffer, uint32_t aLength)
     : mBuffer(aBuffer)
     , mLength(aLength)
     , mOffset(0)
-    , mPrincipal(aPrincipal)
   {
   }
 
@@ -36,15 +32,7 @@ protected:
   }
 
 private:
-  // Get the current principal for the channel
-  already_AddRefed<nsIPrincipal> GetCurrentPrincipal() override
-  {
-    nsCOMPtr<nsIPrincipal> principal = mPrincipal;
-    return principal.forget();
-  }
   // These methods are called off the main thread.
-  // The mode is initially MODE_PLAYBACK.
-  void SetReadMode(MediaCacheStream::ReadMode aMode) override {}
   nsresult ReadAt(int64_t aOffset, char* aBuffer,
                   uint32_t aCount, uint32_t* aBytes) override
   {
@@ -70,8 +58,6 @@ private:
     return std::max(aOffset, int64_t(mLength));
   }
   bool IsDataCachedToEndOfResource(int64_t aOffset) override { return true; }
-  bool IsSuspendedByCache() override { return false; }
-  bool IsSuspended() override { return false; }
   nsresult ReadFromCache(char* aBuffer,
                          int64_t aOffset,
                          uint32_t aCount) override
@@ -91,27 +77,10 @@ private:
     return NS_OK;
   }
 
-  bool IsTransportSeekable() override { return true; }
-
-  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override
-  {
-    // Not owned:
-    // - mBuffer
-    // - mPrincipal
-    size_t size = MediaResource::SizeOfExcludingThis(aMallocSizeOf);
-    return size;
-  }
-
-  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
-  {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-  }
-
 private:
   const uint8_t * mBuffer;
   uint32_t mLength;
   uint32_t mOffset;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
 } // namespace mozilla

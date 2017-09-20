@@ -20,6 +20,8 @@ public:
   Create(nsTArray<nsCOMPtr<nsIPrincipal>>& aWhiteList,
          const mozilla::OriginAttributes& aAttrs);
 
+  static PrincipalKind Kind() { return eExpandedPrincipal; }
+
   NS_DECL_NSIEXPANDEDPRINCIPAL
   NS_DECL_NSISERIALIZABLE
 
@@ -32,7 +34,7 @@ public:
   NS_IMETHOD SetDomain(nsIURI* aDomain) override;
   NS_IMETHOD GetBaseDomain(nsACString& aBaseDomain) override;
   NS_IMETHOD GetAddonId(nsAString& aAddonId) override;
-  virtual bool AddonHasPermission(const nsAString& aPerm) override;
+  virtual bool AddonHasPermission(const nsIAtom* aPerm) override;
   virtual nsresult GetScriptLocation(nsACString &aStr) override;
 
 protected:

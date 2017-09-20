@@ -8,7 +8,7 @@ use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptio
 use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
 use azure::azure_hl::SurfacePattern;
-use canvas_traits::*;
+use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
@@ -133,6 +133,7 @@ impl<'a> CanvasPaintThread<'a> {
                 match msg.unwrap() {
                     CanvasMsg::Canvas2d(message) => {
                         match message {
+                            Canvas2dMsg::FillText(text, x, y, max_width) => painter.fill_text(text, x, y, max_width),
                             Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
                             Canvas2dMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
                             Canvas2dMsg::ClearRect(ref rect) => painter.clear_rect(rect),
@@ -172,6 +173,9 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::ArcTo(ref cp1, ref cp2, radius) => {
                                 painter.arc_to(cp1, cp2, radius)
                             }
+                            Canvas2dMsg::Ellipse(ref center, radius_x, radius_y, rotation, start, end, ccw) => {
+                                painter.ellipse(center, radius_x, radius_y, rotation, start, end, ccw)
+                            }
                             Canvas2dMsg::RestoreContext => painter.restore_context_state(),
                             Canvas2dMsg::SaveContext => painter.save_context_state(),
                             Canvas2dMsg::SetFillStyle(style) => painter.set_fill_style(style),
@@ -193,12 +197,8 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azure_style()),
                         }
                     },
-                    CanvasMsg::Common(message) => {
-                        match message {
-                            CanvasCommonMsg::Close => break,
-                            CanvasCommonMsg::Recreate(size) => painter.recreate(size),
-                        }
-                    },
+                    CanvasMsg::Close => break,
+                    CanvasMsg::Recreate(size) => painter.recreate(size),
                     CanvasMsg::FromScript(message) => {
                         match message {
                             FromScriptMsg::SendPixels(chan) => {
@@ -213,8 +213,6 @@ impl<'a> CanvasPaintThread<'a> {
                             }
                         }
                     }
-                    CanvasMsg::WebGL(_) => panic!("Wrong WebGL message sent to Canvas2D thread"),
-                    CanvasMsg::WebVR(_) => panic!("Wrong WebVR message sent to Canvas2D thread"),
                 }
             }
         }).expect("Thread spawning failed");
@@ -232,6 +230,10 @@ impl<'a> CanvasPaintThread<'a> {
             self.drawtarget.set_transform(&self.state.transform);
             self.drawtarget.pop_clip();
         }
+    }
+
+    fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
+        error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
@@ -502,6 +504,17 @@ impl<'a> CanvasPaintThread<'a> {
         }
     }
 
+    fn ellipse(&mut self,
+           center: &Point2D<AzFloat>,
+           radius_x: AzFloat,
+           radius_y: AzFloat,
+           rotation_angle: AzFloat,
+           start_angle: AzFloat,
+           end_angle: AzFloat,
+           ccw: bool) {
+        self.path_builder.ellipse(*center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
+    }
+
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
         if let Some(pattern) = style.to_azure_pattern(&self.drawtarget) {
             self.state.fill_style = pattern
@@ -571,7 +584,7 @@ impl<'a> CanvasPaintThread<'a> {
         })
     }
 
-    fn send_data(&mut self, chan: IpcSender<CanvasData>) {
+    fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
 
@@ -614,7 +627,7 @@ impl<'a> CanvasPaintThread<'a> {
             let data = CanvasImageData {
                 image_key: self.image_key.unwrap(),
             };
-            chan.send(CanvasData::Image(data)).unwrap();
+            chan.send(data).unwrap();
         })
     }
 

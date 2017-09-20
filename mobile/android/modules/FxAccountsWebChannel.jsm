@@ -2,6 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 /**
  * Firefox Accounts Web Channel.
@@ -239,6 +240,7 @@ this.FxAccountsWebChannel.prototype = {
                   log.w("Warning about creating a new Android Account: previously linked to different email address!");
                   let message = strings.formatStringFromName("relinkVerify.message", [data.email], 1);
                   new Prompt({
+                    window: sendingContext.browser && sendingContext.browser.ownerGlobal,
                     title: strings.GetStringFromName("relinkVerify.title"),
                     message: message,
                     buttons: [
@@ -379,7 +381,7 @@ var singleton;
 // ever created - we require this because the WebChannel is global in scope and
 // allowing multiple channels would cause such notifications to be sent multiple
 // times.
-this.EnsureFxAccountsWebChannel = function() {
+this.EnsureFxAccountsWebChannel = () => {
   if (!singleton) {
     let contentUri = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.webchannel.uri");
     // The FxAccountsWebChannel listens for events and updates the Java layer.

@@ -2,6 +2,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http:mozilla.org/MPL/2.0/. */
 
+#include "nsComponentManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "mozilla/IdleTaskRunner.h"
 #include "mozilla/UniquePtr.h"
@@ -684,6 +685,7 @@ TEST(ThreadUtils, IdleTaskRunner)
   int cnt1 = 0;
   RefPtr<IdleTaskRunner> runner1 =
     IdleTaskRunner::Create([&cnt1](TimeStamp) { cnt1++; return true; },
+                           "runner1",
                            10,
                            3,
                            true,
@@ -693,6 +695,7 @@ TEST(ThreadUtils, IdleTaskRunner)
   int cnt2 = 0;
   RefPtr<IdleTaskRunner> runner2 =
     IdleTaskRunner::Create([&cnt2](TimeStamp) { cnt2++; return false; },
+                           "runner2",
                            10,
                            3,
                            false,
@@ -704,6 +707,7 @@ TEST(ThreadUtils, IdleTaskRunner)
   int cnt3 = 0;
   RefPtr<IdleTaskRunner> runner3 =
     IdleTaskRunner::Create([&cnt3](TimeStamp) { cnt3++; return true; },
+                           "runner3",
                            10,
                            3,
                            true,
@@ -714,6 +718,7 @@ TEST(ThreadUtils, IdleTaskRunner)
   int cnt4 = 0;
   RefPtr<IdleTaskRunner> runner4 =
     IdleTaskRunner::Create([&cnt4](TimeStamp) { cnt4++; return true; },
+                           "runner4",
                            10,
                            3,
                            false,

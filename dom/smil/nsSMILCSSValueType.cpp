@@ -456,6 +456,10 @@ ComputeDistanceForServo(const ValueWrapper* aFromWrapper,
     }
 
     double distance = Servo_AnimationValues_ComputeDistance(*fromValue, *toValue);
+    if (distance < 0.0) {
+      return NS_ERROR_FAILURE;
+    }
+
     if (len == 1) {
       aDistance = distance;
       return NS_OK;
@@ -532,12 +536,27 @@ InterpolateForServo(const ValueWrapper* aStartWrapper,
                     double aUnitDistance,
                     nsSMILValue& aResult)
 {
+  // For discretely-animated properties Servo_AnimationValues_Interpolate will
+  // perform the discrete animation (i.e. 50% flip) and return a success result.
+  // However, SMIL has its own special discrete animation behavior that it uses
+  // when keyTimes are specified, but we won't run that unless that this method
+  // returns a failure to indicate that the property cannot be smoothly
+  // interpolated, i.e. that we need to use a discrete calcMode.
+  //
+  // For shorthands, Servo_Property_IsDiscreteAnimatable will always return
+  // false. That's fine since most shorthands (like 'font' and
+  // 'text-decoration') include non-discrete components. If authors want to
+  // treat all components as discrete then they should use calcMode="discrete".
+  if (Servo_Property_IsDiscreteAnimatable(aEndWrapper.mPropID)) {
+    return NS_ERROR_FAILURE;
+  }
+
   ServoAnimationValues results;
   size_t len = aEndWrapper.mServoValues.Length();
   results.SetCapacity(len);
   MOZ_ASSERT(!aStartWrapper || aStartWrapper->mServoValues.Length() == len,
              "Start and end values length should be the same if "
-             "The start value exists");
+             "the start value exists");
   for (size_t i = 0; i < len; i++) {
     const RefPtr<RawServoAnimationValue>*
       startValue = aStartWrapper
@@ -705,18 +724,6 @@ ValueFromStringHelper(nsCSSPropertyID aPropID,
                                                           aTargetElement,
                                                           aStyleContext->AsServo(),
                                                           result);
-  if (result.IsEmpty()) {
-    return result;
-  }
-
-  if (aPropID == eCSSProperty_font_size) {
-    // FIXME (bug 1357296): Divide out text-zoom, since SVG is supposed to
-    // ignore it.
-    if (aPresContext->EffectiveTextZoom() != 1.0) {
-      NS_WARNING("stylo: Dividing out text-zoom not yet supported"
-                 " (bug 1357296)");
-    }
-  }
 
   return result;
 }

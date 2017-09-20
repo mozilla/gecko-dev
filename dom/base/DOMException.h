@@ -26,7 +26,6 @@
 #include "mozilla/dom/BindingDeclarations.h"
 
 class nsIStackFrame;
-class nsString;
 
 nsresult
 NS_GetNameAndMessageForDOMNSResult(nsresult aNSResult, nsACString& aName,
@@ -140,9 +139,6 @@ protected:
 
   bool mHoldingJSVal;
   JS::Heap<JS::Value> mThrownJSVal;
-
-private:
-  static bool sEverMadeOneFromFactory;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Exception, MOZILLA_EXCEPTION_IID)

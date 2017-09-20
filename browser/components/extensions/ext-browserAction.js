@@ -105,6 +105,7 @@ this.browserAction = class extends ExtensionAPI {
       extension, ["browserAction", "default_icon"],
       () => IconDetails.normalize({
         path: options.default_icon,
+        iconType: "browserAction",
         themeIcons: options.theme_icons,
       }, extension));
 
@@ -177,7 +178,7 @@ this.browserAction = class extends ExtensionAPI {
         node.onmouseover = event => this.handleEvent(event);
         node.onmouseout = event => this.handleEvent(event);
 
-        this.updateButton(node, this.defaults);
+        this.updateButton(node, this.defaults, true);
       },
 
       onViewShowing: async event => {
@@ -267,6 +268,7 @@ this.browserAction = class extends ExtensionAPI {
       let event = new window.CustomEvent("command", {bubbles: true, cancelable: true});
       widget.node.dispatchEvent(event);
     } else {
+      this.tabManager.addActiveTabPermission(tab);
       this.emit("click");
     }
   }
@@ -428,10 +430,9 @@ this.browserAction = class extends ExtensionAPI {
 
   // Update the toolbar button |node| with the tab context data
   // in |tabData|.
-  updateButton(node, tabData) {
+  updateButton(node, tabData, sync = false) {
     let title = tabData.title || this.extension.name;
-
-    node.ownerGlobal.requestAnimationFrame(() => {
+    let callback = () => {
       node.setAttribute("tooltiptext", title);
       node.setAttribute("label", title);
 
@@ -466,7 +467,12 @@ this.browserAction = class extends ExtensionAPI {
       }
 
       node.setAttribute("style", style);
-    });
+    };
+    if (sync) {
+      callback();
+    } else {
+      node.ownerGlobal.requestAnimationFrame(callback);
+    }
   }
 
   getIconData(icons) {
@@ -617,6 +623,8 @@ this.browserAction = class extends ExtensionAPI {
         setIcon: function(details) {
           let tab = getTab(details.tabId);
 
+          details.iconType = "browserAction";
+
           let icon = IconDetails.normalize(details, extension, context);
           browserAction.setProperty(tab, "icon", icon);
         },
@@ -643,6 +651,9 @@ this.browserAction = class extends ExtensionAPI {
           // For internal consistency, we currently resolve both relative to the
           // calling context.
           let url = details.popup && context.uri.resolve(details.popup);
+          if (url && !context.checkLoadURL(url)) {
+            return Promise.reject({message: `Access denied for URL ${url}`});
+          }
           browserAction.setProperty(tab, "popup", url);
         },
 
@@ -668,6 +679,11 @@ this.browserAction = class extends ExtensionAPI {
 
           let color = browserAction.getProperty(tab, "badgeBackgroundColor");
           return Promise.resolve(color || [0xd9, 0, 0, 255]);
+        },
+
+        openPopup: function() {
+          let window = windowTracker.topWindow;
+          browserAction.triggerAction(window);
         },
       },
     };

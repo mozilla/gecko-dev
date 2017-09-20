@@ -13,6 +13,7 @@ const {DefaultPrefs} = Cu.import("resource://activity-stream/lib/ActivityStreamP
 const {LocalizationFeed} = Cu.import("resource://activity-stream/lib/LocalizationFeed.jsm", {});
 const {ManualMigration} = Cu.import("resource://activity-stream/lib/ManualMigration.jsm", {});
 const {NewTabInit} = Cu.import("resource://activity-stream/lib/NewTabInit.jsm", {});
+const {SectionsFeed} = Cu.import("resource://activity-stream/lib/SectionsManager.jsm", {});
 const {PlacesFeed} = Cu.import("resource://activity-stream/lib/PlacesFeed.jsm", {});
 const {PrefsFeed} = Cu.import("resource://activity-stream/lib/PrefsFeed.jsm", {});
 const {Store} = Cu.import("resource://activity-stream/lib/Store.jsm", {});
@@ -21,6 +22,7 @@ const {SystemTickFeed} = Cu.import("resource://activity-stream/lib/SystemTickFee
 const {TelemetryFeed} = Cu.import("resource://activity-stream/lib/TelemetryFeed.jsm", {});
 const {TopSitesFeed} = Cu.import("resource://activity-stream/lib/TopSitesFeed.jsm", {});
 const {TopStoriesFeed} = Cu.import("resource://activity-stream/lib/TopStoriesFeed.jsm", {});
+const {HighlightsFeed} = Cu.import("resource://activity-stream/lib/HighlightsFeed.jsm", {});
 
 const DEFAULT_SITES = new Map([
   // This first item is the global list fallback for any unexpected geos
@@ -50,16 +52,22 @@ const PREFS_CONFIG = new Map([
       api_key_pref: "extensions.pocket.oAuthConsumerKey",
       // Use the opposite value as what default value the feed would have used
       hidden: !PREFS_CONFIG.get("feeds.section.topstories").getValue(args),
-      learn_more_endpoint: "https://getpocket.com/firefox_learnmore?src=ff_newtab",
-      provider_description: "pocket_feedback_body",
+      provider_header: "pocket_feedback_header",
+      provider_description: "pocket_description",
       provider_icon: "pocket",
       provider_name: "Pocket",
-      read_more_endpoint: "https://getpocket.com/explore/trending?src=ff_new_tab",
-      stories_endpoint: `https://getpocket.com/v3/firefox/global-recs?consumer_key=$apiKey&locale_lang=${args.locale}`,
+      read_more_endpoint: "https://getpocket.cdn.mozilla.net/explore/trending?src=fx_new_tab",
+      stories_endpoint: `https://getpocket.cdn.mozilla.net/v3/firefox/global-recs?version=2&consumer_key=$apiKey&locale_lang=${args.locale}`,
       stories_referrer: "https://getpocket.com/recommendations",
-      survey_link: "https://www.surveymonkey.com/r/newtabffx",
-      topics_endpoint: `https://getpocket.com/v3/firefox/trending-topics?consumer_key=$apiKey&locale_lang=${args.locale}`
+      info_link: "https://www.mozilla.org/privacy/firefox/#pocketstories",
+      topics_endpoint: `https://getpocket.cdn.mozilla.net/v3/firefox/trending-topics?version=2&consumer_key=$apiKey&locale_lang=${args.locale}`,
+      show_spocs: false,
+      personalized: false
     })
+  }],
+  ["filterAdult", {
+    title: "Remove adult pages from sites, highlights, etc.",
+    value: true
   }],
   ["migrationExpired", {
     title: "Boolean flag that decides whether to show the migration message or not.",
@@ -73,6 +81,10 @@ const PREFS_CONFIG = new Map([
     title: "Number of days to show the manual migration message",
     value: 4
   }],
+  ["prerender", {
+    title: "Use the prerendered version of activity-stream.html. This is set automatically by PrefsFeed.jsm.",
+    value: true
+  }],
   ["showSearch", {
     title: "Show the Search bar on the New Tab page",
     value: true
@@ -81,19 +93,34 @@ const PREFS_CONFIG = new Map([
     title: "Show the Top Sites section on the New Tab page",
     value: true
   }],
+  ["topSitesCount", {
+    title: "Number of Top Sites to display",
+    value: 6
+  }],
+  ["impressionStats.clicked", {
+    title: "GUIDs of clicked Top stories items",
+    value: "[]"
+  }],
+  ["impressionStats.blocked", {
+    title: "GUIDs of blocked Top stories items",
+    value: "[]"
+  }],
+  ["impressionStats.pocketed", {
+    title: "GUIDs of pocketed Top stories items",
+    value: "[]"
+  }],
   ["telemetry", {
     title: "Enable system error and usage data collection",
     value: true,
     value_local_dev: false
   }],
-  ["telemetry.log", {
-    title: "Log telemetry events in the console",
-    value: false,
-    value_local_dev: true
-  }],
   ["telemetry.ping.endpoint", {
     title: "Telemetry server endpoint",
     value: "https://tiles.services.mozilla.com/v4/links/activity-stream"
+  }],
+  ["aboutHome.autoFocus", {
+    title: "Focus the about:home search box on load",
+    value: true
   }]
 ]);
 
@@ -130,6 +157,18 @@ const FEEDS_DATA = [
     value: true
   },
   {
+    name: "sections",
+    factory: () => new SectionsFeed(),
+    title: "Manages sections",
+    value: true
+  },
+  {
+    name: "section.highlights",
+    factory: () => new HighlightsFeed(),
+    title: "Fetches content recommendations from places db",
+    value: true
+  },
+  {
     name: "section.topstories",
     factory: () => new TopStoriesFeed(),
     title: "Fetches content recommendations from a configurable content provider",
@@ -158,7 +197,7 @@ const FEEDS_DATA = [
   {
     name: "telemetry",
     factory: () => new TelemetryFeed(),
-    title: "Relays telemetry-related actions to TelemetrySender",
+    title: "Relays telemetry-related actions to PingCentre",
     value: true
   },
   {
@@ -198,11 +237,10 @@ this.ActivityStream = class ActivityStream {
     this._defaultPrefs.init();
 
     // Hook up the store and let all feeds and pages initialize
-    this.store.init(this.feeds);
-    this.store.dispatch(ac.BroadcastToContent({
+    this.store.init(this.feeds, ac.BroadcastToContent({
       type: at.INIT,
       data: {version: this.options.version}
-    }));
+    }), {type: at.UNINIT});
 
     this.initialized = true;
   }
@@ -211,9 +249,7 @@ this.ActivityStream = class ActivityStream {
       Services.prefs.removeObserver(GEO_PREF, this);
     }
 
-    this.store.dispatch({type: at.UNINIT});
     this.store.uninit();
-
     this.initialized = false;
   }
   uninstall(reason) {

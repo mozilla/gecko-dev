@@ -20,6 +20,7 @@
 #include "mozilla/ipc/CrashReporterHost.h"
 #include "mozilla/layers/LayerTreeOwnerTracker.h"
 #include "mozilla/Unused.h"
+#include "nsIObserverService.h"
 
 #ifdef MOZ_GECKO_PROFILER
 #include "ProfilerParent.h"
@@ -165,14 +166,14 @@ GPUChild::RecvNotifyUiObservers(const nsCString& aTopic)
 }
 
 mozilla::ipc::IPCResult
-GPUChild::RecvAccumulateChildHistograms(InfallibleTArray<Accumulation>&& aAccumulations)
+GPUChild::RecvAccumulateChildHistograms(InfallibleTArray<HistogramAccumulation>&& aAccumulations)
 {
   TelemetryIPC::AccumulateChildHistograms(Telemetry::ProcessID::Gpu, aAccumulations);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult
-GPUChild::RecvAccumulateChildKeyedHistograms(InfallibleTArray<KeyedAccumulation>&& aAccumulations)
+GPUChild::RecvAccumulateChildKeyedHistograms(InfallibleTArray<KeyedHistogramAccumulation>&& aAccumulations)
 {
   TelemetryIPC::AccumulateChildKeyedHistograms(Telemetry::ProcessID::Gpu, aAccumulations);
   return IPC_OK();
@@ -284,6 +285,22 @@ mozilla::ipc::IPCResult
 GPUChild::RecvUsedFallback(const Fallback& aFallback, const nsCString& aMessage)
 {
   gfxConfig::EnableFallback(aFallback, aMessage.get());
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+GPUChild::RecvBHRThreadHang(const HangDetails& aDetails)
+{
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (obs) {
+    // Copy the HangDetails recieved over the network into a nsIHangDetails, and
+    // then fire our own observer notification.
+    // XXX: We should be able to avoid this potentially expensive copy here by
+    // moving our deserialized argument.
+    nsCOMPtr<nsIHangDetails> hangDetails =
+      new nsHangDetails(HangDetails(aDetails));
+    obs->NotifyObservers(hangDetails, "bhr-thread-hang", nullptr);
+  }
   return IPC_OK();
 }
 

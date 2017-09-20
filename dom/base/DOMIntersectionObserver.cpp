@@ -161,6 +161,10 @@ DOMIntersectionObserver::Observe(Element& aTarget)
 void
 DOMIntersectionObserver::Unobserve(Element& aTarget)
 {
+  if (!mObservationTargets.Contains(&aTarget)) {
+    return;
+  }
+
   if (mObservationTargets.Length() == 1) {
     Disconnect();
     return;
@@ -312,7 +316,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
   nsMargin rootMargin;
   NS_FOR_CSS_SIDES(side) {
     nscoord basis = side == eSideTop || side == eSideBottom ?
-      rootRect.height : rootRect.width;
+      rootRect.Height() : rootRect.Width();
     nsCSSValue value = mRootMargin.*nsCSSRect::sides[side];
     nsStyleCoord coord;
     if (value.IsPixelLengthUnit()) {
@@ -422,9 +426,9 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
       }
     }
 
-    double targetArea = targetRect.width * targetRect.height;
+    double targetArea = targetRect.Width() * targetRect.Height();
     double intersectionArea = !intersectionRect ?
-      0 : intersectionRect->width * intersectionRect->height;
+      0 : intersectionRect->Width() * intersectionRect->Height();
 
     double intersectionRatio;
     if (targetArea > 0.0) {

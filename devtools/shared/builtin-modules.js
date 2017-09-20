@@ -14,13 +14,12 @@
  */
 
 const { Cu, CC, Cc, Ci } = require("chrome");
-const { Loader } = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
 const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 const jsmScope = Cu.import("resource://gre/modules/Services.jsm", {});
 const { Services } = jsmScope;
 // Steal various globals only available in JSM scope (and not Sandbox one)
 const { PromiseDebugging, ChromeUtils, ThreadSafeChromeUtils, HeapSnapshot,
-        atob, btoa, TextEncoder, TextDecoder } = jsmScope;
+        atob, btoa, TextEncoder, TextDecoder } = Cu.getGlobalForObject(jsmScope);
 
 // Create a single Sandbox to access global properties needed in this module.
 // Sandbox are memory expensive, so we should create as little as possible.
@@ -172,7 +171,6 @@ function lazyRequireGetter(obj, property, module, destructure) {
 // List of pseudo modules exposed to all devtools modules.
 exports.modules = {
   "Services": Object.create(Services),
-  "toolkit/loader": Loader,
   promise,
   PromiseDebugging,
   ChromeUtils,

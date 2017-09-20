@@ -37,6 +37,7 @@ class nsIRunnable;
 
 namespace mozilla {
 class RefreshDriverTimer;
+class Runnable;
 namespace layout {
 class VsyncChild;
 } // namespace layout
@@ -124,6 +125,9 @@ public:
                           mozilla::FlushType aFlushType);
   bool RemoveRefreshObserver(nsARefreshObserver *aObserver,
                              mozilla::FlushType aFlushType);
+
+  void PostScrollEvent(mozilla::Runnable* aScrollEvent);
+  void DispatchScrollEvents();
 
   /**
    * Add an observer that will be called after each refresh. The caller
@@ -345,6 +349,12 @@ public:
    */
   static mozilla::TimeStamp GetIdleDeadlineHint(mozilla::TimeStamp aDefault);
 
+  /**
+   * It returns the expected timestamp of the next tick or nothing if the next
+   * tick is missed.
+   */
+  static mozilla::Maybe<mozilla::TimeStamp> GetNextTickHint();
+
   static void DispatchIdleRunnableAfterTick(nsIRunnable* aRunnable,
                                             uint32_t aDelay);
   static void CancelIdleRunnable(nsIRunnable* aRunnable);
@@ -356,6 +366,7 @@ public:
 
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
+  typedef nsTArray<RefPtr<mozilla::Runnable>> ScrollEventArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
   struct ImageStartData {
     ImageStartData()
@@ -458,10 +469,11 @@ private:
   mozilla::TimeStamp mNextRecomputeVisibilityTick;
 
   // separate arrays for each flush type we support
-  ObserverArray mObservers[3];
+  ObserverArray mObservers[4];
   RequestTable mRequests;
   ImageStartTable mStartTable;
   AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;
+  ScrollEventArray mScrollEvents;
 
   struct PendingEvent {
     nsCOMPtr<nsINode> mTarget;

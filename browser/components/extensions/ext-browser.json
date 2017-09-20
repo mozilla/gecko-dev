@@ -72,12 +72,28 @@
       ["devtools", "panels"]
     ]
   },
+  "find": {
+    "url": "chrome://browser/content/ext-find.js",
+    "schema": "chrome://browser/content/schemas/find.json",
+    "scopes": ["addon_parent"],
+    "paths": [
+      ["find"]
+    ]
+  },
   "history": {
     "url": "chrome://browser/content/ext-history.js",
     "schema": "chrome://browser/content/schemas/history.json",
     "scopes": ["addon_parent"],
     "paths": [
       ["history"]
+    ]
+  },
+  "identity": {
+    "url": "chrome://extensions/content/ext-identity.js",
+    "schema": "chrome://extensions/content/schemas/identity.json",
+    "scopes": ["addon_parent"],
+    "paths": [
+      ["identity"]
     ]
   },
   "menusInternal": {

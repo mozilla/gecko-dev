@@ -51,8 +51,10 @@ var publicProperties = [
   "getProfileCache",
   "getSignedInUser",
   "getSignedInUserProfile",
-  "handleDeviceDisconnection",
   "handleAccountDestroyed",
+  "handleDeviceDisconnection",
+  "handleEmailUpdated",
+  "hasLocalSession",
   "invalidateCertificate",
   "loadAndPoll",
   "localtimeOffsetMsec",
@@ -592,7 +594,7 @@ FxAccountsInternal.prototype = {
    *
    * @param credentials
    *        The credentials object containing the fields to be updated.
-   *        This object must contain |email| and |uid| fields and they must
+   *        This object must contain the |uid| field and it must
    *        match the currently signed in user.
    */
   updateUserAccountData(credentials) {
@@ -602,15 +604,14 @@ FxAccountsInternal.prototype = {
     }
     let currentAccountState = this.currentAccountState;
     return currentAccountState.promiseInitialized.then(() => {
-      return currentAccountState.getUserAccountData(["email", "uid"]);
+      return currentAccountState.getUserAccountData(["uid"]);
     }).then(existing => {
-      if (existing.email != credentials.email || existing.uid != credentials.uid) {
+      if (existing.uid != credentials.uid) {
         throw new Error("The specified credentials aren't for the current user");
       }
-      // We need to nuke email and uid as storage will complain if we try and
-      // update them (even when the value is the same)
+      // We need to nuke uid as storage will complain if we try and
+      // update it (even when the value is the same)
       credentials = Cu.cloneInto(credentials, {}); // clone it first
-      delete credentials.email;
       delete credentials.uid;
       return currentAccountState.updateUserAccountData(credentials);
     });
@@ -868,6 +869,24 @@ FxAccountsInternal.prototype = {
       }
       return this.fxAccountsClient.sessionStatus(data.sessionToken);
     });
+  },
+
+  /**
+   * Checks if we have a valid local session state for the current account.
+   *
+   * @return Promise
+   *        Resolves with a boolean, with true indicating that we appear to
+   *        have a valid local session, or false if we need to reauthenticate
+   *        with the content server to obtain one.
+   *        Note that this doesn't check with the server - it really just tells
+   *        us if we are even able to perform that server check. To fully check
+   *        the account status, you should first call this method, and if this
+   *        returns true, you should then call sessionStatus() to check with
+   *        the server.
+   */
+  async hasLocalSession() {
+    let data = await this.getSignedInUser();
+    return data && data.sessionToken;
   },
 
   /**
@@ -1211,6 +1230,9 @@ FxAccountsInternal.prototype = {
       if (error && error.retryAfter) {
         // If the server told us to back off, back off the requested amount.
         nextPollMs = (error.retryAfter + 3) * 1000;
+        log.warn(`the server rejected our email status check and told us to try again in ${nextPollMs}ms`);
+      } else {
+        log.error(`checkEmailStatus failed to poll`, error);
       }
     }
     if (why == "push") {
@@ -1583,6 +1605,11 @@ FxAccountsInternal.prototype = {
     const data = JSON.stringify({ isLocalDevice });
     Services.obs.notifyObservers(null, ON_DEVICE_DISCONNECTED_NOTIFICATION, data);
     return null;
+  },
+
+  handleEmailUpdated(newEmail) {
+    Services.prefs.setStringPref(PREF_LAST_FXA_USER, CryptoUtils.sha256Base64(newEmail));
+    return this.currentAccountState.updateUserAccountData({ email: newEmail });
   },
 
   async handleAccountDestroyed(uid) {

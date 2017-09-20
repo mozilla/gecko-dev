@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use api::{ColorU, FontKey, FontRenderMode, GlyphDimensions};
+use api::{FontInstance, NativeFontHandle};
+use api::GlyphKey;
 use app_units::Au;
 use core_graphics::base::{kCGImageAlphaNoneSkipFirst, kCGImageAlphaPremultipliedLast};
 use core_graphics::base::kCGBitmapByteOrder32Little;
@@ -9,21 +12,19 @@ use core_graphics::color_space::CGColorSpace;
 use core_graphics::context::{CGContext, CGTextDrawingMode};
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::{CGFont, CGGlyph};
-use core_graphics::geometry::{CGPoint, CGSize, CGRect};
+use core_graphics::geometry::{CGPoint, CGRect, CGSize};
+use core_text;
 use core_text::font::CTFont;
 use core_text::font_descriptor::kCTFontDefaultOrientation;
-use core_text;
-use std::collections::HashMap;
+use gamma_lut::{Color as ColorLut, GammaLut};
+use internal_types::FastHashMap;
 use std::collections::hash_map::Entry;
-use api::{ColorU, FontKey, FontRenderMode, GlyphDimensions};
-use api::{GlyphKey, SubpixelPoint};
-use api::{FontInstanceKey, NativeFontHandle};
-use gamma_lut::{GammaLut, Color as ColorLut};
 use std::ptr;
+use std::sync::Arc;
 
 pub struct FontContext {
-    cg_fonts: HashMap<FontKey, CGFont>,
-    ct_fonts: HashMap<(FontKey, Au), CTFont>,
+    cg_fonts: FastHashMap<FontKey, CGFont>,
+    ct_fonts: FastHashMap<(FontKey, Au), CTFont>,
     gamma_lut: GammaLut,
 }
 
@@ -65,29 +66,38 @@ struct GlyphMetrics {
 // this function from Skia which is used to check if a glyph
 // can be rendered with subpixel AA.
 fn supports_subpixel_aa() -> bool {
-    let mut cg_context = CGContext::create_bitmap_context(None, 1, 1, 8, 4,
-                                                          &CGColorSpace::create_device_rgb(),
-                                                          kCGImageAlphaNoneSkipFirst |
-                                                          kCGBitmapByteOrder32Little);
+    let mut cg_context = CGContext::create_bitmap_context(
+        None,
+        1,
+        1,
+        8,
+        4,
+        &CGColorSpace::create_device_rgb(),
+        kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little,
+    );
     let ct_font = core_text::font::new_from_name("Helvetica", 16.).unwrap();
     cg_context.set_should_smooth_fonts(true);
     cg_context.set_should_antialias(true);
     cg_context.set_allows_font_smoothing(true);
     cg_context.set_rgb_fill_color(1.0, 1.0, 1.0, 1.0);
-    let point = CGPoint {x: -1., y: 0.};
+    let point = CGPoint { x: -1., y: 0. };
     let glyph = '|' as CGGlyph;
     ct_font.draw_glyphs(&[glyph], &[point], cg_context.clone());
     let data = cg_context.data();
     data[0] != data[1] || data[1] != data[2]
 }
 
-fn get_glyph_metrics(ct_font: &CTFont,
-                     glyph: CGGlyph,
-                     subpixel_point: &SubpixelPoint) -> GlyphMetrics {
+fn get_glyph_metrics(
+    ct_font: &CTFont,
+    glyph: CGGlyph,
+    x_offset: f64,
+    y_offset: f64,
+) -> GlyphMetrics {
     let bounds = ct_font.get_bounding_rects_for_glyphs(kCTFontDefaultOrientation, &[glyph]);
 
-    if bounds.origin.x.is_nan() || bounds.origin.y.is_nan() ||
-       bounds.size.width.is_nan() || bounds.size.height.is_nan() {
+    if bounds.origin.x.is_nan() || bounds.origin.y.is_nan() || bounds.size.width.is_nan() ||
+        bounds.size.height.is_nan()
+    {
         // If an unexpected glyph index is requested, core text will return NaN values
         // which causes us to do bad thing as the value is cast into an integer and
         // overflow when expanding the bounds a few lines below.
@@ -103,18 +113,12 @@ fn get_glyph_metrics(ct_font: &CTFont,
         };
     }
 
-    let (x_offset, y_offset) = subpixel_point.to_f64();
-
     // First round out to pixel boundaries
     // CG Origin is bottom left
     let mut left = bounds.origin.x.floor() as i32;
     let mut bottom = bounds.origin.y.floor() as i32;
-    let mut right = (bounds.origin.x
-                    + bounds.size.width
-                    + x_offset).ceil() as i32;
-    let mut top = (bounds.origin.y
-                  + bounds.size.height
-                  + y_offset).ceil() as i32;
+    let mut right = (bounds.origin.x + bounds.size.width + x_offset).ceil() as i32;
+    let mut top = (bounds.origin.y + bounds.size.height + y_offset).ceil() as i32;
 
     // Expand the bounds by 1 pixel, to give CG room for anti-aliasing.
     // Note that this outset is to allow room for LCD smoothed glyphs. However, the correct outset
@@ -128,10 +132,8 @@ fn get_glyph_metrics(ct_font: &CTFont,
     let width = right - left;
     let height = top - bottom;
 
-    let advance = ct_font.get_advances_for_glyphs(kCTFontDefaultOrientation,
-                                                  &glyph,
-                                                  ptr::null_mut(),
-                                                  1);
+    let advance =
+        ct_font.get_advances_for_glyphs(kCTFontDefaultOrientation, &glyph, ptr::null_mut(), 1);
 
     let metrics = GlyphMetrics {
         rasterized_left: left,
@@ -154,8 +156,8 @@ impl FontContext {
         let gamma = 0.0;
 
         FontContext {
-            cg_fonts: HashMap::new(),
-            ct_fonts: HashMap::new(),
+            cg_fonts: FastHashMap::default(),
+            ct_fonts: FastHashMap::default(),
             gamma_lut: GammaLut::new(contrast, gamma, gamma),
         }
     }
@@ -164,13 +166,13 @@ impl FontContext {
         self.cg_fonts.contains_key(font_key)
     }
 
-    pub fn add_raw_font(&mut self, font_key: &FontKey, bytes: &[u8], index: u32) {
+    pub fn add_raw_font(&mut self, font_key: &FontKey, bytes: Arc<Vec<u8>>, index: u32) {
         if self.cg_fonts.contains_key(font_key) {
-            return
+            return;
         }
 
         assert_eq!(index, 0);
-        let data_provider = CGDataProvider::from_buffer(bytes);
+        let data_provider = CGDataProvider::from_buffer(&**bytes);
         let cg_font = match CGFont::from_data_provider(data_provider) {
             Err(_) => return,
             Ok(cg_font) => cg_font,
@@ -180,29 +182,29 @@ impl FontContext {
 
     pub fn add_native_font(&mut self, font_key: &FontKey, native_font_handle: NativeFontHandle) {
         if self.cg_fonts.contains_key(font_key) {
-            return
+            return;
         }
 
-        self.cg_fonts.insert((*font_key).clone(), native_font_handle.0);
+        self.cg_fonts
+            .insert((*font_key).clone(), native_font_handle.0);
     }
 
     pub fn delete_font(&mut self, font_key: &FontKey) {
         if let Some(_) = self.cg_fonts.remove(font_key) {
             // Unstable Rust has a retain() method on HashMap that will
             // let us do this in-place. https://github.com/rust-lang/rust/issues/36648
-            let ct_font_keys = self.ct_fonts.keys()
-                                            .filter(|k| k.0 == *font_key)
-                                            .cloned()
-                                            .collect::<Vec<_>>();
+            let ct_font_keys = self.ct_fonts
+                .keys()
+                .filter(|k| k.0 == *font_key)
+                .cloned()
+                .collect::<Vec<_>>();
             for ct_font_key in ct_font_keys {
                 self.ct_fonts.remove(&ct_font_key);
             }
         }
     }
 
-    fn get_ct_font(&mut self,
-                   font_key: FontKey,
-                   size: Au) -> Option<CTFont> {
+    fn get_ct_font(&mut self, font_key: FontKey, size: Au) -> Option<CTFont> {
         match self.ct_fonts.entry(((font_key).clone(), size)) {
             Entry::Occupied(entry) => Some((*entry.get()).clone()),
             Entry::Vacant(entry) => {
@@ -210,9 +212,7 @@ impl FontContext {
                     None => return None,
                     Some(cg_font) => cg_font,
                 };
-                let ct_font = core_text::font::new_from_CGFont(
-                        cg_font,
-                        size.to_f64_px());
+                let ct_font = core_text::font::new_from_CGFont(cg_font, size.to_f64_px());
                 entry.insert(ct_font.clone());
                 Some(ct_font)
             }
@@ -225,9 +225,7 @@ impl FontContext {
 
         self.get_ct_font(font_key, Au(16 * 60))
             .and_then(|ref ct_font| {
-                let result = ct_font.get_glyphs_for_characters(&character,
-                                                               &mut glyph,
-                                                               1);
+                let result = ct_font.get_glyphs_for_characters(&character, &mut glyph, 1);
 
                 if result {
                     Some(glyph as u32)
@@ -237,43 +235,50 @@ impl FontContext {
             })
     }
 
-    pub fn get_glyph_dimensions(&mut self,
-                                font: &FontInstanceKey,
-                                key: &GlyphKey) -> Option<GlyphDimensions> {
-        self.get_ct_font(font.font_key, font.size).and_then(|ref ct_font| {
-            let glyph = key.index as CGGlyph;
-            let metrics = get_glyph_metrics(ct_font, glyph, &key.subpixel_point);
-            if metrics.rasterized_width == 0 || metrics.rasterized_height == 0 {
-                None
-            } else {
-                Some(GlyphDimensions {
-                    left: metrics.rasterized_left,
-                    top: metrics.rasterized_ascent,
-                    width: metrics.rasterized_width as u32,
-                    height: metrics.rasterized_height as u32,
-                    advance: metrics.advance,
-                })
-            }
-        })
+    pub fn get_glyph_dimensions(
+        &mut self,
+        font: &FontInstance,
+        key: &GlyphKey,
+    ) -> Option<GlyphDimensions> {
+        self.get_ct_font(font.font_key, font.size)
+            .and_then(|ref ct_font| {
+                let glyph = key.index as CGGlyph;
+                let (x_offset, y_offset) = font.get_subpx_offset(key);
+                let metrics = get_glyph_metrics(ct_font, glyph, x_offset, y_offset);
+                if metrics.rasterized_width == 0 || metrics.rasterized_height == 0 {
+                    None
+                } else {
+                    Some(GlyphDimensions {
+                        left: metrics.rasterized_left,
+                        top: metrics.rasterized_ascent,
+                        width: metrics.rasterized_width as u32,
+                        height: metrics.rasterized_height as u32,
+                        advance: metrics.advance,
+                    })
+                }
+            })
     }
 
     // Assumes the pixels here are linear values from CG
-    fn gamma_correct_pixels(&self, pixels: &mut Vec<u8>, width: usize,
-                            height: usize, render_mode: FontRenderMode,
-                            color: ColorU) {
+    fn gamma_correct_pixels(
+        &self,
+        pixels: &mut Vec<u8>,
+        width: usize,
+        height: usize,
+        render_mode: FontRenderMode,
+        color: ColorU,
+    ) {
         // Then convert back to gamma corrected values.
-        let color_lut = ColorLut::new(color.r,
-                                     color.g,
-                                     color.b,
-                                     color.a);
+        let color_lut = ColorLut::new(color.r, color.g, color.b, color.a);
         match render_mode {
             FontRenderMode::Alpha => {
-                self.gamma_lut.preblend_grayscale_bgra(pixels, width,
-                                                       height, color_lut);
-            },
+                self.gamma_lut
+                    .preblend_grayscale_bgra(pixels, width, height, color_lut);
+            }
             FontRenderMode::Subpixel => {
-                self.gamma_lut.preblend_bgra(pixels, width, height, color_lut);
-            },
+                self.gamma_lut
+                    .preblend_bgra(pixels, width, height, color_lut);
+            }
             _ => {} // Again, give mono untouched since only the alpha matters.
         }
     }
@@ -282,7 +287,7 @@ impl FontContext {
     fn print_glyph_data(&mut self, data: &[u8], width: usize, height: usize) {
         // Rust doesn't have step_by support on stable :(
         println!("Width is: {:?} height: {:?}", width, height);
-        for i in 0..height {
+        for i in 0 .. height {
             let current_height = i * width * 4;
 
             for pixel in data[current_height .. current_height + (width * 4)].chunks(4) {
@@ -296,20 +301,21 @@ impl FontContext {
         }
     }
 
-    pub fn rasterize_glyph(&mut self,
-                           font: &FontInstanceKey,
-                           key: &GlyphKey)
-                           -> Option<RasterizedGlyph> {
-
+    pub fn rasterize_glyph(
+        &mut self,
+        font: &FontInstance,
+        key: &GlyphKey,
+    ) -> Option<RasterizedGlyph> {
         let ct_font = match self.get_ct_font(font.font_key, font.size) {
             Some(font) => font,
-            None => return Some(RasterizedGlyph::blank())
+            None => return Some(RasterizedGlyph::blank()),
         };
 
         let glyph = key.index as CGGlyph;
-        let metrics = get_glyph_metrics(&ct_font, glyph, &key.subpixel_point);
+        let (x_offset, y_offset) = font.get_subpx_offset(key);
+        let metrics = get_glyph_metrics(&ct_font, glyph, x_offset, y_offset);
         if metrics.rasterized_width == 0 || metrics.rasterized_height == 0 {
-            return Some(RasterizedGlyph::blank())
+            return Some(RasterizedGlyph::blank());
         }
 
         let context_flags = match font.render_mode {
@@ -317,12 +323,15 @@ impl FontContext {
             FontRenderMode::Alpha | FontRenderMode::Mono => kCGImageAlphaPremultipliedLast,
         };
 
-        let mut cg_context = CGContext::create_bitmap_context(None, metrics.rasterized_width as usize,
-                                                              metrics.rasterized_height as usize,
-                                                              8,
-                                                              metrics.rasterized_width as usize * 4,
-                                                              &CGColorSpace::create_device_rgb(),
-                                                              context_flags);
+        let mut cg_context = CGContext::create_bitmap_context(
+            None,
+            metrics.rasterized_width as usize,
+            metrics.rasterized_height as usize,
+            8,
+            metrics.rasterized_width as usize * 4,
+            &CGColorSpace::create_device_rgb(),
+            context_flags,
+        );
 
 
         // Tested on mac OS Sierra, 10.12
@@ -365,8 +374,6 @@ impl FontContext {
         cg_context.set_allows_antialiasing(antialias);
         cg_context.set_should_antialias(antialias);
 
-        let (x_offset, y_offset) = key.subpixel_point.to_f64();
-
         // CG Origin is bottom left, WR is top left. Need -y offset
         let rasterization_origin = CGPoint {
             x: -metrics.rasterized_left as f64 + x_offset,
@@ -377,14 +384,11 @@ impl FontContext {
         // Fill the background
         cg_context.set_rgb_fill_color(1.0, 1.0, 1.0, 1.0);
         let rect = CGRect {
-            origin: CGPoint {
-                x: 0.0,
-                y: 0.0,
-            },
+            origin: CGPoint { x: 0.0, y: 0.0 },
             size: CGSize {
                 width: metrics.rasterized_width as f64,
                 height: metrics.rasterized_height as f64,
-            }
+            },
         };
         cg_context.fill_rect(rect);
 
@@ -398,18 +402,20 @@ impl FontContext {
         // Convert to linear space for subpixel AA.
         // We explicitly do not do this for grayscale AA
         if font.render_mode == FontRenderMode::Subpixel {
-            self.gamma_lut.coregraphics_convert_to_linear_bgra(&mut rasterized_pixels,
-                                                               metrics.rasterized_width as usize,
-                                                               metrics.rasterized_height as usize);
+            self.gamma_lut.coregraphics_convert_to_linear_bgra(
+                &mut rasterized_pixels,
+                metrics.rasterized_width as usize,
+                metrics.rasterized_height as usize,
+            );
         }
 
         // We need to invert the pixels back since right now
         // transparent pixels are actually opaque white.
-        for i in 0..metrics.rasterized_height {
+        for i in 0 .. metrics.rasterized_height {
             let current_height = (i * metrics.rasterized_width * 4) as usize;
             let end_row = current_height + (metrics.rasterized_width as usize * 4);
 
-            for mut pixel in rasterized_pixels[current_height .. end_row].chunks_mut(4) {
+            for pixel in rasterized_pixels[current_height .. end_row].chunks_mut(4) {
                 pixel[0] = 255 - pixel[0];
                 pixel[1] = 255 - pixel[1];
                 pixel[2] = 255 - pixel[2];
@@ -425,11 +431,13 @@ impl FontContext {
             } // end row
         } // end height
 
-        self.gamma_correct_pixels(&mut rasterized_pixels,
-                                  metrics.rasterized_width as usize,
-                                  metrics.rasterized_height as usize,
-                                  font.render_mode,
-                                  font.color);
+        self.gamma_correct_pixels(
+            &mut rasterized_pixels,
+            metrics.rasterized_width as usize,
+            metrics.rasterized_height as usize,
+            font.render_mode,
+            font.color,
+        );
 
         Some(RasterizedGlyph {
             left: metrics.rasterized_left as f32,
@@ -440,4 +448,3 @@ impl FontContext {
         })
     }
 }
-

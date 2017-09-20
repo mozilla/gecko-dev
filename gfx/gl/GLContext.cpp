@@ -151,6 +151,7 @@ static const char* const sExtensionNames[] = {
     "GL_EXT_texture3D",
     "GL_EXT_texture_compression_dxt1",
     "GL_EXT_texture_compression_s3tc",
+    "GL_EXT_texture_compression_s3tc_srgb",
     "GL_EXT_texture_filter_anisotropic",
     "GL_EXT_texture_format_BGRA8888",
     "GL_EXT_texture_sRGB",
@@ -552,11 +553,8 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
     MOZ_ASSERT(majorVer < 10);
     MOZ_ASSERT(minorVer < 10);
     mVersion = majorVer*100 + minorVer*10;
-    if (mVersion < 200) {
-        // Mac OSX 10.6/10.7 machines with Intel GPUs claim only OpenGL 1.4 but
-        // have all the GL2+ extensions that we need.
-        mVersion = 200;
-    }
+    if (mVersion < 200)
+        return false;
 
     ////
 
@@ -1739,6 +1737,13 @@ GLContext::InitExtensions()
         {
             MarkExtensionUnsupported(EXT_texture_compression_s3tc);
         }
+
+        // OSX supports EXT_texture_sRGB in Legacy contexts, but not in Core contexts.
+        // Though EXT_texture_sRGB was included into GL2.1, it *excludes* the interactions
+        // with s3tc. Strictly speaking, you must advertize support for EXT_texture_sRGB
+        // in order to allow for srgb+s3tc on desktop GL. The omission of EXT_texture_sRGB
+        // in OSX Core contexts appears to be a bug.
+        MarkExtensionSupported(EXT_texture_sRGB);
 #endif
     }
 

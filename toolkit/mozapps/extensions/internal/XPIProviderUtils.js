@@ -32,9 +32,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "Blocklist",
                                    "@mozilla.org/extensions/blocklist;1",
                                    Ci.nsIBlocklistService);
 
-XPCOMUtils.defineLazyPreferenceGetter(this, "ALLOW_NON_MPC",
-                                      "extensions.allow-non-mpc-extensions");
-
 Cu.import("resource://gre/modules/Log.jsm");
 const LOGGER_ID = "addons.xpi-utils";
 
@@ -57,7 +54,6 @@ const PREF_E10S_BLOCKED_BY_ADDONS     = "extensions.e10sBlockedByAddons";
 const PREF_E10S_MULTI_BLOCKED_BY_ADDONS = "extensions.e10sMultiBlockedByAddons";
 const PREF_E10S_HAS_NONEXEMPT_ADDON   = "extensions.e10s.rollout.hasAddon";
 
-const KEY_APP_PROFILE                 = "app-profile";
 const KEY_APP_SYSTEM_ADDONS           = "app-system-addons";
 const KEY_APP_SYSTEM_DEFAULTS         = "app-system-defaults";
 const KEY_APP_GLOBAL                  = "app-global";
@@ -1278,11 +1274,7 @@ this.XPIDatabaseReconcile = {
         logger.warn("Disabling foreign installed add-on " + aNewAddon.id + " in "
             + aInstallLocation.name);
         aNewAddon.userDisabled = true;
-
-        // If we don't have an old app version then this is a new profile in
-        // which case just mark any sideloaded add-ons as already seen.
-        aNewAddon.seen = (aInstallLocation.name != KEY_APP_PROFILE &&
-                          !aOldAppVersion);
+        aNewAddon.seen = false;
       }
     }
 
@@ -1533,7 +1525,6 @@ this.XPIDatabaseReconcile = {
               }
             }
 
-            let wasDisabled = oldAddon.appDisabled;
             let oldPath = oldAddon.path || descriptorToPath(oldAddon.descriptor);
 
             // The add-on has changed if the modification time has changed, if
@@ -1559,18 +1550,6 @@ this.XPIDatabaseReconcile = {
             } else {
               // No change
               newAddon = oldAddon;
-            }
-
-            // If an extension has just become appDisabled and it appears to
-            // be due to the ALLOW_NON_MPC pref, show a notification.  If the
-            // extension is also disabled for some other reason(s), don't
-            // bother with the notification since flipping the pref will leave
-            // the extension disabled.
-            if (!wasDisabled && newAddon.appDisabled &&
-                !ALLOW_NON_MPC && !newAddon.multiprocessCompatible &&
-                (newAddon.blocklistState != Ci.nsIBlocklistService.STATE_BLOCKED) &&
-                newAddon.isPlatformCompatible && newAddon.isCompatible) {
-              AddonManagerPrivate.nonMpcDisabled = true;
             }
 
             if (newAddon)

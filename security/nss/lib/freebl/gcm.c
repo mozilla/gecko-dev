@@ -595,14 +595,7 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     if (gcm == NULL) {
         return NULL;
     }
-    /* aligned_alloc is C11 so we have to do it the old way. */
-    ghash = PORT_ZAlloc(sizeof(gcmHashContext) + 15);
-    if (ghash == NULL) {
-        PORT_SetError(SEC_ERROR_NO_MEMORY);
-        goto loser;
-    }
-    ghash->mem = ghash;
-    ghash = (gcmHashContext *)(((uintptr_t)ghash + 15) & ~(uintptr_t)0x0F);
+    ghash = PORT_ZNewAligned(gcmHashContext, 16, mem);
 
     /* first plug in the ghash context */
     gcm->ghash_context = ghash;

@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 from ..result import ResultContainer
 
@@ -13,6 +13,7 @@ class CompactFormatter(object):
     This formatter prints one error per line, mimicking the
     eslint 'compact' formatter.
     """
+    # If modifying this format, please also update the vim errorformats in editor.py
     fmt = "{path}: line {lineno}{column}, {level} - {message} ({rule})"
 
     def __init__(self, summary=True):

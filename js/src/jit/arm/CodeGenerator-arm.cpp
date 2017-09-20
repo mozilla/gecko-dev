@@ -630,7 +630,8 @@ CodeGeneratorARM::visitSoftDivI(LSoftDivI* ins)
         masm.setupAlignedABICall();
         masm.passABIArg(lhs);
         masm.passABIArg(rhs);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod), MoveOp::GENERAL,
+                         CheckUnsafeCallWithABI::DontCheckOther);
     }
 
     // idivmod returns the quotient in r0, and the remainder in r1.
@@ -819,7 +820,8 @@ CodeGeneratorARM::visitSoftModI(LSoftModI* ins)
         masm.setupAlignedABICall();
         masm.passABIArg(lhs);
         masm.passABIArg(rhs);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod), MoveOp::GENERAL,
+                         CheckUnsafeCallWithABI::DontCheckOther);
     }
 
     MOZ_ASSERT(r1 != output);
@@ -2841,7 +2843,8 @@ CodeGeneratorARM::visitSoftUDivOrMod(LSoftUDivOrMod* ins)
         masm.setupAlignedABICall();
         masm.passABIArg(lhs);
         masm.passABIArg(rhs);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_uidivmod));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_uidivmod), MoveOp::GENERAL,
+                         CheckUnsafeCallWithABI::DontCheckOther);
     }
 
     if (mod) {
@@ -3089,6 +3092,25 @@ CodeGeneratorARM::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir)
         masm.ma_mov(Imm32(0), output.high);
     else
         masm.ma_asr(Imm32(31), output.low, output.high);
+}
+
+void
+CodeGeneratorARM::visitSignExtendInt64(LSignExtendInt64* lir)
+{
+    Register64 input = ToRegister64(lir->getInt64Operand(0));
+    Register64 output = ToOutRegister64(lir);
+    switch (lir->mode()) {
+      case MSignExtendInt64::Byte:
+        masm.move8SignExtend(input.low, output.low);
+        break;
+      case MSignExtendInt64::Half:
+        masm.move16SignExtend(input.low, output.low);
+        break;
+      case MSignExtendInt64::Word:
+        masm.move32(input.low, output.low);
+        break;
+    }
+    masm.ma_asr(Imm32(31), output.low, output.high);
 }
 
 static Register

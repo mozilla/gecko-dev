@@ -19,7 +19,7 @@
     <content>
       <xul:stringbundle anonid="tbstringbundle" src="chrome://browser/locale/tabbrowser.properties"/>
       <xul:tabbox anonid="tabbox" class="tabbrowser-tabbox"
-                  flex="1" eventnode="document" xbl:inherits="handleCtrlPageUpDown"
+                  flex="1" eventnode="document" xbl:inherits="handleCtrlPageUpDown,tabcontainer"
                   onselect="if (event.target.localName == 'tabpanels') this.parentNode.updateCurrentBrowser();">
         <xul:tabpanels flex="1" class="plain" selectedIndex="0" anonid="panelcontainer">
           <xul:notificationbox flex="1" notificationside="top">
@@ -27,7 +27,7 @@
               <xul:vbox flex="1" class="browserContainer">
                 <xul:stack flex="1" class="browserStack" anonid="browserStack">
                   <xul:browser anonid="initialBrowser" type="content" message="true" messagemanagergroup="browsers"
-                               primary="true"
+                               primary="true" blank="true"
                                xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup,selectmenulist,datetimepicker"/>
                 </xul:stack>
               </xul:vbox>
@@ -82,8 +82,8 @@
       <field name="mCurrentTab">
         null
       </field>
-      <field name="_lastRelatedTab">
-        null
+      <field name="_lastRelatedTabMap">
+        new WeakMap();
       </field>
       <field name="mCurrentBrowser">
         null
@@ -617,6 +617,50 @@
               return location == "about:blank";
             },
 
+            _syncThrobberAnimations() {
+              const originalTab = this.mTab;
+              BrowserUtils.promiseLayoutFlushed(this.mTab.ownerDocument, "style", () => {
+                if (!originalTab.parentNode) {
+                  return;
+                }
+
+                const animations =
+                  Array.from(originalTab.parentNode.getElementsByTagName("tab"))
+                  .map(tab => {
+                    const throbber =
+                      document.getAnonymousElementByAttribute(tab, "anonid", "tab-throbber");
+                    return throbber ? throbber.getAnimations({ subtree: true }) : [];
+                  })
+                  .reduce((a, b) => a.concat(b))
+                  .filter(anim =>
+                    anim instanceof CSSAnimation &&
+                    (anim.animationName === "tab-throbber-animation" ||
+                     anim.animationName === "tab-throbber-animation-rtl") &&
+                    (anim.playState === "running" || anim.playState === "pending"));
+
+                // Synchronize with the oldest running animation, if any.
+                const firstStartTime = Math.min(
+                  ...animations.map(anim => anim.startTime === null ? Infinity : anim.startTime)
+                );
+                if (firstStartTime === Infinity) {
+                  return;
+                }
+                requestAnimationFrame(() => {
+                  for (let animation of animations) {
+                    // If |animation| has been cancelled since this rAF callback
+                    // was scheduled we don't want to set its startTime since
+                    // that would restart it. We check for a cancelled animation
+                    // by looking for a null currentTime rather than checking
+                    // the playState, since reading the playState of
+                    // a CSSAnimation object will flush style.
+                    if (animation.currentTime !== null) {
+                      animation.startTime = firstStartTime;
+                    }
+                  }
+                });
+              });
+            },
+
             onProgressChange(aWebProgress, aRequest,
                              aCurSelfProgress, aMaxSelfProgress,
                              aCurTotalProgress, aMaxTotalProgress) {
@@ -625,7 +669,7 @@
               if (!this._shouldShowProgress(aRequest))
                 return;
 
-              if (this.mTotalProgress)
+              if (this.mTotalProgress && this.mTab.hasAttribute("busy"))
                 this.mTab.setAttribute("progress", "true");
 
               this._callProgressListeners("onProgressChange",
@@ -712,8 +756,10 @@
                 }
 
                 if (this._shouldShowProgress(aRequest)) {
-                  if (!(aStateFlags & nsIWebProgressListener.STATE_RESTORING)) {
+                  if (!(aStateFlags & nsIWebProgressListener.STATE_RESTORING) &&
+                      aWebProgress && aWebProgress.isTopLevel) {
                     this.mTab.setAttribute("busy", "true");
+                    this._syncThrobberAnimations();
                   }
 
                   if (this.mTab.selected) {
@@ -725,6 +771,16 @@
 
                 if (this.mTab.hasAttribute("busy")) {
                   this.mTab.removeAttribute("busy");
+
+                  // Only animate the "burst" indicating the page has loaded if
+                  // the top-level page is the one that finished loading.
+                  if (aWebProgress.isTopLevel && !aWebProgress.isLoadingDocument &&
+                      Components.isSuccessCode(aStatus) &&
+                      !this.mTabBrowser.tabAnimationsInProgress &&
+                      Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled")) {
+                    this.mTab.setAttribute("bursting", "true");
+                  }
+
                   this.mTabBrowser._tabAttrModified(this.mTab, ["busy"]);
                   if (!this.mTab.selected)
                     this.mTab.setAttribute("unread", "true");
@@ -967,6 +1023,20 @@
         </body>
       </method>
 
+      <method name="setPageInfo">
+        <parameter name="aURL"/>
+        <parameter name="aDescription"/>
+        <parameter name="aPreviewImage"/>
+        <body>
+          <![CDATA[
+            if (aURL) {
+              let pageInfo = {url: aURL, description: aDescription, previewImageURL: aPreviewImage}
+              PlacesUtils.history.update(pageInfo).catch(Components.utils.reportError);
+            }
+          ]]>
+        </body>
+      </method>
+
       <method name="shouldLoadFavIcon">
         <parameter name="aURI"/>
         <body>
@@ -1124,11 +1194,12 @@
             if (!this._previewMode && !oldTab.selected)
               oldTab.owner = null;
 
-            if (this._lastRelatedTab) {
-              if (!this._lastRelatedTab.selected)
-                this._lastRelatedTab.owner = null;
-              this._lastRelatedTab = null;
+            let lastRelatedTab = this._lastRelatedTabMap.get(oldTab);
+            if (lastRelatedTab) {
+              if (!lastRelatedTab.selected)
+                lastRelatedTab.owner = null;
             }
+            this._lastRelatedTabMap = new WeakMap();
 
             var oldBrowser = this.mCurrentBrowser;
 
@@ -1150,10 +1221,9 @@
             this.mCurrentTab = this.tabContainer.selectedItem;
             this.showTab(this.mCurrentTab);
 
-            var forwardButtonContainer = document.getElementById("urlbar-wrapper");
-            forwardButtonContainer.setAttribute("switchingtabs", "true");
+            gURLBar.setAttribute("switchingtabs", "true");
             window.addEventListener("MozAfterPaint", function() {
-              forwardButtonContainer.removeAttribute("switchingtabs");
+              gURLBar.removeAttribute("switchingtabs");
             }, {once: true});
 
             this._appendStatusPanel();
@@ -1514,11 +1584,11 @@
                                                           [ brandShortName ]);
               isContentTitle = true;
             } else {
-              if (browser.currentURI.spec) {
+              if (browser.currentURI.displaySpec) {
                 try {
-                  title = this.mURIFixup.createExposableURI(browser.currentURI).spec;
+                  title = this.mURIFixup.createExposableURI(browser.currentURI).displaySpec;
                 } catch (ex) {
-                  title = browser.currentURI.spec;
+                  title = browser.currentURI.displaySpec;
                 }
               }
 
@@ -1614,6 +1684,7 @@
             var aSameProcessAsFrameLoader;
             var aOriginPrincipal;
             var aOpener;
+            var aOpenerBrowser;
             var aIsPrerendered;
             var aCreateLazyBrowser;
             var aNextTabParentId;
@@ -1641,6 +1712,7 @@
               aSameProcessAsFrameLoader = params.sameProcessAsFrameLoader;
               aOriginPrincipal          = params.originPrincipal;
               aOpener                   = params.opener;
+              aOpenerBrowser            = params.openerBrowser;
               aIsPrerendered            = params.isPrerendered;
               aCreateLazyBrowser        = params.createLazyBrowser;
               aNextTabParentId          = params.nextTabParentId;
@@ -1672,6 +1744,7 @@
                                   originPrincipal: aOriginPrincipal,
                                   sameProcessAsFrameLoader: aSameProcessAsFrameLoader,
                                   opener: aOpener,
+                                  openerBrowser: aOpenerBrowser,
                                   isPrerendered: aIsPrerendered,
                                   nextTabParentId: aNextTabParentId,
                                   focusUrlBar: aFocusUrlBar,
@@ -2068,6 +2141,10 @@
 
             browser.loadURI(BROWSER_NEW_TAB_URL);
             browser.docShellIsActive = false;
+
+            // Make sure the preloaded browser is loaded with desired zoom level
+            let tabURI = Services.io.newURI(BROWSER_NEW_TAB_URL);
+            FullZoom.onLocationChange(tabURI, false, browser);
           ]]>
         </body>
       </method>
@@ -2108,15 +2185,19 @@
               b.setAttribute("remote", "true");
             }
 
-            if (aParams.opener) {
+            if (aParams.openerWindow) {
               if (aParams.remoteType) {
                 throw new Error("Cannot set opener window on a remote browser!");
               }
-              b.QueryInterface(Ci.nsIFrameLoaderOwner).presetOpenerWindow(aParams.opener);
+              b.presetOpenerWindow(aParams.openerWindow);
             }
 
             if (!aParams.isPreloadBrowser && this.hasAttribute("autocompletepopup")) {
               b.setAttribute("autocompletepopup", this.getAttribute("autocompletepopup"));
+            }
+
+            if (aParams.isPreloadBrowser) {
+              b.setAttribute("isPreloadBrowser", "true");
             }
 
             if (this.hasAttribute("selectmenulist"))
@@ -2129,6 +2210,9 @@
             b.setAttribute("autoscrollpopup", this._autoScrollPopup.id);
 
             if (aParams.nextTabParentId) {
+              if (!aParams.remoteType) {
+                throw new Error("Cannot have nextTabParentId without a remoteType");
+              }
               // Gecko is going to read this attribute and use it.
               b.setAttribute("nextTabParentId", aParams.nextTabParentId.toString());
             }
@@ -2202,7 +2286,8 @@
         "audioPlaybackStopped", "pauseMedia", "stopMedia",
         "resumeMedia", "mute", "unmute", "blockedPopups", "lastURI",
         "purgeSessionHistory", "stopScroll", "startScroll",
-        "userTypedValue", "userTypedClear", "mediaBlocked"
+        "userTypedValue", "userTypedClear", "mediaBlocked",
+        "didStartLoadSinceLastUserTyping"
       ]</field>
 
       <method name="_createLazyBrowser">
@@ -2219,14 +2304,10 @@
               let setter;
               switch (name) {
                 case "audioMuted":
-                  getter = () => {
-                    return false;
-                  };
+                  getter = () => false;
                   break;
                 case "contentTitle":
-                  getter = () => {
-                    return SessionStore.getLazyTabValue(aTab, "title");
-                  };
+                  getter = () => SessionStore.getLazyTabValue(aTab, "title");
                   break;
                 case "currentURI":
                   getter = () => {
@@ -2234,29 +2315,26 @@
                     return Services.io.newURI(url);
                   };
                   break;
+                case "didStartLoadSinceLastUserTyping":
+                  getter = () => () => false;
+                  break;
+                case "fullZoom":
+                case "textZoom":
+                  getter = () => 1;
+                  break;
                 case "getTabBrowser":
-                  getter = () => {
-                    return () => {
-                      return this;
-                    };
-                  };
+                  getter = () => () => this;
                   break;
                 case "isRemoteBrowser":
-                  getter = () => {
-                    return browser.getAttribute("remote") == "true";
-                  };
+                  getter = () => browser.getAttribute("remote") == "true";
                   break;
                 case "permitUnload":
-                  getter = () => {
-                    return () => {
-                      return { permitUnload: true, timedOut: false };
-                    };
-                  };
+                  getter = () => () => ({ permitUnload: true, timedOut: false });
                   break;
                 case "reload":
                 case "reloadWithFlags":
-                  getter = () => {
-                    return (params) => {
+                  getter = () =>
+                    params => {
                       // Wait for load handler to be instantiated before
                       // initializing the reload.
                       aTab.addEventListener("SSTabRestoring", () => {
@@ -2264,25 +2342,21 @@
                       }, { once: true });
                       gBrowser._insertBrowser(aTab);
                     };
-                  };
                   break;
                 case "resumeMedia":
-                  getter = () => {
-                    return () => {
+                  getter = () =>
+                    () => {
                       // No need to insert a browser, so we just call the browser's
                       // method.
                       aTab.addEventListener("SSTabRestoring", () => {
                         browser[name]();
                       }, { once: true });
                     };
-                  };
                   break;
                 case "userTypedValue":
                 case "userTypedClear":
                 case "mediaBlocked":
-                  getter = () => {
-                    return SessionStore.getLazyTabValue(aTab, name);
-                  };
+                  getter = () => SessionStore.getLazyTabValue(aTab, name);
                   break;
                 default:
                   getter = () => {
@@ -2294,7 +2368,7 @@
                     this._insertBrowser(aTab);
                     return browser[name];
                   };
-                  setter = (value) => {
+                  setter = value => {
                     if (AppConstants.NIGHTLY_BUILD) {
                       let message =
                         `[bug 1345098] Lazy browser prematurely inserted via '${name}' property access:\n`
@@ -2317,6 +2391,7 @@
 
       <method name="_insertBrowser">
         <parameter name="aTab"/>
+        <parameter name="aInsertedOnTabCreation"/>
         <body>
           <![CDATA[
             "use strict";
@@ -2378,8 +2453,59 @@
               this._outerWindowIDBrowserMap.set(browser.outerWindowID, browser);
             }
 
-            var evt = new CustomEvent("TabBrowserInserted", { bubbles: true, detail: {} });
+            var evt = new CustomEvent("TabBrowserInserted",
+              { bubbles: true, detail: { insertedOnTabCreation: aInsertedOnTabCreation } });
             aTab.dispatchEvent(evt);
+          ]]>
+        </body>
+      </method>
+
+      <method name="discardBrowser">
+        <parameter name="aBrowser"/>
+        <body>
+          <![CDATA[
+            "use strict";
+
+            let tab = this.getTabForBrowser(aBrowser);
+
+            if (!tab ||
+                tab.selected ||
+                tab.closing ||
+                this._windowIsClosing ||
+                !aBrowser.isConnected ||
+                !aBrowser.isRemoteBrowser ||
+                aBrowser.frameLoader.tabParent.hasBeforeUnload) {
+              return;
+            }
+
+            // Set browser parameters for when browser is restored.  Also remove
+            // listeners and set up lazy restore data in SessionStore. This must
+            // be done before aBrowser is destroyed and removed from the document.
+            tab._browserParams = { uriIsAboutBlank: aBrowser.currentURI.spec == "about:blank",
+                                   remoteType: aBrowser.remoteType,
+                                   usingPreloadedContent: false };
+
+            SessionStore.resetBrowserToLazyState(tab);
+
+            this._outerWindowIDBrowserMap.delete(aBrowser.outerWindowID);
+
+            // Remove the tab's filter and progress listener.
+            let filter = this._tabFilters.get(tab);
+            let listener = this._tabListeners.get(tab);
+            aBrowser.webProgress.removeProgressListener(filter);
+            filter.removeProgressListener(listener);
+            listener.destroy();
+
+            this._tabListeners.delete(tab);
+            this._tabFilters.delete(tab);
+
+            aBrowser.destroy();
+
+            let notificationbox = this.getNotificationBox(aBrowser);
+            this.mPanelContainer.removeChild(notificationbox);
+            tab.removeAttribute("linkedpanel");
+
+            this._createLazyBrowser(tab);
           ]]>
         </body>
       </method>
@@ -2411,6 +2537,7 @@
             var aOriginPrincipal;
             var aDisallowInheritPrincipal;
             var aOpener;
+            var aOpenerBrowser;
             var aIsPrerendered;
             var aCreateLazyBrowser;
             var aSkipBackgroundNotify;
@@ -2442,6 +2569,7 @@
               aOriginPrincipal          = params.originPrincipal;
               aDisallowInheritPrincipal = params.disallowInheritPrincipal;
               aOpener                   = params.opener;
+              aOpenerBrowser            = params.openerBrowser;
               aIsPrerendered            = params.isPrerendered;
               aCreateLazyBrowser        = params.createLazyBrowser;
               aSkipBackgroundNotify     = params.skipBackgroundNotify;
@@ -2455,7 +2583,27 @@
             if (this.mCurrentTab.owner)
               this.mCurrentTab.owner = null;
 
+            // Find the tab that opened this one, if any. This is used for
+            // determining positioning, and inherited attributes such as the
+            // user context ID.
+            //
+            // If we have a browser opener (which is usually the browser
+            // element from a remote window.open() call), use that.
+            //
+            // Otherwise, if the tab is related to the current tab (e.g.,
+            // because it was opened by a link click), use the selected tab as
+            // the owner. If aReferrerURI is set, and we don't have an
+            // explicit relatedToCurrent arg, we assume that the tab is
+            // related to the current tab, since aReferrerURI is null or
+            // undefined if the tab is opened from an external application or
+            // bookmark (i.e. somewhere other than an existing tab).
+            let relatedToCurrent = aRelatedToCurrent == null ? !!aReferrerURI : aRelatedToCurrent;
+            let openerTab = ((aOpenerBrowser && this.getTabForBrowser(aOpenerBrowser)) ||
+                             (relatedToCurrent && this.selectedTab));
+
             var t = document.createElementNS(NS_XUL, "tab");
+
+            t.openerTab = openerTab;
 
             aURI = aURI || "about:blank";
             let aURIObject = null;
@@ -2486,9 +2634,8 @@
 
             // Related tab inherits current tab's user context unless a different
             // usercontextid is specified
-            if (aUserContextId == null &&
-                (aRelatedToCurrent == null ? aReferrerURI : aRelatedToCurrent)) {
-              aUserContextId = this.mCurrentTab.getAttribute("usercontextid") || 0;
+            if (aUserContextId == null && openerTab) {
+              aUserContextId = openerTab.getAttribute("usercontextid") || 0;
             }
 
             if (aUserContextId) {
@@ -2537,6 +2684,12 @@
 
             this.tabContainer.updateVisibility();
 
+            // If we don't have a preferred remote type, and we have a remote
+            // opener, use the opener's remote type.
+            if (!aPreferredRemoteType && aOpenerBrowser) {
+              aPreferredRemoteType = aOpenerBrowser.remoteType;
+            }
+
             // If URI is about:blank and we don't have a preferred remote type,
             // then we need to use the referrer, if we have one, to get the
             // correct remote type for the new tab.
@@ -2573,7 +2726,7 @@
                                         uriIsAboutBlank,
                                         userContextId: aUserContextId,
                                         sameProcessAsFrameLoader: aSameProcessAsFrameLoader,
-                                        opener: aOpener,
+                                        openerWindow: aOpener,
                                         isPrerendered: aIsPrerendered,
                                         nextTabParentId: aNextTabParentId,
                                         name: aName });
@@ -2602,7 +2755,7 @@
                 b.registeredOpenURI = lazyBrowserURI;
               }
             } else {
-              this._insertBrowser(t);
+              this._insertBrowser(t, true);
             }
 
             // Dispatch a new tab notification.  We do this once we're
@@ -2655,21 +2808,19 @@
               }
             }
 
-            // Check if we're opening a tab related to the current tab and
-            // move it to after the current tab.
-            // aReferrerURI is null or undefined if the tab is opened from
-            // an external application or bookmark, i.e. somewhere other
-            // than the current tab.
-            if ((aRelatedToCurrent == null ? aReferrerURI : aRelatedToCurrent) &&
+            // If we're opening a tab related to the an existing tab, move it
+            // to a position after that tab.
+            if (openerTab &&
                 Services.prefs.getBoolPref("browser.tabs.insertRelatedAfterCurrent")) {
-              let newTabPos = (this._lastRelatedTab ||
-                               this.selectedTab)._tPos + 1;
-              if (this._lastRelatedTab)
-                this._lastRelatedTab.owner = null;
+
+              let lastRelatedTab = this._lastRelatedTabMap.get(openerTab);
+              let newTabPos = (lastRelatedTab || openerTab)._tPos + 1;
+              if (lastRelatedTab)
+                lastRelatedTab.owner = null;
               else
-                t.owner = this.selectedTab;
-              this.moveTabTo(t, newTabPos);
-              this._lastRelatedTab = t;
+                t.owner = openerTab;
+              this.moveTabTo(t, newTabPos, true);
+              this._lastRelatedTabMap.set(openerTab, t);
             }
 
             // This field is updated regardless if we actually animate
@@ -2767,7 +2918,7 @@
             for (let i = tabs.length - 1; tabs[i] != aTab && i >= 0; --i) {
               tabsToEnd.push(tabs[i]);
             }
-            return tabsToEnd.reverse();
+            return tabsToEnd;
           ]]>
         </body>
       </method>
@@ -2777,12 +2928,27 @@
         <parameter name="aParams"/>
         <body>
           <![CDATA[
-            if (this.warnAboutClosingTabs(this.closingTabsEnum.TO_END, aTab)) {
-              let tabs = this.getTabsToTheEndFrom(aTab);
-              for (let i = tabs.length - 1; i >= 0; --i) {
-                this.removeTab(tabs[i], aParams);
-              }
+            if (!this.warnAboutClosingTabs(this.closingTabsEnum.TO_END, aTab))
+              return;
+
+            let removeTab = tab => {
+              // Avoid changing the selected browser several times.
+              if (tab.selected)
+                this.selectedTab = aTab;
+
+              this.removeTab(tab, aParams);
+            };
+
+            let tabs = this.getTabsToTheEndFrom(aTab);
+            let tabsWithBeforeUnload = [];
+            for (let i = tabs.length - 1; i >= 0; --i) {
+              let tab = tabs[i];
+              if (this._hasBeforeUnload(tab))
+                tabsWithBeforeUnload.push(tab);
+              else
+                removeTab(tab);
             }
+            tabsWithBeforeUnload.forEach(removeTab);
           ]]>
         </body>
       </method>
@@ -2791,17 +2957,25 @@
         <parameter name="aTab"/>
         <body>
           <![CDATA[
-            if (aTab.pinned)
+            if (aTab.pinned ||
+                !this.warnAboutClosingTabs(this.closingTabsEnum.OTHER))
               return;
 
-            if (this.warnAboutClosingTabs(this.closingTabsEnum.OTHER)) {
-              let tabs = this.visibleTabs;
-              this.selectedTab = aTab;
+            let tabs = this.visibleTabs.reverse();
+            this.selectedTab = aTab;
 
-              for (let i = tabs.length - 1; i >= 0; --i) {
-                if (tabs[i] != aTab && !tabs[i].pinned)
-                  this.removeTab(tabs[i], {animate: true});
+            let tabsWithBeforeUnload = [];
+            for (let i = tabs.length - 1; i >= 0; --i) {
+              let tab = tabs[i];
+              if (tab != aTab && !tab.pinned) {
+                if (this._hasBeforeUnload(tab))
+                  tabsWithBeforeUnload.push(tab)
+                else
+                  this.removeTab(tab, {animate: true});
               }
+            }
+            for (let tab of tabsWithBeforeUnload) {
+              this.removeTab(tab, {animate: true});
             }
           ]]>
         </body>
@@ -2882,6 +3056,7 @@
 
             aTab.style.maxWidth = ""; // ensure that fade-out transition happens
             aTab.removeAttribute("fadein");
+            aTab.removeAttribute("bursting");
 
             setTimeout(function(tab, tabbrowser) {
               if (tab.parentNode &&
@@ -2900,6 +3075,18 @@
         false
       </field>
 
+      <method name="_hasBeforeUnload">
+        <parameter name="aTab"/>
+        <body>
+          <![CDATA[
+            let browser = aTab.linkedBrowser;
+            return browser.isRemoteBrowser && browser.frameLoader &&
+                   browser.frameLoader.tabParent &&
+                   browser.frameLoader.tabParent.hasBeforeUnload;
+          ]]>
+        </body>
+      </method>
+
       <method name="_beginRemoveTab">
         <parameter name="aTab"/>
         <parameter name="aAdoptedByTab"/>
@@ -2913,18 +3100,9 @@
               return false;
 
             var browser = this.getBrowserForTab(aTab);
-
-            let checkPermitUnload = !aSkipPermitUnload &&
-                                    !aAdoptedByTab &&
-                                    aTab.linkedPanel &&
-                                    !aTab._pendingPermitUnload;
-
-            if (checkPermitUnload && browser.isRemoteBrowser) {
-              checkPermitUnload = browser.frameLoader.tabParent &&
-                                  browser.frameLoader.tabParent.hasBeforeUnload;
-            }
-
-            if (checkPermitUnload) {
+            if (!aSkipPermitUnload && !aAdoptedByTab &&
+                aTab.linkedPanel && !aTab._pendingPermitUnload &&
+                (!browser.isRemoteBrowser || this._hasBeforeUnload(aTab))) {
               TelemetryStopwatch.start("FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS", aTab);
 
               // We need to block while calling permitUnload() because it
@@ -2972,6 +3150,16 @@
               }
 
               newTab = true;
+            }
+            aTab._endRemoveArgs = [closeWindow, newTab];
+
+            // swapBrowsersAndCloseOther will take care of closing the window without animation.
+            if (closeWindow && aAdoptedByTab) {
+              // Remove the tab's filter to avoid leaking.
+              if (aTab.linkedPanel) {
+                this._tabFilters.delete(aTab);
+              }
+              return true;
             }
 
             if (!aTab._fullyOpen) {
@@ -3043,7 +3231,6 @@
                 tab.owner = null;
             }
 
-            aTab._endRemoveArgs = [closeWindow, newTab];
             return true;
           ]]>
         </body>
@@ -3066,7 +3253,7 @@
 
             this.tabAnimationsInProgress--;
 
-            this._lastRelatedTab = null;
+            this._lastRelatedTabMap = new WeakMap();
 
             // update the UI early for responsiveness
             aTab.collapsed = true;
@@ -3261,6 +3448,25 @@
             if (!remoteBrowser._beginRemoveTab(aOtherTab, aOurTab, true))
               return;
 
+            // If this is the last tab of the window, hide the window
+            // immediately without animation before the docshell swap, to avoid
+            // about:blank being painted.
+            let [closeWindow] = aOtherTab._endRemoveArgs;
+            if (closeWindow) {
+              let win = aOtherTab.ownerGlobal;
+              let dwu = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+              dwu.suppressAnimation(true);
+              // Only suppressing window animations isn't enough to avoid
+              // an empty content area being painted.
+              let baseWin = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDocShell)
+                               .QueryInterface(Ci.nsIDocShellTreeItem)
+                               .treeOwner
+                               .QueryInterface(Ci.nsIBaseWindow);
+              baseWin.visibility = false;
+            }
+
             let modifiedAttrs = [];
             if (aOtherTab.hasAttribute("muted")) {
               aOurTab.setAttribute("muted", "true");
@@ -3327,7 +3533,11 @@
             }
 
             // Finish tearing down the tab that's going away.
-            remoteBrowser._endRemoveTab(aOtherTab);
+            if (closeWindow) {
+              aOtherTab.ownerGlobal.close();
+            } else {
+              remoteBrowser._endRemoveTab(aOtherTab);
+            }
 
             this.setTabTitle(aOurTab);
 
@@ -3693,6 +3903,14 @@
             for (var name in aOptions)
               options += "," + name + "=" + aOptions[name];
 
+            // Play the tab closing animation to give immediate feedback while
+            // waiting for the new window to appear.
+            // content area when the docshells are swapped.
+            if (this.animationsEnabled) {
+              aTab.style.maxWidth = ""; // ensure that fade-out transition happens
+              aTab.removeAttribute("fadein");
+            }
+
             // tell a new window to take the "dropped" tab
             return window.openDialog(getBrowserURL(), "_blank", options, aTab);
           ]]>
@@ -3716,6 +3934,7 @@
       <method name="moveTabTo">
         <parameter name="aTab"/>
         <parameter name="aIndex"/>
+        <parameter name="aKeepRelatedTabs"/>
         <body>
         <![CDATA[
           var oldPosition = aTab._tPos;
@@ -3730,7 +3949,9 @@
           if (oldPosition == aIndex)
             return;
 
-          this._lastRelatedTab = null;
+          if (!aKeepRelatedTabs) {
+            this._lastRelatedTabMap = new WeakMap();
+          }
 
           let wasFocused = (document.activeElement == this.mCurrentTab);
 
@@ -3812,7 +4033,8 @@
           let linkedBrowser = aTab.linkedBrowser;
           let params = { eventDetail: { adoptedTab: aTab },
                          preferredRemoteType: linkedBrowser.remoteType,
-                         sameProcessAsFrameLoader: linkedBrowser.frameLoader };
+                         sameProcessAsFrameLoader: linkedBrowser.frameLoader,
+                         skipAnimation: true };
           if (aTab.hasAttribute("usercontextid")) {
             // new tab must have the same usercontextid as the old one
             params.userContextId = aTab.getAttribute("usercontextid");
@@ -4062,6 +4284,12 @@
             // removed from the set upon MozAfterPaint.
             maybeVisibleTabs: new Set([this.selectedTab]),
 
+            // This holds onto the set of tabs that we've been asked to warm up.
+            // This is used only for Telemetry and logging, and (in order to not
+            // over-complicate the async tab switcher any further) has nothing to do
+            // with how warmed tabs are loaded and unloaded.
+            warmingTabs: new WeakSet(),
+
             STATE_UNLOADED: 0,
             STATE_LOADING: 1,
             STATE_LOADED: 2,
@@ -4108,7 +4336,7 @@
               this.setTabStateNoAction(tab, state);
 
               let browser = tab.linkedBrowser;
-              let {tabParent} = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+              let {tabParent} = browser.frameLoader;
               if (state == this.STATE_LOADING) {
                 this.assert(!this.minimizedOrFullyOccluded);
                 browser.docShellIsActive = true;
@@ -4116,6 +4344,7 @@
                   this.onLayersReady(browser);
                 }
               } else if (state == this.STATE_UNLOADING) {
+                this.unwarmTab(tab);
                 browser.docShellIsActive = false;
                 if (!tabParent) {
                   this.onLayersCleared(browser);
@@ -4393,6 +4622,7 @@
               for (let [tab, ] of this.tabState) {
                 if (!tab.linkedBrowser) {
                   this.tabState.delete(tab);
+                  this.unwarmTab(tab);
                 }
               }
 
@@ -4450,6 +4680,7 @@
 
               // See how many tabs still have work to do.
               let numPending = 0;
+              let numWarming = 0;
               for (let [tab, state] of this.tabState) {
                 // Skip print preview browsers since they shouldn't affect tab switching.
                 if (this.tabbrowser._printPreviewBrowsers.has(tab.linkedBrowser)) {
@@ -4458,6 +4689,10 @@
 
                 if (state == this.STATE_LOADED && tab !== this.requestedTab) {
                   numPending++;
+
+                  if (tab !== this.visibleTab) {
+                    numWarming++;
+                  }
                 }
                 if (state == this.STATE_LOADING || state == this.STATE_UNLOADING) {
                   numPending++;
@@ -4473,8 +4708,14 @@
                 return;
               }
 
-              if (this.blankTab) {
-                this.maybeFinishTabSwitch();
+              this.maybeFinishTabSwitch();
+
+              if (numWarming > this.tabbrowser.tabWarmingMax) {
+                this.logState("Hit tabWarmingMax");
+                if (this.unloadTimer) {
+                  this.clearTimer(this.unloadTimer);
+                }
+                this.unloadNonRequiredTabs();
               }
 
               if (numPending == 0) {
@@ -4487,9 +4728,20 @@
             // Fires when we're ready to unload unused tabs.
             onUnloadTimeout() {
               this.logState("onUnloadTimeout");
-              this.unloadTimer = null;
               this.preActions();
+              this.unloadTimer = null;
 
+              this.unloadNonRequiredTabs();
+
+              this.postActions();
+            },
+
+            // If there are any non-visible and non-requested tabs in
+            // STATE_LOADED, sets them to STATE_UNLOADING. Also queues
+            // up the unloadTimer to run onUnloadTimeout if there are still
+            // tabs in the process of unloading.
+            unloadNonRequiredTabs() {
+              this.warmingTabs = new WeakSet();
               let numPending = 0;
 
               // Unload any tabs that can be unloaded.
@@ -4515,8 +4767,6 @@
                 // Keep the timer going since there may be more tabs to unload.
                 this.unloadTimer = this.setTimer(() => this.onUnloadTimeout(), this.UNLOAD_DELAY);
               }
-
-              this.postActions();
             },
 
             // Fires when an ongoing load has taken too long.
@@ -4537,8 +4787,6 @@
                           this.getTabState(tab) == this.STATE_LOADED);
               this.setTabState(tab, this.STATE_LOADED);
 
-              this.maybeFinishTabSwitch();
-
               if (this.loadingTab === tab) {
                 this.clearTimer(this.loadTimer);
                 this.loadTimer = null;
@@ -4551,7 +4799,6 @@
             // around.
             onPaint() {
               this.maybeVisibleTabs.clear();
-              this.maybeFinishTabSwitch();
             },
 
             // Called when we're done clearing the layers for a tab.
@@ -4682,10 +4929,76 @@
               this.setTabState(tab, this.STATE_LOADING);
             },
 
+            canWarmTab(tab) {
+              if (!this.tabbrowser.tabWarmingEnabled) {
+                return false;
+              }
+
+              // If the tab is not yet inserted, closing, not remote,
+              // crashed, already visible, or already requested, warming
+              // up the tab makes no sense.
+              if (this.minimizedOrFullyOccluded ||
+                  !tab.linkedPanel ||
+                  tab.closing ||
+                  !tab.linkedBrowser.isRemoteBrowser ||
+                  !tab.linkedBrowser.frameLoader.tabParent) {
+                return false;
+              }
+
+              // Similarly, if the tab is already in STATE_LOADING or
+              // STATE_LOADED somehow, there's no point in trying to
+              // warm it up.
+              let state = this.getTabState(tab);
+              if (state === this.STATE_LOADING ||
+                  state === this.STATE_LOADED) {
+                return false;
+              }
+
+              return true;
+            },
+
+            unwarmTab(tab) {
+              this.warmingTabs.delete(tab);
+            },
+
+            warmupTab(tab) {
+              if (!this.canWarmTab(tab)) {
+                return;
+              }
+
+              this.logState("warmupTab " + this.tinfo(tab));
+
+              this.warmingTabs.add(tab);
+              this.setTabState(tab, this.STATE_LOADING);
+              this.suppressDisplayPortAndQueueUnload(tab,
+                this.tabbrowser.tabWarmingUnloadDelay);
+            },
+
             // Called when the user asks to switch to a given tab.
             requestTab(tab) {
               if (tab === this.requestedTab) {
                 return;
+              }
+
+              if (this.tabbrowser.tabWarmingEnabled) {
+                let warmingState = "disqualified";
+
+                if (this.warmingTabs.has(tab)) {
+                  let tabState = this.getTabState(tab);
+                  if (tabState == this.STATE_LOADING) {
+                    warmingState = "stillLoading";
+                  } else if (tabState == this.STATE_LOADED) {
+                    warmingState = "loaded";
+                  }
+                } else if (this.canWarmTab(tab)) {
+                  warmingState = "notWarmed";
+                }
+
+                Services.telemetry
+                        .getHistogramById("FX_TAB_SWITCH_REQUEST_TAB_WARMING_STATE")
+                        .add(warmingState);
+
+                this.unwarmTab(tab);
               }
 
               this._requestingTab = true;
@@ -4694,8 +5007,13 @@
 
               this.requestedTab = tab;
 
-              let browser = this.requestedTab.linkedBrowser;
-              let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+              this.suppressDisplayPortAndQueueUnload(this.requestedTab, this.UNLOAD_DELAY);
+              this._requestingTab = false;
+            },
+
+            suppressDisplayPortAndQueueUnload(tab, unloadTimeout) {
+              let browser = tab.linkedBrowser;
+              let fl = browser.frameLoader;
 
               if (fl && fl.tabParent && !this.activeSuppressDisplayport.has(fl.tabParent)) {
                 fl.tabParent.suppressDisplayport(true);
@@ -4707,10 +5025,9 @@
               if (this.unloadTimer) {
                 this.clearTimer(this.unloadTimer);
               }
-              this.unloadTimer = this.setTimer(() => this.onUnloadTimeout(), this.UNLOAD_DELAY);
+              this.unloadTimer = this.setTimer(() => this.onUnloadTimeout(), unloadTimeout);
 
               this.postActions();
-              this._requestingTab = false;
             },
 
             handleEvent(event, delayed = false) {
@@ -4800,7 +5117,6 @@
               TelemetryStopwatch.finish("FX_TAB_SWITCH_SPINNER_VISIBLE_LONG_MS", window);
               this.addMarker("AsyncTabSwitch:SpinnerHidden");
               // we do not get a onPaint after displaying the spinner
-              this.maybeFinishTabSwitch();
             },
 
             addMarker(marker) {
@@ -4852,12 +5168,14 @@
               for (let i = 0; i < this.tabbrowser.tabs.length; i++) {
                 let tab = this.tabbrowser.tabs[i];
                 let state = this.getTabState(tab);
+                let isWarming = this.warmingTabs.has(tab);
 
                 accum += i + ":";
                 if (tab === this.lastVisibleTab) accum += "V";
                 if (tab === this.loadingTab) accum += "L";
                 if (tab === this.requestedTab) accum += "R";
                 if (tab === this.blankTab) accum += "B";
+                if (isWarming) accum += "(W)";
                 if (state == this.STATE_LOADED) accum += "(+)";
                 if (state == this.STATE_LOADING) accum += "(+?)";
                 if (state == this.STATE_UNLOADED) accum += "(-)";
@@ -4875,6 +5193,17 @@
           switcher.init();
           return switcher;
         ]]></body>
+      </method>
+
+      <method name="warmupTab">
+        <parameter name="aTab"/>
+        <body>
+          <![CDATA[
+            if (gMultiProcessBrowser) {
+              this._getSwitcher().warmupTab(aTab);
+            }
+          ]]>
+        </body>
       </method>
 
       <!-- BEGIN FORWARDED BROWSER PROPERTIES.  IF YOU ADD A PROPERTY TO THE BROWSER ELEMENT
@@ -5358,7 +5687,7 @@
                 }];
 
                 notificationBox.appendNotification(message, "refresh-blocked",
-                                                   "chrome://browser/skin/Info.png",
+                                                   "chrome://browser/skin/notification-icons/popup.svg",
                                                    notificationBox.PRIORITY_INFO_MEDIUM,
                                                    buttons);
               }
@@ -5507,10 +5836,8 @@
           this._tabFilters.set(this.mCurrentTab, filter);
           this.webProgress.addProgressListener(filter, nsIWebProgress.NOTIFY_ALL);
 
-          this.style.backgroundColor =
-            Services.prefs.getBoolPref("browser.display.use_system_colors") ?
-              "-moz-default-background-color" :
-              Services.prefs.getCharPref("browser.display.background_color");
+          if (Services.prefs.getBoolPref("browser.display.use_system_colors"))
+            this.style.backgroundColor = "-moz-default-background-color";
 
           let messageManager = window.getGroupMessageManager("browsers");
 
@@ -5548,6 +5875,12 @@
 
           XPCOMUtils.defineLazyPreferenceGetter(this, "animationsEnabled",
                                                 "toolkit.cosmeticAnimations.enabled", true);
+          XPCOMUtils.defineLazyPreferenceGetter(this, "tabWarmingEnabled",
+                                                "browser.tabs.remote.warmup.enabled", false);
+          XPCOMUtils.defineLazyPreferenceGetter(this, "tabWarmingMax",
+                                                "browser.tabs.remote.warmup.maxTabs", 3);
+          XPCOMUtils.defineLazyPreferenceGetter(this, "tabWarmingUnloadDelay" /* ms */,
+                                                "browser.tabs.remote.warmup.unloadDelayMs", 2000);
         ]]>
       </constructor>
 
@@ -5839,14 +6172,6 @@
     </handlers>
   </binding>
 
-  <binding id="tabbrowser-tabbox"
-           extends="chrome://global/content/bindings/tabbox.xml#tabbox">
-    <implementation>
-      <property name="tabs" readonly="true"
-                onget="return document.getBindingParent(this).tabContainer;"/>
-    </implementation>
-  </binding>
-
   <binding id="tabbrowser-arrowscrollbox" extends="chrome://global/content/bindings/scrollbox.xml#arrowscrollbox-clicktoscroll">
     <implementation>
       <!-- Override scrollbox.xml method, since our scrollbox's children are
@@ -5958,6 +6283,8 @@
 
           Services.prefs.addObserver("privacy.userContext", this);
           this.observe(null, "nsPref:changed", "privacy.userContext.enabled");
+
+          this._setPositionalAttributes();
         ]]>
       </constructor>
 
@@ -6357,21 +6684,10 @@
         ]]></body>
       </method>
 
-      <method name="themeLayoutChanged">
-        <body><![CDATA[
-          this._positionPinnedTabs(true);
-        ]]></body>
-      </method>
-
       <field name="_lastNumPinned">0</field>
       <field name="_pinnedTabsLayoutCache">null</field>
       <method name="_positionPinnedTabs">
-        <parameter name="aThemeLayoutChanged"/>
         <body><![CDATA[
-          if (aThemeLayoutChanged) {
-            this._pinnedTabsLayoutCache = null;
-          }
-
           var numPinned = this.tabbrowser._numPinnedTabs;
           var doPosition = this.getAttribute("overflow") == "true" &&
                            numPinned > 0;
@@ -6420,6 +6736,7 @@
 
           if (this.getAttribute("movingtab") != "true") {
             this.setAttribute("movingtab", "true");
+            this.parentNode.setAttribute("movingtab", "true");
             this.selectedItem = draggedTab;
           }
 
@@ -6523,6 +6840,7 @@
             tab.style.transform = "";
 
           this.removeAttribute("movingtab");
+          this.parentNode.removeAttribute("movingtab");
 
           this._handleTabSelect();
         ]]></body>
@@ -7030,7 +7348,7 @@
               break;
           }
           if (pixelsToScroll)
-            tabStrip.scrollByPixels((ltr ? 1 : -1) * pixelsToScroll);
+            tabStrip.scrollByPixels((ltr ? 1 : -1) * pixelsToScroll, true);
         }
 
         if (effects == "move" &&
@@ -7177,12 +7495,7 @@
           let newIndex = this._getDropIndex(event, true);
           let urls = links.map(link => link.url);
 
-
-          // Bug 1367038: mozSourceNode is null if the drag event originated
-          // in an external application - needs better fallback!
-          let triggeringPrincipal = dt.mozSourceNode
-            ? dt.mozSourceNode.nodePrincipal
-            : Services.scriptSecurityManager.getSystemPrincipal();
+          let triggeringPrincipal = browserDragAndDrop.getTriggeringPrincipal(event);
           this.tabbrowser.loadTabs(urls, {
             inBackground,
             replace,
@@ -7271,7 +7584,7 @@
           window.moveTo(left, top);
           window.focus();
         } else {
-          let props = { screenX: left, screenY: top };
+          let props = { screenX: left, screenY: top, suppressanimation: 1 };
           if (AppConstants.platform != "win") {
             props.outerWidth = winWidth;
             props.outerHeight = winHeight;
@@ -7341,12 +7654,15 @@
           <xul:spacer flex="1"/>
           <xul:hbox class="tab-bottom-line"/>
         </xul:vbox>
+        <xul:hbox xbl:inherits="pinned,bursting"
+                  anonid="tab-loading-burst"
+                  class="tab-loading-burst"/>
         <xul:hbox xbl:inherits="pinned,selected=visuallyselected,titlechanged,attention"
                   class="tab-content" align="center">
-          <xul:image xbl:inherits="fadein,pinned,busy,progress,selected=visuallyselected"
-                     class="tab-throbber"
-                     role="presentation"
-                     layer="true" />
+          <xul:hbox xbl:inherits="fadein,pinned,busy,progress,selected=visuallyselected"
+                    anonid="tab-throbber"
+                    class="tab-throbber"
+                    layer="true"/>
           <xul:image xbl:inherits="src=image,loadingprincipal=iconLoadingPrincipal,fadein,pinned,selected=visuallyselected,busy,crashed,sharing"
                      anonid="tab-icon-image"
                      class="tab-icon-image"
@@ -7548,6 +7864,7 @@
 
           // Prepare connection to host beforehand.
           SessionStore.speculativeConnectOnTabHover(this);
+          tabContainer.tabbrowser.warmupTab(this);
         ]]></body>
       </method>
 
@@ -7732,6 +8049,14 @@
 
         if (this._overPlayingIcon) {
           this.toggleMuteAudio();
+        }
+      ]]>
+      </handler>
+      <handler event="animationend">
+      <![CDATA[
+        let anonid = event.originalTarget.getAttribute("anonid");
+        if (anonid == "tab-loading-burst") {
+          this.removeAttribute("bursting");
         }
       ]]>
       </handler>
@@ -7931,7 +8256,7 @@
       <![CDATA[
         var tab = event.target.tab;
         if (tab) {
-          let overLink = tab.linkedBrowser.currentURI.spec;
+          let overLink = tab.linkedBrowser.currentURI.displaySpec;
           if (overLink == "about:blank")
             overLink = "";
           XULBrowserWindow.setOverLink(overLink, null);

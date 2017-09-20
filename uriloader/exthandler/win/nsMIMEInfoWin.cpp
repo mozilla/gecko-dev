@@ -419,7 +419,7 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
     // Replace embedded environment variables.
     uint32_t bufLength = 
       ::ExpandEnvironmentStringsW(appFilesystemCommand.get(),
-                                  L"", 0);
+                                  nullptr, 0);
     if (bufLength == 0) // Error
       return false;
 
@@ -513,7 +513,7 @@ void nsMIMEInfoWin::ProcessPath(nsCOMPtr<nsIMutableArray>& appList,
   WCHAR exe[MAX_PATH+1];
   uint32_t len = GetModuleFileNameW(nullptr, exe, MAX_PATH);
   if (len < MAX_PATH && len != 0) {
-    uint32_t index = lower.Find(exe);
+    int32_t index = lower.Find(exe);
     if (index != -1)
       return;
   }

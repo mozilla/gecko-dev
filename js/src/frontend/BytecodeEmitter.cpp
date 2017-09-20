@@ -2283,11 +2283,6 @@ BytecodeEmitter::emitCheck(ptrdiff_t delta, ptrdiff_t* offset)
 {
     *offset = code().length();
 
-    // Start it off moderately large to avoid repeated resizings early on.
-    // ~98% of cases fit within 1024 bytes.
-    if (code().capacity() == 0 && !code().reserve(1024))
-        return false;
-
     if (!code().growBy(delta)) {
         ReportOutOfMemory(cx);
         return false;
@@ -3661,21 +3656,11 @@ BytecodeEmitter::reportExtraWarning(ParseNode* pn, unsigned errorNumber, ...)
     va_list args;
     va_start(args, errorNumber);
 
-    bool result = parser.reportExtraWarningErrorNumberVA(nullptr, pos.begin, errorNumber, args);
+    // FIXME: parser.tokenStream() should be a TokenStreamAnyChars for bug 1351107,
+    // but caused problems, cf. bug 1363116.
+    bool result = parser.tokenStream()
+                        .reportExtraWarningErrorNumberVA(nullptr, pos.begin, errorNumber, args);
 
-    va_end(args);
-    return result;
-}
-
-bool
-BytecodeEmitter::reportStrictModeError(ParseNode* pn, unsigned errorNumber, ...)
-{
-    TokenPos pos = pn ? pn->pn_pos : tokenStream().currentToken().pos;
-
-    va_list args;
-    va_start(args, errorNumber);
-    bool result = parser.reportStrictModeErrorNumberVA(nullptr, pos.begin, sc->strict(),
-                                                       errorNumber, args);
     va_end(args);
     return result;
 }
@@ -3709,18 +3694,12 @@ BytecodeEmitter::iteratorResultShape(unsigned* shape)
     if (!obj)
         return false;
 
-    Rooted<jsid> value_id(cx, AtomToId(cx->names().value));
-    Rooted<jsid> done_id(cx, AtomToId(cx->names().done));
-    if (!NativeDefineProperty(cx, obj, value_id, UndefinedHandleValue, nullptr, nullptr,
-                              JSPROP_ENUMERATE))
-    {
+    Rooted<jsid> value_id(cx, NameToId(cx->names().value));
+    Rooted<jsid> done_id(cx, NameToId(cx->names().done));
+    if (!NativeDefineDataProperty(cx, obj, value_id, UndefinedHandleValue, JSPROP_ENUMERATE))
         return false;
-    }
-    if (!NativeDefineProperty(cx, obj, done_id, UndefinedHandleValue, nullptr, nullptr,
-                              JSPROP_ENUMERATE))
-    {
+    if (!NativeDefineDataProperty(cx, obj, done_id, UndefinedHandleValue, JSPROP_ENUMERATE))
         return false;
-    }
 
     ObjectBox* objbox = parser.newObjectBox(obj);
     if (!objbox)
@@ -3755,18 +3734,6 @@ BytecodeEmitter::emitFinishIteratorResult(bool done)
     if (!emit1(done ? JSOP_TRUE : JSOP_FALSE))
         return false;
     if (!emitIndex32(JSOP_INITPROP, done_id))
-        return false;
-    return true;
-}
-
-bool
-BytecodeEmitter::emitToIteratorResult(bool done)
-{
-    if (!emitPrepareIteratorResult())    // VALUE OBJ
-        return false;
-    if (!emit1(JSOP_SWAP))               // OBJ VALUE
-        return false;
-    if (!emitFinishIteratorResult(done)) // RESULT
         return false;
     return true;
 }
@@ -6098,11 +6065,8 @@ BytecodeEmitter::emitDestructuringObjRestExclusionSet(ParseNode* pattern)
             if (obj) {
                 MOZ_ASSERT(!obj->inDictionaryMode());
                 Rooted<jsid> id(cx, AtomToId(pnatom));
-                if (!NativeDefineProperty(cx, obj, id, UndefinedHandleValue, nullptr, nullptr,
-                                          JSPROP_ENUMERATE))
-                {
+                if (!NativeDefineDataProperty(cx, obj, id, UndefinedHandleValue, JSPROP_ENUMERATE))
                     return false;
-                }
                 if (obj->inDictionaryMode())
                     obj.set(nullptr);
             }
@@ -7508,6 +7472,11 @@ BytecodeEmitter::emitForIn(ParseNode* forInLoop, EmitterScope* headLexicalEmitte
 #endif
         MOZ_ASSERT(loopDepth >= 2);
 
+        if (iflags == JSITER_ENUMERATE) {
+            if (!emit1(JSOP_ITERNEXT))                    // ITER ITERVAL
+                return false;
+        }
+
         if (!emitInitializeForInOrOfTarget(forInHead))    // ITER ITERVAL
             return false;
 
@@ -8259,7 +8228,7 @@ BytecodeEmitter::emitFunction(ParseNode* pn, bool needsProto)
     if (topLevelFunction) {
         if (sc->isModuleContext()) {
             // For modules, we record the function and instantiate the binding
-            // during ModuleDeclarationInstantiation(), before the script is run.
+            // during ModuleInstantiate(), before the script is run.
 
             RootedModuleObject module(cx, sc->asModuleContext()->module());
             if (!module->noteFunctionDeclaration(cx, name, fun))
@@ -10024,8 +9993,8 @@ BytecodeEmitter::emitPropertyList(ParseNode* pn, MutableHandlePlainObject objp, 
                 MOZ_ASSERT(!IsHiddenInitOp(op));
                 MOZ_ASSERT(!objp->inDictionaryMode());
                 Rooted<jsid> id(cx, AtomToId(key->pn_atom));
-                if (!NativeDefineProperty(cx, objp, id, UndefinedHandleValue, nullptr, nullptr,
-                                          JSPROP_ENUMERATE))
+                if (!NativeDefineDataProperty(cx, objp, id, UndefinedHandleValue,
+                                              JSPROP_ENUMERATE))
                 {
                     return false;
                 }
@@ -11295,11 +11264,6 @@ BytecodeEmitter::emitTreeInBranch(ParseNode* pn,
 static bool
 AllocSrcNote(JSContext* cx, SrcNotesVector& notes, unsigned* index)
 {
-    // Start it off moderately large to avoid repeated resizings early on.
-    // ~99% of cases fit within 256 bytes.
-    if (notes.capacity() == 0 && !notes.reserve(256))
-        return false;
-
     if (!notes.growBy(1)) {
         ReportOutOfMemory(cx);
         return false;

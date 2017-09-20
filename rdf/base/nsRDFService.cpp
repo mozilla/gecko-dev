@@ -2,21 +2,7 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.  */
 
 /*
 
@@ -44,7 +30,6 @@
 #include "nsIFactory.h"
 #include "nsRDFCID.h"
 #include "nsString.h"
-#include "nsXPIDLString.h"
 #include "nsNetUtil.h"
 #include "nsIURI.h"
 #include "PLDHashTable.h"
@@ -1191,12 +1176,14 @@ RDFServiceImpl::RegisterDataSource(nsIRDFDataSource* aDataSource, bool aReplace)
 
     nsresult rv;
 
-    nsXPIDLCString uri;
+    nsCString uri;
     rv = aDataSource->GetURI(getter_Copies(uri));
     if (NS_FAILED(rv)) return rv;
 
     PLHashEntry** hep =
-        PL_HashTableRawLookup(mNamedDataSources, (*mNamedDataSources->keyHash)(uri), uri);
+      PL_HashTableRawLookup(mNamedDataSources,
+                            (*mNamedDataSources->keyHash)(uri.get()),
+                            uri.get());
 
     if (*hep) {
         if (! aReplace)
@@ -1207,12 +1194,12 @@ RDFServiceImpl::RegisterDataSource(nsIRDFDataSource* aDataSource, bool aReplace)
         // refcounts.
         MOZ_LOG(gLog, LogLevel::Debug,
                ("rdfserv    replace-datasource [%p] <-- [%p] %s",
-                (*hep)->value, aDataSource, (const char*) uri));
+                (*hep)->value, aDataSource, uri.get()));
 
         (*hep)->value = aDataSource;
     }
     else {
-        const char* key = PL_strdup(uri);
+        const char* key = PL_strdup(uri.get());
         if (! key)
             return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1220,7 +1207,7 @@ RDFServiceImpl::RegisterDataSource(nsIRDFDataSource* aDataSource, bool aReplace)
 
         MOZ_LOG(gLog, LogLevel::Debug,
                ("rdfserv   register-datasource [%p] %s",
-                aDataSource, (const char*) uri));
+                aDataSource, uri.get()));
 
         // N.B., we only hold a weak reference to the datasource, so don't
         // addref.
@@ -1238,16 +1225,18 @@ RDFServiceImpl::UnregisterDataSource(nsIRDFDataSource* aDataSource)
 
     nsresult rv;
 
-    nsXPIDLCString uri;
+    nsCString uri;
     rv = aDataSource->GetURI(getter_Copies(uri));
     if (NS_FAILED(rv)) return rv;
 
     //NS_ASSERTION(uri != nullptr, "datasource has no URI");
-    if (! uri)
+    if (uri.IsVoid())
         return NS_ERROR_UNEXPECTED;
 
     PLHashEntry** hep =
-        PL_HashTableRawLookup(mNamedDataSources, (*mNamedDataSources->keyHash)(uri), uri);
+        PL_HashTableRawLookup(mNamedDataSources,
+                              (*mNamedDataSources->keyHash)(uri.get()),
+                              uri.get());
 
     // It may well be that this datasource was never registered. If
     // so, don't unregister it.
@@ -1260,7 +1249,7 @@ RDFServiceImpl::UnregisterDataSource(nsIRDFDataSource* aDataSource)
 
     MOZ_LOG(gLog, LogLevel::Debug,
            ("rdfserv unregister-datasource [%p] %s",
-            aDataSource, (const char*) uri));
+            aDataSource, uri.get()));
 
     return NS_OK;
 }

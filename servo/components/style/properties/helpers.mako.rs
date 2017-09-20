@@ -83,8 +83,6 @@
         #[allow(unused_imports)]
         use smallvec::SmallVec;
         use std::fmt;
-        #[allow(unused_imports)]
-        use style_traits::HasViewportPercentage;
         use style_traits::{Separator, ToCss};
 
         pub mod single_value {
@@ -119,8 +117,12 @@
             use values::computed::ComputedVecIter;
 
             /// The computed value, effectively a list of single values.
-            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            #[derive(Clone, Debug, PartialEq)]
+            % if need_animatable or animation_value_type == "ComputedValue":
+            #[derive(Animate, ComputeSquaredDistance)]
+            % endif
             pub struct T(
                 % if allow_empty and allow_empty != "NotInitial":
                 pub Vec<single_value::T>,
@@ -130,29 +132,7 @@
             );
 
             % if need_animatable or animation_value_type == "ComputedValue":
-                use properties::animated_properties::Animatable;
-                use values::animated::ToAnimatedZero;
-
-                impl Animatable for T {
-                    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-                        -> Result<Self, ()> {
-                        self.0.add_weighted(&other.0, self_portion, other_portion).map(T)
-                    }
-
-                    fn add(&self, other: &Self) -> Result<Self, ()> {
-                        self.0.add(&other.0).map(T)
-                    }
-
-                    #[inline]
-                    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                        self.0.compute_distance(&other.0)
-                    }
-
-                    #[inline]
-                    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                        self.0.compute_squared_distance(&other.0)
-                    }
-                }
+                use values::animated::{ToAnimatedZero};
 
                 impl ToAnimatedZero for T {
                     #[inline]
@@ -198,7 +178,8 @@
         }
 
         /// The specified value of ${name}.
-        #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
@@ -294,8 +275,6 @@
         #[allow(unused_imports)]
         use values::{Auto, Either, None_, Normal};
         #[allow(unused_imports)]
-        use cascade_info::CascadeInfo;
-        #[allow(unused_imports)]
         use error_reporting::ParseErrorReporter;
         #[allow(unused_imports)]
         use properties::longhands;
@@ -322,7 +301,6 @@
         pub fn cascade_property(
             declaration: &PropertyDeclaration,
             context: &mut computed::Context,
-            cascade_info: &mut Option<<&mut CascadeInfo>,
         ) {
             let value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref value) => {
@@ -338,16 +316,24 @@
                 _ => panic!("entered the wrong cascade_property() implementation"),
             };
 
+            context.for_non_inherited_property =
+                % if property.style_struct.inherited:
+                    None;
+                % else:
+                    Some(LonghandId::${property.camel_case});
+                % endif
+
             % if not property.derived_from:
-                if let Some(ref mut cascade_info) = *cascade_info {
-                    cascade_info.on_cascade_property(&declaration, &value);
-                }
                 match value {
-                    DeclaredValue::Value(ref specified_value) => {
+                    DeclaredValue::Value(specified_value) => {
                         % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
                             if let Some(sf) = specified_value.get_system() {
                                 longhands::system_font::resolve_system_font(sf, context);
                             }
+                        % endif
+                        % if not property.style_struct.inherited and property.logical:
+                            context.rule_cache_conditions.borrow_mut()
+                                .set_writing_mode_dependency(context.builder.writing_mode);
                         % endif
                         % if property.is_vector:
                             // In the case of a vector property we want to pass
@@ -368,7 +354,11 @@
                             }
                             context.builder.put_${data.current_style_struct.name_lower}(s);
                         % else:
+                            % if property.boxed:
+                            let computed = (**specified_value).to_computed_value(context);
+                            % else:
                             let computed = specified_value.to_computed_value(context);
+                            % endif
                             % if property.ident == "font_size":
                                  longhands::font_size::cascade_specified_font_size(
                                      context,
@@ -396,6 +386,9 @@
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
+                            % if not property.style_struct.inherited:
+                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                            % endif
                             % if property.ident == "font_size":
                                 longhands::font_size::cascade_inherit_font_size(context);
                             % else:
@@ -445,7 +438,6 @@
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
         use properties::longhands::system_font::SystemFont;
-        no_viewport_percentage!(SpecifiedValue);
 
         pub mod computed_value {
             use cssparser::Parser;
@@ -467,7 +459,8 @@
             ${gecko_keyword_conversion(keyword, keyword.values_for(product), type="T", cast_to="i32")}
         }
 
-        #[derive(Debug, Clone, PartialEq, Eq, Copy, ToCss)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             System(SystemFont),
@@ -493,12 +486,6 @@
             }
             fn from_computed_value(other: &computed_value::T) -> Self {
                 SpecifiedValue::Keyword(*other)
-            }
-        }
-
-        impl From<computed_value::T> for SpecifiedValue {
-            fn from(other: computed_value::T) -> Self {
-                SpecifiedValue::Keyword(other)
             }
         }
 
@@ -528,33 +515,26 @@
 
 <%def name="single_keyword(name, values, vector=False, **kwargs)">
     <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
-        % if not "extra_specified" in kwargs and ("aliases" in kwargs or (("extra_%s_aliases" % product) in kwargs)):
-            impl ToComputedValue for SpecifiedValue {
-                type ComputedValue = computed_value::T;
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
 
-                #[inline]
-                fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-                    match *self {
-                        % for value in data.longhands_by_name[name].keyword.values_for(product):
-                            SpecifiedValue::${to_rust_ident(value)} => computed_value::T::${to_rust_ident(value)},
-                        % endfor
-                    }
-                }
-                #[inline]
-                fn from_computed_value(computed: &computed_value::T) -> Self {
-                    match *computed {
-                        % for value in data.longhands_by_name[name].keyword.values_for(product):
-                            computed_value::T::${to_rust_ident(value)} => SpecifiedValue::${to_rust_ident(value)},
-                        % endfor
-                    }
+            #[inline]
+            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                match *self {
+                    % for value in data.longhands_by_name[name].keyword.values_for(product):
+                        SpecifiedValue::${to_rust_ident(value)} => computed_value::T::${to_rust_ident(value)},
+                    % endfor
                 }
             }
-        % else:
-            use values::computed::ComputedValueAsSpecified;
-            impl ComputedValueAsSpecified for SpecifiedValue {}
-        % endif
-
-        no_viewport_percentage!(SpecifiedValue);
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                match *computed {
+                    % for value in data.longhands_by_name[name].keyword.values_for(product):
+                        computed_value::T::${to_rust_ident(value)} => SpecifiedValue::${to_rust_ident(value)},
+                    % endfor
+                }
+            }
+        }
     </%call>
 </%def>
 
@@ -631,8 +611,8 @@
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
             'extra_gecko_values', 'extra_servo_values',
-            'aliases', 'extra_gecko_aliases', 'extra_servo_aliases',
-            'custom_consts', 'gecko_inexhaustive', 'gecko_strip_moz_prefix',
+            'aliases', 'extra_gecko_aliases', 'custom_consts',
+            'gecko_inexhaustive', 'gecko_strip_moz_prefix',
         ]}
     %>
 
@@ -896,7 +876,7 @@
     % endif
 </%def>
 
-<%def name="logical_setter(name, need_clone=False)">
+<%def name="logical_setter(name)">
     /// Set the appropriate physical property for ${name} given a writing mode.
     pub fn set_${to_rust_ident(name)}(&mut self,
                                       v: longhands::${to_rust_ident(name)}::computed_value::T,
@@ -928,18 +908,16 @@
         self.copy_${to_rust_ident(name)}_from(other, wm)
     }
 
-    % if need_clone:
-        /// Get the computed value for the appropriate physical property for
-        /// ${name} given a writing mode.
-        pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
-            -> longhands::${to_rust_ident(name)}::computed_value::T {
-        <%self:logical_setter_helper name="${name}">
-            <%def name="inner(physical_ident)">
-                self.clone_${physical_ident}()
-            </%def>
-        </%self:logical_setter_helper>
-        }
-    % endif
+    /// Get the computed value for the appropriate physical property for
+    /// ${name} given a writing mode.
+    pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
+        -> longhands::${to_rust_ident(name)}::computed_value::T {
+    <%self:logical_setter_helper name="${name}">
+        <%def name="inner(physical_ident)">
+            self.clone_${physical_ident}()
+        </%def>
+    </%self:logical_setter_helper>
+    }
 </%def>
 
 <%def name="alias_to_nscsspropertyid(alias)">
@@ -954,63 +932,6 @@
             ident = "float_"
         return "nsCSSPropertyID::eCSSProperty_%s" % ident
     %>
-</%def>
-
-/// Macro for defining Animatable trait for tuple struct which has Option<T>,
-/// e.g. struct T(pub Option<Au>).
-<%def name="impl_animatable_for_option_tuple(value_for_none)">
-    impl Animatable for T {
-        #[inline]
-        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-            -> Result<Self, ()> {
-            match (self, other) {
-                (&T(Some(ref this)), &T(Some(ref other))) => {
-                    Ok(T(this.add_weighted(other, self_portion, other_portion).ok()))
-                },
-                (&T(Some(ref this)), &T(None)) => {
-                    Ok(T(this.add_weighted(&${value_for_none}, self_portion, other_portion).ok()))
-                },
-                (&T(None), &T(Some(ref other))) => {
-                    Ok(T(${value_for_none}.add_weighted(other, self_portion, other_portion).ok()))
-                },
-                (&T(None), &T(None)) => {
-                    Ok(T(None))
-                },
-            }
-        }
-
-        #[inline]
-        fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-            match (self, other) {
-                (&T(Some(ref this)), &T(Some(ref other))) => {
-                    this.compute_distance(other)
-                },
-                (&T(Some(ref value)), &T(None)) |
-                (&T(None), &T(Some(ref value)))=> {
-                    value.compute_distance(&${value_for_none})
-                },
-                (&T(None), &T(None)) => {
-                    Ok(0.0)
-                },
-            }
-        }
-
-        #[inline]
-        fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-            match (self, other) {
-                (&T(Some(ref this)), &T(Some(ref other))) => {
-                    this.compute_squared_distance(other)
-                },
-                (&T(Some(ref value)), &T(None)) |
-                (&T(None), &T(Some(ref value))) => {
-                    value.compute_squared_distance(&${value_for_none})
-                },
-                (&T(None), &T(None)) => {
-                    Ok(0.0)
-                },
-            }
-        }
-    }
 </%def>
 
 // Define property that supports prefixed intrinsic size keyword values for gecko.
@@ -1029,8 +950,9 @@
             pub type T = ::values::computed::${length_type};
         }
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+        #[derive(Clone, Debug, PartialEq, ToCss)]
         pub struct SpecifiedValue(pub ${length_type});
 
         % if length_type == "MozLength":

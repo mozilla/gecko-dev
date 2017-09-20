@@ -494,6 +494,20 @@ private:
     return broker->Readlink(path, buf, size);
   }
 
+  static intptr_t ReadlinkAtTrap(ArgsRef aArgs, void* aux) {
+    auto broker = static_cast<SandboxBrokerClient*>(aux);
+    auto fd = static_cast<int>(aArgs.args[0]);
+    auto path = reinterpret_cast<const char*>(aArgs.args[1]);
+    auto buf = reinterpret_cast<char*>(aArgs.args[2]);
+    auto size = static_cast<size_t>(aArgs.args[3]);
+    if (fd != AT_FDCWD && path[0] != '/') {
+      SANDBOX_LOG_ERROR("unsupported fd-relative readlinkat(%d, %s, %p, %u)",
+                        fd, path, buf, size);
+      return BlockedSyscallTrap(aArgs, nullptr);
+    }
+    return broker->Readlink(path, buf, size);
+  }
+
   static intptr_t GetPPidTrap(ArgsRef aArgs, void* aux) {
     // In a pid namespace, getppid() will return 0. We will return 0 instead
     // of the real parent pid to see what breaks when we introduce the
@@ -629,6 +643,8 @@ public:
         return Trap(UnlinkTrap, mBroker);
       case __NR_readlink:
         return Trap(ReadlinkTrap, mBroker);
+      case __NR_readlinkat:
+        return Trap(ReadlinkAtTrap, mBroker);
       }
     } else {
       // No broker; allow the syscalls directly.  )-:
@@ -648,6 +664,7 @@ public:
       case __NR_rmdir:
       case __NR_unlink:
       case __NR_readlink:
+      case __NR_readlinkat:
         return Allow();
       }
     }
@@ -679,15 +696,6 @@ public:
       // settings.  Can remove when bug 1325242 happens in some form.
     case __NR_utime:
       return Error(EPERM);
-#endif
-
-    case __NR_readlinkat:
-#ifdef DESKTOP
-      // Bug 1290896
-      return Allow();
-#else
-      // Workaround for bug 964455:
-      return Error(EINVAL);
 #endif
 
     CASES_FOR_select:
@@ -783,12 +791,30 @@ public:
         .Else(InvalidSyscall());
     }
 
+      // PulseAudio calls umask, even though it's unsafe in
+      // multithreaded applications.  But, allowing it here doesn't
+      // really do anything one way or the other, now that file
+      // accesses are brokered to another process.
     case __NR_umask:
-    case __NR_kill:
+      return Allow();
+
+    case __NR_kill: {
+      Arg<int> sig(1);
+      // PulseAudio uses kill(pid, 0) to check if purported owners of
+      // shared memory files are still alive; see bug 1397753 for more
+      // details.
+      return If(sig == 0, Error(EPERM))
+        .Else(InvalidSyscall());
+    }
+
     case __NR_wait4:
 #ifdef __NR_waitpid
     case __NR_waitpid:
 #endif
+      // NSPR will start a thread to wait for child processes even if
+      // fork() fails; see bug 227246 and bug 1299581.
+      return Error(ECHILD);
+
 #ifdef __NR_arch_prctl
     case __NR_arch_prctl:
 #endif

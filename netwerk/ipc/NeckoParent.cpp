@@ -22,10 +22,6 @@
 #include "mozilla/net/AltDataOutputStreamParent.h"
 #include "mozilla/Unused.h"
 #include "mozilla/net/FileChannelParent.h"
-#ifdef NECKO_PROTOCOL_rtsp
-#include "mozilla/net/RtspControllerParent.h"
-#include "mozilla/net/RtspChannelParent.h"
-#endif
 #include "mozilla/net/DNSRequestParent.h"
 #include "mozilla/net/ChannelDiverterParent.h"
 #include "mozilla/net/IPCTransportProvider.h"
@@ -110,7 +106,7 @@ PBOverrideStatusFromLoadContext(const SerializedLoadContext& aSerialized)
 }
 
 static already_AddRefed<nsIPrincipal>
-GetRequestingPrincipal(const OptionalLoadInfoArgs aOptionalLoadInfoArgs)
+GetRequestingPrincipal(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs)
 {
   if (aOptionalLoadInfoArgs.type() != OptionalLoadInfoArgs::TLoadInfoArgs) {
     return nullptr;
@@ -578,64 +574,6 @@ NeckoParent::RecvPFileChannelConstructor(PFileChannelParent* actor,
   return IPC_OK();
 }
 
-PRtspControllerParent*
-NeckoParent::AllocPRtspControllerParent()
-{
-#ifdef NECKO_PROTOCOL_rtsp
-  RtspControllerParent* p = new RtspControllerParent();
-  p->AddRef();
-  return p;
-#else
-  return nullptr;
-#endif
-}
-
-bool
-NeckoParent::DeallocPRtspControllerParent(PRtspControllerParent* actor)
-{
-#ifdef NECKO_PROTOCOL_rtsp
-  RtspControllerParent* p = static_cast<RtspControllerParent*>(actor);
-  p->Release();
-#endif
-  return true;
-}
-
-PRtspChannelParent*
-NeckoParent::AllocPRtspChannelParent(const RtspChannelConnectArgs& aArgs)
-{
-#ifdef NECKO_PROTOCOL_rtsp
-  nsCOMPtr<nsIURI> uri = DeserializeURI(aArgs.uri());
-  RtspChannelParent *p = new RtspChannelParent(uri);
-  p->AddRef();
-  return p;
-#else
-  return nullptr;
-#endif
-}
-
-mozilla::ipc::IPCResult
-NeckoParent::RecvPRtspChannelConstructor(
-                      PRtspChannelParent* aActor,
-                      const RtspChannelConnectArgs& aConnectArgs)
-{
-#ifdef NECKO_PROTOCOL_rtsp
-  RtspChannelParent* p = static_cast<RtspChannelParent*>(aActor);
-  return p->Init(aConnectArgs);
-#else
-  return IPC_FAIL_NO_REASON(this);
-#endif
-}
-
-bool
-NeckoParent::DeallocPRtspChannelParent(PRtspChannelParent* actor)
-{
-#ifdef NECKO_PROTOCOL_rtsp
-  RtspChannelParent* p = static_cast<RtspChannelParent*>(actor);
-  p->Release();
-#endif
-  return true;
-}
-
 PTCPSocketParent*
 NeckoParent::AllocPTCPSocketParent(const nsString& /* host */,
                                    const uint16_t& /* port */)
@@ -957,6 +895,40 @@ NeckoParent::RecvPredReset()
   NS_ENSURE_SUCCESS(rv, IPC_FAIL_NO_REASON(this));
 
   predictor->Reset();
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+NeckoParent::RecvRequestContextLoadBegin(const uint64_t& rcid)
+{
+  nsCOMPtr<nsIRequestContextService> rcsvc =
+    do_GetService("@mozilla.org/network/request-context-service;1");
+  if (!rcsvc) {
+    return IPC_OK();
+  }
+  nsCOMPtr<nsIRequestContext> rc;
+  rcsvc->GetRequestContext(rcid, getter_AddRefs(rc));
+  if (rc) {
+    rc->BeginLoad();
+  }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+NeckoParent::RecvRequestContextAfterDOMContentLoaded(const uint64_t& rcid)
+{
+  nsCOMPtr<nsIRequestContextService> rcsvc =
+    do_GetService("@mozilla.org/network/request-context-service;1");
+  if (!rcsvc) {
+    return IPC_OK();
+  }
+  nsCOMPtr<nsIRequestContext> rc;
+  rcsvc->GetRequestContext(rcid, getter_AddRefs(rc));
+  if (rc) {
+    rc->DOMContentLoaded();
+  }
+
   return IPC_OK();
 }
 

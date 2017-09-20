@@ -1,4 +1,5 @@
 browser/components/translation/cld2/
+browser/extensions/mortar/ppapi/
 db/sqlite3/src/
 dom/media/platforms/ffmpeg/libav
 extensions/spellcheck/hunspell/src/
@@ -41,7 +42,6 @@ media/libvpx/
 media/libyuv/
 media/mtransport/third_party/
 media/openmax_dl/
-media/pocketsphinx/
 media/sphinxbase/
 media/webrtc/signaling/src/sdp/sipcc/
 media/webrtc/trunk/
@@ -88,6 +88,7 @@ third_party/python/pyyaml/
 third_party/python/redo/
 third_party/python/requests/
 third_party/python/rsa/
+third_party/python/six/
 third_party/python/which/
 third_party/rust/
 toolkit/components/jsoncpp/

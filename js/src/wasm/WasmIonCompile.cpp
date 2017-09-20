@@ -126,7 +126,7 @@ class FunctionCompiler
 
     const ModuleEnvironment&   env_;
     IonOpIter                  iter_;
-    const FuncBytes&           func_;
+    const FuncCompileUnit&     func_;
     const ValTypeVector&       locals_;
     size_t                     lastReadCallSite_;
 
@@ -149,7 +149,7 @@ class FunctionCompiler
   public:
     FunctionCompiler(const ModuleEnvironment& env,
                      Decoder& decoder,
-                     const FuncBytes& func,
+                     const FuncCompileUnit& func,
                      const ValTypeVector& locals,
                      MIRGenerator& mirGen)
       : env_(env),
@@ -171,7 +171,7 @@ class FunctionCompiler
     const ModuleEnvironment&   env() const   { return env_; }
     IonOpIter&                 iter()        { return iter_; }
     TempAllocator&             alloc() const { return alloc_; }
-    const Sig&                 sig() const   { return func_.sig(); }
+    const Sig&                 sig() const   { return *env_.funcSigs[func_.index()]; }
 
     BytecodeOffset bytecodeOffset() const {
         return iter_.bytecodeOffset();
@@ -184,14 +184,14 @@ class FunctionCompiler
     {
         // Prepare the entry block for MIR generation:
 
-        const ValTypeVector& args = func_.sig().args();
+        const ValTypeVector& args = sig().args();
 
         if (!mirGen_.ensureBallast())
             return false;
         if (!newBlock(/* prev */ nullptr, &curBlock_))
             return false;
 
-        for (ABIArgValTypeIter i(args); !i.done(); i++) {
+        for (ABIArgIter<ValTypeVector> i(args); !i.done(); i++) {
             MWasmParameter* ins = MWasmParameter::New(alloc(), *i, i.mirType());
             curBlock_->add(ins);
             curBlock_->initSlot(info().localSlot(i.index()), ins);
@@ -667,6 +667,41 @@ class FunctionCompiler
         if (inDeadCode())
             return nullptr;
         auto* ins = MExtendInt32ToInt64::New(alloc(), op, isUnsigned);
+        curBlock_->add(ins);
+        return ins;
+    }
+
+    MDefinition* signExtend(MDefinition* op, uint32_t srcSize, uint32_t targetSize)
+    {
+        if (inDeadCode())
+            return nullptr;
+        MInstruction* ins;
+        switch (targetSize) {
+          case 4: {
+            MSignExtendInt32::Mode mode;
+            switch (srcSize) {
+              case 1:  mode = MSignExtendInt32::Byte; break;
+              case 2:  mode = MSignExtendInt32::Half; break;
+              default: MOZ_CRASH("Bad sign extension");
+            }
+            ins = MSignExtendInt32::New(alloc(), op, mode);
+            break;
+          }
+          case 8: {
+            MSignExtendInt64::Mode mode;
+            switch (srcSize) {
+              case 1:  mode = MSignExtendInt64::Byte; break;
+              case 2:  mode = MSignExtendInt64::Half; break;
+              case 4:  mode = MSignExtendInt64::Word; break;
+              default: MOZ_CRASH("Bad sign extension");
+            }
+            ins = MSignExtendInt64::New(alloc(), op, mode);
+            break;
+          }
+          default: {
+            MOZ_CRASH("Bad sign extension");
+          }
+        }
         curBlock_->add(ins);
         return ins;
     }
@@ -2259,6 +2294,20 @@ EmitTruncate(FunctionCompiler& f, ValType operandType, ValType resultType,
     return true;
 }
 
+#ifdef ENABLE_WASM_THREAD_OPS
+static bool
+EmitSignExtend(FunctionCompiler& f, uint32_t srcSize, uint32_t targetSize)
+{
+    MDefinition* input;
+    ValType type = targetSize == 4 ? ValType::I32 : ValType::I64;
+    if (!f.iter().readConversion(type, type, &input))
+        return false;
+
+    f.iter().setResult(f.signExtend(input, srcSize, targetSize));
+    return true;
+}
+#endif
+
 static bool
 EmitExtendI32(FunctionCompiler& f, bool isUnsigned)
 {
@@ -3601,6 +3650,20 @@ EmitBodyExprs(FunctionCompiler& f)
           case uint16_t(Op::F64ReinterpretI64):
             CHECK(EmitReinterpret(f, ValType::F64, ValType::I64, MIRType::Double));
 
+          // Sign extensions
+#ifdef ENABLE_WASM_THREAD_OPS
+          case uint16_t(Op::I32Extend8S):
+            CHECK(EmitSignExtend(f, 1, 4));
+          case uint16_t(Op::I32Extend16S):
+            CHECK(EmitSignExtend(f, 2, 4));
+          case uint16_t(Op::I64Extend8S):
+            CHECK(EmitSignExtend(f, 1, 8));
+          case uint16_t(Op::I64Extend16S):
+            CHECK(EmitSignExtend(f, 2, 8));
+          case uint16_t(Op::I64Extend32S):
+            CHECK(EmitSignExtend(f, 4, 8));
+#endif
+
           // asm.js-specific operators
 
           case uint16_t(Op::MozPrefix): {
@@ -3789,19 +3852,18 @@ EmitBodyExprs(FunctionCompiler& f)
 }
 
 bool
-wasm::IonCompileFunction(CompileTask* task, FuncCompileUnit* unit, UniqueChars* error)
+wasm::IonCompileFunction(CompileTask* task, FuncCompileUnit* func, UniqueChars* error)
 {
     MOZ_ASSERT(task->tier() == Tier::Ion);
 
-    const FuncBytes& func = unit->func();
     const ModuleEnvironment& env = task->env();
 
-    Decoder d(func.bytes().begin(), func.bytes().end(), func.lineOrBytecode(), error);
+    Decoder d(func->begin(), func->end(), func->lineOrBytecode(), error);
 
     // Build the local types vector.
 
     ValTypeVector locals;
-    if (!locals.appendAll(func.sig().args()))
+    if (!locals.appendAll(task->env().funcSigs[func->index()]->args()))
         return false;
     if (!DecodeLocalEntries(d, env.kind, &locals))
         return false;
@@ -3818,7 +3880,7 @@ wasm::IonCompileFunction(CompileTask* task, FuncCompileUnit* unit, UniqueChars* 
 
     // Build MIR graph
     {
-        FunctionCompiler f(env, d, func, locals, mir);
+        FunctionCompiler f(env, d, *func, locals, mir);
         if (!f.init())
             return false;
 
@@ -3843,16 +3905,16 @@ wasm::IonCompileFunction(CompileTask* task, FuncCompileUnit* unit, UniqueChars* 
         if (!lir)
             return false;
 
-        SigIdDesc sigId = env.funcSigs[func.index()]->id;
+        SigIdDesc sigId = env.funcSigs[func->index()]->id;
 
         CodeGenerator codegen(&mir, lir, &task->masm());
 
-        BytecodeOffset prologueTrapOffset(func.lineOrBytecode());
+        BytecodeOffset prologueTrapOffset(func->lineOrBytecode());
         FuncOffsets offsets;
         if (!codegen.generateWasm(sigId, prologueTrapOffset, &offsets))
             return false;
 
-        unit->finish(offsets);
+        func->finish(offsets);
     }
 
     return true;

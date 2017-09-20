@@ -3,6 +3,7 @@
 This script patches tooltool manifests in the firefox source
 tree to update them to a new set of rust packages.
 '''
+from __future__ import absolute_import, print_function
 
 import json
 import os.path
@@ -79,11 +80,9 @@ TARGETS = {
             'browser/config/tooltool-manifests/macosx64/releng.manifest',
             ],
         'x86_64-pc-windows-msvc-repack': [
-            'browser/config/tooltool-manifests/win64/clang.manifest',
             'browser/config/tooltool-manifests/win64/releng.manifest',
             ],
         'i686-pc-windows-msvc-repack': [
-            'browser/config/tooltool-manifests/win32/clang.manifest',
             'browser/config/tooltool-manifests/win32/releng.manifest',
             ],
 }

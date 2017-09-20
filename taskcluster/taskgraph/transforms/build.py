@@ -20,7 +20,6 @@ def set_defaults(config, jobs):
     for job in jobs:
         job['treeherder'].setdefault('kind', 'build')
         job['treeherder'].setdefault('tier', 1)
-        job.setdefault('needs-sccache', True)
         _, worker_os = worker_type_implementation(job['worker-type'])
         worker = job.setdefault('worker', {})
         if worker_os == "linux":
@@ -29,9 +28,10 @@ def set_defaults(config, jobs):
             extra = job.setdefault('extra', {})
             extra.setdefault('chainOfTrust', {})
             extra['chainOfTrust'].setdefault('inputs', {})
-            extra['chainOfTrust']['inputs']['docker-image'] = {
-                "task-reference": "<docker-image>"
-            }
+            if 'in-tree' in worker['docker-image']:
+                extra['chainOfTrust']['inputs']['docker-image'] = {
+                    "task-reference": "<docker-image>"
+                }
         elif worker_os == "windows":
             worker.setdefault('env', {})
             worker['chain-of-trust'] = True

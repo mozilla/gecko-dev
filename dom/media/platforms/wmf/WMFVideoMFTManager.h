@@ -8,11 +8,13 @@
 #define WMFVideoMFTManager_h_
 
 #include "MFTDecoder.h"
+#include "MediaResult.h"
 #include "WMF.h"
 #include "WMFMediaDataDecoder.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/RefPtr.h"
 #include "nsAutoPtr.h"
-#include "nsRect.h"
+#include "mozilla/gfx/Rect.h"
 
 namespace mozilla {
 
@@ -24,10 +26,11 @@ public:
   WMFVideoMFTManager(const VideoInfo& aConfig,
                      layers::KnowsCompositor* aKnowsCompositor,
                      layers::ImageContainer* aImageContainer,
+                     float aFramerate,
                      bool aDXVAEnabled);
   ~WMFVideoMFTManager();
 
-  bool Init();
+  MediaResult Init();
 
   HRESULT Input(MediaRawData* aSample) override;
 
@@ -39,12 +42,7 @@ public:
 
   TrackInfo::TrackType GetType() override { return TrackInfo::kVideoTrack; }
 
-  const char* GetDescriptionName() const override
-  {
-    nsCString failureReason;
-    return IsHardwareAccelerated(failureReason) ? "wmf hardware video decoder"
-                                                : "wmf software video decoder";
-  }
+  nsCString GetDescriptionName() const override;
 
   void Flush() override
   {
@@ -67,11 +65,11 @@ public:
   }
 
 private:
-  bool ValidateVideoInfo();
+  MediaResult ValidateVideoInfo();
 
   bool InitializeDXVA();
 
-  bool InitInternal();
+  MediaResult InitInternal();
 
   HRESULT CreateBasicVideoFrame(IMFSample* aSample,
                                 int64_t aStreamOffset,
@@ -83,11 +81,13 @@ private:
 
   HRESULT SetDecoderMediaTypes();
 
-  bool CanUseDXVA(IMFMediaType* aType);
+  bool CanUseDXVA(IMFMediaType* aType, float aFramerate);
+
+  already_AddRefed<MFTDecoder> LoadAMDVP9Decoder();
 
   // Video frame geometry.
   const VideoInfo mVideoInfo;
-  const nsIntSize mImageSize;
+  const gfx::IntSize mImageSize;
   uint32_t mVideoStride;
 
   RefPtr<layers::ImageContainer> mImageContainer;
@@ -122,6 +122,9 @@ private:
   bool mGotExcessiveNullOutput = false;
   bool mIsValid = true;
   bool mIMFUsable = false;
+  bool mCheckForAMDDecoder = true;
+  Atomic<bool> mAMDVP9InUse;
+  const float mFramerate;
 };
 
 } // namespace mozilla

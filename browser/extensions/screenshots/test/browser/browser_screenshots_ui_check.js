@@ -1,4 +1,7 @@
+/* eslint disable */
 "use strict";
+
+const BUTTON_ID = "pageAction-panel-screenshots";
 
 function checkElements(expectPresent, l) {
   for (let id of l) {
@@ -13,9 +16,10 @@ add_task(async function() {
     await promiseScreenshotsReset();
   });
 
+
   await BrowserTestUtils.waitForCondition(
-    () => document.getElementById("screenshots_mozilla_org-browser-action"),
+    () => document.getElementById(BUTTON_ID),
     "Screenshots button should be present", 100, 100);
 
-  checkElements(true, ["screenshots_mozilla_org-browser-action"]);
+  checkElements(true, [BUTTON_ID]);
 });

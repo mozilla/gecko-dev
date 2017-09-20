@@ -85,7 +85,7 @@ enum NewObjectKind {
 /* Type information about an object accessed by a script. */
 class ObjectGroup : public gc::TenuredCell
 {
-    friend void gc::MergeCompartments(JSCompartment* source, JSCompartment* target);
+    friend class gc::GCRuntime;
 
     /* Class shared by objects in this group. */
     const Class* clasp_;
@@ -97,7 +97,6 @@ class ObjectGroup : public gc::TenuredCell
     JSCompartment* compartment_;
 
   public:
-
     const Class* clasp() const {
         return clasp_;
     }
@@ -391,6 +390,7 @@ class ObjectGroup : public gc::TenuredCell
 
     /* Get a property only if it already exists. */
     MOZ_ALWAYS_INLINE HeapTypeSet* maybeGetProperty(jsid id);
+    MOZ_ALWAYS_INLINE HeapTypeSet* maybeGetPropertyDontCheckGeneration(jsid id);
 
     /*
      * Iterate through the group's properties. getPropertyCount overapproximates
@@ -472,6 +472,7 @@ class ObjectGroup : public gc::TenuredCell
     }
 
     inline uint32_t basePropertyCount();
+    inline uint32_t basePropertyCountDontCheckGeneration();
 
   private:
     inline void setBasePropertyCount(uint32_t count);

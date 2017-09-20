@@ -41,9 +41,9 @@
 // #define CULLING_LOG(...) printf_stderr("CULLING: " __VA_ARGS__)
 
 #define DUMP(...) do { if (gfxEnv::DumpDebug()) { printf_stderr(__VA_ARGS__); } } while(0)
-#define XYWH(k)  (k).x, (k).y, (k).width, (k).height
+#define XYWH(k)  (k).x, (k).y, (k).Width(), (k).Height()
 #define XY(k)    (k).x, (k).y
-#define WH(k)    (k).width, (k).height
+#define WH(k)    (k).Width(), (k).Height()
 
 namespace mozilla {
 namespace layers {
@@ -67,7 +67,7 @@ DrawLayerInfo(const RenderTargetIntRect& aClipRect,
 
   LayerIntRegion visibleRegion = aLayer->GetVisibleRegion();
 
-  uint32_t maxWidth = std::min<uint32_t>(visibleRegion.GetBounds().width, 500);
+  uint32_t maxWidth = std::min<uint32_t>(visibleRegion.GetBounds().Width(), 500);
 
   IntPoint topLeft = visibleRegion.ToUnknownRegion().GetBounds().TopLeft();
   aManager->GetTextRenderer()->RenderText(
@@ -86,8 +86,8 @@ PrintUniformityInfo(Layer* aLayer)
   }
 
   // Don't want to print a log for smaller layers
-  if (aLayer->GetLocalVisibleRegion().GetBounds().width < 300 ||
-      aLayer->GetLocalVisibleRegion().GetBounds().height < 300) {
+  if (aLayer->GetLocalVisibleRegion().GetBounds().Width() < 300 ||
+      aLayer->GetLocalVisibleRegion().GetBounds().Height() < 300) {
     return;
   }
 
@@ -433,7 +433,7 @@ RenderLayers(ContainerT* aContainer, LayerManagerComposite* aManager,
       gfx::IntRect clearRect = layerToRender->GetClearRect();
       if (!clearRect.IsEmpty()) {
         // Clear layer's visible rect on FrameBuffer with transparent pixels
-        gfx::Rect fbRect(clearRect.x, clearRect.y, clearRect.width, clearRect.height);
+        gfx::Rect fbRect(clearRect.x, clearRect.y, clearRect.Width(), clearRect.Height());
         compositor->ClearRect(fbRect);
         layerToRender->SetClearRect(gfx::IntRect(0, 0, 0, 0));
       }
@@ -533,7 +533,7 @@ CreateTemporaryTargetAndCopyFromBackground(ContainerT* aContainer,
   gfx::IntRect visibleRect = aContainer->GetLocalVisibleRegion().ToUnknownRegion().GetBounds();
   RefPtr<CompositingRenderTarget> previousTarget = compositor->GetCurrentRenderTarget();
   gfx::IntRect surfaceRect = gfx::IntRect(visibleRect.x, visibleRect.y,
-                                          visibleRect.width, visibleRect.height);
+                                          visibleRect.Width(), visibleRect.Height());
 
   gfx::IntPoint sourcePoint = gfx::IntPoint(visibleRect.x, visibleRect.y);
 
@@ -721,6 +721,74 @@ ContainerLayerComposite::CleanupResources()
   for (Layer* l = GetFirstChild(); l; l = l->GetNextSibling()) {
     static_cast<LayerComposite*>(l->AsHostLayer())->CleanupResources();
   }
+}
+
+static LayerIntRect
+TransformRect(const LayerIntRect& aRect, const Matrix4x4& aTransform)
+{
+  if (aRect.IsEmpty()) {
+    return LayerIntRect();
+  }
+
+  Rect rect(aRect.x, aRect.y, aRect.width, aRect.height);
+  rect = aTransform.TransformAndClipBounds(rect, Rect::MaxIntRect());
+  rect.RoundOut();
+
+  IntRect intRect;
+  if (!gfxUtils::GfxRectToIntRect(ThebesRect(rect), &intRect)) {
+    return LayerIntRect();
+  }
+
+  return ViewAs<LayerPixel>(intRect);
+}
+
+static void
+AddTransformedRegion(LayerIntRegion& aDest, const LayerIntRegion& aSource, const Matrix4x4& aTransform)
+{
+  for (auto iter = aSource.RectIter(); !iter.Done(); iter.Next()) {
+    aDest.Or(aDest, TransformRect(iter.Get(), aTransform));
+  }
+  aDest.SimplifyOutward(20);
+}
+
+// Async animations can move child layers without updating our visible region.
+// PostProcessLayers will recompute visible regions for layers with an intermediate
+// surface, but otherwise we need to do it now.
+void
+ComputeVisibleRegionForChildren(ContainerLayer* aContainer, LayerIntRegion& aResult)
+{
+  for (Layer* l = aContainer->GetFirstChild(); l; l = l->GetNextSibling()) {
+    if (l->Extend3DContext()) {
+      MOZ_ASSERT(l->AsContainerLayer());
+      ComputeVisibleRegionForChildren(l->AsContainerLayer(), aResult);
+    } else {
+      AddTransformedRegion(aResult,
+                           l->GetLocalVisibleRegion(),
+                           l->ComputeTransformToPreserve3DRoot());
+    }
+  }
+}
+
+const LayerIntRegion&
+ContainerLayerComposite::GetShadowVisibleRegion()
+{
+  if (!UseIntermediateSurface()) {
+    mShadowVisibleRegion.SetEmpty();
+    ComputeVisibleRegionForChildren(this, mShadowVisibleRegion);
+  }
+
+  return mShadowVisibleRegion;
+}
+
+const LayerIntRegion&
+RefLayerComposite::GetShadowVisibleRegion()
+{
+  if (!UseIntermediateSurface()) {
+    mShadowVisibleRegion.SetEmpty();
+    ComputeVisibleRegionForChildren(this, mShadowVisibleRegion);
+  }
+
+  return mShadowVisibleRegion;
 }
 
 RefLayerComposite::RefLayerComposite(LayerManagerComposite* aManager)

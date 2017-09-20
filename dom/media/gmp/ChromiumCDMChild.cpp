@@ -52,7 +52,7 @@ public:
     , mSize(aShmem.Size<uint8_t>())
     , mShmem(aShmem)
   {
-    CDM_LOG("CDMShmemBuffer(size=%" PRIu32 ") created", Size());
+    GMP_LOG("CDMShmemBuffer(size=%" PRIu32 ") created", Size());
     // Note: Chrome initializes the size of a buffer to it capacity. We do the same.
   }
 
@@ -69,7 +69,7 @@ public:
 
   ~CDMShmemBuffer() override
   {
-    CDM_LOG("CDMShmemBuffer(size=%" PRIu32 ") destructed writable=%d",
+    GMP_LOG("CDMShmemBuffer(size=%" PRIu32 ") destructed writable=%d",
             Size(),
             mShmem.IsWritable());
     if (mShmem.IsWritable()) {
@@ -81,7 +81,7 @@ public:
 
   void Destroy() override
   {
-    CDM_LOG("CDMShmemBuffer::Destroy(size=%" PRIu32 ")", Size());
+    GMP_LOG("CDMShmemBuffer::Destroy(size=%" PRIu32 ")", Size());
     delete this;
   }
   uint32_t Capacity() const override { return mShmem.Size<uint8_t>(); }
@@ -94,7 +94,7 @@ public:
     // Note: We can't use the shmem's size member after ExtractShmem(),
     // has been called, so we track the size exlicitly so that we can use
     // Size() in logging after we've called ExtractShmem().
-    CDM_LOG("CDMShmemBuffer::SetSize(size=%" PRIu32 ")", Size());
+    GMP_LOG("CDMShmemBuffer::SetSize(size=%" PRIu32 ")", Size());
     mSize = aSize;
   }
 
@@ -185,46 +185,88 @@ ChromiumCDMChild::SetTimer(int64_t aDelayMs, void* aContext)
 cdm::Time
 ChromiumCDMChild::GetCurrentWallTime()
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   return base::Time::Now().ToDoubleT();
 }
 
+template <typename MethodType, typename... ParamType>
 void
-ChromiumCDMChild::OnResolveNewSessionPromise(uint32_t aPromiseId,
-                                             const char* aSessionId,
-                                             uint32_t aSessionIdSize)
+ChromiumCDMChild::CallMethod(MethodType aMethod, ParamType&&... aParams)
 {
   MOZ_ASSERT(IsOnMessageLoopThread());
-  GMP_LOG("ChromiumCDMChild::OnResolveNewSessionPromise(pid=%" PRIu32
-          ", sid=%s)",
-          aPromiseId,
-          aSessionId);
+  // Avoid calling member function after destroy.
+  if (!mDestroyed) {
+    Unused << (this->*aMethod)(Forward<ParamType>(aParams)...);
+  }
+}
 
+template<typename MethodType, typename... ParamType>
+void
+ChromiumCDMChild::CallOnMessageLoopThread(const char* const aName,
+                                          MethodType aMethod,
+                                          ParamType&&... aParams)
+{
+  if (IsOnMessageLoopThread()) {
+    CallMethod(aMethod, Forward<ParamType>(aParams)...);
+  } else {
+    auto m = &ChromiumCDMChild::CallMethod<
+        decltype(aMethod), const typename RemoveReference<ParamType>::Type&...>;
+    RefPtr<mozilla::Runnable> t =
+      NewRunnableMethod<decltype(aMethod),
+                        const typename RemoveReference<ParamType>::Type...>(
+                        aName,
+                        this,
+                        m,
+                        aMethod,
+                        Forward<ParamType>(aParams)...);
+    mPlugin->GMPMessageLoop()->PostTask(t.forget());
+  }
+}
+
+bool
+ChromiumCDMChild::OnResolveNewSessionPromiseInternal(uint32_t aPromiseId,
+                                                     const nsCString& aSessionId)
+{
+  MOZ_ASSERT(IsOnMessageLoopThread());
   if (mLoadSessionPromiseIds.Contains(aPromiseId)) {
     // As laid out in the Chromium CDM API, if the CDM fails to load
     // a session it calls OnResolveNewSessionPromise with nullptr as the sessionId.
     // We can safely assume this means that we have failed to load a session
     // as the other methods specify calling 'OnRejectPromise' when they fail.
-    bool loadSuccessful = aSessionId != nullptr;
+    bool loadSuccessful = !aSessionId.IsEmpty();
     GMP_LOG("ChromiumCDMChild::OnResolveNewSessionPromise(pid=%u, sid=%s) "
             "resolving %s load session ",
             aPromiseId,
-            aSessionId,
+            aSessionId.get(),
             (loadSuccessful ? "successful" : "failed"));
-    Unused << SendResolveLoadSessionPromise(aPromiseId, loadSuccessful);
     mLoadSessionPromiseIds.RemoveElement(aPromiseId);
-    return;
+    return SendResolveLoadSessionPromise(aPromiseId, loadSuccessful);
   }
 
-  Unused << SendOnResolveNewSessionPromise(aPromiseId,
-                                           nsCString(aSessionId, aSessionIdSize));
+  return SendOnResolveNewSessionPromise(aPromiseId,
+                                        aSessionId);
+}
+void
+ChromiumCDMChild::OnResolveNewSessionPromise(uint32_t aPromiseId,
+                                             const char* aSessionId,
+                                             uint32_t aSessionIdSize)
+{
+  GMP_LOG("ChromiumCDMChild::OnResolveNewSessionPromise(pid=%" PRIu32
+          ", sid=%s)",
+          aPromiseId,
+          aSessionId);
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnResolveNewSessionPromise",
+                          &ChromiumCDMChild::OnResolveNewSessionPromiseInternal,
+                          aPromiseId,
+                          nsCString(aSessionId, aSessionIdSize));
+
 }
 
 void ChromiumCDMChild::OnResolvePromise(uint32_t aPromiseId)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnResolvePromise(pid=%" PRIu32 ")", aPromiseId);
-  Unused << SendOnResolvePromise(aPromiseId);
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnResolvePromise",
+                          &ChromiumCDMChild::SendOnResolvePromise,
+                          aPromiseId);
 }
 
 void
@@ -234,17 +276,18 @@ ChromiumCDMChild::OnRejectPromise(uint32_t aPromiseId,
                                   const char* aErrorMessage,
                                   uint32_t aErrorMessageSize)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnRejectPromise(pid=%" PRIu32 ", err=%" PRIu32
           " code=%" PRIu32 ", msg='%s')",
           aPromiseId,
           aError,
           aSystemCode,
           aErrorMessage);
-  Unused << SendOnRejectPromise(aPromiseId,
-                                static_cast<uint32_t>(aError),
-                                aSystemCode,
-                                nsCString(aErrorMessage, aErrorMessageSize));
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnRejectPromise",
+                          &ChromiumCDMChild::SendOnRejectPromise,
+                          aPromiseId,
+                          static_cast<uint32_t>(aError),
+                          aSystemCode,
+                          nsCString(aErrorMessage, aErrorMessageSize));
 }
 
 void
@@ -256,7 +299,6 @@ ChromiumCDMChild::OnSessionMessage(const char* aSessionId,
                                    const char* aLegacyDestinationUrl,
                                    uint32_t aLegacyDestinationUrlLength)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnSessionMessage(sid=%s, type=%" PRIu32
           " size=%" PRIu32 ")",
           aSessionId,
@@ -264,9 +306,11 @@ ChromiumCDMChild::OnSessionMessage(const char* aSessionId,
           aMessageSize);
   nsTArray<uint8_t> message;
   message.AppendElements(aMessage, aMessageSize);
-  Unused << SendOnSessionMessage(nsCString(aSessionId, aSessionIdSize),
-                                 static_cast<uint32_t>(aMessageType),
-                                 message);
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnSessionMessage",
+                          &ChromiumCDMChild::SendOnSessionMessage,
+                          nsCString(aSessionId, aSessionIdSize),
+                          static_cast<uint32_t>(aMessageType),
+                          message);
 }
 
 static nsCString
@@ -292,7 +336,6 @@ ChromiumCDMChild::OnSessionKeysChange(const char *aSessionId,
                                       const cdm::KeyInformation* aKeysInfo,
                                       uint32_t aKeysInfoCount)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnSessionKeysChange(sid=%s) keys={%s}",
           aSessionId,
           ToString(aKeysInfo, aKeysInfoCount).get());
@@ -305,8 +348,11 @@ ChromiumCDMChild::OnSessionKeysChange(const char *aSessionId,
     kid.AppendElements(key.key_id, key.key_id_size);
     keys.AppendElement(CDMKeyInformation(kid, key.status, key.system_code));
   }
-  Unused << SendOnSessionKeysChange(nsCString(aSessionId, aSessionIdSize),
-                                    keys);
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnSessionMessage",
+                          &ChromiumCDMChild::SendOnSessionKeysChange,
+                          nsCString(aSessionId, aSessionIdSize),
+                          keys);
+
 }
 
 void
@@ -314,21 +360,23 @@ ChromiumCDMChild::OnExpirationChange(const char* aSessionId,
                                      uint32_t aSessionIdSize,
                                      cdm::Time aNewExpiryTime)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnExpirationChange(sid=%s, time=%lf)",
           aSessionId,
           aNewExpiryTime);
-  Unused << SendOnExpirationChange(nsCString(aSessionId, aSessionIdSize),
-                                   aNewExpiryTime);
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnExpirationChange",
+                          &ChromiumCDMChild::SendOnExpirationChange,
+                          nsCString(aSessionId, aSessionIdSize),
+                          aNewExpiryTime);
 }
 
 void
 ChromiumCDMChild::OnSessionClosed(const char* aSessionId,
                                   uint32_t aSessionIdSize)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnSessionClosed(sid=%s)", aSessionId);
-  Unused << SendOnSessionClosed(nsCString(aSessionId, aSessionIdSize));
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnSessionClosed",
+                          &ChromiumCDMChild::SendOnSessionClosed,
+                          nsCString(aSessionId, aSessionIdSize));
 }
 
 void
@@ -339,17 +387,17 @@ ChromiumCDMChild::OnLegacySessionError(const char* aSessionId,
                                        const char* aErrorMessage,
                                        uint32_t aErrorMessageLength)
 {
-  MOZ_ASSERT(IsOnMessageLoopThread());
   GMP_LOG("ChromiumCDMChild::OnLegacySessionError(sid=%s, error=%" PRIu32
           " msg='%s')",
           aSessionId,
           aError,
           aErrorMessage);
-  Unused << SendOnLegacySessionError(
-    nsCString(aSessionId, aSessionIdLength),
-    static_cast<uint32_t>(aError),
-    aSystemCode,
-    nsCString(aErrorMessage, aErrorMessageLength));
+  CallOnMessageLoopThread("gmp::ChromiumCDMChild::OnLegacySessionError",
+                          &ChromiumCDMChild::SendOnLegacySessionError,
+                          nsCString(aSessionId, aSessionIdLength),
+                          static_cast<uint32_t>(aError),
+                          aSystemCode,
+                          nsCString(aErrorMessage, aErrorMessageLength));
 }
 
 cdm::FileIO*
@@ -778,7 +826,7 @@ ChromiumCDMChild::RecvDrain()
   WidevineVideoFrame frame;
   cdm::InputBuffer sample;
   cdm::Status rv = mCDM->DecryptAndDecodeFrame(sample, &frame);
-  CDM_LOG("ChromiumCDMChild::RecvDrain();  DecryptAndDecodeFrame() rv=%d", rv);
+  GMP_LOG("ChromiumCDMChild::RecvDrain();  DecryptAndDecodeFrame() rv=%d", rv);
   if (rv == cdm::kSuccess) {
     MOZ_ASSERT(frame.Format() != cdm::kUnknownVideoFormat);
     ReturnOutput(frame);
@@ -800,6 +848,7 @@ ChromiumCDMChild::RecvDestroy()
     mCDM->Destroy();
     mCDM = nullptr;
   }
+  mDestroyed = true;
 
   Unused << Send__delete__(this);
 

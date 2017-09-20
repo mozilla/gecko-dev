@@ -215,7 +215,7 @@ fn may_match<E>(hashes: &AncestorHashes,
 /// and `is_unvisited` are based on relevant link state of only the current
 /// complex selector being matched (not the global relevant link status for all
 /// selectors in `MatchingContext`).
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RelevantLinkStatus {
     /// Looking for a possible relevant link.  This is the initial mode when
     /// matching a selector.
@@ -352,7 +352,7 @@ impl RelevantLinkStatus {
 /// However since the selector "c1" raises
 /// NotMatchedAndRestartFromClosestDescendant. So the selector
 /// "b1 + c1 > b2 ~ " doesn't match and restart matching from "d1".
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 enum SelectorMatchingResult {
     Matched,
     NotMatchedAndRestartFromClosestLaterSibling,
@@ -458,7 +458,7 @@ where
 /// Matches a complex selector.
 pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
                                       element: &E,
-                                      mut context: &mut LocalMatchingContext<E::Impl>,
+                                      context: &mut LocalMatchingContext<E::Impl>,
                                       flags_setter: &mut F)
                                       -> bool
     where E: Element,
@@ -519,12 +519,12 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
 {
     *relevant_link = relevant_link.examine_potential_link(element, &mut context.shared);
 
+    debug!("Matching complex selector {:?} for {:?}, relevant link {:?}",
+           selector_iter, element, relevant_link);
+
     let matches_all_simple_selectors = selector_iter.all(|simple| {
         matches_simple_selector(simple, element, context, &relevant_link, flags_setter)
     });
-
-    debug!("Matching for {:?}, simple selector {:?}, relevant link {:?}",
-           element, selector_iter, relevant_link);
 
     let combinator = selector_iter.next_sequence();
     let siblings = combinator.map_or(false, |c| c.is_sibling());
@@ -776,6 +776,10 @@ fn matches_generic_nth_child<E, F>(element: &E,
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
+    if element.ignores_nth_child_selectors() {
+        return false;
+    }
+
     flags_setter(element, if is_from_end {
         HAS_SLOW_SELECTOR
     } else {

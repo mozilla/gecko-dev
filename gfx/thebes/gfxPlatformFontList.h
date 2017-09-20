@@ -20,6 +20,7 @@
 #include "nsIMemoryReporter.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/RangedArray.h"
 #include "nsLanguageAtomService.h"
 
@@ -67,7 +68,9 @@ public:
     enum { ALLOW_MEMMOVE = true };
 
 protected:
-    gfxCharacterMap *mCharMap;
+    // charMaps are not owned by the shared cmap cache, but it will be notified
+    // by gfxCharacterMap::Release() when an entry is about to be deleted
+    gfxCharacterMap* MOZ_NON_OWNING_REF mCharMap;
 };
 
 // gfxPlatformFontList is an abstract class for the global font list on the system;
@@ -133,13 +136,30 @@ public:
                           Script aRunScript,
                           const gfxFontStyle* aStyle);
 
+    // Flags to control optional behaviors in FindAndAddFamilies. The sense
+    // of the bit flags have been chosen such that the default parameter of
+    // FindFamiliesFlags(0) in FindFamily will give the most commonly-desired
+    // behavior, and only a few callsites need to explicitly pass other values.
+    enum class FindFamiliesFlags {
+        // If set, "other" (e.g. localized) family names should be loaded
+        // immediately; if clear, InitOtherFamilyNames is allowed to defer
+        // loading to avoid blocking.
+        eForceOtherFamilyNamesLoading = 1 << 0,
+        
+        // If set, FindAndAddFamilies should not check for legacy "styled
+        // family" names to add to the font list. This is used to avoid
+        // a recursive search when using FindFamily to find a potential base
+        // family name for a styled variant.
+        eNoSearchForLegacyFamilyNames = 1 << 1
+    };
+
     // Find family(ies) matching aFamily and append to the aOutput array
     // (there may be multiple results in the case of fontconfig aliases, etc).
     // Return true if any match was found and appended, false if none.
     virtual bool
     FindAndAddFamilies(const nsAString& aFamily,
                        nsTArray<gfxFontFamily*>* aOutput,
-                       bool aDeferOtherFamilyNamesLoading,
+                       FindFamiliesFlags aFlags,
                        gfxFontStyle* aStyle = nullptr,
                        gfxFloat aDevToCssSize = 1.0);
 
@@ -264,6 +284,9 @@ public:
         gfxPlatformFontList::PlatformFontList()->UpdateFontList();
     }
 
+    bool AddWithLegacyFamilyName(const nsAString& aLegacyName,
+                                 gfxFontEntry* aFontEntry);
+
 protected:
     class InitOtherFamilyNamesRunnable : public mozilla::CancelableRunnable
     {
@@ -358,14 +381,14 @@ protected:
     // by FindAndAddFamilies().
     gfxFontFamily*
     FindFamily(const nsAString& aFamily,
-               bool aDeferOtherFamilyNamesLoading = true,
+               FindFamiliesFlags aFlags = FindFamiliesFlags(0),
                gfxFontStyle* aStyle = nullptr,
                gfxFloat aDevToCssSize = 1.0)
     {
         AutoTArray<gfxFontFamily*,1> families;
         return FindAndAddFamilies(aFamily,
                                   &families,
-                                  aDeferOtherFamilyNamesLoading,
+                                  aFlags,
                                   aStyle,
                                   aDevToCssSize) ? families[0] : nullptr;
     }
@@ -462,7 +485,9 @@ protected:
     void GetPrefsAndStartLoader();
 
     // for font list changes that affect all documents
-    void ForceGlobalReflow();
+    void ForceGlobalReflow() {
+        gfxPlatform::ForceGlobalReflow();
+    }
 
     void RebuildLocalFonts();
 
@@ -474,6 +499,10 @@ protected:
     virtual nsresult InitFontListForPlatform() = 0;
 
     void ApplyWhitelist();
+
+    // Create a new gfxFontFamily of the appropriate subclass for the platform,
+    // used when AddWithLegacyFamilyName needs to create a new family.
+    virtual gfxFontFamily* CreateFontFamily(const nsAString& aName) const = 0;
 
     typedef nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> FontFamilyTable;
     typedef nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> FontEntryTable;
@@ -489,6 +518,9 @@ protected:
     // Platform-specific helper for GetDefaultFont(...).
     virtual gfxFontFamily*
     GetDefaultFontForPlatform(const gfxFontStyle* aStyle) = 0;
+
+    // Protects mFontFamilies.
+    mozilla::Mutex mFontFamiliesMutex;
 
     // canonical family name ==> family entry (unique, one name per family entry)
     FontFamilyTable mFontFamilies;
@@ -562,5 +594,7 @@ protected:
 
     bool mFontFamilyWhitelistActive;
 };
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(gfxPlatformFontList::FindFamiliesFlags)
 
 #endif /* GFXPLATFORMFONTLIST_H_ */

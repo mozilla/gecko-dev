@@ -163,13 +163,6 @@ function initialize(event) {
     gDragDrop.onDrop(event);
   });
   addonPage.addEventListener("keypress", function(event) {
-    // If there is an embedded preferences <browser> running in a remote
-    // process, we will see the event here first before it gets a chance
-    // to bubble up through the embedded page.  To avoid stealing focus,
-    // we just ignore events when focus is in an options browser.
-    if (event.target.classList.contains("inline-options-browser")) {
-      return;
-    }
     gHeader.onKeyPress(event);
   });
 
@@ -345,7 +338,7 @@ function getBrowserElement() {
  */
 function getMainWindowWithPreferencesPane() {
   let mainWindow = getMainWindow();
-  if (mainWindow && "openAdvancedPreferences" in mainWindow) {
+  if (mainWindow && "openPreferences" in mainWindow) {
     return mainWindow;
   }
   return null;
@@ -1512,13 +1505,7 @@ var gViewController = {
       },
       doCommand() {
         let mainWindow = getMainWindowWithPreferencesPane();
-        // The advanced subpanes are only supported in the old organization, which will
-        // be removed by bug 1349689.
-        if (Preferences.get("browser.preferences.useOldOrganization")) {
-          mainWindow.openAdvancedPreferences("dataChoicesTab", {origin: "experimentsOpenPref"});
-        } else {
-          mainWindow.openPreferences("privacy-reports", {origin: "experimentsOpenPref"});
-        }
+        mainWindow.openPreferences("privacy-reports", { origin: "experimentsOpenPref" });
       },
     },
 
@@ -1893,8 +1880,7 @@ var gCategories = {
 
     this.node.addEventListener("click", (aEvent) => {
       var selectedItem = this.node.selectedItem;
-      if (aEvent.target.localName == "richlistitem" &&
-          aEvent.target == selectedItem) {
+      if (aEvent.target.closest("richlistitem") == selectedItem) {
         var viewId = selectedItem.value;
 
         if (gViewController.parseViewId(viewId).type == "search") {
@@ -1920,9 +1906,19 @@ var gCategories = {
     category.setAttribute("value", aView);
     category.setAttribute("class", "category");
     category.setAttribute("name", aName);
-    category.setAttribute("tooltiptext", aName);
     category.setAttribute("priority", aPriority);
     category.setAttribute("hidden", aStartHidden);
+    category.setAttribute("align", "center");
+
+    var icon = document.createElement("image");
+    icon.setAttribute("class", "category-icon");
+    category.appendChild(icon);
+
+    var label = document.createElement("label");
+    label.setAttribute("class", "category-name");
+    label.setAttribute("flex", "1");
+    label.textContent = aName;
+    category.appendChild(label);
 
     var node;
     for (node of this.node.children) {
@@ -2799,7 +2795,7 @@ var gLegacyView = {
   },
 
   async show(type, request) {
-    let addons = await AddonManager.getAddonsByTypes(["extension"]);
+    let addons = await AddonManager.getAddonsByTypes(["extension", "theme"]);
     addons = addons.filter(a => !a.hidden &&
                               (isDisabledLegacy(a) || isDisabledUnsigned(a)));
 
@@ -2837,7 +2833,7 @@ var gLegacyView = {
       return;
     }
 
-    let extensions = await AddonManager.getAddonsByTypes(["extension"]);
+    let extensions = await AddonManager.getAddonsByTypes(["extension", "theme"]);
 
     let haveUnsigned = false;
     let haveLegacy = false;
@@ -2854,7 +2850,7 @@ var gLegacyView = {
       this._categoryItem.disabled = false;
       let name = gStrings.ext.GetStringFromName(`type.${haveUnsigned ? "unsupported" : "legacy"}.name`);
       this._categoryItem.setAttribute("name", name);
-      this._categoryItem.tooltiptext = name;
+      this._categoryItem.querySelector("label").textContent = name;
     } else {
       this._categoryItem.disabled = true;
     }
@@ -2976,7 +2972,21 @@ var gListView = {
       }
 
       this.filterDisabledUnsigned(showOnlyDisabledUnsigned);
-      document.getElementById("legacy-extensions-notice").hidden = !showLegacyInfo;
+      let legacyNotice = document.getElementById("legacy-extensions-notice");
+      if (showLegacyInfo) {
+        let el = document.getElementById("legacy-extensions-description");
+        if (el.childNodes[0].nodeName == "#text") {
+          el.removeChild(el.childNodes[0]);
+        }
+
+        let descriptionId = (aType == "theme") ?
+                            "legacyThemeWarning.description" : "legacyWarning.description";
+        let text = gStrings.ext.formatStringFromName(descriptionId, [gStrings.brandShortName], 1) + " ";
+        el.insertBefore(document.createTextNode(text), el.childNodes[0]);
+        legacyNotice.hidden = false;
+      } else {
+        legacyNotice.hidden = true;
+      }
 
       gEventManager.registerInstallListener(this);
       gViewController.updateCommands();
@@ -3155,7 +3165,7 @@ var gDetailView = {
         legacy = !(aAddon.isWebExtension || aAddon.id.endsWith("@personas.mozilla.org"));
       }
 
-      if (legacy && aAddon.signedStatus == AddonManager.SIGNEDSTATE_PRIVILEGED) {
+      if (legacy && aAddon.signedState == AddonManager.SIGNEDSTATE_PRIVILEGED) {
         legacy = false;
       }
 
@@ -3753,6 +3763,13 @@ var gDetailView = {
     browser.setAttribute("class", "inline-options-browser");
     browser.setAttribute("forcemessagemanager", "true");
     browser.setAttribute("selectmenulist", "ContentSelectDropdown");
+
+    // The outer about:addons document listens for key presses to focus
+    // the search box when / is pressed.  But if we're focused inside an
+    // options page, don't let those keypresses steal focus.
+    browser.addEventListener("keypress", event => {
+      event.stopPropagation();
+    });
 
     let {optionsURL} = this._addon;
     let remote = !E10SUtils.canLoadURIInProcess(optionsURL, Services.appinfo.PROCESS_TYPE_DEFAULT);

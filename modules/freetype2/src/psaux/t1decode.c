@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    PostScript Type 1 decoding routines (body).                          */
 /*                                                                         */
-/*  Copyright 2000-2016 by                                                 */
+/*  Copyright 2000-2017 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -666,9 +666,9 @@
 
 #ifdef FT_DEBUG_LEVEL_TRACE
         if ( large_int )
-          FT_TRACE4(( " %ld", value ));
+          FT_TRACE4(( " %d", value ));
         else
-          FT_TRACE4(( " %ld", value / 65536 ));
+          FT_TRACE4(( " %d", value / 65536 ));
 #endif
 
         *top++       = value;
@@ -780,10 +780,19 @@
             /* point without adding any point to the outline    */
             idx = decoder->num_flex_vectors++;
             if ( idx > 0 && idx < 7 )
+            {
+              /* in malformed fonts it is possible to have other */
+              /* opcodes in the middle of a flex (which don't    */
+              /* increase `num_flex_vectors'); we thus have to   */
+              /* check whether we can add a point                */
+              if ( FT_SET_ERROR( t1_builder_check_points( builder, 1 ) ) )
+                goto Syntax_Error;
+
               t1_builder_add_point( builder,
                                     x,
                                     y,
                                     (FT_Byte)( idx == 3 || idx == 6 ) );
+            }
           }
           break;
 
@@ -855,7 +864,9 @@
 
 
               for ( mm = 1; mm < blend->num_designs; mm++ )
-                tmp += FT_MulFix( *delta++, blend->weight_vector[mm] );
+                tmp = ADD_LONG( tmp,
+                                FT_MulFix( *delta++,
+                                           blend->weight_vector[mm] ) );
 
               *values++ = tmp;
             }
@@ -895,7 +906,7 @@
           if ( arg_cnt != 2 )
             goto Unexpected_OtherSubr;
 
-          top[0] += top[1]; /* XXX (over|under)flow */
+          top[0] = ADD_LONG( top[0], top[1] );
 
           known_othersubr_result_cnt = 1;
           break;
@@ -906,7 +917,7 @@
           if ( arg_cnt != 2 )
             goto Unexpected_OtherSubr;
 
-          top[0] -= top[1]; /* XXX (over|under)flow */
+          top[0] = SUB_LONG( top[0], top[1] );
 
           known_othersubr_result_cnt = 1;
           break;
@@ -1138,11 +1149,13 @@
 
           builder->parse_state = T1_Parse_Have_Width;
 
-          builder->left_bearing.x += top[0];
-          builder->advance.x       = top[1];
-          builder->advance.y       = 0;
+          builder->left_bearing.x = ADD_LONG( builder->left_bearing.x,
+                                              top[0] );
 
-          orig_x = x = builder->pos_x + top[0];
+          builder->advance.x = top[1];
+          builder->advance.y = 0;
+
+          orig_x = x = ADD_LONG( builder->pos_x, top[0] );
           orig_y = y = builder->pos_y;
 
           FT_UNUSED( orig_y );
@@ -1168,13 +1181,16 @@
 
           builder->parse_state = T1_Parse_Have_Width;
 
-          builder->left_bearing.x += top[0];
-          builder->left_bearing.y += top[1];
-          builder->advance.x       = top[2];
-          builder->advance.y       = top[3];
+          builder->left_bearing.x = ADD_LONG( builder->left_bearing.x,
+                                              top[0] );
+          builder->left_bearing.y = ADD_LONG( builder->left_bearing.y,
+                                              top[1] );
 
-          x = builder->pos_x + top[0];
-          y = builder->pos_y + top[1];
+          builder->advance.x = top[2];
+          builder->advance.y = top[3];
+
+          x = ADD_LONG( builder->pos_x, top[0] );
+          y = ADD_LONG( builder->pos_y, top[1] );
 
           /* the `metrics_only' indicates that we only want to compute */
           /* the glyph's metrics (lsb + advance width), not load the   */
@@ -1201,13 +1217,14 @@
           if ( FT_SET_ERROR( t1_builder_start_point( builder, x, y ) ) )
             goto Fail;
 
-          x += top[0];
+          x = ADD_LONG( x, top[0] );
           goto Add_Line;
 
         case op_hmoveto:
           FT_TRACE4(( " hmoveto" ));
 
-          x += top[0];
+          x = ADD_LONG( x, top[0] );
+
           if ( !decoder->flex_state )
           {
             if ( builder->parse_state == T1_Parse_Start )
@@ -1223,12 +1240,14 @@
                FT_SET_ERROR( t1_builder_check_points( builder, 3 ) )   )
             goto Fail;
 
-          x += top[0];
+          x = ADD_LONG( x, top[0] );
           t1_builder_add_point( builder, x, y, 0 );
-          x += top[1];
-          y += top[2];
+
+          x = ADD_LONG( x, top[1] );
+          y = ADD_LONG( y, top[2] );
           t1_builder_add_point( builder, x, y, 0 );
-          y += top[3];
+
+          y = ADD_LONG( y, top[3] );
           t1_builder_add_point( builder, x, y, 1 );
           break;
 
@@ -1238,8 +1257,8 @@
           if ( FT_SET_ERROR( t1_builder_start_point( builder, x, y ) ) )
             goto Fail;
 
-          x += top[0];
-          y += top[1];
+          x = ADD_LONG( x, top[0] );
+          y = ADD_LONG( y, top[1] );
 
         Add_Line:
           if ( FT_SET_ERROR( t1_builder_add_point1( builder, x, y ) ) )
@@ -1249,8 +1268,9 @@
         case op_rmoveto:
           FT_TRACE4(( " rmoveto" ));
 
-          x += top[0];
-          y += top[1];
+          x = ADD_LONG( x, top[0] );
+          y = ADD_LONG( y, top[1] );
+
           if ( !decoder->flex_state )
           {
             if ( builder->parse_state == T1_Parse_Start )
@@ -1266,16 +1286,16 @@
                FT_SET_ERROR( t1_builder_check_points( builder, 3 ) )   )
             goto Fail;
 
-          x += top[0];
-          y += top[1];
+          x = ADD_LONG( x, top[0] );
+          y = ADD_LONG( y, top[1] );
           t1_builder_add_point( builder, x, y, 0 );
 
-          x += top[2];
-          y += top[3];
+          x = ADD_LONG( x, top[2] );
+          y = ADD_LONG( y, top[3] );
           t1_builder_add_point( builder, x, y, 0 );
 
-          x += top[4];
-          y += top[5];
+          x = ADD_LONG( x, top[4] );
+          y = ADD_LONG( y, top[5] );
           t1_builder_add_point( builder, x, y, 1 );
           break;
 
@@ -1286,12 +1306,14 @@
                FT_SET_ERROR( t1_builder_check_points( builder, 3 ) )   )
             goto Fail;
 
-          y += top[0];
+          y = ADD_LONG( y, top[0] );
           t1_builder_add_point( builder, x, y, 0 );
-          x += top[1];
-          y += top[2];
+
+          x = ADD_LONG( x, top[1] );
+          y = ADD_LONG( y, top[2] );
           t1_builder_add_point( builder, x, y, 0 );
-          x += top[3];
+
+          x = ADD_LONG( x, top[3] );
           t1_builder_add_point( builder, x, y, 1 );
           break;
 
@@ -1301,13 +1323,14 @@
           if ( FT_SET_ERROR( t1_builder_start_point( builder, x, y ) ) )
             goto Fail;
 
-          y += top[0];
+          y = ADD_LONG( y, top[0] );
           goto Add_Line;
 
         case op_vmoveto:
           FT_TRACE4(( " vmoveto" ));
 
-          y += top[0];
+          y = ADD_LONG( y, top[0] );
+
           if ( !decoder->flex_state )
           {
             if ( builder->parse_state == T1_Parse_Start )
@@ -1464,7 +1487,7 @@
           /* record vertical hint */
           if ( hinter )
           {
-            top[0] += orig_x;
+            top[0] = ADD_LONG( top[0], orig_x );
             hinter->stem( hinter->hints, 0, top );
           }
           break;
@@ -1478,9 +1501,9 @@
             FT_Pos  dx = orig_x;
 
 
-            top[0] += dx;
-            top[2] += dx;
-            top[4] += dx;
+            top[0] = ADD_LONG( top[0], dx );
+            top[2] = ADD_LONG( top[2], dx );
+            top[4] = ADD_LONG( top[4], dx );
             hinter->stem3( hinter->hints, 0, top );
           }
           break;

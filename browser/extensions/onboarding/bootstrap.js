@@ -20,7 +20,7 @@ const BROWSER_READY_NOTIFICATION = "browser-delayed-startup-finished";
 const BROWSER_SESSION_STORE_NOTIFICATION = "sessionstore-windows-restored";
 const PREF_WHITELIST = [
   ["browser.onboarding.enabled", PREF_BOOL],
-  ["browser.onboarding.hidden", PREF_BOOL],
+  ["browser.onboarding.state", PREF_STRING],
   ["browser.onboarding.notification.finished", PREF_BOOL],
   ["browser.onboarding.notification.prompt-count", PREF_INT],
   ["browser.onboarding.notification.last-time-of-changing-tour-sec", PREF_INT],
@@ -34,7 +34,7 @@ const PREF_WHITELIST = [
   "onboarding-tour-library",
   "onboarding-tour-performance",
   "onboarding-tour-private-browsing",
-  "onboarding-tour-search",
+  "onboarding-tour-screenshots",
   "onboarding-tour-singlesearch",
   "onboarding-tour-sync",
 ].forEach(tourId => PREF_WHITELIST.push([`browser.onboarding.tour.${tourId}.completed`, PREF_BOOL]));
@@ -48,7 +48,7 @@ let waitingForBrowserReady = true;
  *
  * @param {Array} prefs the array of prefs to set.
  *   The array element carrys info to set pref, should contain
- *   - {String} name the pref name, such as `browser.onboarding.hidden`
+ *   - {String} name the pref name, such as `browser.onboarding.state`
  *   - {*} value the value to set
  **/
 function setPrefs(prefs) {
@@ -196,7 +196,7 @@ function uninstall(aData, aReason) {}
 
 function startup(aData, aReason) {
   // Only start Onboarding when the browser UI is ready
-  if (aReason === APP_STARTUP || aReason === ADDON_INSTALL) {
+  if (Services.startup.startingUp) {
     Services.obs.addObserver(observe, BROWSER_READY_NOTIFICATION);
     Services.obs.addObserver(observe, BROWSER_SESSION_STORE_NOTIFICATION);
   } else {

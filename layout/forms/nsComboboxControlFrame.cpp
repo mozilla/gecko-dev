@@ -21,7 +21,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsIPresShell.h"
 #include "nsPresState.h"
-#include "nsContentList.h"
 #include "nsView.h"
 #include "nsViewManager.h"
 #include "nsIDOMEventListener.h"
@@ -824,6 +823,7 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
                                nsReflowStatus&          aStatus)
 {
   MarkInReflow();
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   // Constraints we try to satisfy:
 
   // 1) Default inline size of button is the vertical scrollbar size
@@ -1312,7 +1312,6 @@ public:
                           nsReflowStatus&          aStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
 
 protected:
@@ -1327,6 +1326,8 @@ nsComboboxDisplayFrame::Reflow(nsPresContext*           aPresContext,
                                const ReflowInput& aReflowInput,
                                nsReflowStatus&          aStatus)
 {
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
+
   ReflowInput state(aReflowInput);
   if (state.ComputedBSize() == NS_INTRINSICSIZE) {
     // Note that the only way we can have a computed block size here is
@@ -1347,15 +1348,14 @@ nsComboboxDisplayFrame::Reflow(nsPresContext*           aPresContext,
 
 void
 nsComboboxDisplayFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                         const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists)
 {
   nsDisplayListCollection set;
-  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, set);
+  nsBlockFrame::BuildDisplayList(aBuilder, set);
 
   // remove background items if parent frame is themed
   if (mComboBox->IsThemed()) {
-    set.BorderBackground()->DeleteAll();
+    set.BorderBackground()->DeleteAll(aBuilder);
   }
 
   set.MoveTo(aLists);
@@ -1420,8 +1420,8 @@ nsComboboxControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
   // Cleanup frames in popup child list
   mPopupFrames.DestroyFramesFrom(aDestructRoot);
-  nsContentUtils::DestroyAnonymousContent(&mDisplayContent);
-  nsContentUtils::DestroyAnonymousContent(&mButtonContent);
+  DestroyAnonymousContent(mDisplayContent.forget());
+  DestroyAnonymousContent(mButtonContent.forget());
   nsBlockFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -1555,14 +1555,8 @@ void nsDisplayComboboxFocus::Paint(nsDisplayListBuilder* aBuilder,
 
 void
 nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                         const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists)
 {
-#ifdef NOISY
-  printf("%p paint at (%d, %d, %d, %d)\n", this,
-    aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
-#endif
-
   if (aBuilder->IsForEventDelivery()) {
     // Don't allow children to receive events.
     // REVIEW: following old GetFrameForPoint
@@ -1570,7 +1564,7 @@ nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   } else {
     // REVIEW: Our in-flow child frames are inline-level so they will paint in our
     // content list, so we don't need to mess with layers.
-    nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    nsBlockFrame::BuildDisplayList(aBuilder, aLists);
   }
 
   // draw a focus indicator only when focus rings should be drawn

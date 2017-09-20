@@ -30,10 +30,6 @@ MockAppender.prototype = {
   }
 };
 
-function run_test() {
-  run_next_test();
-}
-
 add_task(function test_Logger() {
   let log = Log.repository.getLogger("test.logger");
   let appender = new MockAppender(new Log.BasicFormatter());
@@ -564,7 +560,7 @@ add_task(async function log_message_with_params() {
  * Check that we format JS Errors reasonably.
  * This needs to stay a generator to exercise Task.jsm's stack rewriting.
  */
-add_task(function *format_errors() {
+add_task(function* format_errors() {
   let pFormat = new Log.ParameterFormatter();
 
   // Test that subclasses of Error are recognized as errors.

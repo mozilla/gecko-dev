@@ -472,45 +472,6 @@ TEST(Strings, concat_3)
   EXPECT_STREQ(result.get(), "abc");
 }
 
-TEST(Strings, xpidl_string)
-{
-  nsXPIDLCString a, b;
-  a = b;
-  EXPECT_TRUE(a == b);
-
-  a.Adopt(0);
-  EXPECT_TRUE(a == b);
-
-  a.Append("foopy");
-  a.Assign(b);
-  EXPECT_TRUE(a == b);
-
-  a.Insert("", 0);
-  a.Assign(b);
-  EXPECT_TRUE(a == b);
-
-  const char text[] = "hello world";
-  *getter_Copies(a) = NS_strdup(text);
-  EXPECT_STREQ(a, text);
-
-  b = a;
-  EXPECT_STREQ(a, b);
-
-  a.Adopt(0);
-  nsACString::const_iterator begin, end;
-  a.BeginReading(begin);
-  a.EndReading(end);
-  char *r = ToNewCString(Substring(begin, end));
-  EXPECT_STREQ(r, "");
-  free(r);
-
-  a.Adopt(0);
-  EXPECT_TRUE(a.IsVoid());
-
-  int32_t index = a.FindCharInSet("xyz");
-  EXPECT_EQ(index, kNotFound);
-}
-
 TEST(Strings, empty_assign)
 {
   nsCString a;
@@ -720,21 +681,40 @@ TEST(Strings, voided)
 {
   const char kData[] = "hello world";
 
-  nsXPIDLCString str;
-  EXPECT_FALSE(str);
-  EXPECT_TRUE(str.IsVoid());
+  nsCString str;
+  EXPECT_TRUE(!str.IsVoid());
   EXPECT_TRUE(str.IsEmpty());
-
-  str.Assign(kData);
-  EXPECT_STREQ(str, kData);
+  EXPECT_STREQ(str.get(), "");
 
   str.SetIsVoid(true);
-  EXPECT_FALSE(str);
   EXPECT_TRUE(str.IsVoid());
   EXPECT_TRUE(str.IsEmpty());
+  EXPECT_STREQ(str.get(), "");
+
+  str.Assign(kData);
+  EXPECT_TRUE(!str.IsVoid());
+  EXPECT_TRUE(!str.IsEmpty());
+  EXPECT_STREQ(str.get(), kData);
+
+  str.SetIsVoid(true);
+  EXPECT_TRUE(str.IsVoid());
+  EXPECT_TRUE(str.IsEmpty());
+  EXPECT_STREQ(str.get(), "");
 
   str.SetIsVoid(false);
-  EXPECT_STREQ(str, "");
+  EXPECT_TRUE(!str.IsVoid());
+  EXPECT_TRUE(str.IsEmpty());
+  EXPECT_STREQ(str.get(), "");
+
+  str.Assign(kData);
+  EXPECT_TRUE(!str.IsVoid());
+  EXPECT_TRUE(!str.IsEmpty());
+  EXPECT_STREQ(str.get(), kData);
+
+  str.Adopt(nullptr);
+  EXPECT_TRUE(str.IsVoid());
+  EXPECT_TRUE(str.IsEmpty());
+  EXPECT_STREQ(str.get(), "");
 }
 
 TEST(Strings, voided_autostr)
@@ -1372,6 +1352,71 @@ MOZ_GTEST_BENCH(Strings, PerfStripCharsCRLF, [] {
       test3.StripChars("\r\n");
       test4.StripChars("\r\n");
       test5.StripChars("\r\n");
+    }
+});
+
+// Setup overhead test
+#define OneASCII "a"
+
+// Maximal non-SIMD legth
+#define FifteenASCII "Lorem ipsum dol"
+
+// Around hundred is common length for IsUTF8 check
+#define HundredASCII "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis ac tellus eget velit viverra viverra i"
+
+MOZ_GTEST_BENCH(Strings, PerfIsUTF8One, [] {
+    nsCString test(OneASCII);
+    for (int i = 0; i < 200000; i++) {
+      IsUTF8(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsUTF8Fifteen, [] {
+    nsCString test(FifteenASCII);
+    for (int i = 0; i < 200000; i++) {
+      IsUTF8(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsUTF8Hundred, [] {
+    nsCString test(HundredASCII);
+    for (int i = 0; i < 200000; i++) {
+      IsUTF8(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsUTF8Example3, [] {
+    nsCString test(TestExample3);
+    for (int i = 0; i < 100000; i++) {
+      IsUTF8(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsASCII8One, [] {
+    nsCString test(OneASCII);
+    for (int i = 0; i < 200000; i++) {
+      IsASCII(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsASCIIFifteen, [] {
+    nsCString test(FifteenASCII);
+    for (int i = 0; i < 200000; i++) {
+      IsASCII(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsASCIIHundred, [] {
+    nsCString test(HundredASCII);
+    for (int i = 0; i < 200000; i++) {
+      IsASCII(test);
+    }
+});
+
+MOZ_GTEST_BENCH(Strings, PerfIsASCIIExample3, [] {
+    nsCString test(TestExample3);
+    for (int i = 0; i < 100000; i++) {
+      IsUTF8(test);
     }
 });
 

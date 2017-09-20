@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Type 1 font loader (body).                                           */
 /*                                                                         */
-/*  Copyright 1996-2016 by                                                 */
+/*  Copyright 1996-2017 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -329,8 +329,8 @@
     for ( i = 0; i < mmaster.num_axis; i++ )
     {
       mmvar->axis[i].name    = mmaster.axis[i].name;
-      mmvar->axis[i].minimum = INT_TO_FIXED( mmaster.axis[i].minimum);
-      mmvar->axis[i].maximum = INT_TO_FIXED( mmaster.axis[i].maximum);
+      mmvar->axis[i].minimum = INT_TO_FIXED( mmaster.axis[i].minimum );
+      mmvar->axis[i].maximum = INT_TO_FIXED( mmaster.axis[i].maximum );
       mmvar->axis[i].def     = ( mmvar->axis[i].minimum +
                                    mmvar->axis[i].maximum ) / 2;
                             /* Does not apply.  But this value is in range */

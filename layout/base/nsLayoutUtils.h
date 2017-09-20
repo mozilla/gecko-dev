@@ -2345,11 +2345,6 @@ public:
   static bool CSSFiltersEnabled();
 
   /**
-   * Checks if we should enable parsing for CSS clip-path basic shapes.
-   */
-  static bool CSSClipPathShapesEnabled();
-
-  /**
    * Checks whether support for the CSS-wide "unset" value is enabled.
    */
   static bool UnsetValueEnabled();
@@ -2365,6 +2360,11 @@ public:
    * 'true' value is enabled.
    */
   static bool IsTextAlignUnsafeValueEnabled();
+
+  /**
+   * Checks whether support for inter-character ruby is enabled.
+   */
+  static bool IsInterCharacterRubyEnabled();
 
   static bool InterruptibleReflowEnabled()
   {
@@ -2484,10 +2484,17 @@ public:
   // to disable it dynamically in stylo-enabled builds via a pref.
   static bool StyloEnabled() {
 #ifdef MOZ_STYLO
-    return sStyloEnabled;
+    return sStyloEnabled && StyloSupportedInCurrentProcess();
 #else
     return false;
 #endif
+  }
+
+  // Whether Stylo should be allowed to be enabled in this process.  This
+  // returns true for content processes and the non-e10s parent process.
+  static bool StyloSupportedInCurrentProcess() {
+     return XRE_IsContentProcess() ||
+            (XRE_IsParentProcess() && !XRE_IsE10sParentProcess());
   }
 
   static bool StyleAttrWithXMLBaseDisabled() {
@@ -2848,6 +2855,16 @@ public:
                                               const ContainerLayerParameters& aContainerParameters);
 
   /**
+   * Returns the metadata to put onto the root layer of a layer tree, if one is
+   * needed. The last argument is a callback function to check if the caller
+   * already has a metadata for a given scroll id.
+   */
+  static mozilla::Maybe<ScrollMetadata> GetRootMetadata(nsDisplayListBuilder* aBuilder,
+                                                        Layer* aRootLayer,
+                                                        const ContainerLayerParameters& aContainerParameters,
+                                                        const std::function<bool(ViewID& aScrollId)>& aCallback);
+
+  /**
    * If the given scroll frame needs an area excluded from its composition
    * bounds due to scrollbars, return that area, otherwise return an empty
    * margin.
@@ -3132,6 +3149,23 @@ public:
 
   nsCOMPtr<nsIContent> mContent;
   nsCOMPtr<nsIAtom> mAttrName;
+};
+
+// This class allows you to easily set any pointer variable and ensure it's
+// set to nullptr when leaving its scope.
+template<typename T>
+class MOZ_RAII SetAndNullOnExit
+{
+public:
+  SetAndNullOnExit(T* &aVariable, T* aValue) {
+    aVariable = aValue;
+    mVariable = &aVariable;
+  }
+  ~SetAndNullOnExit() {
+    *mVariable = nullptr;
+  }
+private:
+  T** mVariable;
 };
 
 #endif // nsLayoutUtils_h__

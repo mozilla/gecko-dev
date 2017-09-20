@@ -10,6 +10,7 @@ UNIFIED_SOURCES += [
     'TestAtoms.cpp',
     'TestAutoPtr.cpp',
     'TestAutoRef.cpp',
+    'TestAutoRefCnt.cpp',
     'TestBase64.cpp',
     'TestCallTemplates.cpp',
     'TestCloneInputStream.cpp',
@@ -17,7 +18,8 @@ UNIFIED_SOURCES += [
     'TestCRT.cpp',
     'TestDafsa.cpp',
     'TestEncoding.cpp',
-    'TestEscapeURL.cpp',
+    'TestEscape.cpp',
+    'TestEventPriorities.cpp',
     'TestEventTargetQI.cpp',
     'TestExpirationTracker.cpp',
     'TestFile.cpp',
@@ -55,7 +57,6 @@ UNIFIED_SOURCES += [
     'TestTimeStamp.cpp',
     'TestTokenizer.cpp',
     'TestUTF.cpp',
-    'TestXPIDLString.cpp',
 ]
 
 if CONFIG['MOZ_DEBUG'] and CONFIG['OS_ARCH'] not in ('WINNT') and CONFIG['OS_TARGET'] != 'Android':

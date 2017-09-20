@@ -11,6 +11,7 @@ use app_units::Au;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
 use display_list_builder::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
+use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow};
@@ -127,6 +128,10 @@ impl Flow for ListItemFlow {
         self.block_flow.place_float_if_applicable()
     }
 
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
     fn is_absolute_containing_block(&self) -> bool {
         self.block_flow.is_absolute_containing_block()
     }
@@ -143,7 +148,7 @@ impl Flow for ListItemFlow {
         self.build_display_list_for_list_item(state);
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.block_flow.collect_stacking_contexts(state);
     }
 

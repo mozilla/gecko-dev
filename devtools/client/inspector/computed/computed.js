@@ -37,7 +37,7 @@ const STYLE_INSPECTOR_PROPERTIES = "devtools/shared/locales/styleinspector.prope
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const STYLE_INSPECTOR_L10N = new LocalizationHelper(STYLE_INSPECTOR_PROPERTIES);
 
-const PREF_ORIG_SOURCES = "devtools.styleeditor.source-maps-enabled";
+const PREF_ORIG_SOURCES = "devtools.source-map.client-service.enabled";
 
 const FILTER_CHANGED_TIMEOUT = 150;
 const HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -193,7 +193,6 @@ function CssComputedView(inspector, document, pageStyle) {
   this.element.addEventListener("click", this._onClick);
   this.element.addEventListener("contextmenu", this._onContextMenu);
   this.searchField.addEventListener("input", this._onFilterStyles);
-  this.searchField.addEventListener("contextmenu", this.inspector.onTextBoxContextMenu);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
   this.includeBrowserStylesCheckbox.addEventListener("input",
     this._onIncludeBrowserStyles);
@@ -510,7 +509,7 @@ CssComputedView.prototype = {
         );
         this._refreshProcess.schedule();
       });
-    }).catch((err) => console.error(err));
+    }).catch(console.error);
   },
 
   /**
@@ -781,8 +780,6 @@ CssComputedView.prototype = {
     this.styleDocument.removeEventListener("copy", this._onCopy);
     this.element.removeEventListener("contextmenu", this._onContextMenu);
     this.searchField.removeEventListener("input", this._onFilterStyles);
-    this.searchField.removeEventListener("contextmenu",
-      this.inspector.onTextBoxContextMenu);
     this.searchClearButton.removeEventListener("click", this._onClearSearch);
     this.includeBrowserStylesCheckbox.removeEventListener("input",
       this._onIncludeBrowserStyles);

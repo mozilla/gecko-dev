@@ -212,7 +212,7 @@ PluginInstanceChild::~PluginInstanceChild()
     // In the event that we registered for audio device changes, stop.
     PluginModuleChild* chromeInstance = PluginModuleChild::GetChrome();
     if (chromeInstance) {
-      NPError rv = chromeInstance->PluginRequiresAudioDeviceChanges(this, false);
+      chromeInstance->PluginRequiresAudioDeviceChanges(this, false);
     }
 #endif
 #if defined(MOZ_WIDGET_COCOA)
@@ -3183,8 +3183,6 @@ PluginInstanceChild::EnsureCurrentBuffer(void)
         NS_ERROR("Cannot create helper surface");
         return false;
     }
-
-    return true;
 #elif defined(XP_MACOSX)
 
     if (!mDoubleBufferCARenderer.HasCALayer()) {
@@ -3238,6 +3236,7 @@ PluginInstanceChild::EnsureCurrentBuffer(void)
         mAccumulatedInvalidRect.UnionRect(mAccumulatedInvalidRect, toInvalidate);
     }
 #endif
+
     return true;
 }
 

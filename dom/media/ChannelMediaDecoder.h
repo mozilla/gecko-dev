@@ -36,12 +36,13 @@ class ChannelMediaDecoder : public MediaDecoder
 
   private:
     /* MediaResourceCallback functions */
+    AbstractThread* AbstractMainThread() const override;
     MediaDecoderOwner* GetMediaOwner() const override;
     void NotifyNetworkError() override;
     void NotifyDataArrived() override;
     void NotifyDataEnded(nsresult aStatus) override;
     void NotifyPrincipalChanged() override;
-    void NotifySuspendedStatusChanged() override;
+    void NotifySuspendedStatusChanged(bool aSuspendedByCache) override;
     void NotifyBytesConsumed(int64_t aBytes, int64_t aOffset) override;
 
     static void TimerCallback(nsITimer* aTimer, void* aClosure);
@@ -57,15 +58,15 @@ protected:
   void OnPlaybackEvent(MediaEventType aEvent) override;
   void DurationChanged() override;
   void DownloadProgressed() override;
+  void MetadataLoaded(UniquePtr<MediaInfo> aInfo,
+                      UniquePtr<MetadataTags> aTags,
+                      MediaDecoderEventVisibility aEventVisibility) override;
+
   RefPtr<ResourceCallback> mResourceCallback;
   RefPtr<BaseMediaResource> mResource;
 
 public:
   explicit ChannelMediaDecoder(MediaDecoderInit& aInit);
-
-  MediaDecoderStateMachine* CreateStateMachine() override;
-
-  MediaResource* GetResource() const override final;
 
   void Shutdown() override;
 
@@ -78,13 +79,20 @@ public:
                 bool aIsPrivateBrowsing,
                 nsIStreamListener** aStreamListener);
 
+  void AddSizeOfResources(ResourceSizes* aSizes) override;
+  already_AddRefed<nsIPrincipal> GetCurrentPrincipal() override;
+  bool IsTransportSeekable() override;
   void SetLoadInBackground(bool aLoadInBackground) override;
   void Suspend() override;
   void Resume() override;
 
 private:
-  virtual ChannelMediaDecoder* CloneImpl(MediaDecoderInit& aInit) = 0;
-  nsresult OpenResource(nsIStreamListener** aStreamListener);
+  void PinForSeek() override;
+  void UnpinForSeek() override;
+
+  // Create a new state machine to run this decoder.
+  MediaDecoderStateMachine* CreateStateMachine();
+
   nsresult Load(BaseMediaResource* aOriginal);
 
   // Called by MediaResource when the download has ended.
@@ -99,6 +107,8 @@ private:
   void SeekingChanged();
 
   bool CanPlayThroughImpl() override final;
+
+  bool IsLiveStream() override final;
 
   // The actual playback rate computation.
   void ComputePlaybackRate();
@@ -133,6 +143,10 @@ private:
 
   // True if mPlaybackBytesPerSecond is a reliable estimate.
   bool mPlaybackRateReliable = true;
+
+  // True when our media stream has been pinned. We pin the stream
+  // while seeking.
+  bool mPinnedForSeek = false;
 };
 
 } // namespace mozilla

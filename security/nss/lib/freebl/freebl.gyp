@@ -142,7 +142,8 @@
   'target_defaults': {
     'include_dirs': [
       'mpi',
-      'ecl'
+      'ecl',
+      'verified',
     ],
     'defines': [
       'SHLIB_SUFFIX=\"<(dll_suffix)\"',
@@ -157,6 +158,14 @@
         'cflags_mozilla': [
           '-mpclmul',
           '-maes',
+        ],
+        'conditions': [
+          [ 'OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
+            'cflags': [
+              '-mpclmul',
+              '-maes',
+            ],
+          }],
         ],
       }],
       [ 'OS=="mac"', {
@@ -220,10 +229,6 @@
             'defines': [
               # The Makefile does version-tests on GCC, but we're not doing that here.
               'HAVE_INT128_SUPPORT',
-            ],
-          }, {
-            'sources': [
-              'ecl/uint128.c',
             ],
           }],
         ],

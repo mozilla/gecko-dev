@@ -276,25 +276,11 @@ class LUDivOrMod : public LBinaryMath<0>
         return mir_->toDiv()->trapOnError();
     }
 
-    wasm::TrapOffset trapOffset() const {
+    wasm::BytecodeOffset bytecodeOffset() const {
         MOZ_ASSERT(mir_->isDiv() || mir_->isMod());
         if (mir_->isMod())
-            return mir_->toMod()->trapOffset();
-        return mir_->toDiv()->trapOffset();
-    }
-};
-
-class LInt64ToFloatingPoint : public LInstructionHelper<1, INT64_PIECES, 0>
-{
-  public:
-    LIR_HEADER(Int64ToFloatingPoint);
-
-    explicit LInt64ToFloatingPoint(const LInt64Allocation& in) {
-        setInt64Operand(0, in);
-    }
-
-    MInt64ToFloatingPoint* mir() const {
-        return mir_->toInt64ToFloatingPoint();
+            return mir_->toMod()->bytecodeOffset();
+        return mir_->toDiv()->bytecodeOffset();
     }
 };
 
@@ -308,7 +294,7 @@ class LWasmUnalignedLoadBase : public details::LWasmLoadBase<NumDefs, 2>
     typedef LWasmLoadBase<NumDefs, 2> Base;
 
     explicit LWasmUnalignedLoadBase(const LAllocation& ptr, const LDefinition& valueHelper)
-      : Base(ptr)
+      : Base(ptr, LAllocation())
     {
         Base::setTemp(0, LDefinition::BogusTemp());
         Base::setTemp(1, valueHelper);

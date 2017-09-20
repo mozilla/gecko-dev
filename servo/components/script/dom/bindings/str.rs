@@ -18,7 +18,7 @@ use std::str;
 use std::str::{Bytes, FromStr};
 
 /// Encapsulates the IDL `ByteString` type.
-#[derive(JSTraceable, Clone, Eq, PartialEq, HeapSizeOf, Debug)]
+#[derive(Clone, Debug, Eq, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct ByteString(Vec<u8>);
 
 impl ByteString {
@@ -122,7 +122,7 @@ pub fn is_token(s: &[u8]) -> bool {
 ///
 /// [idl]: https://heycam.github.io/webidl/#idl-DOMString
 ///
-/// Cenceptually, a DOMString has the same value space as a JavaScript String,
+/// Conceptually, a DOMString has the same value space as a JavaScript String,
 /// i.e., an array of 16-bit *code units* representing UTF-16, potentially with
 /// unpaired surrogates present (also sometimes called WTF-16).
 ///

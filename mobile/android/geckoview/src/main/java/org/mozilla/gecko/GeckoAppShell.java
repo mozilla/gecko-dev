@@ -132,18 +132,6 @@ public class GeckoAppShell
         }
 
         @Override
-        public void uncaughtException(final Thread thread, final Throwable exc) {
-            if (GeckoThread.isState(GeckoThread.State.EXITING) ||
-                    GeckoThread.isState(GeckoThread.State.EXITED)) {
-                // We've called System.exit. All exceptions after this point are Android
-                // berating us for being nasty to it.
-                return;
-            }
-
-            super.uncaughtException(thread, exc);
-        }
-
-        @Override
         public boolean reportException(final Thread thread, final Throwable exc) {
             try {
                 if (exc instanceof OutOfMemoryError) {
@@ -542,13 +530,21 @@ public class GeckoAppShell
 
             PowerManager.WakeLock wl = mWakeLocks.get(lock);
 
+            // we should still hold the lock for background audio.
+            if (WakeLockDelegate.LOCK_AUDIO_PLAYING.equals(lock) &&
+                state == WakeLockDelegate.STATE_LOCKED_BACKGROUND) {
+                return;
+            }
+
             if (state == WakeLockDelegate.STATE_LOCKED_FOREGROUND && wl == null) {
                 final PowerManager pm = (PowerManager)
                         getApplicationContext().getSystemService(Context.POWER_SERVICE);
 
-                if (WakeLockDelegate.LOCK_CPU.equals(lock)) {
+                if (WakeLockDelegate.LOCK_CPU.equals(lock) ||
+                    WakeLockDelegate.LOCK_AUDIO_PLAYING.equals(lock)) {
                   wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, lock);
-                } else if (WakeLockDelegate.LOCK_SCREEN.equals(lock)) {
+                } else if (WakeLockDelegate.LOCK_SCREEN.equals(lock) ||
+                           WakeLockDelegate.LOCK_VIDEO_PLAYING.equals(lock)) {
                   // ON_AFTER_RELEASE is set, the user activity timer will be reset when the
                   // WakeLock is released, causing the illumination to remain on a bit longer.
                   wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK |

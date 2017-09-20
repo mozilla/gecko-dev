@@ -12,8 +12,8 @@ var spoofedUserAgent;
 
 const SPOOFED_APPNAME        = "Netscape";
 const SPOOFED_APPVERSION     = "5.0 (Windows)";
-const SPOOFED_PLATFORM       = "Win32";
-const SPOOFED_OSCPU          = "Windows NT 6.1";
+const SPOOFED_PLATFORM       = "Win64";
+const SPOOFED_OSCPU          = "Windows NT 6.1; Win64; x64";
 const SPOOFED_BUILDID        = "20100101";
 const SPOOFED_HW_CONCURRENCY = 2;
 
@@ -91,8 +91,8 @@ add_task(async function setup() {
 
   let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
   let appVersion = parseInt(appInfo.version);
-  let spoofedVersion = appVersion - (appVersion % 10);
-  spoofedUserAgent = `Mozilla/5.0 (Windows NT 6.1; rv:${spoofedVersion}.0) Gecko/20100101 Firefox/${spoofedVersion}.0`;
+  let spoofedVersion = appVersion - ((appVersion - 3) % 7);
+  spoofedUserAgent = `Mozilla/5.0 (${SPOOFED_OSCPU}; rv:${spoofedVersion}.0) Gecko/20100101 Firefox/${spoofedVersion}.0`;
 });
 
 add_task(async function runNavigatorTest() {

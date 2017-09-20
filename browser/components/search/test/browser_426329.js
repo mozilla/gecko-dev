@@ -1,3 +1,4 @@
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
   "resource://gre/modules/FormHistory.jsm");
 
@@ -129,6 +130,12 @@ async function prepareTest() {
   searchBar.focus();
   await focusPromise;
 }
+
+add_task(async function testSetup() {
+  await SpecialPowers.pushPrefEnv({ set: [
+    ["browser.search.widget.inNavBar", true],
+  ]});
+});
 
 add_task(async function testSetupEngine() {
   await promiseSetEngine();

@@ -20,6 +20,10 @@ namespace layers {
 class CompositorBridgeParent;
 class CompositorThreadHolder;
 
+#ifndef DEBUG
+#define COMPOSITOR_MANAGER_PARENT_EXPLICIT_SHUTDOWN
+#endif
+
 class CompositorManagerParent final : public PCompositorManagerParent
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorManagerParent)
@@ -27,6 +31,7 @@ class CompositorManagerParent final : public PCompositorManagerParent
 public:
   static already_AddRefed<CompositorManagerParent> CreateSameProcess();
   static void Create(Endpoint<PCompositorManagerParent>&& aEndpoint);
+  static void Shutdown();
 
   static already_AddRefed<CompositorBridgeParent>
   CreateSameProcessWidgetCompositorBridge(CSSToLayoutDeviceScale aScale,
@@ -43,12 +48,19 @@ private:
   static StaticRefPtr<CompositorManagerParent> sInstance;
   static StaticMutex sMutex;
 
+#ifdef COMPOSITOR_MANAGER_PARENT_EXPLICIT_SHUTDOWN
+  static StaticAutoPtr<nsTArray<CompositorManagerParent*>> sActiveActors;
+  static void ShutdownInternal();
+#endif
+
   CompositorManagerParent();
   ~CompositorManagerParent() override;
 
   void Bind(Endpoint<PCompositorManagerParent>&& aEndpoint);
 
   void DeallocPCompositorManagerParent() override;
+
+  void DeferredDestroy();
 
   RefPtr<CompositorThreadHolder> mCompositorThreadHolder;
 

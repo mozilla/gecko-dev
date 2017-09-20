@@ -11,15 +11,18 @@
   padding: 8px;
 }
 
+%ifndef MOZ_WIDGET_GTK
+% We don't let the splitter overlap the sidebar on Linux since the sidebar's
+% scrollbar is too narrow on Linux.
 .sidebar-splitter {
   -moz-appearance: none;
   border: 0 solid;
   border-inline-end-width: 1px;
   min-width: 1px;
-  width: 8px;
+  width: 4px;
   background-image: none !important;
   background-color: transparent;
-  margin-inline-start: -8px;
+  margin-inline-start: -4px;
   position: relative;
 }
 
@@ -27,8 +30,9 @@
   border-inline-end-width: 0;
   border-inline-start-width: 1px;
   margin-inline-start: 0;
-  margin-inline-end: -8px;
+  margin-inline-end: -4px;
 }
+%endif
 
 #sidebar-throbber[loading="true"] {
   list-style-image: url("chrome://global/skin/icons/loading.png");
@@ -56,7 +60,7 @@
 }
 
 #sidebar-switcher-arrow {
-  list-style-image: url(chrome://browser/skin/arrow-dropdown-12.svg);
+  list-style-image: url(chrome://global/skin/icons/arrow-dropdown-12.svg);
   width: 12px;
   height: 12px;
 }
@@ -99,10 +103,11 @@
 %ifndef XP_MACOSX
 /* Allow room for the checkbox drawn as a background image at the start of the toolbarbutton */
 #sidebarMenu-popup .subviewbutton-iconic > .toolbarbutton-icon {
-  padding-inline-start: 16px;
+  margin-inline-start: 16px;
 }
-#sidebarMenu-popup .subviewbutton-iconic > .toolbarbutton-text {
-  padding-inline-start: 0;
+/* Align items without icons to the start of the icons: */
+#sidebarMenu-popup .subviewbutton:not(.subviewbutton-iconic) > .toolbarbutton-text {
+  padding-inline-start: 16px;
 }
 %endif
 

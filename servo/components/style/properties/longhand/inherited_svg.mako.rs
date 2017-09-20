@@ -45,7 +45,6 @@ ${helpers.predefined_type("fill-opacity", "SVGOpacity", "Default::default()",
 
 ${helpers.single_keyword("fill-rule", "nonzero evenodd",
                          gecko_enum_prefix="StyleFillRule",
-                         gecko_inexhaustive=True,
                          products="gecko", animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty")}
 
@@ -65,7 +64,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "stroke-width", "SVGWidth",
-    "::values::computed::NonNegativeAu::from_px(1).into()",
+    "::values::computed::NonNegativeLength::new(1.).into()",
     products="gecko",
     boxed="True",
     animation_value_type="::values::computed::SVGWidth",
@@ -110,7 +109,6 @@ ${helpers.predefined_type(
 ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          products="gecko",
                          gecko_enum_prefix="StyleFillRule",
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty")}
 
@@ -136,8 +134,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                    animation_value_type="discrete"
                    products="gecko"
                    spec="https://www.w3.org/TR/SVG2/painting.html#PaintOrder">
-
-    use values::computed::ComputedValueAsSpecified;
     use std::fmt;
     use style_traits::ToCss;
 
@@ -164,8 +160,9 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     ///
     /// Higher priority values, i.e. the values specified first,
     /// will be painted first (and may be covered by paintings of lower priority)
-    #[derive(PartialEq, Clone, Copy, Debug)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
     pub struct SpecifiedValue(pub u8);
 
     pub mod computed_value {
@@ -258,22 +255,14 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
             Ok(())
         }
     }
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
+
 <%helpers:vector_longhand name="-moz-context-properties"
                    animation_value_type="none"
                    products="gecko"
                    spec="Nonstandard (Internal-only)"
                    allow_empty="True">
     use values::CustomIdent;
-    use values::computed::ComputedValueAsSpecified;
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    impl ComputedValueAsSpecified for SpecifiedValue { }
 
     pub type SpecifiedValue = CustomIdent;
 

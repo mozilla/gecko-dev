@@ -8,6 +8,8 @@
 #define mozilla_dom_FetchConsumer_h
 
 #include "Fetch.h"
+#include "mozilla/dom/AbortSignal.h"
+#include "mozilla/dom/MutableBlobStorage.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
 
@@ -31,6 +33,7 @@ template <class Derived> class FetchBody;
 template <class Derived>
 class FetchBodyConsumer final : public nsIObserver
                               , public nsSupportsWeakReference
+                              , public AbortFollower
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -40,17 +43,12 @@ public:
   Create(nsIGlobalObject* aGlobal,
          nsIEventTarget* aMainThreadEventTarget,
          FetchBody<Derived>* aBody,
+         AbortSignal* aSignal,
          FetchConsumeType aType,
          ErrorResult& aRv);
 
   void
   ReleaseObject();
-
-  FetchBody<Derived>*
-  Body() const
-  {
-    return mBody;
-  }
 
   void
   BeginConsumeBodyMainThread();
@@ -73,14 +71,19 @@ public:
   void
   NullifyConsumeBodyPump()
   {
+    mShuttingDown = true;
     mConsumeBodyPump = nullptr;
   }
+
+  // AbortFollower
+  void Abort() override;
 
 private:
   FetchBodyConsumer(nsIEventTarget* aMainThreadEventTarget,
                     nsIGlobalObject* aGlobalObject,
                     workers::WorkerPrivate* aWorkerPrivate,
                     FetchBody<Derived>* aBody,
+                    nsIInputStream* aBodyStream,
                     Promise* aPromise,
                     FetchConsumeType aType);
 
@@ -90,11 +93,19 @@ private:
   AssertIsOnTargetThread() const;
 
   bool
-  RegisterWorkerHolder(workers::WorkerPrivate* aWorkerPrivate);
+  RegisterWorkerHolder();
 
   nsCOMPtr<nsIThread> mTargetThread;
   nsCOMPtr<nsIEventTarget> mMainThreadEventTarget;
+
+#ifdef DEBUG
+  // This is used only to check if the body has been correctly consumed.
   RefPtr<FetchBody<Derived>> mBody;
+#endif
+
+  nsCOMPtr<nsIInputStream> mBodyStream;
+  MutableBlobStorage::MutableBlobStorageType mBlobStorageType;
+  nsCString mBodyMimeType;
 
   // Set when consuming the body is attempted on a worker.
   // Unset when consumption is done/aborted.

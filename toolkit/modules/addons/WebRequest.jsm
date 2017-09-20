@@ -8,6 +8,8 @@ const EXPORTED_SYMBOLS = ["WebRequest"];
 
 /* exported WebRequest */
 
+/* globals ChannelWrapper */
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cu = Components.utils;
@@ -29,52 +31,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "WebRequestCommon",
 XPCOMUtils.defineLazyModuleGetter(this, "WebRequestUpload",
                                   "resource://gre/modules/WebRequestUpload.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "webReqService",
+                                   "@mozilla.org/addons/webrequest-service;1",
+                                   "mozIWebRequestService");
+
 XPCOMUtils.defineLazyGetter(this, "ExtensionError", () => ExtensionUtils.ExtensionError);
 
 let WebRequestListener = Components.Constructor("@mozilla.org/webextensions/webRequestListener;1",
                                                 "nsIWebRequestListener", "init");
-
-function attachToChannel(channel, key, data) {
-  if (channel instanceof Ci.nsIWritablePropertyBag2) {
-    let wrapper = {wrappedJSObject: data};
-    channel.setPropertyAsInterface(key, wrapper);
-  }
-  return data;
-}
-
-function extractFromChannel(channel, key) {
-  if (channel instanceof Ci.nsIPropertyBag2 && channel.hasKey(key)) {
-    let data = channel.get(key);
-    return data && data.wrappedJSObject;
-  }
-  return null;
-}
-
-function getData(channel) {
-  const key = "mozilla.webRequest.data";
-  return extractFromChannel(channel, key) || attachToChannel(channel, key, {});
-}
-
-function getFinalChannelURI(channel) {
-  let {loadInfo} = channel;
-  // resultPrincipalURI may be null, but originalURI never will be.
-  return (loadInfo && loadInfo.resultPrincipalURI) || channel.originalURI;
-}
-
-var RequestId = {
-  count: 1,
-  create(channel = null) {
-    let id = (this.count++).toString();
-    if (channel) {
-      getData(channel).requestId = id;
-    }
-    return id;
-  },
-
-  get(channel) {
-    return (channel && getData(channel).requestId) || this.create(channel);
-  },
-};
 
 function runLater(job) {
   Services.tm.dispatchToMainThread(job);
@@ -89,7 +53,7 @@ function parseFilter(filter) {
   return {urls: filter.urls || null, types: filter.types || null};
 }
 
-function parseExtra(extra, allowed = []) {
+function parseExtra(extra, allowed = [], optionsObj = {}) {
   if (extra) {
     for (let ex of extra) {
       if (allowed.indexOf(ex) == -1) {
@@ -98,30 +62,13 @@ function parseExtra(extra, allowed = []) {
     }
   }
 
-  let result = {};
+  let result = Object.assign({}, optionsObj);
   for (let al of allowed) {
     if (extra && extra.indexOf(al) != -1) {
       result[al] = true;
     }
   }
   return result;
-}
-
-function mergeStatus(data, channel, event) {
-  try {
-    data.statusCode = channel.responseStatus;
-    let statusText = channel.responseStatusText;
-    let maj = {};
-    let min = {};
-    channel.QueryInterface(Ci.nsIHttpChannelInternal).getResponseVersion(maj, min);
-    data.statusLine = `HTTP/${maj.value}.${min.value} ${data.statusCode} ${statusText}`;
-  } catch (e) {
-    // NS_ERROR_NOT_AVAILABLE might be thrown if it's an internal redirect, happening before
-    // any actual HTTP traffic. Otherwise, let's report.
-    if (event !== "onRedirect" || e.result !== Cr.NS_ERROR_NOT_AVAILABLE) {
-      Cu.reportError(`webRequest Error: ${e} trying to merge status in ${event}@${channel.name}`);
-    }
-  }
 }
 
 function isThenable(value) {
@@ -133,14 +80,13 @@ class HeaderChanger {
     this.channel = channel;
 
     this.originalHeaders = new Map();
-    this.visitHeaders((name, value) => {
+    for (let [name, value] of this.iterHeaders()) {
       this.originalHeaders.set(name.toLowerCase(), {name, value});
-    });
+    }
   }
 
   toArray() {
-    return Array.from(this.originalHeaders,
-                      ([key, {name, value}]) => ({name, value}));
+    return Array.from(this.originalHeaders.values());
   }
 
   validateHeaders(headers) {
@@ -197,16 +143,14 @@ class HeaderChanger {
 class RequestHeaderChanger extends HeaderChanger {
   setHeader(name, value) {
     try {
-      this.channel.setRequestHeader(name, value, false);
+      this.channel.setRequestHeader(name, value);
     } catch (e) {
       Cu.reportError(new Error(`Error setting request header ${name}: ${e}`));
     }
   }
 
-  visitHeaders(visitor) {
-    if (this.channel instanceof Ci.nsIHttpChannel) {
-      this.channel.visitRequestHeaders(visitor);
-    }
+  iterHeaders() {
+    return this.channel.getRequestHeaders().entries();
   }
 }
 
@@ -219,34 +163,62 @@ class ResponseHeaderChanger extends HeaderChanger {
         // record that we made the change for the sake of
         // subsequent observers.
         this.channel.contentType = value;
-
-        getData(this.channel).contentType = value;
+        this.channel._contentType = value;
       } else {
-        this.channel.setResponseHeader(name, value, false);
+        this.channel.setResponseHeader(name, value);
       }
     } catch (e) {
       Cu.reportError(new Error(`Error setting response header ${name}: ${e}`));
     }
   }
 
-  visitHeaders(visitor) {
-    if (this.channel instanceof Ci.nsIHttpChannel) {
-      try {
-        this.channel.visitResponseHeaders((name, value) => {
-          if (name.toLowerCase() === "content-type") {
-            value = getData(this.channel).contentType || value;
-          }
-
-          visitor(name, value);
-        });
-      } catch (e) {
-        // Throws if response headers aren't available yet.
+  * iterHeaders() {
+    for (let [name, value] of this.channel.getResponseHeaders()) {
+      if (name.toLowerCase() === "content-type") {
+        value = this.channel._contentType || value;
       }
+      yield [name, value];
     }
   }
 }
 
+const MAYBE_CACHED_EVENTS = new Set([
+  "onResponseStarted", "onBeforeRedirect", "onCompleted", "onErrorOccurred",
+]);
+
+const OPTIONAL_PROPERTIES = [
+  "requestHeaders", "responseHeaders", "statusCode", "statusLine", "error", "redirectUrl",
+  "requestBody", "scheme", "realm", "isProxy", "challenger", "proxyInfo", "ip",
+];
+
+function serializeRequestData(eventName) {
+  let data = {
+    requestId: this.requestId,
+    url: this.url,
+    originUrl: this.originUrl,
+    documentUrl: this.documentUrl,
+    method: this.method,
+    type: this.type,
+    timeStamp: Date.now(),
+    frameId: this.windowId,
+    parentFrameId: this.parentWindowId,
+  };
+
+  if (MAYBE_CACHED_EVENTS.has(eventName)) {
+    data.fromCache = !!this.fromCache;
+  }
+
+  for (let opt of OPTIONAL_PROPERTIES) {
+    if (typeof this[opt] !== "undefined") {
+      data[opt] = this[opt];
+    }
+  }
+  return data;
+}
+
 var HttpObserverManager;
+
+var nextFakeRequestId = 1;
 
 var ContentPolicyManager = {
   policyData: new Map(),
@@ -264,7 +236,7 @@ var ContentPolicyManager = {
   receiveMessage(msg) {
     let browser = msg.target instanceof Ci.nsIDOMXULElement ? msg.target : null;
 
-    let requestId = RequestId.create();
+    let requestId = `fakeRequest-${++nextFakeRequestId}`;
     for (let id of msg.data.ids) {
       let callback = this.policies.get(id);
       if (!callback) {
@@ -274,7 +246,9 @@ var ContentPolicyManager = {
       }
       let response = null;
       let listenerKind = "onStop";
-      let data = Object.assign({requestId, browser}, msg.data);
+      let data = Object.assign({requestId, browser, serialize: serializeRequestData}, msg.data);
+      data.URI = data.url;
+
       delete data.ids;
       try {
         response = callback(data);
@@ -336,10 +310,9 @@ var ContentPolicyManager = {
 };
 ContentPolicyManager.init();
 
-function StartStopListener(manager, channel, loadContext) {
+function StartStopListener(manager, channel) {
   this.manager = manager;
-  this.loadContext = loadContext;
-  new WebRequestListener(this, channel);
+  new WebRequestListener(this, channel.channel);
 }
 
 StartStopListener.prototype = {
@@ -347,11 +320,11 @@ StartStopListener.prototype = {
                                          Ci.nsIStreamListener]),
 
   onStartRequest: function(request, context) {
-    this.manager.onStartRequest(request, this.loadContext);
+    this.manager.onStartRequest(ChannelWrapper.get(request));
   },
 
   onStopRequest(request, context, statusCode) {
-    this.manager.onStopRequest(request, this.loadContext);
+    this.manager.onStopRequest(ChannelWrapper.get(request));
   },
 };
 
@@ -467,21 +440,27 @@ class AuthRequestor {
 
   // nsIAuthPrompt2 asyncPromptAuth
   asyncPromptAuth(channel, callback, context, level, authInfo) {
+    let wrapper = ChannelWrapper.get(channel);
+
     let uri = channel.URI;
+    let proxyInfo;
+    let isProxy = !!(authInfo.flags & authInfo.AUTH_PROXY);
+    if (isProxy && channel instanceof Ci.nsIProxiedChannel) {
+      proxyInfo = channel.proxyInfo;
+    }
     let data = {
       scheme: authInfo.authenticationScheme,
       realm: authInfo.realm,
-      isProxy: !!(authInfo.flags & authInfo.AUTH_PROXY),
+      isProxy,
       challenger: {
-        host: uri.host,
-        port: uri.port,
+        host: proxyInfo ? proxyInfo.host : uri.host,
+        port: proxyInfo ? proxyInfo.port : uri.port,
       },
     };
 
-    let channelData = getData(channel);
     // In the case that no listener provides credentials, we fallback to the
     // previously set callback class for authentication.
-    channelData.authPromptForward = () => {
+    wrapper.authPromptForward = () => {
       try {
         let prompt = this._getForwardPrompt(data);
         prompt.asyncPromptAuth(channel, callback, context, level, authInfo);
@@ -489,10 +468,10 @@ class AuthRequestor {
         Cu.reportError(`webRequest asyncPromptAuth failure ${e}`);
         callback.onAuthCancelled(context, false);
       }
-      channelData.authPromptForward = null;
-      channelData.authPromptCallback = null;
+      wrapper.authPromptForward = null;
+      wrapper.authPromptCallback = null;
     };
-    channelData.authPromptCallback = (authCredentials) => {
+    wrapper.authPromptCallback = (authCredentials) => {
       // The API allows for canceling the request, providing credentials or
       // doing nothing, so we do not provide a way to call onAuthCanceled.
       // Canceling the request will result in canceling the authentication.
@@ -508,13 +487,12 @@ class AuthRequestor {
         }
         // At least one addon has responded, so we wont forward to the regular
         // prompt handlers.
-        channelData.authPromptForward = null;
-        channelData.authPromptCallback = null;
+        wrapper.authPromptForward = null;
+        wrapper.authPromptCallback = null;
       }
     };
 
-    let loadContext = this.httpObserver.getLoadContext(channel);
-    this.httpObserver.runChannelListener(channel, loadContext, "authRequired", data);
+    this.httpObserver.runChannelListener(wrapper, "authRequired", data);
 
     return {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsICancelable]),
@@ -524,14 +502,15 @@ class AuthRequestor {
         } catch (e) {
           Cu.reportError(`webRequest onAuthCancelled failure ${e}`);
         }
-        channelData.authPromptForward = null;
-        channelData.authPromptCallback = null;
+        wrapper.authPromptForward = null;
+        wrapper.authPromptCallback = null;
       },
     };
   }
 }
 
 HttpObserverManager = {
+  openingInitialized: false,
   modifyInitialized: false,
   examineInitialized: false,
   redirectInitialized: false,
@@ -555,17 +534,31 @@ HttpObserverManager = {
   },
 
   addOrRemove() {
-    let needModify = this.listeners.opening.size || this.listeners.modify.size || this.listeners.afterModify.size;
-    if (needModify && !this.modifyInitialized) {
-      this.modifyInitialized = true;
+    let needOpening = this.listeners.opening.size;
+    let needModify = this.listeners.modify.size || this.listeners.afterModify.size;
+    if (needOpening && !this.openingInitialized) {
+      this.openingInitialized = true;
       Services.obs.addObserver(this, "http-on-modify-request");
-    } else if (!needModify && this.modifyInitialized) {
-      this.modifyInitialized = false;
+    } else if (!needOpening && this.openingInitialized) {
+      this.openingInitialized = false;
       Services.obs.removeObserver(this, "http-on-modify-request");
     }
+    if (needModify && !this.modifyInitialized) {
+      this.modifyInitialized = true;
+      Services.obs.addObserver(this, "http-on-before-connect");
+    } else if (!needModify && this.modifyInitialized) {
+      this.modifyInitialized = false;
+      Services.obs.removeObserver(this, "http-on-before-connect");
+    }
+
+    let haveBlocking = Object.values(this.listeners)
+                             .some(listeners => Array.from(listeners.values())
+                                                     .some(listener => listener.blockingAllowed));
+
     this.needTracing = this.listeners.onStart.size ||
                        this.listeners.onError.size ||
-                       this.listeners.onStop.size;
+                       this.listeners.onStop.size ||
+                       haveBlocking;
 
     let needExamine = this.needTracing ||
                       this.listeners.headersReceived.size ||
@@ -583,7 +576,7 @@ HttpObserverManager = {
       Services.obs.removeObserver(this, "http-on-examine-merged-response");
     }
 
-    let needRedirect = this.listeners.onRedirect.size;
+    let needRedirect = this.listeners.onRedirect.size || haveBlocking;
     if (needRedirect && !this.redirectInitialized) {
       this.redirectInitialized = true;
       ChannelEventSink.register();
@@ -612,33 +605,18 @@ HttpObserverManager = {
     this.addOrRemove();
   },
 
-  getLoadContext(channel) {
-    try {
-      return channel.QueryInterface(Ci.nsIChannel)
-                    .notificationCallbacks
-                    .getInterface(Components.interfaces.nsILoadContext);
-    } catch (e) {
-      try {
-        return channel.loadGroup
-                      .notificationCallbacks
-                      .getInterface(Components.interfaces.nsILoadContext);
-      } catch (e) {
-        return null;
-      }
-    }
-  },
-
   observe(subject, topic, data) {
-    let channel = subject.QueryInterface(Ci.nsIHttpChannel);
+    let channel = ChannelWrapper.get(subject);
     switch (topic) {
       case "http-on-modify-request":
-        let loadContext = this.getLoadContext(channel);
-
-        this.runChannelListener(channel, loadContext, "opening");
+        this.runChannelListener(channel, "opening");
+        break;
+      case "http-on-before-connect":
+        this.runChannelListener(channel, "modify");
         break;
       case "http-on-examine-cached-response":
       case "http-on-examine-merged-response":
-        getData(channel).fromCache = true;
+        channel.fromCache = true;
         // falls through
       case "http-on-examine-response":
         this.examine(channel, topic, data);
@@ -660,38 +638,46 @@ HttpObserverManager = {
     return this.activityErrorsMap;
   },
   GOOD_LAST_ACTIVITY: nsIHttpActivityObserver.ACTIVITY_SUBTYPE_RESPONSE_HEADER,
-  observeActivity(channel, activityType, activitySubtype /* , aTimestamp, aExtraSizeData, aExtraStringData */) {
-    let channelData = getData(channel);
+  observeActivity(nativeChannel, activityType, activitySubtype /* , aTimestamp, aExtraSizeData, aExtraStringData */) {
+    // Sometimes we get a NullHttpChannel, which implements
+    // nsIHttpChannel but not nsIChannel.
+    if (!(nativeChannel instanceof Ci.nsIChannel)) {
+      return;
+    }
+    let channel = ChannelWrapper.get(nativeChannel);
 
     // StartStopListener has to be activated early in the request to catch
     // SSL connection issues which do not get reported via nsIHttpActivityObserver.
     if (activityType == nsIHttpActivityObserver.ACTIVITY_TYPE_HTTP_TRANSACTION &&
         activitySubtype == nsIHttpActivityObserver.ACTIVITY_SUBTYPE_REQUEST_HEADER) {
-      this.attachStartStopListener(channel, channelData);
+      this.attachStartStopListener(channel);
     }
 
-    let lastActivity = channelData.lastActivity || 0;
+    let lastActivity = channel.lastActivity || 0;
     if (activitySubtype === nsIHttpActivityObserver.ACTIVITY_SUBTYPE_RESPONSE_COMPLETE &&
         lastActivity && lastActivity !== this.GOOD_LAST_ACTIVITY) {
-      let loadContext = this.getLoadContext(channel);
-      if (!this.errorCheck(channel, loadContext, channelData)) {
-        this.runChannelListener(channel, loadContext, "onError",
+      if (!this.errorCheck(channel)) {
+        this.runChannelListener(channel, "onError",
           {error: this.activityErrorsMap.get(lastActivity) ||
                   `NS_ERROR_NET_UNKNOWN_${lastActivity}`});
       }
     } else if (lastActivity !== this.GOOD_LAST_ACTIVITY &&
                lastActivity !== nsIHttpActivityObserver.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE) {
-      channelData.lastActivity = activitySubtype;
+      channel.lastActivity = activitySubtype;
     }
   },
 
   shouldRunListener(policyType, uri, filter) {
     // force the protocol to be ws again.
     if (policyType == "websocket" && ["http", "https"].includes(uri.scheme)) {
-      uri = new Services.io.newURI(`ws${uri.spec.substring(4)}`);
+      uri = Services.io.newURI(`ws${uri.spec.substring(4)}`);
     }
-    return WebRequestCommon.typeMatches(policyType, filter.types) &&
-           WebRequestCommon.urlMatches(uri, filter.urls);
+
+    if (filter.types && !filter.types.includes(policyType)) {
+      return false;
+    }
+
+    return !filter.urls || filter.urls.matches(uri);
   },
 
   get resultsMap() {
@@ -699,77 +685,56 @@ HttpObserverManager = {
     this.resultsMap = new Map(Object.keys(Cr).map(name => [Cr[name], name]));
     return this.resultsMap;
   },
-  maybeError(channel, extraData = null, channelData = null) {
-    if (!(extraData && extraData.error) && channel.securityInfo) {
-      let securityInfo = channel.securityInfo.QueryInterface(Ci.nsITransportSecurityInfo);
+
+  maybeError({channel}) {
+    // FIXME: Move to ChannelWrapper.
+
+    let {securityInfo} = channel;
+    if (securityInfo instanceof Ci.nsITransportSecurityInfo) {
       if (NSSErrorsService.isNSSErrorCode(securityInfo.errorCode)) {
         let nsresult = NSSErrorsService.getXPCOMFromNSSError(securityInfo.errorCode);
-        extraData = {error: NSSErrorsService.getErrorMessage(nsresult)};
+        return {error: NSSErrorsService.getErrorMessage(nsresult)};
       }
     }
-    if (!(extraData && extraData.error)) {
-      if (!Components.isSuccessCode(channel.status)) {
-        extraData = {error: this.resultsMap.get(channel.status) || "NS_ERROR_NET_UNKNOWN"};
-      }
+
+    if (!Components.isSuccessCode(channel.status)) {
+      return {error: this.resultsMap.get(channel.status) || "NS_ERROR_NET_UNKNOWN"};
     }
-    return extraData;
+    return null;
   },
-  errorCheck(channel, loadContext, channelData = null) {
-    let errorData = this.maybeError(channel, null, channelData);
+
+  errorCheck(channel) {
+    let errorData = this.maybeError(channel);
     if (errorData) {
-      this.runChannelListener(channel, loadContext, "onError", errorData);
+      this.runChannelListener(channel, "onError", errorData);
     }
     return errorData;
   },
 
-  /**
-   * Resumes the channel if it is currently suspended due to this
-   * listener.
-   *
-   * @param {nsIChannel} channel
-   *        The channel to possibly suspend.
-   */
-  maybeResume(channel) {
-    let data = getData(channel);
-    if (data.suspended) {
-      channel.resume();
-      data.suspended = false;
-    }
-  },
-
-  /**
-   * Suspends the channel if it is not currently suspended due to this
-   * listener. Returns true if the channel was suspended as a result of
-   * this call.
-   *
-   * @param {nsIChannel} channel
-   *        The channel to possibly suspend.
-   * @returns {boolean}
-   *        True if this call resulted in the channel being suspended.
-   */
-  maybeSuspend(channel) {
-    let data = getData(channel);
-    if (!data.suspended) {
-      channel.suspend();
-      data.suspended = true;
-      return true;
-    }
-  },
-
-  getRequestData(channel, loadContext, policyType, extraData) {
-    let {loadInfo} = channel;
-
-    let URI = getFinalChannelURI(channel);
+  getRequestData(channel, extraData) {
     let data = {
-      requestId: RequestId.get(channel),
-      url: URI.spec,
-      method: channel.requestMethod,
-      browser: loadContext && loadContext.topFrameElement,
-      type: WebRequestCommon.typeForPolicyType(policyType),
-      fromCache: getData(channel).fromCache,
-      // Defaults for a top level request
-      windowId: 0,
-      parentWindowId: -1,
+      requestId: String(channel.id),
+      url: channel.finalURL,
+      URI: channel.finalURI,
+      method: channel.method,
+      browser: channel.browserElement,
+      type: channel.type,
+      fromCache: channel.fromCache,
+
+      originUrl: channel.originURL || undefined,
+      documentUrl: channel.documentURL || undefined,
+      originURI: channel.originURI,
+      documentURI: channel.documentURI,
+      isSystemPrincipal: channel.isSystemLoad,
+
+      windowId: channel.windowId,
+      parentWindowId: channel.parentWindowId,
+
+      ip: channel.remoteAddress,
+
+      proxyInfo: channel.proxyInfo,
+
+      serialize: serializeRequestData,
     };
 
     // force the protocol to be ws again.
@@ -777,126 +742,78 @@ HttpObserverManager = {
       data.url = `ws${data.url.substring(4)}`;
     }
 
-    if (loadInfo) {
-      let originPrincipal = loadInfo.triggeringPrincipal;
-      if (originPrincipal.URI) {
-        data.originUrl = originPrincipal.URI.spec;
-      }
-      let docPrincipal = loadInfo.loadingPrincipal;
-      if (docPrincipal && docPrincipal.URI) {
-        data.documentUrl = docPrincipal.URI.spec;
-      }
-
-      // If there is no loadingPrincipal, check that the request is not going to
-      // inherit a system principal.  triggeringPrincipal is the context that
-      // initiated the load, but is not necessarily the principal that the
-      // request results in, only rely on that if no other principal is available.
-      let {isSystemPrincipal} = Services.scriptSecurityManager;
-      let isTopLevel = !loadInfo.loadingPrincipal && !!data.browser;
-      data.isSystemPrincipal = !isTopLevel &&
-                               isSystemPrincipal(loadInfo.loadingPrincipal ||
-                                                 loadInfo.principalToInherit ||
-                                                 loadInfo.triggeringPrincipal);
-
-      // Handle window and parent id values for sub_frame requests or requests
-      // inside a sub_frame.
-      if (loadInfo.frameOuterWindowID != 0) {
-        // This is a sub_frame.  Only frames (ie. iframe; a request with a frameloader)
-        // have a non-zero frameOuterWindowID.  For a sub_frame, outerWindowID
-        // points at the frames parent.  The parent frame is the main_frame if
-        // outerWindowID == parentOuterWindowID, in which case set parentWindowId
-        // to zero.
-        Object.assign(data, {
-          windowId: loadInfo.frameOuterWindowID,
-          parentWindowId: loadInfo.outerWindowID == loadInfo.parentOuterWindowID ? 0 : loadInfo.outerWindowID,
-        });
-      } else if (loadInfo.outerWindowID != loadInfo.parentOuterWindowID) {
-        // This is a non-frame (e.g. script, image, etc) request within a
-        // sub_frame.  We have to check parentOuterWindowID against the browser
-        // to see if it is the main_frame in which case the parenteWindowId
-        // available to the caller must be set to zero.
-        let parentMainFrame = data.browser && data.browser.outerWindowID == loadInfo.parentOuterWindowID;
-        Object.assign(data, {
-          windowId: loadInfo.outerWindowID,
-          parentWindowId: parentMainFrame ? 0 : loadInfo.parentOuterWindowID,
-        });
-      }
-    }
-
-    if (channel instanceof Ci.nsIHttpChannelInternal) {
-      try {
-        data.ip = channel.remoteAddress;
-      } catch (e) {
-        // The remoteAddress getter throws if the address is unavailable,
-        // but ip is an optional property so just ignore the exception.
-      }
-    }
-
     return Object.assign(data, extraData);
   },
 
-  canModify(channel) {
-    let {isHostPermitted} = AddonManagerPermissions;
-
-    // Bug 1334550 introduced the possibility of having a JAR uri here,
-    // use the result uri if possible in that case.
-    let URI = getFinalChannelURI(channel);
-    if (URI && isHostPermitted(URI.host)) {
-      return false;
+  registerChannel(channel, opts) {
+    if (!opts.blockingAllowed || !opts.addonId) {
+      return;
     }
 
-    let {loadInfo} = channel;
-    if (loadInfo && loadInfo.loadingPrincipal) {
-      let {loadingPrincipal} = loadInfo;
-      try {
-        return loadingPrincipal.URI && !isHostPermitted(loadingPrincipal.URI.host);
-      } catch (e) {
-        // about:newtab and other non-host URIs will throw.  Those wont be in
-        // the host permitted list, so we pass on the error.
-      }
+    if (!channel.registeredFilters) {
+      channel.registeredFilters = new Map();
+    } else if (channel.registeredFilters.has(opts.addonId)) {
+      return;
     }
 
-    return true;
+    let filter = webReqService.registerTraceableChannel(
+      channel.id,
+      channel.channel,
+      opts.addonId,
+      opts.tabParent);
+
+    channel.registeredFilters.set(opts.addonId, filter);
   },
 
-  runChannelListener(channel, loadContext = null, kind, extraData = null) {
+  destroyFilters(channel) {
+    let filters = channel.registeredFilters || new Map();
+    for (let [key, filter] of filters.entries()) {
+      filter.destruct();
+      filters.delete(key);
+    }
+  },
+
+  runChannelListener(channel, kind, extraData = null) {
     let handlerResults = [];
     let requestHeaders;
     let responseHeaders;
 
     try {
       if (this.activityInitialized) {
-        let channelData = getData(channel);
         if (kind === "onError") {
-          if (channelData.errorNotified) {
+          this.destroyFilters(channel);
+          if (channel.errorNotified) {
             return;
           }
-          channelData.errorNotified = true;
-        } else if (this.errorCheck(channel, loadContext, channelData)) {
+          channel.errorNotified = true;
+        } else if (this.errorCheck(channel)) {
           return;
         }
       }
 
-      let {loadInfo} = channel;
-      let policyType = (loadInfo ? loadInfo.externalContentPolicyType
-                                 : Ci.nsIContentPolicy.TYPE_OTHER);
+      let includeStatus = ["headersReceived", "authRequired", "onRedirect", "onStart", "onStop"].includes(kind);
+      let registerFilter = ["opening", "modify", "afterModify", "headersReceived", "authRequired", "onRedirect"].includes(kind);
 
-      let includeStatus = (["headersReceived", "authRequired", "onRedirect", "onStart", "onStop"].includes(kind) &&
-                           channel instanceof Ci.nsIHttpChannel);
-
-      let canModify = this.canModify(channel);
       let commonData = null;
-      let uri = getFinalChannelURI(channel);
+      let uri = channel.finalURI;
       let requestBody;
       for (let [callback, opts] of this.listeners[kind].entries()) {
-        if (!this.shouldRunListener(policyType, uri, opts.filter)) {
+        if (!this.shouldRunListener(channel.type, uri, opts.filter)) {
           continue;
         }
 
         if (!commonData) {
-          commonData = this.getRequestData(channel, loadContext, policyType, extraData);
+          commonData = this.getRequestData(channel, extraData);
+          if (includeStatus) {
+            commonData.statusCode = channel.statusCode;
+            commonData.statusLine = channel.statusLine;
+          }
         }
         let data = Object.assign({}, commonData);
+
+        if (registerFilter && opts.blocking) {
+          this.registerChannel(channel, opts);
+        }
 
         if (opts.requestHeaders) {
           requestHeaders = requestHeaders || new RequestHeaderChanger(channel);
@@ -909,18 +826,14 @@ HttpObserverManager = {
         }
 
         if (opts.requestBody) {
-          requestBody = requestBody || WebRequestUpload.createRequestBody(channel);
+          requestBody = requestBody || WebRequestUpload.createRequestBody(channel.channel);
           data.requestBody = requestBody;
-        }
-
-        if (includeStatus) {
-          mergeStatus(data, channel, kind);
         }
 
         try {
           let result = callback(data);
 
-          if (canModify && result && typeof result === "object" && opts.blocking) {
+          if (channel.canModify && result && typeof result === "object" && opts.blocking) {
             handlerResults.push({opts, result});
           }
         } catch (e) {
@@ -931,46 +844,38 @@ HttpObserverManager = {
       Cu.reportError(e);
     }
 
-    return this.applyChanges(kind, channel, loadContext, handlerResults,
-                             requestHeaders, responseHeaders);
+    return this.applyChanges(kind, channel, handlerResults, requestHeaders, responseHeaders);
   },
 
-  async applyChanges(kind, channel, loadContext, handlerResults, requestHeaders, responseHeaders) {
-    let asyncHandlers = handlerResults.filter(({result}) => isThenable(result));
-    let isAsync = asyncHandlers.length > 0;
-    let shouldResume = false;
+  async applyChanges(kind, channel, handlerResults, requestHeaders, responseHeaders) {
+    let shouldResume = !channel.suspended;
 
     try {
-      if (isAsync) {
-        shouldResume = this.maybeSuspend(channel);
-
-        for (let value of asyncHandlers) {
+      for (let {opts, result} of handlerResults) {
+        if (isThenable(result)) {
+          channel.suspended = true;
           try {
-            value.result = await value.result;
+            result = await result;
           } catch (e) {
             Cu.reportError(e);
-            value.result = {};
+            continue;
           }
-        }
-      }
-
-      for (let {opts, result} of handlerResults) {
-        if (!result || typeof result !== "object") {
-          continue;
+          if (!result || typeof result !== "object") {
+            continue;
+          }
         }
 
         if (result.cancel) {
-          this.maybeResume(channel);
+          channel.suspended = false;
           channel.cancel(Cr.NS_ERROR_ABORT);
 
-          this.errorCheck(channel, loadContext);
+          this.errorCheck(channel);
           return;
         }
 
         if (result.redirectUrl) {
           try {
-            this.maybeResume(channel);
-
+            channel.suspended = false;
             channel.redirectTo(Services.io.newURI(result.redirectUrl));
             return;
           } catch (e) {
@@ -986,26 +891,20 @@ HttpObserverManager = {
           responseHeaders.applyChanges(result.responseHeaders);
         }
 
-        if (kind === "authRequired" && opts.blocking && result.authCredentials) {
-          let channelData = getData(channel);
-          if (channelData.authPromptCallback) {
-            channelData.authPromptCallback(result.authCredentials);
-          }
+        if (kind === "authRequired" && result.authCredentials && channel.authPromptCallback) {
+          channel.authPromptCallback(result.authCredentials);
         }
       }
       // If a listener did not cancel the request or provide credentials, we
       // forward the auth request to the base handler.
-      if (kind === "authRequired") {
-        let channelData = getData(channel);
-        if (channelData.authPromptForward) {
-          channelData.authPromptForward();
-        }
+      if (kind === "authRequired" && channel.authPromptForward) {
+        channel.authPromptForward();
       }
 
-      if (kind === "opening") {
-        await this.runChannelListener(channel, loadContext, "modify");
-      } else if (kind === "modify") {
-        await this.runChannelListener(channel, loadContext, "afterModify");
+      if (kind === "modify" && this.listeners.afterModify.size) {
+        await this.runChannelListener(channel, "afterModify");
+      } else if (kind !== "onError") {
+        this.errorCheck(channel);
       }
     } catch (e) {
       Cu.reportError(e);
@@ -1013,7 +912,7 @@ HttpObserverManager = {
 
     // Only resume the channel if it was suspended by this call.
     if (shouldResume) {
-      this.maybeResume(channel);
+      channel.suspended = false;
     }
   },
 
@@ -1022,75 +921,72 @@ HttpObserverManager = {
       return false;
     }
 
-    let {loadInfo} = channel;
-    let policyType = (loadInfo ? loadInfo.externalContentPolicyType
-                               : Ci.nsIContentPolicy.TYPE_OTHER);
-    let uri = channel.URI;
     for (let opts of listener.values()) {
-      if (this.shouldRunListener(policyType, uri, opts.filter)) {
+      if (this.shouldRunListener(channel.type, channel.finalURI, opts.filter)) {
         return true;
       }
     }
     return false;
   },
 
-  attachStartStopListener(channel, channelData) {
+  attachStartStopListener(channel) {
     // Check whether we've already added a listener to this channel,
     // so we don't wind up chaining multiple listeners.
-    if (!this.needTracing || channelData.hasListener || !(channel instanceof Ci.nsITraceableChannel)) {
+    if (!this.needTracing || channel.hasListener ||
+        !(channel.channel instanceof Ci.nsITraceableChannel)) {
       return;
     }
-    let responseStatus = 0;
-    try {
-      responseStatus = channel.QueryInterface(Ci.nsIHttpChannel).responseStatus;
-    } catch (e) {
-      /* NS_ERROR_NOT_AVAILABLE if checked prior to onStartRequest. */
-    }
+
     // skip redirections, https://bugzilla.mozilla.org/show_bug.cgi?id=728901#c8
-    if (responseStatus < 300 || responseStatus >= 400) {
-      let loadContext = this.getLoadContext(channel);
-      new StartStopListener(this, channel, loadContext);
-      channelData.hasListener = true;
+    let {statusCode} = channel;
+    if (statusCode < 300 || statusCode >= 400) {
+      new StartStopListener(this, channel);
+      channel.hasListener = true;
     }
   },
 
   examine(channel, topic, data) {
-    let channelData = getData(channel);
-    this.attachStartStopListener(channel, channelData);
+    this.attachStartStopListener(channel);
 
     if (this.listeners.headersReceived.size) {
-      this.runChannelListener(channel, this.getLoadContext(channel), "headersReceived");
+      this.runChannelListener(channel, "headersReceived");
     }
 
-    if (!channelData.hasAuthRequestor && this.shouldHookListener(this.listeners.authRequired, channel)) {
-      channel.notificationCallbacks = new AuthRequestor(channel, this);
-      channelData.hasAuthRequestor = true;
+    if (!channel.hasAuthRequestor && this.shouldHookListener(this.listeners.authRequired, channel)) {
+      channel.channel.notificationCallbacks = new AuthRequestor(channel.channel, this);
+      channel.hasAuthRequestor = true;
     }
   },
 
   onChannelReplaced(oldChannel, newChannel) {
+    let channel = ChannelWrapper.get(oldChannel);
+
     // We want originalURI, this will provide a moz-ext rather than jar or file
     // uri on redirects.
-    this.runChannelListener(oldChannel, this.getLoadContext(oldChannel),
-                            "onRedirect", {redirectUrl: newChannel.originalURI.spec});
+    this.destroyFilters(channel);
+    this.runChannelListener(channel, "onRedirect", {redirectUrl: newChannel.originalURI.spec});
+    channel.channel = newChannel;
   },
 
-  onStartRequest(channel, loadContext) {
-    this.runChannelListener(channel, loadContext, "onStart");
+  onStartRequest(channel) {
+    this.destroyFilters(channel);
+    this.runChannelListener(channel, "onStart");
   },
 
-  onStopRequest(channel, loadContext) {
-    this.runChannelListener(channel, loadContext, "onStop");
+  onStopRequest(channel) {
+    this.runChannelListener(channel, "onStop");
   },
 };
 
 var onBeforeRequest = {
   allowedOptions: ["blocking", "requestBody"],
 
-  addListener(callback, filter = null, opt_extraInfoSpec = null) {
-    let opts = parseExtra(opt_extraInfoSpec, this.allowedOptions);
+  addListener(callback, filter = null, options = null, optionsObject = null) {
+    let opts = parseExtra(options, this.allowedOptions);
     opts.filter = parseFilter(filter);
     ContentPolicyManager.addListener(callback, opts);
+
+    opts = Object.assign({}, opts, optionsObject);
     HttpObserverManager.addListener("opening", callback, opts);
   },
 
@@ -1106,8 +1002,8 @@ function HttpEvent(internalEvent, options) {
 }
 
 HttpEvent.prototype = {
-  addListener(callback, filter = null, opt_extraInfoSpec = null) {
-    let opts = parseExtra(opt_extraInfoSpec, this.options);
+  addListener(callback, filter = null, options = null, optionsObject = null) {
+    let opts = parseExtra(options, this.options, optionsObject);
     opts.filter = parseFilter(filter);
     HttpObserverManager.addListener(this.internalEvent, callback, opts);
   },
@@ -1120,7 +1016,7 @@ HttpEvent.prototype = {
 var onBeforeSendHeaders = new HttpEvent("modify", ["requestHeaders", "blocking"]);
 var onSendHeaders = new HttpEvent("afterModify", ["requestHeaders"]);
 var onHeadersReceived = new HttpEvent("headersReceived", ["blocking", "responseHeaders"]);
-var onAuthRequired = new HttpEvent("authRequired", ["blocking", "responseHeaders"]); // TODO asyncBlocking
+var onAuthRequired = new HttpEvent("authRequired", ["blocking", "responseHeaders"]);
 var onBeforeRedirect = new HttpEvent("onRedirect", ["responseHeaders"]);
 var onResponseStarted = new HttpEvent("onStart", ["responseHeaders"]);
 var onCompleted = new HttpEvent("onStop", ["responseHeaders"]);

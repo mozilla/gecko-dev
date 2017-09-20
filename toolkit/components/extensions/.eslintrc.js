@@ -56,9 +56,6 @@ module.exports = {
     // Require braces around blocks that start a new line
     "curly": ["error", "all"],
 
-    // Require function* name()
-    "generator-star-spacing": ["error", {"before": false, "after": true}],
-
     // Two space indent
     "indent": ["error", 2, {"SwitchCase": 1, "ArrayExpression": "first", "ObjectExpression": "first"}],
 
@@ -155,9 +152,6 @@ module.exports = {
 
     // Allow use of bitwise operators.
     "no-bitwise": "off",
-
-    // Disallow use of arguments.caller or arguments.callee.
-    "no-caller": "error",
 
     // Disallow the catch clause parameter name being the same as a variable in
     // the outer scope, to avoid confusion.

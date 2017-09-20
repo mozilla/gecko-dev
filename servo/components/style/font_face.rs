@@ -13,10 +13,10 @@ use computed_values::{font_feature_settings, font_stretch, font_style, font_weig
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{SourceLocation, CowRcStr};
-use error_reporting::ContextualParseError;
+use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
-use parser::{ParserContext, log_css_error, Parse};
+use parser::{ParserContext, ParserErrorContext, Parse};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseError;
@@ -44,7 +44,7 @@ impl OneOrMoreSeparated for Source {
 /// `url()` function.
 ///
 /// https://drafts.csswg.org/css-fonts/#src-desc
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct UrlSource {
     /// The specified url.
@@ -108,8 +108,13 @@ impl Parse for FontWeight {
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
-pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, location: SourceLocation)
-    -> FontFaceRuleData {
+pub fn parse_font_face_block<R>(context: &ParserContext,
+                                error_context: &ParserErrorContext<R>,
+                                input: &mut Parser,
+                                location: SourceLocation)
+                                -> FontFaceRuleData
+    where R: ParseErrorReporter
+{
     let mut rule = FontFaceRuleData::empty(location);
     {
         let parser = FontFaceRuleParser {
@@ -119,10 +124,8 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, locati
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             if let Err(err) = declaration {
-                let pos = err.span.start;
-                let error = ContextualParseError::UnsupportedFontFaceDescriptor(
-                    iter.input.slice(err.span), err.error);
-                log_css_error(iter.input, pos, error, context);
+                let error = ContextualParseError::UnsupportedFontFaceDescriptor(err.slice, err.error);
+                context.log_css_error(error_context, err.location, error)
             }
         }
     }
@@ -167,6 +170,10 @@ impl Iterator for EffectiveSources {
     fn next(&mut self) -> Option<Source> {
         self.0.pop()
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.0.len(), Some(self.0.len()))
+    }
 }
 
 struct FontFaceRuleParser<'a, 'b: 'a> {
@@ -176,7 +183,8 @@ struct FontFaceRuleParser<'a, 'b: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
-    type Prelude = ();
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = ();
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
@@ -227,7 +235,7 @@ macro_rules! font_face_descriptors_common {
         /// Data inside a `@font-face` rule.
         ///
         /// https://drafts.csswg.org/css-fonts/#font-face-rule
-        #[derive(Clone, Debug, PartialEq, Eq)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         pub struct FontFaceRuleData {
             $(
                 #[$doc]

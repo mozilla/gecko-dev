@@ -10,8 +10,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 Cu.import("chrome://marionette/content/assert.js");
 const {
-  error,
   InvalidCookieDomainError,
+  pprint,
 } = Cu.import("chrome://marionette/content/error.js", {});
 
 this.EXPORTED_SYMBOLS = ["cookie"];
@@ -53,7 +53,7 @@ this.cookie = {
 cookie.fromJSON = function(json) {
   let newCookie = {};
 
-  assert.object(json, error.pprint`Expected cookie object, got ${json}`);
+  assert.object(json, pprint`Expected cookie object, got ${json}`);
 
   newCookie.name = assert.string(json.name, "Cookie name must be string");
   newCookie.value = assert.string(json.value, "Cookie value must be string");
@@ -164,7 +164,7 @@ cookie.remove = function(toDelete) {
  * @return {Iterable.<Cookie>}
  *     Iterator.
  */
-cookie.iter = function*(host, currentPath = "/") {
+cookie.iter = function* (host, currentPath = "/") {
   assert.string(host, "host must be string");
   assert.string(currentPath, "currentPath must be string");
 

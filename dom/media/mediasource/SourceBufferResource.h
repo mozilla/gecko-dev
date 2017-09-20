@@ -7,24 +7,15 @@
 #ifndef MOZILLA_SOURCEBUFFERRESOURCE_H_
 #define MOZILLA_SOURCEBUFFERRESOURCE_H_
 
-#include "MediaCache.h"
-#include "MediaResource.h"
-#include "ResourceQueue.h"
-#include "mozilla/Attributes.h"
-#include "nsCOMPtr.h"
-#include "nsError.h"
-#include "nsIPrincipal.h"
-#include "nsTArray.h"
-#include "nscore.h"
 #include "mozilla/Logging.h"
+#include "MediaResource.h"
+#include "nsIPrincipal.h"
+#include "ResourceQueue.h"
 
 #define UNIMPLEMENTED() { /* Logging this is too spammy to do by default */ }
 
-class nsIStreamListener;
-
 namespace mozilla {
 
-class MediaDecoder;
 class MediaByteBuffer;
 class TaskQueue;
 
@@ -40,15 +31,6 @@ class SourceBufferResource final : public MediaResource
 public:
   SourceBufferResource();
   nsresult Close();
-  already_AddRefed<nsIPrincipal> GetCurrentPrincipal() override
-  {
-    UNIMPLEMENTED();
-    return nullptr;
-  }
-  void SetReadMode(MediaCacheStream::ReadMode aMode) override
-  {
-    UNIMPLEMENTED();
-  }
   nsresult ReadAt(int64_t aOffset,
                   char* aBuffer,
                   uint32_t aCount,
@@ -82,24 +64,9 @@ public:
     return GetLength();
   }
   bool IsDataCachedToEndOfResource(int64_t aOffset) override { return false; }
-  bool IsSuspendedByCache() override
-  {
-    UNIMPLEMENTED();
-    return false;
-  }
-  bool IsSuspended() override
-  {
-    UNIMPLEMENTED();
-    return false;
-  }
   nsresult ReadFromCache(char* aBuffer,
                          int64_t aOffset,
                          uint32_t aCount) override;
-  bool IsTransportSeekable() override
-  {
-    UNIMPLEMENTED();
-    return true;
-  }
 
   nsresult GetCachedRanges(MediaByteRangeSet& aRanges) override
   {
@@ -111,24 +78,15 @@ public:
     return NS_OK;
   }
 
-  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   {
     MOZ_ASSERT(OnTaskQueue());
-
-    size_t size = MediaResource::SizeOfExcludingThis(aMallocSizeOf);
-    size += mInputBuffer.SizeOfExcludingThis(aMallocSizeOf);
-
-    return size;
+    return mInputBuffer.SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-  }
-
-  bool IsExpectingMoreData() override
-  {
-    return false;
   }
 
   // Used by SourceBuffer.

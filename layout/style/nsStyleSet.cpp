@@ -217,7 +217,6 @@ nsStyleSet::nsStyleSet()
     mInGC(false),
     mAuthorStyleDisabled(false),
     mInReconstruct(false),
-    mInitFontFeatureValuesLookup(true),
     mNeedsRestyleAfterEnsureUniqueInner(false),
     mUsesViewportUnits(false),
     mDirty(0),
@@ -251,10 +250,12 @@ nsStyleSet::~nsStyleSet()
   }
 }
 
-size_t
-nsStyleSet::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+void
+nsStyleSet::AddSizeOfIncludingThis(nsWindowSizes& aSizes) const
 {
-  size_t n = aMallocSizeOf(this);
+  MallocSizeOf mallocSizeOf = aSizes.mState.mMallocSizeOf;
+
+  size_t n = mallocSizeOf(this);
 
   for (SheetType type : MakeEnumeratedRange(SheetType::Count)) {
     if (mRuleProcessors[type]) {
@@ -266,20 +267,20 @@ nsStyleSet::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
         shared = rp->IsShared();
       }
       if (!shared) {
-        n += mRuleProcessors[type]->SizeOfIncludingThis(aMallocSizeOf);
+        n += mRuleProcessors[type]->SizeOfIncludingThis(mallocSizeOf);
       }
     }
     // We don't own the sheets (either the nsLayoutStyleSheetCache singleton
     // or our document owns them).
-    n += mSheets[type].ShallowSizeOfExcludingThis(aMallocSizeOf);
+    n += mSheets[type].ShallowSizeOfExcludingThis(mallocSizeOf);
   }
 
   for (uint32_t i = 0; i < mScopedDocSheetRuleProcessors.Length(); i++) {
-    n += mScopedDocSheetRuleProcessors[i]->SizeOfIncludingThis(aMallocSizeOf);
+    n += mScopedDocSheetRuleProcessors[i]->SizeOfIncludingThis(mallocSizeOf);
   }
-  n += mScopedDocSheetRuleProcessors.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  n += mScopedDocSheetRuleProcessors.ShallowSizeOfExcludingThis(mallocSizeOf);
 
-  return n;
+  aSizes.mLayoutGeckoStyleSets += n;
 }
 
 void
@@ -2283,6 +2284,29 @@ nsStyleSet::CounterStyleRuleForName(nsIAtom* aName)
   return nullptr;
 }
 
+already_AddRefed<gfxFontFeatureValueSet>
+nsStyleSet::BuildFontFeatureValueSet()
+{
+  nsTArray<nsCSSFontFeatureValuesRule*> rules;
+  AppendFontFeatureValuesRules(rules);
+
+  if (rules.IsEmpty()) {
+    return nullptr;
+  }
+
+  RefPtr<gfxFontFeatureValueSet> set = new gfxFontFeatureValueSet();
+  for (nsCSSFontFeatureValuesRule* rule : rules) {
+    const nsTArray<FontFamilyName>& familyList = rule->GetFamilyList().GetFontlist();
+    const nsTArray<gfxFontFeatureValueSet::FeatureValues>&
+      featureValues = rule->GetFeatureValues();
+
+    for (const FontFamilyName& f : familyList) {
+      set->AddFontFeatureValues(f.mName, featureValues);
+    }
+  }
+  return set.forget();
+}
+
 bool
 nsStyleSet::AppendFontFeatureValuesRules(
                                  nsTArray<nsCSSFontFeatureValuesRule*>& aArray)
@@ -2301,40 +2325,6 @@ nsStyleSet::AppendFontFeatureValuesRules(
     }
   }
   return true;
-}
-
-already_AddRefed<gfxFontFeatureValueSet>
-nsStyleSet::GetFontFeatureValuesLookup()
-{
-  if (mInitFontFeatureValuesLookup) {
-    mInitFontFeatureValuesLookup = false;
-
-    nsTArray<nsCSSFontFeatureValuesRule*> rules;
-    AppendFontFeatureValuesRules(rules);
-
-    mFontFeatureValuesLookup = new gfxFontFeatureValueSet();
-
-    uint32_t i, numRules = rules.Length();
-    for (i = 0; i < numRules; i++) {
-      nsCSSFontFeatureValuesRule *rule = rules[i];
-
-      const nsTArray<FontFamilyName>& familyList = rule->GetFamilyList().GetFontlist();
-      const nsTArray<gfxFontFeatureValueSet::FeatureValues>&
-        featureValues = rule->GetFeatureValues();
-
-      // for each family
-      size_t f, numFam;
-
-      numFam = familyList.Length();
-      for (f = 0; f < numFam; f++) {
-        mFontFeatureValuesLookup->AddFontFeatureValues(familyList[f].mName,
-                                                       featureValues);
-      }
-    }
-  }
-
-  RefPtr<gfxFontFeatureValueSet> lookup = mFontFeatureValuesLookup;
-  return lookup.forget();
 }
 
 bool
@@ -2696,8 +2686,8 @@ nsStyleSet::MediumFeaturesChanged(bool aViewportChanged)
   }
 
   if (mBindingManager) {
-    bool thisChanged = false;
-    mBindingManager->MediumFeaturesChanged(presContext, &thisChanged);
+    bool thisChanged =
+      mBindingManager->MediumFeaturesChanged(presContext);
     stylesChanged = stylesChanged || thisChanged;
   }
 

@@ -3013,6 +3013,7 @@ exports.CSS_PROPERTIES = {
       "font-language-override",
       "font-size",
       "font-size-adjust",
+      "-moz-font-smoothing-background-color",
       "font-stretch",
       "font-style",
       "font-synthesis",
@@ -3419,7 +3420,6 @@ exports.CSS_PROPERTIES = {
       "geometricprecision",
       "grab",
       "grabbing",
-      "grayscale",
       "grid",
       "groove",
       "groupbox",
@@ -6699,16 +6699,13 @@ exports.CSS_PROPERTIES = {
       "grid-template-columns",
       "grid-auto-flow",
       "grid-auto-rows",
-      "grid-auto-columns",
-      "grid-row-gap",
-      "grid-column-gap"
+      "grid-auto-columns"
     ],
     "supports": [
       6,
       8
     ],
     "values": [
-      "calc",
       "column",
       "dense",
       "inherit",

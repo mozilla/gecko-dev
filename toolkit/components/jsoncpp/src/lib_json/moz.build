@@ -27,7 +27,7 @@ elif not CONFIG['_MSC_VER']:
     ]
 
 # Required to build with exceptions enabled
-DISABLE_STL_WRAPPING = True
+DisableStlWrapping()
 
 Library('jsoncpp')
 
@@ -44,6 +44,10 @@ elif CONFIG['GNU_CXX']:
 
 if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL']:
     CXXFLAGS += [
-        '-Wno-implicit-fallthrough',
         '-Wno-c++11-narrowing',
+    ]
+
+if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL'] or CONFIG['GNU_CXX']:
+    CXXFLAGS += [
+        '-Wno-implicit-fallthrough',
     ]

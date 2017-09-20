@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IPCStreamSource.h"
+#include "mozilla/webrender/WebRenderTypes.h"
 #include "nsIAsyncInputStream.h"
 #include "nsICancelableRunnable.h"
 #include "nsIRunnable.h"
@@ -16,6 +17,7 @@ using mozilla::dom::workers::Canceling;
 using mozilla::dom::workers::GetCurrentThreadWorkerPrivate;
 using mozilla::dom::workers::Status;
 using mozilla::dom::workers::WorkerPrivate;
+using mozilla::wr::ByteBuffer;
 
 namespace mozilla {
 namespace ipc {
@@ -215,54 +217,44 @@ IPCStreamSource::DoRead()
   static_assert(kMaxBytesPerMessage <= static_cast<uint64_t>(UINT32_MAX),
                 "kMaxBytesPerMessage must cleanly cast to uint32_t");
 
+  char buffer[kMaxBytesPerMessage];
+
   while (true) {
     // It should not be possible to transition to closed state without
     // this loop terminating via a return.
     MOZ_ASSERT(mState == eActorConstructed);
 
-    // Use non-auto here as we're unlikely to hit stack storage with the
-    // sizes we are sending.  Also, it would be nice to avoid another copy
-    // to the IPC layer which we avoid if we use COW strings.  Unfortunately
-    // IPC does not seem to support passing dependent storage types.
-    nsCString buffer;
-
-    uint64_t available = 0;
-    nsresult rv = mStream->Available(&available);
+    // See if the stream is closed by checking the return of Available.
+    uint64_t dummy;
+    nsresult rv = mStream->Available(&dummy);
     if (NS_FAILED(rv)) {
       OnEnd(rv);
       return;
     }
 
-    if (available == 0) {
-      Wait();
-      return;
-    }
-
-    uint32_t expectedBytes =
-      static_cast<uint32_t>(std::min(available, kMaxBytesPerMessage));
-
-    buffer.SetLength(expectedBytes);
-
     uint32_t bytesRead = 0;
-    rv = mStream->Read(buffer.BeginWriting(), buffer.Length(), &bytesRead);
-    MOZ_ASSERT_IF(NS_FAILED(rv), bytesRead == 0);
-    buffer.SetLength(bytesRead);
-
-    // If we read any data from the stream, send it across.
-    if (!buffer.IsEmpty()) {
-      SendData(buffer);
-    }
+    rv = mStream->Read(buffer, kMaxBytesPerMessage, &bytesRead);
 
     if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
+      MOZ_ASSERT(bytesRead == 0);
       Wait();
       return;
     }
 
-    // Any other error or zero-byte read indicates end-of-stream
-    if (NS_FAILED(rv) || buffer.IsEmpty()) {
+    if (NS_FAILED(rv)) {
+      MOZ_ASSERT(bytesRead == 0);
       OnEnd(rv);
       return;
     }
+
+    // Zero-byte read indicates end-of-stream.
+    if (bytesRead == 0) {
+      OnEnd(NS_BASE_STREAM_CLOSED);
+      return;
+    }
+
+    // We read some data from the stream, send it across.
+    SendData(ByteBuffer(bytesRead, reinterpret_cast<uint8_t*>(buffer)));
   }
 }
 

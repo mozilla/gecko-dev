@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cow_rc_str::CowRcStr;
+use smallvec::SmallVec;
 use std::ops::Range;
 use std::ascii::AsciiExt;
 use std::ops::BitOr;
-use tokenizer::{self, Token, Tokenizer, SourceLocation};
+use tokenizer::{Token, Tokenizer, SourcePosition, SourceLocation};
 
 
 /// A capture of the internal state of a `Parser` (including the position within the input),
@@ -14,11 +15,31 @@ use tokenizer::{self, Token, Tokenizer, SourceLocation};
 ///
 /// Can be used with the `Parser::reset` method to restore that state.
 /// Should only be used with the `Parser` instance it came from.
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub struct SourcePosition {
-    position: tokenizer::SourcePosition,
-    at_start_of: Option<BlockType>,
+#[derive(Debug, Clone)]
+pub struct ParserState {
+    pub(crate) position: usize,
+    pub(crate) current_line_start_position: usize,
+    pub(crate) current_line_number: u32,
+    pub(crate) at_start_of: Option<BlockType>,
 }
+
+impl ParserState {
+    /// The position from the start of the input, counted in UTF-8 bytes.
+    #[inline]
+    pub fn position(&self) -> SourcePosition {
+        SourcePosition(self.position)
+    }
+
+    /// The line number and column number
+    #[inline]
+    pub fn source_location(&self) -> SourceLocation {
+        SourceLocation {
+            line: self.current_line_number,
+            column: (self.position - self.current_line_start_position + 1) as u32,
+        }
+    }
+}
+
 
 /// The funamental parsing errors that can be triggered by built-in parsing routines.
 #[derive(Clone, Debug, PartialEq)]
@@ -36,6 +57,7 @@ pub enum BasicParseError<'a> {
 }
 
 impl<'a, T> From<BasicParseError<'a>> for ParseError<'a, T> {
+    #[inline]
     fn from(this: BasicParseError<'a>) -> ParseError<'a, T> {
         ParseError::Basic(this)
     }
@@ -68,8 +90,8 @@ pub struct ParserInput<'i> {
 
 struct CachedToken<'i> {
     token: Token<'i>,
-    start_position: tokenizer::SourcePosition,
-    end_position: tokenizer::SourcePosition,
+    start_position: SourcePosition,
+    end_state: ParserState,
 }
 
 impl<'i> ParserInput<'i> {
@@ -77,6 +99,15 @@ impl<'i> ParserInput<'i> {
     pub fn new(input: &'i str) -> ParserInput<'i> {
         ParserInput {
             tokenizer: Tokenizer::new(input),
+            cached_token: None,
+        }
+    }
+
+    /// Create a new input for a parser.  Line numbers in locations
+    /// are offset by the given value.
+    pub fn new_with_line_number_offset(input: &'i str, first_line_number: u32) -> ParserInput<'i> {
+        ParserInput {
+            tokenizer: Tokenizer::with_first_line_number(input, first_line_number),
             cached_token: None,
         }
     }
@@ -100,7 +131,7 @@ pub struct Parser<'i: 't, 't> {
 
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-enum BlockType {
+pub(crate) enum BlockType {
     Parenthesis,
     SquareBracket,
     CurlyBracket,
@@ -170,16 +201,19 @@ mod ClosingDelimiter {
 impl BitOr<Delimiters> for Delimiters {
     type Output = Delimiters;
 
+    #[inline]
     fn bitor(self, other: Delimiters) -> Delimiters {
         Delimiters { bits: self.bits | other.bits }
     }
 }
 
 impl Delimiters {
+    #[inline]
     fn contains(self, other: Delimiters) -> bool {
         (self.bits & other.bits) != 0
     }
 
+    #[inline]
     fn from_byte(byte: Option<u8>) -> Delimiters {
         match byte {
             Some(b';') => Delimiter::Semicolon,
@@ -224,25 +258,85 @@ impl<'i: 't, 't> Parser<'i, 't> {
     /// This ignores whitespace and comments.
     #[inline]
     pub fn expect_exhausted(&mut self) -> Result<(), BasicParseError<'i>> {
-        let start_position = self.position();
+        let start = self.state();
         let result = match self.next() {
             Err(BasicParseError::EndOfInput) => Ok(()),
             Err(e) => unreachable!("Unexpected error encountered: {:?}", e),
             Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone())),
         };
-        self.reset(start_position);
+        self.reset(&start);
         result
+    }
+
+    /// Return the current position within the input.
+    ///
+    /// This can be used with the `Parser::slice` and `slice_from` methods.
+    #[inline]
+    pub fn position(&self) -> SourcePosition {
+        self.input.tokenizer.position()
+    }
+
+    /// The current line number and column number.
+    #[inline]
+    pub fn current_source_location(&self) -> SourceLocation {
+        self.input.tokenizer.current_source_location()
+    }
+
+    /// The source map URL, if known.
+    ///
+    /// The source map URL is extracted from a specially formatted
+    /// comment.  The last such comment is used, so this value may
+    /// change as parsing proceeds.
+    pub fn current_source_map_url(&self) -> Option<&str> {
+        self.input.tokenizer.current_source_map_url()
+    }
+
+    /// The source URL, if known.
+    ///
+    /// The source URL is extracted from a specially formatted
+    /// comment.  The last such comment is used, so this value may
+    /// change as parsing proceeds.
+    pub fn current_source_url(&self) -> Option<&str> {
+        self.input.tokenizer.current_source_url()
     }
 
     /// Return the current internal state of the parser (including position within the input).
     ///
     /// This state can later be restored with the `Parser::reset` method.
     #[inline]
-    pub fn position(&self) -> SourcePosition {
-        SourcePosition {
-            position: self.input.tokenizer.position(),
+    pub fn state(&self) -> ParserState {
+        ParserState {
             at_start_of: self.at_start_of,
+            .. self.input.tokenizer.state()
         }
+    }
+
+    /// Advance the input until the next token that’s not whitespace or a comment.
+    #[inline]
+    pub fn skip_whitespace(&mut self) {
+        if let Some(block_type) = self.at_start_of.take() {
+            consume_until_end_of_block(block_type, &mut self.input.tokenizer);
+        }
+
+        self.input.tokenizer.skip_whitespace()
+    }
+
+    #[inline]
+    pub(crate) fn skip_cdc_and_cdo(&mut self) {
+        if let Some(block_type) = self.at_start_of.take() {
+            consume_until_end_of_block(block_type, &mut self.input.tokenizer);
+        }
+
+        self.input.tokenizer.skip_cdc_and_cdo()
+    }
+
+    #[inline]
+    pub(crate) fn next_byte(&self) -> Option<u8> {
+        let byte = self.input.tokenizer.next_byte();
+        if self.stop_before.contains(Delimiters::from_byte(byte)) {
+            return None
+        }
+        byte
     }
 
     /// Restore the internal state of the parser (including position within the input)
@@ -250,9 +344,9 @@ impl<'i: 't, 't> Parser<'i, 't> {
     ///
     /// Should only be used with `SourcePosition` values from the same `Parser` instance.
     #[inline]
-    pub fn reset(&mut self, new_position: SourcePosition) {
-        self.input.tokenizer.reset(new_position.position);
-        self.at_start_of = new_position.at_start_of;
+    pub fn reset(&mut self, state: &ParserState) {
+        self.input.tokenizer.reset(state);
+        self.at_start_of = state.at_start_of;
     }
 
     /// Start looking for `var()` functions. (See the `.seen_var_functions()` method.)
@@ -268,20 +362,6 @@ impl<'i: 't, 't> Parser<'i, 't> {
         self.input.tokenizer.seen_var_functions()
     }
 
-    /// Start looking for viewport percentage lengths. (See the `seen_viewport_percentages`
-    /// method.)
-    #[inline]
-    pub fn look_for_viewport_percentages(&mut self) {
-        self.input.tokenizer.look_for_viewport_percentages()
-    }
-
-    /// Return whether a `vh`, `vw`, `vmin`, or `vmax` dimension has been seen by the tokenizer
-    /// since `look_for_viewport_percentages` was called, and stop looking.
-    #[inline]
-    pub fn seen_viewport_percentages(&mut self) -> bool {
-        self.input.tokenizer.seen_viewport_percentages()
-    }
-
     /// Execute the given closure, passing it the parser.
     /// If the result (returned unchanged) is `Err`,
     /// the internal state of the parser  (including position within the input)
@@ -289,10 +369,10 @@ impl<'i: 't, 't> Parser<'i, 't> {
     #[inline]
     pub fn try<F, T, E>(&mut self, thing: F) -> Result<T, E>
     where F: FnOnce(&mut Parser<'i, 't>) -> Result<T, E> {
-        let start_position = self.position();
+        let start = self.state();
         let result = thing(self);
         if result.is_err() {
-            self.reset(start_position)
+            self.reset(&start)
         }
         result
     }
@@ -300,25 +380,13 @@ impl<'i: 't, 't> Parser<'i, 't> {
     /// Return a slice of the CSS input
     #[inline]
     pub fn slice(&self, range: Range<SourcePosition>) -> &'i str {
-        self.input.tokenizer.slice(range.start.position..range.end.position)
+        self.input.tokenizer.slice(range)
     }
 
     /// Return a slice of the CSS input, from the given position to the current one.
     #[inline]
     pub fn slice_from(&self, start_position: SourcePosition) -> &'i str {
-        self.input.tokenizer.slice_from(start_position.position)
-    }
-
-    /// Return the line and column number within the input for the current position.
-    #[inline]
-    pub fn current_source_location(&self) -> SourceLocation {
-        self.input.tokenizer.current_source_location()
-    }
-
-    /// Return the line and column number within the input for the given position.
-    #[inline]
-    pub fn source_location(&self, target: SourcePosition) -> SourceLocation {
-        self.input.tokenizer.source_location(target.position)
+        self.input.tokenizer.slice_from(start_position)
     }
 
     /// Return the next token in the input that is neither whitespace or a comment,
@@ -333,14 +401,8 @@ impl<'i: 't, 't> Parser<'i, 't> {
     ///
     /// This only returns a closing token when it is unmatched (and therefore an error).
     pub fn next(&mut self) -> Result<&Token<'i>, BasicParseError<'i>> {
-        loop {
-            match self.next_including_whitespace_and_comments() {
-                Err(e) => return Err(e),
-                Ok(&Token::WhiteSpace(_)) | Ok(&Token::Comment(_)) => {},
-                _ => break
-            }
-        }
-        Ok(self.input.cached_token_ref())
+        self.skip_whitespace();
+        self.next_including_whitespace_and_comments()
     }
 
     /// Same as `Parser::next`, but does not skip whitespace tokens.
@@ -374,10 +436,10 @@ impl<'i: 't, 't> Parser<'i, 't> {
         let token_start_position = self.input.tokenizer.position();
         let token;
         match self.input.cached_token {
-            Some(ref cached_token) if cached_token.start_position == token_start_position => {
-                self.input.tokenizer.reset(cached_token.end_position);
+            Some(ref cached_token)
+            if cached_token.start_position == token_start_position => {
+                self.input.tokenizer.reset(&cached_token.end_state);
                 match cached_token.token {
-                    Token::Dimension { ref unit, .. } => self.input.tokenizer.see_dimension(unit),
                     Token::Function(ref name) => self.input.tokenizer.see_function(name),
                     _ => {}
                 }
@@ -388,7 +450,7 @@ impl<'i: 't, 't> Parser<'i, 't> {
                 self.input.cached_token = Some(CachedToken {
                     token: new_token,
                     start_position: token_start_position,
-                    end_position: self.input.tokenizer.position(),
+                    end_state: self.input.tokenizer.state(),
                 });
                 token = self.input.cached_token_ref()
             }
@@ -425,8 +487,13 @@ impl<'i: 't, 't> Parser<'i, 't> {
     #[inline]
     pub fn parse_comma_separated<F, T, E>(&mut self, mut parse_one: F) -> Result<Vec<T>, ParseError<'i, E>>
     where F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>> {
-        let mut values = vec![];
+        // Vec grows from 0 to 4 by default on first push().  So allocate with
+        // capacity 1, so in the somewhat common case of only one item we don't
+        // way overallocate.  Note that we always push at least one item if
+        // parsing succeeds.
+        let mut values = Vec::with_capacity(1);
         loop {
+            self.skip_whitespace();  // Unnecessary for correctness, but may help try() in parse_one rewind less.
             values.push(self.parse_until_before(Delimiter::Comma, &mut parse_one)?);
             match self.next() {
                 Err(_) => return Ok(values),
@@ -734,10 +801,10 @@ pub fn parse_until_before<'i: 't, 't, F, T, E>(parser: &mut Parser<'i, 't>,
     }
     // FIXME: have a special-purpose tokenizer method for this that does less work.
     loop {
-        if delimiters.contains(Delimiters::from_byte((parser.input.tokenizer).next_byte())) {
+        if delimiters.contains(Delimiters::from_byte(parser.input.tokenizer.next_byte())) {
             break
         }
-        if let Ok(token) = (parser.input.tokenizer).next() {
+        if let Ok(token) = parser.input.tokenizer.next() {
             if let Some(block_type) = BlockType::opening(&token) {
                 consume_until_end_of_block(block_type, &mut parser.input.tokenizer);
             }
@@ -754,10 +821,11 @@ pub fn parse_until_after<'i: 't, 't, F, T, E>(parser: &mut Parser<'i, 't>,
                                               -> Result <T, ParseError<'i, E>>
     where F: for<'tt> FnOnce(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>> {
     let result = parser.parse_until_before(delimiters, parse);
-    let next_byte = (parser.input.tokenizer).next_byte();
+    let next_byte = parser.input.tokenizer.next_byte();
     if next_byte.is_some() && !parser.stop_before.contains(Delimiters::from_byte(next_byte)) {
         debug_assert!(delimiters.contains(Delimiters::from_byte(next_byte)));
-        (parser.input.tokenizer).advance(1);
+        // We know this byte is ASCII.
+        parser.input.tokenizer.advance(1);
         if next_byte == Some(b'{') {
             consume_until_end_of_block(BlockType::CurlyBracket, &mut parser.input.tokenizer);
         }
@@ -795,8 +863,11 @@ pub fn parse_nested_block<'i: 't, 't, F, T, E>(parser: &mut Parser<'i, 't>, pars
     result
 }
 
+#[inline(never)]
+#[cold]
 fn consume_until_end_of_block(block_type: BlockType, tokenizer: &mut Tokenizer) {
-    let mut stack = vec![block_type];
+    let mut stack = SmallVec::<[BlockType; 16]>::new();
+    stack.push(block_type);
 
     // FIXME: have a special-purpose tokenizer method for this that does less work.
     while let Ok(ref token) = tokenizer.next() {

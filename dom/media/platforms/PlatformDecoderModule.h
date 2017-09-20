@@ -52,6 +52,20 @@ struct MOZ_STACK_CLASS CreateDecoderParams final
   };
   using OptionSet = EnumSet<Option>;
 
+  struct UseNullDecoder
+  {
+    UseNullDecoder() = default;
+    explicit UseNullDecoder(bool aUseNullDecoder) : mUse(aUseNullDecoder) { }
+    bool mUse = false;
+  };
+
+  struct VideoFrameRate
+  {
+    VideoFrameRate() = default;
+    explicit VideoFrameRate(float aFramerate) : mValue(aFramerate) { }
+    float mValue = 0.0f;
+  };
+
   template <typename T1, typename... Ts>
   CreateDecoderParams(const TrackInfo& aConfig, T1&& a1, Ts&&... args)
     : mConfig(aConfig)
@@ -86,10 +100,11 @@ struct MOZ_STACK_CLASS CreateDecoderParams final
   MediaResult* mError = nullptr;
   RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   RefPtr<GMPCrashHelper> mCrashHelper;
-  bool mUseNullDecoder = false;
+  UseNullDecoder mUseNullDecoder;
   TrackInfo::TrackType mType = TrackInfo::kUndefinedTrack;
   MediaEventProducer<TrackInfo::TrackType>* mOnWaitingForKeyEvent = nullptr;
   OptionSet mOptions = OptionSet(Option::Default);
+  VideoFrameRate mRate;
 
 private:
   void Set(TaskQueue* aTaskQueue) { mTaskQueue = aTaskQueue; }
@@ -103,8 +118,9 @@ private:
   }
   void Set(MediaResult* aError) { mError = aError; }
   void Set(GMPCrashHelper* aCrashHelper) { mCrashHelper = aCrashHelper; }
-  void Set(bool aUseNullDecoder) { mUseNullDecoder = aUseNullDecoder; }
+  void Set(UseNullDecoder aUseNullDecoder) { mUseNullDecoder = aUseNullDecoder; }
   void Set(OptionSet aOptions) { mOptions = aOptions; }
+  void Set(VideoFrameRate aRate) { mRate = aRate; }
   void Set(layers::KnowsCompositor* aKnowsCompositor)
   {
     mKnowsCompositor = aKnowsCompositor;
@@ -280,9 +296,8 @@ public:
   }
 
   // Return the name of the MediaDataDecoder, only used for decoding.
-  // Only return a static const string, as the information may be accessed
-  // in a non thread-safe fashion.
-  virtual const char* GetDescriptionName() const = 0;
+  // May be accessed in a non thread-safe fashion.
+  virtual nsCString GetDescriptionName() const = 0;
 
   // Set a hint of seek target time to decoder. Decoder will drop any decoded
   // data which pts is smaller than this value. This threshold needs to be clear

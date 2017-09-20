@@ -11,7 +11,7 @@
 #include "nsIServiceManager.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsMimeTypes.h"
 #include "nsMemory.h"
@@ -334,7 +334,7 @@ GetSizeInfoFlag(uint32_t aDesiredImageSize)
 nsresult
 nsIconChannel::GetHIconFromFile(HICON* hIcon)
 {
-  nsXPIDLCString contentType;
+  nsCString contentType;
   nsCString fileExt;
   nsCOMPtr<nsIFile> localFile; // file we want an icon for
   uint32_t desiredImageSize;

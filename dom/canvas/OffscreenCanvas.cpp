@@ -266,17 +266,6 @@ OffscreenCanvas::ToBlob(JSContext* aCx,
     {
       RefPtr<Blob> blob = aBlob;
 
-      ErrorResult rv;
-      uint64_t size = blob->GetSize(rv);
-      if (rv.Failed()) {
-        rv.SuppressException();
-      } else {
-        AutoJSAPI jsapi;
-        if (jsapi.Init(mGlobal)) {
-          JS_updateMallocCounter(jsapi.cx(), size);
-        }
-      }
-
       if (mPromise) {
         RefPtr<Blob> newBlob = Blob::Create(mGlobal, blob->Impl());
         mPromise->MaybeResolve(newBlob);
@@ -285,7 +274,7 @@ OffscreenCanvas::ToBlob(JSContext* aCx,
       mGlobal = nullptr;
       mPromise = nullptr;
 
-      return rv.StealNSResult();
+      return NS_OK;
     }
 
     nsCOMPtr<nsIGlobalObject> mGlobal;
@@ -363,7 +352,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(OffscreenCanvas, DOMEventTargetHelper, mCurre
 NS_IMPL_ADDREF_INHERITED(OffscreenCanvas, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(OffscreenCanvas, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(OffscreenCanvas)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(OffscreenCanvas)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 

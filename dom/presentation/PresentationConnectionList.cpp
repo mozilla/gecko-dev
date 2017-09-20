@@ -6,6 +6,7 @@
 
 #include "PresentationConnectionList.h"
 
+#include "nsContentUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/PresentationConnectionAvailableEvent.h"
 #include "mozilla/dom/PresentationConnectionListBinding.h"
@@ -22,7 +23,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(PresentationConnectionList, DOMEventTargetHel
 NS_IMPL_ADDREF_INHERITED(PresentationConnectionList, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(PresentationConnectionList, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(PresentationConnectionList)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PresentationConnectionList)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 PresentationConnectionList::PresentationConnectionList(nsPIDOMWindowInner* aWindow,
@@ -45,6 +46,11 @@ void
 PresentationConnectionList::GetConnections(
   nsTArray<RefPtr<PresentationConnection>>& aConnections) const
 {
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    aConnections.Clear();
+    return;
+  }
+
   aConnections = mConnections;
 }
 
@@ -52,6 +58,10 @@ nsresult
 PresentationConnectionList::DispatchConnectionAvailableEvent(
   PresentationConnection* aConnection)
 {
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    return NS_OK;
+  }
+
   PresentationConnectionAvailableEventInit init;
   init.mConnection = aConnection;
 
@@ -104,7 +114,9 @@ PresentationConnectionList::NotifyStateChange(const nsAString& aSessionId,
       if (!connectionFound) {
         mConnections.AppendElement(aConnection);
         if (mGetConnectionListPromise) {
-          mGetConnectionListPromise->MaybeResolve(this);
+          if (!nsContentUtils::ShouldResistFingerprinting()) {
+            mGetConnectionListPromise->MaybeResolve(this);
+          }
           mGetConnectionListPromise = nullptr;
           return;
         }

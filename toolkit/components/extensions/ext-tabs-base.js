@@ -309,6 +309,15 @@ class TabBase {
   }
 
   /**
+   * @property {integer} openerTabId
+   *        Returns the ID of the tab which opened this one.
+   *        @readonly
+   */
+  get openerTabId() {
+    return null;
+  }
+
+  /**
    * @property {integer} height
    *        Returns the pixel height of the visible area of the tab.
    *        @readonly
@@ -444,9 +453,9 @@ class TabBase {
    *        True if the tab matches the query.
    */
   matches(queryInfo) {
-    const PROPS = ["active", "audible", "cookieStoreId", "highlighted", "index", "pinned", "status", "title"];
+    const PROPS = ["active", "audible", "cookieStoreId", "highlighted", "index", "openerTabId", "pinned", "status", "title"];
 
-    if (PROPS.some(prop => queryInfo[prop] !== null && queryInfo[prop] !== this[prop])) {
+    if (PROPS.some(prop => queryInfo[prop] != null && queryInfo[prop] !== this[prop])) {
       return false;
     }
 
@@ -482,6 +491,7 @@ class TabBase {
       active: this.selected,
       pinned: this.pinned,
       status: this.status,
+      discarded: this.discarded,
       incognito: this.incognito,
       width: this.width,
       height: this.height,
@@ -495,6 +505,11 @@ class TabBase {
     if (fallbackTab && (!result.width || !result.height)) {
       result.width = fallbackTab.width;
       result.height = fallbackTab.height;
+    }
+
+    let opener = this.openerTabId;
+    if (opener) {
+      result.openerTabId = opener;
     }
 
     if (this.extension.hasPermission("cookies")) {
@@ -679,9 +694,8 @@ class WindowBase {
    *        @readonly
    */
   get xulWindow() {
-    return this.window.QueryInterface(Ci.nsIInterfaceRequestor)
-               .getInterface(Ci.nsIDocShell)
-               .treeOwner.QueryInterface(Ci.nsIInterfaceRequestor)
+    return this.window.document.docShell.treeOwner
+               .QueryInterface(Ci.nsIInterfaceRequestor)
                .getInterface(Ci.nsIXULWindow);
   }
 
@@ -901,6 +915,18 @@ class WindowBase {
     throw new Error("Not implemented");
   }
 
+  /**
+   * @property {nsIURI | null} title
+   *        Returns the current title of this window if the extension has permission
+   *        to read it, or null otherwise.
+   *        @readonly
+   */
+  get title() {
+    if (this.activeTab.hasTabPermission) {
+      return this._title;
+    }
+  }
+
   // The JSDoc validator does not support @returns tags in abstract functions or
   // star functions without return statements.
   /* eslint-disable valid-jsdoc */
@@ -926,6 +952,13 @@ class WindowBase {
    * @returns {Iterator<TabBase>}
    */
   getTabs() {
+    throw new Error("Not implemented");
+  }
+
+  /**
+   * @property {TabBase} The window's currently active tab.
+   */
+  get activeTab() {
     throw new Error("Not implemented");
   }
   /* eslint-enable valid-jsdoc */
@@ -1173,8 +1206,6 @@ class WindowTrackerBase extends EventEmitter {
     });
 
     this._windowIds = new DefaultWeakMap(window => {
-      window.QueryInterface(Ci.nsIInterfaceRequestor);
-
       return getWinUtils(window).outerWindowID;
     });
   }

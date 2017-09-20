@@ -9,6 +9,8 @@
 #include "nsAutoPtr.h"
 #include "nsIDOMHTMLMediaElement.h"
 #include "nsGenericHTMLElement.h"
+#include "MediaEventSource.h"
+#include "SeekTarget.h"
 #include "MediaDecoderOwner.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIObserver.h"
@@ -18,12 +20,12 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/TextTrackManager.h"
 #include "mozilla/WeakPtr.h"
-#include "MediaDecoder.h"
 #include "mozilla/dom/MediaKeys.h"
 #include "mozilla/StateWatching.h"
 #include "nsGkAtoms.h"
 #include "PrincipalChangeObserver.h"
 #include "nsStubMutationObserver.h"
+#include "MediaSegment.h" // for PrincipalHandle
 
 // X.h on Linux #defines CurrentTime as 0L, so we have to #undef it here.
 #ifdef CurrentTime
@@ -49,6 +51,9 @@ class DOMMediaStream;
 class ErrorResult;
 class MediaResource;
 class MediaDecoder;
+class MediaInputPort;
+class MediaStream;
+class MediaStreamGraph;
 class VideoFrameContainer;
 namespace dom {
 class MediaKeys;
@@ -111,7 +116,6 @@ public:
   typedef mozilla::MetadataTags MetadataTags;
 
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(HTMLMediaElement)
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   CORSMode GetCORSMode() {
@@ -156,17 +160,12 @@ public:
                                int32_t *aTabIndex) override;
   virtual int32_t TabIndexDefault() override;
 
-  /**
-   * Call this to reevaluate whether we should start/stop due to our owner
-   * document being active, inactive, visible or hidden.
-   */
-  virtual void NotifyOwnerDocumentActivityChanged();
-
   // Called by the video decoder object, on the main thread,
   // when it has read the metadata containing video dimensions,
   // etc.
-  virtual void MetadataLoaded(const MediaInfo* aInfo,
-                              nsAutoPtr<const MetadataTags> aTags) final override;
+  virtual void MetadataLoaded(
+    const MediaInfo* aInfo,
+    UniquePtr<const MetadataTags> aTags) final override;
 
   // Called by the decoder object, on the main thread,
   // when it has read the first frame of the video or audio.
@@ -223,7 +222,7 @@ public:
 
   // Called by the media decoder to indicate whether the media cache has
   // suspended the channel.
-  virtual void NotifySuspendedByCache(bool aIsSuspended) final override;
+  virtual void NotifySuspendedByCache(bool aSuspendedByCache) final override;
 
   virtual bool IsActive() const final override;
 
@@ -233,6 +232,12 @@ public:
   // ImageContainer containing the video data.
   virtual VideoFrameContainer* GetVideoFrameContainer() final override;
   layers::ImageContainer* GetImageContainer();
+
+  /**
+   * Call this to reevaluate whether we should start/stop due to our owner
+   * document being active, inactive, visible or hidden.
+   */
+  void NotifyOwnerDocumentActivityChanged();
 
   // From PrincipalChangeObserver<DOMMediaStream>.
   void PrincipalChanged(DOMMediaStream* aStream) override;
@@ -808,23 +813,16 @@ protected:
 
   MediaDecoderOwner::NextFrameStatus NextFrameStatus();
 
-  void SetDecoder(MediaDecoder* aDecoder) {
-    MOZ_ASSERT(aDecoder); // Use ShutdownDecoder() to clear.
-    if (mDecoder) {
-      ShutdownDecoder();
-    }
-    mDecoder = aDecoder;
-  }
+  void SetDecoder(MediaDecoder* aDecoder);
 
   class WakeLockBoolWrapper {
   public:
-    explicit WakeLockBoolWrapper(bool val = false)
-      : mValue(val), mCanPlay(true), mOuter(nullptr) {}
+    WakeLockBoolWrapper(bool aVal, HTMLMediaElement& aOuter)
+      : mValue(aVal)
+      , mOuter(aOuter)
+    {}
 
-    ~WakeLockBoolWrapper();
-
-    void SetOuter(HTMLMediaElement* outer) { mOuter = outer; }
-    void SetCanPlay(bool aCanPlay);
+    ~WakeLockBoolWrapper() {};
 
     MOZ_IMPLICIT operator bool() const { return mValue; }
 
@@ -832,15 +830,10 @@ protected:
 
     bool operator !() const { return !mValue; }
 
-    static void TimerCallback(nsITimer* aTimer, void* aClosure);
-
-  private:
     void UpdateWakeLock();
-
+  private:
     bool mValue;
-    bool mCanPlay;
-    HTMLMediaElement* mOuter;
-    nsCOMPtr<nsITimer> mTimer;
+    HTMLMediaElement& mOuter;
   };
 
   // Holds references to the DOM wrappers for the MediaStreams that we're
@@ -1411,16 +1404,15 @@ protected:
 
   RefPtr<ChannelLoader> mChannelLoader;
 
-  // The current media load ID. This is incremented every time we start a
-  // new load. Async events note the ID when they're first sent, and only fire
-  // if the ID is unchanged when they come to fire.
-  uint32_t mCurrentLoadID;
-
   // Points to the child source elements, used to iterate through the children
-  // when selecting a resource to load.  This is the index of the child element
-  // that is the current 'candidate' in:
+  // when selecting a resource to load.  This is the previous sibling of the
+  // child considered the current 'candidate' in:
   // https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
-  uint32_t mSourcePointer;
+  //
+  // mSourcePointer == nullptr, we will next try to load |GetFirstChild()|.
+  // mSourcePointer == GetLastChild(), we've exhausted all sources, waiting
+  // for new elements to be appended.
+  nsCOMPtr<nsIContent> mSourcePointer;
 
   // Points to the document whose load we're blocking. This is the document
   // we're bound to when loading starts.
@@ -1446,6 +1438,11 @@ protected:
     WAITING_FOR_SOURCE
   };
 
+  // The current media load ID. This is incremented every time we start a
+  // new load. Async events note the ID when they're first sent, and only fire
+  // if the ID is unchanged when they come to fire.
+  uint32_t mCurrentLoadID;
+
   // Denotes the waiting state of a load algorithm instance. When the load
   // algorithm is waiting for a source element child to be added, this is set
   // to WAITING_FOR_SOURCE, otherwise it's NOT_WAITING.
@@ -1454,7 +1451,19 @@ protected:
   // Current audio volume
   double mVolume;
 
-  nsAutoPtr<const MetadataTags> mTags;
+  // True if the audio track is not silent.
+  bool mIsAudioTrackAudible;
+
+  enum MutedReasons {
+    MUTED_BY_CONTENT               = 0x01,
+    MUTED_BY_INVALID_PLAYBACK_RATE = 0x02,
+    MUTED_BY_AUDIO_CHANNEL         = 0x04,
+    MUTED_BY_AUDIO_TRACK           = 0x08
+  };
+
+  uint32_t mMuted;
+
+  UniquePtr<const MetadataTags> mTags;
 
   // URI of the resource we're attempting to load. This stores the value we
   // return in the currentSrc attribute. Use GetCurrentSrc() to access the
@@ -1554,15 +1563,6 @@ protected:
   // Playback of the video is paused either due to calling the
   // 'Pause' method, or playback not yet having started.
   WakeLockBoolWrapper mPaused;
-
-  enum MutedReasons {
-    MUTED_BY_CONTENT               = 0x01,
-    MUTED_BY_INVALID_PLAYBACK_RATE = 0x02,
-    MUTED_BY_AUDIO_CHANNEL         = 0x04,
-    MUTED_BY_AUDIO_TRACK           = 0x08
-  };
-
-  uint32_t mMuted;
 
   // True if the media statistics are currently being shown by the builtin
   // video controls
@@ -1681,9 +1681,6 @@ protected:
   // True if the media's channel's download has been suspended.
   Watchable<bool> mDownloadSuspendedByCache;
 
-  // Audio Channel.
-  AudioChannel mAudioChannel;
-
   // Disable the video playback by track selection. This flag might not be
   // enough if we ever expand the ability of supporting multi-tracks video
   // playback.
@@ -1786,9 +1783,6 @@ private:
   // initially be set to zero seconds. This time is used to allow the element to
   // be seeked even before the media is loaded.
   double mDefaultPlaybackStartPosition;
-
-  // True if the audio track is not silent.
-  bool mIsAudioTrackAudible;
 
   // True if media element has been marked as 'tainted' and can't
   // participate in video decoder suspending.

@@ -25,9 +25,6 @@ with Files("docs/**"):
 with Files("lint/**"):
     BUG_COMPONENT = ("Testing", "Lint")
 
-with Files("memory-profiler/**"):
-    BUG_COMPONENT = ("Core", "Gecko Profiler")
-
 with Files("mercurial/**"):
     BUG_COMPONENT = ("Core", "Build Config")
 
@@ -51,3 +48,7 @@ with Files("update-packaging/**"):
 
 SPHINX_TREES['lint'] = 'lint/docs'
 SPHINX_TREES['compare-locales'] = 'compare-locales/docs'
+
+CRAMTEST_MANIFESTS += [
+    'tryselect/test/cram.ini',
+]

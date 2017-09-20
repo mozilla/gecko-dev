@@ -25,10 +25,6 @@
 #include "MediaStreamVideoSink.h"
 #include "VideoUtils.h"
 #include "VideoStreamTrack.h"
-#ifdef WEBRTC_GONK
-#include "GrallocImages.h"
-#include "mozilla/layers/GrallocTextureClient.h"
-#endif
 
 #include "nsError.h"
 #include "AudioSegment.h"
@@ -523,10 +519,8 @@ public:
     packetizer_->Input(samples, chunk.mDuration);
 
     while (packetizer_->PacketsAvailable()) {
-      uint32_t samplesPerPacket = packetizer_->PacketSize() *
-                                  packetizer_->Channels();
       packetizer_->Output(packet_);
-      mConduit->SendAudioFrame(packet_, samplesPerPacket, rate, 0);
+      mConduit->SendAudioFrame(packet_, packetizer_->PacketSize(), rate, packetizer_->Channels(), 0);
     }
   }
 

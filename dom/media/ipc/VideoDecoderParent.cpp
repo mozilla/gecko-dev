@@ -44,10 +44,12 @@ private:
 
 VideoDecoderParent::VideoDecoderParent(VideoDecoderManagerParent* aParent,
                                        const VideoInfo& aVideoInfo,
+                                       float aFramerate,
                                        const layers::TextureFactoryIdentifier& aIdentifier,
                                        TaskQueue* aManagerTaskQueue,
                                        TaskQueue* aDecodeTaskQueue,
-                                       bool* aSuccess)
+                                       bool* aSuccess,
+                                       nsCString* aErrorDescription)
   : mParent(aParent)
   , mManagerTaskQueue(aManagerTaskQueue)
   , mDecodeTaskQueue(aDecodeTaskQueue)
@@ -75,13 +77,20 @@ VideoDecoderParent::VideoDecoderParent(VideoDecoderManagerParent* aParent,
   params.mTaskQueue = mDecodeTaskQueue;
   params.mKnowsCompositor = mKnowsCompositor;
   params.mImageContainer = new layers::ImageContainer();
+  params.mRate = CreateDecoderParams::VideoFrameRate(aFramerate);
+  MediaResult error(NS_OK);
+  params.mError = &error;
 
   mDecoder = pdm->CreateVideoDecoder(params);
+
+  if (NS_FAILED(error)) {
+    MOZ_ASSERT(aErrorDescription);
+    *aErrorDescription = error.Description();
+  }
 #else
   MOZ_ASSERT(false,
              "Can't use RemoteVideoDecoder on non-Windows platforms yet");
 #endif
-
   *aSuccess = !!mDecoder;
 }
 
@@ -112,8 +121,10 @@ VideoDecoderParent::RecvInit()
           self->mDecoder->IsHardwareAccelerated(hardwareReason);
         uint32_t conversion =
           static_cast<uint32_t>(self->mDecoder->NeedsConversion());
-        Unused << self->SendInitComplete(
-          hardwareAccelerated, hardwareReason, conversion);
+        Unused << self->SendInitComplete(self->mDecoder->GetDescriptionName(),
+                                         hardwareAccelerated,
+                                         hardwareReason,
+                                         conversion);
       }
     },
     [self] (MediaResult aReason) {
@@ -199,7 +210,7 @@ VideoDecoderParent::ProcessDecodedData(
       video->mDisplay,
       texture ? texture->GetSize() : IntSize(),
       texture ? mParent->StoreImage(video->mImage, texture)
-              : SurfaceDescriptorGPUVideo(0),
+              : SurfaceDescriptorGPUVideo(0, null_t()),
       video->mFrameID);
     Unused << SendOutput(output);
   }

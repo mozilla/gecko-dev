@@ -11,16 +11,28 @@
 
 #include "mozilla/mscom/Ptr.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/TypedEnumBits.h"
 #include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 namespace mscom {
 
+enum class ProxyStreamFlags : uint32_t
+{
+  eDefault = 0,
+  // When ePreservable is set on a ProxyStream, its caller *must* call
+  // GetPreservableStream() before the ProxyStream is destroyed.
+  ePreservable = 1
+};
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(ProxyStreamFlags);
+
 class ProxyStream final
 {
 public:
   ProxyStream();
-  ProxyStream(REFIID aIID, IUnknown* aObject);
+  ProxyStream(REFIID aIID, IUnknown* aObject,
+              ProxyStreamFlags aFlags = ProxyStreamFlags::eDefault);
   ProxyStream(REFIID aIID, const BYTE* aInitBuf, const int aInitBufSize);
 
   ~ProxyStream();
@@ -34,12 +46,13 @@ public:
 
   inline bool IsValid() const
   {
-    return !(mStream && mUnmarshaledProxy);
+    return !(mUnmarshaledProxy && mStream);
   }
 
   bool GetInterface(void** aOutInterface);
   const BYTE* GetBuffer(int& aReturnedBufSize) const;
-  RefPtr<IStream> GetStream() const;
+
+  PreservedStreamPtr GetPreservedStream();
 
   bool operator==(const ProxyStream& aOther) const
   {
@@ -47,16 +60,12 @@ public:
   }
 
 private:
-  static already_AddRefed<IStream> InitStream(const BYTE* aInitBuf,
-                                              const UINT aInitBufSize);
-
-private:
   RefPtr<IStream> mStream;
   BYTE*           mGlobalLockedBuf;
   HGLOBAL         mHGlobal;
   int             mBufSize;
   ProxyUniquePtr<IUnknown> mUnmarshaledProxy;
-  HRESULT         mUnmarshalResult;
+  bool            mPreserveStream;
 };
 
 } // namespace mscom

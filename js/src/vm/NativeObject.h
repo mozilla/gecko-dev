@@ -41,7 +41,7 @@ Debug_SetValueRangeToCrashOnTouch(Value* beg, Value* end)
 {
 #ifdef DEBUG
     for (Value* v = beg; v != end; ++v)
-        v->setObject(*reinterpret_cast<JSObject*>(0x48));
+        *v = js::PoisonedObjectValue(0x48);
 #endif
 }
 
@@ -805,6 +805,7 @@ class NativeObject : public ShapedObject
                                                 JSGetterOp getter, JSSetterOp setter,
                                                 uint32_t slot, unsigned attrs, unsigned flags,
                                                 bool allowDictionary = true);
+    static Shape* addEnumerableDataProperty(JSContext* cx, HandleNativeObject obj, HandleId id);
 
     /* Add a data property whose id is not yet in this scope. */
     static Shape* addDataProperty(JSContext* cx, HandleNativeObject obj,
@@ -1343,6 +1344,7 @@ class NativeObject : public ShapedObject
 
     void updateShapeAfterMovingGC();
     void sweepDictionaryListPointer();
+    void updateDictionaryListPointerAfterMinorGC(NativeObject* old);
 
     /* JIT Accessors */
     static size_t offsetOfElements() { return offsetof(NativeObject, elements_); }
@@ -1391,29 +1393,30 @@ NativeDefineProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
                      ObjectOpResult& result);
 
 extern bool
-NativeDefineProperty(JSContext* cx, HandleNativeObject obj, HandleId id, HandleValue value,
-                     JSGetterOp getter, JSSetterOp setter, unsigned attrs,
-                     ObjectOpResult& result);
+NativeDefineAccessorProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
+                             JSGetterOp getter, JSSetterOp setter, unsigned attrs,
+                             ObjectOpResult& result);
 
 extern bool
-NativeDefineProperty(JSContext* cx, HandleNativeObject obj, PropertyName* name,
-                     HandleValue value, GetterOp getter, SetterOp setter,
-                     unsigned attrs, ObjectOpResult& result);
-
-extern bool
-NativeDefineElement(JSContext* cx, HandleNativeObject obj, uint32_t index, HandleValue value,
-                    JSGetterOp getter, JSSetterOp setter, unsigned attrs,
-                    ObjectOpResult& result);
+NativeDefineDataProperty(JSContext* cx, HandleNativeObject obj, HandleId id, HandleValue value,
+                         unsigned attrs, ObjectOpResult& result);
 
 /* If the result out-param is omitted, throw on failure. */
 extern bool
-NativeDefineProperty(JSContext* cx, HandleNativeObject obj, HandleId id, HandleValue value,
-                     JSGetterOp getter, JSSetterOp setter, unsigned attrs);
+NativeDefineAccessorProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
+                             JSGetterOp getter, JSSetterOp setter, unsigned attrs);
 
 extern bool
-NativeDefineProperty(JSContext* cx, HandleNativeObject obj, PropertyName* name,
-                     HandleValue value, JSGetterOp getter, JSSetterOp setter,
-                     unsigned attrs);
+NativeDefineDataProperty(JSContext* cx, HandleNativeObject obj, HandleId id, HandleValue value,
+                         unsigned attrs);
+
+extern bool
+NativeDefineAccessorProperty(JSContext* cx, HandleNativeObject obj, PropertyName* name,
+                             JSGetterOp getter, JSSetterOp setter, unsigned attrs);
+
+extern bool
+NativeDefineDataProperty(JSContext* cx, HandleNativeObject obj, PropertyName* name,
+                         HandleValue value, unsigned attrs);
 
 extern bool
 NativeHasProperty(JSContext* cx, HandleNativeObject obj, HandleId id, bool* foundp);
@@ -1456,9 +1459,10 @@ enum QualifiedBool {
     Qualified = 1
 };
 
+template <QualifiedBool Qualified>
 extern bool
 NativeSetProperty(JSContext* cx, HandleNativeObject obj, HandleId id, HandleValue v,
-                  HandleValue receiver, QualifiedBool qualified, ObjectOpResult& result);
+                  HandleValue receiver, ObjectOpResult& result);
 
 extern bool
 NativeSetElement(JSContext* cx, HandleNativeObject obj, uint32_t index, HandleValue v,
@@ -1550,7 +1554,7 @@ js::SetProperty(JSContext* cx, HandleObject obj, HandleId id, HandleValue v,
 {
     if (obj->getOpsSetProperty())
         return JSObject::nonNativeSetProperty(cx, obj, id, v, receiver, result);
-    return NativeSetProperty(cx, obj.as<NativeObject>(), id, v, receiver, Qualified, result);
+    return NativeSetProperty<Qualified>(cx, obj.as<NativeObject>(), id, v, receiver, result);
 }
 
 inline bool

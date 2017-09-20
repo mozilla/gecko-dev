@@ -4,15 +4,17 @@
 
 "use strict";
 
-const events = require("sdk/event/core");
+const EventEmitter = require("devtools/shared/event-emitter");
 
 loader.lazyRequireGetter(this, "CommandState",
   "devtools/shared/gcli/command-state", true);
 
 const l10n = require("gcli/l10n");
 require("devtools/server/actors/inspector");
-const { MeasuringToolHighlighter, HighlighterEnvironment } =
+const { HighlighterEnvironment } =
   require("devtools/server/actors/highlighters");
+const { MeasuringToolHighlighter } =
+  require("devtools/server/actors/highlighters/measuring-tool");
 
 const highlighters = new WeakMap();
 
@@ -83,7 +85,7 @@ exports.items = [
 
       // Listen to the highlighter's destroy event which may happen if the
       // window is refreshed or closed with the measuring tool shown.
-      events.once(highlighter, "destroy", () => {
+      EventEmitter.once(highlighter, "destroy", () => {
         if (highlighters.has(document)) {
           let { environment: toDestroy } = highlighters.get(document);
           toDestroy.destroy();

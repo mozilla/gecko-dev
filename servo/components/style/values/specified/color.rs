@@ -10,7 +10,7 @@ use gecko_bindings::structs::nscolor;
 use itoa;
 use parser::{ParserContext, Parse};
 #[cfg(feature = "gecko")]
-use properties::longhands::color::SystemColor;
+use properties::longhands::system_colors::SystemColor;
 use std::fmt;
 use std::io::Write;
 use style_traits::{ToCss, ParseError, StyleParseError, ValueParseError};
@@ -18,7 +18,8 @@ use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
 /// Specified color value
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Color {
     /// The 'currentColor' keyword
@@ -44,7 +45,6 @@ pub enum Color {
     InheritFromBodyQuirk,
 }
 
-no_viewport_percentage!(Color);
 
 #[cfg(feature = "gecko")]
 mod gecko {
@@ -70,12 +70,12 @@ impl Parse for Color {
         // Currently we only store authored value for color keywords,
         // because all browsers serialize those values as keywords for
         // specified value.
-        let start_position = input.position();
+        let start = input.state();
         let authored = match input.next() {
             Ok(&Token::Ident(ref s)) => Some(s.to_lowercase().into_boxed_str()),
             _ => None,
         };
-        input.reset(start_position);
+        input.reset(&start);
         match input.try(CSSParserColor::parse) {
             Ok(value) =>
                 Ok(match value {
@@ -249,18 +249,36 @@ fn convert_nscolor_to_computedcolor(color: nscolor) -> ComputedColor {
 impl ToComputedValue for Color {
     type ComputedValue = ComputedColor;
 
-    fn to_computed_value(&self, _context: &Context) -> ComputedColor {
+    fn to_computed_value(&self, context: &Context) -> ComputedColor {
         match *self {
-            Color::CurrentColor => ComputedColor::currentcolor(),
+            Color::CurrentColor => {
+                if let Some(longhand) = context.for_non_inherited_property {
+                    if longhand.stores_complex_colors_lossily() {
+                        context.rule_cache_conditions.borrow_mut()
+                            .set_uncacheable();
+                    }
+                }
+                ComputedColor::currentcolor()
+            }
             Color::Numeric { ref parsed, .. } => ComputedColor::rgba(*parsed),
-            Color::Complex(ref complex) => *complex,
+            Color::Complex(ref complex) => {
+                if complex.foreground_ratio != 0 {
+                    if let Some(longhand) = context.for_non_inherited_property {
+                        if longhand.stores_complex_colors_lossily() {
+                            context.rule_cache_conditions.borrow_mut()
+                                .set_uncacheable();
+                        }
+                    }
+                }
+                *complex
+            }
             #[cfg(feature = "gecko")]
             Color::System(system) =>
-                convert_nscolor_to_computedcolor(system.to_computed_value(_context)),
+                convert_nscolor_to_computedcolor(system.to_computed_value(context)),
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
-                let pres_context = _context.device().pres_context();
+                let pres_context = context.device().pres_context();
                 convert_nscolor_to_computedcolor(match special {
                     Keyword::MozDefaultColor => pres_context.mDefaultColor,
                     Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
@@ -271,19 +289,7 @@ impl ToComputedValue for Color {
             }
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
-                use dom::TElement;
-                use gecko::wrapper::GeckoElement;
-                use gecko_bindings::bindings::Gecko_GetBody;
-                let pres_context = _context.device().pres_context();
-                let body = unsafe { Gecko_GetBody(pres_context) }.map(GeckoElement);
-                let data = body.as_ref().and_then(|wrap| wrap.borrow_data());
-                if let Some(data) = data {
-                    ComputedColor::rgba(data.styles.primary()
-                                            .get_color()
-                                            .clone_color())
-                } else {
-                    convert_nscolor_to_computedcolor(pres_context.mDefaultColor)
-                }
+                ComputedColor::rgba(context.device().body_text_color())
             },
         }
     }
@@ -302,10 +308,10 @@ impl ToComputedValue for Color {
 /// Specified color value, but resolved to just RGBA for computed value
 /// with value from color property at the same context.
 #[derive(Clone, Debug, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct RGBAColor(pub Color);
 
-no_viewport_percentage!(RGBAColor);
 
 impl Parse for RGBAColor {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -329,5 +335,35 @@ impl ToComputedValue for RGBAColor {
 impl From<Color> for RGBAColor {
     fn from(color: Color) -> RGBAColor {
         RGBAColor(color)
+    }
+}
+
+/// Specified value for the "color" property, which resolves the `currentcolor`
+/// keyword to the parent color instead of self's color.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct ColorPropertyValue(pub Color);
+
+impl ToComputedValue for ColorPropertyValue {
+    type ComputedValue = RGBA;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        self.0.to_computed_value(context)
+            .to_rgba(context.builder.get_parent_color().clone_color())
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &RGBA) -> Self {
+        ColorPropertyValue(Color::rgba(*computed).into())
+    }
+}
+
+impl Parse for ColorPropertyValue {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Color::parse_quirky(context, input, AllowQuirks::Yes).map(ColorPropertyValue)
     }
 }

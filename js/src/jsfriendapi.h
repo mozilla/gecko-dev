@@ -74,9 +74,6 @@ JS_ObjectCountDynamicSlots(JS::HandleObject obj);
 extern JS_FRIEND_API(size_t)
 JS_SetProtoCalled(JSContext* cx);
 
-extern JS_FRIEND_API(size_t)
-JS_GetCustomIteratorCount(JSContext* cx);
-
 extern JS_FRIEND_API(bool)
 JS_NondeterministicGetWeakMapKeys(JSContext* cx, JS::HandleObject obj, JS::MutableHandleObject ret);
 
@@ -171,6 +168,24 @@ typedef void
 
 extern JS_FRIEND_API(void)
 JS_SetAccumulateTelemetryCallback(JSContext* cx, JSAccumulateTelemetryDataCallback callback);
+
+/*
+ * Use counter names passed to the accumulate use counter callback.
+ *
+ * It's OK to for these enum values to change as they will be mapped to a
+ * fixed member of the mozilla::UseCounter enum by the callback.
+ */
+
+enum class JSUseCounter {
+    ASMJS,
+    WASM
+};
+
+typedef void
+(*JSSetUseCounterCallback)(JSObject* obj, JSUseCounter counter);
+
+extern JS_FRIEND_API(void)
+JS_SetSetUseCounterCallback(JSContext* cx, JSSetUseCounterCallback callback);
 
 extern JS_FRIEND_API(bool)
 JS_GetIsSecureContext(JSCompartment* compartment);
@@ -356,9 +371,9 @@ struct JSFunctionSpecWithHelp {
 };
 
 #define JS_FN_HELP(name,call,nargs,flags,usage,help)                          \
-    {name, call, nargs, (flags) | JSPROP_ENUMERATE | JSFUN_STUB_GSOPS, nullptr, usage, help}
+    {name, call, nargs, (flags) | JSPROP_ENUMERATE, nullptr, usage, help}
 #define JS_INLINABLE_FN_HELP(name,call,nargs,flags,native,usage,help)         \
-    {name, call, nargs, (flags) | JSPROP_ENUMERATE | JSFUN_STUB_GSOPS, &js::jit::JitInfo_##native,\
+    {name, call, nargs, (flags) | JSPROP_ENUMERATE, &js::jit::JitInfo_##native,\
      usage, help}
 #define JS_FS_HELP_END                                                        \
     {nullptr, nullptr, 0, 0, nullptr, nullptr}
@@ -818,7 +833,7 @@ StringHasLatin1Chars(JSString* s)
 }
 
 MOZ_ALWAYS_INLINE const JS::Latin1Char*
-GetLatin1LinearStringChars(const JS::AutoCheckCannotGC& nogc, JSLinearString* linear)
+GetLatin1LinearStringChars(const JS::AutoRequireNoGC& nogc, JSLinearString* linear)
 {
     MOZ_ASSERT(LinearStringHasLatin1Chars(linear));
 
@@ -830,7 +845,7 @@ GetLatin1LinearStringChars(const JS::AutoCheckCannotGC& nogc, JSLinearString* li
 }
 
 MOZ_ALWAYS_INLINE const char16_t*
-GetTwoByteLinearStringChars(const JS::AutoCheckCannotGC& nogc, JSLinearString* linear)
+GetTwoByteLinearStringChars(const JS::AutoRequireNoGC& nogc, JSLinearString* linear)
 {
     MOZ_ASSERT(!LinearStringHasLatin1Chars(linear));
 
@@ -860,13 +875,13 @@ FlatStringToLinearString(JSFlatString* s)
 }
 
 MOZ_ALWAYS_INLINE const JS::Latin1Char*
-GetLatin1AtomChars(const JS::AutoCheckCannotGC& nogc, JSAtom* atom)
+GetLatin1AtomChars(const JS::AutoRequireNoGC& nogc, JSAtom* atom)
 {
     return GetLatin1LinearStringChars(nogc, AtomToLinearString(atom));
 }
 
 MOZ_ALWAYS_INLINE const char16_t*
-GetTwoByteAtomChars(const JS::AutoCheckCannotGC& nogc, JSAtom* atom)
+GetTwoByteAtomChars(const JS::AutoRequireNoGC& nogc, JSAtom* atom)
 {
     return GetTwoByteLinearStringChars(nogc, AtomToLinearString(atom));
 }
@@ -990,11 +1005,11 @@ IsObjectInContextCompartment(JSObject* obj, const JSContext* cx);
 
 /*
  * NB: keep these in sync with the copy in builtin/SelfHostingDefines.h.
- * The first three are omitted because they shouldn't be used in new code.
+ * The first two are omitted because they shouldn't be used in new code.
  */
 #define JSITER_ENUMERATE  0x1   /* for-in compatible hidden default iterator */
 #define JSITER_FOREACH    0x2   /* get obj[key] for each property */
-#define JSITER_KEYVALUE   0x4   /* obsolete destructuring for-in wants [key, value] */
+/* 0x4 is no longer used */
 #define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
 #define JSITER_SYMBOLS    0x20  /* also include symbol property keys */
@@ -1891,6 +1906,9 @@ UnwrapArrayBufferView(JSObject* obj);
 extern JS_FRIEND_API(JSObject*)
 UnwrapSharedArrayBuffer(JSObject* obj);
 
+extern JS_FRIEND_API(JSObject*)
+UnwrapReadableStream(JSObject* obj);
+
 
 namespace detail {
 
@@ -1954,7 +1972,7 @@ GetSharedArrayBufferLengthAndData(JSObject* obj, uint32_t* length, bool* isShare
 } // namespace js
 
 JS_FRIEND_API(uint8_t*)
-JS_GetSharedArrayBufferData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetSharedArrayBufferData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 
 /*
  * Unwrap Typed arrays all at once. Return nullptr without throwing if the
@@ -2052,7 +2070,7 @@ JS_ArrayBufferHasData(JSObject* obj);
  * its use from code that also interacts with SharedArrayBuffer.
  */
 extern JS_FRIEND_API(uint8_t*)
-JS_GetArrayBufferData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetArrayBufferData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 
 /**
  * Check whether the obj is ArrayBufferObject and memory mapped. Note that this
@@ -2129,30 +2147,30 @@ JS_GetArrayBufferViewByteOffset(JSObject* obj);
  */
 
 extern JS_FRIEND_API(int8_t*)
-JS_GetInt8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetInt8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(uint8_t*)
-JS_GetUint8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetUint8ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(uint8_t*)
-JS_GetUint8ClampedArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetUint8ClampedArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(int16_t*)
-JS_GetInt16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetInt16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(uint16_t*)
-JS_GetUint16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetUint16ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(int32_t*)
-JS_GetInt32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetInt32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(uint32_t*)
-JS_GetUint32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetUint32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(float*)
-JS_GetFloat32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetFloat32ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 extern JS_FRIEND_API(double*)
-JS_GetFloat64ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetFloat64ArrayData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 
 /**
  * Same as above, but for any kind of ArrayBufferView. Prefer the type-specific
  * versions when possible.
  */
 extern JS_FRIEND_API(void*)
-JS_GetArrayBufferViewData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetArrayBufferViewData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 
 /**
  * Return the ArrayBuffer or SharedArrayBuffer underlying an ArrayBufferView.
@@ -2229,7 +2247,7 @@ JS_GetDataViewByteLength(JSObject* obj);
  * otherwise to false.
  */
 JS_FRIEND_API(void*)
-JS_GetDataViewData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&);
+JS_GetDataViewData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&);
 
 namespace js {
 
@@ -2870,6 +2888,70 @@ extern JS_FRIEND_API(bool)
 ExecuteInGlobalAndReturnScope(JSContext* cx, JS::HandleObject obj, JS::HandleScript script,
                               JS::MutableHandleObject scope);
 
+// These functions are provided for the JSM component loader in Gecko.
+//
+// A 'JSMEnvironment' refers to an environment chain constructed for JSM loading
+// in a shared global. Internally it is a NonSyntacticVariablesObject with a
+// corresponding extensible LexicalEnvironmentObject that is accessible by
+// JS_ExtensibleLexicalEnvironment. The |this| value of that lexical environment
+// is the NSVO itself.
+//
+// Normal global environment (ES6):     JSM "global" environment:
+//
+//                                      * - extensible lexical environment
+//                                      |   (code runs in this environment;
+//                                      |    `let/const` bindings go here)
+//                                      |
+//                                      * - JSMEnvironment (=== `this`)
+//                                      |   (`var` bindings go here)
+//                                      |
+// * - extensible lexical environment   * - extensible lexical environment
+// |   (code runs in this environment;  |   (empty)
+// |    `let/const` bindings go here)   |
+// |                                    |
+// * - actual global (=== `this`)       * - shared JSM global
+//     (var bindings go here; and           (Object, Math, etc. live here)
+//      Object, Math, etc. live here)
+
+// Allocate a new environment in current compartment that is compatible with JSM
+// shared loading.
+extern JS_FRIEND_API(JSObject*)
+NewJSMEnvironment(JSContext* cx);
+
+// Execute the given script (copied into compartment if necessary) in the given
+// JSMEnvironment. The script must have been compiled for hasNonSyntacticScope.
+// The |jsmEnv| must have been previously allocated by NewJSMEnvironment.
+//
+// NOTE: The associated extensible lexical environment is reused.
+extern JS_FRIEND_API(bool)
+ExecuteInJSMEnvironment(JSContext* cx, JS::HandleScript script, JS::HandleObject jsmEnv);
+
+// Additionally, target objects may be specified as required by the Gecko
+// subscript loader. These are wrapped in non-syntactic WithEnvironments and
+// temporarily placed on environment chain.
+//
+// See also: JS::CloneAndExecuteScript(...)
+extern JS_FRIEND_API(bool)
+ExecuteInJSMEnvironment(JSContext* cx, JS::HandleScript script, JS::HandleObject jsmEnv,
+                        JS::AutoObjectVector& targetObj);
+
+// Used by native methods to determine the JSMEnvironment of caller if possible
+// by looking at stack frames. Returns nullptr if top frame isn't a scripted
+// caller in a JSM.
+//
+// NOTE: This may find NonSyntacticVariablesObject generated by other embedding
+// such as a Gecko FrameScript. Caller can check the compartment if needed.
+extern JS_FRIEND_API(JSObject*)
+GetJSMEnvironmentOfScriptedCaller(JSContext* cx);
+
+// Determine if obj is a JSMEnvironment
+//
+// NOTE: This may return true for an NonSyntacticVariablesObject generated by
+// other embedding such as a Gecko FrameScript. Caller can check compartment.
+extern JS_FRIEND_API(bool)
+IsJSMEnvironment(JSObject* obj);
+
+
 #if defined(XP_WIN) && defined(_WIN64)
 // Parameters use void* types to avoid #including windows.h. The return value of
 // this function is returned from the exception handler.
@@ -3057,163 +3139,5 @@ extern JS_FRIEND_API(bool)
 SystemZoneAvailable(JSContext* cx);
 
 } /* namespace js */
-
-class NativeProfiler
-{
-  public:
-    virtual ~NativeProfiler() {};
-    virtual void sampleNative(void* addr, uint32_t size) = 0;
-    virtual void removeNative(void* addr) = 0;
-    virtual void reset() = 0;
-};
-
-class GCHeapProfiler
-{
-  public:
-    virtual ~GCHeapProfiler() {};
-    virtual void sampleTenured(void* addr, uint32_t size) = 0;
-    virtual void sampleNursery(void* addr, uint32_t size) = 0;
-    virtual void markTenuredStart() = 0;
-    virtual void markTenured(void* addr) = 0;
-    virtual void sweepTenured() = 0;
-    virtual void sweepNursery() = 0;
-    virtual void moveNurseryToTenured(void* addrOld, void* addrNew) = 0;
-    virtual void reset() = 0;
-};
-
-class MemProfiler
-{
-    static mozilla::Atomic<uint32_t, mozilla::Relaxed> sActiveProfilerCount;
-    static JS_FRIEND_DATA(NativeProfiler*) sNativeProfiler;
-
-    static GCHeapProfiler* GetGCHeapProfiler(void* addr);
-    static GCHeapProfiler* GetGCHeapProfiler(JSRuntime* runtime);
-
-    static NativeProfiler* GetNativeProfiler() {
-        return sNativeProfiler;
-    }
-
-    GCHeapProfiler* mGCHeapProfiler;
-    JSRuntime* mRuntime;
-
-  public:
-    explicit MemProfiler(JSRuntime* aRuntime) : mGCHeapProfiler(nullptr), mRuntime(aRuntime) {}
-
-    JS_FRIEND_API(void) start(GCHeapProfiler* aGCHeapProfiler);
-    JS_FRIEND_API(void) stop();
-
-    GCHeapProfiler* getGCHeapProfiler() const {
-        return mGCHeapProfiler;
-    }
-
-    static MOZ_ALWAYS_INLINE bool enabled() {
-        return sActiveProfilerCount > 0;
-    }
-
-    static JS_FRIEND_API(MemProfiler*) GetMemProfiler(JSContext* context);
-
-    static void SetNativeProfiler(NativeProfiler* aProfiler) {
-        sNativeProfiler = aProfiler;
-    }
-
-    static MOZ_ALWAYS_INLINE void SampleNative(void* addr, uint32_t size) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        NativeProfiler* profiler = GetNativeProfiler();
-        if (profiler)
-            profiler->sampleNative(addr, size);
-    }
-
-    static MOZ_ALWAYS_INLINE void SampleTenured(void* addr, uint32_t size) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(addr);
-        if (profiler)
-            profiler->sampleTenured(addr, size);
-    }
-
-    static MOZ_ALWAYS_INLINE void SampleNursery(void* addr, uint32_t size) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(addr);
-        if (profiler)
-            profiler->sampleNursery(addr, size);
-    }
-
-    static MOZ_ALWAYS_INLINE void RemoveNative(void* addr) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        NativeProfiler* profiler = GetNativeProfiler();
-        if (profiler)
-            profiler->removeNative(addr);
-    }
-
-    static MOZ_ALWAYS_INLINE void MarkTenuredStart(JSRuntime* runtime) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(runtime);
-        if (profiler)
-            profiler->markTenuredStart();
-    }
-
-    static MOZ_ALWAYS_INLINE void MarkTenured(void* addr) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(addr);
-        if (profiler)
-            profiler->markTenured(addr);
-    }
-
-    static MOZ_ALWAYS_INLINE void SweepTenured(JSRuntime* runtime) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(runtime);
-        if (profiler)
-            profiler->sweepTenured();
-    }
-
-    static MOZ_ALWAYS_INLINE void SweepNursery(JSRuntime* runtime) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(runtime);
-        if (profiler)
-            profiler->sweepNursery();
-    }
-
-    static MOZ_ALWAYS_INLINE void MoveNurseryToTenured(void* addrOld, void* addrNew) {
-        JS::AutoSuppressGCAnalysis nogc;
-
-        if (MOZ_LIKELY(!enabled()))
-            return;
-
-        GCHeapProfiler* profiler = GetGCHeapProfiler(addrOld);
-        if (profiler)
-            profiler->moveNurseryToTenured(addrOld, addrNew);
-    }
-};
 
 #endif /* jsfriendapi_h */

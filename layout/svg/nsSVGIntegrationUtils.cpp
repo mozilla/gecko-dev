@@ -137,11 +137,16 @@ GetPreEffectsVisualOverflowUnion(nsIFrame* aFirstContinuation,
   return collector.GetResult() + aFirstContinuationToUserSpace;
 }
 
+/**
+ * Gets the pre-effects visual overflow rect of aCurrentFrame in "user space".
+ */
 static nsRect
 GetPreEffectsVisualOverflow(nsIFrame* aFirstContinuation,
                             nsIFrame* aCurrentFrame,
                             const nsPoint& aFirstContinuationToUserSpace)
 {
+  NS_ASSERTION(!aFirstContinuation->GetPrevContinuation(),
+               "Need first continuation here");
   PreEffectsVisualOverflowCollector collector(aFirstContinuation,
                                               nullptr,
                                               nsRect(),
@@ -151,7 +156,6 @@ GetPreEffectsVisualOverflow(nsIFrame* aFirstContinuation,
   // Return the result in user space:
   return collector.GetResult() + aFirstContinuationToUserSpace;
 }
-
 
 bool
 nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
@@ -213,7 +217,8 @@ nsSVGIntegrationUtils::GetSVGCoordContextForNonSVGFrame(nsIFrame* aNonSVGFrame)
 }
 
 gfxRect
-nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
+nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame,
+                                                bool aUnionContinuations)
 {
   // Except for nsSVGOuterSVGFrame, we shouldn't be getting here with SVG
   // frames at all. This function is for elements that are laid out using the
@@ -226,15 +231,12 @@ nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(aNonSVGFrame);
   // 'r' is in "user space":
-  nsRect r;
-  if (aNonSVGFrame->StyleBorder()->mBoxDecorationBreak == StyleBoxDecorationBreak::Clone) {
-    r = GetPreEffectsVisualOverflow(firstFrame, aNonSVGFrame,
-                                    GetOffsetToBoundingBox(firstFrame));
-  } else {
-    r = GetPreEffectsVisualOverflowUnion(firstFrame, nullptr, nsRect(),
-                                         GetOffsetToBoundingBox(firstFrame),
-                                         false);
-  }
+  nsRect r = (aUnionContinuations)
+    ? GetPreEffectsVisualOverflowUnion(firstFrame, nullptr, nsRect(),
+                                       GetOffsetToBoundingBox(firstFrame),
+                                       false)
+    : GetPreEffectsVisualOverflow(firstFrame, aNonSVGFrame,
+                                  GetOffsetToBoundingBox(firstFrame));
 
   return nsLayoutUtils::RectToGfxRect(r,
            aNonSVGFrame->PresContext()->AppUnitsPerCSSPixel());
@@ -643,9 +645,6 @@ struct EffectOffsets {
   // target frame in app unit.
   nsPoint  offsetToBoundingBox;
   // The offset between the reference frame and the bounding box of the
-  // target frame in device unit.
-  gfxPoint offsetToBoundingBoxInDevPx;
-  // The offset between the reference frame and the bounding box of the
   // target frame in app unit.
   nsPoint  offsetToUserSpace;
   // The offset between the reference frame and the bounding box of the
@@ -697,9 +696,6 @@ ComputeEffectOffset(nsIFrame* aFrame, const PaintFramesParams& aParams)
 
   result.offsetToUserSpaceInDevPx =
     nsLayoutUtils::PointToGfxPoint(result.offsetToUserSpace,
-                                   aFrame->PresContext()->AppUnitsPerDevPixel());
-  result.offsetToBoundingBoxInDevPx =
-    nsLayoutUtils::PointToGfxPoint(result.offsetToBoundingBox,
                                    aFrame->PresContext()->AppUnitsPerDevPixel());
 
   return result;
@@ -786,7 +782,8 @@ nsSVGIntegrationUtils::PaintMask(const PaintFramesParams& aParams)
   RefPtr<DrawTarget> maskTarget = ctx.GetDrawTarget();
 
   if (maskUsage.shouldGenerateMaskLayer &&
-      maskUsage.shouldGenerateClipMaskLayer) {
+      (maskUsage.shouldGenerateClipMaskLayer ||
+       maskUsage.shouldApplyClipPath)) {
     // We will paint both mask of positioned mask and clip-path into
     // maskTarget.
     //
@@ -1097,20 +1094,9 @@ nsSVGIntegrationUtils::PaintFilter(const PaintFramesParams& aParams)
   RegularFramePaintCallback callback(aParams.builder, aParams.layerManager,
                                      offsets.offsetToUserSpaceInDevPx);
   nsRegion dirtyRegion = aParams.dirtyRect - offsets.offsetToBoundingBox;
-  gfxSize scaleFactors = context.CurrentMatrix().ScaleFactors(true);
-  gfxMatrix scaleMatrix(scaleFactors.width, 0.0f,
-                        0.0f, scaleFactors.height,
-                        0.0f, 0.0f);
-  gfxMatrix reverseScaleMatrix = scaleMatrix;
-  DebugOnly<bool> invertible = reverseScaleMatrix.Invert();
-  MOZ_ASSERT(invertible);
-  context.SetMatrix(reverseScaleMatrix * context.CurrentMatrix());
 
-  gfxMatrix tm =
-    scaleMatrix * nsSVGUtils::GetCSSPxToDevPxMatrix(frame);
-  nsFilterInstance::PaintFilteredFrame(frame, context.GetDrawTarget(),
-                                       tm, &callback, &dirtyRegion,
-                                       aParams.imgParams);
+  nsFilterInstance::PaintFilteredFrame(frame, &context, &callback,
+                                       &dirtyRegion, aParams.imgParams);
 
   if (opacity != 1.0f) {
     context.PopGroupAndBlend();

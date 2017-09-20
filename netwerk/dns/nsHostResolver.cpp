@@ -517,7 +517,7 @@ static void DnsPrefChanged(const char* aPref, void* aClosure)
         return;
     }
 
-    auto self = static_cast<nsHostResolver*>(aClosure);
+    DebugOnly<nsHostResolver*> self = static_cast<nsHostResolver*>(aClosure);
     MOZ_ASSERT(self);
 
     sGetTtlEnabled = Preferences::GetBool(kPrefGetTtl);
@@ -558,6 +558,8 @@ nsHostResolver::Init()
     if (NS_FAILED(GetAddrInfoInit())) {
         return NS_ERROR_FAILURE;
     }
+
+    LOG(("nsHostResolver::Init this=%p", this));
 
     mShutdown = false;
 

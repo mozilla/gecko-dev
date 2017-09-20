@@ -31,10 +31,6 @@ function promiseTimeout(aTimeoutMs) {
   });
 }
 
-function run_test() {
-  run_next_test();
-}
-
 // Tests
 
 /**
@@ -184,28 +180,13 @@ add_test(function test_arm_async() {
 });
 
 /**
- * Checks that "arm" accepts a Task.jsm generator function.
+ * Checks that "arm" accepts a Task.jsm async function.
  */
-add_test(function test_arm_async_generator() {
+add_test(function test_arm_async_function() {
   let deferredTask = new DeferredTask(async function() {
     await Promise.resolve();
     run_next_test();
   }, 50);
-
-  deferredTask.arm();
-});
-
-/**
- * Checks that "arm" accepts a Task.jsm legacy generator function.
- */
-add_test(function test_arm_async_legacy_generator() {
-  // ESLint cannot parse legacy generator functions, so we need an eval block.
-  /* eslint-disable no-eval */
-  let deferredTask = new DeferredTask(eval(`(function() {
-    yield Promise.resolve();
-    run_next_test();
-  })`), 50);
-  /* eslint-enable no-eval */
 
   deferredTask.arm();
 });

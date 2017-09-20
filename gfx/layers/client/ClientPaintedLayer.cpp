@@ -71,12 +71,6 @@ ClientPaintedLayer::CanRecordLayer(ReadbackProcessor* aReadback)
     return false;
   }
 
-  // Component alpha layers aren't supported yet since we have to
-  // hold onto both the front/back buffer of a texture client.
-  if (GetSurfaceMode() == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
-    return false;
-  }
-
   return GetAncestorMaskLayerCount() == 0;
 }
 
@@ -88,7 +82,7 @@ ClientPaintedLayer::UpdateContentClient(PaintState& aState)
   AddToValidRegion(aState.mRegionToDraw);
 
   ContentClientRemote *contentClientRemote =
-      static_cast<ContentClientRemote *>(mContentClient.get());
+      static_cast<ContentClientRemote*>(mContentClient.get());
   MOZ_ASSERT(contentClientRemote->GetIPCHandle());
 
   // Hold(this) ensures this layer is kept alive through the current transaction
@@ -219,7 +213,13 @@ ClientPaintedLayer::PaintOffMainThread()
 
   uint32_t flags = GetPaintFlags();
 
-  PaintState state = mContentClient->BeginPaintBuffer(this, flags);
+  PaintState state = mContentClient->BeginPaintBuffer(this, flags, false);
+  MOZ_ASSERT(mContentClient->IsRemoteBuffer());
+  if (state.mFinalizeOnPaintThread) {
+    PaintThread::Get()->CopyFrontBufferToBackBuffer(static_cast<ContentClientRemoteBuffer*>(mContentClient.get()),
+                                                    state.mRegionToDraw);
+  }
+
   if (!UpdatePaintRegion(state)) {
     return false;
   }
@@ -268,10 +268,13 @@ ClientPaintedLayer::PaintOffMainThread()
 
     didUpdate = true;
   }
+
+  PaintThread::Get()->EndLayer();
   mContentClient->EndPaint(nullptr);
 
   if (didUpdate) {
     UpdateContentClient(state);
+    ClientManager()->SetNeedTextureSyncOnPaintThread();
   }
   return true;
 }

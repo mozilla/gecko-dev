@@ -1,11 +1,5 @@
 /* Menu panel and palette styles */
 
-#add-share-provider {
-  list-style-image: url(chrome://browser/skin/menuPanel-small.svg);
-  -moz-image-region: rect(0px, 96px, 16px, 80px);
-}
-
-#appMenuRecentlyClosedWindows,
 #appMenu-new-window-button {
   list-style-image: url(chrome://browser/skin/new-window.svg);
 }
@@ -23,7 +17,7 @@
 }
 
 #appMenu-addons-button {
-  list-style-image: url(chrome://browser/skin/addons.svg);
+  list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.svg);
 }
 
 #appMenu-preferences-button {
@@ -40,7 +34,7 @@
 }
 
 #appMenu-help-button {
-  list-style-image: url(chrome://browser/skin/help.svg);
+  list-style-image: url(chrome://global/skin/icons/help.svg);
 }
 
 #appMenu-cut-button {
@@ -68,7 +62,7 @@
 }
 
 #appMenu-fullscreen-button {
-  list-style-image: url(chrome://browser/skin/fullscreen-enter.svg);
+  list-style-image: url(chrome://browser/skin/fullscreen.svg);
 }
 
 #appMenu-fullscreen-button[checked] {
@@ -98,6 +92,14 @@
   list-style-image: url("chrome://browser/skin/sidebars.svg");
 }
 
+#panelMenu_bookmarkingTools {
+  list-style-image: url("chrome://browser/skin/developer.svg");
+}
+
+#panelMenu_viewBookmarksToolbar {
+  list-style-image: url("chrome://browser/skin/toolbar.svg");
+}
+
 #appMenu-library-bookmarks-button,
 #panelMenuBookmarkThisPage {
   list-style-image: url("chrome://browser/skin/bookmark-hollow.svg");
@@ -108,7 +110,8 @@
 }
 
 #bookmarks-menu-button[cui-areatype="menu-panel"],
-toolbarpaletteitem[place="palette"] > #bookmarks-menu-button {
+toolbarpaletteitem[place="palette"] > #bookmarks-menu-button,
+#panelMenu_toggleBookmarksMenu {
   list-style-image: url("chrome://browser/skin/bookmark-star-on-tray.svg");
 }
 
@@ -117,5 +120,17 @@ toolbarpaletteitem[place="palette"] > #bookmarks-menu-button {
 }
 
 #appMenuRestoreLastSession {
-  list-style-image: url("chrome://browser/skin/reload.svg");
+  list-style-image: url("chrome://browser/skin/restore-session.svg");
+}
+
+#appMenuRecentlyClosedWindows {
+  list-style-image: url(chrome://browser/skin/window.svg);
+}
+
+#appMenu-library-downloads-button {
+  list-style-image: url("chrome://browser/skin/downloads/download-icons.svg#arrow-with-bar");
+}
+
+#appMenu-library-downloads-show-button {
+  list-style-image: url("chrome://browser/skin/folder.svg");
 }

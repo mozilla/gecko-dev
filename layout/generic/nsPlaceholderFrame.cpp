@@ -149,9 +149,9 @@ nsPlaceholderFrame::Reflow(nsPresContext*           aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsPlaceholderFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   aDesiredSize.ClearSize();
 
-  aStatus.Reset();
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aDesiredSize);
 }
 
@@ -203,25 +203,16 @@ nsPlaceholderFrame::GetParentStyleContextForOutOfFlow(nsIFrame** aProviderFrame)
     }
   }
 
-  nsIFrame* parentFrame = GetParent();
-  // Placeholder of backdrop frame is a child of the corresponding top
-  // layer frame, and its style context inherits from that frame. In
-  // case of table, the top layer frame is the table wrapper frame.
-  // However, it will be skipped in CorrectStyleParentFrame below, so
-  // we need to handle it specially here.
-  if ((GetStateBits() & PLACEHOLDER_FOR_TOPLAYER) &&
-      parentFrame->IsTableWrapperFrame()) {
-    MOZ_ASSERT(mOutOfFlowFrame->IsBackdropFrame(),
-               "Only placeholder of backdrop frame can be put inside "
-               "a table wrapper frame");
-    *aProviderFrame = parentFrame;
-    return parentFrame->StyleContext();
-  }
+  return GetLayoutParentStyleForOutOfFlow(aProviderFrame);
+}
 
+nsStyleContext*
+nsPlaceholderFrame::GetLayoutParentStyleForOutOfFlow(nsIFrame** aProviderFrame) const
+{
   // Lie about our pseudo so we can step out of all anon boxes and
   // pseudo-elements.  The other option would be to reimplement the
   // {ib} split gunk here.
-  *aProviderFrame = CorrectStyleParentFrame(parentFrame,
+  *aProviderFrame = CorrectStyleParentFrame(GetParent(),
                                             nsGkAtoms::placeholderFrame);
   return *aProviderFrame ? (*aProviderFrame)->StyleContext() : nullptr;
 }
@@ -253,7 +244,6 @@ PaintDebugPlaceholder(nsIFrame* aFrame, DrawTarget* aDrawTarget,
 
 void
 nsPlaceholderFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                     const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
   DO_GLOBAL_REFLOW_COUNT_DSP("nsPlaceholderFrame");
@@ -263,7 +253,7 @@ nsPlaceholderFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     aLists.Outlines()->AppendNewToTop(
       new (aBuilder) nsDisplayGeneric(aBuilder, this, PaintDebugPlaceholder,
                                       "DebugPlaceholder",
-                                      nsDisplayItem::TYPE_DEBUG_PLACEHOLDER));
+                                      DisplayItemType::TYPE_DEBUG_PLACEHOLDER));
   }
 #endif
 }

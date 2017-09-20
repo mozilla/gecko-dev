@@ -16,7 +16,9 @@
 #include "mozilla/UniquePtr.h"
 #include "gfxPoint.h"
 #include "nsRect.h"
+#ifdef MOZ_ENABLE_SKIA
 #include "mozilla/gfx/ConvolutionFilter.h"
+#endif
 
 namespace mozilla {
 namespace image {
@@ -56,7 +58,7 @@ public:
 
   const nsIntSize& OriginalSize() const { return mOriginalSize; }
   const nsIntSize& TargetSize() const { return mTargetSize; }
-  const nsIntSize FrameSize() const { return nsIntSize(mFrameRect.width, mFrameRect.height); }
+  const nsIntSize FrameSize() const { return nsIntSize(mFrameRect.Width(), mFrameRect.Height()); }
   const gfxSize& Scale() const { return mScale; }
 
   /**

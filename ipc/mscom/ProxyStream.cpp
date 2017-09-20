@@ -5,15 +5,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Move.h"
+#if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
+#include "HandlerData.h"
+#include "mozilla/a11y/Platform.h"
+#include "mozilla/mscom/ActivationContext.h"
+#endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
 #include "mozilla/mscom/EnsureMTA.h"
 #include "mozilla/mscom/ProxyStream.h"
 #include "mozilla/mscom/Utils.h"
-#include "mozilla/WindowsVersion.h"
 
 #if defined(MOZ_CRASHREPORTER)
-#include "InterfaceRegistrationAnnotator.h"
+#include "mozilla/mscom/Objref.h"
 #include "nsExceptionHandler.h"
 #include "nsPrintfCString.h"
+#include "RegistrationAnnotator.h"
 #endif
 
 #include <windows.h>
@@ -27,6 +32,7 @@ ProxyStream::ProxyStream()
   : mGlobalLockedBuf(nullptr)
   , mHGlobal(nullptr)
   , mBufSize(0)
+  , mPreserveStream(false)
 {
 }
 
@@ -34,22 +40,50 @@ ProxyStream::ProxyStream()
 // reconstructing the stream from a buffer anyway.
 ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
                          const int aInitBufSize)
-  : mStream(InitStream(aInitBuf, static_cast<const UINT>(aInitBufSize)))
-  , mGlobalLockedBuf(nullptr)
+  : mGlobalLockedBuf(nullptr)
   , mHGlobal(nullptr)
   , mBufSize(aInitBufSize)
+  , mPreserveStream(false)
 {
+#if defined(MOZ_CRASHREPORTER)
+  NS_NAMED_LITERAL_CSTRING(kCrashReportKey, "ProxyStreamUnmarshalStatus");
+#endif
+
   if (!aInitBufSize) {
+#if defined(MOZ_CRASHREPORTER)
+    CrashReporter::AnnotateCrashReport(kCrashReportKey,
+                                       NS_LITERAL_CSTRING("!aInitBufSize"));
+#endif // defined(MOZ_CRASHREPORTER)
     // We marshaled a nullptr. Nothing else to do here.
     return;
   }
+
+  HRESULT createStreamResult = CreateStream(aInitBuf, aInitBufSize,
+                                            getter_AddRefs(mStream));
+  if (FAILED(createStreamResult)) {
+#if defined(MOZ_CRASHREPORTER)
+    nsPrintfCString hrAsStr("0x%08X", createStreamResult);
+    CrashReporter::AnnotateCrashReport(kCrashReportKey, hrAsStr);
+#endif // defined(MOZ_CRASHREPORTER)
+    return;
+  }
+
   // NB: We can't check for a null mStream until after we have checked for
   // the zero aInitBufSize above. This is because InitStream will also fail
   // in that case, even though marshaling a nullptr is allowable.
   MOZ_ASSERT(mStream);
   if (!mStream) {
+#if defined(MOZ_CRASHREPORTER)
+    CrashReporter::AnnotateCrashReport(kCrashReportKey,
+                                       NS_LITERAL_CSTRING("!mStream"));
+#endif // defined(MOZ_CRASHREPORTER)
     return;
   }
+
+#if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
+  const uint32_t expectedStreamLen = GetOBJREFSize(WrapNotNull(mStream));
+  nsAutoCString strActCtx;
+#endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
 
   HRESULT unmarshalResult = S_OK;
 
@@ -57,13 +91,23 @@ ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
   // correctness with IPDL. We'll request an IUnknown and then QI the
   // actual interface later.
 
-  auto marshalFn = [&]() -> void
+#if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
+  auto marshalFn = [this, &strActCtx, &unmarshalResult, &aIID]() -> void
+#else
+  auto marshalFn = [this, &unmarshalResult, &aIID]() -> void
+#endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
   {
-    // OK to forget mStream when calling into this function because the stream
-    // gets released even if the unmarshaling part fails.
+#if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
+    auto curActCtx = ActivationContext::GetCurrent();
+    if (curActCtx.isOk()) {
+      strActCtx.AppendPrintf("0x%p", curActCtx.unwrap());
+    } else {
+      strActCtx.AppendPrintf("HRESULT 0x%08X", curActCtx.unwrapErr());
+    }
+#endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
+
     unmarshalResult =
-      ::CoGetInterfaceAndReleaseStream(mStream.forget().take(), aIID,
-                                       getter_AddRefs(mUnmarshaledProxy));
+      ::CoUnmarshalInterface(mStream, aIID, getter_AddRefs(mUnmarshaledProxy));
     MOZ_ASSERT(SUCCEEDED(unmarshalResult));
   };
 
@@ -76,78 +120,47 @@ ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
     EnsureMTA mta(marshalFn);
   }
 
+  mStream = nullptr;
+
 #if defined(MOZ_CRASHREPORTER)
-  if (FAILED(unmarshalResult)) {
+  if (FAILED(unmarshalResult) || !mUnmarshaledProxy) {
     nsPrintfCString hrAsStr("0x%08X", unmarshalResult);
     CrashReporter::AnnotateCrashReport(
-        NS_LITERAL_CSTRING("CoGetInterfaceAndReleaseStreamFailure"), hrAsStr);
+        NS_LITERAL_CSTRING("CoUnmarshalInterfaceResult"), hrAsStr);
     AnnotateInterfaceRegistration(aIID);
+    if (!mUnmarshaledProxy) {
+      CrashReporter::AnnotateCrashReport(kCrashReportKey,
+                                         NS_LITERAL_CSTRING("!mUnmarshaledProxy"));
+    }
+
+#if defined(ACCESSIBILITY)
+    AnnotateClassRegistration(CLSID_AccessibleHandler);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("UnmarshalActCtx"),
+                                       strActCtx);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("A11yHandlerRegistered"),
+                                       a11y::IsHandlerRegistered() ?
+                                       NS_LITERAL_CSTRING("true") :
+                                       NS_LITERAL_CSTRING("false"));
+
+    nsAutoCString strExpectedStreamLen;
+    strExpectedStreamLen.AppendInt(expectedStreamLen);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ExpectedStreamLen"),
+                                       strExpectedStreamLen);
+
+    nsAutoCString actualStreamLen;
+    actualStreamLen.AppendInt(aInitBufSize);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ActualStreamLen"),
+                                       actualStreamLen);
+#endif // defined(ACCESSIBILITY)
   }
 #endif // defined(MOZ_CRASHREPORTER)
 }
 
-/* static */
-already_AddRefed<IStream>
-ProxyStream::InitStream(const BYTE* aInitBuf, const UINT aInitBufSize)
-{
-  if (!aInitBuf || !aInitBufSize) {
-    return nullptr;
-  }
-
-  HRESULT hr;
-  RefPtr<IStream> stream;
-
-  if (IsWin8OrLater()) {
-    // This function is not safe for us to use until Windows 8
-    stream = already_AddRefed<IStream>(::SHCreateMemStream(aInitBuf, aInitBufSize));
-    if (!stream) {
-      return nullptr;
-    }
-  } else {
-    HGLOBAL hglobal = ::GlobalAlloc(GMEM_MOVEABLE, aInitBufSize);
-    if (!hglobal) {
-      return nullptr;
-    }
-
-    // stream takes ownership of hglobal if this call is successful
-    hr = ::CreateStreamOnHGlobal(hglobal, TRUE, getter_AddRefs(stream));
-    if (FAILED(hr)) {
-      ::GlobalFree(hglobal);
-      return nullptr;
-    }
-
-    // The default stream size is derived from ::GlobalSize(hglobal), which due
-    // to rounding may be larger than aInitBufSize. We forcibly set the correct
-    // stream size here.
-    ULARGE_INTEGER streamSize;
-    streamSize.QuadPart = aInitBufSize;
-    hr = stream->SetSize(streamSize);
-    if (FAILED(hr)) {
-      return nullptr;
-    }
-
-    void* streamBuf = ::GlobalLock(hglobal);
-    if (!streamBuf) {
-      return nullptr;
-    }
-
-    memcpy(streamBuf, aInitBuf, aInitBufSize);
-
-    ::GlobalUnlock(hglobal);
-  }
-
-  // Ensure that the stream is rewound
-  LARGE_INTEGER streamOffset;
-  streamOffset.QuadPart = 0;
-  hr = stream->Seek(streamOffset, STREAM_SEEK_SET, nullptr);
-  if (FAILED(hr)) {
-    return nullptr;
-  }
-
-  return stream.forget();
-}
-
 ProxyStream::ProxyStream(ProxyStream&& aOther)
+  : mGlobalLockedBuf(nullptr)
+  , mHGlobal(nullptr)
+  , mBufSize(0)
+  , mPreserveStream(false)
 {
   *this = mozilla::Move(aOther);
 }
@@ -155,14 +168,26 @@ ProxyStream::ProxyStream(ProxyStream&& aOther)
 ProxyStream&
 ProxyStream::operator=(ProxyStream&& aOther)
 {
+  if (mHGlobal && mGlobalLockedBuf) {
+    DebugOnly<BOOL> result = ::GlobalUnlock(mHGlobal);
+    MOZ_ASSERT(!result && ::GetLastError() == NO_ERROR);
+  }
+
   mStream = Move(aOther.mStream);
+
   mGlobalLockedBuf = aOther.mGlobalLockedBuf;
   aOther.mGlobalLockedBuf = nullptr;
+
+  // ::GlobalFree() was called implicitly when mStream was replaced.
   mHGlobal = aOther.mHGlobal;
   aOther.mHGlobal = nullptr;
+
   mBufSize = aOther.mBufSize;
   aOther.mBufSize = 0;
+
   mUnmarshaledProxy = Move(aOther.mUnmarshaledProxy);
+
+  mPreserveStream = aOther.mPreserveStream;
   return *this;
 }
 
@@ -173,6 +198,11 @@ ProxyStream::~ProxyStream()
     MOZ_ASSERT(!result && ::GetLastError() == NO_ERROR);
     // ::GlobalFree() is called implicitly when mStream is released
   }
+
+  // If this assert triggers then we will be leaking a marshaled proxy!
+  // Call GetPreservedStream to obtain a preservable stream and then save it
+  // until the proxy is no longer needed.
+  MOZ_ASSERT(!mPreserveStream);
 }
 
 const BYTE*
@@ -189,13 +219,20 @@ ProxyStream::GetBuffer(int& aReturnedBufSize) const
   return mGlobalLockedBuf;
 }
 
-RefPtr<IStream>
-ProxyStream::GetStream() const
+PreservedStreamPtr
+ProxyStream::GetPreservedStream()
 {
   MOZ_ASSERT(mStream);
   MOZ_ASSERT(mHGlobal);
 
-  if (!mStream) {
+  if (!mStream || !mPreserveStream) {
+    return nullptr;
+  }
+
+  // Clone the stream so that the result has a distinct seek pointer.
+  RefPtr<IStream> cloned;
+  HRESULT hr = mStream->Clone(getter_AddRefs(cloned));
+  if (FAILED(hr)) {
     return nullptr;
   }
 
@@ -203,10 +240,13 @@ ProxyStream::GetStream() const
   // the stream to be pointing to the beginning of the marshal data.
   LARGE_INTEGER pos;
   pos.QuadPart = 0LL;
-  DebugOnly<HRESULT> hr = mStream->Seek(pos, STREAM_SEEK_SET, nullptr);
-  MOZ_ASSERT(SUCCEEDED(hr));
+  hr = cloned->Seek(pos, STREAM_SEEK_SET, nullptr);
+  if (FAILED(hr)) {
+    return nullptr;
+  }
 
-  return mStream;
+  mPreserveStream = false;
+  return ToPreservedStreamPtr(Move(cloned));
 }
 
 bool
@@ -224,10 +264,12 @@ ProxyStream::GetInterface(void** aOutInterface)
   return true;
 }
 
-ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject)
+ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject,
+                         ProxyStreamFlags aFlags)
   : mGlobalLockedBuf(nullptr)
   , mHGlobal(nullptr)
   , mBufSize(0)
+  , mPreserveStream(aFlags & ProxyStreamFlags::ePreservable)
 {
   if (!aObject) {
     return;
@@ -236,31 +278,37 @@ ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject)
   RefPtr<IStream> stream;
   HGLOBAL hglobal = NULL;
   int streamSize = 0;
+  DWORD mshlFlags = mPreserveStream ? MSHLFLAGS_TABLESTRONG : MSHLFLAGS_NORMAL;
 
+  HRESULT createStreamResult = S_OK;
   HRESULT marshalResult = S_OK;
+  HRESULT statResult = S_OK;
+  HRESULT getHGlobalResult = S_OK;
 
   auto marshalFn = [&]() -> void
   {
-    HRESULT hr = ::CreateStreamOnHGlobal(nullptr, TRUE, getter_AddRefs(stream));
-    if (FAILED(hr)) {
+    createStreamResult = ::CreateStreamOnHGlobal(nullptr, TRUE, getter_AddRefs(stream));
+    if (FAILED(createStreamResult)) {
       return;
     }
 
-    hr = ::CoMarshalInterface(stream, aIID, aObject, MSHCTX_LOCAL, nullptr,
-                              MSHLFLAGS_NORMAL);
-    if (FAILED(hr)) {
-      marshalResult = hr;
+    marshalResult = ::CoMarshalInterface(stream, aIID, aObject, MSHCTX_LOCAL,
+                                         nullptr, mshlFlags);
+    MOZ_DIAGNOSTIC_ASSERT(marshalResult != E_INVALIDARG);
+    if (FAILED(marshalResult)) {
       return;
     }
 
     STATSTG statstg;
-    hr = stream->Stat(&statstg, STATFLAG_NONAME);
-    if (SUCCEEDED(hr)) {
+    statResult = stream->Stat(&statstg, STATFLAG_NONAME);
+    if (SUCCEEDED(statResult)) {
       streamSize = static_cast<int>(statstg.cbSize.LowPart);
+    } else {
+      return;
     }
 
-    hr = ::GetHGlobalFromStream(stream, &hglobal);
-    MOZ_ASSERT(SUCCEEDED(hr));
+    getHGlobalResult = ::GetHGlobalFromStream(stream, &hglobal);
+    MOZ_ASSERT(SUCCEEDED(getHGlobalResult));
   };
 
   if (XRE_IsParentProcess()) {
@@ -273,28 +321,70 @@ ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject)
   }
 
 #if defined(MOZ_CRASHREPORTER)
+  if (FAILED(createStreamResult)) {
+    nsPrintfCString hrAsStr("0x%08X", createStreamResult);
+    CrashReporter::AnnotateCrashReport(
+        NS_LITERAL_CSTRING("CreateStreamOnHGlobalFailure"),
+        hrAsStr);
+  }
+
   if (FAILED(marshalResult)) {
     AnnotateInterfaceRegistration(aIID);
     nsPrintfCString hrAsStr("0x%08X", marshalResult);
     CrashReporter::AnnotateCrashReport(
         NS_LITERAL_CSTRING("CoMarshalInterfaceFailure"), hrAsStr);
   }
+
+  if (FAILED(statResult)) {
+    nsPrintfCString hrAsStr("0x%08X", statResult);
+    CrashReporter::AnnotateCrashReport(
+        NS_LITERAL_CSTRING("StatFailure"),
+        hrAsStr);
+  }
+
+  if (FAILED(getHGlobalResult)) {
+    nsPrintfCString hrAsStr("0x%08X", getHGlobalResult);
+    CrashReporter::AnnotateCrashReport(
+        NS_LITERAL_CSTRING("GetHGlobalFromStreamFailure"),
+        hrAsStr);
+  }
 #endif // defined(MOZ_CRASHREPORTER)
 
   mStream = mozilla::Move(stream);
-  mBufSize = streamSize;
 
-  if (hglobal) {
-    mGlobalLockedBuf = reinterpret_cast<BYTE*>(::GlobalLock(hglobal));
-    mHGlobal = hglobal;
-
-    // If we couldn't get the stream size directly from mStream, we may use
-    // the size of the memory block allocated by the HGLOBAL, though it might
-    // be larger than the actual stream size.
-    if (!streamSize) {
-      mBufSize = static_cast<int>(::GlobalSize(hglobal));
-    }
+  if (streamSize) {
+#if defined(MOZ_CRASHREPORTER)
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ProxyStreamSizeFrom"),
+                                       NS_LITERAL_CSTRING("IStream::Stat"));
+#endif // defined(MOZ_CRASHREPORTER)
+    mBufSize = streamSize;
   }
+
+  if (!hglobal) {
+    return;
+  }
+
+  mGlobalLockedBuf = reinterpret_cast<BYTE*>(::GlobalLock(hglobal));
+  mHGlobal = hglobal;
+
+  // If we couldn't get the stream size directly from mStream, we may use
+  // the size of the memory block allocated by the HGLOBAL, though it might
+  // be larger than the actual stream size.
+  if (!streamSize) {
+#if defined(MOZ_CRASHREPORTER)
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ProxyStreamSizeFrom"),
+                                       NS_LITERAL_CSTRING("GlobalSize"));
+#endif // defined(MOZ_CRASHREPORTER)
+    mBufSize = static_cast<int>(::GlobalSize(hglobal));
+  }
+
+#if defined(MOZ_CRASHREPORTER)
+  nsAutoCString strBufSize;
+  strBufSize.AppendInt(mBufSize);
+
+  CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ProxyStreamSize"),
+                                     strBufSize);
+#endif // defined(MOZ_CRASHREPORTER)
 }
 
 } // namespace mscom

@@ -53,7 +53,7 @@ class nsNodeWeakReference final : public nsIWeakReference
 {
 public:
   explicit nsNodeWeakReference(nsINode* aNode)
-    : mNode(aNode)
+    : nsIWeakReference(aNode)
   {
   }
 
@@ -63,17 +63,14 @@ public:
   // nsIWeakReference
   NS_DECL_NSIWEAKREFERENCE
   virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
-  virtual bool IsAlive() const override { return mNode != nullptr; }
 
   void NoticeNodeDestruction()
   {
-    mNode = nullptr;
+    mObject = nullptr;
   }
 
 private:
   ~nsNodeWeakReference();
-
-  nsINode* MOZ_NON_OWNING_REF mNode;
 };
 
 /**
@@ -118,12 +115,11 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
-  NS_DECL_SIZEOF_EXCLUDING_THIS
+  NS_DECL_ADDSIZEOFEXCLUDINGTHIS
 
   // nsINode interface methods
   virtual uint32_t GetChildCount() const override;
   virtual nsIContent *GetChildAt(uint32_t aIndex) const override;
-  virtual nsIContent * const * GetChildArray(uint32_t* aChildCount) const override;
   virtual int32_t IndexOf(const nsINode* aPossibleChild) const override;
   virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
                                  bool aNotify) override;

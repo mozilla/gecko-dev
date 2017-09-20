@@ -44,6 +44,7 @@ JAR_MANIFESTS += ['jar.mn']
 DevToolsModules(
     'async-storage.js',
     'async-utils.js',
+    'base-loader.js',
     'builtin-modules.js',
     'content-observer.js',
     'debounce.js',
@@ -61,6 +62,7 @@ DevToolsModules(
     'l10n.js',
     'loader-plugin-raw.jsm',
     'Loader.jsm',
+    'old-event-emitter.js',
     'Parser.jsm',
     'path.js',
     'plural-form.js',

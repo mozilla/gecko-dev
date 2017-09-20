@@ -1279,7 +1279,11 @@ class Install(MachCommandBase):
 @SettingsProvider
 class RunSettings():
     config_settings = [
-        ('runprefs.*', 'string'),
+        ('runprefs.*', 'string', """
+Pass a pref into Firefox when using `mach run`, of the form `foo.bar=value`.
+Prefs will automatically be cast into the appropriate type. Integers can be
+single quoted to force them to be strings.
+""".strip()),
     ]
 
 @CommandProvider
@@ -1647,7 +1651,7 @@ class ArtifactSubCommand(SubCommand):
     def __call__(self, func):
         after = SubCommand.__call__(self, func)
         jobchoices = {
-            'android-api-15',
+            'android-api-16',
             'android-x86',
             'linux',
             'linux64',
@@ -1802,7 +1806,7 @@ class PackageFrontend(MachCommandBase):
             cache_dir = os.path.join(self._mach_context.state_dir, 'toolchains')
 
         tooltool_url = (tooltool_url or
-                        'https://api.pub.build.mozilla.org/tooltool').rstrip('/')
+                        'https://tooltool.mozilla-releng.net').rstrip('/')
 
         cache = ArtifactCache(cache_dir=cache_dir, log=self.log,
                               skip_cache=skip_cache)
@@ -1835,6 +1839,32 @@ class PackageFrontend(MachCommandBase):
                 if self.size is None and self.digest is None:
                     return True
                 return super(DownloadRecord, self).validate()
+
+        class ArtifactRecord(DownloadRecord):
+            def __init__(self, task_id, artifact_name):
+                cot = cache._download_manager.session.get(
+                    get_artifact_url(task_id, 'public/chainOfTrust.json.asc'))
+                digest = algorithm = None
+                if cot.status_code == 200:
+                    # The file is GPG-signed, but we don't care about validating
+                    # that. Instead of parsing the PGP signature, we just take
+                    # the one line we're interested in, which starts with a `{`.
+                    data = {}
+                    for l in cot.content.splitlines():
+                        if l.startswith('{'):
+                            try:
+                                data = json.loads(l)
+                                break
+                            except Exception:
+                                pass
+                for algorithm, digest in (data.get('artifacts', {})
+                                              .get(artifact_name, {}).items()):
+                    pass
+
+                name = os.path.basename(artifact_name)
+                super(ArtifactRecord, self).__init__(
+                    get_artifact_url(task_id, artifact_name), name,
+                    None, digest, algorithm, unpack=True)
 
         records = OrderedDict()
         downloaded = []
@@ -1904,10 +1934,8 @@ class PackageFrontend(MachCommandBase):
                              'named `{build}`')
                     return 1
 
-                name = os.path.basename(artifact_name)
-                records[name] = DownloadRecord(
-                    get_artifact_url(task_id, artifact_name),
-                    name, None, None, None, unpack=True)
+                record = ArtifactRecord(task_id, artifact_name)
+                records[record.filename] = record
 
         # Handle the list of files of the form path@task-id on the command
         # line. Each of those give a path to an artifact to download.
@@ -1917,9 +1945,8 @@ class PackageFrontend(MachCommandBase):
                          'Expected a list of files of the form path@task-id')
                 return 1
             name, task_id = f.rsplit('@', 1)
-            records[name] = DownloadRecord(
-                get_artifact_url(task_id, name), os.path.basename(name),
-                None, None, None, unpack=True)
+            record = ArtifactRecord(task_id, name)
+            records[record.filename] = record
 
         for record in records.itervalues():
             self.log(logging.INFO, 'artifact', {'name': record.basename},
@@ -1934,14 +1961,14 @@ class PackageFrontend(MachCommandBase):
                         requests.exceptions.ChunkedEncodingError,
                         requests.exceptions.ConnectionError) as e:
 
-                    if isinstance(e, requests.exceptions.ConnectionError):
-                        should_retry = True
-                    else:
+                    if isinstance(e, requests.exceptions.HTTPError):
                         # The relengapi proxy likes to return error 400 bad request
                         # which seems improbably to be due to our (simple) GET
                         # being borked.
                         status = e.response.status_code
                         should_retry = status >= 500 or status == 400
+                    else:
+                        should_retry = True
 
                     if should_retry or attempt < retry:
                         level = logging.WARN
@@ -2045,6 +2072,8 @@ class Vendor(MachCommandBase):
                 description='Vendor av1 video codec reference implementation into the source repository.')
     @CommandArgument('-r', '--revision',
         help='Repository tag or commit to update to.')
+    @CommandArgument('--repo',
+        help='Repository url to pull a snapshot from. Supports github and googlesource.')
     @CommandArgument('--ignore-modified', action='store_true',
         help='Ignore modified files in current checkout',
         default=False)

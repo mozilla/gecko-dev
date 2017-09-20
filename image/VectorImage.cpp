@@ -25,7 +25,7 @@
 #include "nsString.h"
 #include "nsStubDocumentObserver.h"
 #include "nsSVGEffects.h" // for nsSVGRenderingObserver
-#include "nsWindowMemoryReporter.h"
+#include "nsWindowSizes.h"
 #include "ImageRegion.h"
 #include "ISurfaceProvider.h"
 #include "LookupResult.h"
@@ -392,7 +392,7 @@ VectorImage::SizeOfSourceWithComputedFallback(SizeOfState& aState) const
   }
 
   nsWindowSizes windowSizes(aState);
-  doc->DocAddSizeOfIncludingThis(&windowSizes);
+  doc->DocAddSizeOfIncludingThis(windowSizes);
 
   if (windowSizes.getTotalSize() == 0) {
     // MallocSizeOf fails on this platform. Because we also use this method for
@@ -526,6 +526,13 @@ nsresult
 VectorImage::GetNativeSizes(nsTArray<IntSize>& aNativeSizes) const
 {
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+//******************************************************************************
+size_t
+VectorImage::GetNativeSizesLength() const
+{
+  return 0;
 }
 
 //******************************************************************************

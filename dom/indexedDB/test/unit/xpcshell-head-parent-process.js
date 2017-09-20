@@ -507,8 +507,8 @@ function verifyView(view1, view2)
 function verifyWasmModule(module1, module2)
 {
   let testingFunctions = Cu.getJSTestingFunctions();
-  let exp1 = testingFunctions.wasmExtractCode(module1);
-  let exp2 = testingFunctions.wasmExtractCode(module2);
+  let exp1 = testingFunctions.wasmExtractCode(module1, "ion");
+  let exp2 = testingFunctions.wasmExtractCode(module2, "ion");
   let code1 = exp1.code;
   let code2 = exp2.code;
   ok(code1 instanceof Uint8Array, "Instance of Uint8Array");
@@ -681,3 +681,7 @@ var SpecialPowers = {
     }
   },
 };
+
+// This can be removed soon when on by default.
+if (SpecialPowers.isMainProcess())
+  SpecialPowers.setBoolPref("javascript.options.wasm_baselinejit", true);

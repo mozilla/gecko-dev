@@ -30,7 +30,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::customelementregistry::CallbackReaction;
+use dom::customelementregistry::{CallbackReaction, try_upgrade_element};
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -74,9 +74,10 @@ use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell, RefMut};
-use std::cmp::max;
+use std::cmp;
 use std::default::Default;
 use std::iter;
 use std::mem;
@@ -148,7 +149,7 @@ pub struct Node {
 
 bitflags! {
     #[doc = "Flags for node items."]
-    #[derive(JSTraceable, HeapSizeOf)]
+    #[derive(HeapSizeOf, JSTraceable)]
     pub flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 1 << 0,
@@ -168,8 +169,7 @@ bitflags! {
         /// Whether any ancestor is a fragmentation container
         const CAN_BE_FRAGMENTED = 1 << 4,
 
-        #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
-        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 1 << 5,
+        // There's a free bit here.
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
                  this element. Only applicable for form-associatable elements."]
@@ -202,7 +202,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// https://dom.spec.whatwg.org/#concept-node-insert
 /// https://dom.spec.whatwg.org/#concept-node-remove
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -317,7 +317,7 @@ impl Node {
             node.style_and_layout_data.get().map(|d| node.dispose(d));
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
-                ScriptThread::enqueue_callback_reaction(&*element, CallbackReaction::Disconnected);
+                ScriptThread::enqueue_callback_reaction(&*element, CallbackReaction::Disconnected, None);
             }
         }
 
@@ -382,6 +382,17 @@ impl Node {
         for kid in self.children() {
             kid.teardown();
         }
+    }
+
+    /// Returns true if this node is before `other` in the same connected DOM
+    /// tree.
+    pub fn is_before(&self, other: &Node) -> bool {
+        let cmp = other.CompareDocumentPosition(self);
+        if cmp & NodeConstants::DOCUMENT_POSITION_DISCONNECTED != 0 {
+            return false;
+        }
+
+        cmp & NodeConstants::DOCUMENT_POSITION_PRECEDING != 0
     }
 
     /// Return all registered mutation observers for this node.
@@ -487,7 +498,7 @@ impl Node {
         // the document's version, but we do have to deal with the case where the node has moved
         // document, so may have a higher version count than its owning document.
         let doc: Root<Node> = Root::upcast(self.owner_doc());
-        let version = max(self.inclusive_descendants_version(), doc.inclusive_descendants_version()) + 1;
+        let version = cmp::max(self.inclusive_descendants_version(), doc.inclusive_descendants_version()) + 1;
         for ancestor in self.inclusive_ancestors() {
             ancestor.inclusive_descendants_version.set(version);
         }
@@ -627,8 +638,8 @@ impl Node {
             // Step 6 && Step 7
             (false, false, _, true) | (false, true, QuirksMode::Quirks, _) => {
                 Rect::new(Point2D::new(window.ScrollX(), window.ScrollY()),
-                                       Size2D::new(max(window.InnerWidth(), scroll_area.size.width),
-                                                   max(window.InnerHeight(), scroll_area.size.height)))
+                                       Size2D::new(cmp::max(window.InnerWidth(), scroll_area.size.width),
+                                                   cmp::max(window.InnerHeight(), scroll_area.size.height)))
             },
             // Step 9
             _ => scroll_area
@@ -1356,7 +1367,7 @@ impl Iterator for TreeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -1425,7 +1436,7 @@ impl Node {
             for descendant in node.traverse_preorder().filter_map(|d| d.as_custom_element()) {
                 // Step 3.2.
                 ScriptThread::enqueue_callback_reaction(&*descendant,
-                    CallbackReaction::Adopted(old_doc.clone(), Root::from_ref(document)));
+                    CallbackReaction::Adopted(old_doc.clone(), Root::from_ref(document)), None);
             }
             for descendant in node.traverse_preorder() {
                 // Step 3.3.
@@ -1639,12 +1650,13 @@ impl Node {
             for descendant in kid.traverse_preorder().filter_map(Root::downcast::<Element>) {
                 // Step 7.7.2.
                 if descendant.is_connected() {
-                    // Step 7.7.2.1.
                     if descendant.get_custom_element_definition().is_some() {
-                        ScriptThread::enqueue_callback_reaction(&*descendant, CallbackReaction::Connected);
+                        // Step 7.7.2.1.
+                        ScriptThread::enqueue_callback_reaction(&*descendant, CallbackReaction::Connected, None);
+                    } else {
+                        // Step 7.7.2.2.
+                        try_upgrade_element(&*descendant);
                     }
-                    // TODO: Step 7.7.2.2.
-                    // Try to upgrade descendant.
                 }
             }
         }
@@ -2362,55 +2374,70 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     fn CompareDocumentPosition(&self, other: &Node) -> u16 {
+        // step 1.
         if self == other {
-            // step 2.
-            0
-        } else {
-            let mut lastself = Root::from_ref(self);
-            let mut lastother = Root::from_ref(other);
-            for ancestor in self.ancestors() {
-                if &*ancestor == other {
-                    // step 4.
-                    return NodeConstants::DOCUMENT_POSITION_CONTAINS +
-                           NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                }
-                lastself = ancestor;
-            }
-            for ancestor in other.ancestors() {
-                if &*ancestor == self {
-                    // step 5.
-                    return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
-                           NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                }
-                lastother = ancestor;
-            }
+            return 0
+        }
 
-            if lastself != lastother {
-                let abstract_uint: uintptr_t = as_uintptr(&self);
-                let other_uint: uintptr_t = as_uintptr(&*other);
+        // FIXME(emilio): This will eventually need to handle attribute nodes.
 
-                let random = if abstract_uint < other_uint {
+        let mut self_and_ancestors =
+            self.inclusive_ancestors().collect::<SmallVec<[_; 20]>>();
+        let mut other_and_ancestors =
+            other.inclusive_ancestors().collect::<SmallVec<[_; 20]>>();
+
+        if self_and_ancestors.last() != other_and_ancestors.last() {
+            let random =
+                as_uintptr(self_and_ancestors.last().unwrap())
+                    < as_uintptr(other_and_ancestors.last().unwrap());
+            let random = if random {
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+            } else {
+                NodeConstants::DOCUMENT_POSITION_PRECEDING
+            };
+
+            // Disconnected.
+            return random +
+                NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+        }
+
+        let mut parent = self_and_ancestors.pop().unwrap();
+        other_and_ancestors.pop().unwrap();
+
+        let mut current_position = cmp::min(self_and_ancestors.len(), other_and_ancestors.len());
+
+        while current_position > 0 {
+            current_position -= 1;
+            let child_1 = self_and_ancestors.pop().unwrap();
+            let child_2 = other_and_ancestors.pop().unwrap();
+
+            if child_1 != child_2 {
+                let is_before =
+                    parent.children().position(|c| c == child_1).unwrap()
+                     < parent.children().position(|c| c == child_2).unwrap();
+                // If I am before, `other` is following, and the other way
+                // around.
+                return if is_before {
                     NodeConstants::DOCUMENT_POSITION_FOLLOWING
                 } else {
                     NodeConstants::DOCUMENT_POSITION_PRECEDING
                 };
-                // step 3.
-                return random +
-                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
-            for child in lastself.traverse_preorder() {
-                if &*child == other {
-                    // step 6.
-                    return NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                }
-                if &*child == self {
-                    // step 7.
-                    return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                }
-            }
-            unreachable!()
+            parent = child_1;
+        }
+
+        // We hit the end of one of the parent chains, so one node needs to be
+        // contained in the other.
+        //
+        // If we're the container, return that `other` is contained by us.
+        return if self_and_ancestors.len() < other_and_ancestors.len() {
+            NodeConstants::DOCUMENT_POSITION_FOLLOWING +
+            NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
+        } else {
+            NodeConstants::DOCUMENT_POSITION_PRECEDING +
+            NodeConstants::DOCUMENT_POSITION_CONTAINS
         }
     }
 
@@ -2503,7 +2530,7 @@ impl VirtualMethods for Node {
 }
 
 /// A summary of the changes that happened to a node.
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,

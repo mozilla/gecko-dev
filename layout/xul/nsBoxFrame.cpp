@@ -645,6 +645,7 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
 
   DO_GLOBAL_REFLOW_COUNT("nsBoxFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   NS_ASSERTION(aReflowInput.ComputedWidth() >=0 &&
                aReflowInput.ComputedHeight() >= 0, "Computed Size < 0");
@@ -661,8 +662,6 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
   printf(" *\n");
 
 #endif
-
-  aStatus.Reset();
 
   // create the layout state
   nsBoxLayoutState state(aPresContext, aReflowInput.mRenderingContext,
@@ -1314,7 +1313,6 @@ PaintXULDebugBackground(nsIFrame* aFrame, DrawTarget* aDrawTarget,
 
 void
 nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                             const nsRect&           aDirtyRect,
                              const nsDisplayListSet& aLists)
 {
   bool forceLayer = false;
@@ -1353,7 +1351,7 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     contASRTracker.emplace(aBuilder);
   }
 
-  BuildDisplayListForChildren(aBuilder, aDirtyRect, destination);
+  BuildDisplayListForChildren(aBuilder, destination);
 
   // see if we have to draw a selection frame around this container
   DisplaySelectionOverlay(aBuilder, destination.Content());
@@ -1384,7 +1382,6 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 void
 nsBoxFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                        const nsRect&           aDirtyRect,
                                         const nsDisplayListSet& aLists)
 {
   nsIFrame* kid = mFrames.FirstChild();
@@ -1393,7 +1390,7 @@ nsBoxFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
   nsDisplayListSet set(aLists, aLists.BlockBorderBackgrounds());
   // The children should be in the right order
   while (kid) {
-    BuildDisplayListForChild(aBuilder, kid, aDirtyRect, set);
+    BuildDisplayListForChild(aBuilder, kid, set);
     kid = kid->GetNextSibling();
   }
 }
@@ -1906,6 +1903,14 @@ bool
 nsBoxFrame::SupportsOrdinalsInChildren()
 {
   return true;
+}
+
+void
+nsBoxFrame::AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult)
+{
+  if (GetStateBits() & NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK) {
+    aResult.AppendElement(OwnedAnonBox(PrincipalChildList().FirstChild()));
+  }
 }
 
 // Helper less-than-or-equal function, used in CheckBoxOrder() as a

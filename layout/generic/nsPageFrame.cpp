@@ -58,7 +58,7 @@ nsPageFrame::Reflow(nsPresContext*           aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsPageFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
-  aStatus.Reset();  // initialize out parameter
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   NS_ASSERTION(mFrames.FirstChild() &&
                mFrames.FirstChild()->IsPageContentFrame(),
@@ -421,7 +421,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
       if (!nsLayoutUtils::IsProperAncestorFrameCrossDoc(aPage, f)) {
         // We're throwing this away so call its destructor now. The memory
         // is owned by aBuilder which destroys all items at once.
-        i->~nsDisplayItem();
+        i->Destroy(aBuilder);
         continue;
       }
     }
@@ -433,7 +433,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
 static void
 BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
                              nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             const nsRect& aDirtyRect, nsDisplayList* aList)
+                             nsDisplayList* aList)
 {
   // The only content in aExtraPage we care about is out-of-flow content whose
   // placeholders have occurred in aPage. If
@@ -443,7 +443,7 @@ BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
     return;
   }
   nsDisplayList list;
-  aExtraPage->BuildDisplayListForStackingContext(aBuilder, aDirtyRect, &list);
+  aExtraPage->BuildDisplayListForStackingContext(aBuilder, &list);
   PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, &list);
   aList->AppendToTop(&list);
 }
@@ -477,7 +477,6 @@ class nsDisplayHeaderFooter : public nsDisplayItem {
 public:
   nsDisplayHeaderFooter(nsDisplayListBuilder* aBuilder, nsPageFrame *aFrame)
     : nsDisplayItem(aBuilder, aFrame)
-    , mDisableSubpixelAA(false)
   {
     MOZ_COUNT_CTOR(nsDisplayHeaderFooter);
   }
@@ -496,24 +495,18 @@ public:
     static_cast<nsPageFrame*>(mFrame)->
       PaintHeaderFooter(*aCtx, ToReferenceFrame(), mDisableSubpixelAA);
   }
-  NS_DISPLAY_DECL_NAME("HeaderFooter", nsDisplayItem::TYPE_HEADER_FOOTER)
+  NS_DISPLAY_DECL_NAME("HeaderFooter", TYPE_HEADER_FOOTER)
 
-  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) override {
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) const override
+  {
     bool snap;
     return GetBounds(aBuilder, &snap);
   }
-
-  virtual void DisableComponentAlpha() override {
-    mDisableSubpixelAA = true;
-  }
-protected:
-  bool mDisableSubpixelAA;
 };
 
 //------------------------------------------------------------------------------
 void
 nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists)
 {
   nsDisplayListCollection set;
@@ -554,7 +547,10 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     clipState.ClipContainingBlockDescendants(clipRect, nullptr);
 
     nsRect dirtyRect = child->GetVisualOverflowRectRelativeToSelf();
-    child->BuildDisplayListForStackingContext(aBuilder, dirtyRect, &content);
+    nsDisplayListBuilder::AutoBuildingDisplayList
+      buildingForChild(aBuilder, child, dirtyRect,
+                       aBuilder->IsAtRootOfPseudoStackingContext());
+    child->BuildDisplayListForStackingContext(aBuilder, &content);
 
     // We may need to paint out-of-flow frames whose placeholders are
     // on other pages. Add those pages to our display list. Note that
@@ -565,8 +561,12 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     // following placeholders to their out-of-flows) end up on the list.
     nsIFrame* page = child;
     while ((page = GetNextPage(page)) != nullptr) {
-      BuildDisplayListForExtraPage(aBuilder, this, page,
-          dirtyRect + child->GetOffsetTo(page), &content);
+      nsRect childDirty = dirtyRect + child->GetOffsetTo(page);
+
+      nsDisplayListBuilder::AutoBuildingDisplayList
+        buildingForChild(aBuilder, page, childDirty,
+                         aBuilder->IsAtRootOfPseudoStackingContext());
+      BuildDisplayListForExtraPage(aBuilder, this, page, &content);
     }
 
     // Invoke AutoBuildingDisplayList to ensure that the correct dirtyRect
@@ -580,6 +580,7 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     // can monkey with the contents if necessary.
     nsRect backgroundRect =
       nsRect(aBuilder->ToReferenceFrame(child), child->GetSize());
+
     PresContext()->GetPresShell()->AddCanvasBackgroundColorItem(
       *aBuilder, content, child, backgroundRect, NS_RGBA(0,0,0,0));
   }
@@ -720,6 +721,7 @@ nsPageBreakFrame::Reflow(nsPresContext*           aPresContext,
 {
   DO_GLOBAL_REFLOW_COUNT("nsPageBreakFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   // Override reflow, since we don't want to deal with what our
   // computed values are.
@@ -735,7 +737,6 @@ nsPageBreakFrame::Reflow(nsPresContext*           aPresContext,
   // Note: not using NS_FRAME_FIRST_REFLOW here, since it's not clear whether
   // DidReflow will always get called before the next Reflow() call.
   mHaveReflowed = true;
-  aStatus.Reset();
 }
 
 #ifdef DEBUG_FRAME_DUMP

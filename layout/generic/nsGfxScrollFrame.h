@@ -70,11 +70,9 @@ public:
   void Destroy();
 
   void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                        const nsRect&           aDirtyRect,
                         const nsDisplayListSet& aLists);
 
   void AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
-                           const nsRect&           aDirtyRect,
                            const nsDisplayListSet& aLists,
                            bool                    aCreateLayer,
                            bool                    aPositioned);
@@ -102,36 +100,30 @@ public:
   /**
    * This class handles the dispatching of scroll events to content.
    *
-   * nsRefreshDriver maintains three lists of refresh observers, one for each
-   * flush type: FlushType::Style, FlushType::Layout, and FlushType::Display.
+   * Scroll events are posted to the refresh driver via
+   * nsRefreshDriver::PostScrollEvent(), and they are fired during a refresh
+   * driver tick, after running requestAnimationFrame callbacks but before
+   * the style flush. This allows rAF callbacks to perform scrolling and have
+   * that scrolling be reflected on the same refresh driver tick, while at
+   * the same time allowing scroll event listeners to make style changes and
+   * have those style changes be reflected on the same refresh driver tick.
    *
-   * During a tick, it runs through each list of observers, in order, and runs
-   * them. To iterate over each list, it uses an EndLimitedIterator, which is
-   * designed to iterate only over elements present when the iterator was
-   * created, not elements added afterwards. This means that, for a given flush
-   * type, a refresh observer added during the execution of another refresh
-   * observer of that flush type, will not run until the next tick.
+   * ScrollEvents cannot be refresh observers, because none of the existing
+   * categories of refresh observers (FlushType::Style, FlushType::Layout,
+   * and FlushType::Display) are run at the desired time in a refresh driver
+   * tick. They behave similarly to refresh observers in that their presence
+   * causes the refresh driver to tick.
    *
-   * During main-thread animation-driven scrolling, ScrollEvents are *posted*
-   * by AsyncScroll::WillRefresh(). AsyncScroll registers itself as a FlushType::Style
-   * refresh observer.
-   *
-   * Posting a scroll event, as of bug 1250550, registers a FlushType::Layout
-   * refresh observer, which *fires* the event when run. This allows the event
-   * to be fired to content in the same refresh driver tick as it is posted.
-   * This is an important invariant to maintain to reduce scroll event latency
-   * for main-thread scrolling.
+   * ScrollEvents are one-shot runnables; the refresh driver drops them after
+   * running them.
    */
-  class ScrollEvent : public nsARefreshObserver {
+  class ScrollEvent : public Runnable {
   public:
-    NS_INLINE_DECL_REFCOUNTING(ScrollEvent, override)
-    explicit ScrollEvent(ScrollFrameHelper *helper);
-    void WillRefresh(mozilla::TimeStamp aTime) override;
-  protected:
-    virtual ~ScrollEvent();
+    NS_DECL_NSIRUNNABLE
+    explicit ScrollEvent(ScrollFrameHelper* aHelper);
+    void Revoke() { mHelper = nullptr; }
   private:
-    ScrollFrameHelper *mHelper;
-    RefPtr<nsRefreshDriver> mDriver;
+    ScrollFrameHelper* mHelper;
   };
 
   class AsyncScrollPortEvent : public Runnable {
@@ -495,6 +487,7 @@ public:
   nsIFrame* mScrollCornerBox;
   nsIFrame* mResizerBox;
   nsContainerFrame* mOuter;
+  const nsIFrame* mReferenceFrameDuringPainting;
   RefPtr<AsyncScroll> mAsyncScroll;
   RefPtr<AsyncSmoothMSDScroll> mAsyncSmoothMSDScroll;
   RefPtr<ScrollbarActivity> mScrollbarActivity;
@@ -693,10 +686,9 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsHTMLScrollFrame)
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
+  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override {
-    mHelper.BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    mHelper.BuildDisplayList(aBuilder, aLists);
   }
 
   bool TryLayout(ScrollReflowInput* aState,
@@ -1126,9 +1118,8 @@ public:
                                                 bool aClipAllDescendants);
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override {
-    mHelper.BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    mHelper.BuildDisplayList(aBuilder, aLists);
   }
 
   // XXXldb Is this actually used?

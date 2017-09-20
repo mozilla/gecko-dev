@@ -1,19 +1,7 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 05/03/2000   IBM Corp.       Observer related defines for reflow
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* a presentation of a document, part 2 */
 
@@ -35,6 +23,7 @@
 #include "nsIContent.h"
 #include "nsISelectionController.h"
 #include "nsQueryFrame.h"
+#include "nsStringFwd.h"
 #include "nsCoord.h"
 #include "nsColor.h"
 #include "nsFrameManagerBase.h"
@@ -56,11 +45,11 @@ class nsDocShell;
 class nsIDocument;
 class nsIFrame;
 class nsPresContext;
+class nsWindowSizes;
 class nsViewManager;
 class nsView;
 class nsIPageSequenceFrame;
 class nsCanvasFrame;
-class nsAString;
 class nsCaret;
 namespace mozilla {
 class AccessibleCaretEventHub;
@@ -96,7 +85,6 @@ class DocAccessible;
 } // namespace a11y
 } // namespace mozilla
 #endif
-struct nsArenaMemoryStats;
 class nsITimer;
 
 namespace mozilla {
@@ -287,7 +275,6 @@ public:
   }
 #endif
 
-#ifdef MOZILLA_INTERNAL_API
   mozilla::StyleSetHandle StyleSet() const { return mStyleSet; }
 
   nsCSSFrameConstructor* FrameConstructor() const { return mFrameConstructor; }
@@ -298,8 +285,6 @@ public:
     return reinterpret_cast<nsFrameManager*>
                            (const_cast<nsIPresShell*>(this)->mFrameManager);
   }
-
-#endif
 
   /* Enable/disable author style level. Disabling author style disables the entire
    * author level of the cascade, including the HTML preshint level.
@@ -403,13 +388,8 @@ public:
   /**
    * This calls through to the frame manager to get the root frame.
    */
-  virtual nsIFrame* GetRootFrameExternal() const;
   nsIFrame* GetRootFrame() const {
-#ifdef MOZILLA_INTERNAL_API
     return mFrameManager->GetRootFrame();
-#else
-    return GetRootFrameExternal();
-#endif
   }
 
   /*
@@ -421,12 +401,6 @@ public:
    * The same as GetRootScrollFrame, but returns an nsIScrollableFrame
    */
   nsIScrollableFrame* GetRootScrollFrameAsScrollable() const;
-
-  /*
-   * The same as GetRootScrollFrame, but returns an nsIScrollableFrame.
-   * Can be called by code not linked into gklayout.
-   */
-  virtual nsIScrollableFrame* GetRootScrollFrameAsScrollableExternal() const;
 
   /**
    * Get the current focused content or DOM selection that should be the
@@ -459,6 +433,15 @@ public:
    * the specified direction.
    */
   nsIScrollableFrame* GetScrollableFrameToScroll(ScrollDirection aDirection);
+
+  /**
+   * Gets nearest ancestor scrollable frame from aFrame.  The frame is
+   * scrollable with overflow:scroll or overflow:auto in some direction when
+   * aDirection is eEither.  Otherwise, this returns a nearest frame that is
+   * scrollable in the specified direction.
+   */
+  nsIScrollableFrame* GetNearestScrollableFrame(nsIFrame* aFrame,
+                                                ScrollDirection aDirection);
 
   /**
    * Returns the page sequence frame associated with the frame hierarchy.
@@ -526,20 +509,12 @@ public:
   virtual void NotifyCounterStylesAreDirty() = 0;
 
   /**
-   * Destroy the frames for aContent.  Note that this may destroy frames
-   * for an ancestor instead - aDestroyedFramesFor contains the content node
-   * where frames were actually destroyed (which should be used in the
-   * CreateFramesFor call).  The frame tree state will be captured before
-   * the frames are destroyed in the frame constructor.
+   * Destroy the frames for aElement, and reconstruct them asynchronously if
+   * needed.
+   *
+   * Note that this may destroy frames for an ancestor instead.
    */
-  virtual void DestroyFramesFor(nsIContent*  aContent,
-                                nsIContent** aDestroyedFramesFor) = 0;
-  /**
-   * Create new frames for aContent.  It will use the last captured layout
-   * history state captured in the frame constructor to restore the state
-   * in the new frame tree.
-   */
-  virtual void CreateFramesFor(nsIContent* aContent) = 0;
+  virtual void DestroyFramesFor(mozilla::dom::Element* aElement) = 0;
 
   void PostRecreateFramesFor(mozilla::dom::Element* aElement);
   void RestyleForAnimation(mozilla::dom::Element* aElement,
@@ -1172,49 +1147,11 @@ public:
                   mozilla::LayoutDeviceIntRect* aScreenRect,
                   uint32_t aFlags) = 0;
 
-  void AddAutoWeakFrameInternal(AutoWeakFrame* aWeakFrame);
-  virtual void AddAutoWeakFrameExternal(AutoWeakFrame* aWeakFrame);
-  void AddWeakFrameInternal(WeakFrame* aWeakFrame);
-  virtual void AddWeakFrameExternal(WeakFrame* aWeakFrame);
+  void AddAutoWeakFrame(AutoWeakFrame* aWeakFrame);
+  void AddWeakFrame(WeakFrame* aWeakFrame);
 
-  void AddAutoWeakFrame(AutoWeakFrame* aWeakFrame)
-  {
-#ifdef MOZILLA_INTERNAL_API
-    AddAutoWeakFrameInternal(aWeakFrame);
-#else
-    AddAutoWeakFrameExternal(aWeakFrame);
-#endif
-  }
-  void AddWeakFrame(WeakFrame* aWeakFrame)
-  {
-#ifdef MOZILLA_INTERNAL_API
-    AddWeakFrameInternal(aWeakFrame);
-#else
-    AddWeakFrameExternal(aWeakFrame);
-#endif
-  }
-
-  void RemoveAutoWeakFrameInternal(AutoWeakFrame* aWeakFrame);
-  virtual void RemoveAutoWeakFrameExternal(AutoWeakFrame* aWeakFrame);
-  void RemoveWeakFrameInternal(WeakFrame* aWeakFrame);
-  virtual void RemoveWeakFrameExternal(WeakFrame* aWeakFrame);
-
-  void RemoveAutoWeakFrame(AutoWeakFrame* aWeakFrame)
-  {
-#ifdef MOZILLA_INTERNAL_API
-    RemoveAutoWeakFrameInternal(aWeakFrame);
-#else
-    RemoveAutoWeakFrameExternal(aWeakFrame);
-#endif
-  }
-  void RemoveWeakFrame(WeakFrame* aWeakFrame)
-  {
-#ifdef MOZILLA_INTERNAL_API
-    RemoveWeakFrameInternal(aWeakFrame);
-#else
-    RemoveWeakFrameExternal(aWeakFrame);
-#endif
-  }
+  void RemoveAutoWeakFrame(AutoWeakFrame* aWeakFrame);
+  void RemoveWeakFrame(WeakFrame* aWeakFrame);
 
 #ifdef DEBUG
   nsIFrame* GetDrawEventTargetFrame() { return mDrawEventTargetFrame; }
@@ -1600,13 +1537,7 @@ public:
   virtual void DispatchSynthMouseMove(mozilla::WidgetGUIEvent* aEvent,
                                       bool aFlushOnHoverChange) = 0;
 
-  virtual void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
-                                      nsArenaMemoryStats* aArenaObjectsSize,
-                                      size_t* aPresShellSize,
-                                      size_t* aStyleSetsSize,
-                                      size_t* aTextRunsSize,
-                                      size_t* aPresContextSize,
-                                      size_t* aFramePropertiesSize) = 0;
+  virtual void AddSizeOfIncludingThis(nsWindowSizes& aWindowSizes) const = 0;
 
   /**
    * Methods that retrieve the cached font inflation preferences.
@@ -1695,15 +1626,6 @@ public:
    * Refresh observer management.
    */
 protected:
-  virtual bool AddRefreshObserverExternal(nsARefreshObserver* aObserver,
-                                          mozilla::FlushType aFlushType);
-  bool AddRefreshObserverInternal(nsARefreshObserver* aObserver,
-                                  mozilla::FlushType aFlushType);
-  virtual bool RemoveRefreshObserverExternal(nsARefreshObserver* aObserver,
-                                             mozilla::FlushType aFlushType);
-  bool RemoveRefreshObserverInternal(nsARefreshObserver* aObserver,
-                                     mozilla::FlushType aFlushType);
-
   void DoObserveStyleFlushes();
   void DoObserveLayoutFlushes();
 
@@ -1741,22 +1663,9 @@ protected:
 
 public:
   bool AddRefreshObserver(nsARefreshObserver* aObserver,
-                          mozilla::FlushType aFlushType) {
-#ifdef MOZILLA_INTERNAL_API
-    return AddRefreshObserverInternal(aObserver, aFlushType);
-#else
-    return AddRefreshObserverExternal(aObserver, aFlushType);
-#endif
-  }
-
+                          mozilla::FlushType aFlushType);
   bool RemoveRefreshObserver(nsARefreshObserver* aObserver,
-                             mozilla::FlushType aFlushType) {
-#ifdef MOZILLA_INTERNAL_API
-    return RemoveRefreshObserverInternal(aObserver, aFlushType);
-#else
-    return RemoveRefreshObserverExternal(aObserver, aFlushType);
-#endif
-  }
+                             mozilla::FlushType aFlushType);
 
   virtual bool AddPostRefreshObserver(nsAPostRefreshObserver* aObserver);
   virtual bool RemovePostRefreshObserver(nsAPostRefreshObserver* aObserver);

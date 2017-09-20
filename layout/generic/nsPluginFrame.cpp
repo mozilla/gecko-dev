@@ -57,6 +57,7 @@
 #include "Layers.h"
 #include "ReadbackLayer.h"
 #include "ImageContainer.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 
 // accessibility support
 #ifdef ACCESSIBILITY
@@ -493,6 +494,7 @@ nsPluginFrame::Reflow(nsPresContext*           aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsPluginFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aMetrics, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   // Get our desired size
   GetDesiredSize(aPresContext, aReflowInput, aMetrics);
@@ -503,13 +505,11 @@ nsPluginFrame::Reflow(nsPresContext*           aPresContext,
   // arrived. Otherwise there may be PARAMs or other stuff that the
   // plugin needs to see that haven't arrived yet.
   if (!GetContent()->IsDoneAddingChildren()) {
-    aStatus.Reset();
     return;
   }
 
   // if we are printing or print previewing, bail for now
   if (aPresContext->Medium() == nsGkAtoms::print) {
-    aStatus.Reset();
     return;
   }
 
@@ -527,8 +527,6 @@ nsPluginFrame::Reflow(nsPresContext*           aPresContext,
     mReflowCallbackPosted = true;
     aPresContext->PresShell()->PostReflowCallback(this);
   }
-
-  aStatus.Reset();
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aMetrics);
 }
@@ -900,7 +898,7 @@ public:
 #endif
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) override;
+                   bool* aSnap) const override;
 
   NS_DISPLAY_DECL_NAME("PluginReadback", TYPE_PLUGIN_READBACK)
 
@@ -920,21 +918,24 @@ public:
 };
 
 static nsRect
-GetDisplayItemBounds(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem, nsIFrame* aFrame)
+GetDisplayItemBounds(nsDisplayListBuilder* aBuilder,
+                     const nsDisplayItem* aItem,
+                     nsIFrame* aFrame)
 {
   // XXX For slightly more accurate region computations we should pixel-snap this
   return aFrame->GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
 }
 
 nsRect
-nsDisplayPluginReadback::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
+nsDisplayPluginReadback::GetBounds(nsDisplayListBuilder* aBuilder,
+                                   bool* aSnap) const
 {
   *aSnap = false;
   return GetDisplayItemBounds(aBuilder, this, mFrame);
 }
 
 nsRect
-nsDisplayPlugin::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
+nsDisplayPlugin::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const
 {
   *aSnap = true;
   return GetDisplayItemBounds(aBuilder, this, mFrame);
@@ -1010,7 +1011,7 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
 
 nsRegion
 nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                 bool* aSnap)
+                                 bool* aSnap) const
 {
   *aSnap = false;
   nsRegion result;
@@ -1040,6 +1041,22 @@ nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   }
 
   return result;
+}
+
+bool
+nsDisplayPlugin::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
+                                         const StackingContextHelper& aSc,
+                                         nsTArray<WebRenderParentCommand>& aParentCommands,
+                                         mozilla::layers::WebRenderLayerManager* aManager,
+                                         nsDisplayListBuilder* aDisplayListBuilder)
+{
+  return static_cast<nsPluginFrame*>(mFrame)->CreateWebRenderCommands(this,
+                                                                      aBuilder,
+                                                                      aResources,
+                                                                      aSc,
+                                                                      aManager,
+                                                                      aDisplayListBuilder);
 }
 
 nsresult
@@ -1123,7 +1140,6 @@ nsPluginFrame::IsTransparentMode() const
 
 void
 nsPluginFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists)
 {
   // XXX why are we painting collapsed object frames?
@@ -1174,7 +1190,7 @@ nsPluginFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (type == nsPresContext::eContext_Print) {
     aLists.Content()->AppendNewToTop(new (aBuilder)
       nsDisplayGeneric(aBuilder, this, PaintPrintPlugin, "PrintPlugin",
-                       nsDisplayItem::TYPE_PRINT_PLUGIN));
+                       DisplayItemType::TYPE_PRINT_PLUGIN));
   } else {
     LayerState state = GetLayerState(aBuilder, nullptr);
     if (state == LAYER_INACTIVE &&
@@ -1300,7 +1316,7 @@ nsPluginFrame::PrintPlugin(gfxContext& aRenderingContext,
 }
 
 nsRect
-nsPluginFrame::GetPaintedRect(nsDisplayPlugin* aItem)
+nsPluginFrame::GetPaintedRect(const nsDisplayPlugin* aItem) const
 {
   if (!mInstanceOwner)
     return nsRect();
@@ -1356,22 +1372,19 @@ private:
   RefPtr<LayerManager> mLayerManager;
 };
 
-already_AddRefed<Layer>
-nsPluginFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
-                          LayerManager* aManager,
-                          nsDisplayItem* aItem,
-                          const ContainerLayerParameters& aContainerParameters)
+bool
+nsPluginFrame::GetBounds(nsDisplayItem* aItem, IntSize& aSize, gfxRect& aRect)
 {
   if (!mInstanceOwner)
-    return nullptr;
+    return false;
 
   NPWindow* window = nullptr;
   mInstanceOwner->GetWindow(window);
   if (!window)
-    return nullptr;
+    return false;
 
   if (window->width <= 0 || window->height <= 0)
-    return nullptr;
+    return false;
 
 #if defined(XP_MACOSX)
   // window is in "display pixels", but size needs to be in device pixels
@@ -1386,16 +1399,73 @@ nsPluginFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   size_t intScaleFactor = 1;
 #endif
 
-  IntSize size(window->width * intScaleFactor, window->height * intScaleFactor);
+  aSize = IntSize(window->width * intScaleFactor, window->height * intScaleFactor);
 
   nsRect area = GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
-  gfxRect r = nsLayoutUtils::RectToGfxRect(area, PresContext()->AppUnitsPerDevPixel());
+  aRect = nsLayoutUtils::RectToGfxRect(area, PresContext()->AppUnitsPerDevPixel());
   // to provide crisper and faster drawing.
-  r.Round();
+  aRect.Round();
+
+  return true;
+}
+
+bool
+nsPluginFrame::CreateWebRenderCommands(nsDisplayItem* aItem,
+                                       mozilla::wr::DisplayListBuilder& aBuilder,
+                                       mozilla::wr::IpcResourceUpdateQueue& aResources,
+                                       const StackingContextHelper& aSc,
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder)
+{
+  IntSize size;
+  gfxRect r;
+  if (!GetBounds(aItem, size, r)) {
+    return true;
+  }
+
+  RefPtr<ImageContainer> container;
+  // Image for Windowed plugins that support window capturing for scroll
+  // operations or async windowless rendering.
+  container = mInstanceOwner->GetImageContainer();
+  if (!container) {
+    // This can occur if our instance is gone or if the current plugin
+    // configuration does not require a backing image layer.
+    return true;
+  }
+
+#ifdef XP_MACOSX
+  if (!mInstanceOwner->UseAsyncRendering()) {
+    mInstanceOwner->DoCocoaEventDrawRect(r, nullptr);
+  }
+#endif
+
+  RefPtr<LayerManager> lm = aDisplayListBuilder->GetWidgetLayerManager();
+  if (!mDidCompositeObserver || !mDidCompositeObserver->IsValid(lm)) {
+    mDidCompositeObserver = MakeUnique<PluginFrameDidCompositeObserver>(mInstanceOwner, lm);
+  }
+  lm->AddDidCompositeObserver(mDidCompositeObserver.get());
+
+  LayerRect dest(r.x, r.y, size.width, size.height);
+  return aManager->PushImage(aItem, container, aBuilder, aSc, dest);
+}
+
+
+already_AddRefed<Layer>
+nsPluginFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
+                          LayerManager* aManager,
+                          nsDisplayItem* aItem,
+                          const ContainerLayerParameters& aContainerParameters)
+{
+  IntSize size;
+  gfxRect r;
+  if (!GetBounds(aItem, size, r)) {
+    return nullptr;
+  }
+
   RefPtr<Layer> layer =
     (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
 
-  if (aItem->GetType() == nsDisplayItem::TYPE_PLUGIN) {
+  if (aItem->GetType() == DisplayItemType::TYPE_PLUGIN) {
     RefPtr<ImageContainer> container;
     // Image for Windowed plugins that support window capturing for scroll
     // operations or async windowless rendering.
@@ -1448,7 +1518,7 @@ nsPluginFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
       lm->AddDidCompositeObserver(mDidCompositeObserver.get());
     }
   } else {
-    NS_ASSERTION(aItem->GetType() == nsDisplayItem::TYPE_PLUGIN_READBACK,
+    NS_ASSERTION(aItem->GetType() == DisplayItemType::TYPE_PLUGIN_READBACK,
                  "Unknown item type");
     MOZ_ASSERT(!IsOpaque(), "Opaque plugins don't use backgrounds");
 

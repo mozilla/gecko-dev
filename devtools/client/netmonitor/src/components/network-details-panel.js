@@ -28,6 +28,7 @@ function NetworkDetailsPanel({
   request,
   selectTab,
   sourceMapService,
+  openLink,
 }) {
   if (!request) {
     return null;
@@ -38,12 +39,13 @@ function NetworkDetailsPanel({
       !request.isCustom ?
         TabboxPanel({
           activeTabId,
+          cloneSelectedRequest,
           request,
           selectTab,
           sourceMapService,
+          openLink,
         }) :
         CustomRequestPanel({
-          cloneSelectedRequest,
           request,
         })
     )
@@ -60,6 +62,7 @@ NetworkDetailsPanel.propTypes = {
   selectTab: PropTypes.func.isRequired,
   // Service to enable the source map feature.
   sourceMapService: PropTypes.object,
+  openLink: PropTypes.func,
 };
 
 module.exports = connect(

@@ -163,7 +163,6 @@ public:
   enum State
   {
     DECODER_STATE_DECODING_METADATA,
-    DECODER_STATE_WAIT_FOR_CDM,
     DECODER_STATE_DORMANT,
     DECODER_STATE_DECODING_FIRSTFRAME,
     DECODER_STATE_DECODING,
@@ -219,10 +218,15 @@ public:
     OwnerThread()->DispatchStateChange(r.forget());
   }
 
-  // Drop reference to mResource. Only called during shutdown dance.
-  void BreakCycles() {
-    MOZ_ASSERT(NS_IsMainThread());
-    mResource = nullptr;
+  void DispatchIsLiveStream(bool aIsLiveStream)
+  {
+    RefPtr<MediaDecoderStateMachine> self = this;
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+      "MediaDecoderStateMachine::DispatchIsLiveStream",
+      [self, aIsLiveStream]() {
+        self->mIsLiveStream = aIsLiveStream;
+      });
+    OwnerThread()->DispatchStateChange(r.forget());
   }
 
   TimedMetadataEventSource& TimedMetadataEvent() {
@@ -258,7 +262,6 @@ public:
 private:
   class StateObject;
   class DecodeMetadataState;
-  class WaitForCDMState;
   class DormantState;
   class DecodingFirstFrameState;
   class DecodingState;
@@ -496,7 +499,6 @@ private:
   const RefPtr<AbstractThread> mAbstractMainThread;
   const RefPtr<FrameStatistics> mFrameStats;
   const RefPtr<VideoFrameContainer> mVideoFrameContainer;
-  const dom::AudioChannel mAudioChannel;
 
   // Task queue for running the state machine.
   RefPtr<TaskQueue> mTaskQueue;
@@ -585,6 +587,8 @@ private:
 
   bool mCanPlayThrough = false;
 
+  bool mIsLiveStream = false;
+
   // True if we shouldn't play our audio (but still write it to any capturing
   // streams). When this is true, the audio thread will never start again after
   // it has stopped.
@@ -634,9 +638,6 @@ private:
   // Data about MediaStreams that are being fed by the decoder.
   const RefPtr<OutputStreamManager> mOutputStreamManager;
 
-  // Media data resource from the decoder.
-  RefPtr<MediaResource> mResource;
-
   // Track the current video decode mode.
   VideoDecodeMode mVideoDecodeMode;
 
@@ -659,11 +660,6 @@ private:
   MediaEventProducer<MediaResult> mOnPlaybackErrorEvent;
 
   MediaEventProducer<DecoderDoctorEvent> mOnDecoderDoctorEvent;
-
-  void OnCDMProxyReady(RefPtr<CDMProxy> aProxy);
-  void OnCDMProxyNotReady();
-  RefPtr<CDMProxy> mCDMProxy;
-  MozPromiseRequestHolder<MediaDecoder::CDMProxyPromise> mCDMProxyPromise;
 
   const bool mIsMSE;
 

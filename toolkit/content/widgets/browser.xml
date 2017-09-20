@@ -251,7 +251,7 @@
           if (this._docShell)
             return this._docShell;
 
-          let frameLoader = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader;
+          let {frameLoader} = this;
           if (!frameLoader)
             return null;
           this._docShell = frameLoader.docShell;
@@ -266,7 +266,7 @@
           if (this._loadContext)
             return this._loadContext;
 
-          let frameLoader = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader;
+          let {frameLoader} = this;
           if (!frameLoader)
             return null;
           this._loadContext = frameLoader.loadContext;
@@ -347,11 +347,10 @@
                 readonly="true">
         <getter>
           <![CDATA[
-            var owner = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
-            if (!owner.frameLoader) {
-              return null;
+            if (this.frameLoader) {
+              return this.frameLoader.messageManager;
             }
-            return owner.frameLoader.messageManager;
+            return null;
           ]]>
         </getter>
 
@@ -1268,6 +1267,7 @@
             // events can be handled by browser-content.js.
             popup.setAttribute("mousethrough", "always");
             popup.setAttribute("rolluponmousewheel", "true");
+            popup.setAttribute("hidden", "true");
             return popup;
           ]]>
         </body>
@@ -1298,6 +1298,7 @@
               this._autoScrollPopup.setAttribute("translucent", /Win|Mac/.test(navigator.platform));
             }
 
+            this._autoScrollPopup.removeAttribute("hidden");
             this._autoScrollPopup.setAttribute("noautofocus", "true");
             this._autoScrollPopup.setAttribute("scrolldir", scrolldir);
             this._autoScrollPopup.addEventListener("popuphidden", this, true);
@@ -1567,14 +1568,13 @@
         <parameter name="aPrintProgressListener"/>
         <body>
           <![CDATA[
-            var owner = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
-            if (!owner.frameLoader) {
+            if (!this.frameLoader) {
               throw Components.Exception("No frame loader.",
                                          Components.results.NS_ERROR_FAILURE);
             }
 
-            owner.frameLoader.print(aOuterWindowID, aPrintSettings,
-                                    aPrintProgressListener);
+            this.frameLoader.print(aOuterWindowID, aPrintSettings,
+                                   aPrintProgressListener);
           ]]>
         </body>
       </method>
@@ -1582,6 +1582,7 @@
       <method name="dropLinks">
         <parameter name="aLinksCount"/>
         <parameter name="aLinks"/>
+        <parameter name="aTriggeringPrincipal"/>
         <body><![CDATA[
           if (!this.droppedLinkHandler) {
             return false;
@@ -1594,7 +1595,7 @@
               type: aLinks[i + 2],
             });
           }
-          this.droppedLinkHandler(null, links);
+          this.droppedLinkHandler(null, links, aTriggeringPrincipal);
           return true;
         ]]></body>
       </method>
@@ -1696,17 +1697,7 @@
         }
 
         if (links.length) {
-          // Bug 1368481: mozSourceNode is null if the drag event originated
-          // in an external application - needs better fallback!
-          let triggeringPrincipal;
-          let sourceNode = event.dataTransfer.mozSourceNode;
-          if (sourceNode) {
-            triggeringPrincipal = sourceNode.nodePrincipal;
-          } else {
-            var secMan = Components.classes["@mozilla.org/scriptsecuritymanager;1"].
-              getService(Components.interfaces.nsIScriptSecurityManager);
-            triggeringPrincipal = secMan.getSystemPrincipal();
-          }
+          let triggeringPrincipal = linkHandler.getTriggeringPrincipal(event);
           this.droppedLinkHandler(event, links, triggeringPrincipal);
         }
       ]]>

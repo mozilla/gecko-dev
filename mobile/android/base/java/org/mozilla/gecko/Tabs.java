@@ -24,9 +24,7 @@ import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.mozglue.SafeIntent;
 import org.mozilla.gecko.notifications.WhatsNewReceiver;
 import org.mozilla.gecko.preferences.GeckoPreferences;
-import org.mozilla.gecko.promotion.AddToHomeScreenPromotion;
 import org.mozilla.gecko.reader.ReaderModeUtils;
-import org.mozilla.gecko.skin.SkinConfig;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
 import org.mozilla.gecko.util.GeckoBundle;
@@ -912,7 +910,7 @@ public class Tabs implements BundleEventListener {
      */
     @RobocopTarget
     public Tab loadUrl(String url, int flags) {
-        return loadUrl(url, null, INVALID_TAB_ID, null, flags);
+        return loadUrl(url, null, null, INVALID_TAB_ID, null, flags);
     }
 
     public Tab loadUrlWithIntentExtras(final String url, final SafeIntent intent, final int flags) {
@@ -925,11 +923,11 @@ public class Tabs implements BundleEventListener {
 
         // Note: we don't get the URL from the intent so the calling
         // method has the opportunity to change the URL if applicable.
-        return loadUrl(url, null, INVALID_TAB_ID, intent, flags);
+        return loadUrl(url, null, null, INVALID_TAB_ID, intent, flags);
     }
 
     public Tab loadUrl(final String url, final String searchEngine, final int parentId, final int flags) {
-        return loadUrl(url, searchEngine, parentId, null, flags);
+        return loadUrl(url, searchEngine, null, parentId, null, flags);
     }
 
     /**
@@ -938,14 +936,15 @@ public class Tabs implements BundleEventListener {
      * @param url          URL of page to load, or search term used if searchEngine is given
      * @param searchEngine if given, the search engine with this name is used
      *                     to search for the url string; if null, the URL is loaded directly
+     * @param referrerUri  the URI which referred this page load, or null if there is none.
      * @param parentId     ID of this tab's parent, or INVALID_TAB_ID (-1) if it has no parent
      * @param intent       an intent whose extras are used to modify the request
      * @param flags        flags used to load tab
      *
      * @return             the Tab if a new one was created; null otherwise
      */
-    public Tab loadUrl(final String url, final String searchEngine, final int parentId,
-                   final SafeIntent intent, final int flags) {
+    public Tab loadUrl(final String url, final String searchEngine, @Nullable final String referrerUri,
+            final int parentId, @Nullable final SafeIntent intent, final int flags) {
         final GeckoBundle data = new GeckoBundle();
         Tab tabToSelect = null;
         boolean delayLoad = (flags & LOADURL_DELAY_LOAD) != 0;
@@ -966,6 +965,7 @@ public class Tabs implements BundleEventListener {
         data.putBoolean("isPrivate", isPrivate);
         data.putBoolean("pinned", (flags & LOADURL_PINNED) != 0);
         data.putBoolean("desktopMode", desktopMode);
+        data.putString("referrerURI", referrerUri);
 
         final boolean needsNewTab;
         final String applicationId = (intent == null) ? null :
@@ -1048,16 +1048,13 @@ public class Tabs implements BundleEventListener {
      * Opens a new tab and loads either about:home or, if PREFS_HOMEPAGE_FOR_EVERY_NEW_TAB is set,
      * the user's homepage.
      */
+    @RobocopTarget
     public Tab addTab() {
         return loadUrl(getHomepageForNewTab(mAppContext), Tabs.LOADURL_NEW_TAB);
     }
 
     public Tab addPrivateTab() {
-        if (SkinConfig.isPhoton()) {
-            return loadUrl(getHomepageForNewTab(mAppContext), Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_PRIVATE);
-        } else {
-            return loadUrl(AboutPages.PRIVATEBROWSING, Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_PRIVATE);
-        }
+        return loadUrl(getHomepageForNewTab(mAppContext), Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_PRIVATE);
     }
 
     /**

@@ -56,6 +56,7 @@ public:
                         uint64_t aAnimationsId,
                         float* aOpacityPtr,
                         gfx::Matrix4x4* aTransformPtr,
+                        gfx::Matrix4x4* aPerspectivePtr = nullptr,
                         const nsTArray<wr::WrFilterOp>& aFilters = nsTArray<wr::WrFilterOp>(),
                         const gfx::CompositionOp& aMixBlendMode = gfx::CompositionOp::OP_OVER);
   // This version of the constructor should only be used at the root level
@@ -75,12 +76,14 @@ public:
   // We allow passing in a LayoutDeviceRect for convenience because in a lot of
   // cases with WebRender display item generate the layout device space is the
   // same as the layer space. (TODO: try to make this more explicit somehow).
+  // We also round the rectangle to ints after transforming since the output
+  // is the final destination rect.
   wr::LayoutRect ToRelativeLayoutRect(const LayerRect& aRect) const;
   wr::LayoutRect ToRelativeLayoutRect(const LayoutDeviceRect& aRect) const;
   // Same but for points
   wr::LayoutPoint ToRelativeLayoutPoint(const LayerPoint& aPoint) const;
-  // Same but rounds the rectangle to ints after transforming.
-  wr::LayoutRect ToRelativeLayoutRectRounded(const LayoutDeviceRect& aRect) const;
+
+  bool IsBackfaceVisible() const { return mTransform.IsBackfaceVisible(); }
 
 private:
   wr::DisplayListBuilder* mBuilder;

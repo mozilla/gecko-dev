@@ -5,6 +5,7 @@
 %include ../../../components/contextualidentity/content/usercontext.css
 
 .container-header-links {
+  font-size: 1.25rem;
   margin-block-end: 15px;
 }
 
@@ -23,7 +24,7 @@
   margin-inline-end: 8px;
   padding: 0;
   padding-block-end: 8px;
-  border-block-end: 1px solid var(--in-content-header-border-color);
+  border-block-end: 1px solid var(--in-content-box-border-color);
 }
 
 #containersView richlistitem:last-of-type {

@@ -32,7 +32,6 @@
 #include "mozilla/layers/MemoryReportingMLGPU.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "nsDebugImpl.h"
-#include "nsExceptionHandler.h"
 #include "nsThreadManager.h"
 #include "prenv.h"
 #include "ProcessUtils.h"
@@ -42,6 +41,7 @@
 #if defined(XP_WIN)
 # include "mozilla/gfx/DeviceManagerDx.h"
 # include <process.h>
+# include <dwrite.h>
 #endif
 #ifdef MOZ_WIDGET_GTK
 # include <gtk/gtk.h>
@@ -181,6 +181,9 @@ GPUParent::RecvInit(nsTArray<GfxPrefSetting>&& prefs,
 #if defined(XP_WIN)
   if (gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING)) {
     DeviceManagerDx::Get()->CreateCompositorDevices();
+  }
+  if (gfxVars::UseWebRender()) {
+    Factory::EnsureDWriteFactory();
   }
 #endif
 

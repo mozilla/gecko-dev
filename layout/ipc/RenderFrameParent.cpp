@@ -278,13 +278,12 @@ RenderFrameParent::TriggerRepaint()
     return;
   }
 
-  docFrame->InvalidateLayer(nsDisplayItem::TYPE_REMOTE);
+  docFrame->InvalidateLayer(DisplayItemType::TYPE_REMOTE);
 }
 
 void
 RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                     nsSubDocumentFrame* aFrame,
-                                    const nsRect& aDirtyRect,
                                     const nsDisplayListSet& aLists)
 {
   // We're the subdoc for <browser remote="true"> and it has
@@ -384,6 +383,7 @@ nsDisplayRemote::BuildLayer(nsDisplayListBuilder* aBuilder,
 
 bool
 nsDisplayRemote::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
                                          const StackingContextHelper& aSc,
                                          nsTArray<WebRenderParentCommand>& aParentCommands,
                                          mozilla::layers::WebRenderLayerManager* aManager,
@@ -391,9 +391,11 @@ nsDisplayRemote::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuild
 {
   MOZ_ASSERT(aManager->IsLayersFreeTransaction());
 
+  mOffset = mozilla::layout::GetContentRectLayerOffset(mFrame, aDisplayListBuilder);
+
   mozilla::LayoutDeviceRect visible = mozilla::LayoutDeviceRect::FromAppUnits(
       GetVisibleRect(), mFrame->PresContext()->AppUnitsPerDevPixel());
-  visible += mozilla::layout::GetContentRectLayerOffset(mFrame, aDisplayListBuilder);
+  visible += mOffset;
 
   aBuilder.PushIFrame(aSc.ToRelativeLayoutRect(visible),
       mozilla::wr::AsPipelineId(GetRemoteLayersId()));
@@ -407,6 +409,8 @@ nsDisplayRemote::UpdateScrollData(mozilla::layers::WebRenderScrollData* aData,
 {
   if (aLayerData) {
     aLayerData->SetReferentId(GetRemoteLayersId());
+    aLayerData->SetTransform(mozilla::gfx::Matrix4x4::Translation(mOffset.x, mOffset.y, 0.0));
+    aLayerData->SetEventRegionsOverride(mEventRegionsOverride);
   }
   return true;
 }

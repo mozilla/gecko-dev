@@ -65,7 +65,7 @@ namespace jit {
     _(Lsh)                                      \
     _(Rsh)                                      \
     _(Ursh)                                     \
-    _(SignExtend)                               \
+    _(SignExtendInt32)                          \
     _(Add)                                      \
     _(Sub)                                      \
     _(Mul)                                      \
@@ -110,6 +110,7 @@ namespace jit {
     _(SimdBox)                                  \
     _(ObjectState)                              \
     _(ArrayState)                               \
+    _(SetArrayLength)                           \
     _(AtomicIsLockFree)                         \
     _(AssertRecoveredOnBailout)
 
@@ -258,13 +259,13 @@ class RUrsh final : public RInstruction
     MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
 };
 
-class RSignExtend final : public RInstruction
+class RSignExtendInt32 final : public RInstruction
 {
   private:
     uint8_t mode_;
 
   public:
-    RINSTRUCTION_HEADER_NUM_OP_(SignExtend, 1)
+    RINSTRUCTION_HEADER_NUM_OP_(SignExtendInt32, 1)
 
     MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
 };
@@ -684,6 +685,14 @@ class RArrayState final : public RInstruction
         // +1 for the initalized length.
         return numElements() + 2;
     }
+
+    MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
+};
+
+class RSetArrayLength final : public RInstruction
+{
+  public:
+    RINSTRUCTION_HEADER_NUM_OP_(SetArrayLength, 2)
 
     MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
 };

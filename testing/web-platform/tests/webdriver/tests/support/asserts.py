@@ -15,11 +15,11 @@ errors = {
     "invalid session id": 404,
     "javascript error": 500,
     "move target out of bounds": 500,
-    "no such alert": 400,
+    "no such alert": 404,
     "no such cookie": 404,
     "no such element": 404,
-    "no such frame": 400,
-    "no such window": 400,
+    "no such frame": 404,
+    "no such window": 404,
     "script timeout": 408,
     "session not created": 500,
     "stale element reference": 400,
@@ -80,6 +80,7 @@ def assert_success(response, value=None):
     assert response.status == 200
     if value is not None:
         assert response.body["value"] == value
+    return response.body.get("value")
 
 def assert_dialog_handled(session, expected_text):
     result = session.transport.send("GET",

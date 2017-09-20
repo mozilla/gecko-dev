@@ -8,9 +8,9 @@
 
 use ServoArc;
 use app_units::Au;
-use canvas_traits::CanvasMsg;
+use canvas_traits::canvas::CanvasMsg;
 use context::{LayoutContext, with_thread_local_font_context};
-use euclid::{Transform3D, Point2D, Vector2D, Radians, Rect, Size2D};
+use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use floats::ClearType;
 use flow::{self, ImmutableFlowUtils};
 use flow_ref::FlowRef;
@@ -25,12 +25,12 @@ use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
-use model::{style_length, ToGfxMatrix};
+use model::style_length;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
-use script_layout_interface::HTMLCanvasData;
+use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_layout_interface::SVGSVGData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -41,18 +41,21 @@ use std::cmp::{Ordering, max, min};
 use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
-use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line, transform};
-use style::computed_values::{transform_style, vertical_align, white_space, word_break};
+use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line};
+use style::computed_values::{transform_style, white_space, word_break};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
+use style::properties::longhands::transform::computed_value::T as TransformList;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::generics::box_::VerticalAlign;
 use text;
 use text::TextRunScanner;
+use webrender_api;
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 // From gfxFontConstants.h in Firefox.
@@ -322,17 +325,31 @@ impl InlineAbsoluteFragmentInfo {
 }
 
 #[derive(Clone)]
+pub enum CanvasFragmentSource {
+    WebGL(webrender_api::ImageKey),
+    Image(Option<Arc<Mutex<IpcSender<CanvasMsg>>>>)
+}
+
+#[derive(Clone)]
 pub struct CanvasFragmentInfo {
-    pub ipc_renderer: Option<Arc<Mutex<IpcSender<CanvasMsg>>>>,
+    pub source: CanvasFragmentSource,
     pub dom_width: Au,
     pub dom_height: Au,
 }
 
 impl CanvasFragmentInfo {
     pub fn new(data: HTMLCanvasData) -> CanvasFragmentInfo {
+        let source = match data.source {
+            HTMLCanvasDataSource::WebGL(texture_id) => {
+                CanvasFragmentSource::WebGL(texture_id)
+            },
+            HTMLCanvasDataSource::Image(ipc_sender) => {
+                CanvasFragmentSource::Image(ipc_sender.map(|renderer| Arc::new(Mutex::new(renderer))))
+            }
+        };
+
         CanvasFragmentInfo {
-            ipc_renderer: data.ipc_renderer
-                              .map(|renderer| Arc::new(Mutex::new(renderer))),
+            source: source,
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
         }
@@ -559,7 +576,7 @@ impl ScannedTextFragmentInfo {
 
 /// Describes how to split a fragment. This is used during line breaking as part of the return
 /// value of `find_split_info_for_inline_size()`.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
@@ -618,7 +635,7 @@ impl UnscannedTextFragmentInfo {
 }
 
 /// A fragment that represents a table column.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
     pub span: u32,
@@ -1290,14 +1307,10 @@ impl Fragment {
     /// Computes the border and padding in both inline and block directions from the containing
     /// block inline-size and the style. After this call, the `border_padding` field will be
     /// correct.
-    ///
-    /// TODO(pcwalton): Remove `border_collapse`; we can figure it out from our style and specific
-    /// fragment info.
     pub fn compute_border_and_padding(&mut self,
-                                      containing_block_inline_size: Au,
-                                      border_collapse: border_collapse::T) {
+                                      containing_block_inline_size: Au) {
         // Compute border.
-        let border = match border_collapse {
+        let border = match self.style.get_inheritedtable().border_collapse {
             border_collapse::T::separate => self.border_width(),
             border_collapse::T::collapse => LogicalMargin::zero(self.style.writing_mode),
         };
@@ -1503,11 +1516,11 @@ impl Fragment {
                         let (result_inline, _) = self.calculate_replaced_sizes(None, None);
                         result_inline
                     }
-                    LengthOrPercentageOrAuto::Length(length) => length,
+                    LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     LengthOrPercentageOrAuto::Calc(calc) => {
                         // TODO(nox): This is probably wrong, because it accounts neither for
                         // clamping (not sure if necessary here) nor percentage.
-                        calc.unclamped_length()
+                        Au::from(calc.unclamped_length())
                     },
                 };
 
@@ -2210,8 +2223,8 @@ impl Fragment {
             // FIXME(#5624, pcwalton): This passes our current reftests but isn't the right thing
             // to do.
             match style.get_box().vertical_align {
-                vertical_align::T::baseline => {}
-                vertical_align::T::middle => {
+                VerticalAlign::Baseline => {}
+                VerticalAlign::Middle => {
                     let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
                         text::font_metrics_for_style(font_context, self.style.clone_font())
                     });
@@ -2219,42 +2232,41 @@ impl Fragment {
                                content_inline_metrics.space_below_baseline -
                                font_metrics.x_height).scale_by(0.5)
                 }
-                vertical_align::T::sub => {
+                VerticalAlign::Sub => {
                     offset += minimum_line_metrics.space_needed()
                                                   .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
                 }
-                vertical_align::T::super_ => {
+                VerticalAlign::Super => {
                     offset -= minimum_line_metrics.space_needed()
                                                   .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
                 }
-                vertical_align::T::text_top => {
+                VerticalAlign::TextTop => {
                     offset = self.content_inline_metrics(layout_context).ascent -
                         minimum_line_metrics.space_above_baseline
                 }
-                vertical_align::T::text_bottom => {
+                VerticalAlign::TextBottom => {
                     offset = minimum_line_metrics.space_below_baseline -
                         self.content_inline_metrics(layout_context).space_below_baseline
                 }
-                vertical_align::T::top => {
+                VerticalAlign::Top => {
                     if let Some(actual_line_metrics) = actual_line_metrics {
                         offset = content_inline_metrics.ascent -
                             actual_line_metrics.space_above_baseline
                     }
                 }
-                vertical_align::T::bottom => {
+                VerticalAlign::Bottom => {
                     if let Some(actual_line_metrics) = actual_line_metrics {
                         offset = actual_line_metrics.space_below_baseline -
                             content_inline_metrics.space_below_baseline
                     }
                 }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
-                    offset -= length
+                VerticalAlign::Length(LengthOrPercentage::Length(length)) => {
+                    offset -= Au::from(length)
                 }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(
-                        percentage)) => {
+                VerticalAlign::Length(LengthOrPercentage::Percentage(percentage)) => {
                     offset -= minimum_line_metrics.space_needed().scale_by(percentage.0)
                 }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(formula)) => {
+                VerticalAlign::Length(LengthOrPercentage::Calc(formula)) => {
                     offset -= formula.to_used_value(Some(minimum_line_metrics.space_needed())).unwrap()
                 }
             }
@@ -2324,11 +2336,11 @@ impl Fragment {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_end !=
-                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                                LengthOrPercentageOrAuto::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_padding().inline_end !=
-                                LengthOrPercentage::Length(Au(0)) {
+                                LengthOrPercentage::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_border_width().inline_end != Au(0) {
@@ -2345,11 +2357,11 @@ impl Fragment {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_start !=
-                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                                LengthOrPercentageOrAuto::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_padding().inline_start !=
-                                LengthOrPercentage::Length(Au(0)) {
+                                LengthOrPercentage::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_border_width().inline_start != Au(0) {
@@ -2472,6 +2484,13 @@ impl Fragment {
                               stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
+    /// Returns true if this fragment has a filter, transform, or perspective property set.
+    pub fn has_filter_transform_or_perspective(&self) -> bool {
+           self.style().get_box().transform.0.is_some() ||
+           !self.style().get_effects().filter.0.is_empty() ||
+           self.style().get_box().perspective != Either::Second(values::None_)
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         // Text fragments shouldn't create stacking contexts.
@@ -2485,51 +2504,37 @@ impl Fragment {
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
-        if !self.style().get_effects().filter.0.is_empty() {
-            return true
-        }
+
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
 
-        if self.style().get_box().transform.0.is_some() ||
-           self.style().get_box().transform_style == transform_style::T::preserve_3d ||
+        if self.has_filter_transform_or_perspective() {
+            return true;
+        }
+
+        if self.style().get_box().transform_style == transform_style::T::preserve_3d ||
            self.style().overrides_transform_style() {
             return true
         }
 
-        // TODO(mrobinson): Determine if this is necessary, since blocks with
-        // transformations already create stacking contexts.
-        if let Either::First(ref _length) = self.style().get_box().perspective {
+        // Fixed position and sticky position always create stacking contexts.
+        if self.style().get_box().position == position::T::fixed ||
+           self.style().get_box().position == position::T::sticky  {
             return true
         }
 
-        // Fixed position blocks always create stacking contexts.
-        if self.style.get_box().position == position::T::fixed {
-            return true
+        // Statically positioned fragments don't establish stacking contexts if the previous
+        // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
+        // positioned fragments.
+        if self.style().get_box().position == position::T::static_ {
+            return false;
         }
 
-        match (self.style().get_box().position,
-               self.style().get_position().z_index,
-               self.style().get_box().overflow_x,
-               self.style().get_box().overflow_y) {
-            (position::T::absolute,
-             Either::Second(Auto),
-             overflow_x::T::visible,
-             overflow_x::T::visible) |
-            (position::T::fixed,
-             Either::Second(Auto),
-             overflow_x::T::visible,
-             overflow_x::T::visible) |
-            (position::T::relative,
-             Either::Second(Auto),
-             overflow_x::T::visible,
-             overflow_x::T::visible) => false,
-            (position::T::absolute, _, _, _) |
-            (position::T::fixed, _, _, _) |
-            (position::T::relative, _, _, _) => true,
-            (position::T::static_, _, _, _) => false
-        }
+        // For absolutely and relatively positioned fragments we only establish a stacking
+        // context if there is a z-index set.
+        // See https://www.w3.org/TR/CSS2/visuren.html#z-index
+        self.style().get_position().z_index != Either::Second(Auto)
     }
 
     // Get the effective z-index of this fragment. Z-indices only apply to positioned element
@@ -2569,14 +2574,16 @@ impl Fragment {
 
         // Box shadows cause us to draw outside our border box.
         for box_shadow in &self.style().get_effects().box_shadow.0 {
-            let offset = Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical);
-            let inflation = box_shadow.spread + box_shadow.base.blur.0 * BLUR_INFLATION_FACTOR;
+            let offset = Vector2D::new(Au::from(box_shadow.base.horizontal),
+                                       Au::from(box_shadow.base.vertical));
+            let inflation = Au::from(box_shadow.spread) +
+                            Au::from(box_shadow.base.blur) * BLUR_INFLATION_FACTOR;
             overflow.paint = overflow.paint.union(&border_box.translate(&offset)
                                                              .inflate(inflation, inflation))
         }
 
         // Outlines cause us to draw outside our border box.
-        let outline_width = self.style.get_outline().outline_width.0;
+        let outline_width = Au::from(self.style.get_outline().outline_width);
         if outline_width != Au(0) {
             overflow.paint = overflow.paint.union(&border_box.inflate(outline_width,
                                                                       outline_width))
@@ -2820,13 +2827,13 @@ impl Fragment {
     /// `vertical-align` set to `top` or `bottom`.
     pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
         match self.style.get_box().vertical_align {
-            vertical_align::T::top | vertical_align::T::bottom => return true,
+            VerticalAlign::Top | VerticalAlign::Bottom => return true,
             _ => {}
         }
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
                 match node.style.get_box().vertical_align {
-                    vertical_align::T::top | vertical_align::T::bottom => return true,
+                    VerticalAlign::Top | VerticalAlign::Bottom => return true,
                     _ => {}
                 }
             }
@@ -2860,12 +2867,12 @@ impl Fragment {
 
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Transform3D<f32>> {
-        let operations = match self.style.get_box().transform.0 {
+        let list = &self.style.get_box().transform;
+        let transform = match list.to_transform_3d_matrix(Some(stacking_relative_border_box)) {
+            Some(transform) => transform,
             None => return None,
-            Some(ref operations) => operations,
         };
 
-        let mut transform = Transform3D::identity();
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x =
             transform_origin.horizontal
@@ -2875,7 +2882,7 @@ impl Fragment {
             transform_origin.vertical
                 .to_used_value(stacking_relative_border_box.size.height)
                 .to_f32_px();
-        let transform_origin_z = transform_origin.depth.to_f32_px();
+        let transform_origin_z = transform_origin.depth.px();
 
         let pre_transform = Transform3D::create_translation(transform_origin_x,
                                                             transform_origin_y,
@@ -2883,55 +2890,6 @@ impl Fragment {
         let post_transform = Transform3D::create_translation(-transform_origin_x,
                                                              -transform_origin_y,
                                                              -transform_origin_z);
-
-        for operation in operations {
-            let matrix = match *operation {
-                transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                    // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
-                    // A direction vector that cannot be normalized, such as [0, 0, 0], will cause
-                    // the rotation to not be applied, so we use identity matrix in this case.
-                    let len = (ax * ax + ay * ay + az * az).sqrt();
-                    if len > 0. {
-                        let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                        Transform3D::create_rotation(ax / len, ay / len, az / len,
-                                                     Radians::new(theta))
-                    } else {
-                        Transform3D::identity()
-                    }
-                }
-                transform::ComputedOperation::Perspective(d) => {
-                    create_perspective_matrix(d)
-                }
-                transform::ComputedOperation::Scale(sx, sy, sz) => {
-                    Transform3D::create_scale(sx, sy, sz)
-                }
-                transform::ComputedOperation::Translate(tx, ty, tz) => {
-                    let tx = tx.to_used_value(stacking_relative_border_box.size.width).to_f32_px();
-                    let ty = ty.to_used_value(stacking_relative_border_box.size.height).to_f32_px();
-                    let tz = tz.to_f32_px();
-                    Transform3D::create_translation(tx, ty, tz)
-                }
-                transform::ComputedOperation::Matrix(m) => {
-                    m.to_gfx_matrix()
-                }
-                transform::ComputedOperation::MatrixWithPercents(_) => {
-                    // `-moz-transform` is not implemented in Servo yet.
-                    unreachable!()
-                }
-                transform::ComputedOperation::Skew(theta_x, theta_y) => {
-                    Transform3D::create_skew(Radians::new(theta_x.radians()),
-                                          Radians::new(theta_y.radians()))
-                }
-                transform::ComputedOperation::InterpolateMatrix { .. } |
-                transform::ComputedOperation::AccumulateMatrix { .. } => {
-                    // TODO: Convert InterpolateMatrix/AccmulateMatrix into a valid Transform3D by
-                    // the reference box.
-                    Transform3D::identity()
-                }
-            };
-
-            transform = transform.pre_mul(&matrix);
-        }
 
         Some(pre_transform.pre_mul(&transform).pre_mul(&post_transform))
     }
@@ -2957,7 +2915,7 @@ impl Fragment {
                                                                      -perspective_origin.y,
                                                                      0.0);
 
-                let perspective_matrix = create_perspective_matrix(length);
+                let perspective_matrix = TransformList::create_perspective_matrix(length.px());
 
                 Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }
@@ -3032,7 +2990,7 @@ pub trait FragmentBorderBoxIterator {
 
 /// The coordinate system used in `stacking_relative_border_box()`. See the documentation of that
 /// method for details.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CoordinateSystem {
     /// The border box returned is relative to the fragment's parent stacking context.
     Parent,
@@ -3077,7 +3035,7 @@ impl<'a> InlineStyleIterator<'a> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum WhitespaceStrippingResult {
     RetainFragment,
     FragmentContainedOnlyBidiControlCharacters,
@@ -3099,7 +3057,7 @@ impl WhitespaceStrippingResult {
 
 /// The overflow area. We need two different notions of overflow: paint overflow and scrollable
 /// overflow.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Overflow {
     pub scroll: Rect<Au>,
     pub paint: Rect<Au>,
@@ -3146,7 +3104,7 @@ bitflags! {
 /// Specified distances from the margin edge of a block to its content in the inline direction.
 /// These are returned by `guess_inline_content_edge_offsets()` and are used in the float placement
 /// speculation logic.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct SpeculatedInlineContentEdgeOffsets {
     pub start: Au,
     pub end: Au,
@@ -3199,22 +3157,5 @@ impl Serialize for DebugId {
 impl Serialize for DebugId {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_u16(self.0)
-    }
-}
-
-// TODO(gw): The transforms spec says that perspective length must
-// be positive. However, there is some confusion between the spec
-// and browser implementations as to handling the case of 0 for the
-// perspective value. Until the spec bug is resolved, at least ensure
-// that a provided perspective value of <= 0.0 doesn't cause panics
-// and behaves as it does in other browsers.
-// See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
-#[inline]
-fn create_perspective_matrix(d: Au) -> Transform3D<f32> {
-    let d = d.to_f32_px();
-    if d <= 0.0 {
-        Transform3D::identity()
-    } else {
-        Transform3D::create_perspective(d)
     }
 }

@@ -667,7 +667,14 @@
     "vi": {
       "default": {
         "visibleDefaultEngines": [
-          "google", "amazondotcom", "twitter", "wikipedia-vi"
+          "google", "coccoc", "duckduckgo", "twitter", "wikipedia-vi"
+        ]
+      }
+    },
+    "wo": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google", "yahoo-france", "bing", "duckduckgo", "wikipedia-wo"
         ]
       }
     },

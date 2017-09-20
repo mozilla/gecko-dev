@@ -114,14 +114,13 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
   media::TimeIntervals intersection = mTrackBuffersManager->Buffered();
   MSE_DEBUGV("intersection=%s", DumpTimeRanges(intersection).get());
   if (mBuffered) {
-    media::TimeIntervals currentValue(mBuffered);
+    media::TimeIntervals currentValue(mBuffered->ToTimeIntervals());
     rangeChanged = (intersection != currentValue);
     MSE_DEBUGV("currentValue=%s", DumpTimeRanges(currentValue).get());
   }
   // 5. If intersection ranges does not contain the exact same range information as the current value of this attribute, then update the current value of this attribute to intersection ranges.
   if (rangeChanged) {
-    mBuffered = new TimeRanges(ToSupports(this));
-    intersection.ToTimeRanges(mBuffered);
+    mBuffered = new TimeRanges(ToSupports(this), intersection);
   }
   // 6. Return the current value of this attribute.
   return mBuffered;
@@ -598,7 +597,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_ADDREF_INHERITED(SourceBuffer, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(SourceBuffer, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SourceBuffer)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SourceBuffer)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 #undef MSE_DEBUG

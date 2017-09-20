@@ -112,7 +112,7 @@ pub struct Font {
     shaper: Option<Shaper>,
     shape_cache: RefCell<HashMap<ShapeCacheEntry, Arc<GlyphStore>>>,
     glyph_advance_cache: RefCell<HashMap<u32, FractionalPixel>>,
-    pub font_key: webrender_api::FontKey,
+    pub font_key: webrender_api::FontInstanceKey,
 }
 
 impl Font {
@@ -121,7 +121,7 @@ impl Font {
                descriptor: FontTemplateDescriptor,
                requested_pt_size: Au,
                actual_pt_size: Au,
-               font_key: webrender_api::FontKey) -> Font {
+               font_key: webrender_api::FontInstanceKey) -> Font {
         let metrics = handle.metrics();
         Font {
             handle: handle,
@@ -154,7 +154,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[derive(Clone, Eq, PartialEq, Hash, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
@@ -168,7 +168,7 @@ pub struct ShapingOptions {
 }
 
 /// An entry in the shape cache.
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ShapeCacheEntry {
     text: String,
     options: ShapingOptions,

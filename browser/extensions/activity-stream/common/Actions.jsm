@@ -31,19 +31,20 @@ for (const type of [
   "DELETE_HISTORY_URL_CONFIRM",
   "DIALOG_CANCEL",
   "DIALOG_OPEN",
-  "FEED_INIT",
   "INIT",
   "LOCALE_UPDATED",
   "MIGRATION_CANCEL",
+  "MIGRATION_COMPLETED",
   "MIGRATION_START",
   "NEW_TAB_INIT",
   "NEW_TAB_INITIAL_STATE",
   "NEW_TAB_LOAD",
+  "NEW_TAB_REHYDRATED",
+  "NEW_TAB_STATE_REQUEST",
   "NEW_TAB_UNLOAD",
   "OPEN_LINK",
   "OPEN_NEW_WINDOW",
   "OPEN_PRIVATE_WINDOW",
-  "PINNED_SITES_UPDATED",
   "PLACES_BOOKMARK_ADDED",
   "PLACES_BOOKMARK_CHANGED",
   "PLACES_BOOKMARK_REMOVED",
@@ -55,16 +56,23 @@ for (const type of [
   "SAVE_SESSION_PERF_DATA",
   "SAVE_TO_POCKET",
   "SCREENSHOT_UPDATED",
+  "SEARCH_BOX_FOCUSED",
   "SECTION_DEREGISTER",
+  "SECTION_DISABLE",
+  "SECTION_ENABLE",
   "SECTION_REGISTER",
-  "SECTION_ROWS_UPDATE",
+  "SECTION_UPDATE",
+  "SECTION_UPDATE_CARD",
   "SET_PREF",
+  "SHOW_FIREFOX_ACCOUNTS",
   "SNIPPETS_DATA",
   "SNIPPETS_RESET",
   "SYSTEM_TICK",
+  "TELEMETRY_IMPRESSION_STATS",
   "TELEMETRY_PERFORMANCE_EVENT",
   "TELEMETRY_UNDESIRED_EVENT",
   "TELEMETRY_USER_EVENT",
+  "TOP_SITES_ADD",
   "TOP_SITES_PIN",
   "TOP_SITES_UNPIN",
   "TOP_SITES_UPDATED",
@@ -157,7 +165,7 @@ function UserEvent(data) {
  * UndesiredEvent - A telemetry ping indicating an undesired state.
  *
  * @param  {object} data Fields to include in the ping (value, etc.)
- * @param {int} importContext (For testing) Override the import context for testing.
+ * @param  {int} importContext (For testing) Override the import context for testing.
  * @return {object} An action. For UI code, a SendToMain action.
  */
 function UndesiredEvent(data, importContext = globalImportContext) {
@@ -172,12 +180,27 @@ function UndesiredEvent(data, importContext = globalImportContext) {
  * PerfEvent - A telemetry ping indicating a performance-related event.
  *
  * @param  {object} data Fields to include in the ping (value, etc.)
- * @param {int} importContext (For testing) Override the import context for testing.
+ * @param  {int} importContext (For testing) Override the import context for testing.
  * @return {object} An action. For UI code, a SendToMain action.
  */
 function PerfEvent(data, importContext = globalImportContext) {
   const action = {
     type: actionTypes.TELEMETRY_PERFORMANCE_EVENT,
+    data
+  };
+  return importContext === UI_CODE ? SendToMain(action) : action;
+}
+
+/**
+ * ImpressionStats - A telemetry ping indicating an impression stats.
+ *
+ * @param  {object} data Fields to include in the ping
+ * @param  {int} importContext (For testing) Override the import context for testing.
+ * #return {object} An action. For UI code, a SendToMain action.
+ */
+function ImpressionStats(data, importContext = globalImportContext) {
+  const action = {
+    type: actionTypes.TELEMETRY_IMPRESSION_STATS,
     data
   };
   return importContext === UI_CODE ? SendToMain(action) : action;
@@ -195,6 +218,7 @@ this.actionCreators = {
   UserEvent,
   UndesiredEvent,
   PerfEvent,
+  ImpressionStats,
   SendToContent,
   SendToMain,
   SetPref

@@ -353,8 +353,10 @@ NativeObject::getChildProperty(JSContext* cx,
     Shape* shape = cx->zone()->propertyTree().inlinedGetChild(cx, parent, child);
     if (!shape)
         return nullptr;
-    //MOZ_ASSERT(shape->parent == parent);
-    //MOZ_ASSERT_IF(parent != lastProperty(), parent == lastProperty()->parent);
+
+    MOZ_ASSERT(shape->parent == parent);
+    MOZ_ASSERT_IF(parent != obj->lastProperty(), parent == obj->lastProperty()->parent);
+
     if (!obj->setLastProperty(cx, shape))
         return nullptr;
     return shape;
@@ -457,8 +459,6 @@ NativeObject::addPropertyInternal(JSContext* cx,
                                   bool allowDictionary, const AutoKeepShapeTables& keep)
 {
     MOZ_ASSERT_IF(!allowDictionary, !obj->inDictionaryMode());
-    MOZ_ASSERT(getter != JS_PropertyStub);
-    MOZ_ASSERT(setter != JS_StrictPropertyStub);
 
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
 
@@ -528,6 +528,97 @@ NativeObject::addPropertyInternal(JSContext* cx,
 
     obj->checkShapeConsistency();
     return nullptr;
+}
+
+/* static */ Shape*
+NativeObject::addEnumerableDataProperty(JSContext* cx, HandleNativeObject obj, HandleId id)
+{
+    // Like addProperty(Internal), but optimized for the common case of adding a
+    // new enumerable data property.
+
+    AutoKeepShapeTables keep(cx);
+
+    ShapeTable* table = nullptr;
+    ShapeTable::Entry* entry = nullptr;
+
+    if (!obj->inDictionaryMode()) {
+        if (MOZ_UNLIKELY(ShouldConvertToDictionary(obj))) {
+            if (!toDictionaryMode(cx, obj))
+                return nullptr;
+            table = obj->lastProperty()->maybeTable(keep);
+            entry = &table->search<MaybeAdding::Adding>(id, keep);
+        }
+    } else {
+        table = obj->lastProperty()->ensureTableForDictionary(cx, keep);
+        if (!table)
+            return nullptr;
+        if (table->needsToGrow()) {
+            if (!table->grow(cx))
+                return nullptr;
+        }
+        entry = &table->search<MaybeAdding::Adding>(id, keep);
+        MOZ_ASSERT(!entry->shape());
+    }
+
+    MOZ_ASSERT(!!table == !!entry);
+
+    /* Find or create a property tree node labeled by our arguments. */
+    RootedShape last(cx, obj->lastProperty());
+    UnownedBaseShape* nbase = GetBaseShapeForNewShape(cx, last, id);
+    if (!nbase)
+        return nullptr;
+
+    Shape* shape;
+    if (obj->inDictionaryMode()) {
+        uint32_t slot;
+        if (!allocDictionarySlot(cx, obj, &slot))
+            return nullptr;
+
+        Rooted<StackShape> child(cx, StackShape(nbase, id, slot, JSPROP_ENUMERATE, 0));
+
+        MOZ_ASSERT(last == obj->lastProperty());
+        shape = Allocate<Shape>(cx);
+        if (!shape)
+            return nullptr;
+        if (slot >= obj->lastProperty()->base()->slotSpan()) {
+            if (MOZ_UNLIKELY(!obj->setSlotSpan(cx, slot + 1))) {
+                new (shape) Shape(obj->lastProperty()->base()->unowned(), 0);
+                return nullptr;
+            }
+        }
+        shape->initDictionaryShape(child, obj->numFixedSlots(), &obj->shape_);
+    } else {
+        uint32_t slot = obj->slotSpan();
+        MOZ_ASSERT(slot >= JSSLOT_FREE(obj->getClass()));
+        // Objects with many properties are converted to dictionary
+        // mode, so we can't overflow SHAPE_MAXIMUM_SLOT here.
+        MOZ_ASSERT(slot < JSSLOT_FREE(obj->getClass()) + PropertyTree::MAX_HEIGHT);
+        MOZ_ASSERT(slot < SHAPE_MAXIMUM_SLOT);
+
+        Rooted<StackShape> child(cx, StackShape(nbase, id, slot, JSPROP_ENUMERATE, 0));
+        shape = cx->zone()->propertyTree().inlinedGetChild(cx, last, child);
+        if (!shape)
+            return nullptr;
+        if (!obj->setLastProperty(cx, shape)) {
+            obj->checkShapeConsistency();
+            return nullptr;
+        }
+    }
+
+    MOZ_ASSERT(shape == obj->lastProperty());
+
+    if (table) {
+        /* Store the tree node pointer in the table entry for id. */
+        entry->setPreservingCollision(shape);
+        table->incEntryCount();
+
+        /* Pass the table along to the new last property, namely shape. */
+        MOZ_ASSERT(shape->parent->maybeTable(keep) == table);
+        shape->parent->handoffTableTo(shape);
+    }
+
+    obj->checkShapeConsistency();
+    return shape;
 }
 
 Shape*
@@ -606,8 +697,6 @@ NativeObject::putProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
                           unsigned flags)
 {
     MOZ_ASSERT(!JSID_IS_VOID(id));
-    MOZ_ASSERT(getter != JS_PropertyStub);
-    MOZ_ASSERT(setter != JS_StrictPropertyStub);
 
 #ifdef DEBUG
     if (obj->is<ArrayObject>()) {
@@ -792,8 +881,6 @@ NativeObject::changeProperty(JSContext* cx, HandleNativeObject obj, HandleShape 
                              unsigned attrs, GetterOp getter, SetterOp setter)
 {
     MOZ_ASSERT(obj->containsPure(shape));
-    MOZ_ASSERT(getter != JS_PropertyStub);
-    MOZ_ASSERT(setter != JS_StrictPropertyStub);
     MOZ_ASSERT_IF(attrs & (JSPROP_GETTER | JSPROP_SETTER), attrs & JSPROP_SHARED);
 
     /* Allow only shared (slotless) => unshared (slotful) transition. */
@@ -1689,33 +1776,33 @@ KidsPointer::checkConsistency(Shape* aKid) const
 }
 
 void
-Shape::dump(FILE* fp) const
+Shape::dump(js::GenericPrinter& out) const
 {
     jsid propid = this->propid();
 
     MOZ_ASSERT(!JSID_IS_VOID(propid));
 
     if (JSID_IS_INT(propid)) {
-        fprintf(fp, "[%ld]", (long) JSID_TO_INT(propid));
+        out.printf("[%ld]", (long) JSID_TO_INT(propid));
     } else if (JSID_IS_ATOM(propid)) {
         if (JSLinearString* str = JSID_TO_ATOM(propid))
-            FileEscapedString(fp, str, '"');
+            EscapedStringPrinter(out, str, '"');
         else
-            fputs("<error>", fp);
+            out.put("<error>");
     } else {
         MOZ_ASSERT(JSID_IS_SYMBOL(propid));
-        JSID_TO_SYMBOL(propid)->dump(fp);
+        JSID_TO_SYMBOL(propid)->dump(out);
     }
 
-    fprintf(fp, " g/s %p/%p slot %d attrs %x ",
-            JS_FUNC_TO_DATA_PTR(void*, getter()),
-            JS_FUNC_TO_DATA_PTR(void*, setter()),
-            hasSlot() ? slot() : -1, attrs);
+    out.printf(" g/s %p/%p slot %d attrs %x ",
+               JS_FUNC_TO_DATA_PTR(void*, getter()),
+               JS_FUNC_TO_DATA_PTR(void*, setter()),
+               hasSlot() ? slot() : -1, attrs);
 
     if (attrs) {
         int first = 1;
-        fputs("(", fp);
-#define DUMP_ATTR(name, display) if (attrs & JSPROP_##name) fputs(&(" " #display)[first], fp), first = 0
+        out.putChar('(');
+#define DUMP_ATTR(name, display) if (attrs & JSPROP_##name) out.put(&(" " #display)[first]), first = 0
         DUMP_ATTR(ENUMERATE, enumerate);
         DUMP_ATTR(READONLY, readonly);
         DUMP_ATTR(PERMANENT, permanent);
@@ -1723,30 +1810,30 @@ Shape::dump(FILE* fp) const
         DUMP_ATTR(SETTER, setter);
         DUMP_ATTR(SHARED, shared);
 #undef  DUMP_ATTR
-        fputs(") ", fp);
+        out.putChar(')');
     }
 
-    fprintf(fp, "flags %x ", flags);
+    out.printf("flags %x ", flags);
     if (flags) {
         int first = 1;
-        fputs("(", fp);
-#define DUMP_FLAG(name, display) if (flags & name) fputs(&(" " #display)[first], fp), first = 0
+        out.putChar('(');
+#define DUMP_FLAG(name, display) if (flags & name) out.put(&(" " #display)[first]), first = 0
         DUMP_FLAG(IN_DICTIONARY, in_dictionary);
 #undef  DUMP_FLAG
-        fputs(") ", fp);
+        out.putChar(')');
     }
 }
 
 void
-Shape::dumpSubtree(int level, FILE* fp) const
+Shape::dumpSubtree(int level, js::GenericPrinter& out) const
 {
     if (!parent) {
         MOZ_ASSERT(level == 0);
         MOZ_ASSERT(JSID_IS_EMPTY(propid_));
-        fprintf(fp, "class %s emptyShape\n", getObjectClass()->name);
+        out.printf("class %s emptyShape\n", getObjectClass()->name);
     } else {
-        fprintf(fp, "%*sid ", level, "");
-        dump(fp);
+        out.printf("%*sid ", level, "");
+        dump(out);
     }
 
     if (!kids.isNull()) {
@@ -1754,14 +1841,14 @@ Shape::dumpSubtree(int level, FILE* fp) const
         if (kids.isShape()) {
             Shape* kid = kids.toShape();
             MOZ_ASSERT(kid->parent == this);
-            kid->dumpSubtree(level, fp);
+            kid->dumpSubtree(level, out);
         } else {
             const KidsHash& hash = *kids.toHash();
             for (KidsHash::Range range = hash.all(); !range.empty(); range.popFront()) {
                 Shape* kid = range.front();
 
                 MOZ_ASSERT(kid->parent == this);
-                kid->dumpSubtree(level, fp);
+                kid->dumpSubtree(level, out);
             }
         }
     }

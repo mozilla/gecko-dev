@@ -61,10 +61,8 @@
 #include "nsIInputStream.h"
 #include "nsIXULRuntime.h"
 #include "nsJSPrincipals.h"
-
-#ifdef MOZ_CRASHREPORTER
-#include "nsExceptionHandler.h"
-#endif
+#include "ExpandedPrincipal.h"
+#include "SystemPrincipal.h"
 
 #ifdef XP_WIN
 #include <windows.h>
@@ -81,10 +79,13 @@ using mozilla::dom::AutoEntryScript;
 static void WatchdogMain(void* arg);
 class Watchdog;
 class WatchdogManager;
-class AutoLockWatchdog {
+class MOZ_RAII AutoLockWatchdog final
+{
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
     Watchdog* const mWatchdog;
+
   public:
-    explicit AutoLockWatchdog(Watchdog* aWatchdog);
+    explicit AutoLockWatchdog(Watchdog* aWatchdog MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
     ~AutoLockWatchdog();
 };
 
@@ -227,26 +228,23 @@ class Watchdog
 
 #define PREF_MAX_SCRIPT_RUN_TIME_CONTENT "dom.max_script_run_time"
 #define PREF_MAX_SCRIPT_RUN_TIME_CHROME "dom.max_chrome_script_run_time"
+#define PREF_MAX_SCRIPT_RUN_TIME_EXT_CONTENT "dom.max_ext_content_script_run_time"
 
 class WatchdogManager : public nsIObserver
 {
   public:
 
     NS_DECL_ISUPPORTS
-    explicit WatchdogManager(XPCJSContext* aContext) : mContext(aContext)
-                                                     , mContextState(CONTEXT_INACTIVE)
+    explicit WatchdogManager()
     {
-        // All the timestamps start at zero except for context state change.
+        // All the timestamps start at zero.
         PodArrayZero(mTimestamps);
-        mTimestamps[TimestampContextStateChange] = PR_Now();
-
-        // Enable the watchdog, if appropriate.
-        RefreshWatchdog();
 
         // Register ourselves as an observer to get updates on the pref.
         mozilla::Preferences::AddStrongObserver(this, "dom.use_watchdog");
         mozilla::Preferences::AddStrongObserver(this, PREF_MAX_SCRIPT_RUN_TIME_CONTENT);
         mozilla::Preferences::AddStrongObserver(this, PREF_MAX_SCRIPT_RUN_TIME_CHROME);
+        mozilla::Preferences::AddStrongObserver(this, PREF_MAX_SCRIPT_RUN_TIME_EXT_CONTENT);
     }
 
   protected:
@@ -266,6 +264,7 @@ class WatchdogManager : public nsIObserver
         mozilla::Preferences::RemoveObserver(this, "dom.use_watchdog");
         mozilla::Preferences::RemoveObserver(this, PREF_MAX_SCRIPT_RUN_TIME_CONTENT);
         mozilla::Preferences::RemoveObserver(this, PREF_MAX_SCRIPT_RUN_TIME_CHROME);
+        mozilla::Preferences::RemoveObserver(this, PREF_MAX_SCRIPT_RUN_TIME_EXT_CONTENT);
     }
 
     NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
@@ -275,53 +274,95 @@ class WatchdogManager : public nsIObserver
         return NS_OK;
     }
 
+    void
+    RegisterContext(XPCJSContext* aContext)
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+        AutoLockWatchdog lock(mWatchdog);
+
+        if (aContext->mActive == XPCJSContext::CONTEXT_ACTIVE) {
+            mActiveContexts.insertBack(aContext);
+        } else {
+            mInactiveContexts.insertBack(aContext);
+        }
+
+        // Enable the watchdog, if appropriate.
+        RefreshWatchdog();
+    }
+
+    void
+    UnregisterContext(XPCJSContext* aContext)
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+        AutoLockWatchdog lock(mWatchdog);
+
+        // aContext must be in one of our two lists, simply remove it.
+        aContext->LinkedListElement<XPCJSContext>::remove();
+    }
+
     // Context statistics. These live on the watchdog manager, are written
     // from the main thread, and are read from the watchdog thread (holding
     // the lock in each case).
-    void
-    RecordContextActivity(bool active)
+    void RecordContextActivity(XPCJSContext* aContext, bool active)
     {
         // The watchdog reads this state, so acquire the lock before writing it.
         MOZ_ASSERT(NS_IsMainThread());
-        Maybe<AutoLockWatchdog> lock;
-        if (mWatchdog)
-            lock.emplace(mWatchdog);
+        AutoLockWatchdog lock(mWatchdog);
 
         // Write state.
-        mTimestamps[TimestampContextStateChange] = PR_Now();
-        mContextState = active ? CONTEXT_ACTIVE : CONTEXT_INACTIVE;
+        aContext->mLastStateChange = PR_Now();
+        aContext->mActive = active ? XPCJSContext::CONTEXT_ACTIVE :
+            XPCJSContext::CONTEXT_INACTIVE;
+        UpdateContextLists(aContext);
 
         // The watchdog may be hibernating, waiting for the context to go
         // active. Wake it up if necessary.
         if (active && mWatchdog && mWatchdog->Hibernating())
             mWatchdog->WakeUp();
     }
-    bool IsContextActive() { return mContextState == CONTEXT_ACTIVE; }
-    PRTime TimeSinceLastContextStateChange()
+
+    bool IsAnyContextActive()
     {
-        return PR_Now() - GetTimestamp(TimestampContextStateChange);
+        return !mActiveContexts.isEmpty();
+    }
+    PRTime TimeSinceLastActiveContext()
+    {
+        // Must be called on the watchdog thread with the lock held.
+        MOZ_ASSERT(!NS_IsMainThread());
+        PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mWatchdog->GetLock());
+        MOZ_ASSERT(mActiveContexts.isEmpty());
+        MOZ_ASSERT(!mInactiveContexts.isEmpty());
+
+        // We store inactive contexts with the most recently added inactive
+        // context at the end of the list.
+        return PR_Now() - mInactiveContexts.getLast()->mLastStateChange;
     }
 
-    // Note - Because of the context activity timestamp, these are read and
-    // written from both threads.
     void RecordTimestamp(WatchdogTimestampCategory aCategory)
     {
-        // The watchdog thread always holds the lock when it runs.
-        Maybe<AutoLockWatchdog> maybeLock;
-        if (NS_IsMainThread() && mWatchdog)
-            maybeLock.emplace(mWatchdog);
+        // Must be called on the watchdog thread with the lock held.
+        MOZ_ASSERT(!NS_IsMainThread());
+        PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mWatchdog->GetLock());
+        MOZ_ASSERT(aCategory != TimestampContextStateChange,
+                   "Use RecordContextActivity to update this");
+
         mTimestamps[aCategory] = PR_Now();
     }
-    PRTime GetTimestamp(WatchdogTimestampCategory aCategory)
+
+    PRTime GetContextTimestamp(XPCJSContext* aContext,
+                               const AutoLockWatchdog& aProofOfLock)
     {
-        // The watchdog thread always holds the lock when it runs.
-        Maybe<AutoLockWatchdog> maybeLock;
-        if (NS_IsMainThread() && mWatchdog)
-            maybeLock.emplace(mWatchdog);
+        return aContext->mLastStateChange;
+    }
+
+    PRTime GetTimestamp(WatchdogTimestampCategory aCategory,
+                        const AutoLockWatchdog& aProofOfLock)
+    {
+        MOZ_ASSERT(aCategory != TimestampContextStateChange,
+                   "Use GetContextTimestamp to retrieve this");
         return mTimestamps[aCategory];
     }
 
-    XPCJSContext* Context() { return mContext; }
     Watchdog* GetWatchdog() { return mWatchdog; }
 
     void RefreshWatchdog()
@@ -341,7 +382,10 @@ class WatchdogManager : public nsIObserver
             int32_t chromeTime = Preferences::GetInt(PREF_MAX_SCRIPT_RUN_TIME_CHROME, 20);
             if (chromeTime <= 0)
                 chromeTime = INT32_MAX;
-            mWatchdog->SetMinScriptRunTimeSeconds(std::min(contentTime, chromeTime));
+            int32_t extTime = Preferences::GetInt(PREF_MAX_SCRIPT_RUN_TIME_EXT_CONTENT, 5);
+            if (extTime <= 0)
+                extTime = INT32_MAX;
+            mWatchdog->SetMinScriptRunTimeSeconds(std::min({contentTime, chromeTime, extTime}));
         }
     }
 
@@ -359,24 +403,61 @@ class WatchdogManager : public nsIObserver
         mWatchdog = nullptr;
     }
 
+    template<class Callback>
+    void ForAllActiveContexts(Callback&& aCallback)
+    {
+        // This function must be called on the watchdog thread with the lock held.
+        MOZ_ASSERT(!NS_IsMainThread());
+        PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mWatchdog->GetLock());
+
+        for (auto* context = mActiveContexts.getFirst(); context;
+             context = context->LinkedListElement<XPCJSContext>::getNext()) {
+            if (!aCallback(context)) {
+                return;
+            }
+        }
+    }
+
   private:
-    XPCJSContext* mContext;
+    void UpdateContextLists(XPCJSContext* aContext)
+    {
+        // Given aContext whose activity state or timestamp has just changed,
+        // put it back in the proper position in the proper list.
+        aContext->LinkedListElement<XPCJSContext>::remove();
+        auto& list = aContext->mActive == XPCJSContext::CONTEXT_ACTIVE ?
+            mActiveContexts : mInactiveContexts;
+
+        // Either the new list is empty or aContext must be more recent than
+        // the existing last element.
+        MOZ_ASSERT_IF(!list.isEmpty(),
+                      list.getLast()->mLastStateChange < aContext->mLastStateChange);
+        list.insertBack(aContext);
+    }
+
+    LinkedList<XPCJSContext> mActiveContexts;
+    LinkedList<XPCJSContext> mInactiveContexts;
     nsAutoPtr<Watchdog> mWatchdog;
 
-    enum { CONTEXT_ACTIVE, CONTEXT_INACTIVE } mContextState;
-    PRTime mTimestamps[TimestampCount];
+    // We store ContextStateChange on the contexts themselves.
+    PRTime mTimestamps[kWatchdogTimestampCategoryCount - 1];
 };
 
 NS_IMPL_ISUPPORTS(WatchdogManager, nsIObserver)
 
-AutoLockWatchdog::AutoLockWatchdog(Watchdog* aWatchdog) : mWatchdog(aWatchdog)
+AutoLockWatchdog::AutoLockWatchdog(Watchdog* aWatchdog MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+  : mWatchdog(aWatchdog)
 {
-    PR_Lock(mWatchdog->GetLock());
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    if (mWatchdog) {
+        PR_Lock(mWatchdog->GetLock());
+    }
 }
 
 AutoLockWatchdog::~AutoLockWatchdog()
 {
-    PR_Unlock(mWatchdog->GetLock());
+    if (mWatchdog) {
+        PR_Unlock(mWatchdog->GetLock());
+    }
 }
 
 static void
@@ -395,8 +476,8 @@ WatchdogMain(void* arg)
     MOZ_ASSERT(!self->ShuttingDown());
     while (!self->ShuttingDown()) {
         // Sleep only 1 second if recently (or currently) active; otherwise, hibernate
-        if (manager->IsContextActive() ||
-            manager->TimeSinceLastContextStateChange() <= PRTime(2*PR_USEC_PER_SEC))
+        if (manager->IsAnyContextActive() ||
+            manager->TimeSinceLastActiveContext() <= PRTime(2*PR_USEC_PER_SEC))
         {
             self->Sleep(PR_TicksPerSecond());
         } else {
@@ -422,16 +503,25 @@ WatchdogMain(void* arg)
         // dialog. If the computer is put to sleep during one of the (timeout/2)
         // periods, the script still has the other (timeout/2) seconds to
         // finish.
-        PRTime usecs = self->MinScriptRunTimeSeconds() * PR_USEC_PER_SEC / 2;
-        if (manager->IsContextActive() &&
-            manager->TimeSinceLastContextStateChange() >= usecs)
-        {
+        if (manager->IsAnyContextActive()) {
             bool debuggerAttached = false;
             nsCOMPtr<nsIDebug2> dbg = do_GetService("@mozilla.org/xpcom/debug;1");
             if (dbg)
                 dbg->GetIsDebuggerAttached(&debuggerAttached);
-            if (!debuggerAttached)
-                JS_RequestInterruptCallback(manager->Context()->Context());
+            if (debuggerAttached) {
+                // We won't be interrupting these scripts anyway.
+                continue;
+            }
+
+            PRTime usecs = self->MinScriptRunTimeSeconds() * PR_USEC_PER_SEC / 2;
+            manager->ForAllActiveContexts([usecs, manager, &lock](XPCJSContext* aContext) -> bool {
+                auto timediff = PR_Now() - manager->GetContextTimestamp(aContext, lock);
+                if (timediff > usecs) {
+                    JS_RequestInterruptCallback(aContext->Context());
+                    return true;
+                }
+                return false;
+            });
         }
     }
 
@@ -442,7 +532,10 @@ WatchdogMain(void* arg)
 PRTime
 XPCJSContext::GetWatchdogTimestamp(WatchdogTimestampCategory aCategory)
 {
-    return mWatchdogManager->GetTimestamp(aCategory);
+    AutoLockWatchdog lock(mWatchdogManager->GetWatchdog());
+    return aCategory == TimestampContextStateChange ?
+        mWatchdogManager->GetContextTimestamp(this, lock) :
+        mWatchdogManager->GetTimestamp(aCategory, lock);
 }
 
 void
@@ -460,7 +553,33 @@ XPCJSContext::ActivityCallback(void* arg, bool active)
     }
 
     XPCJSContext* self = static_cast<XPCJSContext*>(arg);
-    self->mWatchdogManager->RecordContextActivity(active);
+    self->mWatchdogManager->RecordContextActivity(self, active);
+}
+
+static inline bool
+IsWebExtensionPrincipal(nsIPrincipal* principal, nsAString& addonId)
+{
+    return BasePrincipal::Cast(principal)->AddonPolicy();
+}
+
+static bool
+IsWebExtensionContentScript(BasePrincipal* principal, nsAString& addonId)
+{
+    if (!principal->Is<ExpandedPrincipal>()) {
+        return false;
+    }
+
+    auto expanded = principal->As<ExpandedPrincipal>();
+
+    nsTArray<nsCOMPtr<nsIPrincipal>>* principals;
+    expanded->GetWhiteList(&principals);
+    for (auto prin : *principals) {
+        if (IsWebExtensionPrincipal(prin, addonId)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // static
@@ -492,10 +611,23 @@ XPCJSContext::InterruptCallback(JSContext* cx)
     // returning to the event loop. See how long it's been, and what the limit
     // is.
     TimeDuration duration = TimeStamp::NowLoRes() - self->mSlowScriptCheckpoint;
-    bool chrome = nsContentUtils::IsSystemCaller(cx);
-    const char* prefName = chrome ? PREF_MAX_SCRIPT_RUN_TIME_CHROME
-                                  : PREF_MAX_SCRIPT_RUN_TIME_CONTENT;
-    int32_t limit = Preferences::GetInt(prefName, chrome ? 20 : 10);
+    int32_t limit;
+
+    nsString addonId;
+    const char* prefName;
+
+    auto principal = BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(cx));
+    bool chrome = principal->Is<SystemPrincipal>();
+    if (chrome) {
+        prefName = PREF_MAX_SCRIPT_RUN_TIME_CHROME;
+        limit = Preferences::GetInt(prefName, 20);
+    } else if (IsWebExtensionContentScript(principal, addonId)) {
+        prefName = PREF_MAX_SCRIPT_RUN_TIME_EXT_CONTENT;
+        limit = Preferences::GetInt(prefName, 5);
+    } else {
+        prefName = PREF_MAX_SCRIPT_RUN_TIME_CONTENT;
+        limit = Preferences::GetInt(prefName, 10);
+    }
 
     // If there's no limit, or we're within the limit, let it go.
     if (limit == 0 || duration.ToSeconds() < limit / 2.0)
@@ -562,10 +694,32 @@ XPCJSContext::InterruptCallback(JSContext* cx)
     }
 
     // Show the prompt to the user, and kill if requested.
-    nsGlobalWindow::SlowScriptResponse response = win->ShowSlowScriptDialog();
+    nsGlobalWindow::SlowScriptResponse response = win->ShowSlowScriptDialog(addonId);
     if (response == nsGlobalWindow::KillSlowScript) {
         if (Preferences::GetBool("dom.global_stop_script", true))
             xpc::Scriptability::Get(global).Block();
+        return false;
+    }
+    if (response == nsGlobalWindow::KillScriptGlobal) {
+        nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+
+        if (!IsSandbox(global) || !obs)
+            return false;
+
+        // Notify the extensions framework that the sandbox should be killed.
+        nsIXPConnect* xpc = nsContentUtils::XPConnect();
+        JS::RootedObject wrapper(cx, JS_NewPlainObject(cx));
+        nsCOMPtr<nsISupports> supports;
+
+        // Store the sandbox object on the wrappedJSObject property of the
+        // subject so that JS recipients can access the JS value directly.
+        if (!wrapper ||
+            !JS_DefineProperty(cx, wrapper, "wrappedJSObject", global, JSPROP_ENUMERATE) ||
+            NS_FAILED(xpc->WrapJS(cx, wrapper, NS_GET_IID(nsISupports), getter_AddRefs(supports)))) {
+            return false;
+        }
+
+        obs->NotifyObservers(supports, "kill-content-script-sandbox", nullptr);
         return false;
     }
 
@@ -615,6 +769,7 @@ ReloadPrefsCallback(const char* pref, void* data)
     bool useIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "ion") && !safeMode;
     bool useAsmJS = Preferences::GetBool(JS_OPTIONS_DOT_STR "asmjs") && !safeMode;
     bool useWasm = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm") && !safeMode;
+    bool useWasmIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_ionjit") && !safeMode;
     bool useWasmBaseline = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_baselinejit") && !safeMode;
     bool throwOnAsmJSValidationFailure = Preferences::GetBool(JS_OPTIONS_DOT_STR
                                                               "throw_on_asmjs_validation_failure");
@@ -673,7 +828,8 @@ ReloadPrefsCallback(const char* pref, void* data)
                              .setIon(useIon)
                              .setAsmJS(useAsmJS)
                              .setWasm(useWasm)
-                             .setWasmAlwaysBaseline(useWasmBaseline)
+                             .setWasmIon(useWasmIon)
+                             .setWasmBaseline(useWasmBaseline)
                              .setThrowOnAsmJSValidationFailure(throwOnAsmJSValidationFailure)
                              .setNativeRegExp(useNativeRegExp)
                              .setAsyncStack(useAsyncStack)
@@ -720,9 +876,15 @@ XPCJSContext::~XPCJSContext()
 
     xpc_DelocalizeContext(Context());
 
-    if (mWatchdogManager->GetWatchdog())
-        mWatchdogManager->StopWatchdog();
-    mWatchdogManager->Shutdown();
+    // If we're the last XPCJSContext around, clean up the watchdog manager.
+    mWatchdogManager->UnregisterContext(this);
+    if (--sInstanceCount == 0) {
+        if (mWatchdogManager->GetWatchdog()) {
+            mWatchdogManager->StopWatchdog();
+        }
+        mWatchdogManager->Shutdown();
+        sWatchdogInstance = nullptr;
+    }
 
     if (mCallContext)
         mCallContext->SystemIsBeingShutDown();
@@ -741,13 +903,18 @@ XPCJSContext::XPCJSContext()
    mAutoRoots(nullptr),
    mResolveName(JSID_VOID),
    mResolvingWrapper(nullptr),
-   mWatchdogManager(new WatchdogManager(this)),
+   mWatchdogManager(GetWatchdogManager()),
    mSlowScriptSecondHalf(false),
    mTimeoutAccumulated(false),
-   mPendingResult(NS_OK)
+   mPendingResult(NS_OK),
+   mActive(CONTEXT_INACTIVE),
+   mLastStateChange(PR_Now())
 {
     MOZ_COUNT_CTOR_INHERITED(XPCJSContext, CycleCollectedJSContext);
     MOZ_RELEASE_ASSERT(!gTlsContext.get());
+    MOZ_ASSERT(mWatchdogManager);
+    ++sInstanceCount;
+    mWatchdogManager->RegisterContext(this);
     gTlsContext.set(this);
 }
 
@@ -935,6 +1102,27 @@ XPCJSContext::Initialize(XPCJSContext* aPrimaryContext)
 #endif
 
     return NS_OK;
+}
+
+// static
+uint32_t
+XPCJSContext::sInstanceCount;
+
+// static
+StaticRefPtr<WatchdogManager>
+XPCJSContext::sWatchdogInstance;
+
+// static
+WatchdogManager*
+XPCJSContext::GetWatchdogManager()
+{
+    if (sWatchdogInstance) {
+        return sWatchdogInstance;
+    }
+
+    MOZ_ASSERT(sInstanceCount == 0);
+    sWatchdogInstance = new WatchdogManager();
+    return sWatchdogInstance;
 }
 
 // static

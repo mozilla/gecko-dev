@@ -73,6 +73,10 @@
 #include "GMPServiceChild.h"
 #include "NullPrincipal.h"
 
+#if !defined(XP_WIN)
+#include "mozilla/Omnijar.h"
+#endif
+
 #ifdef MOZ_GECKO_PROFILER
 #include "ChildProfilerController.h"
 #endif
@@ -172,6 +176,14 @@
 #include "mozilla/audio/AudioNotificationReceiver.h"
 #endif
 
+#if defined(XP_MACOSX)
+#include <CoreServices/CoreServices.h>
+// Info.plist key associated with the developer repo path
+#define MAC_DEV_REPO_KEY "MozillaDeveloperRepoPath"
+// Info.plist key associated with the developer repo object directory
+#define MAC_DEV_OBJ_KEY "MozillaDeveloperObjPath"
+#endif /* XP_MACOSX */
+
 #ifdef MOZ_X11
 #include "mozilla/X11Util.h"
 #endif
@@ -192,6 +204,7 @@
 #include "mozilla/dom/PSpeechSynthesisChild.h"
 #endif
 
+#include "ClearOnShutdown.h"
 #include "ProcessUtils.h"
 #include "URIUtils.h"
 #include "nsContentUtils.h"
@@ -420,7 +433,7 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage)
   nsCOMPtr<nsIScriptError> scriptError = do_QueryInterface(aMessage);
   if (scriptError) {
     nsAutoString msg, sourceName, sourceLine;
-    nsXPIDLCString category;
+    nsCString category;
     uint32_t lineNum, colNum, flags;
 
     nsresult rv = scriptError->GetErrorMessage(msg);
@@ -479,9 +492,36 @@ private:
   }
 };
 
+#ifdef NIGHTLY_BUILD
+/**
+ * The singleton of this class is registered with the HangMonitor as an
+ * annotator, so that the hang monitor can record whether or not there were
+ * pending input events when the thread hung.
+ */
+class PendingInputEventHangAnnotator final
+  : public HangMonitor::Annotator
+{
+public:
+  virtual void AnnotateHang(HangMonitor::HangAnnotations& aAnnotations)
+  {
+    int32_t pending = ContentChild::GetSingleton()->GetPendingInputEvents();
+    if (pending > 0) {
+      aAnnotations.AddAnnotation(NS_LITERAL_STRING("PendingInput"), pending);
+    }
+  }
+
+  static PendingInputEventHangAnnotator sSingleton;
+};
+PendingInputEventHangAnnotator PendingInputEventHangAnnotator::sSingleton;
+#endif
+
 NS_IMPL_ISUPPORTS(BackgroundChildPrimer, nsIIPCBackgroundChildCreateCallback)
 
+class ContentChild::ShutdownCanary final
+{ };
+
 ContentChild* ContentChild::sSingleton;
+StaticAutoPtr<ContentChild::ShutdownCanary> ContentChild::sShutdownCanary;
 
 ContentChild::ContentChild()
  : mID(uint64_t(-1))
@@ -495,6 +535,16 @@ ContentChild::ContentChild()
   // This process is a content process, so it's clearly running in
   // multiprocess mode!
   nsDebugImpl::SetMultiprocessMode("Child");
+
+  // When ContentChild is created, the observer service does not even exist.
+  // When ContentChild::RecvSetXPCOMProcessAttributes is called (the first
+  // IPDL call made on this object), shutdown may have already happened. Thus
+  // we create a canary here that relies upon getting cleared if shutdown
+  // happens without requiring the observer service at this time.
+  if (!sShutdownCanary) {
+    sShutdownCanary = new ShutdownCanary();
+    ClearOnShutdown(&sShutdownCanary, ShutdownPhase::Shutdown);
+  }
 }
 
 #ifdef _MSC_VER
@@ -522,9 +572,15 @@ NS_INTERFACE_MAP_END
 mozilla::ipc::IPCResult
 ContentChild::RecvSetXPCOMProcessAttributes(const XPCOMInitData& aXPCOMInit,
                                             const StructuredCloneData& aInitialData,
-                                            nsTArray<LookAndFeelInt>&& aLookAndFeelIntCache)
+                                            nsTArray<LookAndFeelInt>&& aLookAndFeelIntCache,
+                                            nsTArray<FontFamilyListEntry>&& aFontFamilyList)
 {
-  mLookAndFeelCache = aLookAndFeelIntCache;
+  if (!sShutdownCanary) {
+    return IPC_OK();
+  }
+
+  mLookAndFeelCache = Move(aLookAndFeelIntCache);
+  mFontFamilies = Move(aFontFamilyList);
   gfx::gfxVars::SetValuesForInitialize(aXPCOMInit.gfxNonDefaultVarUpdates());
   InitXPCOM(aXPCOMInit, aInitialData);
   InitGraphicsDeviceData(aXPCOMInit.contentDeviceData());
@@ -624,6 +680,16 @@ ContentChild::Init(MessageLoop* aIOLoop,
   mIsForBrowser = aIsForBrowser;
 
   SetProcessName(NS_LITERAL_STRING("Web Content"));
+
+#ifdef NIGHTLY_BUILD
+  // NOTE: We have to register the annotator on the main thread, as annotators
+  // only affect a single thread.
+  SystemGroup::Dispatch(TaskCategory::Other,
+                        NS_NewRunnableFunction("RegisterPendingInputEventHangAnnotator", [] {
+                          HangMonitor::RegisterAnnotator(
+                            PendingInputEventHangAnnotator::sSingleton);
+                        }));
+#endif
 
   return true;
 }
@@ -771,7 +837,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
       return rv;
     }
 
-    URIParams uriToLoad;
+    OptionalURIParams uriToLoad;
     SerializeURI(aURI, uriToLoad);
     Unused << SendCreateWindowInDifferentProcess(aTabOpener,
                                                  aChromeFlags,
@@ -983,7 +1049,7 @@ ContentChild::ProvideWindowCommon(TabChild* aTabOpener,
   }
 
   // If the TabChild has been torn down, we don't need to do this anymore.
-  if (NS_WARN_IF(!newChild->IPCOpen())) {
+  if (NS_WARN_IF(!newChild->IPCOpen() || newChild->IsDestroyed())) {
     return NS_ERROR_ABORT;
   }
 
@@ -1451,12 +1517,26 @@ GetDirectoryPath(const char *aPath) {
 }
 #endif // DEBUG
 
+extern "C" {
+void CGSSetDenyWindowServerConnections(bool);
+void CGSShutdownServerConnections();
+};
+
 static bool
 StartMacOSContentSandbox()
 {
   int sandboxLevel = GetEffectiveContentSandboxLevel();
   if (sandboxLevel < 1) {
     return false;
+  }
+
+  if (!XRE_UseNativeEventProcessing()) {
+    // If we've opened a connection to the window server, shut it down now. Forbid
+    // future connections as well. We do this for sandboxing, but it also ensures
+    // that the Activity Monitor will not label the content process as "Not
+    // responding" because it's not running a native event loop. See bug 1384336.
+    CGSSetDenyWindowServerConnections(true);
+    CGSShutdownServerConnections();
   }
 
   nsAutoCString appPath, appBinaryPath, appDir;
@@ -2381,6 +2461,8 @@ ContentChild::RecvNotifyAlertsObserver(const nsCString& aType, const nsString& a
   return IPC_OK();
 }
 
+// NOTE: This method is being run in the SystemGroup, and thus cannot directly
+// touch pages. See GetSpecificMessageEventTarget.
 mozilla::ipc::IPCResult
 ContentChild::RecvNotifyVisited(const URIParams& aURI)
 {
@@ -2897,6 +2979,10 @@ ContentChild::RecvShutdown()
   }
 
   mShuttingDown = true;
+
+#ifdef NIGHTLY_BUILD
+  HangMonitor::UnregisterAnnotator(PendingInputEventHangAnnotator::sSingleton);
+#endif
 
   if (mPolicy) {
     mPolicy->Deactivate();
@@ -3423,13 +3509,6 @@ ContentChild::RecvDeactivate(PBrowserChild* aTab)
 }
 
 mozilla::ipc::IPCResult
-ContentChild::RecvParentActivated(PBrowserChild* aTab, const bool& aActivated)
-{
-  TabChild* tab = static_cast<TabChild*>(aTab);
-  return tab->RecvParentActivated(aActivated);
-}
-
-mozilla::ipc::IPCResult
 ContentChild::RecvProvideAnonymousTemporaryFile(const uint64_t& aID,
                                                 const FileDescOrError& aFDOrError)
 {
@@ -3536,16 +3615,211 @@ ContentChild::RecvResetCodeCoverageCounters()
 #endif
 }
 
+mozilla::ipc::IPCResult
+ContentChild::RecvSetInputEventQueueEnabled()
+{
+  nsThreadManager::get().EnableMainThreadEventPrioritization();
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+ContentChild::RecvFlushInputEventQueue()
+{
+  nsThreadManager::get().FlushInputEventPrioritization();
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+ContentChild::RecvSuspendInputEventQueue()
+{
+  nsThreadManager::get().SuspendInputEventPrioritization();
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+ContentChild::RecvResumeInputEventQueue()
+{
+  nsThreadManager::get().ResumeInputEventPrioritization();
+  return IPC_OK();
+}
+
 already_AddRefed<nsIEventTarget>
 ContentChild::GetSpecificMessageEventTarget(const Message& aMsg)
 {
-  if (aMsg.type() == PJavaScript::Msg_DropTemporaryStrongReferences__ID
-      || aMsg.type() == PJavaScript::Msg_DropObject__ID) {
-    return do_AddRef(SystemGroup::EventTargetFor(TaskCategory::Other));
-  }
+  switch(aMsg.type()) {
+    // Javascript
+    case PJavaScript::Msg_DropTemporaryStrongReferences__ID:
+    case PJavaScript::Msg_DropObject__ID:
 
-  return nullptr;
+    // Navigation
+    case PContent::Msg_NotifyVisited__ID:
+
+    // Storage API
+    case PContent::Msg_DataStoragePut__ID:
+    case PContent::Msg_DataStorageRemove__ID:
+    case PContent::Msg_DataStorageClear__ID:
+
+    // Blob and BlobURL
+    case PContent::Msg_BlobURLRegistration__ID:
+    case PContent::Msg_BlobURLUnregistration__ID:
+    case PContent::Msg_InitBlobURLs__ID:
+    case PContent::Msg_PIPCBlobInputStreamConstructor__ID:
+    case PContent::Msg_StoreAndBroadcastBlobURLRegistration__ID:
+
+      return do_AddRef(SystemGroup::EventTargetFor(TaskCategory::Other));
+
+    default:
+      return nullptr;
+  }
 }
 
+#ifdef NIGHTLY_BUILD
+void
+ContentChild::OnChannelReceivedMessage(const Message& aMsg)
+{
+  if (nsContentUtils::IsMessageInputEvent(aMsg)) {
+    mPendingInputEvents++;
+  }
+}
+
+PContentChild::Result
+ContentChild::OnMessageReceived(const Message& aMsg)
+{
+  if (nsContentUtils::IsMessageInputEvent(aMsg)) {
+    DebugOnly<uint32_t> prevEvts = mPendingInputEvents--;
+    MOZ_ASSERT(prevEvts > 0);
+  }
+
+  return PContentChild::OnMessageReceived(aMsg);
+}
+
+PContentChild::Result
+ContentChild::OnMessageReceived(const Message& aMsg, Message*& aReply)
+{
+  return PContentChild::OnMessageReceived(aMsg, aReply);
+}
+#endif
+
 } // namespace dom
+
+#if !defined(XP_WIN)
+bool IsDevelopmentBuild()
+{
+  nsCOMPtr<nsIFile> path = mozilla::Omnijar::GetPath(mozilla::Omnijar::GRE);
+  // If the path doesn't exist, we're a dev build.
+  return path == nullptr;
+}
+#endif /* !XP_WIN */
+
+#if defined(XP_MACOSX)
+/*
+ * Helper function to read a string value for a given key from the .app's
+ * Info.plist.
+ */
+static nsresult
+GetStringValueFromBundlePlist(const nsAString& aKey, nsAutoCString& aValue)
+{
+  CFBundleRef mainBundle = CFBundleGetMainBundle();
+  if (mainBundle == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Read this app's bundle Info.plist as a dictionary
+  CFDictionaryRef bundleInfoDict = CFBundleGetInfoDictionary(mainBundle);
+  if (bundleInfoDict == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoCString keyAutoCString = NS_ConvertUTF16toUTF8(aKey);
+  CFStringRef key = CFStringCreateWithCString(kCFAllocatorDefault,
+                                              keyAutoCString.get(),
+                                              kCFStringEncodingUTF8);
+  if (key == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  CFStringRef value = (CFStringRef)CFDictionaryGetValue(bundleInfoDict, key);
+  CFRelease(key);
+  if (value == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
+  CFIndex valueLength = CFStringGetLength(value);
+  if (valueLength == 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  const char* valueCString = CFStringGetCStringPtr(value,
+                                                   kCFStringEncodingUTF8);
+  if (valueCString) {
+    aValue.Assign(valueCString);
+    return NS_OK;
+  }
+
+  CFIndex maxLength =
+    CFStringGetMaximumSizeForEncoding(valueLength, kCFStringEncodingUTF8) + 1;
+  char* valueBuffer = static_cast<char*>(moz_xmalloc(maxLength));
+  if (!valueBuffer) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  if (!CFStringGetCString(value, valueBuffer, maxLength,
+                          kCFStringEncodingUTF8)) {
+    free(valueBuffer);
+    return NS_ERROR_FAILURE;
+  }
+
+  aValue.Assign(valueBuffer);
+  free(valueBuffer);
+  return NS_OK;
+}
+
+/*
+ * Helper function for reading a path string from the .app's Info.plist
+ * and returning a directory object for that path with symlinks resolved.
+ */
+static nsresult
+GetDirFromBundlePlist(const nsAString& aKey, nsIFile **aDir)
+{
+  nsresult rv;
+
+  nsAutoCString dirPath;
+  rv = GetStringValueFromBundlePlist(aKey, dirPath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIFile> dir;
+  rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(dirPath),
+                       false,
+                       getter_AddRefs(dir));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = dir->Normalize();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool isDirectory = false;
+  rv = dir->IsDirectory(&isDirectory);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!isDirectory) {
+    return NS_ERROR_FILE_NOT_DIRECTORY;
+  }
+
+  dir.swap(*aDir);
+  return NS_OK;
+}
+
+nsresult
+GetRepoDir(nsIFile **aRepoDir)
+{
+  MOZ_ASSERT(IsDevelopmentBuild());
+  return GetDirFromBundlePlist(NS_LITERAL_STRING(MAC_DEV_REPO_KEY), aRepoDir);
+}
+
+nsresult
+GetObjDir(nsIFile **aObjDir)
+{
+  MOZ_ASSERT(IsDevelopmentBuild());
+  return GetDirFromBundlePlist(NS_LITERAL_STRING(MAC_DEV_OBJ_KEY), aObjDir);
+}
+#endif /* XP_MACOSX */
+
 } // namespace mozilla

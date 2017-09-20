@@ -466,6 +466,7 @@ add_task(async function test_processIncoming_reconcile_locally_deleted_dupe_new(
   do_check_false((await engine._store.itemExists("DUPE_INCOMING")));
   do_check_eq("DUPE_LOCAL", (await engine._findDupe({id: "DUPE_INCOMING"})));
 
+  engine.lastModified = server.getCollection(user, engine.name).timestamp;
   await engine._sync();
 
   // After the sync, the server's payload for the original ID should be marked
@@ -539,6 +540,7 @@ add_task(async function test_processIncoming_reconcile_changed_dupe() {
   do_check_true((await engine._store.itemExists("DUPE_LOCAL")));
   do_check_eq("DUPE_LOCAL", (await engine._findDupe({id: "DUPE_INCOMING"})));
 
+  engine.lastModified = server.getCollection(user, engine.name).timestamp;
   await engine._sync();
 
   // The ID should have been changed to incoming.
@@ -577,6 +579,7 @@ add_task(async function test_processIncoming_reconcile_changed_dupe_new() {
   do_check_true((await engine._store.itemExists("DUPE_LOCAL")));
   do_check_eq("DUPE_LOCAL", (await engine._findDupe({id: "DUPE_INCOMING"})));
 
+  engine.lastModified = server.getCollection(user, engine.name).timestamp;
   await engine._sync();
 
   // The ID should have been changed to incoming.
@@ -1533,23 +1536,6 @@ add_task(async function test_uploadOutgoing_largeRecords() {
   } finally {
     await cleanAndGo(engine, server);
   }
-});
-
-
-add_task(async function test_syncFinish_noDelete() {
-  _("SyncEngine._syncFinish resets tracker's score");
-
-  let server = httpd_setup({});
-
-  await SyncTestingInfrastructure(server);
-  let engine = makeRotaryEngine();
-  engine._delete = {}; // Nothing to delete
-  engine._tracker.score = 100;
-
-  // _syncFinish() will reset the engine's score.
-  await engine._syncFinish();
-  do_check_eq(engine.score, 0);
-  server.stop(run_next_test);
 });
 
 

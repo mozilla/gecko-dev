@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import, print_function, unicode_literals
 
 import ConfigParser
 import argparse
@@ -26,6 +31,7 @@ ALLOWED_URL_PREFIXES = [
     "http://ftp.mozilla.org/",
     "http://download.mozilla.org/",
     "https://archive.mozilla.org/",
+    "https://queue.taskcluster.net/v1/task/",
 ]
 
 DEFAULT_FILENAME_TEMPLATE = "{appName}-{branch}-{version}-{platform}-" \
@@ -242,9 +248,16 @@ def main():
                 verify_signature(dest, signing_certs)
             complete_mars["%s_size" % mar_type] = os.path.getsize(dest)
             complete_mars["%s_hash" % mar_type] = get_hash(dest)
-            if mar_type == 'to' and not is_lzma_compressed_mar(dest):
-                use_old_format = True
             unpack(work_env, dest, unpack_dir)
+            if mar_type == 'from':
+                version = get_option(unpack_dir, filename="application.ini",
+                                     section="App", option="Version")
+                major = int(version.split(".")[0])
+                # The updater for versions less than 56.0 requires BZ2
+                # compressed MAR files
+                if major < 56:
+                    use_old_format = True
+                    log.info("Forcing BZ2 compression for %s", f)
             log.info("AV-scanning %s ...", unpack_dir)
             sh.clamscan("-r", unpack_dir, _timeout=600, _err_to_out=True)
             log.info("Done.")
@@ -285,7 +298,11 @@ def main():
         # if branch not set explicitly use repo-name
         mar_data["branch"] = e.get("branch",
                                    mar_data["repo"].rstrip("/").split("/")[-1])
-        mar_name = args.filename_template.format(**mar_data)
+        if 'dest_mar' in e:
+            mar_name = e['dest_mar']
+        else:
+            # default to formatted name if not specified
+            mar_name = args.filename_template.format(**mar_data)
         mar_data["mar"] = mar_name
         dest_mar = os.path.join(work_env.workdir, mar_name)
         # TODO: download these once

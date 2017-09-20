@@ -156,6 +156,7 @@ using namespace mozilla::gfx;
 #define WEBKIT_PREFIXES_ENABLED_PREF_NAME "layout.css.prefixes.webkit"
 #define TEXT_ALIGN_UNSAFE_ENABLED_PREF_NAME "layout.css.text-align-unsafe-value.enabled"
 #define FLOAT_LOGICAL_VALUES_ENABLED_PREF_NAME "layout.css.float-logical-values.enabled"
+#define INTERCHARACTER_RUBY_ENABLED_PREF_NAME "layout.css.ruby.intercharacter.enabled"
 
 // The time in number of frames that we estimate for a refresh driver
 // to be quiescent
@@ -695,22 +696,6 @@ nsLayoutUtils::CSSFiltersEnabled()
 }
 
 bool
-nsLayoutUtils::CSSClipPathShapesEnabled()
-{
-  static bool sCSSClipPathShapesEnabled;
-  static bool sCSSClipPathShapesPrefCached = false;
-
-  if (!sCSSClipPathShapesPrefCached) {
-   sCSSClipPathShapesPrefCached = true;
-   Preferences::AddBoolVarCache(&sCSSClipPathShapesEnabled,
-                                "layout.css.clip-path-shapes.enabled",
-                                false);
-  }
-
-  return sCSSClipPathShapesEnabled;
-}
-
-bool
 nsLayoutUtils::UnsetValueEnabled()
 {
   static bool sUnsetValueEnabled;
@@ -756,6 +741,22 @@ nsLayoutUtils::IsTextAlignUnsafeValueEnabled()
   }
 
   return sTextAlignUnsafeValueEnabled;
+}
+
+bool
+nsLayoutUtils::IsInterCharacterRubyEnabled()
+{
+  static bool sInterCharacterRubyEnabled;
+  static bool sInterCharacterRubyEnabledPrefCached = false;
+
+  if (!sInterCharacterRubyEnabledPrefCached) {
+    sInterCharacterRubyEnabledPrefCached = true;
+    Preferences::AddBoolVarCache(&sInterCharacterRubyEnabled,
+                                 INTERCHARACTER_RUBY_ENABLED_PREF_NAME,
+                                 false);
+  }
+
+  return sInterCharacterRubyEnabled;
 }
 
 void
@@ -1263,8 +1264,18 @@ nsLayoutUtils::IsMissingDisplayPortBaseRect(nsIContent* aContent)
   return false;
 }
 
+enum class MaxSizeExceededBehaviour {
+  // Ask GetDisplayPortImpl to assert if the calculated displayport exceeds
+  // the maximum allowed size.
+  eAssert,
+  // Ask GetDisplayPortImpl to pretend like there's no displayport at all, if
+  // the calculated displayport exceeds the maximum allowed size.
+  eDrop,
+};
+
 static bool
-GetDisplayPortImpl(nsIContent* aContent, nsRect* aResult, float aMultiplier)
+GetDisplayPortImpl(nsIContent* aContent, nsRect* aResult, float aMultiplier,
+                   MaxSizeExceededBehaviour aBehaviour = MaxSizeExceededBehaviour::eAssert)
 {
   DisplayPortPropertyData* rectData = nullptr;
   DisplayPortMarginsPropertyData* marginsData = nullptr;
@@ -1291,12 +1302,18 @@ GetDisplayPortImpl(nsIContent* aContent, nsRect* aResult, float aMultiplier)
   }
 
   if (!gfxPrefs::LayersTilesEnabled()) {
-    // Either we should have gotten a valid rect directly from the displayport
-    // base, or we should have computed a valid rect from the margins.
-    NS_ASSERTION(result.width <= GetMaxDisplayPortSize(aContent, nullptr),
-                 "Displayport must be a valid texture size");
-    NS_ASSERTION(result.height <= GetMaxDisplayPortSize(aContent, nullptr),
-                 "Displayport must be a valid texture size");
+    // Perform the desired error handling if the displayport dimensions
+    // exceeds the maximum allowed size
+    nscoord maxSize = GetMaxDisplayPortSize(aContent, nullptr);
+    if (result.width > maxSize || result.height > maxSize) {
+      switch (aBehaviour) {
+      case MaxSizeExceededBehaviour::eAssert:
+        NS_ASSERTION(false, "Displayport must be a valid texture size");
+        break;
+      case MaxSizeExceededBehaviour::eDrop:
+        return false;
+      }
+    }
   }
 
   *aResult = result;
@@ -1339,7 +1356,13 @@ nsLayoutUtils::GetDisplayPortForVisibilityTesting(
   RelativeTo aRelativeTo /* = RelativeTo::ScrollPort */)
 {
   MOZ_ASSERT(aResult);
-  bool usingDisplayPort = GetDisplayPortImpl(aContent, aResult, 1.0f);
+  // Since the base rect might not have been updated very recently, it's
+  // possible to end up with an extra-large displayport at this point, if the
+  // zoom level is changed by a lot. Instead of using the default behaviour of
+  // asserting, we can just ignore the displayport if that happens, as this
+  // call site is best-effort.
+  bool usingDisplayPort = GetDisplayPortImpl(aContent, aResult, 1.0f,
+      MaxSizeExceededBehaviour::eDrop);
   if (usingDisplayPort && aRelativeTo == RelativeTo::ScrollFrame) {
     TranslateFromScrollPortToScrollFrame(aContent, aResult);
   }
@@ -2971,12 +2994,15 @@ nsLayoutUtils::GetLayerTransformForFrame(nsIFrame* aFrame,
   nsDisplayListBuilder builder(root,
                                nsDisplayListBuilderMode::TRANSFORM_COMPUTATION,
                                false/*don't build caret*/);
+  builder.BeginFrame();
   nsDisplayList list;
   nsDisplayTransform* item =
     new (&builder) nsDisplayTransform(&builder, aFrame, &list, nsRect());
 
   *aTransform = item->GetTransform();
   item->~nsDisplayTransform();
+
+  builder.EndFrame();
 
   return true;
 }
@@ -3239,6 +3265,7 @@ nsLayoutUtils::GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
   nsDisplayListBuilder builder(aFrame,
                                nsDisplayListBuilderMode::EVENT_DELIVERY,
                                false);
+  builder.BeginFrame();
   nsDisplayList list;
 
   if (aFlags & IGNORE_PAINT_SUPPRESSION) {
@@ -3257,7 +3284,9 @@ nsLayoutUtils::GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
   }
 
   builder.EnterPresShell(aFrame);
-  aFrame->BuildDisplayListForStackingContext(&builder, aRect, &list);
+
+  builder.SetDirtyRect(aRect);
+  aFrame->BuildDisplayListForStackingContext(&builder, &list);
   builder.LeavePresShell(aFrame, nullptr);
 
 #ifdef MOZ_DUMP_PAINTING
@@ -3273,7 +3302,8 @@ nsLayoutUtils::GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
   nsDisplayItem::HitTestState hitTestState;
   builder.SetHitTestShouldStopAtFirstOpaque(aFlags & ONLY_VISIBLE);
   list.HitTest(&builder, aRect, &hitTestState, &aOutFrames);
-  list.DeleteAll();
+  list.DeleteAll(&builder);
+  builder.EndFrame();
   return NS_OK;
 }
 
@@ -3498,6 +3528,9 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
   TimeStamp startBuildDisplayList = TimeStamp::Now();
   nsDisplayListBuilder builder(aFrame, aBuilderMode,
                                !(aFlags & PaintFrameFlags::PAINT_HIDE_CARET));
+
+  builder.BeginFrame();
+
   if (aFlags & PaintFrameFlags::PAINT_IN_TRANSFORM) {
     builder.SetInTransform(true);
   }
@@ -3612,7 +3645,8 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
 
       nsDisplayListBuilder::AutoCurrentScrollParentIdSetter idSetter(&builder, id);
 
-      aFrame->BuildDisplayListForStackingContext(&builder, dirtyRect, &list);
+      builder.SetDirtyRect(dirtyRect);
+      aFrame->BuildDisplayListForStackingContext(&builder, &list);
     }
 
     LayoutFrameType frameType = aFrame->Type();
@@ -3848,9 +3882,10 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
     }
   }
 
+  builder.EndFrame();
 
   // Flush the list so we don't trigger the IsEmpty-on-destruction assertion
-  list.DeleteAll();
+  list.DeleteAll(&builder);
   return NS_OK;
 }
 
@@ -7281,7 +7316,9 @@ nsLayoutUtils::SurfaceFromOffscreenCanvas(OffscreenCanvas* aOffscreenCanvas,
     // If the element doesn't have a context then we won't get a snapshot. The canvas spec wants us to not error and just
     // draw nothing, so return an empty surface.
     result.mAlphaType = gfxAlphaType::Opaque;
-    DrawTarget *ref = aTarget ? aTarget.get() : gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+    RefPtr<DrawTarget> ref =
+      aTarget ? aTarget
+              : gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
     RefPtr<DrawTarget> dt = ref->CreateSimilarDrawTarget(IntSize(size.width, size.height),
                                                          SurfaceFormat::B8G8R8A8);
     if (dt) {
@@ -7449,7 +7486,9 @@ nsLayoutUtils::SurfaceFromElement(HTMLCanvasElement* aElement,
     // If the element doesn't have a context then we won't get a snapshot. The canvas spec wants us to not error and just
     // draw nothing, so return an empty surface.
     result.mAlphaType = gfxAlphaType::Opaque;
-    DrawTarget *ref = aTarget ? aTarget.get() : gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+    RefPtr<DrawTarget> ref =
+      aTarget ? aTarget
+              : gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
     RefPtr<DrawTarget> dt = ref->CreateSimilarDrawTarget(IntSize(size.width, size.height),
                                                         SurfaceFormat::B8G8R8A8);
     if (dt) {
@@ -7823,6 +7862,8 @@ nsLayoutUtils::Initialize()
 #ifdef MOZ_STYLO
   if (PR_GetEnv("STYLO_FORCE_ENABLED")) {
     sStyloEnabled = true;
+  } else if (PR_GetEnv("STYLO_FORCE_DISABLED")) {
+    sStyloEnabled = false;
   } else {
     Preferences::AddBoolVarCache(&sStyloEnabled,
                                  "layout.css.servo.enabled");
@@ -9037,6 +9078,65 @@ nsLayoutUtils::ComputeScrollMetadata(nsIFrame* aForFrame,
   }
 
   return metadata;
+}
+
+/*static*/ Maybe<ScrollMetadata>
+nsLayoutUtils::GetRootMetadata(nsDisplayListBuilder* aBuilder,
+                               Layer* aRootLayer,
+                               const ContainerLayerParameters& aContainerParameters,
+                               const std::function<bool(ViewID& aScrollId)>& aCallback)
+{
+  nsIFrame* frame = aBuilder->RootReferenceFrame();
+  nsPresContext* presContext = frame->PresContext();
+  nsIPresShell* presShell = presContext->PresShell();
+  nsIDocument* document = presShell->GetDocument();
+
+  // If we're using containerless scrolling, there is still one case where we
+  // want the root container layer to have metrics. If the parent process is
+  // using XUL windows, there is no root scrollframe, and without explicitly
+  // creating metrics there will be no guaranteed top-level APZC.
+  bool addMetrics = gfxPrefs::LayoutUseContainersForRootFrames() ||
+      (XRE_IsParentProcess() && !presShell->GetRootScrollFrame());
+
+  // Add metrics if there are none in the layer tree with the id (create an id
+  // if there isn't one already) of the root scroll frame/root content.
+  bool ensureMetricsForRootId =
+    nsLayoutUtils::AsyncPanZoomEnabled(frame) &&
+    !gfxPrefs::LayoutUseContainersForRootFrames() &&
+    aBuilder->IsPaintingToWindow() &&
+    !presContext->GetParentPresContext();
+
+  nsIContent* content = nullptr;
+  nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
+  if (rootScrollFrame) {
+    content = rootScrollFrame->GetContent();
+  } else {
+    // If there is no root scroll frame, pick the document element instead.
+    // The only case we don't want to do this is in non-APZ fennec, where
+    // we want the root xul document to get a null scroll id so that the root
+    // content document gets the first non-null scroll id.
+    content = document->GetDocumentElement();
+  }
+
+  if (ensureMetricsForRootId && content) {
+    ViewID scrollId = nsLayoutUtils::FindOrCreateIDFor(content);
+    if (aCallback(scrollId)) {
+      ensureMetricsForRootId = false;
+    }
+  }
+
+  if (addMetrics || ensureMetricsForRootId) {
+    bool isRootContent = presContext->IsRootContentDocument();
+
+    nsRect viewport(aBuilder->ToReferenceFrame(frame), frame->GetSize());
+    return Some(nsLayoutUtils::ComputeScrollMetadata(frame,
+                           rootScrollFrame, content,
+                           aBuilder->FindReferenceFrameFor(frame),
+                           aRootLayer, FrameMetrics::NULL_SCROLL_ID, viewport, Nothing(),
+                           isRootContent, aContainerParameters));
+  }
+
+  return Nothing();
 }
 
 /* static */ bool

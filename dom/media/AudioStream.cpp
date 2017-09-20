@@ -20,7 +20,7 @@
 #include "gfxPrefs.h"
 #include "AudioConverter.h"
 #if defined(XP_WIN)
-#include "mozilla/audio/AudioNotificationReceiver.h"
+#include "nsXULAppAPI.h"
 #endif
 
 namespace mozilla {
@@ -331,8 +331,7 @@ int AudioStream::InvokeCubeb(Function aFunction, Args&&... aArgs)
 }
 
 nsresult
-AudioStream::Init(uint32_t aNumChannels, uint32_t aChannelMap, uint32_t aRate,
-                  const dom::AudioChannel aAudioChannel)
+AudioStream::Init(uint32_t aNumChannels, uint32_t aChannelMap, uint32_t aRate)
 {
   auto startTime = TimeStamp::Now();
 
@@ -346,11 +345,8 @@ AudioStream::Init(uint32_t aNumChannels, uint32_t aChannelMap, uint32_t aRate,
   params.rate = aRate;
   params.channels = mOutChannels;
   params.layout = CubebUtils::ConvertChannelMapToCubebLayout(aChannelMap);
-#if defined(__ANDROID__)
-  params.stream_type = CUBEB_STREAM_TYPE_MUSIC;
-#endif
-
   params.format = ToCubebFormat<AUDIO_OUTPUT_FORMAT>::value;
+
   mAudioClock.Init(aRate);
 
   cubeb* cubebContext = CubebUtils::GetCubebContext();
@@ -479,6 +475,7 @@ AudioStream::Shutdown()
   mState = SHUTDOWN;
 }
 
+#if defined(XP_WIN)
 void
 AudioStream::ResetDefaultDevice()
 {
@@ -493,6 +490,7 @@ AudioStream::ResetDefaultDevice()
     mState = ERRORED;
   }
 }
+#endif
 
 int64_t
 AudioStream::GetPosition()

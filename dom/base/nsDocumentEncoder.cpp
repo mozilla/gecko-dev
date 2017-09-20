@@ -32,7 +32,6 @@
 #include "nsIDOMDocument.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
-#include "nsIParserService.h"
 #include "nsIScriptContext.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
@@ -40,6 +39,7 @@
 #include "nsISelectionPrivate.h"
 #include "nsITransferable.h" // for kUnicodeMime
 #include "nsContentUtils.h"
+#include "nsElementTable.h"
 #include "nsNodeUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
@@ -1018,6 +1018,14 @@ nsDocumentEncoder::EncodeToString(nsAString& aOutputString)
   return EncodeToStringWithMaxLength(0, aOutputString);
 }
 
+static bool ParentIsTR(nsIContent* aContent) {
+  mozilla::dom::Element* parent = aContent->GetParentElement();
+  if (!parent) {
+    return false;
+  }
+  return parent->IsHTMLElement(nsGkAtoms::tr);
+}
+
 NS_IMETHODIMP
 nsDocumentEncoder::EncodeToStringWithMaxLength(uint32_t aMaxLength,
                                                nsAString& aOutputString)
@@ -1088,7 +1096,7 @@ nsDocumentEncoder::EncodeToStringWithMaxLength(uint32_t aMaxLength,
           NS_ENSURE_SUCCESS(rv, rv);
         }
         nsCOMPtr<nsIContent> content = do_QueryInterface(node);
-        if (content && content->IsHTMLElement(nsGkAtoms::tr)) {
+        if (content && content->IsHTMLElement(nsGkAtoms::tr) && !ParentIsTR(content)) {
           nsINode* n = content;
           if (!prevNode) {
             // Went from a non-<tr> to a <tr>
@@ -1722,9 +1730,6 @@ nsHTMLCopyEncoder::GetPromotedPoint(Endpoint aWhere, nsIDOMNode *aNode, int32_t 
       rv = GetNodeLocation(node, address_of(parent), &offset);
       NS_ENSURE_SUCCESS(rv, rv);
       if (offset == -1) return NS_OK; // we hit generated content; STOP
-      nsIParserService *parserService = nsContentUtils::GetParserService();
-      if (!parserService)
-        return NS_ERROR_OUT_OF_MEMORY;
       while ((IsFirstNode(node)) && (!IsRoot(parent)) && (parent != common))
       {
         if (bResetPromotion)
@@ -1732,11 +1737,8 @@ nsHTMLCopyEncoder::GetPromotedPoint(Endpoint aWhere, nsIDOMNode *aNode, int32_t 
           nsCOMPtr<nsIContent> content = do_QueryInterface(parent);
           if (content && content->IsHTMLElement())
           {
-            bool isBlock = false;
-            parserService->IsBlock(parserService->HTMLAtomTagToId(
-                                     content->NodeInfo()->NameAtom()), isBlock);
-            if (isBlock)
-            {
+            if (nsHTMLElement::IsBlock(nsHTMLTags::AtomTagToId(
+                                       content->NodeInfo()->NameAtom()))) {
               bResetPromotion = false;
             }
           }
@@ -1805,9 +1807,6 @@ nsHTMLCopyEncoder::GetPromotedPoint(Endpoint aWhere, nsIDOMNode *aNode, int32_t 
       rv = GetNodeLocation(node, address_of(parent), &offset);
       NS_ENSURE_SUCCESS(rv, rv);
       if (offset == -1) return NS_OK; // we hit generated content; STOP
-      nsIParserService *parserService = nsContentUtils::GetParserService();
-      if (!parserService)
-        return NS_ERROR_OUT_OF_MEMORY;
       while ((IsLastNode(node)) && (!IsRoot(parent)) && (parent != common))
       {
         if (bResetPromotion)
@@ -1815,11 +1814,8 @@ nsHTMLCopyEncoder::GetPromotedPoint(Endpoint aWhere, nsIDOMNode *aNode, int32_t 
           nsCOMPtr<nsIContent> content = do_QueryInterface(parent);
           if (content && content->IsHTMLElement())
           {
-            bool isBlock = false;
-            parserService->IsBlock(parserService->HTMLAtomTagToId(
-                                     content->NodeInfo()->NameAtom()), isBlock);
-            if (isBlock)
-            {
+            if (nsHTMLElement::IsBlock(nsHTMLTags::AtomTagToId(
+                                       content->NodeInfo()->NameAtom()))) {
               bResetPromotion = false;
             }
           }

@@ -1789,12 +1789,6 @@ CanvasRenderingContext2D::RegisterAllocation()
     RegisterStrongMemoryReporter(new Canvas2dPixelsReporter());
   }
 
-  gCanvasAzureMemoryUsed += mWidth * mHeight * 4;
-  JSContext* context = nsContentUtils::GetCurrentJSContext();
-  if (context) {
-    JS_updateMallocCounter(context, mWidth * mHeight * 4);
-  }
-
   JSObject* wrapper = GetWrapperPreserveColor();
   if (wrapper) {
     CycleCollectedJSRuntime::Get()->
@@ -5184,107 +5178,6 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
 
   nsLayoutUtils::DirectDrawInfo drawInfo;
 
-#ifdef USE_SKIA_GPU
-  if (mRenderingMode == RenderingMode::OpenGLBackendMode &&
-      mIsSkiaGL &&
-      !srcSurf &&
-      aImage.IsHTMLVideoElement() &&
-      AllowOpenGLCanvas()) {
-    mozilla::gl::GLContext* gl = gfxPlatform::GetPlatform()->GetSkiaGLGlue()->GetGLContext();
-    MOZ_ASSERT(gl);
-
-    HTMLVideoElement* video = &aImage.GetAsHTMLVideoElement();
-    if (!video) {
-      return;
-    }
-
-    if (video->ContainsRestrictedContent()) {
-      aError.Throw(NS_ERROR_NOT_AVAILABLE);
-      return;
-    }
-
-    uint16_t readyState;
-    if (NS_SUCCEEDED(video->GetReadyState(&readyState)) &&
-        readyState < nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA) {
-      // still loading, just return
-      return;
-    }
-
-    // If it doesn't have a principal, just bail
-    nsCOMPtr<nsIPrincipal> principal = video->GetCurrentVideoPrincipal();
-    if (!principal) {
-      aError.Throw(NS_ERROR_NOT_AVAILABLE);
-      return;
-    }
-
-    mozilla::layers::ImageContainer* container = video->GetImageContainer();
-    if (!container) {
-      aError.Throw(NS_ERROR_NOT_AVAILABLE);
-      return;
-    }
-
-    AutoLockImage lockImage(container);
-    layers::Image* srcImage = lockImage.GetImage();
-    if (!srcImage) {
-      aError.Throw(NS_ERROR_NOT_AVAILABLE);
-      return;
-    }
-
-    {
-      if (!gl->MakeCurrent()) {
-        aError.Throw(NS_ERROR_NOT_AVAILABLE);
-        return;
-      }
-      GLuint videoTexture = 0;
-      gl->fGenTextures(1, &videoTexture);
-      // skiaGL expect upload on drawing, and uses texture 0 for texturing,
-      // so we must active texture 0 and bind the texture for it.
-      gl->fActiveTexture(LOCAL_GL_TEXTURE0);
-      const gl::ScopedBindTexture scopeBindTexture(gl, videoTexture);
-
-      gl->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGB, srcImage->GetSize().width, srcImage->GetSize().height, 0, LOCAL_GL_RGB, LOCAL_GL_UNSIGNED_SHORT_5_6_5, nullptr);
-      gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-      gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-      gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
-      gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
-
-      const gl::OriginPos destOrigin = gl::OriginPos::TopLeft;
-      bool ok = gl->BlitHelper()->BlitImageToTexture(srcImage, srcImage->GetSize(),
-                                                     videoTexture, LOCAL_GL_TEXTURE_2D,
-                                                     destOrigin);
-      if (ok) {
-        NativeSurface texSurf;
-        texSurf.mType = NativeSurfaceType::OPENGL_TEXTURE;
-        texSurf.mFormat = SurfaceFormat::R5G6B5_UINT16;
-        texSurf.mSize.width = srcImage->GetSize().width;
-        texSurf.mSize.height = srcImage->GetSize().height;
-        texSurf.mSurface = (void*)((uintptr_t)videoTexture);
-
-        srcSurf = mTarget->CreateSourceSurfaceFromNativeSurface(texSurf);
-        if (!srcSurf) {
-          gl->fDeleteTextures(1, &videoTexture);
-        }
-        imgSize.width = srcImage->GetSize().width;
-        imgSize.height = srcImage->GetSize().height;
-
-        int32_t displayWidth = video->VideoWidth();
-        int32_t displayHeight = video->VideoHeight();
-        aSw *= (double)imgSize.width / (double)displayWidth;
-        aSh *= (double)imgSize.height / (double)displayHeight;
-      } else {
-        gl->fDeleteTextures(1, &videoTexture);
-      }
-    }
-
-    srcImage = nullptr;
-
-    if (mCanvasElement) {
-      CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement,
-                                            principal, false,
-                                            video->GetCORSMode() != CORS_NONE);
-    }
-  }
-#endif
   if (!srcSurf) {
     // The canvas spec says that drawImage should draw the first frame
     // of animated images. We also don't want to rasterize vector images.
@@ -5788,7 +5681,7 @@ CanvasRenderingContext2D::GetImageData(JSContext* aCx, double aSx,
       // JSContext, and we're at least _somewhat_ perf-sensitive (so may not
       // want to compute the caller type in the common non-write-only case), so
       // let's just use what we have.
-      !nsContentUtils::CallerHasPermission(aCx, NS_LITERAL_STRING("<all_urls>")))
+      !nsContentUtils::CallerHasPermission(aCx, nsGkAtoms::all_urlsPermission))
   {
     // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -5970,7 +5863,7 @@ void
 CanvasRenderingContext2D::PutImageData(ImageData& aImageData, double aDx,
                                        double aDy, ErrorResult& aError)
 {
-  RootedTypedArray<Uint8ClampedArray> arr(RootingCx());
+  RootedSpiderMonkeyInterface<Uint8ClampedArray> arr(RootingCx());
   DebugOnly<bool> inited = arr.Init(aImageData.GetDataObject());
   MOZ_ASSERT(inited);
 
@@ -5986,7 +5879,7 @@ CanvasRenderingContext2D::PutImageData(ImageData& aImageData, double aDx,
                                        double aDirtyHeight,
                                        ErrorResult& aError)
 {
-  RootedTypedArray<Uint8ClampedArray> arr(RootingCx());
+  RootedSpiderMonkeyInterface<Uint8ClampedArray> arr(RootingCx());
   DebugOnly<bool> inited = arr.Init(aImageData.GetDataObject());
   MOZ_ASSERT(inited);
 
@@ -6289,7 +6182,7 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   return canvasLayer.forget();
 }
 
-void
+bool
 CanvasRenderingContext2D::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
                                                    CanvasRenderer* aRenderer,
                                                    bool aMirror)
@@ -6301,6 +6194,16 @@ CanvasRenderingContext2D::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilde
   data.mPreTransCallbackData = this;
   data.mDidTransCallback = CanvasRenderingContext2DUserData::DidTransactionCallback;
   data.mDidTransCallbackData = this;
+
+  if (!mBufferProvider) {
+    // Force the creation of a buffer provider.
+    EnsureTarget();
+    ReturnTarget();
+    if (!mBufferProvider) {
+      MarkContextClean();
+      return false;
+    }
+  }
 
   if (mIsSkiaGL) {
       GLuint skiaGLTex = SkiaGLTex();
@@ -6316,6 +6219,7 @@ CanvasRenderingContext2D::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilde
 
   aRenderer->Initialize(data);
   aRenderer->SetDirty();
+  return true;
 }
 
 void
@@ -6381,8 +6285,9 @@ CanvasPath::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
 already_AddRefed<CanvasPath>
 CanvasPath::Constructor(const GlobalObject& aGlobal, CanvasPath& aCanvasPath, ErrorResult& aRv)
 {
-  RefPtr<gfx::Path> tempPath = aCanvasPath.GetPath(CanvasWindingRule::Nonzero,
-                                                   gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget());
+  RefPtr<gfx::Path> tempPath = aCanvasPath.GetPath(
+    CanvasWindingRule::Nonzero,
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
 
   RefPtr<CanvasPath> path = new CanvasPath(aGlobal.GetAsSupports(), tempPath->CopyToBuilder());
   return path.forget();
@@ -6571,8 +6476,9 @@ CanvasPath::BezierTo(const gfx::Point& aCP1,
 void
 CanvasPath::AddPath(CanvasPath& aCanvasPath, const Optional<NonNull<SVGMatrix>>& aMatrix)
 {
-  RefPtr<gfx::Path> tempPath = aCanvasPath.GetPath(CanvasWindingRule::Nonzero,
-                                                   gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget());
+  RefPtr<gfx::Path> tempPath = aCanvasPath.GetPath(
+    CanvasWindingRule::Nonzero,
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
 
   if (aMatrix.WasPassed()) {
     const SVGMatrix& m = aMatrix.Value();
@@ -6640,6 +6546,12 @@ CanvasPath::EnsurePathBuilder() const
   MOZ_ASSERT(mPath);
   mPathBuilder = mPath->CopyToBuilder();
   mPath = nullptr;
+}
+
+size_t
+BindingJSObjectMallocBytes(CanvasRenderingContext2D* aContext)
+{
+  return aContext->GetWidth() * aContext->GetHeight() * 4;
 }
 
 } // namespace dom

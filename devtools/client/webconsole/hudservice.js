@@ -48,6 +48,14 @@ HUD_SERVICE.prototype =
    */
   consoles: null,
 
+  _browerConsoleSessionState: false,
+  storeBrowserConsoleSessionState() {
+    this._browerConsoleSessionState = !!this.getBrowserConsole();
+  },
+  getBrowserConsoleSessionState() {
+    return this._browerConsoleSessionState;
+  },
+
   /**
    * Assign a function to this property to listen for every request that
    * completes. Used by unit tests. The callback takes one argument: the HTTP
@@ -190,9 +198,8 @@ HUD_SERVICE.prototype =
       return client.connect()
         .then(() => client.getProcess())
         .then(aResponse => {
-          // Set chrome:false in order to attach to the target
-          // (i.e. send an `attach` request to the chrome actor)
-          return { form: aResponse.form, client: client, chrome: false };
+          // Use a TabActor in order to ensure calling `attach` to the ChromeActor
+          return { form: aResponse.form, client, chrome: true, isTabActor: true };
         });
     }
 
@@ -638,6 +645,9 @@ BrowserConsole.prototype = extend(WebConsole.prototype, {
       return this._bc_init;
     }
 
+    // Only add the shutdown observer if we've opened a Browser Console window.
+    ShutdownObserver.init();
+
     this.ui._filterPrefsPrefix = BROWSER_CONSOLE_FILTER_PREFS_PREFIX;
 
     let window = this.iframeWindow;
@@ -694,16 +704,32 @@ BrowserConsole.prototype = extend(WebConsole.prototype, {
 });
 
 const HUDService = new HUD_SERVICE();
+exports.HUDService = HUDService;
 
-(() => {
-  let methods = ["openWebConsole", "openBrowserConsole",
-                 "toggleBrowserConsole", "getOpenWebConsole",
-                 "getBrowserConsole", "getHudByWindow",
-                 "openBrowserConsoleOrFocus", "getHudReferenceById"];
-  for (let method of methods) {
-    exports[method] = HUDService[method].bind(HUDService);
+/**
+ * The ShutdownObserver listens for app shutdown and saves the current state
+ * of the Browser Console for session restore.
+ */
+var ShutdownObserver = {
+  _initialized: false,
+  init() {
+    if (this._initialized) {
+      return;
+    }
+
+    Services.obs.addObserver(this, "quit-application-granted");
+
+    this._initialized = true;
+  },
+
+  observe(message, topic) {
+    if (topic == "quit-application-granted") {
+      HUDService.storeBrowserConsoleSessionState();
+      this.uninit();
+    }
+  },
+
+  uninit() {
+    Services.obs.removeObserver(this, "quit-application-granted");
   }
-
-  exports.consoles = HUDService.consoles;
-  exports.lastFinishedRequest = HUDService.lastFinishedRequest;
-})();
+};

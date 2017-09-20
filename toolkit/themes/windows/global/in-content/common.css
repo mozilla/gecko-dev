@@ -77,3 +77,11 @@ html|input[type="checkbox"]:-moz-focusring + html|label:before {
      border: 2px dotted Highlight;
   }
 }
+
+*|*.header-name {
+  font-size: 1.83rem;
+}
+
+*|*.category-name {
+  font-size: 1.33rem;
+}

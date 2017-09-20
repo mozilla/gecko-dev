@@ -237,6 +237,10 @@ PaymentRequestService::RequestPayment(nsIPaymentActionRequest* aRequest)
       rv = request->GetTabId(&tabId);
       NS_ENSURE_SUCCESS(rv, rv);
 
+      nsCOMPtr<nsIPrincipal> topLevelPrincipal;
+      rv = request->GetTopLevelPrincipal(getter_AddRefs(topLevelPrincipal));
+      NS_ENSURE_SUCCESS(rv, rv);
+
       nsCOMPtr<nsIArray> methodData;
       rv = request->GetMethodData(getter_AddRefs(methodData));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -250,22 +254,19 @@ PaymentRequestService::RequestPayment(nsIPaymentActionRequest* aRequest)
       NS_ENSURE_SUCCESS(rv, rv);
 
       nsCOMPtr<nsIPaymentRequest> payment =
-        new payments::PaymentRequest(tabId, requestId, methodData, details, options);
+        new payments::PaymentRequest(tabId, requestId, topLevelPrincipal,
+                                     methodData, details, options);
 
       if (!mRequestQueue.AppendElement(payment, mozilla::fallible)) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
       break;
     }
-    /*
-     *  TODO: 1. Check third party payment app support by traversing all
-     *           registered third party payment apps.
-     */
     case nsIPaymentActionRequest::CANMAKE_ACTION: {
       nsCOMPtr<nsIPaymentCanMakeActionResponse> canMakeResponse =
         do_CreateInstance(NS_PAYMENT_CANMAKE_ACTION_RESPONSE_CONTRACT_ID);
       MOZ_ASSERT(canMakeResponse);
-      if (IsBasicCardPayment(requestId)) {
+      if (CanMakePayment(requestId)) {
         rv = canMakeResponse->Init(requestId, true);
       } else {
         rv = canMakeResponse->Init(requestId, false);
@@ -282,17 +283,20 @@ PaymentRequestService::RequestPayment(nsIPaymentActionRequest* aRequest)
       break;
     }
     case nsIPaymentActionRequest::SHOW_ACTION: {
-      if (mShowingRequest) {
-        nsCOMPtr<nsIPaymentResponseData> responseData =
-          do_CreateInstance(NS_GENERAL_RESPONSE_DATA_CONTRACT_ID);
-        MOZ_ASSERT(responseData);
+      if (mShowingRequest || !CanMakePayment(requestId)) {
+        uint32_t responseStatus;
+        if (mShowingRequest) {
+          responseStatus = nsIPaymentActionResponse::PAYMENT_REJECTED;
+        } else {
+          responseStatus = nsIPaymentActionResponse::PAYMENT_NOTSUPPORTED;
+        }
         nsCOMPtr<nsIPaymentShowActionResponse> showResponse =
           do_CreateInstance(NS_PAYMENT_SHOW_ACTION_RESPONSE_CONTRACT_ID);
         MOZ_ASSERT(showResponse);
         rv = showResponse->Init(requestId,
-                                nsIPaymentActionResponse::PAYMENT_REJECTED,
+                                responseStatus,
                                 EmptyString(),
-                                responseData,
+                                nullptr,
                                 EmptyString(),
                                 EmptyString(),
                                 EmptyString());
@@ -403,10 +407,10 @@ PaymentRequestService::RespondPayment(nsIPaymentActionResponse* aResponse)
       nsCOMPtr<nsIPaymentShowActionResponse> response =
         do_QueryInterface(aResponse);
       MOZ_ASSERT(response);
-      bool isAccepted;
-      rv = response->IsAccepted(&isAccepted);
+      uint32_t acceptStatus;
+      rv = response->GetAcceptStatus(&acceptStatus);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (!isAccepted) {
+      if (acceptStatus != nsIPaymentActionResponse::PAYMENT_ACCEPTED) {
         mShowingRequest = nullptr;
         mRequestQueue.RemoveElement(request);
       }
@@ -485,6 +489,16 @@ PaymentRequestService::RemoveActionCallback(const nsAString& aRequestId)
   }
   mCallbackHashtable.Remove(aRequestId);
   return NS_OK;
+}
+
+bool
+PaymentRequestService::CanMakePayment(const nsAString& aRequestId)
+{
+  /*
+   *  TODO: Check third party payment app support by traversing all
+   *        registered third party payment apps.
+   */
+  return IsBasicCardPayment(aRequestId);
 }
 
 bool

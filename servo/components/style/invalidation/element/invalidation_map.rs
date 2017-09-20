@@ -7,6 +7,8 @@
 use {Atom, LocalName, Namespace};
 use context::QuirksMode;
 use element_state::ElementState;
+use fallible::FallibleVec;
+use hashglobe::FailedAllocationError;
 use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
@@ -54,11 +56,15 @@ pub fn dir_selector_to_state(s: &[u16]) -> ElementState {
 /// rules and determine the maximum effect that a given state or attribute
 /// change may have on the style of elements in the document.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Dependency {
     /// The dependency selector.
+    #[cfg_attr(feature = "gecko",
+               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
+
     /// The offset into the selector that we should match on.
     pub selector_offset: usize,
 }
@@ -109,7 +115,8 @@ impl SelectorMapEntry for Dependency {
 
 /// The same, but for state selectors, which can track more exactly what state
 /// do they track.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StateDependency {
     /// The other dependency fields.
@@ -132,14 +139,16 @@ impl SelectorMapEntry for StateDependency {
 /// In particular, we want to lookup as few things as possible to get the fewer
 /// selectors the better, so this looks up by id, class, or looks at the list of
 /// state/other attribute affecting selectors.
+#[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct InvalidationMap {
     /// A map from a given class name to all the selectors with that class
     /// selector.
-    pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<Dependency>>,
+    pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map from a given id to all the selectors with that ID in the
     /// stylesheets currently applying to the document.
-    pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<Dependency>>,
+    pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map of all the state dependencies.
     pub state_affecting_selectors: SelectorMap<StateDependency>,
     /// A map of other attribute affecting selectors.
@@ -181,12 +190,13 @@ impl InvalidationMap {
         })
     }
 
-    /// Adds a selector to this `InvalidationMap`.
+    /// Adds a selector to this `InvalidationMap`.  Returns Err(..) to
+    /// signify OOM.
     pub fn note_selector(
         &mut self,
         selector: &Selector<SelectorImpl>,
-        quirks_mode: QuirksMode)
-    {
+        quirks_mode: QuirksMode
+    ) -> Result<(), FailedAllocationError> {
         self.collect_invalidations_for(selector, quirks_mode)
     }
 
@@ -194,17 +204,18 @@ impl InvalidationMap {
     pub fn clear(&mut self) {
         self.class_to_selector.clear();
         self.id_to_selector.clear();
-        self.state_affecting_selectors = SelectorMap::new();
-        self.other_attribute_affecting_selectors = SelectorMap::new();
+        self.state_affecting_selectors.clear();
+        self.other_attribute_affecting_selectors.clear();
         self.has_id_attribute_selectors = false;
         self.has_class_attribute_selectors = false;
     }
 
+    // Returns Err(..) to signify OOM.
     fn collect_invalidations_for(
         &mut self,
         selector: &Selector<SelectorImpl>,
-        quirks_mode: QuirksMode)
-    {
+        quirks_mode: QuirksMode
+    ) -> Result<(), FailedAllocationError> {
         debug!("InvalidationMap::collect_invalidations_for({:?})", selector);
 
         let mut iter = selector.iter();
@@ -242,21 +253,21 @@ impl InvalidationMap {
             for class in compound_visitor.classes {
                 self.class_to_selector
                     .entry(class, quirks_mode)
-                    .or_insert_with(SelectorMap::new)
-                    .insert(Dependency {
+                    .or_insert_with(SmallVec::new)
+                    .try_push(Dependency {
                         selector: selector.clone(),
                         selector_offset: sequence_start,
-                    }, quirks_mode);
+                    })?;
             }
 
             for id in compound_visitor.ids {
                 self.id_to_selector
                     .entry(id, quirks_mode)
-                    .or_insert_with(SelectorMap::new)
-                    .insert(Dependency {
+                    .or_insert_with(SmallVec::new)
+                    .try_push(Dependency {
                         selector: selector.clone(),
                         selector_offset: sequence_start,
-                    }, quirks_mode);
+                    })?;
             }
 
             if !compound_visitor.state.is_empty() {
@@ -267,7 +278,7 @@ impl InvalidationMap {
                             selector_offset: sequence_start,
                         },
                         state: compound_visitor.state,
-                    }, quirks_mode);
+                    }, quirks_mode)?;
             }
 
             if compound_visitor.other_attributes {
@@ -275,7 +286,7 @@ impl InvalidationMap {
                     .insert(Dependency {
                         selector: selector.clone(),
                         selector_offset: sequence_start,
-                    }, quirks_mode);
+                    }, quirks_mode)?;
             }
 
             combinator = iter.next_sequence();
@@ -285,6 +296,8 @@ impl InvalidationMap {
 
             index += 1; // Account for the combinator.
         }
+
+        Ok(())
     }
 }
 

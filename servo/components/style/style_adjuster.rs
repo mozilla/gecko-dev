@@ -13,7 +13,11 @@ use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
 
-/// An unsized struct that implements all the adjustment methods.
+/// A struct that implements all the adjustment methods.
+///
+/// NOTE(emilio): If new adjustments are introduced that depend on reset
+/// properties of the parent, you may need tweaking the
+/// `ChildCascadeRequirement` code in `matching.rs`.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
 }
@@ -50,9 +54,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
-    fn blockify_if_necessary(&mut self,
-                             layout_parent_style: &ComputedValues,
-                             flags: CascadeFlags) {
+    fn blockify_if_necessary(
+        &mut self,
+        layout_parent_style: &ComputedValues,
+        flags: CascadeFlags,
+    ) {
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -80,8 +86,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let blockified_display =
             display.equivalent_block_display(flags.contains(IS_ROOT_ELEMENT));
         if display != blockified_display {
-            self.style.mutate_box().set_adjusted_display(blockified_display,
-                                                         is_item_or_root);
+            self.style.mutate_box().set_adjusted_display(
+                blockified_display,
+                is_item_or_root,
+            );
         }
     }
 
@@ -110,6 +118,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     pub fn adjust_for_text(&mut self) {
         self.adjust_for_text_combine_upright();
+        self.adjust_for_text_in_ruby();
         self.set_bits();
     }
 
@@ -138,6 +147,19 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// Applies the line break suppression flag to text if it is in any ruby
+    /// box. This is necessary because its parent may not itself have the flag
+    /// set (e.g. ruby or ruby containers), thus we may not inherit the flag
+    /// from them.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_text_in_ruby(&mut self) {
+        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        let parent_display = self.style.get_parent_box().clone_display();
+        if parent_display.is_ruby_type() {
+            self.style.flags.insert(SHOULD_SUPPRESS_LINEBREAK);
+        }
+    }
+
     /// https://drafts.csswg.org/css-writing-modes-3/#block-flow:
     ///
     ///    If a box has a different writing-mode value than its containing
@@ -151,10 +173,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
     /// https://github.com/servo/servo/issues/15754
-    fn adjust_for_writing_mode(&mut self,
-                               layout_parent_style: &ComputedValues) {
-        let our_writing_mode = self.style.get_inheritedbox().clone_writing_mode();
-        let parent_writing_mode = layout_parent_style.get_inheritedbox().clone_writing_mode();
+    fn adjust_for_writing_mode(
+        &mut self,
+        layout_parent_style: &ComputedValues,
+    ) {
+        let our_writing_mode =
+            self.style.get_inheritedbox().clone_writing_mode();
+        let parent_writing_mode =
+            layout_parent_style.get_inheritedbox().clone_writing_mode();
 
         if our_writing_mode != parent_writing_mode &&
            self.style.get_box().clone_display() == display::inline {
@@ -184,7 +210,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
         if self.style.get_box().clone_contain().contains(contain::PAINT) {
             if self.style.get_box().clone_overflow_x() == overflow::visible {
-                let mut box_style = self.style.mutate_box();
+                let box_style = self.style.mutate_box();
                 box_style.set_overflow_x(overflow::_moz_hidden_unscrollable);
                 box_style.set_overflow_y(overflow::_moz_hidden_unscrollable);
             }
@@ -199,7 +225,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use properties::longhands::font_style::computed_value::T as font_style;
         use properties::longhands::font_weight::computed_value::T as font_weight;
         if self.style.get_font().clone__moz_math_variant() != moz_math_variant::none {
-            let mut font_style = self.style.mutate_font();
+            let font_style = self.style.mutate_font();
             // Sadly we don't have a nice name for the computed value
             // of "font-weight: normal".
             font_style.set_font_weight(font_weight::normal());
@@ -286,7 +312,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if overflow_x != original_overflow_x ||
            overflow_y != original_overflow_y {
-            let mut box_style = self.style.mutate_box();
+            let box_style = self.style.mutate_box();
             box_style.set_overflow_x(overflow_x);
             box_style.set_overflow_y(overflow_y);
         }
@@ -309,10 +335,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// If a <fieldset> has grid/flex display type, we need to inherit
     /// this type into its ::-moz-fieldset-content anonymous box.
+    ///
+    /// NOTE(emilio): We don't need to handle the display change for this case
+    /// in matching.rs because anonymous box restyling works separately to the
+    /// normal cascading process.
     #[cfg(feature = "gecko")]
-    fn adjust_for_fieldset_content(&mut self,
-                                   layout_parent_style: &ComputedValues,
-                                   flags: CascadeFlags) {
+    fn adjust_for_fieldset_content(
+        &mut self,
+        layout_parent_style: &ComputedValues,
+        flags: CascadeFlags,
+    ) {
         use properties::IS_FIELDSET_CONTENT;
         if !flags.contains(IS_FIELDSET_CONTENT) {
             return;
@@ -323,8 +355,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // when <fieldset> has "display: contents".
         let parent_display = layout_parent_style.get_box().clone_display();
         let new_display = match parent_display {
-            display::flex | display::inline_flex => Some(display::flex),
-            display::grid | display::inline_grid => Some(display::grid),
+            display::flex |
+            display::inline_flex => Some(display::flex),
+            display::grid |
+            display::inline_grid => Some(display::grid),
             _ => None,
         };
         if let Some(new_display) = new_display {
@@ -341,22 +375,25 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_table_text_align(&mut self) {
         use properties::longhands::text_align::computed_value::T as text_align;
-       if self.style.get_box().clone_display() != display::table {
-           return;
-       }
+        if self.style.get_box().clone_display() != display::table {
+            return;
+        }
 
-       match self.style.get_inheritedtext().clone_text_align() {
-           text_align::_moz_left |
-           text_align::_moz_center |
-           text_align::_moz_right => {}
-           _ => return,
-       }
+        match self.style.get_inheritedtext().clone_text_align() {
+            text_align::_moz_left |
+            text_align::_moz_center |
+            text_align::_moz_right => {},
+            _ => return,
+        }
 
-       self.style.mutate_inheritedtext().set_text_align(text_align::start);
+        self.style.mutate_inheritedtext().set_text_align(text_align::start)
     }
 
     /// Set the HAS_TEXT_DECORATION_LINES flag based on parent style.
-    fn adjust_for_text_decoration_lines(&mut self, layout_parent_style: &ComputedValues) {
+    fn adjust_for_text_decoration_lines(
+        &mut self,
+        layout_parent_style: &ComputedValues,
+    ) {
         use properties::computed_value_flags::HAS_TEXT_DECORATION_LINES;
         if layout_parent_style.flags.contains(HAS_TEXT_DECORATION_LINES) ||
            !self.style.get_text().clone_text_decoration_line().is_empty() {
@@ -365,7 +402,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     #[cfg(feature = "gecko")]
-    fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
+    fn should_suppress_linebreak(
+        &self,
+        layout_parent_style: &ComputedValues,
+    ) -> bool {
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
         // Line break suppression should only be propagated to in-flow children.
         if self.style.floated() || self.style.out_of_flow_positioned() {
@@ -381,13 +421,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
         match self.style.get_box().clone_display() {
             // Ruby base and text are always non-breakable.
-            display::ruby_base | display::ruby_text => true,
+            display::ruby_base |
+            display::ruby_text => true,
             // Ruby base container and text container are breakable.
             // Note that, when certain HTML tags, e.g. form controls, have ruby
             // level container display type, they could also escape from the
             // line break suppression flag while they shouldn't. However, it is
             // generally fine since they themselves are non-breakable.
-            display::ruby_base_container | display::ruby_text_container => false,
+            display::ruby_base_container |
+            display::ruby_text_container => false,
             // Anything else is non-breakable if and only if its layout parent
             // has a ruby display type, because any of the ruby boxes can be
             // anonymous.
@@ -401,9 +443,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// * suppress border and padding for ruby level containers,
     /// * correct unicode-bidi.
     #[cfg(feature = "gecko")]
-    fn adjust_for_ruby(&mut self,
-                       layout_parent_style: &ComputedValues,
-                       flags: CascadeFlags) {
+    fn adjust_for_ruby(
+        &mut self,
+        layout_parent_style: &ComputedValues,
+        flags: CascadeFlags,
+    ) {
         use properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
         use properties::longhands::unicode_bidi::computed_value::T as unicode_bidi;
@@ -433,7 +477,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // per spec https://drafts.csswg.org/css-ruby-1/#bidi
         if self_display.is_ruby_type() {
             let new_value = match self.style.get_text().clone_unicode_bidi() {
-                unicode_bidi::normal | unicode_bidi::embed => Some(unicode_bidi::isolate),
+                unicode_bidi::normal |
+                unicode_bidi::embed => Some(unicode_bidi::isolate),
                 unicode_bidi::bidi_override => Some(unicode_bidi::isolate_override),
                 _ => None,
             };
@@ -507,9 +552,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// When comparing to Gecko, this is similar to the work done by
     /// `nsStyleContext::ApplyStyleFixups`, plus some parts of
     /// `nsStyleSet::GetContext`.
-    pub fn adjust(&mut self,
-                  layout_parent_style: &ComputedValues,
-                  flags: CascadeFlags) {
+    pub fn adjust(
+        &mut self,
+        layout_parent_style: &ComputedValues,
+        flags: CascadeFlags,
+    ) {
         self.adjust_for_visited(flags);
         #[cfg(feature = "gecko")]
         {

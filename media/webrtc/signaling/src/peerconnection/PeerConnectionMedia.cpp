@@ -406,7 +406,7 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
       CSFLogError(logTag, "%s: Failed to set turn servers", __FUNCTION__);
       return rv;
     }
-  } else if (turn_servers.size() != 0) {
+  } else if (!turn_servers.empty()) {
     CSFLogError(logTag, "%s: Setting turn servers disabled", __FUNCTION__);
   }
   if (NS_FAILED(rv = mDNSResolver->Init())) {
@@ -951,6 +951,12 @@ PeerConnectionMedia::EnsureIceGathering_s(bool aDefaultRouteOnly,
                               NrIceCtx::ICE_CTX_GATHER_COMPLETE);
     return;
   }
+
+  // Belt and suspenders - in e10s mode, the call below to SetStunAddrs
+  // needs to have the proper flags set on ice ctx.  For non-e10s,
+  // setting those flags happens in StartGathering.  We could probably
+  // just set them here, and only do it here.
+  mIceCtxHdlr->ctx()->SetCtxFlags(aDefaultRouteOnly, aProxyOnly);
 
   if (mStunAddrs.Length()) {
     mIceCtxHdlr->ctx()->SetStunAddrs(mStunAddrs);

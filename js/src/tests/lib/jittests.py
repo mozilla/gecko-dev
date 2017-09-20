@@ -251,9 +251,9 @@ class JitTest:
                     elif name == 'test-also-noasmjs':
                         if options.asmjs_enabled:
                             test.test_also.append(['--no-asmjs'])
-                    elif name == 'test-also-wasm-baseline':
+                    elif name == 'test-also-no-wasm-baseline':
                         if options.wasm_enabled:
-                            test.test_also.append(['--wasm-always-baseline'])
+                            test.test_also.append(['--no-wasm-baseline'])
                     elif name == 'test-also-wasm-check-bce':
                         if options.wasm_enabled:
                             test.test_also.append(['--wasm-check-bce'])
@@ -382,7 +382,8 @@ def run_test_remote(test, device, prefix, options):
 
 def check_output(out, err, rc, timed_out, test, options):
     if timed_out:
-        if test.relpath_tests in options.ignore_timeouts:
+        if os.path.normpath(test.relpath_tests).replace(os.sep, '/') \
+                in options.ignore_timeouts:
             return True
 
         # The shell sometimes hangs on shutdown on Windows 7 and Windows
@@ -480,8 +481,8 @@ def print_automation_format(ok, res):
     result = "TEST-PASS" if ok else "TEST-UNEXPECTED-FAIL"
     message = "Success" if ok else res.describe_failure()
     jitflags = " ".join(res.test.jitflags)
-    print("{} | {} | {} (code {}, args \"{}\")".format(
-        result, res.test.relpath_top, message, res.rc, jitflags))
+    print("{} | {} | {} (code {}, args \"{}\") [{:.1f} s]".format(
+        result, res.test.relpath_top, message, res.rc, jitflags, res.dt))
 
     # For failed tests, print as much information as we have, to aid debugging.
     if ok:

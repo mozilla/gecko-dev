@@ -12,7 +12,6 @@
 #include "jit/BaselineCacheIRCompiler.h"
 #include "jit/BaselineIC.h"
 #include "jit/CacheIRSpewer.h"
-#include "jit/IonCaches.h"
 
 #include "vm/SelfHosting.h"
 #include "jsobjinlines.h"
@@ -2646,6 +2645,10 @@ SetPropIRGenerator::tryAttachStub()
             return false;
 
         ObjOperandId objId = writer.guardIsObject(objValId);
+        if (IsPropertySetOp(JSOp(*pc_))) {
+            if (tryAttachMegamorphicSetElement(obj, objId, rhsValId))
+                return true;
+        }
         if (nameOrSymbol) {
             if (tryAttachNativeSetSlot(obj, objId, id, rhsValId))
                 return true;
@@ -2708,22 +2711,33 @@ EmitStoreSlotAndReturn(CacheIRWriter& writer, ObjOperandId objId, NativeObject* 
 }
 
 static Shape*
-LookupShapeForSetSlot(NativeObject* obj, jsid id)
+LookupShapeForSetSlot(JSOp op, NativeObject* obj, jsid id)
 {
     Shape* shape = obj->lookupPure(id);
-    if (shape && shape->hasSlot() && shape->hasDefaultSetter() && shape->writable())
-        return shape;
-    return nullptr;
+    if (!shape || !shape->hasSlot() || !shape->hasDefaultSetter() || !shape->writable())
+        return nullptr;
+
+    // If this is an op like JSOP_INITELEM / [[DefineOwnProperty]], the
+    // property's attributes may have to be changed too, so make sure it's a
+    // simple data property.
+    if (IsPropertyInitOp(op) && (!shape->configurable() ||
+                                 !shape->enumerable() ||
+                                 !shape->hasDefaultGetter()))
+    {
+        return nullptr;
+    }
+
+    return shape;
 }
 
 static bool
-CanAttachNativeSetSlot(JSContext* cx, HandleObject obj, HandleId id,
+CanAttachNativeSetSlot(JSContext* cx, JSOp op, HandleObject obj, HandleId id,
                        bool* isTemporarilyUnoptimizable, MutableHandleShape propShape)
 {
     if (!obj->isNative())
         return false;
 
-    propShape.set(LookupShapeForSetSlot(&obj->as<NativeObject>(), id));
+    propShape.set(LookupShapeForSetSlot(op, &obj->as<NativeObject>(), id));
     if (!propShape)
         return false;
 
@@ -2751,7 +2765,7 @@ SetPropIRGenerator::tryAttachNativeSetSlot(HandleObject obj, ObjOperandId objId,
                                            ValOperandId rhsId)
 {
     RootedShape propShape(cx_);
-    if (!CanAttachNativeSetSlot(cx_, obj, id, isTemporarilyUnoptimizable_, &propShape))
+    if (!CanAttachNativeSetSlot(cx_, JSOp(*pc_), obj, id, isTemporarilyUnoptimizable_, &propShape))
         return false;
 
     if (mode_ == ICState::Mode::Megamorphic && cacheKind_ == CacheKind::SetProp) {
@@ -2795,7 +2809,7 @@ SetPropIRGenerator::tryAttachUnboxedExpandoSetSlot(HandleObject obj, ObjOperandI
     if (!expando)
         return false;
 
-    Shape* propShape = LookupShapeForSetSlot(expando, id);
+    Shape* propShape = LookupShapeForSetSlot(JSOp(*pc_), expando, id);
     if (!propShape)
         return false;
 
@@ -3143,7 +3157,6 @@ CanAttachAddElement(JSObject* obj, bool isInit)
             (clasp->getAddProperty() ||
              clasp->getResolve() ||
              clasp->getOpsLookupProperty() ||
-             clasp->getSetProperty() ||
              clasp->getOpsSetProperty()))
         {
             return false;
@@ -3477,7 +3490,9 @@ SetPropIRGenerator::tryAttachDOMProxyExpando(HandleObject obj, ObjOperandId objI
     }
 
     RootedShape propShape(cx_);
-    if (CanAttachNativeSetSlot(cx_, expandoObj, id, isTemporarilyUnoptimizable_, &propShape)) {
+    if (CanAttachNativeSetSlot(cx_, JSOp(*pc_), expandoObj, id, isTemporarilyUnoptimizable_,
+                               &propShape))
+    {
         maybeEmitIdGuard(id);
         ObjOperandId expandoObjId =
             guardDOMProxyExpandoObjectAndShape(obj, objId, expandoVal, expandoObj);
@@ -3574,6 +3589,26 @@ SetPropIRGenerator::tryAttachProxyElement(HandleObject obj, ObjOperandId objId, 
 }
 
 bool
+SetPropIRGenerator::tryAttachMegamorphicSetElement(HandleObject obj, ObjOperandId objId,
+                                                   ValOperandId rhsId)
+{
+    MOZ_ASSERT(IsPropertySetOp(JSOp(*pc_)));
+
+    if (mode_ != ICState::Mode::Megamorphic || cacheKind_ != CacheKind::SetElem)
+        return false;
+
+    // The generic proxy stubs are faster.
+    if (obj->is<ProxyObject>())
+        return false;
+
+    writer.megamorphicSetElement(objId, setElemKeyValueId(), rhsId, IsStrictSetPC(pc_));
+    writer.returnFromIC();
+
+    trackAttached("MegamorphicSetElement");
+    return true;
+}
+
+bool
 SetPropIRGenerator::tryAttachWindowProxy(HandleObject obj, ObjOperandId objId, HandleId id,
                                          ValOperandId rhsId)
 {
@@ -3598,8 +3633,11 @@ SetPropIRGenerator::tryAttachWindowProxy(HandleObject obj, ObjOperandId objId, H
     Handle<GlobalObject*> windowObj = cx_->global();
 
     RootedShape propShape(cx_);
-    if (!CanAttachNativeSetSlot(cx_, windowObj, id, isTemporarilyUnoptimizable_, &propShape))
+    if (!CanAttachNativeSetSlot(cx_, JSOp(*pc_), windowObj, id, isTemporarilyUnoptimizable_,
+                                &propShape))
+    {
         return false;
+    }
 
     maybeEmitIdGuard(id);
 
@@ -3918,10 +3956,11 @@ GetIteratorIRGenerator::tryAttachNativeIterator(ObjOperandId objId, HandleObject
     return true;
 }
 
-CallIRGenerator::CallIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
+CallIRGenerator::CallIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc, JSOp op,
                                  ICCall_Fallback* stub, ICState::Mode mode, uint32_t argc,
                                  HandleValue callee, HandleValue thisval, HandleValueArray args)
   : IRGenerator(cx, script, pc, CacheKind::Call, mode),
+    op_(op),
     argc_(argc),
     callee_(callee),
     thisval_(thisval),
@@ -4074,8 +4113,88 @@ CallIRGenerator::tryAttachArrayPush()
 }
 
 bool
+CallIRGenerator::tryAttachArrayJoin()
+{
+    // Only handle argc <= 1.
+    if (argc_ > 1)
+        return false;
+
+    // Only optimize on obj.join(...);
+    if (!thisval_.isObject())
+        return false;
+
+    // Where |obj| is a native array.
+    RootedObject thisobj(cx_, &thisval_.toObject());
+    if (!thisobj->is<ArrayObject>())
+        return false;
+
+    RootedArrayObject thisarray(cx_, &thisobj->as<ArrayObject>());
+
+    // And the array is of length 0 or 1.
+    if (thisarray->length() > 1)
+        return false;
+
+    // And the array is packed.
+    if (thisarray->getDenseInitializedLength() != thisarray->length())
+        return false;
+
+    // We don't need to worry about indexed properties because we can perform
+    // hole check manually.
+
+    // Generate code.
+    AutoAssertNoPendingException aanpe(cx_);
+    Int32OperandId argcId(writer.setInputOperandId(0));
+
+    // if 0 arguments:
+    //  1: Callee
+    //  0: ThisValue <-- Top of stack.
+    //
+    // if 1 argument:
+    //  2: Callee
+    //  1: ThisValue
+    //  0: Arg0 [optional] <-- Top of stack.
+
+    // Guard callee is the |js::array_join| native function.
+    uint32_t calleeIndex = (argc_ == 0) ? 1 : 2;
+    ValOperandId calleeValId = writer.loadStackValue(calleeIndex);
+    ObjOperandId calleeObjId = writer.guardIsObject(calleeValId);
+    writer.guardIsNativeFunction(calleeObjId, js::array_join);
+
+    if (argc_ == 1) {
+        // If argcount is 1, guard that the argument is a string.
+        ValOperandId argValId = writer.loadStackValue(0);
+        writer.guardIsString(argValId);
+    }
+
+    // Guard this is an array object.
+    uint32_t thisIndex = (argc_ == 0) ? 0 : 1;
+    ValOperandId thisValId = writer.loadStackValue(thisIndex);
+    ObjOperandId thisObjId = writer.guardIsObject(thisValId);
+    writer.guardClass(thisObjId, GuardClassKind::Array);
+
+    // Do the join.
+    writer.arrayJoinResult(thisObjId);
+
+    writer.returnFromIC();
+
+    // The result of this stub does not need to be monitored because it will
+    // always return a string.  We will add String to the stack typeset when
+    // attaching this stub.
+
+    // Set the stub kind to Regular 
+    cacheIRStubKind_ = BaselineCacheIRStubKind::Regular;
+
+    trackAttached("ArrayJoin");
+    return true;
+}
+
+bool
 CallIRGenerator::tryAttachStub()
 {
+    // Only optimize on JSOP_CALL or JSOP_CALL_IGNORES_RV.  No fancy business for now.
+    if ((op_ != JSOP_CALL) && (op_ != JSOP_CALL_IGNORES_RV))
+        return false;
+
     // Only optimize when the mode is Specialized.
     if (mode_ != ICState::Mode::Specialized)
         return false;
@@ -4088,7 +4207,6 @@ CallIRGenerator::tryAttachStub()
 
     // Check for native-function optimizations.
     if (calleeFunc->isNative()) {
-
         if (calleeFunc->native() == js::intrinsic_StringSplitString) {
             if (tryAttachStringSplit())
                 return true;
@@ -4096,6 +4214,11 @@ CallIRGenerator::tryAttachStub()
 
         if (calleeFunc->native() == js::array_push) {
             if (tryAttachArrayPush())
+                return true;
+        }
+
+        if (calleeFunc->native() == js::array_join) {
+            if (tryAttachArrayJoin())
                 return true;
         }
     }

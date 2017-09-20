@@ -82,6 +82,15 @@ public:
 
   void Localize(const nsAString& aInput, nsString& aResult) const;
 
+  const nsString& Name() const
+  {
+    return mName;
+  }
+  void GetName(nsAString& aName) const
+  {
+    aName = mName;
+  }
+
   const nsString& ContentSecurityPolicy() const
   {
     return mContentSecurityPolicy;
@@ -131,6 +140,7 @@ public:
   GetByURI(dom::GlobalObject& aGlobal, nsIURI* aURI);
 
 
+  static bool UseRemoteWebExtensions(dom::GlobalObject& aGlobal);
   static bool IsExtensionProcess(dom::GlobalObject& aGlobal);
 
 
@@ -153,6 +163,7 @@ private:
   nsCString mHostname;
   nsCOMPtr<nsIURI> mBaseURI;
 
+  nsString mName;
   nsString mContentSecurityPolicy;
 
   bool mActive = false;

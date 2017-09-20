@@ -60,7 +60,15 @@ public:
     void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                 FontListSizes* aSizes) const final;
 
+    bool FilterForFontList(nsIAtom* aLangGroup,
+                           const nsACString& aGeneric) const final {
+        return !IsSymbolFontFamily();
+    }
+
 protected:
+    // helper for FilterForFontList
+    bool IsSymbolFontFamily() const;
+
     /** This font family's directwrite fontfamily object */
     RefPtr<IDWriteFontFamily> mDWFamily;
     bool mForceGDIClassic;
@@ -150,9 +158,9 @@ public:
         mIsCJK = UNINITIALIZED_VALUE;
     }
 
-    virtual ~gfxDWriteFontEntry();
+    gfxFontEntry* Clone() const override;
 
-    virtual bool IsSymbolFont();
+    virtual ~gfxDWriteFontEntry();
 
     virtual hb_blob_t* GetFontTable(uint32_t aTableTag) override;
 
@@ -359,6 +367,8 @@ public:
     // initialize font lists
     virtual nsresult InitFontListForPlatform() override;
 
+    gfxFontFamily* CreateFontFamily(const nsAString& aName) const override;
+
     virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
                                           uint16_t aWeight,
                                           int16_t aStretch,
@@ -379,7 +389,7 @@ public:
 
     bool FindAndAddFamilies(const nsAString& aFamily,
                             nsTArray<gfxFontFamily*>* aOutput,
-                            bool aDeferOtherFamilyNamesLoading,
+                            FindFamiliesFlags aFlags,
                             gfxFontStyle* aStyle = nullptr,
                             gfxFloat aDevToCssSize = 1.0) override;
 

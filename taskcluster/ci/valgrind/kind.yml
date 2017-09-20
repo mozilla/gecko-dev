@@ -26,11 +26,10 @@ jobs:
             tier: 1
         worker-type: aws-provisioner-v1/gecko-{level}-b-linux
         worker:
-            docker-image: {in-tree: desktop-build}
+            docker-image: {in-tree: valgrind-build}
             max-run-time: 72000
             env:
                 TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
-        needs-sccache: true
         run:
             using: mozharness
             actions: [get-secrets build valgrind-test]

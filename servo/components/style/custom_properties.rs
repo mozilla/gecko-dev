@@ -8,16 +8,16 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
+use hash::{HashMap, HashSet};
 use parser::ParserContext;
 use properties::{CSSWideKeyword, DeclaredValue};
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
-use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
-use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
+use style_traits::{ToCss, StyleParseError, ParseError};
 
 /// A custom property name is just an `Atom`.
 ///
@@ -39,7 +39,8 @@ pub fn parse_name(s: &str) -> Result<&str, ()> {
 ///
 /// We preserve the original CSS for serialization, and also the variable
 /// references to other custom property names.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SpecifiedValue {
     css: String,
@@ -49,12 +50,6 @@ pub struct SpecifiedValue {
 
     /// Custom property names in var() functions.
     references: HashSet<Name>,
-}
-
-impl HasViewportPercentage for SpecifiedValue {
-    fn has_viewport_percentage(&self) -> bool {
-        panic!("has_viewport_percentage called before resolving!");
-    }
 }
 
 /// This struct is a cheap borrowed version of a `SpecifiedValue`.
@@ -295,9 +290,9 @@ fn parse_declaration_value<'i, 't>
                           -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
-        let start_position = input.position();
+        let start = input.state();
         input.next_including_whitespace()?;
-        input.reset(start_position);
+        input.reset(&start);
 
         parse_declaration_value_block(input, references, missing_closing_characters)
     })
@@ -354,11 +349,11 @@ fn parse_declaration_value_block<'i, 't>
                 return Err(StyleParseError::UnbalancedCloseCurlyBracketInDeclarationValueBlock.into()),
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {
-                    let position = input.position();
+                    let args_start = input.state();
                     input.parse_nested_block(|input| {
                         parse_var_function(input, references)
                     })?;
-                    input.reset(position);
+                    input.reset(&args_start);
                 }
                 nested!();
                 check_closed!(")");
@@ -694,13 +689,13 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
                         while let Ok(_) = input.next() {}
                     } else {
                         input.expect_comma()?;
-                        let position = input.position();
+                        let after_comma = input.state();
                         let first_token_type = input.next_including_whitespace_and_comments()
                             // parse_var_function() ensures that .unwrap() will not fail.
                             .unwrap()
                             .serialization_type();
-                        input.reset(position);
-                        let mut position = (position, first_token_type);
+                        input.reset(&after_comma);
+                        let mut position = (after_comma.position(), first_token_type);
                         last_token_type = substitute_block(
                             input, &mut position, partial_computed_value, substitute_one)?;
                         partial_computed_value.push_from(position, input, last_token_type);

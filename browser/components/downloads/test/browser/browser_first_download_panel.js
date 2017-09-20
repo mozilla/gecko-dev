@@ -2,6 +2,7 @@
 /* vim: set ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 /**
  * Make sure the downloads panel only opens automatically on the first
@@ -9,6 +10,8 @@
  * not open the panel automatically.
  */
 add_task(async function test_first_download_panel() {
+  await SpecialPowers.pushPrefEnv({set: [["browser.download.autohideButton", false]]});
+  await promiseButtonShown("downloads-button");
   // Clear the download panel has shown preference first as this test is used to
   // verify this preference's behaviour.
   let oldPrefValue = Services.prefs.getBoolPref("browser.download.panel.shown");
@@ -31,6 +34,7 @@ add_task(async function test_first_download_panel() {
   // time a download is started.
   DownloadsCommon.getData(window).panelHasShownBefore = false;
 
+  info("waiting for panel open");
   let promise = promisePanelOpened();
   DownloadsCommon.getData(window)._notifyDownloadEvent("start");
   await promise;

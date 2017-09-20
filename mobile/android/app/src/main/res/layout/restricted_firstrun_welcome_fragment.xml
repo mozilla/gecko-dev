@@ -56,6 +56,7 @@
                 android:layout_gravity="center"
                 android:layout_marginBottom="20dp"
                 android:background="@drawable/button_background_action_blue_round"
+                android:textAllCaps="true"
                 android:text="@string/firstrun_welcome_button_browser" />
 
             <TextView
@@ -65,7 +66,7 @@
                 android:gravity="center"
                 android:padding="20dp"
                 android:text="@string/pref_learn_more"
-                android:textAppearance="@style/TextAppearance.FirstrunRegular.Link" />
+                android:textAppearance="@style/TextAppearance.Link" />
 
         </LinearLayout>
     </LinearLayout>

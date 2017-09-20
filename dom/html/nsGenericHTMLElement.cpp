@@ -30,7 +30,6 @@
 #include "nsIDOMAttr.h"
 #include "nsIDOMDocumentFragment.h"
 #include "nsIDOMHTMLElement.h"
-#include "nsIDOMHTMLMenuElement.h"
 #include "nsIDOMWindow.h"
 #include "nsIDOMDocument.h"
 #include "nsMappedAttributes.h"
@@ -76,7 +75,6 @@
 #include "mozilla/InternalMutationEvent.h"
 #include "nsDOMStringMap.h"
 
-#include "nsIEditor.h"
 #include "nsLayoutUtils.h"
 #include "mozAutoDocUpdate.h"
 #include "nsHtml5Module.h"
@@ -2659,7 +2657,7 @@ nsGenericHTMLElement::DispatchSimulatedClick(nsGenericHTMLElement* aElement,
   return EventDispatcher::Dispatch(ToSupports(aElement), aPresContext, &event);
 }
 
-already_AddRefed<nsIEditor>
+already_AddRefed<TextEditor>
 nsGenericHTMLElement::GetAssociatedEditor()
 {
   // If contenteditable is ever implemented, it might need to do something different here?
@@ -2695,9 +2693,9 @@ nsGenericHTMLElement::SyncEditorsOnSubtree(nsIContent* content)
   /* Sync this node */
   nsGenericHTMLElement* element = FromContent(content);
   if (element) {
-    nsCOMPtr<nsIEditor> editor = element->GetAssociatedEditor();
-    if (editor) {
-      editor->SyncRealTimeSpell();
+    RefPtr<TextEditor> textEditor = element->GetAssociatedEditor();
+    if (textEditor) {
+      textEditor->SyncRealTimeSpell();
     }
   }
 

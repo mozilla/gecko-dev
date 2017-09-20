@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /// Gecko's pseudo-element definition.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
@@ -15,6 +15,8 @@ pub enum PseudoElement {
     % endfor
 }
 
+/// Important: If you change this, you should also update Gecko's
+/// nsCSSPseudoElements::IsEagerlyCascadedInServo.
 <% EAGER_PSEUDOS = ["Before", "After", "FirstLine", "FirstLetter"] %>
 <% TREE_PSEUDOS = [pseudo for pseudo in PSEUDOS if pseudo.is_tree_pseudo_element()] %>
 <% SIMPLE_PSEUDOS = [pseudo for pseudo in PSEUDOS if not pseudo.is_tree_pseudo_element()] %>

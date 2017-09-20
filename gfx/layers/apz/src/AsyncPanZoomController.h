@@ -115,6 +115,12 @@ public:
    *       distance, but it's the closest thing we currently have.
    */
   static ScreenCoord GetTouchStartTolerance();
+  /**
+   * Same as GetTouchStartTolerance, but the tolerance for how close the second
+   * tap has to be to the first tap in order to be counted as part of a multi-tap
+   * gesture (double-tap or one-touch-pinch).
+   */
+  static ScreenCoord GetSecondTapTolerance();
 
   AsyncPanZoomController(uint64_t aLayersId,
                          APZCTreeManager* aTreeManager,
@@ -1318,6 +1324,9 @@ private:
   bool MaybeAdjustDeltaForScrollSnapping(const ScrollWheelInput& aEvent,
                                          ParentLayerPoint& aDelta,
                                          CSSPoint& aStartPosition);
+
+  bool MaybeAdjustDestinationForScrollSnapping(const KeyboardInput& aEvent,
+                                               CSSPoint& aDestination);
 
   // Snap to a snap position nearby the current scroll position, if appropriate.
   void ScrollSnap();

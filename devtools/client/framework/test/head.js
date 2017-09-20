@@ -8,7 +8,7 @@
 // shared-head.js handles imports, constants, and utility functions
 Services.scriptloader.loadSubScript("chrome://mochitests/content/browser/devtools/client/framework/test/shared-head.js", this);
 
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 
 function toggleAllTools(state) {
   for (let [, tool] of gDevTools._tools) {
@@ -203,6 +203,7 @@ function DevToolPanel(iframeWindow, toolbox) {
   EventEmitter.decorate(this);
 
   this._toolbox = toolbox;
+  this._window = iframeWindow;
 }
 
 DevToolPanel.prototype = {
@@ -216,6 +217,10 @@ DevToolPanel.prototype = {
     });
 
     return deferred.promise;
+  },
+
+  get document() {
+    return this._window.document;
   },
 
   get target() {

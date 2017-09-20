@@ -65,7 +65,9 @@
 # so that they can be shared by macBrowserOverlay.xul.
 #include global-scripts.inc
 
-<script type="application/javascript" src="chrome://global/content/contentAreaUtils.js"/>
+<script type="application/javascript">
+  Services.scriptloader.loadSubScript("chrome://global/content/contentAreaUtils.js", this);
+</script>
 
 # All sets except for popupsets (commands, keys, stringbundles and broadcasters) *must* go into the
 # browser-sets.inc file for sharing with hiddenWindow.xul.
@@ -87,6 +89,9 @@
       <menuitem id="context_unpinTab" label="&unpinTab.label;" hidden="true"
                 accesskey="&unpinTab.accesskey;"
                 oncommand="gBrowser.unpinTab(TabContextMenu.contextTab);"/>
+      <menuitem id="context_duplicateTab" label="&duplicateTab.label;"
+                accesskey="&duplicateTab.accesskey;"
+                oncommand="duplicateTabIn(TabContextMenu.contextTab, 'tab');"/>
       <menuitem id="context_openTabInWindow" label="&moveToNewWindow.label;"
                 accesskey="&moveToNewWindow.accesskey;"
                 tbattr="tabbrowser-multiple"
@@ -155,13 +160,15 @@
            level="parent"
            overflowpadding="30" />
 
+   <!-- for date/time picker. consumeoutsideclicks is set to never, so that
+        clicks on the anchored input box are never consumed. -->
     <panel id="DateTimePickerPanel"
            type="arrow"
            hidden="true"
            orient="vertical"
            noautofocus="true"
-           noautohide="true"
-           consumeoutsideclicks="false"
+           norolluponanchor="true"
+           consumeoutsideclicks="never"
            level="parent"
            tabspecific="true">
     </panel>
@@ -264,26 +271,6 @@
       <box id="UITourHighlight"></box>
     </panel>
 
-    <panel id="social-share-panel"
-           class="social-panel"
-           type="arrow"
-           orient="vertical"
-           onpopupshowing="SocialShare.onShowing()"
-           onpopuphidden="SocialShare.onHidden()"
-           hidden="true">
-      <hbox class="social-share-toolbar">
-        <toolbarbutton id="manage-share-providers" class="share-provider-button"
-                       tooltiptext="&social.addons.label;"
-                       oncommand="BrowserOpenAddonsMgr('addons://list/service');
-                                  this.parentNode.parentNode.hidePopup();"/>
-        <arrowscrollbox id="social-share-provider-buttons" orient="horizontal" flex="1" pack="end">
-          <toolbarbutton id="add-share-provider" class="share-provider-button" type="radio"
-                         group="share-providers" tooltiptext="&findShareServices.label;"
-                         oncommand="SocialShare.showDirectory()"/>
-        </arrowscrollbox>
-      </hbox>
-      <hbox id="share-container" flex="1"/>
-    </panel>
     <panel id="sidebarMenu-popup"
            class="cui-widget-panel"
            role="group"
@@ -364,7 +351,7 @@
                     seeing the command event pass by. The observes attribute is
                     here so that the menuitem is still disabled and re-enabled
                     correctly. -->
-      <menuitem oncommand="BrowserCustomizeToolbar()"
+      <menuitem oncommand="gCustomizeMode.enter()"
                 observes="cmd_CustomizeToolbars"
                 class="viewCustomizeToolbar"
                 label="&viewCustomizeToolbar.label;"
@@ -413,14 +400,14 @@
       <menuitem id="placesContext_hideRecentlyBookmarked"
                 label="&hideRecentlyBookmarked.label;"
                 accesskey="&hideRecentlyBookmarked.accesskey;"
-                oncommand="BookmarkingUI.hideRecentlyBookmarked();"
+                oncommand="RecentBookmarksMenuUI.visible = false;"
                 closemenu="single"
                 ignoreitem="true"
                 hidden="true"/>
       <menuitem id="placesContext_showRecentlyBookmarked"
                 label="&showRecentlyBookmarked.label;"
                 accesskey="&showRecentlyBookmarked.accesskey;"
-                oncommand="BookmarkingUI.showRecentlyBookmarked();"
+                oncommand="RecentBookmarksMenuUI.visible = true;"
                 closemenu="single"
                 ignoreitem="true"
                 hidden="true"/>
@@ -446,23 +433,39 @@
            type="arrow"
            hidden="true"
            flip="slide"
+           photon="true"
            position="bottomcenter topright"
            tabspecific="true"
            noautofocus="true"
-           context="pageActionPanelContextMenu"
-           oncontextmenu="BrowserPageActions.onContextMenu(event);"
-           copyURL-title="&copyURLCmd.label;"
+           copyURL-title="&pageAction.copyLink.label;"
            emailLink-title="&emailPageCmd.label;"
-           sendToDevice-title="&sendToDevice.label2;"
+           sendToDevice-title="&pageAction.sendTabToDevice.label;"
            sendToDevice-notReadyTitle="&sendToDevice.syncNotReady.label;">
       <photonpanelmultiview id="pageActionPanelMultiView"
                             mainViewId="pageActionPanelMainView"
                             viewCacheId="appMenu-viewCache">
         <panelview id="pageActionPanelMainView"
+                   context="pageActionPanelContextMenu"
+                   oncontextmenu="BrowserPageActions.onContextMenu(event);"
                    class="PanelUI-subView">
           <vbox class="panel-subview-body"/>
         </panelview>
       </photonpanelmultiview>
+    </panel>
+    <panel id="pageActionFeedback"
+           role="alert"
+           type="arrow"
+           hidden="true"
+           flip="slide"
+           position="bottomcenter topright"
+           tabspecific="true"
+           noautofocus="true"
+           copyURLFeedback="&copyURLFeedback.label;"
+           sendToDeviceFeedback="&sendToDeviceFeedback.label;">
+      <hbox id="pageActionFeedbackAnimatableBox">
+        <image id="pageActionFeedbackAnimatableImage"/>
+      </hbox>
+      <label id="pageActionFeedbackMessage"/>
     </panel>
 
     <menupopup id="pageActionPanelContextMenu"
@@ -495,11 +498,6 @@
 #else
       <label class="tooltip-label" value="&backForwardButtonMenu.tooltip;"/>
 #endif
-    </tooltip>
-
-    <tooltip id="share-button-tooltip" onpopupshowing="SocialShare.createTooltip(event);">
-      <label class="tooltip-label"/>
-      <label class="tooltip-label"/>
     </tooltip>
 
 #include popup-notifications.inc
@@ -735,6 +733,7 @@
         <toolbarbutton id="back-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                        label="&backCmd.label;"
                        removable="false" overflows="false"
+                       keepbroadcastattributeswhencustomizing="true"
                        command="Browser:BackOrBackDuplicate"
                        onclick="checkForMiddleClick(this, event);"
                        tooltip="back-button-tooltip"
@@ -742,6 +741,7 @@
         <toolbarbutton id="forward-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                        label="&forwardCmd.label;"
                        removable="false" overflows="false"
+                       keepbroadcastattributeswhencustomizing="true"
                        command="Browser:ForwardOrForwardDuplicate"
                        onclick="checkForMiddleClick(this, event);"
                        tooltip="forward-button-tooltip"
@@ -778,10 +778,10 @@
                        onclick="BrowserGoHome(event);"
                        cui-areatype="toolbar"
                        aboutHomeOverrideTooltip="&abouthome.pageTitle;"/>
+        <toolbarspring cui-areatype="toolbar" class="chromeclass-toolbar-additional"/>
         <toolbaritem id="urlbar-container" flex="400" persist="width"
                      removable="false"
                      class="chromeclass-location" overflows="false">
-          <hbox id="urlbar-wrapper" flex="1">
             <textbox id="urlbar" flex="1"
                      placeholder="&urlbar.placeholder2;"
                      type="autocomplete"
@@ -879,150 +879,53 @@
                 <label id="switchtab" class="urlbar-display urlbar-display-switchtab" value="&urlbar.switchToTab.label;"/>
                 <label id="extension" class="urlbar-display urlbar-display-extension" value="&urlbar.extension.label;"/>
               </box>
-              <hbox id="urlbar-icons">
+              <hbox id="page-action-buttons">
+                <hbox id="userContext-icons" hidden="true">
+                  <label id="userContext-label"/>
+                  <image id="userContext-indicator"/>
+                </hbox>
                 <image id="page-report-button"
-                       class="urlbar-icon"
+                       class="urlbar-icon urlbar-page-action"
+                       role="button"
                        hidden="true"
                        tooltiptext="&pageReportIcon.tooltip;"
                        onmousedown="gPopupBlockerObserver.onReportButtonMousedown(event);"/>
                 <image id="reader-mode-button"
-                       class="urlbar-icon"
+                       class="urlbar-icon urlbar-page-action"
+                       role="button"
                        hidden="true"
                        onclick="ReaderParent.buttonClick(event);"/>
                 <toolbarbutton id="urlbar-zoom-button"
                        onclick="FullZoom.reset();"
                        tooltip="dynamic-shortcut-tooltip"
                        hidden="true"/>
+                <box id="pageActionSeparator" class="urlbar-page-action"/>
                 <image id="pageActionButton"
-                       class="urlbar-icon"
+                       class="urlbar-icon urlbar-page-action"
+                       role="button"
                        tooltiptext="&pageActionButton.tooltip;"
-                       onclick="BrowserPageActions.mainButtonClicked(event);"/>
+                       onmousedown="BrowserPageActions.mainButtonClicked(event);"/>
                 <hbox id="star-button-box"
                       hidden="true"
+                      class="urlbar-icon-wrapper urlbar-page-action"
                       context="pageActionPanelContextMenu"
                       oncontextmenu="BrowserPageActions.onContextMenu(event);"
                       onclick="BrowserPageActions.bookmark.onUrlbarNodeClicked(event);">
-                  <image id="star-button" class="urlbar-icon">
-                    <observes element="bookmarkThisPageBroadcaster" attribute="starred"/>
-                    <observes element="bookmarkThisPageBroadcaster" attribute="tooltiptext"/>
-                  </image>
+                  <image id="star-button"
+                         class="urlbar-icon"
+                         role="button"
+                         observes="bookmarkThisPageBroadcaster"/>
                   <hbox id="star-button-animatable-box">
-                    <image id="star-button-animatable-image"/>
+                    <image id="star-button-animatable-image"
+                           role="presentation"
+                           observes="bookmarkThisPageBroadcaster"/>
                   </hbox>
                 </hbox>
               </hbox>
-              <hbox id="userContext-icons" hidden="true">
-                <label id="userContext-label"/>
-                <image id="userContext-indicator"/>
-              </hbox>
             </textbox>
-          </hbox>
         </toolbaritem>
 
-        <toolbaritem id="search-container" title="&searchItem.title;"
-                     align="center" class="chromeclass-toolbar-additional panel-wide-item"
-                     cui-areatype="toolbar"
-                     flex="100" persist="width" removable="true">
-          <searchbar id="searchbar" flex="1"/>
-        </toolbaritem>
-
-        <toolbarbutton id="bookmarks-menu-button"
-                       class="toolbarbutton-1 chromeclass-toolbar-additional"
-                       removable="true"
-                       type="menu"
-                       label="&bookmarksMenuButton.label;"
-                       tooltip="dynamic-shortcut-tooltip"
-                       anchor="dropmarker"
-                       ondragenter="PlacesMenuDNDHandler.onDragEnter(event);"
-                       ondragover="PlacesMenuDNDHandler.onDragOver(event);"
-                       ondragleave="PlacesMenuDNDHandler.onDragLeave(event);"
-                       ondrop="PlacesMenuDNDHandler.onDrop(event);"
-                       cui-areatype="toolbar"
-                       oncommand="BookmarkingUI.onCommand(event);">
-          <observes element="bookmarkThisPageBroadcaster" attribute="starred"/>
-          <observes element="bookmarkThisPageBroadcaster" attribute="buttontooltiptext"/>
-          <menupopup id="BMB_bookmarksPopup"
-                     class="cui-widget-panel cui-widget-panelview cui-widget-panelWithFooter PanelUI-subView"
-                     placespopup="true"
-                     context="placesContext"
-                     openInTabs="children"
-                     oncommand="BookmarksEventHandler.onCommand(event);"
-                     onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
-                     onpopupshowing="BookmarkingUI.onPopupShowing(event);
-                                     BookmarkingUI.attachPlacesView(event, this);"
-                     tooltip="bhTooltip" popupsinherittooltip="true">
-            <menuitem id="BMB_viewBookmarksSidebar"
-                      class="subviewbutton"
-                      label="&viewBookmarksSidebar2.label;"
-                      type="checkbox"
-                      oncommand="SidebarUI.toggle('viewBookmarksSidebar');">
-              <observes element="viewBookmarksSidebar" attribute="checked"/>
-            </menuitem>
-            <!-- NB: temporary solution for bug 985024, this should go away soon. -->
-            <menuitem id="BMB_bookmarksShowAllTop"
-                      class="menuitem-iconic subviewbutton"
-                      label="&showAllBookmarks2.label;"
-                      command="Browser:ShowAllBookmarks"
-                      key="manBookmarkKb"/>
-            <menuseparator/>
-            <menuitem label="&recentBookmarks.label;"
-                      id="BMB_recentBookmarks"
-                      disabled="true"
-                      class="menuitem-iconic subviewbutton"/>
-            <menuseparator/>
-            <menu id="BMB_bookmarksToolbar"
-                  class="menu-iconic bookmark-item subviewbutton"
-                  label="&personalbarCmd.label;"
-                  container="true">
-              <menupopup id="BMB_bookmarksToolbarPopup"
-                         placespopup="true"
-                         context="placesContext"
-                         onpopupshowing="if (!this.parentNode._placesView)
-                                           new PlacesMenu(event, 'place:folder=TOOLBAR',
-                                                          PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);">
-                <menuitem id="BMB_viewBookmarksToolbar"
-                          placesanonid="view-toolbar"
-                          toolbarId="PersonalToolbar"
-                          type="checkbox"
-                          oncommand="onViewToolbarCommand(event)"
-                          label="&viewBookmarksToolbar.label;"/>
-                <menuseparator/>
-                <!-- Bookmarks toolbar items -->
-              </menupopup>
-            </menu>
-            <menu id="BMB_unsortedBookmarks"
-                  class="menu-iconic bookmark-item subviewbutton"
-                  label="&bookmarksMenuButton.other.label;"
-                  container="true">
-              <menupopup id="BMB_unsortedBookmarksPopup"
-                         placespopup="true"
-                         context="placesContext"
-                         onpopupshowing="if (!this.parentNode._placesView)
-                                           new PlacesMenu(event, 'place:folder=UNFILED_BOOKMARKS',
-                                                          PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
-            </menu>
-            <menu id="BMB_mobileBookmarks"
-                  class="menu-iconic bookmark-item subviewbutton"
-                  label="&bookmarksMenuButton.mobile.label;"
-                  hidden="true"
-                  container="true">
-              <menupopup id="BMB_mobileBookmarksPopup"
-                         placespopup="true"
-                         context="placesContext"
-                         onpopupshowing="if (!this.parentNode._placesView)
-                                           new PlacesMenu(event, 'place:folder=MOBILE_BOOKMARKS',
-                                                          PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
-            </menu>
-
-            <menuseparator/>
-            <!-- Bookmarks menu items will go here -->
-            <menuitem id="BMB_bookmarksShowAll"
-                      class="subviewbutton panel-subview-footer"
-                      label="&showAllBookmarks2.label;"
-                      command="Browser:ShowAllBookmarks"
-                      key="manBookmarkKb"/>
-          </menupopup>
-        </toolbarbutton>
+        <toolbarspring cui-areatype="toolbar" class="chromeclass-toolbar-additional"/>
 
         <!-- This is a placeholder for the Downloads Indicator.  It is visible
              during the customization of the toolbar, in the palette, and before
@@ -1030,14 +933,25 @@
         <toolbarbutton id="downloads-button"
                        class="toolbarbutton-1 chromeclass-toolbar-additional badged-button"
                        key="key_openDownloads"
-                       oncommand="DownloadsIndicatorView.onCommand(event);"
+                       onmousedown="DownloadsIndicatorView.onCommand(event);"
                        ondrop="DownloadsIndicatorView.onDrop(event);"
                        ondragover="DownloadsIndicatorView.onDragOver(event);"
                        ondragenter="DownloadsIndicatorView.onDragOver(event);"
                        label="&downloads.label;"
                        removable="true"
+                       overflows="false"
                        cui-areatype="toolbar"
+                       hidden="true"
                        tooltip="dynamic-shortcut-tooltip"/>
+
+        <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
+                       removable="true"
+                       onmousedown="PanelUI.showSubView('appMenu-libraryView', this, null, event);"
+                       closemenu="none"
+                       cui-areatype="toolbar"
+                       tooltiptext="&libraryButton.tooltip;"
+                       label="&places.library.title;"/>
+
       </hbox>
 
       <toolbarbutton id="nav-bar-overflow-button"
@@ -1050,7 +964,6 @@
       </toolbarbutton>
 
       <toolbaritem id="PanelUI-button"
-                   class="chromeclass-toolbar-additional"
                    removable="false">
         <toolbarbutton id="PanelUI-menu-button"
                        class="toolbarbutton-1 badged-button"
@@ -1094,13 +1007,17 @@
                    cui-areatype="toolbar"
                    removable="true">
         <toolbarbutton id="bookmarks-toolbar-placeholder"
+                       class="bookmark-item"
+                       label="&bookmarksToolbarItem.label;"/>
+        <toolbarbutton id="bookmarks-toolbar-button"
                        class="toolbarbutton-1"
-                       mousethrough="never"
+                       flex="1"
                        label="&bookmarksToolbarItem.label;"
                        oncommand="PlacesToolbarHelper.onPlaceholderCommand();"/>
         <hbox flex="1"
               id="PlacesToolbar"
               context="placesContext"
+              onmouseup="BookmarksEventHandler.onMouseUp(event);"
               onclick="BookmarksEventHandler.onClick(event, this._placesView);"
               oncommand="BookmarksEventHandler.onCommand(event);"
               tooltip="bhTooltip"
@@ -1116,7 +1033,7 @@
                        flex="1"/>
             <toolbarbutton type="menu"
                            id="PlacesChevron"
-                           class="chevron"
+                           class="toolbarbutton-1"
                            mousethrough="never"
                            collapsed="true"
                            tooltiptext="&bookmarksToolbarChevron.tooltip;"
@@ -1130,13 +1047,6 @@
           </hbox>
         </hbox>
       </toolbaritem>
-    </toolbar>
-
-    <!-- This is a shim which will go away ASAP. See bug 749804 for details -->
-    <toolbar id="addon-bar" toolbar-delegate="nav-bar" mode="icons" iconsize="small"
-             customizable="true">
-      <hbox id="addonbar-closebutton"/>
-      <statusbar id="status-bar"/>
     </toolbar>
 
     <toolbarpalette id="BrowserToolbarPalette">
@@ -1167,15 +1077,115 @@
                      label="&fullScreenCmd.label;"
                      tooltip="dynamic-shortcut-tooltip"/>
 
-      <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
-                     oncommand="PanelUI.showSubView('appMenu-libraryView', this, null, event);"
-                     closemenu="none"
-                     label="&places.library.title;">
-        <box class="toolbarbutton-animatable-box">
-          <image class="toolbarbutton-animatable-image"/>
-        </box>
+      <toolbarbutton id="bookmarks-menu-button"
+                     class="toolbarbutton-1 chromeclass-toolbar-additional"
+                     type="menu"
+                     label="&bookmarksMenuButton2.label;"
+                     tooltip="dynamic-shortcut-tooltip"
+                     anchor="dropmarker"
+                     ondragenter="PlacesMenuDNDHandler.onDragEnter(event);"
+                     ondragover="PlacesMenuDNDHandler.onDragOver(event);"
+                     ondragleave="PlacesMenuDNDHandler.onDragLeave(event);"
+                     ondrop="PlacesMenuDNDHandler.onDrop(event);"
+                     oncommand="BookmarkingUI.onCommand(event);">
+        <observes element="bookmarkThisPageBroadcaster" attribute="starred"/>
+        <observes element="bookmarkThisPageBroadcaster" attribute="buttontooltiptext"/>
+        <menupopup id="BMB_bookmarksPopup"
+                   class="cui-widget-panel cui-widget-panelview cui-widget-panelWithFooter PanelUI-subView"
+                   placespopup="true"
+                   context="placesContext"
+                   openInTabs="children"
+                   onmouseup="BookmarksEventHandler.onMouseUp(event);"
+                   oncommand="BookmarksEventHandler.onCommand(event);"
+                   onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
+                   onpopupshowing="BookmarkingUI.onPopupShowing(event);
+                                   BookmarkingUI.attachPlacesView(event, this);"
+                   tooltip="bhTooltip" popupsinherittooltip="true">
+          <menuitem id="BMB_viewBookmarksSidebar"
+                    class="subviewbutton"
+                    label="&viewBookmarksSidebar2.label;"
+                    type="checkbox"
+                    oncommand="SidebarUI.toggle('viewBookmarksSidebar');">
+            <observes element="viewBookmarksSidebar" attribute="checked"/>
+          </menuitem>
+          <!-- NB: temporary solution for bug 985024, this should go away soon. -->
+          <menuitem id="BMB_bookmarksShowAllTop"
+                    class="menuitem-iconic subviewbutton"
+                    label="&showAllBookmarks2.label;"
+                    command="Browser:ShowAllBookmarks"
+                    key="manBookmarkKb"/>
+          <menuseparator/>
+          <menuitem label="&recentBookmarks.label;"
+                    id="BMB_recentBookmarks"
+                    disabled="true"
+                    class="menuitem-iconic subviewbutton"/>
+          <menuseparator/>
+          <menu id="BMB_bookmarksToolbar"
+                class="menu-iconic bookmark-item subviewbutton"
+                label="&personalbarCmd.label;"
+                container="true">
+            <menupopup id="BMB_bookmarksToolbarPopup"
+                       placespopup="true"
+                       context="placesContext"
+                       onpopupshowing="if (!this.parentNode._placesView)
+                                         new PlacesMenu(event, 'place:folder=TOOLBAR',
+                                                        PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);">
+              <menuitem id="BMB_viewBookmarksToolbar"
+                        placesanonid="view-toolbar"
+                        toolbarId="PersonalToolbar"
+                        type="checkbox"
+                        oncommand="onViewToolbarCommand(event)"
+                        label="&viewBookmarksToolbar.label;"/>
+              <menuseparator/>
+              <!-- Bookmarks toolbar items -->
+            </menupopup>
+          </menu>
+          <menu id="BMB_unsortedBookmarks"
+                class="menu-iconic bookmark-item subviewbutton"
+                label="&bookmarksMenuButton.other.label;"
+                container="true">
+            <menupopup id="BMB_unsortedBookmarksPopup"
+                       placespopup="true"
+                       context="placesContext"
+                       onpopupshowing="if (!this.parentNode._placesView)
+                                         new PlacesMenu(event, 'place:folder=UNFILED_BOOKMARKS',
+                                                        PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
+          </menu>
+          <menu id="BMB_mobileBookmarks"
+                class="menu-iconic bookmark-item subviewbutton"
+                label="&bookmarksMenuButton.mobile.label;"
+                hidden="true"
+                container="true">
+            <menupopup id="BMB_mobileBookmarksPopup"
+                       placespopup="true"
+                       context="placesContext"
+                       onpopupshowing="if (!this.parentNode._placesView)
+                                         new PlacesMenu(event, 'place:folder=MOBILE_BOOKMARKS',
+                                                        PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
+          </menu>
+
+          <menuseparator/>
+          <!-- Bookmarks menu items will go here -->
+          <menuitem id="BMB_bookmarksShowAll"
+                    class="subviewbutton panel-subview-footer"
+                    label="&showAllBookmarks2.label;"
+                    command="Browser:ShowAllBookmarks"
+                    key="manBookmarkKb"/>
+        </menupopup>
       </toolbarbutton>
+
+      <toolbaritem id="search-container"
+                   class="chromeclass-toolbar-additional panel-wide-item"
+                   title="&searchItem.title;"
+                   align="center"
+                   flex="100"
+                   persist="width">
+        <searchbar id="searchbar" flex="1"/>
+      </toolbaritem>
     </toolbarpalette>
+    <box id="library-animatable-box" class="toolbarbutton-animatable-box">
+      <image class="toolbarbutton-animatable-image"/>
+    </box>
   </toolbox>
 
   <hbox id="fullscr-toggler" hidden="true"/>

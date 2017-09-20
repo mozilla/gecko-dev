@@ -639,8 +639,8 @@ private:
     }
 
     // Get the clip extents in device space.
-    mSourceCtx->SetMatrix(gfxMatrix());
-    gfxRect clippedFrameSurfaceRect = mSourceCtx->GetClipExtents();
+    gfxRect clippedFrameSurfaceRect =
+      mSourceCtx->GetClipExtents(gfxContext::eDeviceSpace);
     clippedFrameSurfaceRect.RoundOut();
 
     IntRect result;
@@ -853,9 +853,19 @@ nsSVGUtils::PaintFrameWithEffects(nsIFrame *aFrame,
       dirtyRegion = &tmpDirtyRegion;
     }
 
+    gfxContextMatrixAutoSaveRestore autoSR(target);
+
+    // 'target' is currently scaled such that its user space units are CSS
+    // pixels (SVG user space units). But PaintFilteredFrame expects it to be
+    // scaled in such a way that its user space units are device pixels. So we
+    // have to adjust the scale.
+    gfxMatrix reverseScaleMatrix = nsSVGUtils::GetCSSPxToDevPxMatrix(aFrame);
+    DebugOnly<bool> invertible = reverseScaleMatrix.Invert();
+    target->SetMatrix(reverseScaleMatrix * aTransform *
+                      target->CurrentMatrix());
+
     SVGPaintCallback paintCallback;
-    nsFilterInstance::PaintFilteredFrame(aFrame, target->GetDrawTarget(),
-                                         aTransform, &paintCallback,
+    nsFilterInstance::PaintFilteredFrame(aFrame, target, &paintCallback,
                                          dirtyRegion, aImgParams);
   } else {
      svgFrame->PaintSVG(*target, aTransform, aImgParams, aDirtyRect);
@@ -1099,7 +1109,10 @@ nsSVGUtils::GetBBox(nsIFrame* aFrame, uint32_t aFlags,
       (isOuterSVG && (aFlags & eUseFrameBoundsForOuterSVG))) {
     // An HTML element or an SVG outer frame.
     MOZ_ASSERT(!hasSVGLayout);
-    return nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(aFrame);
+    bool onlyCurrentFrame = aFlags & eIncludeOnlyCurrentFrameForNonSVGElement;
+    return nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(
+      aFrame,
+      /* aUnionContinuations = */ !onlyCurrentFrame);
   }
 
   MOZ_ASSERT(svg);
@@ -1108,6 +1121,14 @@ nsSVGUtils::GetBBox(nsIFrame* aFrame, uint32_t aFlags,
   if (content->IsSVGElement() &&
       !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
     return gfxRect();
+  }
+
+  // Clean out flags which have no effects on returning bbox from now, so that
+  // we can cache and reuse ObjectBoundingBoxProperty() in the code below.
+  aFlags &= ~eIncludeOnlyCurrentFrameForNonSVGElement;
+  aFlags &= ~eUseFrameBoundsForOuterSVG;
+  if (!aFrame->IsSVGUseFrame()) {
+    aFlags &= ~eUseUserSpaceOfUseElement;
   }
 
   if (aFlags == eBBoxIncludeFillGeometry &&
@@ -1124,7 +1145,8 @@ nsSVGUtils::GetBBox(nsIFrame* aFrame, uint32_t aFlags,
     matrix = *aToBoundsSpace;
   }
 
-  if (aFrame->IsSVGForeignObjectFrame()) {
+  if (aFrame->IsSVGForeignObjectFrame() ||
+      aFlags & nsSVGUtils::eUseUserSpaceOfUseElement) {
     // The spec says getBBox "Returns the tight bounding box in *current user
     // space*". So we should really be doing this for all elements, but that
     // needs investigation to check that we won't break too much content.
@@ -1296,11 +1318,12 @@ nsSVGUtils::CanOptimizeOpacity(nsIFrame *aFrame)
 gfxMatrix
 nsSVGUtils::AdjustMatrixForUnits(const gfxMatrix &aMatrix,
                                  nsSVGEnum *aUnits,
-                                 nsIFrame *aFrame)
+                                 nsIFrame *aFrame,
+                                 uint32_t aFlags)
 {
   if (aFrame &&
       aUnits->GetAnimValue() == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
-    gfxRect bbox = GetBBox(aFrame);
+    gfxRect bbox = GetBBox(aFrame, aFlags);
     gfxMatrix tm = aMatrix;
     tm.PreTranslate(gfxPoint(bbox.X(), bbox.Y()));
     tm.PreScale(bbox.Width(), bbox.Height());

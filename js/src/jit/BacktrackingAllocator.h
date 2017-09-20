@@ -8,11 +8,19 @@
 #define jit_BacktrackingAllocator_h
 
 #include "mozilla/Array.h"
+#include "mozilla/Attributes.h"
 
 #include "ds/PriorityQueue.h"
 #include "ds/SplayTree.h"
 #include "jit/RegisterAllocator.h"
 #include "jit/StackSlotAllocator.h"
+
+// Gives better traces in Nightly/debug builds (could be EARLY_BETA_OR_EARLIER)
+#if defined(NIGHTLY_BUILD) || defined(DEBUG)
+#define AVOID_INLINE_FOR_DEBUGGING MOZ_NEVER_INLINE
+#else
+#define AVOID_INLINE_FOR_DEBUGGING
+#endif
 
 // Backtracking priority queue based register allocator based on that described
 // in the following blog post:
@@ -259,14 +267,29 @@ class LiveRange : public TempObject
     // All uses of the virtual register in this range, ordered by location.
     InlineForwardList<UsePosition> uses_;
 
+    // Total spill weight that calculate from all the uses' policy. Because the
+    // use's policy can't be changed after initialization, we can update the
+    // weight whenever a use is added to or remove from this range. This way, we
+    // don't need to iterate all the uses every time computeSpillWeight() is
+    // called.
+    size_t usesSpillWeight_;
+
+    // Number of uses that have policy LUse::FIXED.
+    uint32_t numFixedUses_;
+
     // Whether this range contains the virtual register's definition.
     bool hasDefinition_;
 
     LiveRange(uint32_t vreg, Range range)
-      : vreg_(vreg), bundle_(nullptr), range_(range), hasDefinition_(false)
+      : vreg_(vreg), bundle_(nullptr), range_(range), usesSpillWeight_(0),
+        numFixedUses_(0), hasDefinition_(false)
+
     {
         MOZ_ASSERT(!range.empty());
     }
+
+    void noteAddedUse(UsePosition* use);
+    void noteRemovedUse(UsePosition* use);
 
   public:
     static LiveRange* FallibleNew(TempAllocator& alloc, uint32_t vreg,
@@ -316,9 +339,7 @@ class LiveRange : public TempObject
     bool hasUses() const {
         return !!usesBegin();
     }
-    UsePosition* popUse() {
-        return uses_.popFront();
-    }
+    UsePosition* popUse();
 
     bool hasDefinition() const {
         return hasDefinition_;
@@ -343,6 +364,13 @@ class LiveRange : public TempObject
     void setHasDefinition() {
         MOZ_ASSERT(!hasDefinition_);
         hasDefinition_ = true;
+    }
+
+    size_t usesSpillWeight() {
+        return usesSpillWeight_;
+    }
+    uint32_t numFixedUses() {
+        return numFixedUses_;
     }
 
 #ifdef JS_JITSPEW
@@ -684,6 +712,20 @@ class BacktrackingAllocator : protected RegisterAllocator
 
     MOZ_MUST_USE bool go();
 
+    static size_t SpillWeightFromUsePolicy(LUse::Policy policy) {
+        switch (policy) {
+        case LUse::ANY:
+            return 1000;
+
+        case LUse::REGISTER:
+        case LUse::FIXED:
+            return 2000;
+
+        default:
+            return 0;
+        }
+    }
+
   private:
 
     typedef Vector<LiveRange*, 4, SystemAllocPolicy> LiveRangeVector;
@@ -721,7 +763,7 @@ class BacktrackingAllocator : protected RegisterAllocator
     MOZ_MUST_USE bool splitAndRequeueBundles(LiveBundle* bundle,
                                              const LiveBundleVector& newBundles);
     MOZ_MUST_USE bool spill(LiveBundle* bundle);
-    MOZ_MUST_USE bool tryAllocatingRegistersForSpillBundles();
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool tryAllocatingRegistersForSpillBundles();
 
     bool isReusedInput(LUse* use, LNode* ins, bool considerCopy);
     bool isRegisterUse(UsePosition* use, LNode* ins, bool considerCopy = false);
@@ -730,12 +772,12 @@ class BacktrackingAllocator : protected RegisterAllocator
     MOZ_MUST_USE bool insertAllRanges(LiveRangeSet& set, LiveBundle* bundle);
 
     // Reification methods.
-    MOZ_MUST_USE bool pickStackSlots();
-    MOZ_MUST_USE bool resolveControlFlow();
-    MOZ_MUST_USE bool reifyAllocations();
-    MOZ_MUST_USE bool populateSafepoints();
-    MOZ_MUST_USE bool annotateMoveGroups();
-    MOZ_MUST_USE bool deadRange(LiveRange* range);
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool pickStackSlots();
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool resolveControlFlow();
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool reifyAllocations();
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool populateSafepoints();
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool annotateMoveGroups();
+    AVOID_INLINE_FOR_DEBUGGING MOZ_MUST_USE bool deadRange(LiveRange* range);
     size_t findFirstNonCallSafepoint(CodePosition from);
     size_t findFirstSafepoint(CodePosition pos, size_t startFrom);
     void addLiveRegistersForRange(VirtualRegister& reg, LiveRange* range);

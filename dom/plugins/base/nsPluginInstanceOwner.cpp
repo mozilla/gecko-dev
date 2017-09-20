@@ -558,7 +558,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   double scaleFactor = 1.0;
   GetContentsScaleFactor(&scaleFactor);
   rect.ScaleRoundOut(scaleFactor);
-  mPluginFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN, &rect);
+  mPluginFrame->InvalidateLayer(DisplayItemType::TYPE_PLUGIN, &rect);
   return NS_OK;
 }
 
@@ -571,7 +571,7 @@ NS_IMETHODIMP
 nsPluginInstanceOwner::RedrawPlugin()
 {
   if (mPluginFrame) {
-    mPluginFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN);
+    mPluginFrame->InvalidateLayer(DisplayItemType::TYPE_PLUGIN);
   }
   return NS_OK;
 }
@@ -1826,7 +1826,10 @@ ContentIsFocusedWithinWindow(nsIContent* aContent)
   }
 
   nsCOMPtr<nsPIDOMWindowOuter> focusedFrame;
-  nsCOMPtr<nsIContent> focusedContent = fm->GetFocusedDescendant(rootWindow, true, getter_AddRefs(focusedFrame));
+  nsCOMPtr<nsIContent> focusedContent =
+    nsFocusManager::GetFocusedDescendant(rootWindow,
+                                         nsFocusManager::eIncludeAllDescendants,
+                                         getter_AddRefs(focusedFrame));
   return (focusedContent.get() == aContent);
 }
 

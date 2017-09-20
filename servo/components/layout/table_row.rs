@@ -9,7 +9,9 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
+use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
@@ -25,7 +27,7 @@ use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use style::values::computed::{Color, LengthOrPercentageOrAuto, NonNegativeAu};
+use style::values::computed::{Color, LengthOrPercentageOrAuto};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
 
@@ -73,7 +75,7 @@ impl Serialize for TableRowFlow {
 }
 
 /// Information about the column inline size and span for each cell.
-#[derive(Serialize, Copy, Clone)]
+#[derive(Clone, Copy, Serialize)]
 pub struct CellIntrinsicInlineSize {
     /// Inline sizes that this cell contributes to the column.
     pub column_size: ColumnIntrinsicInlineSize,
@@ -92,10 +94,7 @@ impl TableRowFlow {
             cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             incoming_rowspan: Vec::new(),
-            spacing: border_spacing::T {
-                horizontal: NonNegativeAu::zero(),
-                vertical: NonNegativeAu::zero(),
-            },
+            spacing: border_spacing::T::zero(),
             table_writing_mode: writing_mode,
             preliminary_collapsed_borders: CollapsedBordersForRow::new(),
             final_collapsed_borders: CollapsedBordersForRow::new(),
@@ -304,7 +303,7 @@ impl Flow for TableRowFlow {
                         LengthOrPercentageOrAuto::Percentage(_) => {
                             child_base.intrinsic_inline_sizes.minimum_inline_size
                         }
-                        LengthOrPercentageOrAuto::Length(length) => length,
+                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     },
                     percentage: match child_specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |
@@ -395,7 +394,7 @@ impl Flow for TableRowFlow {
                         None => break,
                     };
                 column_computed_inline_size.size = column_computed_inline_size.size +
-                    extra_column_computed_inline_size.size + self.spacing.horizontal.0;
+                    extra_column_computed_inline_size.size + self.spacing.horizontal();
                 col += 1;
             }
 
@@ -477,8 +476,9 @@ impl Flow for TableRowFlow {
         self.block_flow.build_display_list_for_block(state, border_painting_mode);
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts(state);
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
+        self.block_flow.collect_stacking_contexts_for_block(state,
+                                                            StackingContextCollectionFlags::empty());
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
@@ -487,6 +487,14 @@ impl Flow for TableRowFlow {
 
     fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
+    }
+
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
+    fn is_absolute_containing_block(&self) -> bool {
+        self.block_flow.is_absolute_containing_block()
     }
 
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
@@ -563,7 +571,7 @@ impl CollapsedBorderSpacingForRow {
 }
 
 /// All aspects of a border that can collapse with adjacent borders. See CSS 2.1 § 17.6.2.1.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct CollapsedBorder {
     /// The style of the border.
     pub style: border_top_style::T,
@@ -588,7 +596,7 @@ impl Serialize for CollapsedBorder {
 // FIXME(#8586): FromTableRow, FromTableRowGroup, FromTableColumn,
 // FromTableColumnGroup are unused
 #[allow(dead_code)]
-#[derive(Copy, Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum CollapsedBorderProvenance {
     FromPreviousTableCell = 6,
     FromNextTableCell = 5,
@@ -616,7 +624,7 @@ impl CollapsedBorder {
            -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_top_style,
-            width: css_style.get_border().border_top_width.0,
+            width: Au::from(css_style.get_border().border_top_width),
             color: css_style.get_border().border_top_color,
             provenance: provenance,
         }
@@ -628,7 +636,7 @@ impl CollapsedBorder {
              -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_right_style,
-            width: css_style.get_border().border_right_width.0,
+            width: Au::from(css_style.get_border().border_right_width),
             color: css_style.get_border().border_right_color,
             provenance: provenance,
         }
@@ -640,7 +648,7 @@ impl CollapsedBorder {
               -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_bottom_style,
-            width: css_style.get_border().border_bottom_width.0,
+            width: Au::from(css_style.get_border().border_bottom_width),
             color: css_style.get_border().border_bottom_color,
             provenance: provenance,
         }
@@ -652,7 +660,7 @@ impl CollapsedBorder {
             -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_left_style,
-            width: css_style.get_border().border_left_width.0,
+            width: Au::from(css_style.get_border().border_left_width),
             color: css_style.get_border().border_left_color,
             provenance: provenance,
         }
@@ -818,7 +826,7 @@ fn set_inline_position_of_child_flow(
         let column_inline_size = column_computed_inline_sizes[*column_index].size;
         let border_inline_size = match *border_collapse_info {
             Some(_) => Au(0), // FIXME: Make collapsed borders account for colspan/rowspan.
-            None => border_spacing.horizontal.0,
+            None => border_spacing.horizontal(),
         };
         if reverse_column_order {
             *inline_end_margin_edge += column_inline_size + border_inline_size;
@@ -873,9 +881,9 @@ fn set_inline_position_of_child_flow(
         None => {
             // Take spacing into account.
             if reverse_column_order {
-                *inline_end_margin_edge += border_spacing.horizontal.0;
+                *inline_end_margin_edge += border_spacing.horizontal();
             } else {
-                *inline_start_margin_edge += border_spacing.horizontal.0;
+                *inline_start_margin_edge += border_spacing.horizontal();
             }
         }
     }
@@ -898,7 +906,7 @@ fn set_inline_position_of_child_flow(
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct BorderCollapseInfoForChildTableCell<'a> {
     collapsed_borders_for_row: &'a CollapsedBordersForRow,
     collapsed_border_spacing_for_row: &'a CollapsedBorderSpacingForRow,

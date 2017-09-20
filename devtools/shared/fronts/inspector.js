@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-require("devtools/shared/fronts/styles");
-require("devtools/shared/fronts/highlighters");
-require("devtools/shared/fronts/layout");
 const { SimpleStringFront } = require("devtools/shared/fronts/string");
 const {
   Front,
@@ -23,8 +20,8 @@ const {
 const promise = require("promise");
 const defer = require("devtools/shared/defer");
 const { Task } = require("devtools/shared/task");
-const events = require("sdk/event/core");
-const nodeConstants = require("devtools/shared/dom-node-constants.js");
+loader.lazyRequireGetter(this, "nodeConstants",
+  "devtools/shared/dom-node-constants");
 loader.lazyRequireGetter(this, "CommandUtils",
   "devtools/client/shared/developer-toolbar", true);
 
@@ -536,7 +533,7 @@ const WalkerFront = FrontClassWithSpec(walkerSpec, {
   _createRootNodePromise: function () {
     this._rootNodeDeferred = defer();
     this._rootNodeDeferred.promise.then(() => {
-      events.emit(this, "new-root");
+      this.emit("new-root");
     });
   },
 
@@ -878,7 +875,7 @@ const WalkerFront = FrontClassWithSpec(walkerSpec, {
         this._orphaned = new Set();
       }
 
-      events.emit(this, "mutations", emitMutations);
+      this.emit("mutations", emitMutations);
     });
   }, {
     impl: "_getMutations"

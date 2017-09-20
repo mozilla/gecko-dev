@@ -514,8 +514,8 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
         }
 
-        // For Vanilla JSObjects exposed from chrome to content, we use a wrapper
-        // that supports __exposedProps__. We'd like to get rid of these eventually,
+        // For vanilla JSObjects exposed from chrome to content, we use a wrapper
+        // that fails silently in a few cases. We'd like to get rid of this eventually,
         // but in their current form they don't cause much trouble.
         else if (IdentifyStandardInstance(obj) == JSProto_Object) {
             wrapper = &ChromeObjectWrapper::singleton;
@@ -561,13 +561,15 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
 
         // If we want to apply add-on interposition in the target compartment,
         // then we try to "upgrade" the wrapper to an interposing one.
-        if (targetCompartmentPrivate->scope->HasInterposition())
+        if (targetCompartmentPrivate->hasInterposition)
             wrapper = SelectAddonWrapper(cx, obj, wrapper);
     }
 
-    if (!targetSubsumesOrigin) {
+    if (!targetSubsumesOrigin &&
+        !originCompartmentPrivate->forcePermissiveCOWs) {
         // Do a belt-and-suspenders check against exposing eval()/Function() to
-        // non-subsuming content.
+        // non-subsuming content.  But don't worry about doing it in the
+        // SpecialPowers case.
         if (JSFunction* fun = JS_GetObjectFunction(obj)) {
             if (JS_IsBuiltinEvalFunction(fun) || JS_IsBuiltinFunctionConstructor(fun)) {
                 NS_WARNING("Trying to expose eval or Function to non-subsuming content!");

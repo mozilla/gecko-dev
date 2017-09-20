@@ -1,13 +1,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
+from __future__ import absolute_import, print_function
 
-import sys
-import os
 import copy
+import os
+import sys
 
 from mozlog.commandline import setup_logging
-
 from talos import utils, test
 from talos.cmdline import parse_args
 
@@ -123,6 +123,10 @@ DEFAULTS = dict(
         'browser.safebrowsing.phishing.enabled': False,
         'browser.safebrowsing.malware.enabled': False,
         'browser.safebrowsing.blockedURIs.enabled': False,
+        'browser.safebrowsing.downloads.enabled': False,
+        'browser.safebrowsing.passwords.enabled': False,
+        'plugins.flashBlock.enabled': False,
+        'privacy.trackingprotection.annotate_channels': False,
         'privacy.trackingprotection.enabled': False,
         'privacy.trackingprotection.pbmode.enabled': False,
         'browser.search.isUS': True,
@@ -201,8 +205,8 @@ GLOBAL_OVERRIDES = (
     'gecko_profile',
     'gecko_profile_interval',
     'gecko_profile_entries',
-    'rss',
     'mainthread',
+    'rss',
     'shutdown',
     'tpcycles',
     'tpdelay',
@@ -439,7 +443,8 @@ def get_browser_config(config):
                 'xperf_path': None,
                 'error_filename': None,
                 'no_upload_results': False,
-                'stylo': False,
+                'enable_stylo': False,
+                'disable_stylo': False,
                 'stylothreads': 0,
                 }
     browser_config = dict(title=config['title'])

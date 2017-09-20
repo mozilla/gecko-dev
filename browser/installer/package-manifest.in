@@ -242,7 +242,6 @@
 @RESPATH@/components/editor.xpt
 @RESPATH@/components/extensions.xpt
 @RESPATH@/components/exthandler.xpt
-@RESPATH@/components/exthelper.xpt
 @RESPATH@/components/fastfind.xpt
 @RESPATH@/components/feeds.xpt
 #ifdef MOZ_GTK
@@ -265,9 +264,6 @@
 @RESPATH@/components/layout_xul_tree.xpt
 @RESPATH@/components/layout_xul.xpt
 @RESPATH@/components/locale.xpt
-#ifdef MOZ_GECKO_PROFILER
-@RESPATH@/components/memory_profiler.xpt
-#endif
 @RESPATH@/browser/components/migration.xpt
 @RESPATH@/components/mimetype.xpt
 @RESPATH@/components/mozfind.xpt
@@ -403,8 +399,10 @@
 @RESPATH@/components/nsSearchService.js
 @RESPATH@/components/nsSearchSuggestions.js
 @RESPATH@/components/nsSidebar.js
+#ifdef NIGHTLY_BUILD
 @RESPATH@/components/payments.manifest
 @RESPATH@/components/paymentUIService.js
+#endif
 @RESPATH@/components/passwordmgr.manifest
 @RESPATH@/components/nsLoginInfo.js
 @RESPATH@/components/nsLoginManager.js
@@ -469,8 +467,8 @@
 @RESPATH@/components/mozProtocolHandler.manifest
 @RESPATH@/components/nsDefaultCLH.manifest
 @RESPATH@/components/nsDefaultCLH.js
-@RESPATH@/components/nsContentPrefService.manifest
-@RESPATH@/components/nsContentPrefService.js
+@RESPATH@/components/ContentPrefService2.manifest
+@RESPATH@/components/ContentPrefService2.js
 @RESPATH@/components/nsContentDispatchChooser.manifest
 @RESPATH@/components/nsContentDispatchChooser.js
 @RESPATH@/components/nsHandlerService-json.manifest
@@ -610,6 +608,10 @@
 #endif
 #endif # MOZ_ANGLE_RENDERER
 
+#if defined(XP_WIN) && defined(MOZ_ENABLE_SKIA_PDF)
+@BINPATH@/pdfium.dll
+#endif
+
 ; [Browser Chrome Files]
 @RESPATH@/browser/chrome.manifest
 @RESPATH@/browser/chrome/browser@JAREXT@
@@ -684,9 +686,6 @@
 @RESPATH@/res/EditorOverride.css
 @RESPATH@/res/contenteditable.css
 @RESPATH@/res/designmode.css
-@RESPATH@/res/ImageDocument.css
-@RESPATH@/res/TopLevelImageDocument.css
-@RESPATH@/res/TopLevelVideoDocument.css
 @RESPATH@/res/table-add-column-after-active.gif
 @RESPATH@/res/table-add-column-after-hover.gif
 @RESPATH@/res/table-add-column-after.gif
@@ -716,6 +715,9 @@
 #ifdef XP_MACOSX
 @RESPATH@/res/MainMenu.nib/
 #endif
+
+; Content-accessible resources.
+@RESPATH@/contentaccessible/*
 
 ; svg
 @RESPATH@/res/svg.css
@@ -843,4 +845,14 @@ bin/libfreebl_32int64_3.so
 #ifdef XP_LINUX
 @RESPATH@/fix_linux_stack.py
 #endif
+#endif
+
+; Background Hang Monitor
+@RESPATH@/components/backgroundhangmonitor.xpt
+
+; NOTE: This must match the config checks in
+; /toolkit/components/backgroundhangmonitor/moz.build.
+#if defined(NIGHTLY_BUILD) && !defined(MOZ_DEBUG) && !defined(MOZ_TSAN)
+@RESPATH@/components/BHRTelemetryService.js
+@RESPATH@/components/BHRTelemetryService.manifest
 #endif

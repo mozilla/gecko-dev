@@ -100,21 +100,17 @@ this.EXPORTED_SYMBOLS = ["MessageChannel"];
 
 /* globals MessageChannel */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cu = Components.utils;
-const Cr = Components.results;
+const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
+Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionUtils",
-                                  "resource://gre/modules/ExtensionUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
-                                  "resource://gre/modules/PromiseUtils.jsm");
+const {
+  MessageManagerProxy,
+} = ExtensionUtils;
 
-XPCOMUtils.defineLazyGetter(this, "MessageManagerProxy",
-                            () => ExtensionUtils.MessageManagerProxy);
+const {DEBUG} = AppConstants;
 
 /**
  * Handles the mapping and dispatching of messages to their registered
@@ -222,6 +218,41 @@ class FilteringMessageManager {
 }
 
 /**
+ * A simplified subclass of FilteringMessageManager that only supports
+ * one handler per message, and does not support filtering.
+ */
+class ResponseManager extends FilteringMessageManager {
+  * getHandlers(messageName, sender, recipient) {
+    let handler = this.handlers.get(messageName);
+    if (handler) {
+      yield handler;
+    }
+  }
+
+  addHandler(messageName, handler) {
+    if (DEBUG && this.handlers.has(messageName)) {
+      throw new Error(`Handler already registered for response ID ${messageName}`);
+    }
+    this.handlers.set(messageName, handler);
+  }
+
+  /**
+   * Unregisters a handler for the given message.
+   *
+   * @param {string} messageName
+   *     The internal message name for which to unregister the handler.
+   * @param {object} handler
+   *     The handler object to unregister.
+   */
+  removeHandler(messageName, handler) {
+    if (DEBUG && this.handlers.get(messageName) !== handler) {
+      throw new Error(`Attempting to remove unexpected response handler for ${messageName}`);
+    }
+    this.handlers.delete(messageName);
+  }
+}
+
+/**
  * Manages mappings of message managers to their corresponding message
  * brokers. Brokers are lazily created for each message manager the
  * first time they are accessed. In the case of content frame message
@@ -238,12 +269,16 @@ class FilteringMessageManagerMap extends Map {
    * @param {function} callback
    *     The message callback function passed to
    *     `FilteringMessageManager` constructors.
+   * @param {function} [constructor = FilteringMessageManager]
+   *     The constructor for the message manager class that we're
+   *     mapping to.
    */
-  constructor(messageName, callback) {
+  constructor(messageName, callback, constructor = FilteringMessageManager) {
     super();
 
     this.messageName = messageName;
     this.callback = callback;
+    this._constructor = constructor;
   }
 
   /**
@@ -260,7 +295,7 @@ class FilteringMessageManagerMap extends Map {
       return super.get(target);
     }
 
-    let broker = new FilteringMessageManager(this.messageName, this.callback, target);
+    let broker = new this._constructor(this.messageName, this.callback, target);
     this.set(target, broker);
 
     if (target instanceof Ci.nsIDOMEventTarget) {
@@ -287,15 +322,41 @@ this.MessageChannel = {
       MESSAGE_MESSAGE, this._handleMessage.bind(this));
 
     this.responseManagers = new FilteringMessageManagerMap(
-      MESSAGE_RESPONSE, this._handleResponse.bind(this));
+      MESSAGE_RESPONSE, this._handleResponse.bind(this),
+      ResponseManager);
 
     /**
-     * Contains a list of pending responses, either waiting to be
-     * received or waiting to be sent. @see _addPendingResponse
+     * @property {Set<Deferred>} pendingResponses
+     * Contains a set of pending responses, either waiting to be
+     * received or waiting to be sent.
+     *
+     * The response object must be a deferred promise with the following
+     * properties:
+     *
+     *  promise:
+     *    The promise object which resolves or rejects when the response
+     *    is no longer pending.
+     *
+     *  reject:
+     *    A function which, when called, causes the `promise` object to be
+     *    rejected.
+     *
+     *  sender:
+     *    A sender object, as passed to `sendMessage.
+     *
+     *  messageManager:
+     *    The message manager the response will be sent or received on.
+     *
+     * When the promise resolves or rejects, it must be removed from the
+     * list.
+     *
+     * These values are used to clear pending responses when execution
+     * contexts are destroyed.
      */
     this.pendingResponses = new Set();
 
     /**
+     * @property {LimitedSet<string>} abortedResponses
      * Contains the message name of a limited number of aborted response
      * handlers, the responses for which will be ignored.
      */
@@ -526,6 +587,7 @@ this.MessageChannel = {
 
     let channelId = ExtensionUtils.getUniqueId();
     let message = {messageName, channelId, sender, recipient, data, responseType};
+    data = null;
 
     if (responseType == this.RESPONSE_NONE) {
       try {
@@ -538,12 +600,14 @@ this.MessageChannel = {
       return Promise.resolve();  // Not expecting any reply.
     }
 
-    let deferred = PromiseUtils.defer();
+    let deferred = {};
+    deferred.promise = new Promise((resolve, reject) => {
+      deferred.resolve = resolve;
+      deferred.reject = reject;
+    });
     deferred.sender = recipient;
     deferred.messageManager = target;
     deferred.channelId = channelId;
-
-    this._addPendingResponse(deferred);
 
     // The channel ID is used as the message name when routing responses.
     // Add a message listener to the response broker, and remove it once
@@ -551,8 +615,11 @@ this.MessageChannel = {
     let broker = this.responseManagers.get(target);
     broker.addHandler(channelId, deferred);
 
+    this.pendingResponses.add(deferred);
+
     let cleanup = () => {
       broker.removeHandler(channelId, deferred);
+      this.pendingResponses.delete(deferred);
     };
     deferred.promise.then(cleanup, cleanup);
 
@@ -561,6 +628,7 @@ this.MessageChannel = {
     } catch (e) {
       deferred.reject(e);
     }
+    message = null;
     return deferred.promise;
   },
 
@@ -595,6 +663,7 @@ this.MessageChannel = {
         return Promise.reject(e);
       }
     });
+    data = null;
     responses = responses.filter(response => response !== undefined);
 
     switch (responseType) {
@@ -634,6 +703,7 @@ this.MessageChannel = {
           Cu.reportError(e.stack ? `${e}\n${e.stack}` : e.message || e);
         });
       });
+      data = null;
       // Note: Unhandled messages are silently dropped.
       return;
     }
@@ -644,16 +714,25 @@ this.MessageChannel = {
       sender: data.sender,
       messageManager: target,
       channelId: data.channelId,
+      respondingSide: true,
     };
+
+    let cleanup = () => {
+      this.pendingResponses.delete(deferred);
+      target.dispose();
+    };
+    this.pendingResponses.add(deferred);
+
     deferred.promise = new Promise((resolve, reject) => {
       deferred.reject = reject;
 
       this._callHandlers(handlers, data).then(resolve, reject);
+      data = null;
     }).then(
       value => {
         let response = {
           result: this.RESULT_SUCCESS,
-          messageName: data.channelId,
+          messageName: deferred.channelId,
           recipient: {},
           value,
         };
@@ -673,7 +752,7 @@ this.MessageChannel = {
 
         let response = {
           result: this.RESULT_ERROR,
-          messageName: data.channelId,
+          messageName: deferred.channelId,
           recipient: {},
           error: {},
         };
@@ -693,13 +772,10 @@ this.MessageChannel = {
         }
 
         target.sendAsyncMessage(MESSAGE_RESPONSE, response);
-      }).catch(e => {
+      }).then(cleanup, e => {
+        cleanup();
         Cu.reportError(e);
-      }).then(() => {
-        target.dispose();
       });
-
-    this._addPendingResponse(deferred);
   },
 
   /**
@@ -732,39 +808,22 @@ this.MessageChannel = {
   },
 
   /**
-   * Adds a pending response to the the `pendingResponses` list.
+   * Aborts pending message response for the specific channel.
    *
-   * The response object must be a deferred promise with the following
-   * properties:
-   *
-   *  promise:
-   *    The promise object which resolves or rejects when the response
-   *    is no longer pending.
-   *
-   *  reject:
-   *    A function which, when called, causes the `promise` object to be
-   *    rejected.
-   *
-   *  sender:
-   *    A sender object, as passed to `sendMessage.
-   *
-   *  messageManager:
-   *    The message manager the response will be sent or received on.
-   *
-   * When the promise resolves or rejects, it will be removed from the
-   * list.
-   *
-   * These values are used to clear pending responses when execution
-   * contexts are destroyed.
-   *
-   * @param {Deferred} deferred
+   * @param {string} channelId
+   *    A string for channelId of the response.
+   * @param {object} reason
+   *    An object describing the reason the response was aborted.
+   *    Will be passed to the promise rejection handler of the aborted
+   *    response.
    */
-  _addPendingResponse(deferred) {
-    let cleanup = () => {
-      this.pendingResponses.delete(deferred);
-    };
-    this.pendingResponses.add(deferred);
-    deferred.promise.then(cleanup, cleanup);
+  abortChannel(channelId, reason) {
+    for (let response of this.pendingResponses) {
+      if (channelId === response.channelId && response.respondingSide) {
+        this.pendingResponses.delete(response);
+        response.reject(reason);
+      }
+    }
   },
 
   /**
@@ -782,6 +841,7 @@ this.MessageChannel = {
   abortResponses(sender, reason = this.REASON_DISCONNECTED) {
     for (let response of this.pendingResponses) {
       if (this.matchesFilter(sender, response.sender)) {
+        this.pendingResponses.delete(response);
         this.abortedResponses.add(response.channelId);
         response.reject(reason);
       }

@@ -209,8 +209,8 @@ parent:
      *  notification Whole data of the notification
      *  requests     Requests of notification for IME of the native widget
      */
-    nested(inside_cpow) sync NotifyIMEFocus(ContentCache contentCache,
-                                            IMENotification notification)
+    nested(inside_cpow) async NotifyIMEFocus(ContentCache contentCache,
+                                             IMENotification notification)
       returns (IMENotificationRequests requests);
 
     /**
@@ -253,7 +253,7 @@ parent:
     /**
      * Notifies IME of mouse button event on a character in focused editor.
      *
-     * Returns true if the mouse button event is consumd by IME.
+     * Returns true if the mouse button event is consumed by IME.
      */
     nested(inside_cpow) sync NotifyIMEMouseButtonEvent(IMENotification notification)
       returns (bool consumedByIME);
@@ -531,7 +531,6 @@ parent:
 child:
     async NativeSynthesisResponse(uint64_t aObserverId, nsCString aResponse);
 
-
 parent:
 
     /**
@@ -542,6 +541,12 @@ parent:
      * @see RequestNotifyAfterRemotePaint
      */
     async RemotePaintIsReady();
+
+    /**
+     * Child informs the parent that the content is ready to handle input
+     * events. This is sent when the TabChild is created.
+     */
+    async RemoteIsReadyToHandleInputEvents();
 
     /**
      * Child informs the parent that the layer tree is already available.
@@ -616,6 +621,8 @@ child:
 
     async SizeModeChanged(nsSizeMode sizeMode);
 
+    async ParentActivated(bool aActivated);
+
     async SetKeyboardIndicators(UIStateChangeType showAccelerators,
                                 UIStateChangeType showFocusRings);
 
@@ -624,12 +631,6 @@ child:
      * should stop managing IME state.
      */
     async StopIMEStateManagement();
-
-    /**
-     * MenuKeyboardListenerInstalled() is called when menu keyboard listener
-     * is installed in the parent process.
-     */
-    async MenuKeyboardListenerInstalled(bool aInstalled);
 
     /**
      * @see nsIDOMWindowUtils sendMouseEvent.
@@ -646,7 +647,14 @@ child:
      * When two consecutive mouse move events would be added to the message queue,
      * they are 'compressed' by dumping the oldest one.
      */
-    async RealMouseMoveEvent(WidgetMouseEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId) compress;
+    prio(input) async RealMouseMoveEvent(WidgetMouseEvent event,
+                                         ScrollableLayerGuid aGuid,
+                                         uint64_t aInputBlockId) compress;
+
+    async NormalPriorityRealMouseMoveEvent(WidgetMouseEvent event,
+                                           ScrollableLayerGuid aGuid,
+                                           uint64_t aInputBlockId) compress;
+
     /**
      * Mouse move events with |reason == eSynthesized| are sent via a separate
      * message because they do not generate DOM 'mousemove' events, and the
@@ -654,21 +662,62 @@ child:
      * |reason == eReal| event being dropped in favour of an |eSynthesized|
      * event, and thus a DOM 'mousemove' event to be lost.
      */
-    async SynthMouseMoveEvent(WidgetMouseEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
-    async RealMouseButtonEvent(WidgetMouseEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
-    async RealKeyEvent(WidgetKeyboardEvent event);
-    async MouseWheelEvent(WidgetWheelEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
-    async RealTouchEvent(WidgetTouchEvent aEvent,
-                         ScrollableLayerGuid aGuid,
-                         uint64_t aInputBlockId,
-                         nsEventStatus aApzResponse);
-    async HandleTap(TapType aType, LayoutDevicePoint point, Modifiers aModifiers,
-                    ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
-    async RealTouchMoveEvent(WidgetTouchEvent aEvent,
-                             ScrollableLayerGuid aGuid,
-                             uint64_t aInputBlockId,
-                             nsEventStatus aApzResponse);
-    async RealDragEvent(WidgetDragEvent aEvent, uint32_t aDragAction, uint32_t aDropEffect);
+    prio(input) async SynthMouseMoveEvent(WidgetMouseEvent event,
+                                          ScrollableLayerGuid aGuid,
+                                          uint64_t aInputBlockId);
+    async NormalPrioritySynthMouseMoveEvent(WidgetMouseEvent event,
+                                            ScrollableLayerGuid aGuid,
+                                            uint64_t aInputBlockId);
+
+    prio(input) async RealMouseButtonEvent(WidgetMouseEvent event,
+                                           ScrollableLayerGuid aGuid,
+                                           uint64_t aInputBlockId);
+    async NormalPriorityRealMouseButtonEvent(WidgetMouseEvent event,
+                                             ScrollableLayerGuid aGuid,
+                                             uint64_t aInputBlockId);
+
+    prio(input) async RealKeyEvent(WidgetKeyboardEvent event);
+    async NormalPriorityRealKeyEvent(WidgetKeyboardEvent event);
+
+    prio(input) async MouseWheelEvent(WidgetWheelEvent event,
+                                      ScrollableLayerGuid aGuid,
+                                      uint64_t aInputBlockId);
+    async NormalPriorityMouseWheelEvent(WidgetWheelEvent event,
+                                        ScrollableLayerGuid aGuid,
+                                        uint64_t aInputBlockId);
+
+    prio(input) async RealTouchEvent(WidgetTouchEvent aEvent,
+                                     ScrollableLayerGuid aGuid,
+                                     uint64_t aInputBlockId,
+                                     nsEventStatus aApzResponse);
+    async NormalPriorityRealTouchEvent(WidgetTouchEvent aEvent,
+                                       ScrollableLayerGuid aGuid,
+                                       uint64_t aInputBlockId,
+                                       nsEventStatus aApzResponse);
+
+    prio(input) async HandleTap(TapType aType, LayoutDevicePoint point,
+                                Modifiers aModifiers, ScrollableLayerGuid aGuid,
+                                uint64_t aInputBlockId);
+    async NormalPriorityHandleTap(TapType aType, LayoutDevicePoint point,
+                                  Modifiers aModifiers, ScrollableLayerGuid aGuid,
+                                  uint64_t aInputBlockId);
+
+    prio(input) async RealTouchMoveEvent(WidgetTouchEvent aEvent,
+                                         ScrollableLayerGuid aGuid,
+                                         uint64_t aInputBlockId,
+                                         nsEventStatus aApzResponse);
+    async NormalPriorityRealTouchMoveEvent(WidgetTouchEvent aEvent,
+                                           ScrollableLayerGuid aGuid,
+                                           uint64_t aInputBlockId,
+                                           nsEventStatus aApzResponse);
+
+    /*
+     * We disable the input event queue when there is an active dnd session. We
+     * don't need support RealDragEvent with input priority.
+     */
+    async RealDragEvent(WidgetDragEvent aEvent, uint32_t aDragAction,
+                        uint32_t aDropEffect);
+
     async PluginEvent(WidgetPluginEvent aEvent);
 
     /**

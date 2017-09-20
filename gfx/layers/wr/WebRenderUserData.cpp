@@ -24,6 +24,12 @@ WebRenderUserData::~WebRenderUserData()
 {
 }
 
+bool
+WebRenderUserData::IsDataValid(WebRenderLayerManager* aManager)
+{
+  return aManager == mWRManager;
+}
+
 WebRenderBridgeChild*
 WebRenderUserData::WrBridge() const
 {
@@ -55,6 +61,10 @@ WebRenderImageData::UpdateImageKey(ImageContainer* aContainer, bool aForceUpdate
 {
   CreateImageClientIfNeeded();
   CreateExternalImageIfNeeded();
+
+  if (mContainer != aContainer) {
+    mContainer = aContainer;
+  }
 
   if (!mImageClient || !mExternalImageId) {
     return Nothing();

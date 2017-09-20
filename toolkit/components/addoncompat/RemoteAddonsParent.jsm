@@ -735,7 +735,7 @@ var SandboxParent = {
     if (rest.length) {
       // Do a shallow copy of the options object into the child
       // process. This way we don't have to access it through a Chrome
-      // object wrapper, which would require __exposedProps__.
+      // object wrapper, which would not let us access any properties.
       //
       // The only object property here is sandboxPrototype. We assume
       // it's a child process object (since that's what Greasemonkey
@@ -1017,10 +1017,7 @@ TabBrowserElementInterposition.methods.removeTabsProgressListener = function(add
 var ChromeWindowInterposition = new Interposition("ChromeWindowInterposition",
                                                   EventTargetInterposition);
 
-// _content is for older add-ons like pinboard and all-in-one gestures
-// that should be using content instead.
-ChromeWindowInterposition.getters.content =
-ChromeWindowInterposition.getters._content = function(addon, target) {
+ChromeWindowInterposition.getters.content = function(addon, target) {
   CompatWarning.warn("Direct access to chromeWindow.content will no longer work in the chrome process.",
                      addon, CompatWarning.warnings.content);
 

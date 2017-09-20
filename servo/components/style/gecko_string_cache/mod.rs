@@ -10,7 +10,7 @@ use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::{nsIAtom, nsIAtom_AtomKind};
 use nsstring::{nsAString, nsString};
 use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
@@ -39,7 +39,7 @@ macro_rules! local_name {
 }
 
 /// A strong reference to a Gecko atom.
-#[derive(PartialEq, Eq)]
+#[derive(Eq, PartialEq)]
 pub struct Atom(*mut WeakAtom);
 
 /// An atom *without* a strong reference.
@@ -149,7 +149,7 @@ impl WeakAtom {
     #[inline]
     pub fn is_static(&self) -> bool {
         unsafe {
-            (*self.as_ptr()).mIsStatic() != 0
+            (*self.as_ptr()).mKind() == nsIAtom_AtomKind::StaticAtom as u32
         }
     }
 
@@ -265,7 +265,7 @@ impl Atom {
     /// called on it.
     #[inline]
     pub unsafe fn from_addrefed(ptr: *mut nsIAtom) -> Self {
-        debug_assert!(!ptr.is_null());
+        assert!(!ptr.is_null());
         unsafe {
             Atom(WeakAtom::new(ptr))
         }
@@ -378,7 +378,7 @@ impl From<String> for Atom {
 impl From<*mut nsIAtom> for Atom {
     #[inline]
     fn from(ptr: *mut nsIAtom) -> Atom {
-        debug_assert!(!ptr.is_null());
+        assert!(!ptr.is_null());
         unsafe {
             let ret = Atom(WeakAtom::new(ptr));
             if !ret.is_static() {
@@ -388,3 +388,5 @@ impl From<*mut nsIAtom> for Atom {
         }
     }
 }
+
+size_of_is_0!(Atom);

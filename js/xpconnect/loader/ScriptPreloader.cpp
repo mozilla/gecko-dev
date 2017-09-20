@@ -4,9 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ScriptPreloader.h"
 #include "ScriptPreloader-inl.h"
+#include "mozilla/ScriptPreloader.h"
+#include "mozJSComponentLoader.h"
 #include "mozilla/loader/ScriptCacheActors.h"
+
+#include "mozilla/URLPreloader.h"
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -362,12 +365,12 @@ Result<nsCOMPtr<nsIFile>, nsresult>
 ScriptPreloader::GetCacheFile(const nsAString& suffix)
 {
     nsCOMPtr<nsIFile> cacheFile;
-    NS_TRY(mProfD->Clone(getter_AddRefs(cacheFile)));
+    MOZ_TRY(mProfD->Clone(getter_AddRefs(cacheFile)));
 
-    NS_TRY(cacheFile->AppendNative(NS_LITERAL_CSTRING("startupCache")));
+    MOZ_TRY(cacheFile->AppendNative(NS_LITERAL_CSTRING("startupCache")));
     Unused << cacheFile->Create(nsIFile::DIRECTORY_TYPE, 0777);
 
-    NS_TRY(cacheFile->Append(mBaseName + suffix));
+    MOZ_TRY(cacheFile->Append(mBaseName + suffix));
 
     return Move(cacheFile);
 }
@@ -377,18 +380,18 @@ static const uint8_t MAGIC[] = "mozXDRcachev001";
 Result<Ok, nsresult>
 ScriptPreloader::OpenCache()
 {
-    NS_TRY(NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(mProfD)));
+    MOZ_TRY(NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(mProfD)));
 
     nsCOMPtr<nsIFile> cacheFile;
     MOZ_TRY_VAR(cacheFile, GetCacheFile(NS_LITERAL_STRING(".bin")));
 
     bool exists;
-    NS_TRY(cacheFile->Exists(&exists));
+    MOZ_TRY(cacheFile->Exists(&exists));
     if (exists) {
-        NS_TRY(cacheFile->MoveTo(nullptr, mBaseName + NS_LITERAL_STRING("-current.bin")));
+        MOZ_TRY(cacheFile->MoveTo(nullptr, mBaseName + NS_LITERAL_STRING("-current.bin")));
     } else {
-        NS_TRY(cacheFile->SetLeafName(mBaseName + NS_LITERAL_STRING("-current.bin")));
-        NS_TRY(cacheFile->Exists(&exists));
+        MOZ_TRY(cacheFile->SetLeafName(mBaseName + NS_LITERAL_STRING("-current.bin")));
+        MOZ_TRY(cacheFile->Exists(&exists));
         if (!exists) {
             return Err(NS_ERROR_FILE_NOT_FOUND);
         }
@@ -412,6 +415,10 @@ ScriptPreloader::InitCache(const nsAString& basePath)
     if (!XRE_IsParentProcess()) {
         return Ok();
     }
+
+    // Note: Code on the main thread *must not access Omnijar in any way* until
+    // this AutoBeginReading guard is destroyed.
+    URLPreloader::AutoBeginReading abr;
 
     MOZ_TRY(OpenCache());
 
@@ -517,15 +524,6 @@ ScriptPreloader::InitCacheInternal()
     return Ok();
 }
 
-static inline Result<Ok, nsresult>
-Write(PRFileDesc* fd, const void* data, int32_t len)
-{
-    if (PR_Write(fd, data, len) != len) {
-        return Err(NS_ERROR_FAILURE);
-    }
-    return Ok();
-}
-
 void
 ScriptPreloader::PrepareCacheWriteInternal()
 {
@@ -627,14 +625,14 @@ ScriptPreloader::WriteCache()
     MOZ_TRY_VAR(cacheFile, GetCacheFile(NS_LITERAL_STRING("-new.bin")));
 
     bool exists;
-    NS_TRY(cacheFile->Exists(&exists));
+    MOZ_TRY(cacheFile->Exists(&exists));
     if (exists) {
-        NS_TRY(cacheFile->Remove(false));
+        MOZ_TRY(cacheFile->Remove(false));
     }
 
     {
         AutoFDClose fd;
-        NS_TRY(cacheFile->OpenNSPRFileDesc(PR_WRONLY | PR_CREATE_FILE, 0644, &fd.rwget()));
+        MOZ_TRY(cacheFile->OpenNSPRFileDesc(PR_WRONLY | PR_CREATE_FILE, 0644, &fd.rwget()));
 
         // We also need to hold mMonitor while we're touching scripts in
         // mScripts, or they may be freed before we're done with them.
@@ -675,7 +673,7 @@ ScriptPreloader::WriteCache()
         }
     }
 
-    NS_TRY(cacheFile->MoveTo(nullptr, mBaseName + NS_LITERAL_STRING(".bin")));
+    MOZ_TRY(cacheFile->MoveTo(nullptr, mBaseName + NS_LITERAL_STRING(".bin")));
 
     return Ok();
 }
@@ -695,7 +693,10 @@ ScriptPreloader::Run()
         mal.Wait(10000);
     }
 
-    auto result = WriteCache();
+    auto result = URLPreloader::GetSingleton().WriteCache();
+    Unused << NS_WARN_IF(result.isErr());
+
+    result = WriteCache();
     Unused << NS_WARN_IF(result.isErr());
 
     result = mChildCache->WriteCache();
@@ -908,6 +909,12 @@ ScriptPreloader::DoFinishOffThreadDecode()
     MaybeFinishOffThreadDecode();
 }
 
+JSObject*
+ScriptPreloader::CompilationScope(JSContext* cx)
+{
+    return mozJSComponentLoader::Get()->CompilationScope(cx);
+}
+
 void
 ScriptPreloader::MaybeFinishOffThreadDecode()
 {
@@ -923,10 +930,10 @@ ScriptPreloader::MaybeFinishOffThreadDecode()
         DecodeNextBatch(OFF_THREAD_CHUNK_SIZE);
     });
 
-    AutoJSAPI jsapi;
-    MOZ_RELEASE_ASSERT(jsapi.Init(xpc::CompilationScope()));
-
+    AutoSafeJSAPI jsapi;
     JSContext* cx = jsapi.cx();
+
+    JSAutoCompartment ac(cx, CompilationScope(cx));
     JS::Rooted<JS::ScriptVector> jsScripts(cx, JS::ScriptVector(cx));
 
     // If this fails, we still need to mark the scripts as finished. Any that
@@ -994,11 +1001,11 @@ ScriptPreloader::DecodeNextBatch(size_t chunkSize)
         return;
     }
 
-    AutoJSAPI jsapi;
-    MOZ_RELEASE_ASSERT(jsapi.Init(xpc::CompilationScope()));
+    AutoSafeJSAPI jsapi;
     JSContext* cx = jsapi.cx();
+    JSAutoCompartment ac(cx, CompilationScope(cx));
 
-    JS::CompileOptions options(cx, JSVERSION_LATEST);
+    JS::CompileOptions options(cx, JSVERSION_DEFAULT);
     options.setNoScriptRval(true)
            .setSourceIsLazy(true);
 

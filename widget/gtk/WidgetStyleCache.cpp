@@ -622,6 +622,10 @@ GetWidget(WidgetNodeType aWidgetType)
   GtkWidget* widget = sWidgetStorage[aWidgetType];
   if (!widget) {
     widget = CreateWidget(aWidgetType);
+    // Some widgets (MOZ_GTK_COMBOBOX_SEPARATOR for instance) may not be
+    // available or implemented.
+    if (!widget)
+      return nullptr;
     // In GTK versions prior to 3.18, automatic invalidation of style contexts
     // for widgets was delayed until the next resize event.  Gecko however,
     // typically uses the style context before the resize event runs and so an
@@ -1216,8 +1220,8 @@ ResetWidgetCache(void)
 }
 
 GtkStyleContext*
-ClaimStyleContext(WidgetNodeType aNodeType, GtkTextDirection aDirection,
-                  GtkStateFlags aStateFlags, StyleFlags aFlags)
+GetStyleContext(WidgetNodeType aNodeType, GtkTextDirection aDirection,
+                GtkStateFlags aStateFlags, StyleFlags aFlags)
 {
   GtkStyleContext* style;
   if (gtk_check_version(3, 20, 0) != nullptr) {
@@ -1271,9 +1275,4 @@ ClaimStyleContext(WidgetNodeType aNodeType, GtkTextDirection aDirection,
     gtk_style_context_invalidate(style);
   }
   return style;
-}
-
-void
-ReleaseStyleContext(GtkStyleContext* aStyleContext)
-{
 }

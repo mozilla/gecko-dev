@@ -7,7 +7,7 @@
 }
 
 .theme-dark:root {
-  --markup-outline: var(--theme-highlight-pink);
+  --markup-outline: var(--theme-selection-background);
 }
 
 * {
@@ -175,6 +175,11 @@ ul.children + .tag-line::before {
   z-index: 0;
 }
 
+.tag-line .tag-hover:not(.theme-selected) {
+  background: var(--theme-selection-background-hover);
+  z-index: -1;
+}
+
 .expander {
   display: inline-block;
   margin-left: -14px;
@@ -261,6 +266,10 @@ ul.children + .tag-line::before {
   z-index: 1;
 }
 
+.editor.comment:not(.doctype) {
+  color: var(--theme-highlight-green);
+}
+
 .editor.text {
   display: inline-block;
 }
@@ -268,6 +277,10 @@ ul.children + .tag-line::before {
 .editor.text pre,
 .editor.comment pre {
   font: inherit;
+}
+
+.theme-dark .editor.text pre {
+  color: var(--theme-content-color1);
 }
 
 /* Whitespace only text nodes are sometimes shown in the markup-view, and when they do

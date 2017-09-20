@@ -309,7 +309,6 @@ FSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 
       mimeStream->AddHeader("Content-Type",
                             "application/x-www-form-urlencoded");
-      mimeStream->SetAddContentLength(true);
       mimeStream->SetData(dataStream);
 
       *aPostDataStream = mimeStream;
@@ -395,8 +394,13 @@ FSMultipartFormData::FSMultipartFormData(NotNull<const Encoding*> aEncoding,
                                          nsIContent* aOriginatingElement)
   : EncodingFormSubmission(aEncoding, aOriginatingElement)
 {
-  mPostDataStream =
+  mPostData =
     do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
+
+  nsCOMPtr<nsIInputStream> inputStream = do_QueryInterface(mPostData);
+  MOZ_ASSERT(SameCOMIdentity(mPostData, inputStream));
+  mPostDataStream = inputStream;
+
   mTotalLength = 0;
 
   mBoundary.AssignLiteral("---------------------------");
@@ -601,7 +605,7 @@ FSMultipartFormData::AddDataChunk(const nsACString& aName,
     // here, since we're about to add the file input stream
     AddPostDataStream();
 
-    mPostDataStream->AppendStream(aInputStream);
+    mPostData->AppendStream(aInputStream);
     mTotalLength += aInputStreamSize;
   }
 
@@ -623,7 +627,6 @@ FSMultipartFormData::GetEncodedSubmission(nsIURI* aURI,
   nsAutoCString contentType;
   GetContentType(contentType);
   mimeStream->AddHeader("Content-Type", contentType.get());
-  mimeStream->SetAddContentLength(true);
   uint64_t unused;
   mimeStream->SetData(GetSubmissionBody(&unused));
 
@@ -642,7 +645,7 @@ FSMultipartFormData::AddPostDataStream()
                                 mPostDataChunk);
   NS_ASSERTION(postDataChunkStream, "Could not open a stream for POST!");
   if (postDataChunkStream) {
-    mPostDataStream->AppendStream(postDataChunkStream);
+    mPostData->AppendStream(postDataChunkStream);
     mTotalLength += mPostDataChunk.Length();
   }
 
@@ -765,7 +768,6 @@ FSTextPlain::GetEncodedSubmission(nsIURI* aURI,
     NS_ENSURE_SUCCESS(rv, rv);
 
     mimeStream->AddHeader("Content-Type", "text/plain");
-    mimeStream->SetAddContentLength(true);
     mimeStream->SetData(bodyStream);
     CallQueryInterface(mimeStream, aPostDataStream);
   }

@@ -140,13 +140,15 @@ BEGIN_TEST(testWeakMap_keyDelegates)
     return true;
 }
 
-static void DelegateObjectMoved(JSObject* obj, const JSObject* old)
+static size_t
+DelegateObjectMoved(JSObject* obj, JSObject* old)
 {
     if (!keyDelegate)
-        return;  // Object got moved before we set keyDelegate to point to it.
+        return 0;  // Object got moved before we set keyDelegate to point to it.
 
     MOZ_RELEASE_ASSERT(keyDelegate == old);
     keyDelegate = obj;
+    return 0;
 }
 
 static JSObject* GetKeyDelegate(JSObject* obj)
@@ -208,8 +210,6 @@ JSObject* newDelegate()
     static const js::ClassOps delegateClassOps = {
         nullptr, /* addProperty */
         nullptr, /* delProperty */
-        nullptr, /* getProperty */
-        nullptr, /* setProperty */
         nullptr, /* enumerate */
         nullptr, /* newEnumerate */
         nullptr, /* resolve */
@@ -237,7 +237,7 @@ JSObject* newDelegate()
 
     /* Create the global object. */
     JS::CompartmentOptions options;
-    options.behaviors().setVersion(JSVERSION_LATEST);
+    options.behaviors().setVersion(JSVERSION_DEFAULT);
 
     JS::RootedObject global(cx, JS_NewGlobalObject(cx, Jsvalify(&delegateClass), nullptr,
                                                    JS::FireOnNewGlobalHook, options));

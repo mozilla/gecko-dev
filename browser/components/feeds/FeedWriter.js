@@ -2,6 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -78,6 +79,13 @@ function FeedWriter() {
   this._selectedAppMenuItem = null;
   this._subscribeCallback = null;
   this._defaultHandlerMenuItem = null;
+
+
+  XPCOMUtils.defineLazyGetter(this, "_mm", () =>
+    this._window.QueryInterface(Ci.nsIInterfaceRequestor).
+                 getInterface(Ci.nsIDocShell).
+                 QueryInterface(Ci.nsIInterfaceRequestor).
+                 getInterface(Ci.nsIContentFrameMessageManager));
 }
 
 FeedWriter.prototype = {
@@ -821,7 +829,7 @@ FeedWriter.prototype = {
       case "FeedWriter:PreferenceUpdated":
         // This is called when browser-feeds.js spots a pref change
         // This will happen when
-        // - about:preferences#applications changes
+        // - about:preferences#general changes
         // - another feed reader page changes the preference
         // - when this page itself changes the select and there isn't a redirect
         //   bookmarks and launching an external app means the page stays open after subscribe
@@ -977,18 +985,8 @@ FeedWriter.prototype = {
     }
   },
 
-  get _mm() {
-    let mm = this._window.QueryInterface(Ci.nsIInterfaceRequestor).
-                          getInterface(Ci.nsIDocShell).
-                          QueryInterface(Ci.nsIInterfaceRequestor).
-                          getInterface(Ci.nsIContentFrameMessageManager);
-    delete this._mm;
-    return this._mm = mm;
-  },
-
   classID: FEEDWRITER_CID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMEventListener, Ci.nsIObserver,
-                                         Ci.nsINavHistoryObserver,
                                          Ci.nsIDOMGlobalPropertyInitializer])
 };
 

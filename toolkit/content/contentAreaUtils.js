@@ -4,26 +4,18 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
-                                  "resource://gre/modules/BrowserUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
-                                  "resource://gre/modules/Downloads.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadLastDir",
-                                  "resource://gre/modules/DownloadLastDir.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Services",
-                                  "resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
-                                  "resource://gre/modules/Deprecated.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
+  Downloads: "resource://gre/modules/Downloads.jsm",
+  DownloadLastDir: "resource://gre/modules/DownloadLastDir.jsm",
+  FileUtils: "resource://gre/modules/FileUtils.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+  Deprecated: "resource://gre/modules/Deprecated.jsm",
+  AppConstants: "resource://gre/modules/AppConstants.jsm",
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
+});
 
 var ContentAreaUtils = {
 
@@ -177,15 +169,13 @@ function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
 }
 
 // This is like saveDocument, but takes any browser/frame-like element
-// (nsIFrameLoaderOwner) and saves the current document inside it,
+// and saves the current document inside it,
 // whether in-process or out-of-process.
 function saveBrowser(aBrowser, aSkipPrompt, aOuterWindowID = 0) {
   if (!aBrowser) {
     throw "Must have a browser when calling saveBrowser";
   }
-  let persistable = aBrowser.QueryInterface(Ci.nsIFrameLoaderOwner)
-                    .frameLoader
-                    .QueryInterface(Ci.nsIWebBrowserPersistable);
+  let persistable = aBrowser.frameLoader;
   let stack = Components.stack.caller;
   persistable.startPersistence(aOuterWindowID, {
     onDocumentReady(document) {

@@ -19,6 +19,7 @@
 #include "mozilla/gfx/PatternHelpers.h"
 #include "mozilla/Likely.h"
 #include "nsAlgorithm.h"
+#include "nsBidiPresUtils.h"
 #include "nsBlockFrame.h"
 #include "nsCaret.h"
 #include "nsContentUtils.h"
@@ -2143,7 +2144,8 @@ public:
    */
   CharIterator(SVGTextFrame* aSVGTextFrame,
                CharacterFilter aFilter,
-               nsIContent* aSubtree = nullptr);
+               nsIContent* aSubtree,
+               bool aPostReflow = true);
 
   /**
    * Returns whether the iterator is finished.
@@ -2416,11 +2418,18 @@ private:
    * GetGlyphAdvance etc. to take into account textLength="".
    */
   float mLengthAdjustScaleFactor;
+
+  /**
+   * Whether the instance of this class is being used after reflow has occurred
+   * or not.
+   */
+  bool mPostReflow;
 };
 
 CharIterator::CharIterator(SVGTextFrame* aSVGTextFrame,
                            CharIterator::CharacterFilter aFilter,
-                           nsIContent* aSubtree)
+                           nsIContent* aSubtree,
+                           bool aPostReflow)
   : mFilter(aFilter),
     mFrameIterator(FrameIfAnonymousChildReflowed(aSVGTextFrame), aSubtree),
     mFrameForTrimCheck(nullptr),
@@ -2429,6 +2438,7 @@ CharIterator::CharIterator(SVGTextFrame* aSVGTextFrame,
     mTextElementCharIndex(0),
     mGlyphStartTextElementCharIndex(0),
     mLengthAdjustScaleFactor(aSVGTextFrame->mLengthAdjustScaleFactor)
+  , mPostReflow(aPostReflow)
 {
   if (!AtEnd()) {
     mSkipCharsIterator = TextFrame()->EnsureTextRun(nsTextFrame::eInflated);
@@ -2549,7 +2559,9 @@ CharIterator::IsOriginalCharTrimmed() const
     uint32_t length = mFrameForTrimCheck->GetContentLength();
     nsIContent* content = mFrameForTrimCheck->GetContent();
     nsTextFrame::TrimmedOffsets trim =
-      mFrameForTrimCheck->GetTrimmedOffsets(content->GetText(), true);
+      mFrameForTrimCheck->GetTrimmedOffsets(content->GetText(),
+                                            /* aTrimAfter */ true,
+                                            mPostReflow);
     TrimOffsets(offset, length, trim);
     mTrimmedOffset = offset;
     mTrimmedLength = length;
@@ -3055,10 +3067,8 @@ SVGTextDrawPathCallbacks::StrokeGeometry()
 
 class nsDisplaySVGText : public nsDisplayItem {
 public:
-  nsDisplaySVGText(nsDisplayListBuilder* aBuilder,
-                   SVGTextFrame* aFrame)
-    : nsDisplayItem(aBuilder, aFrame),
-      mDisableSubpixelAA(false)
+  nsDisplaySVGText(nsDisplayListBuilder* aBuilder, SVGTextFrame* aFrame)
+    : nsDisplayItem(aBuilder, aFrame)
   {
     MOZ_COUNT_CTOR(nsDisplaySVGText);
     MOZ_ASSERT(aFrame, "Must have a frame!");
@@ -3071,9 +3081,6 @@ public:
 
   NS_DISPLAY_DECL_NAME("nsDisplaySVGText", TYPE_SVG_TEXT)
 
-  virtual void DisableComponentAlpha() override {
-    mDisableSubpixelAA = true;
-  }
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState,
                        nsTArray<nsIFrame*> *aOutFrames) override;
@@ -3083,12 +3090,12 @@ public:
   {
     return new nsDisplayItemGenericImageGeometry(this, aBuilder);
   }
-  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) override {
+
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) const override
+  {
     bool snap;
     return GetBounds(aBuilder, &snap);
   }
-private:
-  bool mDisableSubpixelAA;
 };
 
 void
@@ -3176,7 +3183,6 @@ SVGTextFrame::Init(nsIContent*       aContent,
 
 void
 SVGTextFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
-                               const nsRect& aDirtyRect,
                                const nsDisplayListSet& aLists)
 {
   if (NS_SUBTREE_DIRTY(this)) {
@@ -3652,7 +3658,7 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
   TextRenderedRun run = it.Current();
 
   SVGContextPaint* outerContextPaint =
-    SVGContextPaint::GetContextPaint(mContent);
+    SVGContextPaint::GetContextPaint(GetContent());
 
   while (run.mFrame) {
     nsTextFrame* frame = run.mFrame;
@@ -3912,27 +3918,6 @@ SVGTextFrame::GetBBoxContribution(const gfx::Matrix &aToBBoxUserspace,
   }
 
   return bbox;
-}
-
-//----------------------------------------------------------------------
-// nsSVGContainerFrame methods
-
-gfxMatrix
-SVGTextFrame::GetCanvasTM()
-{
-  if (!mCanvasTM) {
-    NS_ASSERTION(GetParent(), "null parent");
-    NS_ASSERTION(!(GetStateBits() & NS_FRAME_IS_NONDISPLAY),
-                 "should not call GetCanvasTM() when we are non-display");
-
-    nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(GetParent());
-    dom::SVGTextContentElement *content = static_cast<dom::SVGTextContentElement*>(mContent);
-
-    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
-
-    mCanvasTM = new gfxMatrix(tm);
-  }
-  return *mCanvasTM;
 }
 
 //----------------------------------------------------------------------
@@ -4548,7 +4533,7 @@ SVGTextFrame::ResolvePositions(nsTArray<gfxPoint>& aDeltas,
   NS_ASSERTION(mPositions.IsEmpty(), "expected mPositions to be empty");
   RemoveStateBits(NS_STATE_SVG_POSITIONING_MAY_USE_PERCENTAGES);
 
-  CharIterator it(this, CharIterator::eOriginal);
+  CharIterator it(this, CharIterator::eOriginal, /* aSubtree */ nullptr);
   if (it.AtEnd()) {
     return false;
   }
@@ -4748,7 +4733,7 @@ SVGTextFrame::AdjustChunksForLineBreaks()
 
   nsBlockFrame::LineIterator line = block->LinesBegin();
 
-  CharIterator it(this, CharIterator::eOriginal);
+  CharIterator it(this, CharIterator::eOriginal, /* aSubtree */ nullptr);
   while (!it.AtEnd() && line != block->LinesEnd()) {
     if (it.TextFrame() == line->mFirstChild) {
       mPositions[it.TextElementCharIndex()].mStartOfChunk = true;
@@ -4763,7 +4748,8 @@ SVGTextFrame::AdjustPositionsForClusters()
 {
   nsPresContext* presContext = PresContext();
 
-  CharIterator it(this, CharIterator::eClusterOrLigatureGroupMiddle);
+  CharIterator it(this, CharIterator::eClusterOrLigatureGroupMiddle,
+                  /* aSubtree */ nullptr);
   while (!it.AtEnd()) {
     // Find the start of the cluster/ligature group.
     uint32_t charIndex = it.TextElementCharIndex();
@@ -4914,7 +4900,8 @@ SVGTextFrame::DoTextPathLayout()
 {
   nsPresContext* context = PresContext();
 
-  CharIterator it(this, CharIterator::eClusterAndLigatureGroupStart);
+  CharIterator it(this, CharIterator::eClusterAndLigatureGroupStart,
+                  /* aSubtree */ nullptr);
   while (!it.AtEnd()) {
     nsIFrame* textPathFrame = it.TextPathFrame();
     if (!textPathFrame) {
@@ -4984,7 +4971,7 @@ SVGTextFrame::DoAnchoring()
 {
   nsPresContext* presContext = PresContext();
 
-  CharIterator it(this, CharIterator::eOriginal);
+  CharIterator it(this, CharIterator::eOriginal, /* aSubtree */ nullptr);
 
   // Don't need to worry about skipped or trimmed characters.
   while (!it.AtEnd() &&
@@ -5060,7 +5047,7 @@ SVGTextFrame::DoGlyphPositioning()
 
   // If the textLength="" attribute was specified, then we need ResolvePositions
   // to record that a new run starts with each glyph.
-  SVGTextContentElement* element = static_cast<SVGTextContentElement*>(mContent);
+  SVGTextContentElement* element = static_cast<SVGTextContentElement*>(GetContent());
   nsSVGLength2* textLengthAttr =
     element->GetAnimatedLength(nsGkAtoms::textLength);
   bool adjustingTextLength = textLengthAttr->IsExplicitlySet();
@@ -5214,7 +5201,7 @@ SVGTextFrame::ShouldRenderAsPath(nsTextFrame* aFrame,
 
   // Text has a stroke.
   if (style->HasStroke() &&
-      SVGContentUtils::CoordToFloat(static_cast<nsSVGElement*>(mContent),
+      SVGContentUtils::CoordToFloat(static_cast<nsSVGElement*>(GetContent()),
                                     style->mStrokeWidth) > 0) {
     return true;
   }
@@ -5252,6 +5239,20 @@ SVGTextFrame::UpdateGlyphPositioning()
 
   if (mState & NS_STATE_SVG_POSITIONING_DIRTY) {
     DoGlyphPositioning();
+  }
+}
+
+void
+SVGTextFrame::MaybeResolveBidiForAnonymousBlockChild()
+{
+  nsIFrame* kid = PrincipalChildList().FirstChild();
+
+  if (kid &&
+      kid->GetStateBits() & NS_BLOCK_NEEDS_BIDI_RESOLUTION &&
+      PresContext()->BidiEnabled()) {
+    MOZ_ASSERT(static_cast<nsBlockFrame*>(do_QueryFrame(kid)),
+               "Expect anonymous child to be an nsBlockFrame");
+    nsBidiPresUtils::Resolve(static_cast<nsBlockFrame*>(kid));
   }
 }
 

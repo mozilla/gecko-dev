@@ -183,33 +183,24 @@ static const char contentSandboxRules[] = R"(
   (allow signal (target self))
 
   (allow mach-lookup
-      (global-name "com.apple.coreservices.launchservicesd")
-      (global-name "com.apple.pasteboard.1")
       (global-name "com.apple.audio.coreaudiod")
-      (global-name "com.apple.audio.audiohald")
-      (global-name "com.apple.SystemConfiguration.configd")
-      (global-name "com.apple.iconservices"))
+      (global-name "com.apple.audio.audiohald"))
 
-; bug 1376163
   (if (>= macosMinorVersion 13)
-    (allow mach-lookup (global-name "com.apple.audio.AudioComponentRegistrar")))
+    (allow mach-lookup
+      ; bug 1376163
+      (global-name "com.apple.audio.AudioComponentRegistrar")
+      ; bug 1392988
+      (xpc-service-name "com.apple.coremedia.videodecoder")
+      (xpc-service-name "com.apple.coremedia.videoencoder")))
 
 ; bug 1312273
   (if (= macosMinorVersion 9)
      (allow mach-lookup (global-name "com.apple.xpcd")))
 
   (allow iokit-open
-      (iokit-user-client-class "IOHIDParamUserClient")
-      (iokit-user-client-class "IOAudioEngineUserClient")
-      (iokit-user-client-class "IGAccelDevice")
-      (iokit-user-client-class "nvDevice")
-      (iokit-user-client-class "nvSharedUserClient")
-      (iokit-user-client-class "nvFermiGLContext")
-      (iokit-user-client-class "IGAccelGLContext")
-      (iokit-user-client-class "IGAccelSharedUserClient")
-      (iokit-user-client-class "IGAccelVideoContextMain")
-      (iokit-user-client-class "IGAccelVideoContextMedia")
-      (iokit-user-client-class "IGAccelVideoContextVEBox"))
+     (iokit-user-client-class "IOHIDParamUserClient")
+     (iokit-user-client-class "IOAudioEngineUserClient"))
 
 ; depending on systems, the 1st, 2nd or both rules are necessary
   (allow-shared-preferences-read "com.apple.HIToolbox")
@@ -355,6 +346,19 @@ static const char contentSandboxRules[] = R"(
       (require-any
         (vnode-type REGULAR-FILE)
         (vnode-type DIRECTORY))))
+
+  ; bug 1382260
+  ; We may need to load fonts from outside of the standard
+  ; font directories whitelisted above. This is typically caused
+  ; by a font manager. For now, whitelist any file with a
+  ; font extension. Limit this to the common font types:
+  ; files ending in .otf, .ttf, .ttc, .otc, and .dfont.
+  (allow file-read*
+    (regex #"\.[oO][tT][fF]$"           ; otf
+           #"\.[tT][tT][fF]$"           ; ttf
+           #"\.[tT][tT][cC]$"           ; ttc
+           #"\.[oO][tT][cC]$"           ; otc
+           #"\.[dD][fF][oO][nN][tT]$")) ; dfont
 )";
 
 }

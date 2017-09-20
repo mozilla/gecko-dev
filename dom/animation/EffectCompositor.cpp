@@ -881,14 +881,14 @@ EffectCompositor::UpdateCascadeResults(StyleBackendType aBackendType,
   std::bitset<LayerAnimationInfo::kRecords>
     prevCompositorPropertiesWithImportantRules =
       compositorPropertiesInSet(propertiesWithImportantRules);
-  std::bitset<LayerAnimationInfo::kRecords>
-    prevCompositorPropertiesForAnimationsLevel =
-      compositorPropertiesInSet(propertiesForAnimationsLevel);
+
+  nsCSSPropertyIDSet prevPropertiesForAnimationsLevel =
+    propertiesForAnimationsLevel;
 
   propertiesWithImportantRules.Empty();
   propertiesForAnimationsLevel.Empty();
 
-  bool hasCompositorPropertiesForTransition = false;
+  nsCSSPropertyIDSet propertiesForTransitionsLevel;
 
   for (const KeyframeEffectReadOnly* effect : sortedEffectList) {
     MOZ_ASSERT(effect->GetAnimation(),
@@ -899,14 +899,14 @@ EffectCompositor::UpdateCascadeResults(StyleBackendType aBackendType,
       if (overriddenProperties.HasProperty(prop.mProperty)) {
         propertiesWithImportantRules.AddProperty(prop.mProperty);
       }
-      if (cascadeLevel == EffectCompositor::CascadeLevel::Animations) {
-        propertiesForAnimationsLevel.AddProperty(prop.mProperty);
-      }
 
-      if (nsCSSProps::PropHasFlags(prop.mProperty,
-                                   CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR) &&
-          cascadeLevel == EffectCompositor::CascadeLevel::Transitions) {
-        hasCompositorPropertiesForTransition = true;
+      switch (cascadeLevel) {
+        case EffectCompositor::CascadeLevel::Animations:
+          propertiesForAnimationsLevel.AddProperty(prop.mProperty);
+          break;
+        case EffectCompositor::CascadeLevel::Transitions:
+          propertiesForTransitionsLevel.AddProperty(prop.mProperty);
+          break;
       }
     }
   }
@@ -929,15 +929,23 @@ EffectCompositor::UpdateCascadeResults(StyleBackendType aBackendType,
                      EffectCompositor::RestyleType::Layer,
                      EffectCompositor::CascadeLevel::Animations);
   }
-  // If we have transition properties for compositor and if the same propery
-  // for animations level is newly added or removed, we need to update layers
-  // for transitions level because composite order has been changed now.
-  if (hasCompositorPropertiesForTransition &&
-      prevCompositorPropertiesForAnimationsLevel !=
-        compositorPropertiesInSet(propertiesForAnimationsLevel)) {
+
+  // If we have transition properties and if the same propery for animations
+  // level is newly added or removed, we need to update the transition level
+  // rule since the it will be added/removed from the rule tree.
+  nsCSSPropertyIDSet changedPropertiesForAnimationLevel =
+    prevPropertiesForAnimationsLevel.Xor(propertiesForAnimationsLevel);
+  nsCSSPropertyIDSet commonProperties =
+    propertiesForTransitionsLevel.Intersect(
+      changedPropertiesForAnimationLevel);
+  if (!commonProperties.IsEmpty()) {
+    EffectCompositor::RestyleType restyleType =
+      compositorPropertiesInSet(changedPropertiesForAnimationLevel).none()
+      ? EffectCompositor::RestyleType::Standard
+      : EffectCompositor::RestyleType::Layer;
     presContext->EffectCompositor()->
       RequestRestyle(aElement, aPseudoType,
-                     EffectCompositor::RestyleType::Layer,
+                     restyleType,
                      EffectCompositor::CascadeLevel::Transitions);
   }
 }
@@ -959,20 +967,30 @@ EffectCompositor::SetPerformanceWarning(
 }
 
 bool
-EffectCompositor::PreTraverse(AnimationRestyleType aRestyleType)
+EffectCompositor::PreTraverse(ServoTraversalFlags aFlags)
 {
-  return PreTraverseInSubtree(nullptr, aRestyleType);
+  return PreTraverseInSubtree(aFlags, nullptr);
 }
 
 bool
-EffectCompositor::PreTraverseInSubtree(Element* aRoot,
-                                       AnimationRestyleType aRestyleType)
+EffectCompositor::PreTraverseInSubtree(ServoTraversalFlags aFlags,
+                                       Element* aRoot)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPresContext->RestyleManager()->IsServo());
   MOZ_ASSERT(!aRoot || nsComputedDOMStyle::GetPresShellForContent(aRoot),
              "Traversal root, if provided, should be bound to a display "
              "document");
+
+  // Convert the root element to the parent element if the root element is
+  // pseudo since we check each element in mElementsToRestyle is in the subtree
+  // of the root element later in this function, but for pseudo elements the
+  // element in mElementsToRestyle is the parent of the pseudo.
+  if (aRoot &&
+      (aRoot->IsGeneratedContentContainerForBefore() ||
+       aRoot->IsGeneratedContentContainerForAfter())) {
+    aRoot = aRoot->GetParentElement();
+  }
 
   AutoRestore<bool> guard(mIsInPreTraverse);
   mIsInPreTraverse = true;
@@ -983,7 +1001,7 @@ EffectCompositor::PreTraverseInSubtree(Element* aRoot,
   // if we are currently flushing all throttled animation restyles.
   bool flushThrottledRestyles =
     (aRoot && aRoot->HasDirtyDescendantsForServo()) ||
-    aRestyleType == AnimationRestyleType::Full;
+    (aFlags & ServoTraversalFlags::FlushThrottledAnimations);
 
   using ElementsToRestyleIterType =
     nsDataHashtable<PseudoElementHashEntry, bool>::Iterator;
@@ -1013,9 +1031,8 @@ EffectCompositor::PreTraverseInSubtree(Element* aRoot,
 
     // Ignore restyles that aren't in the flattened tree subtree rooted at
     // aRoot.
-    if (aRoot &&
-        !nsContentUtils::ContentIsFlattenedTreeDescendantOf(target.mElement,
-                                                            aRoot)) {
+    if (aRoot && !nsContentUtils::ContentIsFlattenedTreeDescendantOfForStyle(
+          target.mElement, aRoot)) {
       return returnTarget;
     }
 

@@ -3,9 +3,14 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY firstrun_panel_title_welcome "Welcome">
-
-<!ENTITY firstrun_urlbar_message "Welcome to &brandShortName;">
-<!ENTITY firstrun_urlbar_subtext "Find things faster with helpful search suggestion shortcuts.">
+<!ENTITY firstrun_urlbar_message2 "Thanks for choosing &brandShortName;">
+<!ENTITY firstrun_urlbar_subtext2 "A modern mobile browser from Mozilla, the non-profit committed to a free and open web.">
+<!ENTITY firstrun_panel_title_privacy "Privacy">
+<!ENTITY firstrun_privacy_message "Browse like no one\'s watching">
+<!ENTITY firstrun_privacy_subtext "Private Browsing with Tracking Protection blocks trackers while you browse and won’t remember your history when you finish browsing.">
+<!ENTITY firstrun_panel_title_customize "Customize">
+<!ENTITY firstrun_customize_message "Make &brandShortName; your own.">
+<!ENTITY firstrun_customize_subtext "Customize &brandShortName; with add-ons. Block ads, add features, or choose a new theme to reflect your personality.">
 <!ENTITY firstrun_bookmarks_title "History">
 <!ENTITY firstrun_bookmarks_message "Your faves, front and center">
 <!ENTITY firstrun_bookmarks_subtext "Get results from your bookmarks and history when you search.">
@@ -13,8 +18,8 @@
 <!ENTITY firstrun_data_message "Less data, more savings">
 <!ENTITY firstrun_data_subtext2 "Turn off images to spend less data on every site you visit.">
 <!ENTITY firstrun_sync_title "Sync">
-<!ENTITY firstrun_sync_message "&brandShortName;, always by your side">
-<!ENTITY firstrun_sync_subtext "Sync your tabs, passwords, and more everywhere you use it.">
+<!ENTITY firstrun_sync_message2 "Pick up where you left off.">
+<!ENTITY firstrun_sync_subtext2 "Use Sync to find the bookmarks, passwords, and other things you save to &brandShortName; on all your devices.">
 <!ENTITY firstrun_signin_message "Get connected, get started">
 <!ENTITY firstrun_signin_button "Sign in to Sync">
 <!ENTITY  onboard_start_button_browser "Start Browsing">
@@ -201,8 +206,6 @@
 <!ENTITY pref_category_advanced_summary3 "Restore tabs, data saver, developer tools">
 <!ENTITY pref_category_notifications "Notifications">
 <!ENTITY pref_category_notifications_summary "New features, website updates">
-<!ENTITY pref_content_notifications "Website updates">
-<!ENTITY pref_content_notifications_summary2 "Discover new content from supported sites">
 <!ENTITY pref_developer_remotedebugging_usb "Remote debugging via USB">
 <!ENTITY pref_developer_remotedebugging_wifi "Remote debugging via Wi-Fi">
 <!ENTITY pref_developer_remotedebugging_wifi_disabled_summary "Wi-Fi debugging requires your device to have a QR code reader app installed.">
@@ -268,7 +271,6 @@
 <!ENTITY pref_show_web_fonts_summary2 "Download remote fonts when loading a page">
 
 <!ENTITY pref_tracking_protection_title2 "Tracking Protection">
-<!ENTITY pref_tracking_protection_summary3 "Enabled in Private Browsing">
 <!ENTITY pref_donottrack_title "Do not track">
 <!ENTITY pref_donottrack_summary "&brandShortName; will tell sites that you do not want to be tracked">
 
@@ -330,23 +332,6 @@
      has been queued but we are missing the system permission to show an overlay. -->
 <!ENTITY tab_queue_notification_settings "To \&quot;Open multiple links\&quot;, please enable the \'Draw over other apps\' permission for &brandShortName;">
 
-<!ENTITY content_notification_summary "&brandShortName;">
-<!-- Localization note (content_notification_title_plural): &formatD; will be replaced with the number of websites that
-     have been updated (new content is available). The number of websites is always more than one (>= 2). For a single
-     update the website title is used instead of this string.
-     We can't use Android plural forms, sadly. See Bug #753859. -->
-<!ENTITY content_notification_title_plural "&formatD; websites updated">
-<!-- Localization note (content_notification_action_settings2): This label will be shown as an action in a content notification.
-     Clicking the action will jump to the notification settings of the app. -->
-<!ENTITY content_notification_action_settings2 "Settings">
-<!-- Localization note(content_notification_action_read_now): This label will be shown as an action in a content notification.
-     Clicking the action will open all new content in the browser. -->
-<!ENTITY content_notification_action_read_now "Read now">
-<!-- Localization note (content_notification_updated_on): &formatS; will be replaced with a medium sized version of the
-     date, depending on locale. For en_US this is for example: Feb 24, 2016. For more details see the Android developer
-     documentation for DateFormat.getMediumDateFormat(). -->
-<!ENTITY content_notification_updated_on "Updated on &formatS;">
-
 <!ENTITY pref_char_encoding "Character encoding">
 <!ENTITY pref_char_encoding_on "Show menu">
 <!ENTITY pref_char_encoding_off "Don\'t show menu">
@@ -405,6 +390,9 @@
 <!ENTITY pref_dialog_set_default "Set as default">
 <!ENTITY pref_dialog_default "Default">
 <!ENTITY pref_dialog_remove "Remove">
+<!ENTITY pref_dialog_activitystream_header_content "Additional content">
+<!ENTITY pref_dialog_activitystream_recentBookmarks "Recent Bookmarks">
+<!ENTITY pref_dialog_activitystream_visited "Visited">
 
 <!ENTITY pref_search_last_toast "You can\'t remove or disable your last search engine.">
 
@@ -506,7 +494,17 @@
 <!ENTITY contextmenu_top_sites_edit "Edit">
 <!ENTITY contextmenu_top_sites_pin "Pin Site">
 <!ENTITY contextmenu_top_sites_unpin "Unpin Site">
+<!-- Localization note (contextmenu_pin_to_top_sites, contextmenu_unpin_from_top_sites): These strings are used to
+     pin/unpin items from top sites when the user is not on the top sites screen so they'd be missing context on what
+     just "Pin Site" or "Unpin Site" would mean. -->
+<!ENTITY contextmenu_pin_to_top_sites "Pin to Top Sites">
+<!ENTITY contextmenu_unpin_from_top_sites "Unpin from Top Sites">
 <!ENTITY contextmenu_add_search_engine "Add a Search Engine">
+
+<!-- Localization note (pinned_page_to_top_sites, unpinned_page_from_top_sites): These strings are shown in a snackbar
+     after the user pins/unpins the currently displayed page from top sites. -->
+<!ENTITY pinned_page_to_top_sites "Pinned page to Top Sites">
+<!ENTITY unpinned_page_from_top_sites "Unpinned page from Top Sites">
 
 <!-- Localization note (doorhanger_login_no_username): This string is used in the save-login doorhanger
      where normally a username would be displayed. In this case, no username was found, and this placeholder
@@ -829,7 +827,12 @@ just addresses the organization to follow, e.g. "This site is run by " -->
 <!ENTITY helper_triple_readerview_open_button "Add to Bookmarks">
 
 <!ENTITY activity_stream_topsites "Top Sites">
+<!-- LOCALIZATION NOTE (activity_stream_topstories): &brandPocket is the brand of the company, Pocket, that is being used to provide suggestions for articles. -->
+<!ENTITY activity_stream_topstories "Recommended by &brandPocket;">
 <!ENTITY activity_stream_highlights "Highlights">
+
+<!-- LOCALIZATION NOET (activity_stream_link_more): Link-like text displayed to take user to a website with more content from Pocket. This string will be displayed in all uppercase. -->
+<!ENTITY activity_stream_link_more "more">
 
 <!-- LOCALIZATION NOTE (activity_stream_highlight_label_bookmarked): This label is shown in the Activity
 Stream list for highlights sourced from th user's bookmarks. -->
@@ -837,17 +840,20 @@ Stream list for highlights sourced from th user's bookmarks. -->
 <!-- LOCALIZATION NOTE (activity_stream_highlight_label_visited): This label is shown in the Activity
 Stream list for highlights sourced from th user's bookmarks. -->
 <!ENTITY activity_stream_highlight_label_visited "Visited">
+<!-- LOCALIZATION NOTE (activity_stream_highlight_label_trending): This label is shown in the Activity Stream list for highlights sourced from a recommendations engine. -->
+<!ENTITY activity_stream_highlight_label_trending "Trending">
+<!-- LOCALIZATION NOTE (activity_stream_highlights_empty): This text is shown when we could not find highlights for this user. This is also shown on first run. -->
+<!ENTITY activity_stream_highlights_empty "Start browsing, and we\'ll show some of the great articles, videos, and other pages you\'ve recently visited or bookmarked here.">
 
-<!-- LOCALIZATION NOTE (activity_stream_dismiss): This label is shown in the Activity Stream context menu,
+<!-- LOCALIZATION NOTE (activity_stream_remove): This label is shown in the Activity Stream context menu,
 and allows hiding a URL/page from highlights or topsites. The page remains in history/bookmarks, but
 is simply hidden from the Activity Stream panel. -->
-<!ENTITY activity_stream_dismiss "Dismiss">
+<!ENTITY activity_stream_remove "Remove">
 <!ENTITY activity_stream_delete_history "Delete from History">
-
-<!ENTITY activity_stream_welcome_title "Welcome to your Highlights">
-<!ENTITY activity_stream_welcome_content1 "&brandShortName; now creates highlights of things you\'ve discovered on the web so you can find your way back to great articles, videos, bookmarks, and other pages.">
 
 <!ENTITY private_tab_panel_title "Private Browsing + Tracking Protection">
 <!ENTITY private_tab_panel_description "&brandShortName; blocks parts of the pages that may track your browsing activity.">
 <!ENTITY private_tab_panel_description2 "We won\'t remember any history, but downloaded files and new bookmarks will still be saved to your device.">
 <!ENTITY private_tab_learn_more "Want to learn more?">
+
+<!ENTITY fullscreen_warning "Entered full screen">

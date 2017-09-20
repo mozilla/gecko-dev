@@ -12,6 +12,10 @@
   --toolbar-non-lwt-bgcolor: var(--toolbar-bgcolor);
   --toolbar-non-lwt-textcolor: var(--chrome-color);
   --toolbar-non-lwt-bgimage: none;
+
+  --toolbarbutton-icon-fill-opacity: .7;
+
+  --tab-line-color: highlight;
 }
 
 :root:-moz-lwtheme-brighttext {
@@ -19,7 +23,7 @@
   --chrome-background-color: hsl(240, 5%, 5%);
   --chrome-color: rgb(249, 249, 250);
   --chrome-secondary-background-color: hsl(240, 1%, 20%);
-  --chrome-navigator-toolbox-separator-color: hsla(240, 5%, 5%, .1);
+  --toolbox-border-bottom-color: hsla(240, 5%, 5%, .1);
   --chrome-nav-bar-separator-color: rgba(0,0,0,.2);
   --chrome-nav-buttons-background: hsla(240, 5%, 5%, .1);
   --chrome-nav-buttons-hover-background: hsla(240, 5%, 5%, .15);
@@ -28,16 +32,9 @@
   --chrome-selection-background-color: #5675B9;
 
   /* Url and search bars */
-  --url-and-searchbar-background-color: hsla(0, 0%, 100%, .1);
+  --url-and-searchbar-background-color: rgb(71, 71, 73);
+  --url-and-searchbar-color: var(--chrome-color);
   --urlbar-separator-color: #5F6670;
-  --urlbar-dropmarker-url: url("chrome://browser/skin/compacttheme/urlbar-history-dropmarker.svg");
-  --urlbar-dropmarker-region: rect(0px, 11px, 14px, 0px);
-  --urlbar-dropmarker-hover-region: rect(0, 22px, 14px, 11px);
-  --urlbar-dropmarker-active-region: rect(0px, 33px, 14px, 22px);
-  --urlbar-dropmarker-2x-url: url("chrome://browser/skin/compacttheme/urlbar-history-dropmarker.svg");
-  --urlbar-dropmarker-2x-region: rect(0px, 11px, 14px, 0px);
-  --urlbar-dropmarker-hover-2x-region: rect(0, 22px, 14px, 11px);
-  --urlbar-dropmarker-active-2x-region: rect(0px, 33px, 14px, 22px);
 }
 
 :root:-moz-lwtheme-darktext {
@@ -46,7 +43,7 @@
   --chrome-background-color: #E3E4E6;
   --chrome-color: #18191a;
   --chrome-secondary-background-color: #f5f6f7;
-  --chrome-navigator-toolbox-separator-color: #cccccc;
+  --toolbox-border-bottom-color: #cccccc;
   --chrome-nav-bar-separator-color: #B6B6B8;
   --chrome-nav-buttons-background: #ffffff; /* --theme-body-background */
   --chrome-nav-buttons-hover-background: #DADBDB;
@@ -55,8 +52,10 @@
   --chrome-selection-background-color: #4c9ed9;
 }
 
+.toolbarbutton-animatable-box[brighttext],
+toolbar[brighttext] .toolbarbutton-animatable-box,
 toolbar[brighttext] .toolbarbutton-1 {
-  fill: rgba(249, 249, 250, .7);
+  fill: rgb(249, 249, 250);
 }
 
 #urlbar ::-moz-selection,
@@ -72,10 +71,6 @@ toolbar[brighttext] .toolbarbutton-1 {
 #browser-panel {
   background: var(--chrome-background-color);
   color: var(--chrome-color);
-}
-
-#navigator-toolbox:-moz-lwtheme::after {
-  border-bottom-color: var(--chrome-navigator-toolbox-separator-color);
 }
 
 #navigator-toolbox > toolbar:not(#TabsToolbar):not(#toolbar-menubar),
@@ -104,26 +99,13 @@ toolbar[brighttext] .toolbarbutton-1 {
 }
 
 /* URL bar and search bar*/
-#urlbar,
-#navigator-toolbox .searchbar-textbox {
-  background-color: var(--url-and-searchbar-background-color) !important;
-  background-image: none !important;
-  color: inherit !important;
-  border: 1px solid var(--chrome-nav-bar-controls-border-color) !important;
-  box-shadow: none !important;
+#urlbar:not([focused="true"]),
+.searchbar-textbox:not([focused="true"]) {
+  border-color: var(--chrome-nav-bar-controls-border-color);
 }
 
 #urlbar[pageproxystate="valid"] > #identity-box.verifiedIdentity > #identity-icon-labels:-moz-lwtheme-brighttext {
   color: #30e60b;
-}
-
-#identity-icon:-moz-lwtheme-brighttext,
-#tracking-protection-icon:-moz-lwtheme-brighttext,
-#connection-icon:-moz-lwtheme-brighttext,
-.notification-anchor-icon:-moz-lwtheme-brighttext,
-#blocked-permissions-container > .blocked-permission-icon:-moz-lwtheme-brighttext,
-#extension-icon:-moz-lwtheme-brighttext {
-  fill: rgba(255,255,255,.7);
 }
 
 #urlbar-zoom-button:-moz-lwtheme-brighttext:hover {
@@ -132,31 +114,6 @@ toolbar[brighttext] .toolbarbutton-1 {
 
 #urlbar-zoom-button:-moz-lwtheme-brighttext:hover:active {
   background-color: rgba(255,255,255,.3);
-}
-
-/* Use smaller back button icon */
-#back-button {
-  list-style-image: url("chrome://browser/skin/back.svg");
-}
-
-.tabbrowser-tab:-moz-any([image], [pinned]) > .tab-stack > .tab-content[attention]:not([selected="true"]),
-.tabbrowser-tab > .tab-stack > .tab-content[pinned][titlechanged]:not([selected="true"]) {
-  background-position: center bottom -4px;
-}
-
-.tabbrowser-tab[image] > .tab-stack > .tab-content[attention]:not([pinned]):not([selected="true"]) {
-  background-position: left bottom var(--tab-toolbar-navbar-overlap);
-  background-size: 34px 100%;
-}
-
-.tab-throbber[selected][progress] {
-  list-style-image: url("chrome://browser/skin/compacttheme/loading-inverted.png");
-}
-
-@media (min-resolution: 1.1dppx) {
-  .tab-throbber[selected][progress] {
-    list-style-image: url("chrome://browser/skin/compacttheme/loading-inverted@2x.png");
-  }
 }
 
 .tab-icon-sound[soundplaying],

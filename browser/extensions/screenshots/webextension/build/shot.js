@@ -29,7 +29,11 @@ function isUrl(url) {
   if ((/^view-source:/i).test(url)) {
     return isUrl(url.substr("view-source:".length));
   }
-  return (/^https?:\/\/[a-z0-9\.\-]{1,8000}[a-z0-9](:[0-9]{1,8000})?\/?/i).test(url);
+  return (/^https?:\/\/[a-z0-9.-]{1,8000}[a-z0-9](:[0-9]{1,8000})?\/?/i).test(url);
+}
+
+function isValidClipImageUrl(url) {
+    return isUrl(url) && !(url.indexOf(')') > -1);
 }
 
 function assertUrl(url) {
@@ -41,6 +45,10 @@ function assertUrl(url) {
     exc.scheme = url.split(":")[0];
     throw exc;
   }
+}
+
+function isSecureWebUri(url) {
+  return (/^https?:\/\/[a-z0-9.-]{1,8000}[a-z0-9](:[0-9]{1,8000})?\/?/i).test(url);
 }
 
 function assertOrigin(url) {
@@ -121,7 +129,7 @@ function resolveUrl(base, url) {
   }
   if (url.indexOf("/") === 0) {
     // Domain-relative URL
-    return (/^https?:\/\/[a-z0-9\.\-]{1,4000}/i).exec(base)[0] + url;
+    return (/^https?:\/\/[a-z0-9.-]{1,4000}/i).exec(base)[0] + url;
   }
   // Otherwise, a full relative URL
   while (url.indexOf("./") === 0) {
@@ -201,7 +209,7 @@ class AbstractShot {
 
   constructor(backend, id, attrs) {
     attrs = attrs || {};
-    assert((/^[a-zA-Z0-9]{1,4000}\/[a-z0-9\.-]{1,4000}$/).test(id), "Bad ID (should be alphanumeric):", JSON.stringify(id));
+    assert((/^[a-zA-Z0-9]{1,4000}\/[a-z0-9.-]{1,4000}$/).test(id), "Bad ID (should be alphanumeric):", JSON.stringify(id));
     this._backend = backend;
     this._id = id;
     this.origin = attrs.origin || null;
@@ -209,6 +217,12 @@ class AbstractShot {
     if ((!attrs.fullUrl) && attrs.url) {
       console.warn("Received deprecated attribute .url");
       this.fullUrl = attrs.url;
+    }
+    if (this.origin && !isSecureWebUri(this.origin)) {
+      this.origin = "";
+    }
+    if (this.fullUrl && !isSecureWebUri(this.fullUrl)) {
+      this.fullUrl = "";
     }
     this.docTitle = attrs.docTitle || null;
     this.userTitle = attrs.userTitle || null;
@@ -351,7 +365,7 @@ class AbstractShot {
   get filename() {
     let filenameTitle = this.title;
     let date = new Date(this.createdDate);
-    filenameTitle = filenameTitle.replace(/[:\\<>\/!@&*.|\n\r\t]/g, " ");
+    filenameTitle = filenameTitle.replace(/[:\\<>/!@&*.|\n\r\t]/g, " ");
     filenameTitle = filenameTitle.replace(/\s{1,4000}/g, " ");
     let clipFilename = `Screenshot-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${filenameTitle}`;
     const clipFilenameBytesSize = clipFilename.length * 2; // JS STrings are UTF-16
@@ -685,7 +699,7 @@ class _Clip {
       return;
     }
     assert(checkObject(image, ["url"], ["dimensions", "text", "location", "captureType"]), "Bad attrs for Clip Image:", Object.keys(image));
-    assert(isUrl(image.url), "Bad Clip image URL:", image.url);
+    assert(isValidClipImageUrl(image.url), "Bad Clip image URL:", image.url);
     assert(image.captureType == "madeSelection" || image.captureType == "selection" || image.captureType == "visible" || image.captureType == "auto" || image.captureType == "fullPage" || !image.captureType, "Bad image.captureType:", image.captureType);
     assert(typeof image.text == "string" || !image.text, "Bad Clip image text:", image.text);
     if (image.dimensions) {
@@ -733,6 +747,7 @@ AbstractShot.prototype.Clip = _Clip;
 if (typeof exports != "undefined") {
   exports.AbstractShot = AbstractShot;
   exports.originFromUrl = originFromUrl;
+  exports.isValidClipImageUrl = isValidClipImageUrl;
 }
 
 return exports;

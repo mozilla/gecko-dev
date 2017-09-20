@@ -153,8 +153,9 @@ interface CanvasUserInterface {
 [NoInterfaceObject]
 interface CanvasText {
   // text (see also the CanvasDrawingStyles interface)
-  //void fillText(DOMString text, unrestricted double x, unrestricted double y,
-  //              optional unrestricted double maxWidth);
+  [Pref="dom.canvas-text.enabled"]
+  void fillText(DOMString text, unrestricted double x, unrestricted double y,
+                optional unrestricted double maxWidth);
   //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
   //                optional unrestricted double maxWidth);
   //TextMetrics measureText(DOMString text);
@@ -263,5 +264,9 @@ interface CanvasPath {
   // [LenientFloat] void ellipse(double x, double y, double radiusX, double radiusY,
   //                             double rotation, double startAngle, double endAngle,
   //                             boolean anticlockwise);
-};
 
+  [Throws]
+  void ellipse(unrestricted double x, unrestricted double y, unrestricted double radius_x,
+               unrestricted double radius_y, unrestricted double rotation, unrestricted double startAngle,
+               unrestricted double endAngle, optional boolean anticlockwise = false);
+};

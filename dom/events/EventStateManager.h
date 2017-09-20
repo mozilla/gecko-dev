@@ -18,6 +18,8 @@
 #include "nsIFrame.h"
 #include "Units.h"
 
+#define NS_USER_INTERACTION_INTERVAL 5000 // ms
+
 class nsFrameLoader;
 class nsIContent;
 class nsIDocument;
@@ -109,7 +111,7 @@ public:
                            nsEventStatus* aStatus);
 
   void PostHandleKeyboardEvent(WidgetKeyboardEvent* aKeyboardEvent,
-                               nsEventStatus& aStatus);
+                               nsIFrame* aTargetFrame, nsEventStatus& aStatus);
 
   /**
    * DispatchLegacyMouseScrollEvents() dispatches eLegacyMouseLineOrPageScroll

@@ -11,7 +11,7 @@ const {SideMenuWidget} = require("resource://devtools/client/shared/widgets/Side
 const promise = require("promise");
 const defer = require("devtools/shared/defer");
 const Services = require("Services");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const Tooltip = require("devtools/client/shared/widgets/tooltip/Tooltip");
 const Editor = require("devtools/client/sourceeditor/editor");
 const {LocalizationHelper} = require("devtools/shared/l10n");
@@ -314,7 +314,7 @@ var ShadersListView = Heritage.extend(WidgetMethods, {
     getShaders()
       .then(getSources)
       .then(showSources)
-      .catch(e => console.error(e));
+      .catch(console.error);
   },
 
   /**

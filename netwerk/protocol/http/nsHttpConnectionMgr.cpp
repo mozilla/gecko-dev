@@ -1171,9 +1171,10 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent, bool consid
     dispatchedSuccessfully |=
         DispatchPendingQ(pendingQ, ent, considerAll);
 
-    // Put the leftovers into connection entry
-    for (const auto& transactionInfo : pendingQ) {
-        ent->InsertTransaction(transactionInfo);
+    // Put the leftovers into connection entry, in the same order as they
+    // were before to keep the natural ordering.
+    for (const auto& transactionInfo : Reversed(pendingQ)) {
+        ent->InsertTransaction(transactionInfo, true);
     }
 
     // Only remove empty pendingQ when considerAll is true.
@@ -3413,6 +3414,47 @@ nsHttpConnectionMgr::ResumeReadOf(nsTArray<RefPtr<nsHttpTransaction>>* transacti
 }
 
 void
+nsHttpConnectionMgr::NotifyConnectionOfWindowIdChange(uint64_t previousWindowId)
+{
+    MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+
+    nsTArray<RefPtr<nsHttpTransaction>> *transactions = nullptr;
+    nsTArray<RefPtr<nsAHttpConnection>> connections;
+
+    auto addConnectionHelper =
+        [&connections](nsTArray<RefPtr<nsHttpTransaction>> *trans) {
+            if (!trans) {
+                return;
+            }
+
+            for (auto t : *trans) {
+                RefPtr<nsAHttpConnection> conn = t->Connection();
+                if (conn && !connections.Contains(conn)) {
+                    connections.AppendElement(conn);
+                }
+            }
+        };
+
+    // Get unthrottled transactions with the previous and current window id.
+    transactions = mActiveTransactions[false].Get(previousWindowId);
+    addConnectionHelper(transactions);
+    transactions =
+        mActiveTransactions[false].Get(mCurrentTopLevelOuterContentWindowId);
+    addConnectionHelper(transactions);
+
+    // Get throttled transactions with the previous and current window id.
+    transactions = mActiveTransactions[true].Get(previousWindowId);
+    addConnectionHelper(transactions);
+    transactions =
+        mActiveTransactions[true].Get(mCurrentTopLevelOuterContentWindowId);
+    addConnectionHelper(transactions);
+
+    for (auto conn : connections) {
+        conn->TopLevelOuterContentWindowIdChanged(mCurrentTopLevelOuterContentWindowId);
+    }
+}
+
+void
 nsHttpConnectionMgr::OnMsgUpdateCurrentTopLevelOuterContentWindowId(
     int32_t aLoading, ARefBase *param)
 {
@@ -3428,7 +3470,12 @@ nsHttpConnectionMgr::OnMsgUpdateCurrentTopLevelOuterContentWindowId(
     bool activeTabWasLoading = mActiveTabTransactionsExist;
     bool activeTabIdChanged = mCurrentTopLevelOuterContentWindowId != winId;
 
+    uint64_t previousWindowId = mCurrentTopLevelOuterContentWindowId;
     mCurrentTopLevelOuterContentWindowId = winId;
+
+    if (gHttpHandler->ActiveTabPriority()) {
+        NotifyConnectionOfWindowIdChange(previousWindowId);
+    }
 
     LOG(("nsHttpConnectionMgr::OnMsgUpdateCurrentTopLevelOuterContentWindowId"
          " id=%" PRIx64 "\n",
@@ -3587,7 +3634,6 @@ nsHttpConnectionMgr::GetOrCreateConnectionEntry(nsHttpConnectionInfo *specificCI
     if (!specificEnt) {
         RefPtr<nsHttpConnectionInfo> clone(specificCI->Clone());
         specificEnt = new nsConnectionEntry(clone);
-        specificEnt->mUseFastOpen = gHttpHandler->UseFastOpen();
         mCT.Put(clone->HashKey(), specificEnt);
     }
     return specificEnt;
@@ -3737,6 +3783,11 @@ nsHalfOpenSocket::nsHalfOpenSocket(nsConnectionEntry *ent,
         }
     }
 
+    if (mEnt->mConnInfo->FirstHopSSL()) {
+      mFastOpenStatus = TFO_NOT_TRIED;
+    } else {
+      mFastOpenStatus = TFO_HTTP;
+    }
     MOZ_ASSERT(mEnt);
 }
 
@@ -3848,6 +3899,7 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     }
 
     socketTransport->SetConnectionFlags(tmpFlags);
+    socketTransport->SetTlsFlags(ci->GetTlsFlags());
 
     const OriginAttributes& originAttributes = mEnt->mConnInfo->GetOriginAttributes();
     if (originAttributes != OriginAttributes()) {
@@ -4170,6 +4222,7 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
 
         mFastOpenInProgress = false;
         mConnectionNegotiatingFastOpen = nullptr;
+        mFastOpenStatus = TFO_FAILED_BACKUP_CONNECTION;
     }
 
     nsresult rv =  SetupConn(out, false);
@@ -4346,6 +4399,13 @@ nsHalfOpenSocket::SetFastOpenConnected(nsresult aError, bool aWillRetry)
     // Check if we want to restart connection!
     if (aWillRetry &&
         ((aError == NS_ERROR_CONNECTION_REFUSED) ||
+#if defined(_WIN64) && defined(WIN95)
+         // On Windows PR_ContinueConnect can return NS_ERROR_FAILURE.
+         // This will be fixed in bug 1386719 and this is just a temporary
+         // work around.
+         (aError == NS_ERROR_FAILURE) ||
+#endif
+         (aError == NS_ERROR_PROXY_CONNECTION_REFUSED) ||
          (aError == NS_ERROR_NET_TIMEOUT))) {
         if (mEnt->mUseFastOpen) {
             gHttpHandler->IncrementFastOpenConsecutiveFailureCounter();
@@ -4384,6 +4444,14 @@ nsHalfOpenSocket::SetFastOpenConnected(nsresult aError, bool aWillRetry)
         mSocketTransport->SetEventSink(this, nullptr);
         mSocketTransport->SetSecurityCallbacks(this);
         mStreamIn->AsyncWait(nullptr, 0, 0, nullptr);
+
+        if (aError == NS_ERROR_CONNECTION_REFUSED) {
+            mFastOpenStatus = TFO_FAILED_CONNECTION_REFUSED;
+        } else if (aError == NS_ERROR_NET_TIMEOUT) {
+            mFastOpenStatus = TFO_FAILED_NET_TIMEOUT;
+        } else {
+            mFastOpenStatus = TFO_FAILED_UNKNOW_ERROR;
+        }
 
     } else {
         // On success or other error we proceed with connection, we just need
@@ -4646,6 +4714,8 @@ nsHalfOpenSocket::SetupConn(nsIAsyncOutputStream *out,
         } else {
             conn->SetFastOpen(false);
         }
+    } else {
+        conn->SetFastOpenStatus(mFastOpenStatus);
     }
 
     // If this halfOpenConn was speculative, but at the ende the conn got a
@@ -4872,6 +4942,12 @@ ConnectionHandle::HttpConnection()
     return rv.forget();
 }
 
+void
+ConnectionHandle::TopLevelOuterContentWindowIdChanged(uint64_t windowId)
+{
+  // Do nothing.
+}
+
 // nsConnectionEntry
 
 nsHttpConnectionMgr::
@@ -4884,7 +4960,18 @@ nsConnectionEntry::nsConnectionEntry(nsHttpConnectionInfo *ci)
     , mDoNotDestroy(false)
 {
     MOZ_COUNT_CTOR(nsConnectionEntry);
-    mUseFastOpen = gHttpHandler->UseFastOpen();
+
+    if (mConnInfo->FirstHopSSL()) {
+#if defined(_WIN64) && defined(WIN95)
+        mUseFastOpen = gHttpHandler->UseFastOpen() &&
+                       gSocketTransportService->HasFileDesc2PlatformOverlappedIOHandleFunc();
+#else
+        mUseFastOpen = gHttpHandler->UseFastOpen();
+#endif
+    } else {
+        // Only allow the TCP fast open on a secure connection.
+        mUseFastOpen = false;
+    }
 
     LOG(("nsConnectionEntry::nsConnectionEntry this=%p key=%s",
          this, ci->HashKey().get()));

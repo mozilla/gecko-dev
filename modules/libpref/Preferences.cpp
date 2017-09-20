@@ -10,8 +10,12 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/ResultExtensions.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/ServoStyleSet.h"
+#include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/URLPreloader.h"
 #include "mozilla/UniquePtrExtensions.h"
 
 #include "nsXULAppAPI.h"
@@ -32,7 +36,7 @@
 #include "nsIStringEnumerator.h"
 #include "nsIZipReader.h"
 #include "nsPrefBranch.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsCRT.h"
 #include "nsCOMArray.h"
 #include "nsXPCOMCID.h"
@@ -126,7 +130,7 @@ Preferences::DirtyCallback()
 
 // Prototypes
 static nsresult openPrefFile(nsIFile* aFile);
-static nsresult pref_InitInitialObjects(void);
+static Result<Ok, const char*> pref_InitInitialObjects();
 static nsresult pref_LoadPrefsInDirList(const char *listId);
 static nsresult ReadExtensionPrefs(nsIFile *aFile);
 
@@ -403,6 +407,9 @@ struct CacheData {
   };
 };
 
+// gCacheDataDesc holds information about prefs startup. It's being used for
+// diagnosing prefs startup problems in bug 1276488.
+static const char* gCacheDataDesc = "untouched";
 static nsTArray<nsAutoPtr<CacheData> >* gCacheData = nullptr;
 static nsRefPtrHashtable<ValueObserverHashKey,
                          ValueObserver>* gObserverTable = nullptr;
@@ -606,7 +613,10 @@ Preferences::GetInstanceForService()
     return sPreferences;
   }
 
-  NS_ENSURE_TRUE(!sShutdown, nullptr);
+  if (sShutdown) {
+    gCacheDataDesc = "shutting down in GetInstanceForService()";
+    return nullptr;
+  }
 
   sRootBranch = new nsPrefBranch("", false);
   NS_ADDREF(sRootBranch);
@@ -616,13 +626,16 @@ Preferences::GetInstanceForService()
   sPreferences = new Preferences();
   NS_ADDREF(sPreferences);
 
-  if (NS_FAILED(sPreferences->Init())) {
+  Result<Ok, const char*> res = sPreferences->Init();
+  if (res.isErr()) {
     // The singleton instance will delete sRootBranch and sDefaultRootBranch.
+    gCacheDataDesc = res.unwrapErr();
     NS_RELEASE(sPreferences);
     return nullptr;
   }
 
   gCacheData = new nsTArray<nsAutoPtr<CacheData> >();
+  gCacheDataDesc = "set by GetInstanceForService()";
 
   gObserverTable = new nsRefPtrHashtable<ValueObserverHashKey, ValueObserver>();
 
@@ -732,16 +745,13 @@ Preferences::SetInitPreferences(nsTArray<PrefSetting>* aPrefs) {
   gInitPrefs = new InfallibleTArray<PrefSetting>(mozilla::Move(*aPrefs));
 }
 
-nsresult
+Result<Ok, const char*>
 Preferences::Init()
 {
-  nsresult rv;
-
   PREF_SetDirtyCallback(&DirtyCallback);
   PREF_Init();
 
-  rv = pref_InitInitialObjects();
-  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_TRY(pref_InitInitialObjects());
 
   if (XRE_IsContentProcess()) {
     MOZ_ASSERT(gInitPrefs);
@@ -750,10 +760,10 @@ Preferences::Init()
     }
     delete gInitPrefs;
     gInitPrefs = nullptr;
-    return NS_OK;
+    return Ok();
   }
 
-  nsXPIDLCString lockFileName;
+  nsCString lockFileName;
   /*
    * The following is a small hack which will allow us to only load the library
    * which supports the netscape.cfg file if the preference is defined. We
@@ -762,7 +772,8 @@ Preferences::Init()
    * category which will do the rest.
    */
 
-  rv = PREF_CopyCharPref("general.config.filename", getter_Copies(lockFileName), false);
+  nsresult rv = PREF_CopyCharPref("general.config.filename",
+                                  getter_Copies(lockFileName), false);
   if (NS_SUCCEEDED(rv))
     NS_CreateServicesFromCategory("pref-config-startup",
                                   static_cast<nsISupports *>(static_cast<void *>(this)),
@@ -770,8 +781,9 @@ Preferences::Init()
 
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
-  if (!observerService)
-    return NS_ERROR_FAILURE;
+  if (!observerService) {
+    return Err("GetObserverService() failed (1)");
+  }
 
   observerService->AddObserver(this, "profile-before-change-telemetry", true);
   rv = observerService->AddObserver(this, "profile-before-change", true);
@@ -779,7 +791,11 @@ Preferences::Init()
   observerService->AddObserver(this, "load-extension-defaults", true);
   observerService->AddObserver(this, "suspend_process_notification", true);
 
-  return(rv);
+  if (NS_FAILED(rv)) {
+    return Err("AddObserver(\"profile-before-change\") failed");
+  }
+
+  return Ok();
 }
 
 // static
@@ -837,7 +853,7 @@ Preferences::Observe(nsISupports *aSubject, const char *aTopic,
     pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST);
   } else if (!nsCRT::strcmp(aTopic, "reload-default-prefs")) {
     // Reload the default prefs from file.
-    pref_InitInitialObjects();
+    Unused << pref_InitInitialObjects();
   } else if (!nsCRT::strcmp(aTopic, "suspend_process_notification")) {
     // Our process is being suspended. The OS may wake our process later,
     // or it may kill the process. In case our process is going to be killed
@@ -877,7 +893,7 @@ Preferences::ResetPrefs()
 
   PREF_Init();
 
-  return pref_InitInitialObjects();
+  return pref_InitInitialObjects().isOk() ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -1239,9 +1255,13 @@ Preferences::WritePrefFile(nsIFile* aFile, SaveMethod aSaveMethod)
         do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
       if (NS_SUCCEEDED(rv)) {
         bool async = aSaveMethod == SaveMethod::Asynchronous;
-        rv = target->Dispatch(new PWRunnable(aFile),
-                              async ? nsIEventTarget::DISPATCH_NORMAL :
-                                      nsIEventTarget::DISPATCH_SYNC);
+        if (async) {
+          rv = target->Dispatch(new PWRunnable(aFile),
+                                nsIEventTarget::DISPATCH_NORMAL);
+        } else {
+          // Note that we don't get the nsresult return value here
+          SyncRunnable::DispatchToThread(target, new PWRunnable(aFile), true);
+        }
         return rv;
       }
     }
@@ -1260,46 +1280,20 @@ Preferences::WritePrefFile(nsIFile* aFile, SaveMethod aSaveMethod)
 
 static nsresult openPrefFile(nsIFile* aFile)
 {
-  nsCOMPtr<nsIInputStream> inStr;
-
-  nsresult rv = NS_NewLocalFileInputStream(getter_AddRefs(inStr), aFile);
-  if (NS_FAILED(rv))
-    return rv;
-
-  int64_t fileSize64;
-  rv = aFile->GetFileSize(&fileSize64);
-  if (NS_FAILED(rv))
-    return rv;
-  NS_ENSURE_TRUE(fileSize64 <= UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
-
-  uint32_t fileSize = (uint32_t)fileSize64;
-  auto fileBuffer = MakeUniqueFallible<char[]>(fileSize);
-  if (fileBuffer == nullptr)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   PrefParseState ps;
   PREF_InitParseState(&ps, PREF_ReaderCallback, ReportToConsole, nullptr);
+  auto cleanup = MakeScopeExit([&] () {
+    PREF_FinalizeParseState(&ps);
+  });
 
-  // Read is not guaranteed to return a buf the size of fileSize,
-  // but usually will.
-  nsresult rv2 = NS_OK;
-  uint32_t offset = 0;
-  for (;;) {
-    uint32_t amtRead = 0;
-    rv = inStr->Read(fileBuffer.get(), fileSize, &amtRead);
-    if (NS_FAILED(rv) || amtRead == 0)
-      break;
-    if (!PREF_ParseBuf(&ps, fileBuffer.get(), amtRead))
-      rv2 = NS_ERROR_FILE_CORRUPTED;
-    offset += amtRead;
-    if (offset == fileSize) {
-      break;
-    }
+  nsCString data;
+  MOZ_TRY_VAR(data, URLPreloader::ReadFile(aFile));
+  if (!PREF_ParseBuf(&ps, data.get(), data.Length())) {
+    return NS_ERROR_FILE_CORRUPTED;
   }
 
-  PREF_FinalizeParseState(&ps);
+  return NS_OK;
 
-  return NS_FAILED(rv) ? rv : rv2;
 }
 
 /*
@@ -1456,12 +1450,12 @@ static nsresult pref_LoadPrefsInDirList(const char *listId)
 
 static nsresult pref_ReadPrefFromJar(nsZipArchive* jarReader, const char *name)
 {
-  nsZipItemPtr<char> manifest(jarReader, name, true);
-  NS_ENSURE_TRUE(manifest.Buffer(), NS_ERROR_NOT_AVAILABLE);
+  nsCString manifest;
+  MOZ_TRY_VAR(manifest, URLPreloader::ReadZip(jarReader, nsDependentCString(name)));
 
   PrefParseState ps;
   PREF_InitParseState(&ps, PREF_ReaderCallback, ReportToConsole, nullptr);
-  PREF_ParseBuf(&ps, manifest, manifest.Length());
+  PREF_ParseBuf(&ps, manifest.get(), manifest.Length());
   PREF_FinalizeParseState(&ps);
 
   return NS_OK;
@@ -1471,7 +1465,8 @@ static nsresult pref_ReadPrefFromJar(nsZipArchive* jarReader, const char *name)
 // Initialize default preference JavaScript buffers from
 // appropriate TEXT resources
 //----------------------------------------------------------------------------------------
-static nsresult pref_InitInitialObjects()
+static Result<Ok, const char*>
+pref_InitInitialObjects()
 {
   nsresult rv;
 
@@ -1508,11 +1503,11 @@ static nsresult pref_InitInitialObjects()
   if (jarReader) {
     // Load jar:$gre/omni.jar!/greprefs.js
     rv = pref_ReadPrefFromJar(jarReader, "greprefs.js");
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, Err("pref_ReadPrefFromJar() failed"));
 
     // Load jar:$gre/omni.jar!/defaults/pref/*.js
     rv = jarReader->FindInit("defaults/pref/*.js$", &findPtr);
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, Err("jarReader->FindInit() failed"));
 
     find = findPtr;
     while (NS_SUCCEEDED(find->FindNext(&entryName, &entryNameLen))) {
@@ -1529,10 +1524,10 @@ static nsresult pref_InitInitialObjects()
     // Load $gre/greprefs.js
     nsCOMPtr<nsIFile> greprefsFile;
     rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(greprefsFile));
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, Err("NS_GetSpecialDirectory(NS_GRE_DIR) failed"));
 
     rv = greprefsFile->AppendNative(NS_LITERAL_CSTRING("greprefs.js"));
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, Err("greprefsFile->AppendNative() failed"));
 
     rv = openPrefFile(greprefsFile);
     if (NS_FAILED(rv))
@@ -1543,7 +1538,8 @@ static nsresult pref_InitInitialObjects()
   nsCOMPtr<nsIFile> defaultPrefDir;
 
   rv = NS_GetSpecialDirectory(NS_APP_PREF_DEFAULTS_50_DIR, getter_AddRefs(defaultPrefDir));
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(
+    rv, Err("NS_GetSpecialDirectory(NS_APP_PREF_DEFAULTS_50_DIR) failed"));
 
   /* these pref file names should not be used: we process them after all other application pref files for backwards compatibility */
   static const char* specialFiles[] = {
@@ -1574,7 +1570,7 @@ static nsresult pref_InitInitialObjects()
     appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
   if (appJarReader) {
     rv = appJarReader->FindInit("defaults/preferences/*.js$", &findPtr);
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_SUCCESS(rv, Err("appJarReader->FindInit() failed"));
     find = findPtr;
     prefEntries.Clear();
     while (NS_SUCCEEDED(find->FindNext(&entryName, &entryNameLen))) {
@@ -1589,7 +1585,8 @@ static nsresult pref_InitInitialObjects()
   }
 
   rv = pref_LoadPrefsInDirList(NS_APP_PREFS_DEFAULTS_DIR_LIST);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(
+    rv, Err("pref_LoadPrefsInDirList(NS_APP_PREFS_DEFAULTS_DIR_LIST) failed"));
 
   // Set up the correct default for toolkit.telemetry.enabled.
   // If this build has MOZ_TELEMETRY_ON_BY_DEFAULT *or* we're on the beta
@@ -1615,12 +1612,15 @@ static nsresult pref_InitInitialObjects()
 
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
-  if (!observerService)
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_SUCCESS(rv, Err("GetObserverService() failed (2)"));
 
   observerService->NotifyObservers(nullptr, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID, nullptr);
 
-  return pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST);
+  rv = pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST);
+  NS_ENSURE_SUCCESS(
+    rv, Err("pref_LoadPrefsInDirList(NS_EXT_PREFS_DEFAULTS_DIR_LIST) failed"));
+
+  return Ok();
 }
 
 
@@ -1827,6 +1827,7 @@ nsresult
 Preferences::AddStrongObserver(nsIObserver* aObserver,
                                const char* aPref)
 {
+  MOZ_ASSERT(aObserver);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   return sRootBranch->AddObserver(aPref, aObserver, false);
 }
@@ -1836,6 +1837,7 @@ nsresult
 Preferences::AddWeakObserver(nsIObserver* aObserver,
                              const char* aPref)
 {
+  MOZ_ASSERT(aObserver);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
   return sRootBranch->AddObserver(aPref, aObserver, true);
 }
@@ -1845,6 +1847,7 @@ nsresult
 Preferences::RemoveObserver(nsIObserver* aObserver,
                             const char* aPref)
 {
+  MOZ_ASSERT(aObserver);
   if (!sPreferences && sShutdown) {
     return NS_OK; // Observers have been released automatically.
   }
@@ -1857,6 +1860,7 @@ nsresult
 Preferences::AddStrongObservers(nsIObserver* aObserver,
                                 const char** aPrefs)
 {
+  MOZ_ASSERT(aObserver);
   for (uint32_t i = 0; aPrefs[i]; i++) {
     nsresult rv = AddStrongObserver(aObserver, aPrefs[i]);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1869,6 +1873,7 @@ nsresult
 Preferences::AddWeakObservers(nsIObserver* aObserver,
                               const char** aPrefs)
 {
+  MOZ_ASSERT(aObserver);
   for (uint32_t i = 0; aPrefs[i]; i++) {
     nsresult rv = AddWeakObserver(aObserver, aPrefs[i]);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1881,6 +1886,7 @@ nsresult
 Preferences::RemoveObservers(nsIObserver* aObserver,
                              const char** aPrefs)
 {
+  MOZ_ASSERT(aObserver);
   if (!sPreferences && sShutdown) {
     return NS_OK; // Observers have been released automatically.
   }
@@ -1928,6 +1934,7 @@ Preferences::RegisterCallback(PrefChangedFunc aCallback,
                               void* aClosure,
                               MatchKind aMatchKind)
 {
+  MOZ_ASSERT(aCallback);
   NS_ENSURE_TRUE(InitStaticMembers(), NS_ERROR_NOT_AVAILABLE);
 
   ValueObserverHashKey hashKey(aPref, aCallback, aMatchKind);
@@ -1953,6 +1960,7 @@ Preferences::RegisterCallbackAndCall(PrefChangedFunc aCallback,
                                      void* aClosure,
                                      MatchKind aMatchKind)
 {
+  MOZ_ASSERT(aCallback);
   WATCHING_PREF_RAII();
   nsresult rv = RegisterCallback(aCallback, aPref, aClosure, aMatchKind);
   if (NS_SUCCEEDED(rv)) {
@@ -1968,6 +1976,7 @@ Preferences::UnregisterCallback(PrefChangedFunc aCallback,
                                 void* aClosure,
                                 MatchKind aMatchKind)
 {
+  MOZ_ASSERT(aCallback);
   if (!sPreferences && sShutdown) {
     return NS_OK; // Observers have been released automatically.
   }
@@ -1999,6 +2008,15 @@ static void BoolVarChanged(const char* aPref, void* aClosure)
     Preferences::GetBool(aPref, cache->defaultValueBool);
 }
 
+static void
+CacheDataAppendElement(CacheData* aData)
+{
+  if (!gCacheData) {
+    MOZ_CRASH_UNSAFE_PRINTF("!gCacheData: %s", gCacheDataDesc);
+  }
+  gCacheData->AppendElement(aData);
+}
+
 // static
 nsresult
 Preferences::AddBoolVarCache(bool* aCache,
@@ -2014,7 +2032,7 @@ Preferences::AddBoolVarCache(bool* aCache,
   CacheData* data = new CacheData();
   data->cacheLocation = aCache;
   data->defaultValueBool = aDefault;
-  gCacheData->AppendElement(data);
+  CacheDataAppendElement(data);
   RegisterPriorityCallback(BoolVarChanged, aPref, data);
   return NS_OK;
 }
@@ -2041,7 +2059,7 @@ Preferences::AddIntVarCache(int32_t* aCache,
   CacheData* data = new CacheData();
   data->cacheLocation = aCache;
   data->defaultValueInt = aDefault;
-  gCacheData->AppendElement(data);
+  CacheDataAppendElement(data);
   RegisterPriorityCallback(IntVarChanged, aPref, data);
   return NS_OK;
 }
@@ -2068,7 +2086,7 @@ Preferences::AddUintVarCache(uint32_t* aCache,
   CacheData* data = new CacheData();
   data->cacheLocation = aCache;
   data->defaultValueUint = aDefault;
-  gCacheData->AppendElement(data);
+  CacheDataAppendElement(data);
   RegisterPriorityCallback(UintVarChanged, aPref, data);
   return NS_OK;
 }
@@ -2097,7 +2115,7 @@ Preferences::AddAtomicUintVarCache(Atomic<uint32_t, Order>* aCache,
   CacheData* data = new CacheData();
   data->cacheLocation = aCache;
   data->defaultValueUint = aDefault;
-  gCacheData->AppendElement(data);
+  CacheDataAppendElement(data);
   RegisterPriorityCallback(AtomicUintVarChanged<Order>, aPref, data);
   return NS_OK;
 }
@@ -2131,7 +2149,7 @@ Preferences::AddFloatVarCache(float* aCache,
   CacheData* data = new CacheData();
   data->cacheLocation = aCache;
   data->defaultValueFloat = aDefault;
-  gCacheData->AppendElement(data);
+  CacheDataAppendElement(data);
   RegisterPriorityCallback(FloatVarChanged, aPref, data);
   return NS_OK;
 }

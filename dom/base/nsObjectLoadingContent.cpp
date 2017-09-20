@@ -1385,7 +1385,8 @@ nsObjectLoadingContent::MaybeRewriteYoutubeEmbed(nsIURI* aURI, nsIURI* aBaseURI,
   }
 
   // See if URL is referencing youtube
-  if (!currentBaseDomain.EqualsLiteral("youtube.com")) {
+  if (!currentBaseDomain.EqualsLiteral("youtube.com") &&
+      !currentBaseDomain.EqualsLiteral("youtube-nocookie.com")) {
     return;
   }
 
@@ -1401,10 +1402,6 @@ nsObjectLoadingContent::MaybeRewriteYoutubeEmbed(nsIURI* aURI, nsIURI* aBaseURI,
   nsAutoCString uri;
   nsresult rv = aURI->GetSpec(uri);
   if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (uri.Find("enablejsapi=1", true, 0, -1) != kNotFound) {
     return;
   }
 

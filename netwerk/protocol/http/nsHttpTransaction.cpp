@@ -382,7 +382,8 @@ nsHttpTransaction::Init(uint32_t caps,
         // wrap the multiplexed input stream with a buffered input stream, so
         // that we write data in the largest chunks possible.  this is actually
         // necessary to workaround some common server bugs (see bug 137155).
-        rv = NS_NewBufferedInputStream(getter_AddRefs(mRequestStream), multi,
+        nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multi));
+        rv = NS_NewBufferedInputStream(getter_AddRefs(mRequestStream), stream,
                                        nsIOService::gDefaultSegmentSize);
         if (NS_FAILED(rv)) return rv;
     } else {
@@ -719,6 +720,8 @@ nsHttpTransaction::ReadRequestSegment(nsIInputStream *stream,
     nsresult rv = trans->mReader->OnReadSegment(buf, count, countRead);
     if (NS_FAILED(rv)) return rv;
 
+    LOG(("nsHttpTransaction::ReadRequestSegment %p read=%u", trans, *countRead));
+
     trans->mSentData = true;
     return NS_OK;
 }
@@ -727,6 +730,8 @@ nsresult
 nsHttpTransaction::ReadSegments(nsAHttpSegmentReader *reader,
                                 uint32_t count, uint32_t *countRead)
 {
+    LOG(("nsHttpTransaction::ReadSegments %p", this));
+
     MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
     if (mTransactionDone) {
@@ -817,6 +822,8 @@ nsHttpTransaction::WritePipeSegment(nsIOutputStream *stream,
     //
     rv = trans->mWriter->OnWriteSegment(buf, count, countWritten);
     if (NS_FAILED(rv)) return rv; // caller didn't want to write anything
+
+    LOG(("nsHttpTransaction::WritePipeSegment %p written=%u", trans, *countWritten));
 
     MOZ_ASSERT(*countWritten > 0, "bad writer");
     trans->mReceivedData = true;

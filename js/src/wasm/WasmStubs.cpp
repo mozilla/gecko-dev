@@ -31,6 +31,10 @@ using namespace js::wasm;
 
 using mozilla::ArrayLength;
 
+typedef Vector<jit::MIRType, 8, SystemAllocPolicy> MIRTypeVector;
+typedef jit::ABIArgIter<MIRTypeVector> ABIArgMIRTypeIter;
+typedef jit::ABIArgIter<ValTypeVector> ABIArgValTypeIter;
+
 static void
 FinishOffsets(MacroAssembler& masm, Offsets* offsets)
 {
@@ -1144,10 +1148,6 @@ wasm::GenerateInterruptExit(MacroAssembler& masm, Label* throwLabel)
     // Align the stack.
     masm.ma_and(StackPointer, StackPointer, Imm32(~(ABIStackAlignment - 1)));
 
-    // Store resumePC into the reserved space.
-    masm.loadWasmActivationFromSymbolicAddress(IntArgReg0);
-    masm.loadPtr(Address(IntArgReg0, WasmActivation::offsetOfResumePC()), IntArgReg1);
-    masm.storePtr(IntArgReg1, Address(s0, masm.framePushed()));
     // Store HeapReg into the reserved space.
     masm.storePtr(HeapReg, Address(s0, masm.framePushed() + sizeof(intptr_t)));
 
@@ -1163,10 +1163,14 @@ wasm::GenerateInterruptExit(MacroAssembler& masm, Label* throwLabel)
     masm.addToStackPtr(Imm32(4 * sizeof(intptr_t)));
 # endif
 
-    masm.branchIfFalseBool(ReturnReg, throwLabel);
+    masm.branchTestPtr(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
 
     // This will restore stack to the address before the call.
     masm.moveToStackPtr(s0);
+
+    // Store resumePC into the reserved space.
+    masm.storePtr(ReturnReg, Address(s0, masm.framePushed()));
+
     masm.PopRegsInMask(AllRegsExceptSP);
 
     // Pop resumePC into PC. Clobber HeapReg to make the jump and restore it
@@ -1175,7 +1179,7 @@ wasm::GenerateInterruptExit(MacroAssembler& masm, Label* throwLabel)
     // Reclaim the reserve space.
     masm.addToStackPtr(Imm32(2 * sizeof(intptr_t)));
     masm.as_jr(HeapReg);
-    masm.loadPtr(Address(StackPointer, -sizeof(intptr_t)), HeapReg);
+    masm.loadPtr(Address(StackPointer, -int32_t(sizeof(intptr_t))), HeapReg);
 #elif defined(JS_CODEGEN_ARM)
     {
         // Be careful not to clobber scratch registers before they are saved.

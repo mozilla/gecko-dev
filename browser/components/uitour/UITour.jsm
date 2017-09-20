@@ -32,6 +32,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ProfileAge",
   "resource://gre/modules/ProfileAge.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderParent",
   "resource:///modules/ReaderParent.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PageActions",
+  "resource:///modules/PageActions.jsm");
 
 // See LOG_LEVELS in Console.jsm. Common examples: "All", "Info", "Warn", & "Error".
 const PREF_LOG_LEVEL      = "browser.uitour.loglevel";
@@ -113,7 +115,13 @@ this.UITour = {
       // to automatically open the appMenu when annotating this target.
       widgetName: "appMenu-fxa-label",
     }],
-    ["addons",      {query: "#appMenu-addons-button"}],
+    ["addons",      {
+      query: (aDocument) => {
+        // select toolbar icon if exist, fallback to appMenu item
+        let node = aDocument.getElementById("add-ons-button");
+        return node ? node : aDocument.getElementById("appMenu-addons-button");
+      },
+    }],
     ["appMenu",     {
       addTargetListener: (aDocument, aCallback) => {
         let panelPopup = aDocument.defaultView.PanelUI.panel;
@@ -147,11 +155,24 @@ this.UITour = {
     }],
     ["help",        {query: "#appMenu-help-button"}],
     ["home",        {query: "#home-button"}],
-    ["library",     {query: "#appMenu-library-button"}],
+    ["library",     {
+      query: (aDocument) => {
+        // select toolbar icon if exist, fallback to appMenu item
+        let node = aDocument.getElementById("library-button");
+        return node ? node : aDocument.getElementById("appMenu-library-button");
+      },
+    }],
     ["pocket", {
       allowAdd: true,
-      query: "#pocket-button",
-      widgetName: "pocket-button",
+      query: (aDocument) => {
+        // The pocket's urlbar page action button is pre-defined in the DOM.
+        // It would be hidden if toggled off from the urlbar.
+        let node = aDocument.getElementById("pocket-button-box");
+        if (node && node.hidden == false) {
+          return node;
+        }
+        return aDocument.getElementById("pageAction-panel-pocket");
+      },
     }],
     ["privateWindow", {query: "#appMenu-private-window-button"}],
     ["quit",        {query: "#appMenu-quit-button"}],
@@ -208,20 +229,40 @@ this.UITour = {
     ["pageActionButton", {
       query: "#pageActionButton"
     }],
-    ["pageAction-panel-bookmark", {
-      query: "#pageAction-panel-bookmark"
+    ["pageAction-bookmark", {
+      query: (aDocument) => {
+        // The bookmark's urlbar page action button is pre-defined in the DOM.
+        // It would be hidden if toggled off from the urlbar.
+        let node = aDocument.getElementById("star-button-box");
+        if (node && node.hidden == false) {
+          return node;
+        }
+        return aDocument.getElementById("pageAction-panel-bookmark");
+      },
     }],
-    ["pageAction-panel-copyURL", {
-      query: "#pageAction-panel-copyURL"
+    ["pageAction-copyURL", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-copyURL") ||
+               aDocument.getElementById("pageAction-panel-copyURL");
+      },
     }],
-    ["pageAction-panel-emailLink", {
-      query: "#pageAction-panel-emailLink"
+    ["pageAction-emailLink", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-emailLink") ||
+               aDocument.getElementById("pageAction-panel-emailLink");
+      },
     }],
-    ["pageAction-panel-sendToDevice", {
-      query: "#pageAction-panel-sendToDevice"
+    ["pageAction-sendToDevice", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-sendToDevice") ||
+               aDocument.getElementById("pageAction-panel-sendToDevice");
+      },
     }],
-    ["bookmark-star-button", {
-      query: "#star-button"
+    ["screenshots", {
+      query: (aDocument) => {
+        return aDocument.getElementById("pageAction-urlbar-screenshots") ||
+               aDocument.getElementById("pageAction-panel-screenshots");
+      },
     }]
   ]),
 
@@ -517,38 +558,28 @@ this.UITour = {
           log.warn("openPreferences: Invalid pane specified");
           return false;
         }
-
-        let paneID = data.pane;
-        let extraArgs = { origin: "UITour" };
-        if (Services.prefs.getBoolPref("browser.preferences.useOldOrganization", true)) {
-          // We are heading to the old Preferences so
-          // let's map the new one to the old one if the `paneID` was for the new Preferences.
-          // Currently only the old advanced pane > dataChoicesTab has the mapping need,
-          // so here only do mapping for it right now.
-          // We could add another mapping when there is need.
-          if (paneID == "privacy-reports") {
-            paneID = "advanced";
-            extraArgs.advancedTab = "dataChoicesTab";
-          }
-        }
-
-        window.openPreferences(paneID, extraArgs);
+        window.openPreferences(data.pane, { origin: "UITour" });
         break;
       }
 
       case "showFirefoxAccounts": {
-        // 'signup' is the only action that makes sense currently, so we don't
-        // accept arbitrary actions just to be safe...
-        let p = new URLSearchParams("action=signup&entrypoint=uitour");
+        let p;
+        if (data.email) {
+          // With email parameter added, we need to use 'email' action to help FxA determine
+          // whether the email is registered or not and direct the user down the correct flow
+          p =  new URLSearchParams("action=email&entrypoint=uitour");
+          p.append("email", data.email);
+        } else {
+          // 'signup' is the default action that makes sense currently, so we don't
+          // accept arbitrary actions just to be safe...
+          p =  new URLSearchParams("action=signup&entrypoint=uitour");
+        }
         // Call our helper to validate extraURLCampaignParams and populate URLSearchParams
         if (!this._populateCampaignParams(p, data.extraURLCampaignParams)) {
           log.warn("showFirefoxAccounts: invalid campaign args specified");
           return false;
         }
 
-        if (data.email) {
-          p.append("email", data.email);
-        }
         // We want to replace the current tab.
         browser.loadURI("about:accounts?" + p.toString());
         break;
@@ -835,8 +866,8 @@ this.UITour = {
         node: aWindow.PanelUI.panel,
         events: [
           [ "popuphidden", this.onPanelHidden ],
-          [ "popuphiding", this.hideAppMenuAnnotations ],
-          [ "ViewShowing", this.hideAppMenuAnnotations ]
+          [ "popuphiding", this.onAppMenuHiding ],
+          [ "ViewShowing", this.onAppMenuSubviewShowing ]
         ]
       },
       {
@@ -844,8 +875,8 @@ this.UITour = {
         node: aWindow.BrowserPageActions.panelNode,
         events: [
           [ "popuphidden", this.onPanelHidden ],
-          [ "popuphiding", this.hidePageActionPanelAnnotations ],
-          [ "ViewShowing", this.hidePageActionPanelAnnotations ]
+          [ "popuphiding", this.onPageActionPanelHiding ],
+          [ "ViewShowing", this.onPageActionPanelSubviewShowing ]
         ]
       },
       {
@@ -853,7 +884,7 @@ this.UITour = {
         node: aWindow.gIdentityHandler._identityPopup,
         events: [
           [ "popuphidden", this.onPanelHidden ],
-          [ "popuphiding", this.hideControlCenterAnnotations ]
+          [ "popuphiding", this.onControlCenterHiding ]
         ]
       },
     ];
@@ -1110,7 +1141,7 @@ this.UITour = {
     let refreshedTarget = await this.getTarget(aChromeWindow, aTarget.targetName);
     let node = aTarget.node = refreshedTarget.node;
     // If the target is in the overflow panel, just return the overflow button.
-    if (node.closest("#widget-overflow-scroller")) {
+    if (node.closest("#widget-overflow-mainView")) {
       return CustomizableUI.getWidget(node.id).forWindow(aChromeWindow).anchor;
     }
     return node;
@@ -1125,7 +1156,7 @@ this.UITour = {
    * @see UITour.highlightEffects
    */
   async showHighlight(aChromeWindow, aTarget, aEffect = "none") {
-    let showHighlightPanel = (aAnchorEl) => {
+    let showHighlightElement = (aAnchorEl) => {
       let highlighter = aChromeWindow.document.getElementById("UITourHighlight");
 
       let effect = aEffect;
@@ -1147,16 +1178,19 @@ this.UITour = {
       let targetRect = highlightAnchor.getBoundingClientRect();
       let highlightHeight = targetRect.height;
       let highlightWidth = targetRect.width;
-      let minDimension = Math.min(highlightHeight, highlightWidth);
-      let maxDimension = Math.max(highlightHeight, highlightWidth);
 
-      // If the dimensions are within 200% of each other (to include the bookmarks button),
-      // make the highlight a circle with the largest dimension as the diameter.
-      if (maxDimension / minDimension <= 3.0) {
-        highlightHeight = highlightWidth = maxDimension;
-        highlighter.style.borderRadius = "100%";
+      if (this.targetIsInAppMenu(aTarget) || this.targetIsInPageActionPanel(aTarget)) {
+        highlighter.classList.remove("rounded-highlight");
       } else {
-        highlighter.style.borderRadius = "";
+        highlighter.classList.add("rounded-highlight");
+      }
+      if (highlightAnchor.classList.contains("toolbarbutton-1") &&
+          highlightAnchor.getAttribute("cui-areatype") === "toolbar" &&
+          highlightAnchor.getAttribute("overflowedItem") !== "true") {
+        // A toolbar button in navbar has its clickable area an
+        // inner-contained square while the button component itself is a tall
+        // rectangle. We adjust the highlight area to a square as well.
+        highlightHeight = highlightWidth;
       }
 
       highlighter.style.height = highlightHeight + "px";
@@ -1173,8 +1207,8 @@ this.UITour = {
       let highlightStyle = highlightWindow.getComputedStyle(highlighter);
       let highlightHeightWithMin = Math.max(highlightHeight, parseFloat(highlightStyle.minHeight));
       let highlightWidthWithMin = Math.max(highlightWidth, parseFloat(highlightStyle.minWidth));
-      let offsetX = -(Math.max(0, highlightWidthWithMin - targetRect.width) / 2);
-      let offsetY = -(Math.max(0, highlightHeightWithMin - targetRect.height) / 2);
+      let offsetX = (targetRect.width - highlightWidthWithMin) / 2;
+      let offsetY = (targetRect.height - highlightHeightWithMin) / 2;
       this._addAnnotationPanelMutationObserver(highlighter.parentElement);
       highlighter.parentElement.openPopup(highlightAnchor, "overlap", offsetX, offsetY);
     };
@@ -1182,17 +1216,21 @@ this.UITour = {
     try {
       await this._ensureTarget(aChromeWindow, aTarget);
       let anchorEl = await this._correctAnchor(aChromeWindow, aTarget);
-      showHighlightPanel(anchorEl);
+      showHighlightElement(anchorEl);
     } catch (e) {
       log.warn(e);
     }
   },
 
-  hideHighlight(aWindow) {
+  _hideHighlightElement(aWindow) {
     let highlighter = aWindow.document.getElementById("UITourHighlight");
     this._removeAnnotationPanelMutationObserver(highlighter.parentElement);
     highlighter.parentElement.hidePopup();
     highlighter.removeAttribute("active");
+  },
+
+  hideHighlight(aWindow) {
+    this._hideHighlightElement(aWindow);
     this._setMenuStateForAnnotation(aWindow, false, "appMenu");
     this._setMenuStateForAnnotation(aWindow, false, "pageActionPanel");
   },
@@ -1212,7 +1250,7 @@ this.UITour = {
    */
   async showInfo(aChromeWindow, aAnchor, aTitle = "", aDescription = "",
            aIconURL = "", aButtons = [], aOptions = {}) {
-    let showInfoPanel = (aAnchorEl) => {
+    let showInfoElement = (aAnchorEl) => {
       aAnchorEl.focus();
 
       let document = aChromeWindow.document;
@@ -1311,7 +1349,7 @@ this.UITour = {
     try {
       await this._ensureTarget(aChromeWindow, aAnchor);
       let anchorEl = await this._correctAnchor(aChromeWindow, aAnchor);
-      showInfoPanel(anchorEl);
+      showInfoElement(anchorEl);
     } catch (e) {
       log.warn(e);
     }
@@ -1323,17 +1361,20 @@ this.UITour = {
     return tooltip.getAttribute("targetName") == aTargetName && tooltip.state != "closed";
   },
 
-  hideInfo(aWindow) {
+  _hideInfoElement(aWindow) {
     let document = aWindow.document;
     let tooltip = document.getElementById("UITourTooltip");
     this._removeAnnotationPanelMutationObserver(tooltip);
     tooltip.hidePopup();
-    this._setMenuStateForAnnotation(aWindow, false, "appMenu");
-    this._setMenuStateForAnnotation(aWindow, false, "pageActionPanel");
-
     let tooltipButtons = document.getElementById("UITourTooltipButtons");
     while (tooltipButtons.firstChild)
       tooltipButtons.firstChild.remove();
+  },
+
+  hideInfo(aWindow) {
+    this._hideInfoElement(aWindow);
+    this._setMenuStateForAnnotation(aWindow, false, "appMenu");
+    this._setMenuStateForAnnotation(aWindow, false, "pageActionPanel");
   },
 
   showMenu(aWindow, aMenuName, aOpenCallback = null) {
@@ -1355,11 +1396,13 @@ this.UITour = {
       };
       if (aMenuName == "appMenu") {
         menu.node = aWindow.PanelUI.panel;
-        menu.hideMenuAnnotations = this.hideAppMenuAnnotations;
+        menu.onPopupHiding = this.onAppMenuHiding;
+        menu.onViewShowing = this.onAppMenuSubviewShowing;
         menu.show = () => aWindow.PanelUI.show();
       } else {
         menu.node = aWindow.BrowserPageActions.panelNode;
-        menu.hideMenuAnnotations = this.hidePageActionPanelAnnotations;
+        menu.onPopupHiding = this.onPageActionPanelHiding;
+        menu.onViewShowing = this.onPageActionPanelSubviewShowing;
         menu.show = () => aWindow.BrowserPageActions.showPanel();
       }
 
@@ -1372,8 +1415,8 @@ this.UITour = {
         menu.node.addEventListener("popupshown", aOpenCallback, { once: true });
       }
       menu.node.addEventListener("popuphidden", menu.onPanelHidden);
-      menu.node.addEventListener("popuphiding", menu.hideMenuAnnotations);
-      menu.node.addEventListener("ViewShowing", menu.hideMenuAnnotations);
+      menu.node.addEventListener("popuphiding", menu.onPopupHiding);
+      menu.node.addEventListener("ViewShowing", menu.onViewShowing);
       menu.show();
     } else if (aMenuName == "bookmarks") {
       let menuBtn = aWindow.document.getElementById("bookmarks-menu-button");
@@ -1383,7 +1426,7 @@ this.UITour = {
 
       // Add the listener even if the panel is already open since it will still
       // only get registered once even if it was UITour that opened it.
-      popup.addEventListener("popuphiding", this.hideControlCenterAnnotations);
+      popup.addEventListener("popuphiding", this.onControlCenterHiding);
       popup.addEventListener("popuphidden", this.onPanelHidden);
 
       popup.setAttribute("noautohide", "true");
@@ -1404,44 +1447,12 @@ this.UITour = {
       }
       aWindow.document.getElementById("identity-box").click();
     } else if (aMenuName == "pocket") {
-      this.getTarget(aWindow, "pocket").then(async function onPocketTarget(target) {
-        let widgetGroupWrapper = CustomizableUI.getWidget(target.widgetName);
-        if (widgetGroupWrapper.type != "view" || !widgetGroupWrapper.viewId) {
-          log.error("Can't open the pocket menu without a view");
-          return;
-        }
-        let placement = CustomizableUI.getPlacementOfWidget(target.widgetName);
-        if (!placement || !placement.area) {
-          log.error("Can't open the pocket menu without a placement");
-          return;
-        }
-
-        if (placement.area == CustomizableUI.AREA_PANEL) {
-          // Open the appMenu and wait for it if it's not already opened or showing a subview.
-          await new Promise((resolve, reject) => {
-            if (aWindow.PanelUI.panel.state != "closed") {
-              if (aWindow.PanelUI.multiView.showingSubView) {
-                reject("A subview is already showing");
-                return;
-              }
-
-              resolve();
-              return;
-            }
-
-            aWindow.PanelUI.panel.addEventListener("popupshown", function() {
-              resolve();
-            }, {once: true});
-
-            aWindow.PanelUI.show();
-          });
-        }
-
-        let widgetWrapper = widgetGroupWrapper.forWindow(aWindow);
-        aWindow.PanelUI.showSubView(widgetGroupWrapper.viewId,
-                                    widgetWrapper.anchor,
-                                    placement.area);
-      }).catch(log.error);
+      let pageAction = PageActions.actionForID("pocket");
+      if (!pageAction) {
+        log.error("Can't open the pocket menu without a page action");
+        return;
+      }
+      pageAction.doCommand(aWindow);
     } else if (aMenuName == "urlbar") {
       this.getTarget(aWindow, "urlbar").then(target => {
         let urlbar = target.node;
@@ -1488,12 +1499,22 @@ this.UITour = {
     aWindow.openLinkIn("about:newtab", "current", {targetBrowser: aBrowser});
   },
 
-  _hideAnnotationsForPanel(aEvent, aTargetPositionCallback) {
+  _hideAnnotationsForPanel(aEvent, aShouldClosePanel, aTargetPositionCallback) {
     let win = aEvent.target.ownerGlobal;
+    let hideHighlightMethod = null;
+    let hideInfoMethod = null;
+    if (aShouldClosePanel) {
+      hideHighlightMethod = aWin => this.hideHighlight(aWin);
+      hideInfoMethod = aWin => this.hideInfo(aWin);
+    } else {
+      // Don't have to close panel, let's only hide annotation elements
+      hideHighlightMethod = aWin => this._hideHighlightElement(aWin);
+      hideInfoMethod = aWin => this._hideInfoElement(aWin);
+    }
     let annotationElements = new Map([
       // [annotationElement (panel), method to hide the annotation]
-      [win.document.getElementById("UITourHighlightContainer"), UITour.hideHighlight.bind(UITour)],
-      [win.document.getElementById("UITourTooltip"), UITour.hideInfo.bind(UITour)],
+      [win.document.getElementById("UITourHighlightContainer"), hideHighlightMethod],
+      [win.document.getElementById("UITourTooltip"), hideInfoMethod],
     ]);
     annotationElements.forEach((hideMethod, annotationElement) => {
       if (annotationElement.state != "closed") {
@@ -1512,16 +1533,24 @@ this.UITour = {
     });
   },
 
-  hideAppMenuAnnotations(aEvent) {
-    UITour._hideAnnotationsForPanel(aEvent, UITour.targetIsInAppMenu);
+  onAppMenuHiding(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, true, UITour.targetIsInAppMenu);
   },
 
-  hidePageActionPanelAnnotations(aEvent) {
-    UITour._hideAnnotationsForPanel(aEvent, UITour.targetIsInPageActionPanel);
+  onAppMenuSubviewShowing(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, false, UITour.targetIsInAppMenu);
   },
 
-  hideControlCenterAnnotations(aEvent) {
-    UITour._hideAnnotationsForPanel(aEvent, (aTarget) => {
+  onPageActionPanelHiding(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, true, UITour.targetIsInPageActionPanel);
+  },
+
+  onPageActionPanelSubviewShowing(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, false, UITour.targetIsInPageActionPanel);
+  },
+
+  onControlCenterHiding(aEvent) {
+    UITour._hideAnnotationsForPanel(aEvent, true, (aTarget) => {
       return aTarget.targetName.startsWith("controlCenter-");
     });
   },

@@ -30,7 +30,6 @@ metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = { version = "0.11", features = ["serde"] }
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "1.0"
@@ -42,5 +41,5 @@ servo_url = {path = "../url"}
 webvr_traits = {path = "../webvr_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
-[target.'cfg(not(target_os = "windows"))'.dependencies]
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

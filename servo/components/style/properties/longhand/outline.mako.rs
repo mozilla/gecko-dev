@@ -10,11 +10,15 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentcolor()",
-                          initial_specified_value="specified::Color::currentcolor()",
-                          animation_value_type="IntermediateColor", need_clone=True,
-                          ignored_when_colors_disabled=True,
-                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
+${helpers.predefined_type(
+    "outline-color",
+    "Color",
+    "computed_value::T::currentcolor()",
+    initial_specified_value="specified::Color::currentcolor()",
+    animation_value_type="AnimatedColor",
+    ignored_when_colors_disabled=True,
+    spec="https://drafts.csswg.org/css-ui/#propdef-outline-color",
+)}
 
 <%helpers:longhand name="outline-style" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
@@ -64,22 +68,22 @@ ${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentc
 
 ${helpers.predefined_type("outline-width",
                           "BorderSideWidth",
-                          "::values::computed::NonNegativeAu::from_px(3)",
+                          "::values::computed::NonNegativeLength::new(3.)",
                           initial_specified_value="specified::BorderSideWidth::Medium",
-                          computed_type="::values::computed::NonNegativeAu",
-                          animation_value_type="NonNegativeAu",
+                          computed_type="::values::computed::NonNegativeLength",
+                          animation_value_type="NonNegativeLength",
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-width")}
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderCornerRadius",
-        "computed::LengthOrPercentage::zero().into()",
+        "computed::BorderCornerRadius::zero()",
         products="gecko",
         boxed=True,
         animation_value_type="BorderCornerRadius",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo gecko",
-                          animation_value_type="ComputedValue",
+${helpers.predefined_type("outline-offset", "Length", "::values::computed::Length::new(0.)",
+                          products="servo gecko", animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset")}

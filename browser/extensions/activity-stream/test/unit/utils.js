@@ -78,7 +78,7 @@ class GlobalOverrider {
 }
 
 /**
- * Very simple fake for the most basic semantics of Preferences.jsm. Lots of
+ * Very simple fake for the most basic semantics of nsIPrefBranch. Lots of
  * things aren't yet supported.  Feel free to add them in.
  *
  * @param {Object} args - optional arguments
@@ -87,34 +87,129 @@ class GlobalOverrider {
  *                   to save off a pointer to the created instance so that
  *                   stubs and spies can be inspected by the test code.
  */
-function FakePrefs(args) {
-  if (args) {
-    if ("initHook" in args) {
-      args.initHook.call(this);
+class FakensIPrefBranch {
+  constructor(args) {
+    if (args) {
+      if ("initHook" in args) {
+        args.initHook.call(this);
+      }
     }
+    this._prefBranch = {};
+    this.observers = {};
   }
-}
-FakePrefs.prototype = {
-  observers: {},
-  observe(prefName, callback) {
+  addObserver(prefName, callback) {
     this.observers[prefName] = callback;
-  },
-  ignore(prefName, callback) {
+  }
+  removeObserver(prefName, callback) {
     if (prefName in this.observers) {
       delete this.observers[prefName];
     }
-  },
-  _prefBranch: {},
-  observeBranch(listener) {},
-  ignoreBranch(listener) {},
+  }
+  observeBranch(listener) {}
+  ignoreBranch(listener) {}
+  setStringPref(prefName) {}
 
-  prefs: {},
-  get(prefName) { return this.prefs[prefName]; },
+  getStringPref(prefName) { return this.get(prefName); }
+  getBoolPref(prefName) { return this.get(prefName); }
+  get(prefName) { return this.prefs[prefName]; }
+  setBoolPref(prefName, value) {
+    this.prefs[prefName] = value;
+
+    if (prefName in this.observers) {
+      this.observers[prefName]("", "", prefName);
+    }
+  }
+}
+FakensIPrefBranch.prototype.prefs = {};
+
+/**
+ * Very simple fake for the most basic semantics of Preferences.jsm.
+ * Extends FakensIPrefBranch.
+ */
+class FakePrefs extends FakensIPrefBranch {
+  observe(prefName, callback) {
+    super.addObserver(prefName, callback);
+  }
+  ignore(prefName, callback) {
+    super.removeObserver(prefName, callback);
+  }
   set(prefName, value) {
     this.prefs[prefName] = value;
 
     if (prefName in this.observers) {
       this.observers[prefName](value);
+    }
+  }
+}
+
+/**
+ * Slimmed down version of toolkit/modules/EventEmitter.jsm
+ */
+function EventEmitter() {}
+EventEmitter.decorate = function(objectToDecorate) {
+  let emitter = new EventEmitter();
+  objectToDecorate.on = emitter.on.bind(emitter);
+  objectToDecorate.off = emitter.off.bind(emitter);
+  objectToDecorate.once = emitter.once.bind(emitter);
+  objectToDecorate.emit = emitter.emit.bind(emitter);
+};
+EventEmitter.prototype = {
+  on(event, listener) {
+    if (!this._eventEmitterListeners) {
+      this._eventEmitterListeners = new Map();
+    }
+    if (!this._eventEmitterListeners.has(event)) {
+      this._eventEmitterListeners.set(event, []);
+    }
+    this._eventEmitterListeners.get(event).push(listener);
+  },
+  off(event, listener) {
+    if (!this._eventEmitterListeners) {
+      return;
+    }
+    let listeners = this._eventEmitterListeners.get(event);
+    if (listeners) {
+      this._eventEmitterListeners.set(event, listeners.filter(
+        l => l !== listener && l._originalListener !== listener
+      ));
+    }
+  },
+  once(event, listener) {
+    return new Promise(resolve => {
+      let handler = (_, first, ...rest) => {
+        this.off(event, handler);
+        if (listener) {
+          listener(event, first, ...rest);
+        }
+        resolve(first);
+      };
+
+      handler._originalListener = listener;
+      this.on(event, handler);
+    });
+  },
+  // All arguments to this method will be sent to listeners
+  emit(event, ...args) {
+    if (!this._eventEmitterListeners || !this._eventEmitterListeners.has(event)) {
+      return;
+    }
+    let originalListeners = this._eventEmitterListeners.get(event);
+    for (let listener of this._eventEmitterListeners.get(event)) {
+      // If the object was destroyed during event emission, stop
+      // emitting.
+      if (!this._eventEmitterListeners) {
+        break;
+      }
+      // If listeners were removed during emission, make sure the
+      // event handler we're going to fire wasn't removed.
+      if (originalListeners === this._eventEmitterListeners.get(event) ||
+        this._eventEmitterListeners.get(event).some(l => l === listener)) {
+        try {
+          listener(event, ...args);
+        } catch (ex) {
+          // error with a listener
+        }
+      }
     }
   }
 };
@@ -173,20 +268,21 @@ function nodeWithIntlProp(node) {
   return React.cloneElement(node, {intl});
 }
 
-function shallowWithIntl(node) {
-  return shallow(nodeWithIntlProp(node), {context: {intl}});
+function shallowWithIntl(node, options = {}) {
+  return shallow(nodeWithIntlProp(node), Object.assign({}, options, {context: {intl}}));
 }
 
-function mountWithIntl(node) {
-  return mount(nodeWithIntlProp(node), {
+function mountWithIntl(node, options = {}) {
+  return mount(nodeWithIntlProp(node), Object.assign({}, options, {
     context: {intl},
     childContextTypes: {intl: intlShape}
-  });
+  }));
 }
 
 module.exports = {
   FakePerformance,
   FakePrefs,
+  EventEmitter,
   GlobalOverrider,
   addNumberReducer,
   mountWithIntl,

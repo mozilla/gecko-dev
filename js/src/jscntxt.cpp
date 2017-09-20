@@ -241,10 +241,13 @@ js::DestroyContext(JSContext* cx)
     FreeJobQueueHandling(cx);
 
     if (cx->runtime()->cooperatingContexts().length() == 1) {
+        // Flush promise tasks executing in helper threads early, before any parts
+        // of the JSRuntime that might be visible to helper threads are torn down.
+        cx->runtime()->offThreadPromiseState.ref().shutdown(cx);
+
         // Destroy the runtime along with its last context.
         cx->runtime()->destroyRuntime();
         js_delete(cx->runtime());
-
         js_delete_poison(cx);
     } else {
         DebugOnly<bool> found = false;
@@ -1053,7 +1056,7 @@ js::CreateErrorNotesArray(JSContext* cx, JSErrorReport* report)
         if (!messageStr)
             return nullptr;
         RootedValue messageVal(cx, StringValue(messageStr));
-        if (!DefineProperty(cx, noteObj, cx->names().message, messageVal))
+        if (!DefineDataProperty(cx, noteObj, cx->names().message, messageVal))
             return nullptr;
 
         RootedValue filenameVal(cx);
@@ -1063,14 +1066,14 @@ js::CreateErrorNotesArray(JSContext* cx, JSErrorReport* report)
                 return nullptr;
             filenameVal = StringValue(filenameStr);
         }
-        if (!DefineProperty(cx, noteObj, cx->names().fileName, filenameVal))
+        if (!DefineDataProperty(cx, noteObj, cx->names().fileName, filenameVal))
             return nullptr;
 
         RootedValue linenoVal(cx, Int32Value(note->lineno));
-        if (!DefineProperty(cx, noteObj, cx->names().lineNumber, linenoVal))
+        if (!DefineDataProperty(cx, noteObj, cx->names().lineNumber, linenoVal))
             return nullptr;
         RootedValue columnVal(cx, Int32Value(note->column));
-        if (!DefineProperty(cx, noteObj, cx->names().columnNumber, columnVal))
+        if (!DefineDataProperty(cx, noteObj, cx->names().columnNumber, columnVal))
             return nullptr;
 
         if (!NewbornArrayPush(cx, notesArray, ObjectValue(*noteObj)))
@@ -1119,27 +1122,6 @@ InternalEnqueuePromiseJobCallback(JSContext* cx, JS::HandleObject job,
     return cx->jobQueue->append(job);
 }
 
-static bool
-InternalStartAsyncTaskCallback(JSContext* cx, JS::AsyncTask* task)
-{
-    task->user = cx;
-
-    ExclusiveData<InternalAsyncTasks>::Guard asyncTasks = cx->asyncTasks.lock();
-    asyncTasks->outstanding++;
-    return true;
-}
-
-static bool
-InternalFinishAsyncTaskCallback(JS::AsyncTask* task)
-{
-    JSContext* cx = (JSContext*)task->user;
-
-    ExclusiveData<InternalAsyncTasks>::Guard asyncTasks = cx->asyncTasks.lock();
-    MOZ_ASSERT(asyncTasks->outstanding > 0);
-    asyncTasks->outstanding--;
-    return asyncTasks->finished.append(task);
-}
-
 namespace {
 class MOZ_STACK_CLASS ReportExceptionClosure : public ScriptEnvironmentPreparer::Closure
 {
@@ -1173,9 +1155,9 @@ js::UseInternalJobQueues(JSContext* cx)
         return false;
 
     cx->jobQueue = queue;
+    cx->runtime()->offThreadPromiseState.ref().initInternalDispatchQueue();
 
     JS::SetEnqueuePromiseJobCallback(cx, InternalEnqueuePromiseJobCallback);
-    JS::SetAsyncTaskCallbacks(cx, InternalStartAsyncTaskCallback, InternalFinishAsyncTaskCallback);
 
     return true;
 }
@@ -1196,28 +1178,7 @@ js::RunJobs(JSContext* cx)
         return;
 
     while (true) {
-        // Wait for any outstanding async tasks to finish so that the
-        // finishedAsyncTasks list is fixed.
-        while (true) {
-            AutoLockHelperThreadState lock;
-            if (!cx->asyncTasks.lock()->outstanding)
-                break;
-            HelperThreadState().wait(lock, GlobalHelperThreadState::CONSUMER);
-        }
-
-        // Lock the whole time while copying back the asyncTasks finished queue
-        // so that any new tasks created during finish() cannot racily join the
-        // job queue.  Call finish() only thereafter, to avoid a circular mutex
-        // dependency (see also bug 1297901).
-        Vector<JS::AsyncTask*, 0, SystemAllocPolicy> finished;
-        {
-            ExclusiveData<InternalAsyncTasks>::Guard asyncTasks = cx->asyncTasks.lock();
-            finished = Move(asyncTasks->finished);
-            asyncTasks->finished.clear();
-        }
-
-        for (JS::AsyncTask* task : finished)
-            task->finish(cx);
+        cx->runtime()->offThreadPromiseState.ref().internalDrain(cx);
 
         // It doesn't make sense for job queue draining to be reentrant. At the
         // same time we don't want to assert against it, because that'd make
@@ -1278,13 +1239,9 @@ js::RunJobs(JSContext* cx)
 
         cx->jobQueue->clear();
 
-        // It's possible a job added an async task, and it's also possible
-        // that task has already finished.
-        {
-            ExclusiveData<InternalAsyncTasks>::Guard asyncTasks = cx->asyncTasks.lock();
-            if (asyncTasks->outstanding == 0 && asyncTasks->finished.length() == 0)
-                break;
-        }
+        // It's possible a job added a new off-thread promise task.
+        if (!cx->runtime()->offThreadPromiseState.ref().internalHasPending())
+            break;
     }
 }
 
@@ -1336,6 +1293,8 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
     requestDepth(0),
 #ifdef DEBUG
     checkRequestDepth(0),
+    inUnsafeCallWithABI(false),
+    hasAutoUnsafeCallWithABI(false),
 #endif
 #ifdef JS_SIMULATOR
     simulator_(nullptr),
@@ -1373,7 +1332,7 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
     throwing(false),
     overRecursed_(false),
     propagatingForcedReturn_(false),
-    liveVolatileJitFrameIterators_(nullptr),
+    liveVolatileJitFrameIter_(nullptr),
     reportGranularity(JS_DEFAULT_JITREPORT_GRANULARITY),
     resolvingList(nullptr),
 #ifdef DEBUG
@@ -1400,7 +1359,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
     jobQueue(nullptr),
     drainingJobQueue(false),
     stopDrainingJobQueue(false),
-    asyncTasks(mutexid::InternalAsyncTasks),
     promiseRejectionTrackerCallback(nullptr),
     promiseRejectionTrackerCallbackData(nullptr)
 {
@@ -1712,3 +1670,22 @@ AutoEnterOOMUnsafeRegion::crash(size_t size, const char* reason)
     }
     crash(reason);
 }
+
+#ifdef DEBUG
+AutoUnsafeCallWithABI::AutoUnsafeCallWithABI()
+  : cx_(TlsContext.get()),
+    nested_(cx_->hasAutoUnsafeCallWithABI),
+    nogc(cx_)
+{
+    cx_->hasAutoUnsafeCallWithABI = true;
+}
+
+AutoUnsafeCallWithABI::~AutoUnsafeCallWithABI()
+{
+    MOZ_ASSERT(cx_->hasAutoUnsafeCallWithABI);
+    if (!nested_) {
+        cx_->hasAutoUnsafeCallWithABI = false;
+        cx_->inUnsafeCallWithABI = false;
+    }
+}
+#endif

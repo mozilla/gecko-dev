@@ -63,7 +63,7 @@ registerCleanupFunction(() => {
 });
 
 // This depends on the "devtools.responsive.html.enabled" pref
-const { ResponsiveUIManager } = require("resource://devtools/client/responsivedesign/responsivedesign.jsm");
+loader.lazyRequireGetter(this, "ResponsiveUIManager", "devtools/client/responsivedesign/responsivedesign");
 
 /**
  * Open responsive design mode for the given tab.
@@ -369,12 +369,13 @@ function testViewportDeviceSelectLabel(ui, expected) {
      `Device Select value should be: ${expected}`);
 }
 
-function* enableTouchSimulation(ui) {
+function* toggleTouchSimulation(ui) {
   let { document } = ui.toolWindow;
   let touchButton = document.querySelector("#global-touch-simulation-button");
+  let changed = once(ui, "touch-simulation-changed");
   let loaded = waitForViewportLoad(ui);
   touchButton.click();
-  yield loaded;
+  yield Promise.all([ changed, loaded ]);
 }
 
 function* testUserAgent(ui, expected) {

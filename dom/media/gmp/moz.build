@@ -12,6 +12,7 @@ XPIDL_SOURCES += [
 ]
 
 EXPORTS += [
+    'ChromiumCDMCallback.h',
     'ChromiumCDMParent.h',
     'ChromiumCDMProxy.h',
     'DecryptJob.h',
@@ -30,7 +31,6 @@ EXPORTS += [
     'gmp-api/gmp-video-plane.h',
     'GMPCallbackBase.h',
     'GMPCDMCallbackProxy.h',
-    'GMPCDMProxy.h',
     'GMPChild.h',
     'GMPContentChild.h',
     'GMPContentParent.h',
@@ -73,12 +73,12 @@ EXPORTS += [
 
 UNIFIED_SOURCES += [
     'ChromiumCDMAdapter.cpp',
+    'ChromiumCDMCallbackProxy.cpp',
     'ChromiumCDMChild.cpp',
     'ChromiumCDMParent.cpp',
     'ChromiumCDMProxy.cpp',
     'DecryptJob.cpp',
     'GMPCDMCallbackProxy.cpp',
-    'GMPCDMProxy.cpp',
     'GMPChild.cpp',
     'GMPContentChild.cpp',
     'GMPContentParent.cpp',

@@ -7,17 +7,33 @@ const {utils: Cu} = Components;
 
 const {actionCreators: ac, actionTypes: at} = Cu.import("resource://activity-stream/common/Actions.jsm", {});
 const {Prefs} = Cu.import("resource://activity-stream/lib/ActivityStreamPrefs.jsm", {});
+const {PrerenderData} = Cu.import("resource://activity-stream/common/PrerenderData.jsm", {});
 
 this.PrefsFeed = class PrefsFeed {
   constructor(prefMap) {
     this._prefMap = prefMap;
     this._prefs = new Prefs();
   }
+
+  // If the any prefs are set to something other than what the prerendered version
+  // of AS expects, we can't use it.
+  _setPrerenderPref(name) {
+    this._prefs.set("prerender", PrerenderData.arePrefsValid(pref => this._prefs.get(pref)));
+  }
+
+  _checkPrerender(name) {
+    if (PrerenderData.invalidatingPrefs.includes(name)) {
+      this._setPrerenderPref();
+    }
+  }
+
   onPrefChanged(name, value) {
     if (this._prefMap.has(name)) {
       this.store.dispatch(ac.BroadcastToContent({type: at.PREF_CHANGED, data: {name, value}}));
     }
+    this._checkPrerender(name);
   }
+
   init() {
     this._prefs.observeBranch(this);
 
@@ -29,6 +45,8 @@ this.PrefsFeed = class PrefsFeed {
 
     // Set the initial state of all prefs in redux
     this.store.dispatch(ac.BroadcastToContent({type: at.PREFS_INITIAL_VALUES, data: values}));
+
+    this._setPrerenderPref();
   }
   removeListeners() {
     this._prefs.ignoreBranch(this);

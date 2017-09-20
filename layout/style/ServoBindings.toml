@@ -46,6 +46,7 @@ headers = [
     "mozilla/ServoPropPrefList.h",
     "mozilla/StyleAnimationValue.h",
     "gfxFontConstants.h",
+    "gfxFontFeatures.h",
     "nsThemeConstants.h",
     "mozilla/css/Loader.h",
     "mozilla/dom/AnimationEffectReadOnlyBinding.h",
@@ -86,10 +87,23 @@ hide-types = [
     "nsString",
     ".*char_traits",
     ".*incompatible_char_type",
+    # JS::Value uses alignas(8) which bindgen can't represent correctly on Linux
+    # 32-bit.  See https://github.com/rust-lang-nursery/rust-bindgen/issues/917.
+    # It's also not used by Stylo.  The following types are also hidden for
+    # making use of it and being similarly unused by Stylo.
+    "JS::Value",
+    "mozilla::binding_danger::TErrorResult.*",
+    "mozilla::ErrorResult.*", # Causes JSWhyMagic to be included & handled incorrectly.
+    "mozilla::dom::CallbackFunction",
+    "mozilla::dom::CallbackObject.*",
+    "nsINode_ErrorResult",
+    "nsDOMAttributeMap_ErrorResult",
+    # End of JS::Value related types
 ]
 bitfield-enums = [
     "nsChangeHint",
     "nsRestyleHint",
+    "OriginFlags",
 ]
 constified-enums = [
     "UpdateAnimationsTasks",
@@ -121,6 +135,7 @@ whitelist-vars = [
 whitelist-types = [
     "RawGecko.*",
     "mozilla::AnimationPropertySegment",
+    "mozilla::AnonymousCounterStyle",
     "mozilla::ComputedTiming",
     "mozilla::ComputedTimingFunction",
     "mozilla::ComputedTimingFunction::BeforeFlag",
@@ -128,6 +143,7 @@ whitelist-types = [
     "mozilla::ServoElementSnapshot.*",
     "mozilla::ServoStyleContext",
     "mozilla::ServoStyleSheetInner",
+    "mozilla::ServoStyleSetSizes",
     "mozilla::CSSPseudoClassType",
     "mozilla::css::ErrorReporter",
     "mozilla::css::LoaderReusableStyleSheets",
@@ -137,6 +153,7 @@ whitelist-types = [
     "mozilla::dom::StyleChildrenIterator",
     "mozilla::HalfCorner",
     "mozilla::MallocSizeOf",
+    "mozilla::OriginFlags",
     "mozilla::PropertyStyleAnimationValuePair",
     "mozilla::ServoTraversalFlags",
     "mozilla::StylePrefs",
@@ -164,6 +181,7 @@ whitelist-types = [
     "GeckoFontMetrics",
     "gfxAlternateValue",
     "gfxFontFeature",
+    "gfxFontFeatureValueSet",
     "gfxFontVariation",
     "GridNamedArea",
     "HalfCorner",
@@ -319,9 +337,10 @@ opaque-types = [
     "mozilla::Maybe",
     "gfxSize",  # <- union { struct { T width; T height; }; T components[2] };
     "gfxSize_Super",  # Ditto.
-    "mozilla::ErrorResult",  # Causes JSWhyMagic to be included & handled incorrectly.
     "mozilla::StyleAnimationValue",
     "StyleAnimationValue", # pulls in a whole bunch of stuff we don't need in the bindings
+    "mozilla::dom::.*Callback", # Pulls in ErrorResult and other things that
+                                # don't align properly on Linux 32-bit
 ]
 mapped-generic-types = [
     { generic = true, gecko = "mozilla::ServoUnsafeCell", servo = "::std::cell::UnsafeCell" },
@@ -337,7 +356,8 @@ mapped-generic-types = [
     { generic = false, gecko = "ServoStyleContextStrong", servo = "::gecko_bindings::sugar::ownership::Strong<::properties::ComputedValues>" },
 ]
 fixups = [
-    { pat = "root::nsString", rep = "::nsstring::nsStringRepr" },
+    { pat = "\\broot::nsString\\b", rep = "::nsstring::nsStringRepr" },
+    { pat = "\\broot::nsTString<u16>", rep = "::nsstring::nsStringRepr" },
 ]
 
 [bindings]
@@ -366,8 +386,12 @@ structs-types = [
     "mozilla::css::ImageValue",
     "mozilla::css::URLValue",
     "mozilla::css::URLValueData",
+    "mozilla::AnonymousCounterStyle",
     "mozilla::MallocSizeOf",
+    "mozilla::OriginFlags",
     "mozilla::Side",
+    "mozilla::UniquePtr",
+    "ServoRawOffsetArc",
     "nsIContent",
     "nsIDocument",
     "nsIDocument_DocumentTheme",
@@ -395,6 +419,7 @@ structs-types = [
     "RawGeckoURLExtraData",
     "RawGeckoXBLBinding",
     "RefPtr",
+    "RustString",
     "CSSPseudoClassType",
     "CSSPseudoElementType",
     "ServoTraversalFlags",
@@ -411,11 +436,13 @@ structs-types = [
     "ServoBundledURI",
     "ServoElementSnapshot",
     "ServoElementSnapshotTable",
+    "ServoStyleSetSizes",
     "SheetParsingMode",
     "StyleBasicShape",
     "StyleBasicShapeType",
     "StyleShapeSource",
     "StyleTransition",
+    "gfxFontFeatureValueSet",
     "nsBorderColors",
     "nsCSSCounterStyleRule",
     "nsCSSFontFaceRule",
@@ -530,6 +557,8 @@ servo-borrow-types = [
     "RawGeckoStyleChildrenIterator",
 ]
 fixups = [
+    # Remap the templated string type to the helper type
+    { pat = "\\bnsTString<u16>", rep = "nsString" },
     # hack for gecko-owned string
-    { pat = "<nsString", rep = "<nsStringRepr" },
+    { pat = "\\b<nsString\\b", rep = "<nsStringRepr" },
 ]

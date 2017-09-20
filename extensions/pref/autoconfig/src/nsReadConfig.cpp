@@ -17,7 +17,6 @@
 #include "nsIServiceManager.h"
 #include "nsIStringBundle.h"
 #include "nsToolkitCompsCID.h"
-#include "nsXPIDLString.h"
 #include "nsNetUtil.h"
 #include "nsString.h"
 #include "nsCRT.h"
@@ -116,8 +115,8 @@ NS_IMETHODIMP nsReadConfig::Observe(nsISupports *aSubject, const char *aTopic, c
 nsresult nsReadConfig::readConfigFile()
 {
     nsresult rv = NS_OK;
-    nsXPIDLCString lockFileName;
-    nsXPIDLCString lockVendor;
+    nsCString lockFileName;
+    nsCString lockVendor;
     uint32_t fileNameLen = 0;
 
     nsCOMPtr<nsIPrefBranch> defaultPrefBranch;
@@ -193,18 +192,18 @@ nsresult nsReadConfig::readConfigFile()
     // If vendor is not nullptr, do this check
     if (NS_SUCCEEDED(rv)) {
 
-        fileNameLen = strlen(lockFileName);
+        fileNameLen = strlen(lockFileName.get());
 
         // lockVendor and lockFileName should be the same with the addtion of
         // .cfg to the filename by checking this post reading of the cfg file
         // this value can be set within the cfg file adding a level of security.
 
-        if (PL_strncmp(lockFileName, lockVendor, fileNameLen - 4) != 0)
+        if (PL_strncmp(lockFileName.get(), lockVendor.get(), fileNameLen - 4) != 0)
             return NS_ERROR_FAILURE;
     }
 
     // get the value of the autoconfig url
-    nsXPIDLCString urlName;
+    nsCString urlName;
     rv = prefBranch->GetCharPref("autoadmin.global_config_url",
                                   getter_Copies(urlName));
     if (NS_SUCCEEDED(rv) && !urlName.IsEmpty()) {
@@ -214,7 +213,7 @@ nsresult nsReadConfig::readConfigFile()
         if (NS_FAILED(rv))
             return NS_ERROR_OUT_OF_MEMORY;
 
-        rv = mAutoConfig->SetConfigURL(urlName);
+        rv = mAutoConfig->SetConfigURL(urlName.get());
         if (NS_FAILED(rv))
             return NS_ERROR_FAILURE;
 

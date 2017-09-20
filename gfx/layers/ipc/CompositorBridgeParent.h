@@ -65,6 +65,7 @@ namespace layers {
 class APZCTreeManager;
 class APZCTreeManagerParent;
 class AsyncCompositionManager;
+class AsyncImagePipelineManager;
 class Compositor;
 class CompositorAnimationStorage;
 class CompositorBridgeParent;
@@ -162,6 +163,8 @@ public:
     return false;
   }
 
+  virtual void NotifyWebRenderError(wr::WebRenderError aError) {}
+
 protected:
   ~CompositorBridgeParentBase() override;
 
@@ -258,26 +261,12 @@ public:
 
   virtual bool IsSameProcess() const override;
 
+  virtual void NotifyWebRenderError(wr::WebRenderError aError) override;
 
   PCompositorWidgetParent* AllocPCompositorWidgetParent(const CompositorWidgetInitData& aInitData) override;
   bool DeallocPCompositorWidgetParent(PCompositorWidgetParent* aActor) override;
 
   void ObserveLayerUpdate(uint64_t aLayersId, uint64_t aEpoch, bool aActive) override { }
-
-  /**
-   * Request that the compositor be recreated due to a shared device reset.
-   * This must be called on the main thread, and blocks until a task posted
-   * to the compositor thread has completed.
-   *
-   * Note that this posts a task directly, rather than using synchronous
-   * IPDL, and waits on a monitor notification from the compositor thread.
-   * We do this as a best-effort attempt to jump any IPDL messages that
-   * have not yet been posted (and are sitting around in the IO pipe), to
-   * minimize the amount of time the main thread is blocked.
-   */
-  bool ResetCompositor(const nsTArray<LayersBackend>& aBackendHints,
-                       uint64_t aSeqNo,
-                       TextureFactoryIdentifier* aOutIdentifier);
 
   /**
    * This forces the is-first-paint flag to true. This is intended to
@@ -464,8 +453,6 @@ public:
   RefPtr<WebRenderBridgeParent> GetWebRenderBridgeParent() const;
   Maybe<TimeStamp> GetTestingTimeStamp() const;
 
-  static void SetWebRenderProfilerEnabled(bool aEnabled);
-
   static CompositorBridgeParent* GetCompositorBridgeParentFromLayersId(const uint64_t& aLayersId);
 
 #if defined(MOZ_WIDGET_ANDROID)
@@ -580,6 +567,7 @@ protected:
   RefPtr<HostLayerManager> mLayerManager;
   RefPtr<Compositor> mCompositor;
   RefPtr<AsyncCompositionManager> mCompositionManager;
+  RefPtr<AsyncImagePipelineManager> mAsyncImageManager;
   RefPtr<WebRenderBridgeParent> mWrBridge;
   widget::CompositorWidget* mWidget;
   TimeStamp mTestTime;
@@ -588,6 +576,8 @@ protected:
   bool mIsTesting;
 
   uint64_t mPendingTransaction;
+  TimeStamp mTxnStartTime;
+  TimeStamp mFwdTime;
 
   bool mPaused;
 

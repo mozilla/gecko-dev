@@ -81,12 +81,6 @@ public:
     return PContentBridgeParent::SendDeactivate(aTab);
   }
 
-  virtual bool SendParentActivated(PBrowserParent* aTab,
-                                   const bool& aActivated) override
-  {
-    return PContentBridgeParent::SendParentActivated(aTab, aActivated);
-  }
-
 protected:
   virtual ~ContentBridgeParent();
 
@@ -137,6 +131,15 @@ protected:
                       const bool& aIsForBrowser) override;
 
   virtual bool DeallocPBrowserParent(PBrowserParent*) override;
+
+  virtual mozilla::ipc::IPCResult
+  RecvPBrowserConstructor(PBrowserParent* actor,
+                          const TabId& tabId,
+                          const TabId& sameTabGroupAs,
+                          const IPCTabContext& context,
+                          const uint32_t& chromeFlags,
+                          const ContentParentId& cpId,
+                          const bool& isForBrowser) override;
 
   virtual PIPCBlobInputStreamParent*
   SendPIPCBlobInputStreamConstructor(PIPCBlobInputStreamParent* aActor,

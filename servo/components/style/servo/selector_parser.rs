@@ -31,7 +31,7 @@ use style_traits::{ParseError, StyleParseError};
 /// A pseudo-element, both public and private.
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 #[repr(usize)]
@@ -130,10 +130,22 @@ impl PseudoElement {
         result
     }
 
-    /// Whether the current pseudo element is :before or :after.
+    /// Whether the current pseudo element is ::before or ::after.
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
-        matches!(*self, PseudoElement::After | PseudoElement::Before)
+        self.is_before() || self.is_after()
+    }
+
+    /// Whether this pseudo-element is the ::before pseudo.
+    #[inline]
+    pub fn is_before(&self) -> bool {
+        *self == PseudoElement::Before
+    }
+
+    /// Whether this pseudo-element is the ::after pseudo.
+    #[inline]
+    pub fn is_after(&self) -> bool {
+        *self == PseudoElement::After
     }
 
     /// Whether the current pseudo element is :first-letter
@@ -240,7 +252,7 @@ pub type PseudoClassStringArg = Box<str>;
 
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {

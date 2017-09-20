@@ -144,7 +144,7 @@ public class BatchingUploaderTest {
         }
 
         @Override
-        public void onStoreCompleted(long storeEnd) {
+        public void onStoreCompleted() {
             ++storeCompleted;
         }
 
@@ -154,7 +154,7 @@ public class BatchingUploaderTest {
         }
 
         @Override
-        public void onRecordStoreReconciled(String guid) {
+        public void onRecordStoreReconciled(String guid, String oldGuid, Integer newVersion) {
         }
 
         @Override

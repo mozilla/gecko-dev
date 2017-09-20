@@ -23,7 +23,6 @@
 #include "prio.h"
 #include "base/task.h"
 #include "base/command_line.h"
-#include "widevine-adapter/WidevineAdapter.h"
 #include "ChromiumCDMAdapter.h"
 #include "GMPLog.h"
 
@@ -376,19 +375,49 @@ GetFirefoxAppPath(nsCOMPtr<nsIFile> aPluginContainerPath,
   aOutFirefoxAppPath = path;
   return true;
 }
+
+static bool
+GetSigPath(const int aRelativeLayers,
+           const nsString& aTargetSigFileName,
+           nsCOMPtr<nsIFile> aExecutablePath,
+           nsCOMPtr<nsIFile>& aOutSigPath)
+{
+  // The sig file will be located in
+  // xxxx/NightlyDebug.app/Contents/Resources/XUL.sig
+  // xxxx/NightlyDebug.app/Contents/Resources/firefox.sig
+  // xxxx/NightlyDebug.app/Contents/MacOS/plugin-container.app/Contents/Resources/plugin-container.sig
+  // On MacOS the sig file is a few parent directories up from
+  // its executable file.
+  // Start to search the path from the path of the executable file we provided.
+  MOZ_ASSERT(aExecutablePath);
+  nsCOMPtr<nsIFile> path = aExecutablePath;
+  for (int i = 0; i < aRelativeLayers; i++) {
+    nsCOMPtr<nsIFile> parent;
+    if (NS_FAILED(path->GetParent(getter_AddRefs(parent)))) {
+      return false;
+    }
+    path = parent;
+  }
+  MOZ_ASSERT(path);
+  aOutSigPath = path;
+  return NS_SUCCEEDED(path->Append(NS_LITERAL_STRING("Resources"))) &&
+         NS_SUCCEEDED(path->Append(aTargetSigFileName));
+}
 #endif
 
-nsTArray<nsCString>
+nsTArray<Pair<nsCString, nsCString>>
 GMPChild::MakeCDMHostVerificationPaths()
 {
-  nsTArray<nsCString> paths;
-
+  // Record the file path and its sig file path.
+  nsTArray<Pair<nsCString, nsCString>> paths;
   // Plugin binary path.
   nsCOMPtr<nsIFile> path;
   nsString str;
   if (GetPluginFile(mPluginPath, path) && FileExists(path) &&
       ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
-    paths.AppendElement(NS_ConvertUTF16toUTF8(str));
+    paths.AppendElement(
+      MakePair(nsCString(NS_ConvertUTF16toUTF8(str)),
+               nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"))));
   }
 
   // Plugin-container binary path.
@@ -403,7 +432,26 @@ GMPChild::MakeCDMHostVerificationPaths()
                                    getter_AddRefs(path))) &&
       FileExists(path) && ResolveLinks(path) &&
       NS_SUCCEEDED(path->GetPath(str))) {
-    paths.AppendElement(nsCString(NS_ConvertUTF16toUTF8(str)));
+    nsCString filePath = NS_ConvertUTF16toUTF8(str);
+    nsCString sigFilePath;
+#if defined(XP_MACOSX)
+    nsCOMPtr<nsIFile> sigFile;
+    if (GetSigPath(2, NS_LITERAL_STRING("plugin-container.sig"), path, sigFile) &&
+        NS_SUCCEEDED(sigFile->GetPath(str))) {
+      sigFilePath = NS_ConvertUTF16toUTF8(str);
+    } else {
+      // Cannot successfully get the sig file path.
+      // Assume it is located at the same place as plugin-container alternatively.
+      sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                              NS_LITERAL_CSTRING(".sig"));
+    }
+#else
+    sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                            NS_LITERAL_CSTRING(".sig"));
+#endif
+    paths.AppendElement(
+      MakePair(Move(filePath),
+               Move(sigFilePath)));
   } else {
     // Without successfully determining plugin-container's path, we can't
     // determine libxul's or Firefox's. So give up.
@@ -419,7 +467,21 @@ GMPChild::MakeCDMHostVerificationPaths()
       NS_SUCCEEDED(appDir->Clone(getter_AddRefs(path))) &&
       NS_SUCCEEDED(path->Append(FIREFOX_FILE)) && FileExists(path) &&
       ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
-    paths.AppendElement(NS_ConvertUTF16toUTF8(str));
+    nsCString filePath = NS_ConvertUTF16toUTF8(str);
+    nsCString sigFilePath;
+    nsCOMPtr<nsIFile> sigFile;
+    if (GetSigPath(2, NS_LITERAL_STRING("firefox.sig"), path, sigFile) &&
+        NS_SUCCEEDED(sigFile->GetPath(str))) {
+      sigFilePath = NS_ConvertUTF16toUTF8(str);
+    } else {
+      // Cannot successfully get the sig file path.
+      // Assume it is located at the same place as firefox alternatively.
+      sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                              NS_LITERAL_CSTRING(".sig"));
+    }
+    paths.AppendElement(
+      MakePair(Move(filePath),
+               Move(sigFilePath)));
   }
 #else
   // Note: re-using 'path' var here, as on Windows/Linux we assume Firefox
@@ -428,7 +490,9 @@ GMPChild::MakeCDMHostVerificationPaths()
       NS_SUCCEEDED(appDir->Clone(getter_AddRefs(path))) &&
       NS_SUCCEEDED(path->Append(FIREFOX_FILE)) && FileExists(path) &&
       ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
-    paths.AppendElement(NS_ConvertUTF16toUTF8(str));
+    paths.AppendElement(
+      MakePair(nsCString(NS_ConvertUTF16toUTF8(str)),
+               nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"))));
   }
 #endif
   // Libxul path. Note: re-using 'path' var here, as we assume libxul is in
@@ -437,21 +501,40 @@ GMPChild::MakeCDMHostVerificationPaths()
   if (NS_SUCCEEDED(appDir->Clone(getter_AddRefs(path))) &&
       NS_SUCCEEDED(path->Append(XUL_LIB_FILE)) && FileExists(path) &&
       ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
-    paths.AppendElement(NS_ConvertUTF16toUTF8(str));
+    nsCString filePath = NS_ConvertUTF16toUTF8(str);
+    nsCString sigFilePath;
+#if defined(XP_MACOSX)
+    nsCOMPtr<nsIFile> sigFile;
+    if (GetSigPath(2, NS_LITERAL_STRING("XUL.sig"), path, sigFile) &&
+        NS_SUCCEEDED(sigFile->GetPath(str))) {
+      sigFilePath = NS_ConvertUTF16toUTF8(str);
+    } else {
+      // Cannot successfully get the sig file path.
+      // Assume it is located at the same place as XUL alternatively.
+      sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                              NS_LITERAL_CSTRING(".sig"));
+    }
+#else
+    sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) +
+                            NS_LITERAL_CSTRING(".sig"));
+#endif
+    paths.AppendElement(
+      MakePair(Move(filePath),
+               Move(sigFilePath)));
   }
 
   return paths;
 }
 
 static nsCString
-ToCString(const nsTArray<nsCString>& aStrings)
+ToCString(const nsTArray<Pair<nsCString, nsCString>>& aPairs)
 {
   nsCString result;
-  for (const nsCString& s : aStrings) {
+  for (const auto& p : aPairs) {
     if (!result.IsEmpty()) {
       result.AppendLiteral(",");
     }
-    result.Append(s);
+    result.Append(nsPrintfCString("(%s,%s)", p.first().get(), p.second().get()));
   }
   return result;
 }
@@ -477,12 +560,10 @@ GMPChild::AnswerStartPlugin(const nsString& aAdapter)
     return IPC_FAIL_NO_REASON(this);
   }
 #endif
-
-  bool isWidevine = aAdapter.EqualsLiteral("widevine");
   bool isChromium = aAdapter.EqualsLiteral("chromium");
 #if defined(MOZ_GMP_SANDBOX) && defined(XP_MACOSX)
   MacSandboxPluginType pluginType = MacSandboxPluginType_GMPlugin_Default;
-  if (isWidevine || isChromium) {
+  if (isChromium) {
     pluginType = MacSandboxPluginType_GMPlugin_EME_Widevine;
   }
   if (!SetMacSandboxInfo(pluginType)) {
@@ -493,10 +574,8 @@ GMPChild::AnswerStartPlugin(const nsString& aAdapter)
 #endif
 
   GMPAdapter* adapter = nullptr;
-  if (isWidevine) {
-    adapter = new WidevineAdapter();
-  } else if (isChromium) {
-    nsTArray<nsCString> paths(MakeCDMHostVerificationPaths());
+  if (isChromium) {
+    auto&& paths = MakeCDMHostVerificationPaths();
     GMP_LOG("%s CDM host paths=%s", __func__, ToCString(paths).get());
     adapter = new ChromiumCDMAdapter(Move(paths));
   }

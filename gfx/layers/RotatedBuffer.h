@@ -162,6 +162,11 @@ protected:
   // correctly restore state when it is returned.
   RefPtr<gfx::DrawTarget> mLoanedDrawTarget;
   gfx::Matrix mLoanedTransform;
+
+  // This flag denotes whether or not a transform was already applied
+  // to mLoanedDrawTarget and thus needs to be reset to mLoanedTransform
+  // upon returning the drawtarget.
+  bool mSetTransform;
 };
 
 /**
@@ -220,6 +225,8 @@ public:
    * opaque to transparent or vice versa, since the details of rendering can
    * depend on the buffer type.  mDidSelfCopy is true if we kept our buffer
    * but used MovePixels() to shift its content.
+   * mFinalizeOnPaintThread is true if we need to copy the front
+   * to back buffer and we didn't destroy the buffer during BeginPaint.
    */
   struct PaintState {
     PaintState()
@@ -229,6 +236,7 @@ public:
       , mClip(DrawRegionClip::NONE)
       , mContentType(gfxContentType::SENTINEL)
       , mDidSelfCopy(false)
+      , mFinalizeOnPaintThread(true)
     {}
 
     nsIntRegion mRegionToDraw;
@@ -237,6 +245,7 @@ public:
     DrawRegionClip mClip;
     ContentType mContentType;
     bool mDidSelfCopy;
+    bool mFinalizeOnPaintThread;
   };
 
   enum {
@@ -263,9 +272,13 @@ public:
    * rotated content that crosses the physical buffer boundary. The caller
    * will need to call BorrowDrawTargetForPainting multiple times to achieve
    * this.
+   * @param aCopyToBackBuffer Whether to copy the front buffer to back buffer
+   * This should generally be true unless OMTP is enabled where we want to do
+   * this on the paint thread instead.
    */
   PaintState BeginPaint(PaintedLayer* aLayer,
-                        uint32_t aFlags);
+                        uint32_t aFlags,
+                        bool aCopyToBackbuffer = true);
 
   struct DrawIterator {
     friend class RotatedContentBuffer;
@@ -298,16 +311,17 @@ public:
                                                DrawIterator* aIter = nullptr);
 
   /**
-   * Borrow a draw target for recording. The aOutTransform is not applied
-   * to the returned DrawTarget, BUT it is required to be painting in the right
-   * location whenever drawing does happen.
+   * Borrow a draw target for recording. The required transform for correct painting
+   * is not applied to the returned DrawTarget by default, BUT it is
+   * required to be whenever drawing does happen.
    */
   RefPtr<CapturedPaintState> BorrowDrawTargetForRecording(PaintState& aPaintState,
-                                                          DrawIterator* aIter);
+                                                          DrawIterator* aIter,
+                                                          bool aSetTransform = false);
 
-  void ExpandDrawRegion(PaintState& aPaintState,
-                        DrawIterator* aIter,
-                        gfx::BackendType aBackendType);
+  nsIntRegion ExpandDrawRegion(PaintState& aPaintState,
+                               DrawIterator* aIter,
+                               gfx::BackendType aBackendType);
 
   static bool PrepareDrawTargetForPainting(CapturedPaintState*);
   enum {
@@ -385,6 +399,7 @@ protected:
    * ReturnDrawTarget will by default restore the transform on the draw target.
    * But it is the callers responsibility to restore the clip.
    * The caller should flush the draw target, if necessary.
+   * If aSetTransform is false, the required transform will be set in aOutTransform.
    */
   gfx::DrawTarget*
   BorrowDrawTargetForQuadrantUpdate(const gfx::IntRect& aBounds,

@@ -4,9 +4,9 @@
 
 //! Specified types for CSS values related to effects.
 
-use cssparser::Parser;
+use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseError};
+use style_traits::{ParseError, StyleParseError, ValueParseError};
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
@@ -17,13 +17,14 @@ use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use values::specified::{Angle, NumberOrPercentage};
-use values::specified::color::Color;
+use values::specified::color::RGBAColor;
 use values::specified::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
 
 /// A specified value for a single shadow of the `box-shadow` property.
-pub type BoxShadow = GenericBoxShadow<Option<Color>, Length, Option<NonNegativeLength>, Option<Length>>;
+pub type BoxShadow = GenericBoxShadow<Option<RGBAColor>, Length,
+                                      Option<NonNegativeLength>, Option<Length>>;
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "gecko")]
@@ -34,9 +35,34 @@ pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, SimpleShadow>;
 pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Factor(NumberOrPercentage);
+
+impl Factor {
+    /// Parse this factor but clamp to one if the value is over 100%.
+    #[inline]
+    pub fn parse_with_clamping_to_one<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Factor::parse(context, input).map(|v| v.clamp_to_one())
+    }
+
+    /// Clamp the value to 1 if the value is over 100%.
+    #[inline]
+    fn clamp_to_one(self) -> Self {
+        match self.0 {
+            NumberOrPercentage::Percentage(percent) => {
+                Factor(NumberOrPercentage::Percentage(percent.clamp_to_hundred()))
+            },
+            NumberOrPercentage::Number(number) => {
+                Factor(NumberOrPercentage::Number(number.clamp_to_one()))
+            }
+        }
+    }
+}
 
 impl Parse for Factor {
     #[inline]
@@ -67,7 +93,7 @@ impl ToComputedValue for Factor {
 }
 
 /// A specified value for the `drop-shadow()` filter.
-pub type SimpleShadow = GenericSimpleShadow<Option<Color>, Length, Option<NonNegativeLength>>;
+pub type SimpleShadow = GenericSimpleShadow<Option<RGBAColor>, Length, Option<NonNegativeLength>>;
 
 impl Parse for BoxShadow {
     fn parse<'i, 't>(
@@ -104,7 +130,7 @@ impl Parse for BoxShadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
+                if let Ok(value) = input.try(|i| RGBAColor::parse(context, i)) {
                     color = Some(value);
                     continue;
                 }
@@ -160,19 +186,41 @@ impl Parse for Filter {
                 return Ok(GenericFilter::Url(url));
             }
         }
-        let function = input.expect_function()?.clone();
+        let function = match input.expect_function() {
+            Ok(f) => f.clone(),
+            Err(BasicParseError::UnexpectedToken(t)) =>
+                return Err(ValueParseError::InvalidFilter(t.clone()).into()),
+            Err(e) => return Err(e.into()),
+        };
         input.parse_nested_block(|i| {
-            try_match_ident_ignore_ascii_case! { function,
+            match_ignore_ascii_case! { &*function,
                 "blur" => Ok(GenericFilter::Blur((Length::parse_non_negative(context, i)?).into())),
                 "brightness" => Ok(GenericFilter::Brightness(Factor::parse(context, i)?)),
                 "contrast" => Ok(GenericFilter::Contrast(Factor::parse(context, i)?)),
-                "grayscale" => Ok(GenericFilter::Grayscale(Factor::parse(context, i)?)),
+                "grayscale" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-grayscale
+                    Ok(GenericFilter::Grayscale(Factor::parse_with_clamping_to_one(context, i)?))
+                },
                 "hue-rotate" => Ok(GenericFilter::HueRotate(Angle::parse(context, i)?)),
-                "invert" => Ok(GenericFilter::Invert(Factor::parse(context, i)?)),
-                "opacity" => Ok(GenericFilter::Opacity(Factor::parse(context, i)?)),
+                "invert" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-invert
+                    Ok(GenericFilter::Invert(Factor::parse_with_clamping_to_one(context, i)?))
+                },
+                "opacity" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-opacity
+                    Ok(GenericFilter::Opacity(Factor::parse_with_clamping_to_one(context, i)?))
+                },
                 "saturate" => Ok(GenericFilter::Saturate(Factor::parse(context, i)?)),
-                "sepia" => Ok(GenericFilter::Sepia(Factor::parse(context, i)?)),
+                "sepia" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-sepia
+                    Ok(GenericFilter::Sepia(Factor::parse_with_clamping_to_one(context, i)?))
+                },
                 "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
+                _ => Err(ValueParseError::InvalidFilter(Token::Function(function.clone())).into()),
             }
         })
     }
@@ -184,11 +232,11 @@ impl Parse for SimpleShadow {
         context: &ParserContext,
         input: &mut Parser<'i, 't>
     ) -> Result<Self, ParseError<'i>> {
-        let color = input.try(|i| Color::parse(context, i)).ok();
+        let color = input.try(|i| RGBAColor::parse(context, i)).ok();
         let horizontal = Length::parse(context, input)?;
         let vertical = Length::parse(context, input)?;
         let blur = input.try(|i| Length::parse_non_negative(context, i)).ok();
-        let color = color.or_else(|| input.try(|i| Color::parse(context, i)).ok());
+        let color = color.or_else(|| input.try(|i| RGBAColor::parse(context, i)).ok());
         Ok(SimpleShadow {
             color: color,
             horizontal: horizontal,
@@ -204,8 +252,7 @@ impl ToComputedValue for SimpleShadow {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         ComputedSimpleShadow {
-            color:
-                self.color.as_ref().unwrap_or(&Color::CurrentColor).to_computed_value(context),
+            color: self.color.to_computed_value(context),
             horizontal: self.horizontal.to_computed_value(context),
             vertical: self.vertical.to_computed_value(context),
             blur:
@@ -216,7 +263,7 @@ impl ToComputedValue for SimpleShadow {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         SimpleShadow {
-            color: Some(ToComputedValue::from_computed_value(&computed.color)),
+            color: ToComputedValue::from_computed_value(&computed.color),
             horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
             vertical: ToComputedValue::from_computed_value(&computed.vertical),
             blur: Some(ToComputedValue::from_computed_value(&computed.blur)),

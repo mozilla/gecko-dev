@@ -128,7 +128,7 @@ nsChromeRegistryChrome::Init()
   if (!prefs) {
     NS_WARNING("Could not get pref service!");
   } else {
-    nsXPIDLCString provider;
+    nsCString provider;
     rv = prefs->GetCharPref(SELECTED_SKIN_PREF, getter_Copies(provider));
     if (NS_SUCCEEDED(rv))
       mSelectedSkin = provider;
@@ -275,7 +275,7 @@ nsChromeRegistryChrome::Observe(nsISupports *aSubject, const char *aTopic,
     NS_ConvertUTF16toUTF8 pref(someData);
 
     if (pref.EqualsLiteral(SELECTED_SKIN_PREF)) {
-      nsXPIDLCString provider;
+      nsCString provider;
       rv = prefs->GetCharPref(pref.get(), getter_Copies(provider));
       if (NS_FAILED(rv)) {
         NS_ERROR("Couldn't get new skin pref!");
@@ -927,7 +927,15 @@ nsChromeRegistryChrome::ManifestResource(ManifestProcessingContext& cx, int line
     return;
   }
 
-  rv = rph->SetSubstitution(host, resolved);
+  // By default, Firefox resources are not content-accessible unless the
+  // manifests opts in.
+  bool contentAccessible = (flags & nsChromeRegistry::CONTENT_ACCESSIBLE);
+
+  uint32_t substitutionFlags = 0;
+  if (contentAccessible) {
+    substitutionFlags |= nsIResProtocolHandler::ALLOW_CONTENT_ACCESS;
+  }
+  rv = rph->SetSubstitutionWithFlags(host, resolved, substitutionFlags);
   if (NS_FAILED(rv)) {
     LogMessageWithContext(cx.GetManifestURI(), lineno, nsIScriptError::warningFlag,
                           "Warning: cannot set substitution for '%s'.",

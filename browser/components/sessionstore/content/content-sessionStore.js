@@ -51,26 +51,10 @@ const DOM_STORAGE_LIMIT_PREF = "browser.sessionstore.dom_storage_limit";
 // or not, and should only be used for tests or debugging.
 const TIMEOUT_DISABLED_PREF = "browser.sessionstore.debug.no_auto_updates";
 
+const PREF_INTERVAL = "browser.sessionstore.interval";
+
 const kNoIndex = Number.MAX_SAFE_INTEGER;
 const kLastIndex = Number.MAX_SAFE_INTEGER - 1;
-
-/**
- * Returns a lazy function that will evaluate the given
- * function |fn| only once and cache its return value.
- */
-function createLazy(fn) {
-  let cached = false;
-  let cachedValue = null;
-
-  return function lazy() {
-    if (!cached) {
-      cachedValue = fn();
-      cached = true;
-    }
-
-    return cachedValue;
-  };
-}
 
 /**
  * A function that will recursively call |cb| to collected data for all
@@ -595,10 +579,9 @@ var DocShellCapabilitiesListener = {
  */
 var SessionStorageListener = {
   init() {
-    let filter = ssu.createDynamicFrameEventFilter(this);
-    addEventListener("MozSessionStorageChanged", filter, true);
     Services.obs.addObserver(this, "browser:purge-domain-data");
     StateChangeNotifier.addObserver(this);
+    this.resetEventListener();
   },
 
   uninit() {
@@ -622,6 +605,21 @@ var SessionStorageListener = {
     this._changes = undefined;
   },
 
+  // The event listener waiting for MozSessionStorageChanged events.
+  _listener: null,
+
+  resetEventListener() {
+    if (!this._listener) {
+      this._listener = ssu.createDynamicFrameEventFilter(this);
+      addEventListener("MozSessionStorageChanged", this._listener, true);
+    }
+  },
+
+  removeEventListener() {
+    removeEventListener("MozSessionStorageChanged", this._listener, true);
+    this._listener = null;
+  },
+
   handleEvent(event) {
     if (!docShell) {
       return;
@@ -637,6 +635,8 @@ var SessionStorageListener = {
     // collected so that we don't confuse websites with partial state.
     if (usage > Services.prefs.getIntPref(DOM_STORAGE_LIMIT_PREF)) {
       MessageQueue.push("storage", () => null);
+      this.removeEventListener();
+      this.resetChanges();
       return;
     }
 
@@ -678,6 +678,7 @@ var SessionStorageListener = {
   },
 
   onPageLoadStarted() {
+    this.resetEventListener();
     this.collect();
   }
 };
@@ -734,6 +735,17 @@ var MessageQueue = {
   BATCH_DELAY_MS: 1000,
 
   /**
+   * The minimum idle period (in ms) we need for sending data to chrome process.
+   */
+  NEEDED_IDLE_PERIOD_MS: 5,
+
+  /**
+   * Timeout for waiting an idle period to send data. We will set this from
+   * the pref "browser.sessionstore.interval".
+   */
+  _timeoutWaitIdlePeriodMs: null,
+
+  /**
    * The current timeout ID, null if there is no queue data. We use timeouts
    * to damp a flood of data changes and send lots of changes as one batch.
    */
@@ -745,6 +757,12 @@ var MessageQueue = {
    * you should probably use the timeoutDisabled getter.
    */
   _timeoutDisabled: false,
+
+  /**
+   * The idle callback ID referencing an active idle callback. When no idle
+   * callback is pending, this is null.
+   * */
+  _idleCallbackID: null,
 
   /**
    * True if batched messages are not being fired on a timer. This should only
@@ -772,18 +790,48 @@ var MessageQueue = {
   init() {
     this.timeoutDisabled =
       Services.prefs.getBoolPref(TIMEOUT_DISABLED_PREF);
+    this._timeoutWaitIdlePeriodMs =
+      Services.prefs.getIntPref(PREF_INTERVAL);
 
     Services.prefs.addObserver(TIMEOUT_DISABLED_PREF, this);
+    Services.prefs.addObserver(PREF_INTERVAL, this);
   },
 
   uninit() {
     Services.prefs.removeObserver(TIMEOUT_DISABLED_PREF, this);
+    Services.prefs.removeObserver(PREF_INTERVAL, this);
+    this.cleanupTimers();
+  },
+
+  /**
+   * Cleanup pending idle callback and timer.
+   */
+  cleanupTimers() {
+    if (this._idleCallbackID) {
+      content.cancelIdleCallback(this._idleCallbackID);
+      this._idleCallbackID = null;
+    }
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+      this._timeout = null;
+    }
   },
 
   observe(subject, topic, data) {
-    if (topic == "nsPref:changed" && data == TIMEOUT_DISABLED_PREF) {
-      this.timeoutDisabled =
-        Services.prefs.getBoolPref(TIMEOUT_DISABLED_PREF);
+    if (topic == "nsPref:changed") {
+      switch (data) {
+        case TIMEOUT_DISABLED_PREF:
+          this.timeoutDisabled =
+            Services.prefs.getBoolPref(TIMEOUT_DISABLED_PREF);
+          break;
+        case PREF_INTERVAL:
+          this._timeoutWaitIdlePeriodMs =
+            Services.prefs.getIntPref(PREF_INTERVAL);
+          break;
+        default:
+          debug("received unknown message '" + data + "'");
+          break;
+      }
     }
   },
 
@@ -799,14 +847,36 @@ var MessageQueue = {
    *        process.
    */
   push(key, fn) {
-    this._data.set(key, createLazy(fn));
+    this._data.set(key, fn);
 
     if (!this._timeout && !this._timeoutDisabled) {
       // Wait a little before sending the message to batch multiple changes.
       this._timeout = setTimeoutWithTarget(
-        () => this.send(), this.BATCH_DELAY_MS, tabEventTarget);
+        () => this.sendWhenIdle(), this.BATCH_DELAY_MS, tabEventTarget);
     }
   },
+
+  /**
+   * Sends queued data when the remaining idle time is enough or waiting too
+   * long; otherwise, request an idle time again. If the |deadline| is not
+   * given, this function is going to schedule the first request.
+   *
+   * @param deadline (object)
+   *        An IdleDeadline object passed by requestIdleCallback().
+   */
+  sendWhenIdle(deadline) {
+    if (deadline) {
+      if (deadline.didTimeout || deadline.timeRemaining() > MessageQueue.NEEDED_IDLE_PERIOD_MS) {
+        MessageQueue.send();
+        return;
+      }
+    } else if (MessageQueue._idleCallbackID) {
+      // Bail out if there's a pending run.
+      return;
+    }
+    MessageQueue._idleCallbackID =
+      content.requestIdleCallback(MessageQueue.sendWhenIdle, {timeout: MessageQueue._timeoutWaitIdlePeriodMs});
+   },
 
   /**
    * Sends queued data to the chrome process.
@@ -823,10 +893,7 @@ var MessageQueue = {
       return;
     }
 
-    if (this._timeout) {
-      clearTimeout(this._timeout);
-      this._timeout = null;
-    }
+    this.cleanupTimers();
 
     let flushID = (options && options.flushID) || 0;
     let histID = "FX_SESSION_RESTORE_CONTENT_COLLECT_DATA_MS";

@@ -227,7 +227,6 @@ public:
   }
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
 
 #ifdef DEBUG_FRAME_DUMP
@@ -257,9 +256,6 @@ public:
   virtual void ReflowSVG() override;
   virtual SVGBBox GetBBoxContribution(const Matrix& aToBBoxUserspace,
                                       uint32_t aFlags) override;
-
-  // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM() override;
 
   // SVG DOM text methods:
   uint32_t GetNumberOfChars(nsIContent* aContent);
@@ -392,6 +388,11 @@ private:
 
     SVGTextFrame* const mFrame;
   };
+
+  /**
+   * Resolves Bidi for the anonymous block child if it needs it.
+   */
+  void MaybeResolveBidiForAnonymousBlockChild();
 
   /**
    * Reflows the anonymous block child if it is dirty or has dirty
@@ -533,11 +534,6 @@ private:
    * The MutationObserver we have registered for the <text> element subtree.
    */
   RefPtr<MutationObserver> mMutationObserver;
-
-  /**
-   * Cached canvasTM value.
-   */
-  nsAutoPtr<gfxMatrix> mCanvasTM;
 
   /**
    * The number of characters in the DOM after the final nsTextFrame.  For

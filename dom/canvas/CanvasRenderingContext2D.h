@@ -468,7 +468,7 @@ public:
                                          Layer* aOldLayer,
                                          LayerManager* aManager,
                                          bool aMirror = false) override;
-  void InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
+  bool InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
                                 CanvasRenderer* aRenderer,
                                 bool aMirror = false) override;
   virtual bool ShouldForceInactiveLayer(LayerManager* aManager) override;
@@ -1168,6 +1168,8 @@ protected:
   friend struct CanvasBidiProcessor;
   friend class CanvasDrawObserver;
 };
+
+size_t BindingJSObjectMallocBytes(CanvasRenderingContext2D* aContext);
 
 } // namespace dom
 } // namespace mozilla

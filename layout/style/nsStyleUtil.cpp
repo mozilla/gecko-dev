@@ -94,8 +94,8 @@ void nsStyleUtil::AppendEscapedCSSString(const nsAString& aString,
   const char16_t* in = aString.BeginReading();
   const char16_t* const end = aString.EndReading();
   for (; in != end; in++) {
-    if (*in < 0x20 || (*in >= 0x7F && *in < 0xA0)) {
-      // Escape U+0000 through U+001F and U+007F through U+009F numerically.
+    if (*in < 0x20 || *in == 0x7F) {
+      // Escape U+0000 through U+001F and U+007F numerically.
       aReturn.AppendPrintf("\\%x ", *in);
     } else {
       if (*in == '"' || *in == '\'' || *in == '\\') {
@@ -158,8 +158,8 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
     char16_t ch = *in;
     if (ch == 0x00) {
       aReturn.Append(char16_t(0xFFFD));
-    } else if (ch < 0x20 || (0x7F <= ch && ch < 0xA0)) {
-      // Escape U+0000 through U+001F and U+007F through U+009F numerically.
+    } else if (ch < 0x20 || 0x7F == ch) {
+      // Escape U+0000 through U+001F and U+007F numerically.
       aReturn.AppendPrintf("\\%x ", *in);
     } else {
       // Escape ASCII non-identifier printables as a backslash plus
@@ -209,6 +209,18 @@ nsStyleUtil::AppendEscapedCSSFontFamilyList(
   const mozilla::FontFamilyList& aFamilyList,
   nsAString& aResult)
 {
+  if (aFamilyList.IsEmpty()) {
+    FontFamilyType defaultGeneric = aFamilyList.GetDefaultFontType();
+    // If the font list is empty, then serialize the default generic.
+    // See also: gfxFontGroup::BuildFontList()
+    if (defaultGeneric != eFamily_none) {
+      FontFamilyName(defaultGeneric).AppendToString(aResult);
+    } else {
+      NS_NOTREACHED("No fonts to serialize");
+    }
+    return;
+  }
+
   const nsTArray<FontFamilyName>& fontlist = aFamilyList.GetFontlist();
   size_t i, len = fontlist.Length();
   for (i = 0; i < len; i++) {

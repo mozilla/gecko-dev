@@ -285,6 +285,20 @@ class TabTracker extends TabTrackerBase {
   }
 
   /**
+   * Sets the opener of `tab` to the ID `openerTab`. Both tabs must be in the
+   * same window, or this function will throw a type error.
+   *
+   * @param {Element} tab The tab for which to set the owner.
+   * @param {Element} openerTab The opener of <tab>.
+   */
+  setOpener(tab, openerTab) {
+    if (tab.ownerDocument !== openerTab.ownerDocument) {
+      throw new Error("Tab must be in the same window as its opener");
+    }
+    tab.openerTab = openerTab;
+  }
+
+  /**
    * @param {Event} event
    *        The DOM Event to handle.
    * @private
@@ -485,27 +499,14 @@ class TabTracker extends TabTrackerBase {
     let windowId = windowTracker.getId(nativeTab.ownerGlobal);
     let tabId = this.getId(nativeTab);
 
-    // When addons run in-process, `window.close()` is synchronous. Most other
-    // addon-invoked calls are asynchronous since they go through a proxy
-    // context via the message manager. This includes event registrations such
-    // as `tabs.onRemoved.addListener`.
-    //
-    // So, even if `window.close()` were to be called (in-process) after calling
-    // `tabs.onRemoved.addListener`, then the tab would be closed before the
-    // event listener is registered. To make sure that the event listener is
-    // notified, we dispatch `tabs.onRemoved` asynchronously.
-    Services.tm.dispatchToMainThread(() => {
-      this.emit("tab-removed", {nativeTab, tabId, windowId, isWindowClosing});
-    });
+    this.emit("tab-removed", {nativeTab, tabId, windowId, isWindowClosing});
   }
 
   getBrowserData(browser) {
-    if (browser.ownerGlobal.location.href === "about:addons") {
+    if (browser.ownerDocument.documentURI === "about:addons") {
       // When we're loaded into a <browser> inside about:addons, we need to go up
       // one more level.
-      browser = browser.ownerGlobal.QueryInterface(Ci.nsIInterfaceRequestor)
-                       .getInterface(Ci.nsIDocShell)
-                       .chromeEventHandler;
+      browser = browser.ownerDocument.docShell.chromeEventHandler;
     }
 
     let result = {
@@ -555,6 +556,10 @@ class Tab extends TabBase {
     return this.nativeTab.linkedBrowser;
   }
 
+  get discarded() {
+    return !this.nativeTab.linkedPanel;
+  }
+
   get frameLoader() {
     // If we don't have a frameLoader yet, just return a dummy with no width and
     // height.
@@ -563,6 +568,14 @@ class Tab extends TabBase {
 
   get cookieStoreId() {
     return getCookieStoreIdForTab(this, this.nativeTab);
+  }
+
+  get openerTabId() {
+    let opener = this.nativeTab.openerTab;
+    if (opener && opener.parentNode && opener.ownerDocument == this.nativeTab.ownerDocument) {
+      return tabTracker.getId(opener);
+    }
+    return null;
   }
 
   get height() {
@@ -697,7 +710,7 @@ class Window extends WindowBase {
     }
   }
 
-  get title() {
+  get _title() {
     return this.window.document.title;
   }
 
@@ -800,6 +813,12 @@ class Window extends WindowBase {
     for (let nativeTab of this.window.gBrowser.tabs) {
       yield tabManager.getWrapper(nativeTab);
     }
+  }
+
+  get activeTab() {
+    let {tabManager} = this.extension;
+
+    return tabManager.getWrapper(this.window.gBrowser.selectedTab);
   }
 
   /**

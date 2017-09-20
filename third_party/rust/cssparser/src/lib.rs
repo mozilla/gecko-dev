@@ -68,6 +68,8 @@ fn parse_border_spacing(_context: &ParserContext, input: &mut Parser)
 
 #![recursion_limit="200"]  // For color::parse_color_keyword
 
+extern crate dtoa_short;
+extern crate itoa;
 #[macro_use] extern crate cssparser_macros;
 #[macro_use] extern crate matches;
 #[macro_use] extern crate procedural_masquerade;
@@ -77,19 +79,20 @@ fn parse_border_spacing(_context: &ParserContext, input: &mut Parser)
 #[cfg(test)] extern crate rustc_serialize;
 #[cfg(feature = "serde")] extern crate serde;
 #[cfg(feature = "heapsize")] #[macro_use] extern crate heapsize;
+extern crate smallvec;
 
 pub use cssparser_macros::*;
 
-pub use tokenizer::{Token, SourceLocation};
+pub use tokenizer::{Token, SourcePosition, SourceLocation};
 pub use rules_and_declarations::{parse_important};
 pub use rules_and_declarations::{DeclarationParser, DeclarationListParser, parse_one_declaration};
-pub use rules_and_declarations::{RuleListParser, parse_one_rule};
+pub use rules_and_declarations::{RuleListParser, parse_one_rule, PreciseParseError};
 pub use rules_and_declarations::{AtRuleType, QualifiedRuleParser, AtRuleParser};
 pub use from_bytes::{stylesheet_encoding, EncodingSupport};
 pub use color::{RGBA, Color, parse_color_keyword};
 pub use nth::parse_nth;
 pub use serializer::{ToCss, CssStringWriter, serialize_identifier, serialize_string, TokenSerializationType};
-pub use parser::{Parser, Delimiter, Delimiters, SourcePosition, ParseError, BasicParseError, ParserInput};
+pub use parser::{Parser, Delimiter, Delimiters, ParserState, ParseError, BasicParseError, ParserInput};
 pub use unicode_range::UnicodeRange;
 pub use cow_rc_str::CowRcStr;
 

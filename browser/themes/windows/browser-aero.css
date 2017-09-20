@@ -2,22 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+%filter substitution
+%define toolbarShadowColor hsla(209,67%,12%,0.35)
 %define glassActiveBorderColor rgb(37, 44, 51)
 %define glassInactiveBorderColor rgb(102, 102, 102)
 
-@media not all and (-moz-windows-classic) {
-  #main-window[sizemode="normal"] > #tab-view-deck > #browser-panel > #navigator-toolbox > #toolbar-menubar {
-    margin-top: 1px;
+@media (-moz-os-version: windows-win7) {
+  @media not all and (-moz-windows-classic) {
+    #main-window[sizemode="normal"] > #tab-view-deck > #browser-panel > #navigator-toolbox > #toolbar-menubar {
+      margin-top: 1px;
+    }
   }
 }
 
 @media (-moz-windows-default-theme) {
-  .sidebar-header,
-  #sidebar-header {
-    -moz-appearance: none;
-    border-bottom: none;
-  }
-
   .menu-accel,
   .menu-iconic-accel {
     color: graytext;
@@ -79,14 +77,9 @@
       .titlebar-button {
         border: none;
         margin: 0 !important;
-        padding: 10px 17px;
+        padding: 8px 17px;
         -moz-context-properties: stroke;
         stroke: var(--titlebar-text-color);
-      }
-
-      :root[sizemode=maximized] .titlebar-button {
-        padding-top: 8px;
-        padding-bottom: 8px;
       }
 
       .titlebar-button > .toolbarbutton-icon {
@@ -295,16 +288,14 @@
   @media (-moz-os-version: windows-win7),
          (-moz-os-version: windows-win8) {
     /* Vertical toolbar border */
-    #main-window:not([customizing])[sizemode=normal] #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(:-moz-lwtheme),
-    #main-window:not([customizing])[sizemode=normal] #navigator-toolbox:-moz-lwtheme,
-    #main-window[customizing] #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar) {
+    #main-window[sizemode=normal] #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(:-moz-lwtheme),
+    #main-window[sizemode=normal] #navigator-toolbox:-moz-lwtheme {
       border-left: 1px solid @toolbarShadowColor@;
       border-right: 1px solid @toolbarShadowColor@;
       background-clip: padding-box;
     }
 
-    #main-window:not([customizing])[sizemode=normal] #navigator-toolbox:not(:-moz-lwtheme)::after,
-    #main-window[customizing] #navigator-toolbox::after {
+    #main-window[sizemode=normal] #navigator-toolbox:not(:-moz-lwtheme)::after {
       box-shadow: 1px 0 0 @toolbarShadowColor@, -1px 0 0 @toolbarShadowColor@;
       margin-left: 1px;
       margin-right: 1px;

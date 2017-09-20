@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::CanvasData;
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
@@ -47,7 +46,6 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
-use script_layout_interface::message::Msg;
 use script_traits::DrawAPaintImageResult;
 use script_traits::Painter;
 use servo_atoms::Atom;
@@ -298,7 +296,7 @@ impl PaintWorkletGlobalScope {
         let (sender, receiver) = ipc::channel().expect("IPC channel creation.");
         rendering_context.send_data(sender);
         let image_key = match receiver.recv() {
-            Ok(CanvasData::Image(data)) => Some(data.image_key),
+            Ok(data) => Some(data.image_key),
             _ => None,
         };
 
@@ -444,8 +442,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         // Inform layout that there is a registered paint worklet.
         // TODO: layout will end up getting this message multiple times.
         let painter = self.painter(name.clone());
-        let msg = Msg::RegisterPaint(name, properties, painter);
-        self.worklet_global.send_to_layout(msg);
+        self.worklet_global.register_paint_worklet(name, properties, painter);
 
         Ok(())
     }
@@ -468,7 +465,7 @@ pub enum PaintWorkletTask {
 /// https://drafts.css-houdini.org/css-paint-api/#paint-definition
 /// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
 /// which can't be moved.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct PaintDefinition {
     class_constructor: Heap<JSVal>,

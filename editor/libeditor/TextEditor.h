@@ -78,6 +78,7 @@ public:
                   nsISelectionController* aSelCon, uint32_t aFlags,
                   const nsAString& aValue) override;
 
+  nsresult DocumentIsEmpty(bool* aIsEmpty);
   NS_IMETHOD GetDocumentIsEmpty(bool* aDocumentIsEmpty) override;
 
   NS_IMETHOD DeleteSelection(EDirection aAction,
@@ -242,18 +243,18 @@ protected:
   friend class TextEditRules;
 };
 
-TextEditor*
-EditorBase::AsTextEditor()
-{
-  return static_cast<TextEditor*>(this);
-}
-
-const TextEditor*
-EditorBase::AsTextEditor() const
-{
-  return static_cast<const TextEditor*>(this);
-}
-
 } // namespace mozilla
+
+mozilla::TextEditor*
+nsIEditor::AsTextEditor()
+{
+  return static_cast<mozilla::TextEditor*>(this);
+}
+
+const mozilla::TextEditor*
+nsIEditor::AsTextEditor() const
+{
+  return static_cast<const mozilla::TextEditor*>(this);
+}
 
 #endif // #ifndef mozilla_TextEditor_h

@@ -49,13 +49,9 @@ class ArchlinuxBootstrapper(StyloInstall, BaseBootstrapper):
         'imake',
         'inetutils',
         'libpulse',
-        'mercurial',
         'mesa',
-        'python2',
-        'unzip',
         'xorg-server-xvfb',
         'yasm',
-        'zip',
         'gst-libav',
         'gst-plugins-good',
         'networkmanager',
@@ -68,7 +64,7 @@ class ArchlinuxBootstrapper(StyloInstall, BaseBootstrapper):
     MOBILE_ANDROID_COMMON_PACKAGES = [
         # It would be nice to handle alternative JDKs.  See
         # https://wiki.archlinux.org/index.php/Java.
-        'jdk7-openjdk',
+        'jdk8-openjdk',
         # For downloading the Android SDK and NDK.
         'wget',
         # See comment about 32 bit binaries and multilib below.
@@ -79,7 +75,7 @@ class ArchlinuxBootstrapper(StyloInstall, BaseBootstrapper):
     ]
 
     def __init__(self, version, dist_id, **kwargs):
-        print 'Using an experimental bootstrapper for Archlinux.'
+        print('Using an experimental bootstrapper for Archlinux.')
         BaseBootstrapper.__init__(self, **kwargs)
 
     def install_system_packages(self):

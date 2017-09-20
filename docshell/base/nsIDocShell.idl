@@ -16,6 +16,7 @@ class nsPresContext;
 class nsIPresShell;
 namespace mozilla {
 class Encoding;
+class HTMLEditor;
 }
 %}
 
@@ -52,6 +53,7 @@ interface nsITabParent;
 interface nsITabChild;
 interface nsICommandManager;
 interface nsICommandParams;
+interface nsILoadURIDelegate;
 native TabChildRef(already_AddRefed<nsITabChild>);
 
 [scriptable, builtinclass, uuid(049234fe-da10-478b-bc5d-bc6f9a1ba63d)]
@@ -461,6 +463,13 @@ interface nsIDocShell : nsIDocShellTreeItem
    * <browser> or nsWebBrowser for their root docshell.
    */
   attribute nsISecureBrowserUI securityUI;
+
+  /**
+   * Object used to delegate URI loading to an upper context.
+   * Currently only set for GeckoView to allow handling of load requests
+   * at the application level.
+   */
+  attribute nsILoadURIDelegate loadURIDelegate;
 
   /**
    * Cancel the XPCOM timers for each meta-refresh URI in this docshell,
@@ -1154,4 +1163,28 @@ interface nsIDocShell : nsIDocShellTreeItem
   * Fire a dummy location change event asynchronously.
   */
   [noscript] void dispatchLocationChangeEvent();
+
+%{C++
+  /**
+   * These methods call nsDocShell::GetHTMLEditorInternal() and
+   * nsDocShell::SetHTMLEditorInternal() with static_cast.
+   */
+  mozilla::HTMLEditor* GetHTMLEditor();
+  nsresult SetHTMLEditor(mozilla::HTMLEditor* aHTMLEditor);
+%}
+
+  /**
+   * Allowed CSS display modes. This needs to be kept in
+   * sync with similar values in nsStyleConsts.h
+   */
+  const unsigned long DISPLAY_MODE_BROWSER = 0;
+  const unsigned long DISPLAY_MODE_MINIMAL_UI = 1;
+  const unsigned long DISPLAY_MODE_STANDALONE = 2;
+  const unsigned long DISPLAY_MODE_FULLSCREEN = 3;
+
+  /**
+   * Display mode for this docshell. Defaults to DISPLAY_MODE_BROWSER.
+   * Media queries only look at the value in the top-most docshell.
+   */
+  attribute unsigned long displayMode;
 };

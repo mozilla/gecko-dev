@@ -92,6 +92,7 @@ CompositorBridgeChild::CompositorBridgeChild(CompositorManagerChild *aManager)
   , mSectionAllocator(nullptr)
   , mPaintLock("CompositorBridgeChild.mPaintLock")
   , mOutstandingAsyncPaints(0)
+  , mOutstandingAsyncEndTransaction(false)
   , mIsWaitingForPaint(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -119,6 +120,7 @@ CompositorBridgeChild::AfterDestroy()
   // destroyed, e.g. the compositor process crashed.
   if (!mActorDestroyed) {
     Send__delete__(this);
+    mActorDestroyed = true;
   }
 
   if (sCompositorBridge == this) {
@@ -132,9 +134,10 @@ CompositorBridgeChild::Destroy()
   // This must not be called from the destructor!
   mTexturesWaitingRecycled.Clear();
 
-  if (!mCanSend) {
-    return;
-  }
+  // Destroying the layer manager may cause all sorts of things to happen, so
+  // let's make sure there is still a reference to keep this alive whatever
+  // happens.
+  RefPtr<CompositorBridgeChild> selfRef = this;
 
   for (size_t i = 0; i < mTexturePools.Length(); i++) {
     mTexturePools[i]->Destroy();
@@ -145,14 +148,19 @@ CompositorBridgeChild::Destroy()
     mSectionAllocator = nullptr;
   }
 
-  // Destroying the layer manager may cause all sorts of things to happen, so
-  // let's make sure there is still a reference to keep this alive whatever
-  // happens.
-  RefPtr<CompositorBridgeChild> selfRef = this;
-
   if (mLayerManager) {
     mLayerManager->Destroy();
     mLayerManager = nullptr;
+  }
+
+  if (!mCanSend) {
+    // We may have already called destroy but still have lingering references
+    // or CompositorBridgeChild::ActorDestroy was called. Ensure that we do our
+    // post destroy clean up no matter what. It is safe to call multiple times.
+    MessageLoop::current()->PostTask(NewRunnableMethod(
+      "CompositorBridgeChild::AfterDestroy",
+      selfRef, &CompositorBridgeChild::AfterDestroy));
+    return;
   }
 
   AutoTArray<PLayerTransactionChild*, 16> transactions;
@@ -430,7 +438,7 @@ CompositorBridgeChild::RecvUpdatePluginConfigurations(const LayoutDeviceIntPoint
         // our OnPaint handler and forwarded over to the plugin process async.
         widget->Resize(aContentOffset.x + bounds.x,
                        aContentOffset.y + bounds.y,
-                       bounds.width, bounds.height, true);
+                       bounds.Width(), bounds.Height(), true);
       }
 
       widget->Enable(isVisible);
@@ -887,6 +895,14 @@ CompositorBridgeChild::RecvObserveLayerUpdate(const uint64_t& aLayersId,
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult
+CompositorBridgeChild::RecvNotifyWebRenderError(const WebRenderError& aError)
+{
+  MOZ_ASSERT(XRE_IsParentProcess());
+  GPUProcessManager::Get()->NotifyWebRenderError(aError);
+  return IPC_OK();
+}
+
 void
 CompositorBridgeChild::HoldUntilCompositableRefReleasedIfNecessary(TextureClient* aClient)
 {
@@ -1134,6 +1150,20 @@ CompositorBridgeChild::GetNextPipelineId()
 }
 
 void
+CompositorBridgeChild::FlushAsyncPaints()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MonitorAutoLock lock(mPaintLock);
+  while (mIsWaitingForPaint) {
+    lock.Wait();
+  }
+
+  // It's now safe to free any TextureClients that were used during painting.
+  mTextureClientsForAsyncPaint.Clear();
+}
+
+void
 CompositorBridgeChild::NotifyBeginAsyncPaint(CapturedPaintState* aState)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1186,31 +1216,40 @@ CompositorBridgeChild::NotifyFinishedAsyncPaint(CapturedPaintState* aState)
     aState->mTextureClientOnWhite->DropPaintThreadRef();
     aState->mTextureClientOnWhite = nullptr;
   }
+}
+
+void
+CompositorBridgeChild::NotifyBeginAsyncEndLayerTransaction()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MonitorAutoLock lock(mPaintLock);
+
+  MOZ_ASSERT(!mOutstandingAsyncEndTransaction);
+  mOutstandingAsyncEndTransaction = true;
+}
+
+void
+CompositorBridgeChild::NotifyFinishedAsyncEndLayerTransaction()
+{
+  MOZ_ASSERT(PaintThread::IsOnPaintThread());
+  MonitorAutoLock lock(mPaintLock);
+
+  // Since this should happen after ALL paints are done and
+  // at the end of a transaction, this should always be true.
+  MOZ_RELEASE_ASSERT(mOutstandingAsyncPaints == 0);
+  MOZ_ASSERT(mOutstandingAsyncEndTransaction);
+
+  mOutstandingAsyncEndTransaction = false;
 
   // It's possible that we painted so fast that the main thread never reached
   // the code that starts delaying messages. If so, mIsWaitingForPaint will be
   // false, and we can safely return.
-  if (mIsWaitingForPaint && mOutstandingAsyncPaints == 0) {
+  if (mIsWaitingForPaint) {
     ResumeIPCAfterAsyncPaint();
 
     // Notify the main thread in case it's blocking. We do this unconditionally
     // to avoid deadlocking.
     lock.Notify();
-  }
-}
-
-void
-CompositorBridgeChild::PostponeMessagesIfAsyncPainting()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  MonitorAutoLock lock(mPaintLock);
-
-  MOZ_ASSERT(!mIsWaitingForPaint);
-
-  if (mOutstandingAsyncPaints > 0) {
-    mIsWaitingForPaint = true;
-    GetIPCChannel()->BeginPostponingSends();
   }
 }
 
@@ -1234,17 +1273,20 @@ CompositorBridgeChild::ResumeIPCAfterAsyncPaint()
 }
 
 void
-CompositorBridgeChild::FlushAsyncPaints()
+CompositorBridgeChild::PostponeMessagesIfAsyncPainting()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   MonitorAutoLock lock(mPaintLock);
-  while (mIsWaitingForPaint) {
-    lock.Wait();
-  }
 
-  // It's now safe to free any TextureClients that were used during painting.
-  mTextureClientsForAsyncPaint.Clear();
+  MOZ_ASSERT(!mIsWaitingForPaint);
+
+  // We need to wait for async paints and the async end transaction as
+  // it will do texture synchronization
+  if (mOutstandingAsyncPaints > 0 || mOutstandingAsyncEndTransaction) {
+    mIsWaitingForPaint = true;
+    GetIPCChannel()->BeginPostponingSends();
+  }
 }
 
 } // namespace layers

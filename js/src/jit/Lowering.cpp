@@ -1361,14 +1361,14 @@ LIRGenerator::visitUrsh(MUrsh* ins)
 }
 
 void
-LIRGenerator::visitSignExtend(MSignExtend* ins)
+LIRGenerator::visitSignExtendInt32(MSignExtendInt32* ins)
 {
     LInstructionHelper<1, 1, 0>* lir;
 
-    if (ins->mode() == MSignExtend::Byte)
-        lir = new(alloc()) LSignExtend(useByteOpRegisterAtStart(ins->input()), ins->mode());
+    if (ins->mode() == MSignExtendInt32::Byte)
+        lir = new(alloc()) LSignExtendInt32(useByteOpRegisterAtStart(ins->input()), ins->mode());
     else
-        lir = new(alloc()) LSignExtend(useRegisterAtStart(ins->input()), ins->mode());
+        lir = new(alloc()) LSignExtendInt32(useRegisterAtStart(ins->input()), ins->mode());
 
     define(lir, ins);
 }
@@ -3542,8 +3542,13 @@ LIRGenerator::visitArrayJoin(MArrayJoin* ins)
     MOZ_ASSERT(ins->array()->type() == MIRType::Object);
     MOZ_ASSERT(ins->sep()->type() == MIRType::String);
 
+    LDefinition tempDef = LDefinition::BogusTemp();
+    if (ins->optimizeForArray())
+        tempDef = temp();
+
     LArrayJoin* lir = new(alloc()) LArrayJoin(useRegisterAtStart(ins->array()),
-                                              useRegisterAtStart(ins->sep()));
+                                              useRegisterAtStart(ins->sep()),
+                                              tempDef);
     defineReturn(lir, ins);
     assignSafepoint(lir, ins);
 }
@@ -4354,9 +4359,14 @@ LIRGenerator::visitIsTypedArray(MIsTypedArray* ins)
 void
 LIRGenerator::visitIsCallable(MIsCallable* ins)
 {
-    MOZ_ASSERT(ins->object()->type() == MIRType::Object);
     MOZ_ASSERT(ins->type() == MIRType::Boolean);
-    define(new(alloc()) LIsCallable(useRegister(ins->object())), ins);
+
+    if (ins->object()->type() == MIRType::Object) {
+        define(new(alloc()) LIsCallableO(useRegister(ins->object())), ins);
+    } else {
+        MOZ_ASSERT(ins->object()->type() == MIRType::Value);
+        define(new(alloc()) LIsCallableV(useBox(ins->object()), temp()), ins);
+    }
 }
 
 void

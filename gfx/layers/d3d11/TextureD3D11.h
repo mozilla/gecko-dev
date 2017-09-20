@@ -18,6 +18,10 @@
 #include <vector>
 
 namespace mozilla {
+namespace gl {
+class GLBlitHelper;
+}
+
 namespace layers {
 
 class MOZ_RAII AutoTextureLock
@@ -39,7 +43,9 @@ class DXGITextureData : public TextureData
 public:
   virtual void FillInfo(TextureData::Info& aInfo) const override;
 
+  bool SerializeSpecific(SurfaceDescriptorD3D10* aOutDesc);
   virtual bool Serialize(SurfaceDescriptor& aOutDescrptor) override;
+  virtual void GetSubDescriptor(GPUVideoSubDescriptor* aOutDesc) override;
 
   static DXGITextureData*
   Create(gfx::IntSize aSize, gfx::SurfaceFormat aFormat, TextureAllocationFlags aFlags);
@@ -126,6 +132,7 @@ CreateD3D11extureClientWithDevice(gfx::IntSize aSize, gfx::SurfaceFormat aFormat
 
 class DXGIYCbCrTextureData : public TextureData
 {
+  friend class gl::GLBlitHelper;
 public:
   static DXGIYCbCrTextureData*
   Create(IDirect3DTexture9* aTextureY,
@@ -152,7 +159,9 @@ public:
 
   virtual void FillInfo(TextureData::Info& aInfo) const override;
 
+  void SerializeSpecific(SurfaceDescriptorDXGIYCbCr* aOutDesc);
   virtual bool Serialize(SurfaceDescriptor& aOutDescriptor) override;
+  virtual void GetSubDescriptor(GPUVideoSubDescriptor* aOutDesc) override;
 
   virtual already_AddRefed<gfx::DrawTarget> BorrowDrawTarget() override { return nullptr; }
 
@@ -329,7 +338,7 @@ public:
   virtual void GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
                               const std::function<wr::ImageKey()>& aImageKeyAllocator) override;
 
-  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+  virtual void AddWRImage(wr::ResourceUpdateQueue& aAPI,
                           Range<const wr::ImageKey>& aImageKeys,
                           const wr::ExternalImageId& aExtID) override;
 
@@ -347,7 +356,7 @@ protected:
 
   RefPtr<ID3D11Device> GetDevice();
 
-  bool OpenSharedHandle();
+  bool EnsureTexture();
 
   RefPtr<ID3D11Device> mDevice;
   RefPtr<ID3D11Texture2D> mTexture;
@@ -392,7 +401,7 @@ public:
   virtual void GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
                               const std::function<wr::ImageKey()>& aImageKeyAllocator) override;
 
-  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+  virtual void AddWRImage(wr::ResourceUpdateQueue& aResources,
                           Range<const wr::ImageKey>& aImageKeys,
                           const wr::ExternalImageId& aExtID) override;
 
@@ -408,7 +417,7 @@ private:
 protected:
   RefPtr<ID3D11Device> GetDevice();
 
-  bool OpenSharedHandle();
+  bool EnsureTexture();
 
   RefPtr<ID3D11Texture2D> mTextures[3];
   RefPtr<DataTextureSourceD3D11> mTextureSources[3];
@@ -484,6 +493,7 @@ private:
   RefPtr<ID3D11Texture2D> mSyncTexture;
   RefPtr<IDXGIKeyedMutex> mKeyedMutex;
   std::vector<ID3D11Texture2D*> mSyncedTextures;
+  Mutex mSyncLock;
 };
 
 inline uint32_t GetMaxTextureSizeForFeatureLevel(D3D_FEATURE_LEVEL aFeatureLevel)
@@ -526,9 +536,15 @@ public:
   explicit D3D11MTAutoEnter(already_AddRefed<ID3D10Multithread> aMT)
     : mMT(aMT)
   {
-    mMT->Enter();
+    if (mMT) {
+      mMT->Enter();
+    }
   }
-  ~D3D11MTAutoEnter() { mMT->Leave(); }
+  ~D3D11MTAutoEnter() {
+    if (mMT) {
+      mMT->Leave();
+    }
+  }
 
 private:
   RefPtr<ID3D10Multithread> mMT;

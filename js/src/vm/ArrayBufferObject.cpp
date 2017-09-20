@@ -109,8 +109,6 @@ CreateArrayBufferPrototype(JSContext* cx, JSProtoKey key)
 static const ClassOps ArrayBufferObjectClassOps = {
     nullptr,        /* addProperty */
     nullptr,        /* delProperty */
-    nullptr,        /* getProperty */
-    nullptr,        /* setProperty */
     nullptr,        /* enumerate */
     nullptr,        /* newEnumerate */
     nullptr,        /* resolve */
@@ -576,7 +574,6 @@ class js::WasmArrayRawBuffer
         VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE((unsigned char*)dataEnd, delta);
 #  endif
 
-        MemProfiler::SampleNative(dataEnd, delta);
         return true;
     }
 
@@ -661,7 +658,6 @@ WasmArrayRawBuffer::Allocate(uint32_t numBytes, const Maybe<uint32_t>& maxSize)
         return nullptr;
     }
 # endif  // !XP_WIN
-    MemProfiler::SampleNative(data, numBytesWithHeader);
 
 #  if defined(MOZ_VALGRIND) && defined(VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE)
     VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE((unsigned char*)data + numBytesWithHeader,
@@ -681,12 +677,11 @@ WasmArrayRawBuffer::Release(void* mem)
     WasmArrayRawBuffer* header = (WasmArrayRawBuffer*)((uint8_t*)mem - sizeof(WasmArrayRawBuffer));
     uint8_t* base = header->basePointer();
     MOZ_RELEASE_ASSERT(header->mappedSize() <= SIZE_MAX - gc::SystemPageSize());
-    size_t mappedSizeWithHeader = header->mappedSize() + gc::SystemPageSize();
 
-    MemProfiler::RemoveNative(base);
 # ifdef XP_WIN
     VirtualFree(base, 0, MEM_RELEASE);
 # else  // XP_WIN
+    size_t mappedSizeWithHeader = header->mappedSize() + gc::SystemPageSize();
     munmap(base, mappedSizeWithHeader);
 # endif  // !XP_WIN
 
@@ -833,7 +828,6 @@ ArrayBufferObject::BufferContents
 ArrayBufferObject::createMappedContents(int fd, size_t offset, size_t length)
 {
     void* data = AllocateMappedContent(fd, offset, length, ARRAY_BUFFER_ALIGNMENT);
-    MemProfiler::SampleNative(data, length);
     return BufferContents::create<MAPPED>(data);
 }
 
@@ -865,7 +859,6 @@ ArrayBufferObject::releaseData(FreeOp* fop)
         fop->free_(dataPointer());
         break;
       case MAPPED:
-        MemProfiler::RemoveNative(dataPointer());
         DeallocateMappedContent(dataPointer(), byteLength());
         break;
       case WASM:
@@ -1261,8 +1254,8 @@ ArrayBufferObject::trace(JSTracer* trc, JSObject* obj)
     buf.setSlot(DATA_SLOT, PrivateValue(view->as<InlineTransparentTypedObject>().inlineTypedMem()));
 }
 
-/* static */ void
-ArrayBufferObject::objectMoved(JSObject* obj, const JSObject* old)
+/* static */ size_t
+ArrayBufferObject::objectMoved(JSObject* obj, JSObject* old)
 {
     ArrayBufferObject& dst = obj->as<ArrayBufferObject>();
     const ArrayBufferObject& src = old->as<ArrayBufferObject>();
@@ -1270,6 +1263,8 @@ ArrayBufferObject::objectMoved(JSObject* obj, const JSObject* old)
     // Fix up possible inline data pointer.
     if (src.hasInlineData())
         dst.setSlot(DATA_SLOT, PrivateValue(dst.inlineDataPointer()));
+
+    return 0;
 }
 
 ArrayBufferViewObject*
@@ -1615,7 +1610,7 @@ JS_GetArrayBufferByteLength(JSObject* obj)
 }
 
 JS_FRIEND_API(uint8_t*)
-JS_GetArrayBufferData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&)
+JS_GetArrayBufferData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)
@@ -1817,7 +1812,6 @@ JS_CreateMappedArrayBufferContents(int fd, size_t offset, size_t length)
 JS_PUBLIC_API(void)
 JS_ReleaseMappedArrayBufferContents(void* contents, size_t length)
 {
-    MemProfiler::RemoveNative(contents);
     DeallocateMappedContent(contents, length);
 }
 
@@ -1832,7 +1826,7 @@ JS_IsMappedArrayBufferObject(JSObject* obj)
 }
 
 JS_FRIEND_API(void*)
-JS_GetArrayBufferViewData(JSObject* obj, bool* isSharedMemory, const JS::AutoCheckCannotGC&)
+JS_GetArrayBufferViewData(JSObject* obj, bool* isSharedMemory, const JS::AutoRequireNoGC&)
 {
     obj = CheckedUnwrap(obj);
     if (!obj)

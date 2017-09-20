@@ -36,27 +36,6 @@ using namespace workers;
 
 namespace {
 
-// Helper classes
-class MOZ_STACK_CLASS PerformanceEntryComparator final
-{
-public:
-  bool Equals(const PerformanceEntry* aElem1,
-              const PerformanceEntry* aElem2) const
-  {
-    MOZ_ASSERT(aElem1 && aElem2,
-               "Trying to compare null performance entries");
-    return aElem1->StartTime() == aElem2->StartTime();
-  }
-
-  bool LessThan(const PerformanceEntry* aElem1,
-                const PerformanceEntry* aElem2) const
-  {
-    MOZ_ASSERT(aElem1 && aElem2,
-               "Trying to compare null performance entries");
-    return aElem1->StartTime() < aElem2->StartTime();
-  }
-};
-
 class PrefEnabledRunnable final
   : public WorkerCheckAPIExposureOnMainThreadRunnable
 {
@@ -87,7 +66,7 @@ private:
 
 } // anonymous namespace
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(Performance)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Performance)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(Performance,

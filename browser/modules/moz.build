@@ -94,9 +94,6 @@ with Files("Sanitizer.jsm"):
 with Files("SitePermissions.jsm"):
     BUG_COMPONENT = ("Firefox", "Site Identity and Permission Panels")
 
-with Files("Social*"):
-    BUG_COMPONENT = ("Firefox", "SocialAPI")
-
 with Files("TransientPrefs.jsm"):
     BUG_COMPONENT = ("Firefox", "Preferences")
 
@@ -123,10 +120,7 @@ with Files("ZoomUI.jsm"):
 
 
 BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
-XPCSHELL_TESTS_MANIFESTS += [
-    'test/unit/social/xpcshell.ini',
-    'test/unit/xpcshell.ini',
-]
+XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
 
 EXTRA_JS_MODULES += [
     'AboutHome.jsm',
@@ -134,13 +128,14 @@ EXTRA_JS_MODULES += [
     'AttributionCode.jsm',
     'BrowserUITelemetry.jsm',
     'BrowserUsageTelemetry.jsm',
-    'CastingApps.jsm',
     'ContentClick.jsm',
     'ContentCrashHandlers.jsm',
     'ContentLinkHandler.jsm',
+    'ContentMetaHandler.jsm',
     'ContentObservers.js',
     'ContentSearch.jsm',
     'ContentWebRTC.jsm',
+    'ContextMenu.jsm',
     'DirectoryLinksProvider.jsm',
     'E10SUtils.jsm',
     'ExtensionsUI.jsm',
@@ -151,6 +146,7 @@ EXTRA_JS_MODULES += [
     'offlineAppCache.jsm',
     'PageActions.jsm',
     'PermissionUI.jsm',
+    'PingCentre.jsm',
     'PluginContent.jsm',
     'ProcessHangMonitor.jsm',
     'ReaderParent.jsm',
@@ -158,8 +154,6 @@ EXTRA_JS_MODULES += [
     'RemotePrompt.jsm',
     'Sanitizer.jsm',
     'SitePermissions.jsm',
-    'Social.jsm',
-    'SocialService.jsm',
     'TransientPrefs.jsm',
     'UpdateTopLevelContentWindowIDHelper.jsm',
     'webrtcUI.jsm',

@@ -1017,14 +1017,7 @@ rijndael_decryptCBC(AESContext *cx, unsigned char *output,
 AESContext *
 AES_AllocateContext(void)
 {
-    /* aligned_alloc is C11 so we have to do it the old way. */
-    AESContext *ctx = PORT_ZAlloc(sizeof(AESContext) + 15);
-    if (ctx == NULL) {
-        PORT_SetError(SEC_ERROR_NO_MEMORY);
-        return NULL;
-    }
-    ctx->mem = ctx;
-    return (AESContext *)(((uintptr_t)ctx + 15) & ~(uintptr_t)0x0F);
+    return PORT_ZNewAligned(AESContext, 16, mem);
 }
 
 /*

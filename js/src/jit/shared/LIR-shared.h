@@ -3364,19 +3364,34 @@ class LShiftI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0>
 };
 
 // Sign extension
-class LSignExtend : public LInstructionHelper<1, 1, 0>
+class LSignExtendInt32 : public LInstructionHelper<1, 1, 0>
 {
-    MSignExtend::Mode mode_;
+    MSignExtendInt32::Mode mode_;
 
   public:
-    LIR_HEADER(SignExtend);
-    explicit LSignExtend(const LAllocation& num, MSignExtend::Mode mode)
+    LIR_HEADER(SignExtendInt32);
+    explicit LSignExtendInt32(const LAllocation& num, MSignExtendInt32::Mode mode)
       : mode_(mode)
     {
         setOperand(0, num);
     }
 
-    MSignExtend::Mode mode() { return mode_; }
+    MSignExtendInt32::Mode mode() { return mode_; }
+};
+
+class LSignExtendInt64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES, 0>
+{
+  public:
+    LIR_HEADER(SignExtendInt64)
+    explicit LSignExtendInt64(const LInt64Allocation& input) {
+        setInt64Operand(0, input);
+    }
+
+    const MSignExtendInt64* mir() const {
+        return mir_->toSignExtendInt64();
+    }
+
+    MSignExtendInt64::Mode mode() const { return mir()->mode(); }
 };
 
 class LUrshD : public LBinaryMath<1>
@@ -6179,24 +6194,33 @@ class LArraySlice : public LCallInstructionHelper<1, 3, 2>
     }
 };
 
-class LArrayJoin : public LCallInstructionHelper<1, 2, 0>
+class LArrayJoin : public LCallInstructionHelper<1, 2, 1>
 {
   public:
     LIR_HEADER(ArrayJoin)
 
-    LArrayJoin(const LAllocation& array, const LAllocation& sep) {
+    LArrayJoin(const LAllocation& array, const LAllocation& sep,
+               const LDefinition& temp)
+    {
         setOperand(0, array);
         setOperand(1, sep);
+        setTemp(0, temp);
     }
 
     const MArrayJoin* mir() const {
         return mir_->toArrayJoin();
+    }
+    const LDefinition* output() {
+        return getDef(0);
     }
     const LAllocation* array() {
         return getOperand(0);
     }
     const LAllocation* separator() {
         return getOperand(1);
+    }
+    const LDefinition* temp() {
+        return getTemp(0);
     }
 };
 
@@ -7999,16 +8023,34 @@ class LCallInstanceOf : public LCallInstructionHelper<1, BOX_PIECES+1, 0>
     static const size_t RHS = BOX_PIECES;
 };
 
-class LIsCallable : public LInstructionHelper<1, 1, 0>
+class LIsCallableO : public LInstructionHelper<1, 1, 0>
 {
   public:
-    LIR_HEADER(IsCallable);
-    explicit LIsCallable(const LAllocation& object) {
+    LIR_HEADER(IsCallableO);
+    explicit LIsCallableO(const LAllocation& object) {
         setOperand(0, object);
     }
 
     const LAllocation* object() {
         return getOperand(0);
+    }
+    MIsCallable* mir() const {
+        return mir_->toIsCallable();
+    }
+};
+
+class LIsCallableV : public LInstructionHelper<1, BOX_PIECES, 1>
+{
+  public:
+    LIR_HEADER(IsCallableV);
+    static const size_t Value = 0;
+
+    LIsCallableV(const LBoxAllocation& value, const LDefinition& temp) {
+        setBoxOperand(0, value);
+        setTemp(0, temp);
+    }
+    const LDefinition* temp() {
+        return getTemp(0);
     }
     MIsCallable* mir() const {
         return mir_->toIsCallable();

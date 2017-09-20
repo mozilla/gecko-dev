@@ -143,16 +143,15 @@ nsSVGDisplayContainerFrame::Init(nsIContent*       aContent,
 
 void
 nsSVGDisplayContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                             const nsRect&           aDirtyRect,
                                              const nsDisplayListSet& aLists)
 {
   // mContent could be a XUL element so check for an SVG element before casting
   if (mContent->IsSVGElement() &&
-      !static_cast<const nsSVGElement*>(mContent)->HasValidDimensions()) {
+      !static_cast<const nsSVGElement*>(GetContent())->HasValidDimensions()) {
     return;
   }
   DisplayOutline(aBuilder, aLists);
-  return BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists);
+  return BuildDisplayListForNonBlockChildren(aBuilder, aLists);
 }
 
 void
@@ -233,7 +232,7 @@ nsSVGDisplayContainerFrame::IsSVGTransformed(gfx::Matrix *aOwnTransform,
 
   // mContent could be a XUL element so check for an SVG element before casting
   if (mContent->IsSVGElement()) {
-    nsSVGElement *content = static_cast<nsSVGElement*>(mContent);
+    nsSVGElement *content = static_cast<nsSVGElement*>(GetContent());
     nsSVGAnimatedTransformList* transformList =
       content->GetAnimatedTransformList();
     if ((transformList && transformList->HasTransform()) ||
@@ -402,6 +401,11 @@ nsSVGDisplayContainerFrame::NotifySVGChanged(uint32_t aFlags)
   MOZ_ASSERT(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
              "Invalidation logic may need adjusting");
 
+  if (aFlags & TRANSFORM_CHANGED) {
+    // make sure our cached transform matrix gets (lazily) updated
+    mCanvasTM = nullptr;
+  }
+
   nsSVGUtils::NotifyChildrenOfSVGChange(this, aFlags);
 }
 
@@ -433,4 +437,21 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
   }
 
   return bboxUnion;
+}
+
+gfxMatrix
+nsSVGDisplayContainerFrame::GetCanvasTM()
+{
+  if (!mCanvasTM) {
+    NS_ASSERTION(GetParent(), "null parent");
+
+    nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(GetParent());
+    nsSVGElement *content = static_cast<nsSVGElement*>(GetContent());
+
+    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
+
+    mCanvasTM = new gfxMatrix(tm);
+  }
+
+  return *mCanvasTM;
 }

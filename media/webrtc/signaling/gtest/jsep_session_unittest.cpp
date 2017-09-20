@@ -1003,10 +1003,14 @@ protected:
   ValidateDisabledMSection(const SdpMediaSection* msection)
   {
     ASSERT_EQ(1U, msection->GetFormats().size());
-    // Maybe validate that no attributes are present except rtpmap and
-    // inactive? How?
+
+    auto& attrs = msection->GetAttributeList();
+    ASSERT_TRUE(attrs.HasAttribute(SdpAttribute::kMidAttribute));
+    ASSERT_TRUE(attrs.HasAttribute(SdpAttribute::kDirectionAttribute));
+    ASSERT_FALSE(attrs.HasAttribute(SdpAttribute::kBundleOnlyAttribute));
     ASSERT_EQ(SdpDirectionAttribute::kInactive,
               msection->GetDirectionAttribute().mValue);
+    ASSERT_EQ(3U, attrs.Count());
     if (msection->GetMediaType() == SdpMediaSection::kAudio) {
       ASSERT_EQ("0", msection->GetFormats()[0]);
       const SdpRtpmapAttributeList::Rtpmap* rtpmap(msection->FindRtpmap("0"));
@@ -1605,10 +1609,10 @@ TEST_P(JsepSessionTest, RenegotiationBothAddTracksToExistingStream)
 
   auto oHasStream = HasMediaStream(mSessionOff->GetLocalTracks());
   auto aHasStream = HasMediaStream(mSessionAns->GetLocalTracks());
-  ASSERT_EQ(oHasStream, GetLocalUniqueStreamIds(*mSessionOff).size() > 0);
-  ASSERT_EQ(aHasStream, GetLocalUniqueStreamIds(*mSessionAns).size() > 0);
-  ASSERT_EQ(aHasStream, GetRemoteUniqueStreamIds(*mSessionOff).size()> 0);
-  ASSERT_EQ(oHasStream, GetRemoteUniqueStreamIds(*mSessionAns).size() > 0);
+  ASSERT_EQ(oHasStream, !GetLocalUniqueStreamIds(*mSessionOff).empty());
+  ASSERT_EQ(aHasStream, !GetLocalUniqueStreamIds(*mSessionAns).empty());
+  ASSERT_EQ(aHasStream, !GetRemoteUniqueStreamIds(*mSessionOff).empty());
+  ASSERT_EQ(oHasStream, !GetRemoteUniqueStreamIds(*mSessionAns).empty());
 
   auto firstOffId = GetFirstLocalStreamId(*mSessionOff);
   auto firstAnsId = GetFirstLocalStreamId(*mSessionAns);
@@ -1628,10 +1632,10 @@ TEST_P(JsepSessionTest, RenegotiationBothAddTracksToExistingStream)
   oHasStream = HasMediaStream(mSessionOff->GetLocalTracks());
   aHasStream = HasMediaStream(mSessionAns->GetLocalTracks());
 
-  ASSERT_EQ(oHasStream, GetLocalUniqueStreamIds(*mSessionOff).size() > 0);
-  ASSERT_EQ(aHasStream, GetLocalUniqueStreamIds(*mSessionAns).size() > 0);
-  ASSERT_EQ(aHasStream, GetRemoteUniqueStreamIds(*mSessionOff).size() > 0);
-  ASSERT_EQ(oHasStream, GetRemoteUniqueStreamIds(*mSessionAns).size() > 0);
+  ASSERT_EQ(oHasStream, !GetLocalUniqueStreamIds(*mSessionOff).empty());
+  ASSERT_EQ(aHasStream, !GetLocalUniqueStreamIds(*mSessionAns).empty());
+  ASSERT_EQ(aHasStream, !GetRemoteUniqueStreamIds(*mSessionOff).empty());
+  ASSERT_EQ(oHasStream, !GetRemoteUniqueStreamIds(*mSessionAns).empty());
   if (oHasStream) {
     ASSERT_STREQ(firstOffId.c_str(),
                  GetFirstLocalStreamId(*mSessionOff).c_str());
@@ -1642,8 +1646,8 @@ TEST_P(JsepSessionTest, RenegotiationBothAddTracksToExistingStream)
 
   auto oHasStream = HasMediaStream(mSessionOff->GetLocalTracks());
   auto aHasStream = HasMediaStream(mSessionAns->GetLocalTracks());
-  ASSERT_EQ(oHasStream, GetLocalUniqueStreamIds(*mSessionOff).size() > 0);
-  ASSERT_EQ(aHasStream, GetLocalUniqueStreamIds(*mSessionAns).size() > 0);
+  ASSERT_EQ(oHasStream, !GetLocalUniqueStreamIds(*mSessionOff).empty());
+  ASSERT_EQ(aHasStream, !GetLocalUniqueStreamIds(*mSessionAns).empty());
   }
 }
 
@@ -4126,6 +4130,36 @@ TEST_F(JsepSessionTest, TestExtmap)
   ASSERT_EQ("bar", answerExtmap[0].extensionname);
   ASSERT_EQ(3U, answerExtmap[0].entry);
 }
+
+TEST_F(JsepSessionTest, TestExtmapWithDuplicates)
+{
+  AddTracks(*mSessionOff, "audio");
+  AddTracks(*mSessionAns, "audio");
+  // ssrc-audio-level will be extmap 1 for both
+  mSessionOff->AddAudioRtpExtension("foo"); // Default mapping of 2
+  mSessionOff->AddAudioRtpExtension("bar"); // Default mapping of 3
+  mSessionOff->AddAudioRtpExtension("bar"); // Should be ignored
+  mSessionOff->AddAudioRtpExtension("bar"); // Should be ignored
+  mSessionOff->AddAudioRtpExtension("baz"); // Default mapping of 4
+  mSessionOff->AddAudioRtpExtension("bar"); // Should be ignored
+
+  std::string offer = CreateOffer();
+  UniquePtr<Sdp> parsedOffer(Parse(offer));
+  ASSERT_EQ(1U, parsedOffer->GetMediaSectionCount());
+
+  auto& offerMediaAttrs = parsedOffer->GetMediaSection(0).GetAttributeList();
+  ASSERT_TRUE(offerMediaAttrs.HasAttribute(SdpAttribute::kExtmapAttribute));
+  auto& offerExtmap = offerMediaAttrs.GetExtmap().mExtmaps;
+  ASSERT_EQ(4U, offerExtmap.size());
+  ASSERT_EQ("urn:ietf:params:rtp-hdrext:ssrc-audio-level",
+      offerExtmap[0].extensionname);
+  ASSERT_EQ(1U, offerExtmap[0].entry);
+  ASSERT_EQ("foo", offerExtmap[1].extensionname);
+  ASSERT_EQ(2U, offerExtmap[1].entry);
+  ASSERT_EQ("bar", offerExtmap[2].extensionname);
+  ASSERT_EQ(3U, offerExtmap[2].entry);
+}
+
 
 TEST_F(JsepSessionTest, TestRtcpFbStar)
 {

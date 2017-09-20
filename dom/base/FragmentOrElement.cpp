@@ -23,6 +23,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStates.h"
+#include "mozilla/HTMLEditor.h"
 #include "mozilla/ServoRestyleManager.h"
 #include "mozilla/TextEditor.h"
 #include "mozilla/URLExtraData.h"
@@ -191,13 +192,13 @@ nsIContent::GetFlattenedTreeParentNodeInternal(FlattenedParentType aType) const
       // we are trying to eagerly restyle document level NAC in
       // nsCSSFrameConstructor::GetAnonymousContent before the root
       // element's frame has been constructed.
-      return nullptr;
+      return OwnerDoc();
     }
     nsIAnonymousContentCreator* creator = do_QueryFrame(parentFrame);
     if (!creator) {
       // If the root element does have a frame, but does not implement
       // nsIAnonymousContentCreator, then this must be document level NAC.
-      return nullptr;
+      return OwnerDoc();
     }
     AutoTArray<nsIContent*, 8> elements;
     creator->AppendAnonymousContentTo(elements, 0);
@@ -205,7 +206,7 @@ nsIContent::GetFlattenedTreeParentNodeInternal(FlattenedParentType aType) const
       // If the root element does have a frame, and also does implement
       // nsIAnonymousContentCreator, but didn't create this node, then
       // it must be document level NAC.
-      return nullptr;
+      return OwnerDoc();
     }
   }
 
@@ -271,12 +272,12 @@ nsIContent::GetDesiredIMEState()
   if (!pc) {
     return IMEState(IMEState::DISABLED);
   }
-  nsIEditor* editor = nsContentUtils::GetHTMLEditor(pc);
-  if (!editor) {
+  HTMLEditor* htmlEditor = nsContentUtils::GetHTMLEditor(pc);
+  if (!htmlEditor) {
     return IMEState(IMEState::DISABLED);
   }
   IMEState state;
-  editor->GetPreferredIMEState(&state);
+  htmlEditor->GetPreferredIMEState(&state);
   return state;
 }
 
@@ -520,42 +521,43 @@ NeedsScriptTraverse(nsINode* aNode)
 
 //----------------------------------------------------------------------
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(nsChildContentList)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(nsChildContentList)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsAttrChildContentList)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsAttrChildContentList)
 
-// If nsChildContentList is changed so that any additional fields are
+// If nsAttrChildContentList is changed so that any additional fields are
 // traversed by the cycle collector, then CAN_SKIP must be updated to
 // check that the additional fields are null.
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(nsChildContentList)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(nsAttrChildContentList)
 
-// nsChildContentList only ever has a single child, its wrapper, so if
+// nsAttrChildContentList only ever has a single child, its wrapper, so if
 // the wrapper is known-live, the list can't be part of a garbage cycle.
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsChildContentList)
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsAttrChildContentList)
   return tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsChildContentList)
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsAttrChildContentList)
   return tmp->HasKnownLiveWrapperAndDoesNotNeedTracing(tmp);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 // CanSkipThis returns false to avoid problems with incomplete unlinking.
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsChildContentList)
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsAttrChildContentList)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
-NS_INTERFACE_TABLE_HEAD(nsChildContentList)
+NS_INTERFACE_TABLE_HEAD(nsAttrChildContentList)
   NS_WRAPPERCACHE_INTERFACE_TABLE_ENTRY
-  NS_INTERFACE_TABLE(nsChildContentList, nsINodeList, nsIDOMNodeList)
-  NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsChildContentList)
+  NS_INTERFACE_TABLE(nsAttrChildContentList, nsINodeList, nsIDOMNodeList)
+  NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsAttrChildContentList)
 NS_INTERFACE_MAP_END
 
 JSObject*
-nsChildContentList::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
+nsAttrChildContentList::WrapObject(JSContext *cx,
+                                   JS::Handle<JSObject*> aGivenProto)
 {
   return NodeListBinding::Wrap(cx, this, aGivenProto);
 }
 
 NS_IMETHODIMP
-nsChildContentList::GetLength(uint32_t* aLength)
+nsAttrChildContentList::GetLength(uint32_t* aLength)
 {
   *aLength = mNode ? mNode->GetChildCount() : 0;
 
@@ -563,7 +565,7 @@ nsChildContentList::GetLength(uint32_t* aLength)
 }
 
 NS_IMETHODIMP
-nsChildContentList::Item(uint32_t aIndex, nsIDOMNode** aReturn)
+nsAttrChildContentList::Item(uint32_t aIndex, nsIDOMNode** aReturn)
 {
   nsINode* node = Item(aIndex);
   if (!node) {
@@ -576,7 +578,7 @@ nsChildContentList::Item(uint32_t aIndex, nsIDOMNode** aReturn)
 }
 
 nsIContent*
-nsChildContentList::Item(uint32_t aIndex)
+nsAttrChildContentList::Item(uint32_t aIndex)
 {
   if (mNode) {
     return mNode->GetChildAt(aIndex);
@@ -586,13 +588,84 @@ nsChildContentList::Item(uint32_t aIndex)
 }
 
 int32_t
-nsChildContentList::IndexOf(nsIContent* aContent)
+nsAttrChildContentList::IndexOf(nsIContent* aContent)
 {
   if (mNode) {
     return mNode->IndexOf(aContent);
   }
 
   return -1;
+}
+
+//----------------------------------------------------------------------
+NS_IMETHODIMP
+nsParentNodeChildContentList::GetLength(uint32_t* aLength)
+{
+  if (!mIsCacheValid && !ValidateCache()) {
+    *aLength = 0;
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(mIsCacheValid);
+
+  *aLength = mCachedChildArray.Length();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsParentNodeChildContentList::Item(uint32_t aIndex, nsIDOMNode** aReturn)
+{
+  nsINode* node = Item(aIndex);
+  if (!node) {
+    *aReturn = nullptr;
+    return NS_OK;
+  }
+
+  return CallQueryInterface(node, aReturn);
+}
+
+nsIContent*
+nsParentNodeChildContentList::Item(uint32_t aIndex)
+{
+  if (!mIsCacheValid && !ValidateCache()) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(mIsCacheValid);
+
+  return mCachedChildArray.SafeElementAt(aIndex, nullptr);
+}
+
+int32_t
+nsParentNodeChildContentList::IndexOf(nsIContent* aContent)
+{
+  if (!mIsCacheValid && !ValidateCache()) {
+    return -1;
+  }
+
+  MOZ_ASSERT(mIsCacheValid);
+
+  return mCachedChildArray.IndexOf(aContent);
+}
+
+bool
+nsParentNodeChildContentList::ValidateCache()
+{
+  MOZ_ASSERT(!mIsCacheValid);
+  MOZ_ASSERT(mCachedChildArray.IsEmpty());
+
+  nsINode* parent = GetParentObject();
+  if (!parent) {
+    return false;
+  }
+
+  for (nsIContent* node = parent->GetFirstChild(); node;
+       node = node->GetNextSibling()) {
+    mCachedChildArray.AppendElement(node);
+  }
+  mIsCacheValid = true;
+
+  return true;
 }
 
 //----------------------------------------------------------------------
@@ -620,18 +693,19 @@ NS_IMPL_ISUPPORTS(nsNodeWeakReference,
 
 nsNodeWeakReference::~nsNodeWeakReference()
 {
-  if (mNode) {
-    NS_ASSERTION(mNode->Slots()->mWeakReference == this,
+  nsINode* node = static_cast<nsINode*>(mObject);
+
+  if (node) {
+    NS_ASSERTION(node->Slots()->mWeakReference == this,
                  "Weak reference has wrong value");
-    mNode->Slots()->mWeakReference = nullptr;
+    node->Slots()->mWeakReference = nullptr;
   }
 }
 
 NS_IMETHODIMP
-nsNodeWeakReference::QueryReferent(const nsIID& aIID, void** aInstancePtr)
+nsNodeWeakReference::QueryReferentFromScript(const nsIID& aIID, void** aInstancePtr)
 {
-  return mNode ? mNode->QueryInterface(aIID, aInstancePtr) :
-                 NS_ERROR_NULL_POINTER;
+  return QueryReferent(aIID, aInstancePtr);
 }
 
 size_t
@@ -2143,9 +2217,9 @@ NS_INTERFACE_MAP_BEGIN(FragmentOrElement)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContent)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(FragmentOrElement)
-NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(FragmentOrElement,
-                                                   nsNodeUtils::LastRelease(this))
+NS_IMPL_MAIN_THREAD_ONLY_CYCLE_COLLECTING_ADDREF(FragmentOrElement)
+NS_IMPL_MAIN_THREAD_ONLY_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(FragmentOrElement,
+                                                                    nsNodeUtils::LastRelease(this))
 
 //----------------------------------------------------------------------
 
@@ -2251,12 +2325,6 @@ nsIContent *
 FragmentOrElement::GetChildAt(uint32_t aIndex) const
 {
   return mAttrsAndChildren.GetSafeChildAt(aIndex);
-}
-
-nsIContent * const *
-FragmentOrElement::GetChildArray(uint32_t* aChildCount) const
-{
-  return mAttrsAndChildren.GetChildArray(aChildCount);
 }
 
 int32_t
@@ -2502,19 +2570,18 @@ FragmentOrElement::FireNodeRemovedForChildren()
   }
 }
 
-size_t
-FragmentOrElement::SizeOfExcludingThis(SizeOfState& aState) const
+void
+FragmentOrElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
+                                          size_t* aNodeSize) const
 {
-  size_t n = 0;
-  n += nsIContent::SizeOfExcludingThis(aState);
-  n += mAttrsAndChildren.SizeOfExcludingThis(aState.mMallocSizeOf);
+  nsIContent::AddSizeOfExcludingThis(aSizes, aNodeSize);
+  *aNodeSize +=
+    mAttrsAndChildren.SizeOfExcludingThis(aSizes.mState.mMallocSizeOf);
 
   nsDOMSlots* slots = GetExistingDOMSlots();
   if (slots) {
-    n += slots->SizeOfIncludingThis(aState.mMallocSizeOf);
+    *aNodeSize += slots->SizeOfIncludingThis(aSizes.mState.mMallocSizeOf);
   }
-
-  return n;
 }
 
 void

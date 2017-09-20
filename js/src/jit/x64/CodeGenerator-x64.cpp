@@ -8,7 +8,6 @@
 
 #include "mozilla/MathAlgorithms.h"
 
-#include "jit/IonCaches.h"
 #include "jit/MIR.h"
 
 #include "jsscriptinlines.h"
@@ -678,6 +677,24 @@ CodeGeneratorX64::visitExtendInt32ToInt64(LExtendInt32ToInt64* lir)
         masm.movl(ToOperand(input), output);
     else
         masm.movslq(ToOperand(input), output);
+}
+
+void
+CodeGeneratorX64::visitSignExtendInt64(LSignExtendInt64* ins)
+{
+    Register64 input = ToRegister64(ins->getInt64Operand(0));
+    Register64 output = ToOutRegister64(ins);
+    switch (ins->mode()) {
+      case MSignExtendInt64::Byte:
+        masm.movsbq(Operand(input.reg), output.reg);
+        break;
+      case MSignExtendInt64::Half:
+        masm.movswq(Operand(input.reg), output.reg);
+        break;
+      case MSignExtendInt64::Word:
+        masm.movslq(Operand(input.reg), output.reg);
+        break;
+    }
 }
 
 void

@@ -31,7 +31,7 @@ const {
 const StyleInspectorMenu = require("devtools/client/inspector/shared/style-inspector-menu");
 const TooltipsOverlay = require("devtools/client/inspector/shared/tooltips-overlay");
 const {createChild, promiseWarn, debounce} = require("devtools/client/inspector/shared/utils");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const clipboardHelper = require("devtools/shared/platform/clipboard");
 const AutocompletePopup = require("devtools/client/shared/autocomplete-popup");
@@ -42,7 +42,7 @@ const PREF_DEFAULT_COLOR_UNIT = "devtools.defaultColorUnit";
 const PREF_ENABLE_MDN_DOCS_TOOLTIP =
       "devtools.inspector.mdnDocsTooltip.enabled";
 const FILTER_CHANGED_TIMEOUT = 150;
-const PREF_ORIG_SOURCES = "devtools.styleeditor.source-maps-enabled";
+const PREF_ORIG_SOURCES = "devtools.source-map.client-service.enabled";
 
 // This is used to parse user input when filtering.
 const FILTER_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*;?$/;
@@ -150,7 +150,6 @@ function CssRuleView(inspector, document, store, pageStyle) {
   this.element.addEventListener("contextmenu", this._onContextMenu);
   this.addRuleButton.addEventListener("click", this._onAddRule);
   this.searchField.addEventListener("input", this._onFilterStyles);
-  this.searchField.addEventListener("contextmenu", this.inspector.onTextBoxContextMenu);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
   this.pseudoClassToggle.addEventListener("click", this._onTogglePseudoClassPanel);
   this.classToggle.addEventListener("click", this._onToggleClassPanel);
@@ -701,8 +700,6 @@ CssRuleView.prototype = {
     this.element.removeEventListener("contextmenu", this._onContextMenu);
     this.addRuleButton.removeEventListener("click", this._onAddRule);
     this.searchField.removeEventListener("input", this._onFilterStyles);
-    this.searchField.removeEventListener("contextmenu",
-      this.inspector.onTextBoxContextMenu);
     this.searchClearButton.removeEventListener("click", this._onClearSearch);
     this.pseudoClassToggle.removeEventListener("click", this._onTogglePseudoClassPanel);
     this.classToggle.removeEventListener("click", this._onToggleClassPanel);
@@ -900,7 +897,7 @@ CssRuleView.prototype = {
       // Notify anyone that cares that we refreshed.
       return onEditorsReady.then(() => {
         this.emit("ruleview-refreshed");
-      }, e => console.error(e));
+      }, console.error);
     }).catch(promiseWarn);
   },
 
@@ -914,6 +911,7 @@ CssRuleView.prototype = {
 
     createChild(this.element, "div", {
       id: "ruleview-no-results",
+      class: "devtools-sidepanel-no-result",
       textContent: l10n("rule.empty")
     });
   },
@@ -1006,12 +1004,7 @@ CssRuleView.prototype = {
     container.hidden = false;
     this.element.appendChild(container);
 
-    header.addEventListener("dblclick", () => {
-      this._toggleContainerVisibility(twisty, container, isPseudo,
-        !this.showPseudoElements);
-    });
-
-    twisty.addEventListener("click", () => {
+    header.addEventListener("click", () => {
       this._toggleContainerVisibility(twisty, container, isPseudo,
         !this.showPseudoElements);
     });
@@ -1060,7 +1053,7 @@ CssRuleView.prototype = {
   },
 
   _getRuleViewHeaderClassName: function (isPseudo) {
-    let baseClassName = "theme-gutter ruleview-header";
+    let baseClassName = "ruleview-header";
     return isPseudo ? baseClassName + " ruleview-expandable-header" :
       baseClassName;
   },

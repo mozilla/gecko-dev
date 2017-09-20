@@ -47,7 +47,6 @@ var ecmaGlobals =
     "Int8Array",
     "InternalError",
     "Intl",
-    "Iterator",
     "JSON",
     "Map",
     "Math",
@@ -102,6 +101,10 @@ var legacyMozPrefixedInterfaces =
 // IMPORTANT: Do not change the list below without review from a DOM peer!
 var interfaceNamesInGlobalScope =
   [
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "AbortController",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "AbortSignal",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "AnalyserNode",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -641,6 +644,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "MediaRecorder",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    "MediaRecorderErrorEvent",
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "MediaSource",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "MediaStream",
@@ -731,9 +736,9 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PerformanceNavigation",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "PerformanceObserver", nightly: true},
+    "PerformanceObserver",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "PerformanceObserverEntryList", nightly: true},
+    "PerformanceObserverEntryList",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PerformanceResourceTiming",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -786,8 +791,6 @@ var interfaceNamesInGlobalScope =
     "RadioNodeList",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Range",
-// IMPORTANT: Do not change this list without review from a DOM peer!
-    "RecordErrorEvent",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Rect",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -871,7 +874,7 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "StorageEvent",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "StorageManager", nightly: true, isSecureContext: true, android: false},
+    {name: "StorageManager", isSecureContext: true, android: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "StyleSheet",
 // IMPORTANT: Do not change this list without review from a DOM peer!

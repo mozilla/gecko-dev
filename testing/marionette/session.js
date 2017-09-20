@@ -6,6 +6,8 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.importGlobalProperties(["URL"]);
+
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -108,12 +110,13 @@ session.Proxy = class {
   /** @class */
   constructor() {
     this.proxyType = null;
-    this.httpProxy = null;
-    this.httpProxyPort = null;
-    this.sslProxy = null;
-    this.sslProxyPort = null;
     this.ftpProxy = null;
     this.ftpProxyPort = null;
+    this.httpProxy = null;
+    this.httpProxyPort = null;
+    this.noProxy = null;
+    this.sslProxy = null;
+    this.sslProxyPort = null;
     this.socksProxy = null;
     this.socksProxyPort = null;
     this.socksVersion = null;
@@ -130,26 +133,50 @@ session.Proxy = class {
    */
   init() {
     switch (this.proxyType) {
+      case "autodetect":
+        Preferences.set("network.proxy.type", 4);
+        return true;
+
+      case "direct":
+        Preferences.set("network.proxy.type", 0);
+        return true;
+
       case "manual":
         Preferences.set("network.proxy.type", 1);
-        if (this.httpProxy && this.httpProxyPort) {
-          Preferences.set("network.proxy.http", this.httpProxy);
-          Preferences.set("network.proxy.http_port", this.httpProxyPort);
-        }
-        if (this.sslProxy && this.sslProxyPort) {
-          Preferences.set("network.proxy.ssl", this.sslProxy);
-          Preferences.set("network.proxy.ssl_port", this.sslProxyPort);
-        }
-        if (this.ftpProxy && this.ftpProxyPort) {
+
+        if (this.ftpProxy) {
           Preferences.set("network.proxy.ftp", this.ftpProxy);
-          Preferences.set("network.proxy.ftp_port", this.ftpProxyPort);
+          if (Number.isInteger(this.ftpProxyPort)) {
+            Preferences.set("network.proxy.ftp_port", this.ftpProxyPort);
+          }
         }
+
+        if (this.httpProxy) {
+          Preferences.set("network.proxy.http", this.httpProxy);
+          if (Number.isInteger(this.httpProxyPort)) {
+            Preferences.set("network.proxy.http_port", this.httpProxyPort);
+          }
+        }
+
+        if (this.sslProxy) {
+          Preferences.set("network.proxy.ssl", this.sslProxy);
+          if (Number.isInteger(this.sslProxyPort)) {
+            Preferences.set("network.proxy.ssl_port", this.sslProxyPort);
+          }
+        }
+
         if (this.socksProxy) {
           Preferences.set("network.proxy.socks", this.socksProxy);
-          Preferences.set("network.proxy.socks_port", this.socksProxyPort);
+          if (Number.isInteger(this.socksProxyPort)) {
+            Preferences.set("network.proxy.socks_port", this.socksProxyPort);
+          }
           if (this.socksVersion) {
             Preferences.set("network.proxy.socks_version", this.socksVersion);
           }
+        }
+
+        if (this.noProxy) {
+          Preferences.set("network.proxy.no_proxies_on", this.noProxy.join(", "));
         }
         return true;
 
@@ -159,16 +186,8 @@ session.Proxy = class {
             "network.proxy.autoconfig_url", this.proxyAutoconfigUrl);
         return true;
 
-      case "autodetect":
-        Preferences.set("network.proxy.type", 4);
-        return true;
-
       case "system":
         Preferences.set("network.proxy.type", 5);
-        return true;
-
-      case "noproxy":
-        Preferences.set("network.proxy.type", 0);
         return true;
 
       default:
@@ -176,33 +195,60 @@ session.Proxy = class {
     }
   }
 
-  toString() { return "[object session.Proxy]"; }
-
-  /**
-   * @return {Object.<string, (number|string)>}
-   *     JSON serialisation of proxy object.
-   */
-  toJSON() {
-    return marshal({
-      proxyType: this.proxyType,
-      httpProxy: this.httpProxy,
-      httpProxyPort: this.httpProxyPort,
-      sslProxy: this.sslProxy,
-      sslProxyPort: this.sslProxyPort,
-      ftpProxy: this.ftpProxy,
-      ftpProxyPort: this.ftpProxyPort,
-      socksProxy: this.socksProxy,
-      socksProxyPort: this.socksProxyPort,
-      socksProxyVersion: this.socksProxyVersion,
-      proxyAutoconfigUrl: this.proxyAutoconfigUrl,
-    });
-  }
-
   /**
    * @param {Object.<string, ?>} json
    *     JSON Object to unmarshal.
+   *
+   * @throws {InvalidArgumentError}
+   *     When proxy configuration is invalid.
    */
   static fromJSON(json) {
+    // Parse hostname and optional port from host
+    function fromHost(scheme, host) {
+      assert.string(host);
+
+      if (host.includes("://")) {
+        throw new InvalidArgumentError(`${host} contains a scheme`);
+      }
+
+      let url;
+      try {
+        // To parse the host a scheme has to be added temporarily.
+        // If the returned value for the port is an empty string it
+        // could mean no port or the default port for this scheme was
+        // specified. In such a case parse again with a different
+        // scheme to ensure we filter out the default port.
+        url = new URL("http://" + host);
+        if (url.port == "") {
+          url = new URL("https://" + host);
+        }
+      } catch (e) {
+        throw new InvalidArgumentError(e.message);
+      }
+
+      // If the port hasn't been set, use the default port of
+      // the selected scheme (except for socks which doesn't have one).
+      let port = parseInt(url.port);
+      if (!Number.isInteger(port)) {
+        if (scheme === "socks") {
+          port = null;
+        } else {
+          port = Services.io.getProtocolHandler(scheme).defaultPort;
+        }
+      }
+
+      if (url.username != "" ||
+          url.password != "" ||
+          url.pathname != "/" ||
+          url.search != "" ||
+          url.hash != "") {
+        throw new InvalidArgumentError(
+            `${host} was not of the form host[:port]`);
+      }
+
+      return [url.hostname, port];
+    }
+
     let p = new session.Proxy();
     if (typeof json == "undefined" || json === null) {
       return p;
@@ -211,37 +257,79 @@ session.Proxy = class {
     assert.object(json);
 
     assert.in("proxyType", json);
-    p.proxyType = json.proxyType;
+    p.proxyType = assert.string(json.proxyType);
 
-    if (json.proxyType == "manual") {
-      if (typeof json.httpProxy != "undefined") {
-        p.httpProxy = assert.string(json.httpProxy);
-        p.httpProxyPort = assert.positiveInteger(json.httpProxyPort);
-      }
+    switch (p.proxyType) {
+      case "autodetect":
+      case "direct":
+      case "system":
+        break;
 
-      if (typeof json.sslProxy != "undefined") {
-        p.sslProxy = assert.string(json.sslProxy);
-        p.sslProxyPort = assert.positiveInteger(json.sslProxyPort);
-      }
+      case "pac":
+        p.proxyAutoconfigUrl = assert.string(json.proxyAutoconfigUrl);
+        break;
 
-      if (typeof json.ftpProxy != "undefined") {
-        p.ftpProxy = assert.string(json.ftpProxy);
-        p.ftpProxyPort = assert.positiveInteger(json.ftpProxyPort);
-      }
+      case "manual":
+        if (typeof json.ftpProxy != "undefined") {
+          [p.ftpProxy, p.ftpProxyPort] = fromHost("ftp", json.ftpProxy);
+        }
+        if (typeof json.httpProxy != "undefined") {
+          [p.httpProxy, p.httpProxyPort] = fromHost("http", json.httpProxy);
+        }
+        if (typeof json.sslProxy != "undefined") {
+          [p.sslProxy, p.sslProxyPort] = fromHost("https", json.sslProxy);
+        }
+        if (typeof json.socksProxy != "undefined") {
+          [p.socksProxy, p.socksProxyPort] = fromHost("socks", json.socksProxy);
+          p.socksVersion = assert.positiveInteger(json.socksVersion);
+        }
+        if (typeof json.noProxy != "undefined") {
+          let entries = assert.array(json.noProxy);
+          for (let entry of entries) {
+            assert.string(entry);
+          }
+          p.noProxy = entries;
+        }
+        break;
 
-      if (typeof json.socksProxy != "undefined") {
-        p.socksProxy = assert.string(json.socksProxy);
-        p.socksProxyPort = assert.positiveInteger(json.socksProxyPort);
-        p.socksProxyVersion = assert.positiveInteger(json.socksProxyVersion);
-      }
-    }
-
-    if (typeof json.proxyAutoconfigUrl != "undefined") {
-      p.proxyAutoconfigUrl = assert.string(json.proxyAutoconfigUrl);
+      default:
+        throw new InvalidArgumentError(
+            `Invalid type of proxy: ${p.proxyType}`);
     }
 
     return p;
   }
+
+  /**
+   * @return {Object.<string, (number|string)>}
+   *     JSON serialisation of proxy object.
+   */
+  toJSON() {
+    function toHost(hostname, port) {
+      if (!hostname) {
+        return null;
+      }
+
+      if (port != null) {
+        return `${hostname}:${port}`;
+      }
+
+      return hostname;
+    }
+
+    return marshal({
+      proxyType: this.proxyType,
+      ftpProxy: toHost(this.ftpProxy, this.ftpProxyPort),
+      httpProxy: toHost(this.httpProxy, this.httpProxyPort),
+      noProxy: this.noProxy,
+      sslProxy: toHost(this.sslProxy, this.sslProxyPort),
+      socksProxy: toHost(this.socksProxy, this.socksProxyPort),
+      socksVersion: this.socksVersion,
+      proxyAutoconfigUrl: this.proxyAutoconfigUrl,
+    });
+  }
+
+  toString() { return "[object session.Proxy]"; }
 };
 
 /** WebDriver session capabilities representation. */
@@ -263,11 +351,11 @@ session.Capabilities = class extends Map {
       ["rotatable", appinfo.name == "B2G"],
 
       // proprietary
-      ["specificationLevel", 0],
-      ["moz:processID", Services.appinfo.processID],
-      ["moz:profile", maybeProfile()],
       ["moz:accessibilityChecks", false],
       ["moz:headless", Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo).isHeadless],
+      ["moz:processID", Services.appinfo.processID],
+      ["moz:profile", maybeProfile()],
+      ["moz:webdriverClick", false],
     ]);
   }
 
@@ -354,9 +442,9 @@ session.Capabilities = class extends Map {
           matched.set("timeouts", timeouts);
           break;
 
-        case "specificationLevel":
-          assert.positiveInteger(v);
-          matched.set("specificationLevel", v);
+        case "moz:webdriverClick":
+          assert.boolean(v);
+          matched.set("moz:webdriverClick", v);
           break;
 
         case "moz:accessibilityChecks":

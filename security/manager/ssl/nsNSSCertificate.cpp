@@ -663,7 +663,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
                                nullptr, /*XXX fixme*/
                                nullptr, /* hostname */
                                nssChain,
-                               nullptr, // no peerCertChain
                                CertVerifier::FLAG_LOCAL_ONLY)
         != mozilla::pkix::Success) {
     nssChain = nullptr;
@@ -688,7 +687,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
                                  nullptr, /*XXX fixme*/
                                  nullptr, /*hostname*/
                                  nssChain,
-                                 nullptr, // no peerCertChain
                                  CertVerifier::FLAG_LOCAL_ONLY)
           != mozilla::pkix::Success) {
       nssChain = nullptr;
@@ -1512,7 +1510,7 @@ nsNSSCertificate::Read(nsIObjectInputStream* aStream)
     return rv;
   }
 
-  nsXPIDLCString str;
+  nsCString str;
   rv = aStream->ReadBytes(len, getter_Copies(str));
   if (NS_FAILED(rv)) {
     return rv;

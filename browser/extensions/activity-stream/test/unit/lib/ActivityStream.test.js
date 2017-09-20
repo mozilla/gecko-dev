@@ -18,11 +18,13 @@ describe("ActivityStream", () => {
       "lib/NewTabInit.jsm": {NewTabInit: Fake},
       "lib/PlacesFeed.jsm": {PlacesFeed: Fake},
       "lib/PrefsFeed.jsm": {PrefsFeed: Fake},
+      "lib/SectionsManager.jsm": {SectionsFeed: Fake},
       "lib/SnippetsFeed.jsm": {SnippetsFeed: Fake},
       "lib/SystemTickFeed.jsm": {SystemTickFeed: Fake},
       "lib/TelemetryFeed.jsm": {TelemetryFeed: Fake},
       "lib/TopSitesFeed.jsm": {TopSitesFeed: Fake},
-      "lib/TopStoriesFeed.jsm": {TopStoriesFeed: Fake}
+      "lib/TopStoriesFeed.jsm": {TopStoriesFeed: Fake},
+      "lib/HighlightsFeed.jsm": {HighlightsFeed: Fake}
     }));
     as = new ActivityStream();
     sandbox.stub(as.store, "init");
@@ -52,25 +54,27 @@ describe("ActivityStream", () => {
     it("should call .store.init", () => {
       assert.calledOnce(as.store.init);
     });
-    it("should emit an INIT event with the right version", () => {
+    it("should pass to Store an INIT event with the right version", () => {
       as = new ActivityStream({version: "1.2.3"});
       sandbox.stub(as.store, "init");
-      sandbox.stub(as.store, "dispatch");
       sandbox.stub(as._defaultPrefs, "init");
 
       as.init();
 
-      assert.calledOnce(as.store.dispatch);
-      const action = as.store.dispatch.firstCall.args[0];
+      const action = as.store.init.firstCall.args[1];
       assert.propertyVal(action.data, "version", "1.2.3");
     });
-    it("should emit an INIT event to content", () => {
-      sandbox.stub(as.store, "dispatch");
-
+    it("should pass to Store an INIT event for content", () => {
       as.init();
 
-      const action = as.store.dispatch.firstCall.args[0];
+      const action = as.store.init.firstCall.args[1];
       assert.equal(action.meta.to, CONTENT_MESSAGE_TYPE);
+    });
+    it("should pass to Store an UNINIT event", () => {
+      as.init();
+
+      const action = as.store.init.firstCall.args[2];
+      assert.equal(action.type, "UNINIT");
     });
   });
   describe("#uninit", () => {
@@ -135,6 +139,10 @@ describe("ActivityStream", () => {
     });
     it("should create a ManualMigration feed", () => {
       const feed = as.feeds.get("feeds.migration")();
+      assert.instanceOf(feed, Fake);
+    });
+    it("should create a SectionsFeed", () => {
+      const feed = as.feeds.get("feeds.sections")();
       assert.instanceOf(feed, Fake);
     });
     it("should create a Snippets feed", () => {

@@ -156,7 +156,6 @@ IonBuilder::IonBuilder(JSContext* analysisContext, CompileCompartment* comp,
     failedBoundsCheck_(info->script()->failedBoundsCheck()),
     failedShapeGuard_(info->script()->failedShapeGuard()),
     failedLexicalCheck_(info->script()->failedLexicalCheck()),
-    nonStringIteration_(false),
 #ifdef DEBUG
     hasLazyArguments_(false),
 #endif
@@ -530,27 +529,32 @@ IonBuilder::analyzeNewLoopTypes(const CFGBlock* loopEntryBlock)
     // directly from the last time we have previously processed this loop. This
     // both avoids repeated work from the bytecode traverse below, and will
     // also pick up types discovered while previously building the loop body.
+    bool foundEntry = false;
     for (size_t i = 0; i < loopHeaders_.length(); i++) {
         if (loopHeaders_[i].pc == cfgBlock->startPc()) {
             MBasicBlock* oldEntry = loopHeaders_[i].header;
 
             // If this block has been discarded, its resume points will have
             // already discarded their operands.
-            if (!oldEntry->isDead()) {
-                MResumePoint* oldEntryRp = oldEntry->entryResumePoint();
-                size_t stackDepth = oldEntryRp->stackDepth();
-                for (size_t slot = 0; slot < stackDepth; slot++) {
-                    MDefinition* oldDef = oldEntryRp->getOperand(slot);
-                    if (!oldDef->isPhi()) {
-                        MOZ_ASSERT(oldDef->block()->id() < oldEntry->id());
-                        MOZ_ASSERT(oldDef == entry->getSlot(slot));
-                        continue;
-                    }
-                    MPhi* oldPhi = oldDef->toPhi();
-                    MPhi* newPhi = entry->getSlot(slot)->toPhi();
-                    if (!newPhi->addBackedgeType(alloc(), oldPhi->type(), oldPhi->resultTypeSet()))
-                        return abort(AbortReason::Alloc);
+            if (oldEntry->isDead()) {
+                loopHeaders_[i].header = entry;
+                foundEntry = true;
+                break;
+            }
+
+            MResumePoint* oldEntryRp = oldEntry->entryResumePoint();
+            size_t stackDepth = oldEntryRp->stackDepth();
+            for (size_t slot = 0; slot < stackDepth; slot++) {
+                MDefinition* oldDef = oldEntryRp->getOperand(slot);
+                if (!oldDef->isPhi()) {
+                    MOZ_ASSERT(oldDef->block()->id() < oldEntry->id());
+                    MOZ_ASSERT(oldDef == entry->getSlot(slot));
+                    continue;
                 }
+                MPhi* oldPhi = oldDef->toPhi();
+                MPhi* newPhi = entry->getSlot(slot)->toPhi();
+                if (!newPhi->addBackedgeType(alloc(), oldPhi->type(), oldPhi->resultTypeSet()))
+                    return abort(AbortReason::Alloc);
             }
 
             // Update the most recent header for this loop encountered, in case
@@ -560,8 +564,22 @@ IonBuilder::analyzeNewLoopTypes(const CFGBlock* loopEntryBlock)
             return Ok();
         }
     }
-    if (!loopHeaders_.append(LoopHeader(cfgBlock->startPc(), entry)))
-        return abort(AbortReason::Alloc);
+    if (!foundEntry) {
+        if (!loopHeaders_.append(LoopHeader(cfgBlock->startPc(), entry)))
+            return abort(AbortReason::Alloc);
+    }
+
+    if (loopEntry->isForIn()) {
+        // The backedge will have MIteratorMore with MIRType::Value. This slot
+        // is initialized to MIRType::Undefined before the loop. Add
+        // MIRType::Value to avoid unnecessary loop restarts.
+
+        MPhi* phi = entry->getSlot(entry->stackDepth() - 1)->toPhi();
+        MOZ_ASSERT(phi->getOperand(0)->type() == MIRType::Undefined);
+
+        if (!phi->addBackedgeType(alloc(), MIRType::Value, nullptr))
+            return abort(AbortReason::Alloc);
+    }
 
     // Get the start and end pc of this loop.
     jsbytecode* start = loopEntryBlock->stopPc();
@@ -655,6 +673,7 @@ IonBuilder::analyzeNewLoopTypes(const CFGBlock* loopEntryBlock)
               case JSOP_DOUBLE:
                 type = MIRType::Double;
                 break;
+              case JSOP_ITERNEXT:
               case JSOP_STRING:
               case JSOP_TOSTRING:
               case JSOP_TYPEOF:
@@ -2248,6 +2267,9 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_TOID:
         return jsop_toid();
 
+      case JSOP_ITERNEXT:
+        return jsop_iternext();
+
       case JSOP_LAMBDA:
         return jsop_lambda(info().getFunction(pc));
 
@@ -2426,7 +2448,6 @@ IonBuilder::inspectOpcode(JSOp op)
         // Intentionally not implemented.
         break;
 
-      case JSOP_UNUSED222:
       case JSOP_UNUSED223:
       case JSOP_LIMIT:
         break;
@@ -2797,9 +2818,9 @@ IonBuilder::improveTypesAtTest(MDefinition* ins, bool trueBranch, MTest* test)
     // tests means it's one of null, undefined, false, 0, "", and objects
     // emulating undefined
     switch (ins->op()) {
-      case MDefinition::Op_Not:
+      case MDefinition::Opcode::Not:
         return improveTypesAtTest(ins->toNot()->getOperand(0), !trueBranch, test);
-      case MDefinition::Op_IsObject: {
+      case MDefinition::Opcode::IsObject: {
         MDefinition* subject = ins->getOperand(0);
         TemporaryTypeSet* oldType = subject->resultTypeSet();
 
@@ -2826,7 +2847,7 @@ IonBuilder::improveTypesAtTest(MDefinition* ins, bool trueBranch, MTest* test)
 
         return replaceTypeSet(subject, type, test);
       }
-      case MDefinition::Op_Phi: {
+      case MDefinition::Opcode::Phi: {
         bool branchIsAnd = true;
         if (!detectAndOrStructure(ins->toPhi(), &branchIsAnd)) {
             // Just fall through to the default behavior.
@@ -2864,7 +2885,7 @@ IonBuilder::improveTypesAtTest(MDefinition* ins, bool trueBranch, MTest* test)
         return Ok();
       }
 
-      case MDefinition::Op_Compare:
+      case MDefinition::Opcode::Compare:
         return improveTypesAtCompare(ins->toCompare(), trueBranch, test);
 
       default:
@@ -3312,15 +3333,15 @@ JSOpToMDefinition(JSOp op)
 {
     switch (op) {
       case JSOP_ADD:
-        return MDefinition::Op_Add;
+        return MDefinition::Opcode::Add;
       case JSOP_SUB:
-        return MDefinition::Op_Sub;
+        return MDefinition::Opcode::Sub;
       case JSOP_MUL:
-        return MDefinition::Op_Mul;
+        return MDefinition::Opcode::Mul;
       case JSOP_DIV:
-        return MDefinition::Op_Div;
+        return MDefinition::Opcode::Div;
       case JSOP_MOD:
-        return MDefinition::Op_Mod;
+        return MDefinition::Opcode::Mod;
       default:
         MOZ_CRASH("unexpected binary opcode");
     }
@@ -3710,13 +3731,6 @@ IonBuilder::inlineScriptedCall(CallInfo& callInfo, JSFunction* target)
 
     callInfo.setImplicitlyUsedUnchecked();
 
-    // Ensure sufficient space in the slots: needed for inlining from FUNAPPLY.
-    uint32_t depth = current->stackDepth() + callInfo.numFormals();
-    if (depth > current->nslots()) {
-        if (!current->increaseSlots(depth - current->nslots()))
-            return abort(AbortReason::Alloc);
-    }
-
     // Create new |this| on the caller-side for inlined constructors.
     if (callInfo.constructing()) {
         MDefinition* thisDefn = createThis(target, callInfo.fun(), callInfo.getNewTarget());
@@ -3726,7 +3740,7 @@ IonBuilder::inlineScriptedCall(CallInfo& callInfo, JSFunction* target)
     }
 
     // Capture formals in the outer resume point.
-    callInfo.pushFormals(current);
+    MOZ_TRY(callInfo.pushFormals(this, current));
 
     MResumePoint* outerResumePoint =
         MResumePoint::New(alloc(), current, pc, MResumePoint::Outer);
@@ -4389,7 +4403,7 @@ IonBuilder::inlineGenericFallback(JSFunction* target, CallInfo& callInfo, MBasic
     graph().addBlock(fallbackBlock);
 
     // Create a new CallInfo to track modified state within this block.
-    CallInfo fallbackInfo(alloc(), callInfo.constructing(), callInfo.ignoresReturnValue());
+    CallInfo fallbackInfo(alloc(), pc, callInfo.constructing(), callInfo.ignoresReturnValue());
     if (!fallbackInfo.init(callInfo))
         return abort(AbortReason::Alloc);
     fallbackInfo.popFormals(fallbackBlock);
@@ -4426,7 +4440,7 @@ IonBuilder::inlineObjectGroupFallback(CallInfo& callInfo, MBasicBlock* dispatchB
     MOZ_ASSERT(cache->idempotent());
 
     // Create a new CallInfo to track modified state within the fallback path.
-    CallInfo fallbackInfo(alloc(), callInfo.constructing(), callInfo.ignoresReturnValue());
+    CallInfo fallbackInfo(alloc(), pc, callInfo.constructing(), callInfo.ignoresReturnValue());
     if (!fallbackInfo.init(callInfo))
         return abort(AbortReason::Alloc);
 
@@ -4512,7 +4526,7 @@ IonBuilder::inlineCalls(CallInfo& callInfo, const InliningTargets& targets, Bool
 
     MBasicBlock* dispatchBlock = current;
     callInfo.setImplicitlyUsedUnchecked();
-    callInfo.pushFormals(dispatchBlock);
+    MOZ_TRY(callInfo.pushFormals(this, dispatchBlock));
 
     // Patch any InlinePropertyTable to only contain functions that are
     // inlineable. The InlinePropertyTable will also be patched at the end to
@@ -4605,7 +4619,7 @@ IonBuilder::inlineCalls(CallInfo& callInfo, const InliningTargets& targets, Bool
         inlineBlock->rewriteSlot(funIndex, funcDef);
 
         // Create a new CallInfo to track modified state within the inline block.
-        CallInfo inlineInfo(alloc(), callInfo.constructing(), callInfo.ignoresReturnValue());
+        CallInfo inlineInfo(alloc(), pc, callInfo.constructing(), callInfo.ignoresReturnValue());
         if (!inlineInfo.init(callInfo))
             return abort(AbortReason::Alloc);
         inlineInfo.popFormals(inlineBlock);
@@ -5052,7 +5066,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
     TemporaryTypeSet* calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction* native = getSingleCallTarget(calleeTypes);
     if (!native || !native->isNative() || native->native() != &fun_call) {
-        CallInfo callInfo(alloc(), /* constructing = */ false,
+        CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                           /* ignoresReturnValue = */ BytecodeIsPopped(pc));
         if (!callInfo.init(current, argc))
             return abort(AbortReason::Alloc);
@@ -5078,7 +5092,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
         argc -= 1;
     }
 
-    CallInfo callInfo(alloc(), /* constructing = */ false,
+    CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                       /* ignoresReturnValue = */ BytecodeIsPopped(pc));
     if (!callInfo.init(current, argc))
         return abort(AbortReason::Alloc);
@@ -5114,7 +5128,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
     TemporaryTypeSet* calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction* native = getSingleCallTarget(calleeTypes);
     if (argc != 2 || info().analysisMode() == Analysis_ArgumentsUsage) {
-        CallInfo callInfo(alloc(), /* constructing = */ false,
+        CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                           /* ignoresReturnValue = */ BytecodeIsPopped(pc));
         if (!callInfo.init(current, argc))
             return abort(AbortReason::Alloc);
@@ -5144,7 +5158,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
             return jsop_funapplyarray(argc);
         }
 
-        CallInfo callInfo(alloc(), /* constructing = */ false,
+        CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                           /* ignoresReturnValue = */ BytecodeIsPopped(pc));
         if (!callInfo.init(current, argc))
             return abort(AbortReason::Alloc);
@@ -5291,7 +5305,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     // can inline the apply() target and don't care about the actual arguments
     // that were passed in.
 
-    CallInfo callInfo(alloc(), /* constructing = */ false,
+    CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                       /* ignoresReturnValue = */ BytecodeIsPopped(pc));
 
     // Vp
@@ -5362,7 +5376,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing, bool ignoresReturnValue)
     if (calleeTypes)
         MOZ_TRY(getPolyCallTargets(calleeTypes, constructing, targets, 4));
 
-    CallInfo callInfo(alloc(), constructing, ignoresReturnValue);
+    CallInfo callInfo(alloc(), pc, constructing, ignoresReturnValue);
     if (!callInfo.init(current, argc))
         return abort(AbortReason::Alloc);
 
@@ -5614,7 +5628,7 @@ IonBuilder::jsop_eval(uint32_t argc)
         if (info().funMaybeLazy()->isArrow())
             return abort(AbortReason::Disable, "Direct eval from arrow function");
 
-        CallInfo callInfo(alloc(), /* constructing = */ false,
+        CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                           /* ignoresReturnValue = */ BytecodeIsPopped(pc));
         if (!callInfo.init(current, argc))
             return abort(AbortReason::Alloc);
@@ -5653,7 +5667,7 @@ IonBuilder::jsop_eval(uint32_t argc)
                 current->push(dynamicName);
                 current->push(constant(UndefinedValue())); // thisv
 
-                CallInfo evalCallInfo(alloc(), /* constructing = */ false,
+                CallInfo evalCallInfo(alloc(), pc, /* constructing = */ false,
                                       /* ignoresReturnValue = */ BytecodeIsPopped(pc));
                 if (!evalCallInfo.init(current, /* argc = */ 0))
                     return abort(AbortReason::Alloc);
@@ -11080,7 +11094,7 @@ IonBuilder::getPropTryCommonGetter(bool* emitted, MDefinition* obj, PropertyName
 
     current->push(obj);
 
-    CallInfo callInfo(alloc(), /* constructing = */ false,
+    CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                       /* ignoresReturnValue = */ BytecodeIsPopped(pc));
     if (!callInfo.init(current, 0))
         return abort(AbortReason::Alloc);
@@ -11367,8 +11381,13 @@ IonBuilder::getPropAddCache(MDefinition* obj, PropertyName* name,
         MOZ_TRY(resumeAfter(load));
 
     MIRType rvalType = types->getKnownMIRType();
-    if (barrier != BarrierKind::NoBarrier || IsNullOrUndefined(rvalType))
+    if (barrier != BarrierKind::NoBarrier) {
         rvalType = MIRType::Value;
+    } else {
+        load->setResultTypeSet(types);
+        if (IsNullOrUndefined(rvalType))
+            rvalType = MIRType::Value;
+    }
     load->setResultType(rvalType);
 
     if (*pc != JSOP_CALLPROP || !IsNullOrUndefined(obj->type())) {
@@ -11616,7 +11635,7 @@ IonBuilder::setPropTryCommonSetter(bool* emitted, MDefinition* obj,
 
     // Call the setter. Note that we have to push the original value, not
     // the setter's return value.
-    CallInfo callInfo(alloc(), /* constructing = */ false,
+    CallInfo callInfo(alloc(), pc, /* constructing = */ false,
                       /* ignoresReturnValue = */ BytecodeIsPopped(pc));
     if (!callInfo.init(current, 1))
         return abort(AbortReason::Alloc);
@@ -12443,8 +12462,14 @@ IonBuilder::jsop_functionthis()
         return Ok();
     }
 
+    // Beyond this point we may need to access non-syntactic global. Ion doesn't
+    // currently support this so just abort.
+    if (script()->hasNonSyntacticScope())
+        return abort(AbortReason::Disable, "JSOP_FUNCTIONTHIS would need non-syntactic global");
+
     if (IsNullOrUndefined(def->type())) {
-        pushConstant(GetThisValue(&script()->global()));
+        LexicalEnvironmentObject* globalLexical = &script()->global().lexicalEnvironment();
+        pushConstant(globalLexical->thisValue());
         return Ok();
     }
 
@@ -12545,9 +12570,6 @@ IonBuilder::jsop_toid()
 AbortReasonOr<Ok>
 IonBuilder::jsop_iter(uint8_t flags)
 {
-    if (flags != JSITER_ENUMERATE)
-        nonStringIteration_ = true;
-
     MDefinition* obj = current->pop();
     MInstruction* ins = MGetIteratorCache::New(alloc(), obj);
 
@@ -12594,6 +12616,23 @@ IonBuilder::jsop_iterend()
     current->add(ins);
 
     return resumeAfter(ins);
+}
+
+AbortReasonOr<Ok>
+IonBuilder::jsop_iternext()
+{
+    MDefinition* def = current->pop();
+    MOZ_ASSERT(def->type() == MIRType::Value);
+
+    // The value should be a string in most cases. Legacy generators can return
+    // non-string values, so in that case bailout and give up Ion compilation
+    // of the script.
+    MInstruction* unbox = MUnbox::New(alloc(), def, MIRType::String, MUnbox::Fallible,
+                                      Bailout_IterNextNonString);
+    current->add(unbox);
+    current->push(unbox);
+
+    return Ok();
 }
 
 MDefinition*

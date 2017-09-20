@@ -43,7 +43,7 @@ pub mod rpc;
 pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
-use canvas_traits::CanvasMsg;
+use canvas_traits::canvas::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
@@ -74,7 +74,7 @@ impl StyleData {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 pub struct OpaqueStyleAndLayoutData {
     // NB: We really store a `StyleAndLayoutData` here, so be careful!
     #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but \
@@ -101,13 +101,13 @@ impl DomParallelInfo {
 }
 
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LayoutNodeType {
     Element(LayoutElementType),
     Text,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LayoutElementType {
     Element,
     HTMLCanvasElement,
@@ -124,8 +124,13 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
+pub enum HTMLCanvasDataSource {
+    WebGL(webrender_api::ImageKey),
+    Image(Option<IpcSender<CanvasMsg>>)
+}
+
 pub struct HTMLCanvasData {
-    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
+    pub source: HTMLCanvasDataSource,
     pub width: u32,
     pub height: u32,
 }
@@ -136,7 +141,7 @@ pub struct SVGSVGData {
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
 #[allow(unsafe_code)]

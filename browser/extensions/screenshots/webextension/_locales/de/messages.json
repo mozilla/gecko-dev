@@ -1,6 +1,6 @@
 {
   "addonDescription": {
-    "message": "Speichern Sie Ausschnitte und Bildschirmfotos von Webseiten, die Sie temporär oder dauerhaft speichern können."
+    "message": "Erstellen Sie Bildschirmfotos von vollständigen Webseiten oder Ausschnitten und speichern Sie diese temporär oder dauerhaft."
   },
   "addonAuthorsList": {
     "message": "Mozilla <screenshots-feedback@mozilla.com>"
@@ -12,7 +12,7 @@
     "message": "Meine Bildschirmfotos"
   },
   "screenshotInstructions": {
-    "message": "Ziehen oder Klicken Sie auf der Seite, um einen Bereich auszuwählen. Drücken Sie ESC zum Abbrechen."
+    "message": "Ziehen oder klicken Sie auf der Seite, um einen Bereich auszuwählen. Drücken Sie ESC zum Abbrechen."
   },
   "saveScreenshotSelectedArea": {
     "message": "Speichern"
@@ -59,7 +59,7 @@
     "message": "Ein Bildschirmfoto dieser Seite ist nicht möglich."
   },
   "unshootablePageErrorDetails": {
-    "message": "Dies ist keine Standard-Webseite, daher sind keine Bildschirmfotos von ihr möglich."
+    "message": "Dies ist keine Standard-Webseite, deshalb sind keine Bildschirmfotos von ihr möglich."
   },
   "selfScreenshotErrorTitle": {
     "message": "Sie können kein Bildschirmfoto einer Firefox-Screenshots-Seite machen!"
@@ -67,31 +67,43 @@
   "emptySelectionErrorTitle": {
     "message": "Ihr Auswahlbereich ist zu klein"
   },
+  "privateWindowErrorTitle": {
+    "message": "Screenshots ist im Privaten Modus deaktiviert"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Wir bitten um Entschuldigung für diese Unannehmlichkeiten. Wir arbeiten daran, diese Funktion in zukünftigen Versionen zur Verfügung zu stellen."
+  },
   "genericErrorTitle": {
     "message": "Firefox Screenshots funktioniert nicht richtig."
   },
   "genericErrorDetails": {
     "message": "Wir wissen auch nicht, was gerade passiert ist. Könnten Sie das Bildschirmfoto erneut oder auf einer anderen Seite aufnehmen?"
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "Bildschirmfotos aufnehmen, speichern und teilen, ohne Firefox zu verlassen."
   },
-  "tourHeaderTwo": {
+  "tourHeaderPageAction": {
+    "message": "Neue Speichermöglichkeit"
+  },
+  "tourBodyPageAction": {
+    "message": "Erweitern Sie das Menü „Aktionen für Seite“ in der Adressleiste immer dann, wenn Sie ein Bildschirmfoto machen möchten."
+  },
+  "tourHeaderClickAndDrag": {
     "message": "Nehmen Sie auf, was Sie möchten"
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "Klicken und ziehen Sie, um nur einen Teil einer Seite aufzunehmen. Sie können den Mauszeiger auch darüber bewegen, um Ihre Auswahl hervorzuheben."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Fenster oder ganze Seiten speichern"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "Nutzen Sie die Schaltflächen rechts oben, um den sichtbaren Bereich im Fenster oder eine ganze Seite zu speichern."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "Wie Sie möchten"
   },
-  "tourBodyFour": {
+  "tourBodyDownloadUpload": {
     "message": "Speichern Sie Ihre zugeschnittenen Bildschirmfotos im Internet, sodass sie leicht zu teilen sind, oder laden Sie sie auf Ihren Computer herunter. Sie können auch auf die Schaltfläche „Meine Bildschirmfotos“ klicken, um alle Ihre Bildschirmfotos zu finden."
   },
   "tourSkip": {
@@ -106,8 +118,8 @@
   "tourDone": {
     "message": "Fertig"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Durch die Verwendung von Firefox Screenshots stimmen Sie den $TERMSANDPRIVACYNOTICETERMSLINK$ und dem $TERMSANDPRIVACYNOTICEPRIVACYLINK$ von Firefox Cloud Services zu.",
+  "termsAndPrivacyNotice2": {
+    "message": "Durch die Verwendung von Firefox Screenshots stimmen Sie unseren $TERMSANDPRIVACYNOTICETERMSLINK$ und $TERMSANDPRIVACYNOTICEPRIVACYLINK$ zu.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +134,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "Datenschutzhinweis"
+  },
+  "libraryLabel": {
+    "message": "Bildschirmfotos"
   }
 }

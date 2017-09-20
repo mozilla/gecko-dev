@@ -3,9 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+from __future__ import absolute_import, print_function
 
 import json
 import os
+import re
 import utils
 
 KEY_XRE = '{xre}'
@@ -70,9 +72,12 @@ class Whitelist:
                 filename = "%s%s" % (subst, path.join(parts[1:]))
 
         for old_name, new_name in self.name_substitutions.iteritems():
-            parts = filename.split(old_name)
-            if len(parts) >= 2:
-                filename = "%s%s" % (parts[0], new_name)
+            if isinstance(old_name, re._pattern_type):
+                filename = re.sub(old_name, new_name, filename)
+            else:
+                parts = filename.split(old_name)
+                if len(parts) >= 2:
+                    filename = "%s%s" % (parts[0], new_name)
 
         return filename.strip('/\\\ \t')
 

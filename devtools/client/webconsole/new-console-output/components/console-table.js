@@ -26,7 +26,7 @@ const ConsoleTable = createClass({
     dispatch: PropTypes.func.isRequired,
     parameters: PropTypes.array.isRequired,
     serviceContainer: PropTypes.shape({
-      hudProxyClient: PropTypes.object.isRequired,
+      hudProxy: PropTypes.object.isRequired,
     }),
     id: PropTypes.string.isRequired,
     tableData: PropTypes.object,
@@ -39,7 +39,7 @@ const ConsoleTable = createClass({
       return;
     }
 
-    const client = new ObjectClient(serviceContainer.hudProxyClient, parameters[0]);
+    const client = new ObjectClient(serviceContainer.hudProxy.client, parameters[0]);
     let dataType = getParametersDataType(parameters);
 
     // Get all the object properties.
@@ -53,6 +53,11 @@ const ConsoleTable = createClass({
   },
 
   getRows: function (columns, items) {
+    const {
+      dispatch,
+      serviceContainer,
+    } = this.props;
+
     return items.map(item => {
       let cells = [];
       columns.forEach((value, key) => {
@@ -63,6 +68,8 @@ const ConsoleTable = createClass({
               grip: item[key],
               mode: MODE.SHORT,
               useQuotes: false,
+              serviceContainer,
+              dispatch,
             })
           )
         );
@@ -157,14 +164,18 @@ function getTableItems(data = {}, type, headers = null) {
       if (entries) {
         for (let key of Object.keys(entries)) {
           let entry = entries[key];
-          item[key] = entry.value || entry;
+          item[key] = Object.prototype.hasOwnProperty.call(entry, "value")
+            ? entry.value
+            : entry;
         }
       } else {
         if (preview.key) {
           item.key = preview.key;
         }
 
-        item[VALUE_NAME] = preview.value || property;
+        item[VALUE_NAME] = Object.prototype.hasOwnProperty.call(preview, "value")
+          ? preview.value
+          : property;
       }
     } else {
       item[VALUE_NAME] = property;

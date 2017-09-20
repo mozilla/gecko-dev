@@ -67,31 +67,37 @@
   "emptySelectionErrorTitle": {
     "message": "انتخاب شما خیلی کوچک است"
   },
+  "privateWindowErrorTitle": {
+    "message": "در حالت مرور خصوصی تصاویرصفحه غیرفعال است"
+  },
+  "privateWindowErrorDetails": {
+    "message": "به خاطر مزاحمت متاسفیم. ما در حال کار روی این ویژگی برای انتشار‌های آینده هستیم."
+  },
   "genericErrorTitle": {
     "message": "اوه! سرویس تصاویر صفحه فایرفاکس قاطی کرده."
   },
   "genericErrorDetails": {
     "message": "مطمئن نیستیم چه اتفاقی افتاده است. می‌خواهید دوباره امتحان کنید یا از یک صفحهٔ دیگر عکس بگیرید؟"
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "بدون خارج شدن از فایرفاکس، عکس بگیرید، ذخیره کنید و به اشتراک بگذارید."
   },
-  "tourHeaderTwo": {
+  "tourHeaderClickAndDrag": {
     "message": "ضبط آنچه شما می‌خواهید"
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "کلیک کنید و بکشید تا فقط از قسمتی از صفحه عکس بگیرید. می‌توانید برای برجسته کردن روی ناحیه انتخاب شده حرکت کنید."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "ضبط پنجره یا کل صفحه‌ها"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "برای گرفتن عکس از ناحیه قابل مشاهده در پنجره یا تمام صفحه از دکمه‌های بالا سمت راست استفاده کنید."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "همانطور که می‌پسندید"
   },
-  "tourBodyFour": {
+  "tourBodyDownloadUpload": {
     "message": "عکس‌های بریده شده خود را برای به اشتراک‌گذاری راحت‌تر روی وب ذخیره کنید، یا آن‌ها را روی رایانه خود دریافت کنید. همچنین برای دیدن همهٔ عکس‌هایی که گرفتید می‌توانید روی دکمه «عکس‌های من» کلیک کنید."
   },
   "tourSkip": {
@@ -106,8 +112,8 @@
   "tourDone": {
     "message": "انجام شد"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "با استفاده از سرویس تصاویرِ صفحه فایرفاکس، شما با شرایط سرویس‌های ابری فایرفاکس $TERMSANDPRIVACYNOTICETERMSLINK$ و $TERMSANDPRIVACYNOTICEPRIVACYLINK$ موافقت می‌کنید.",
+  "termsAndPrivacyNotice2": {
+    "message": "با استفاده از سرویس تصاویر صفحه فایرفاکس، شما با $TERMSANDPRIVACYNOTICETERMSLINK$ ما و $TERMSANDPRIVACYNOTICEPRIVACYLINK$ موافقت می‌کنید.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +128,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "نکات حریم‌خصوصی"
+  },
+  "libraryLabel": {
+    "message": "تصاویر صفحه"
   }
 }

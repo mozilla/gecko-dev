@@ -8,6 +8,7 @@
 #include "MediaEngine.h"
 
 #include "nsDirectoryServiceDefs.h"
+#include "mozilla/Unused.h"
 
 // conflicts with #include of scoped_ptr.h
 #undef FF
@@ -60,6 +61,15 @@ public:
       const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
       const nsString& aDeviceId) const override;
 
+  void Shutdown() override
+  {
+    MonitorAutoLock lock(mMonitor);
+    // really Stop() *should* be called before it gets here
+    Unused << NS_WARN_IF(mImage);
+    mImage = nullptr;
+    mImageContainer = nullptr;
+  }
+
 protected:
   struct CapabilityCandidate {
     explicit CapabilityCandidate(uint8_t index, uint32_t distance = 0)
@@ -109,10 +119,9 @@ protected:
   nsTArray<PrincipalHandle> mPrincipalHandles; // Directly mapped to mSources.
   RefPtr<layers::Image> mImage;
   RefPtr<layers::ImageContainer> mImageContainer;
-  int mWidth, mHeight; // protected with mMonitor on Gonk due to different threading
   // end of data protected by mMonitor
 
-
+  int mWidth, mHeight;
   bool mInitDone;
   bool mHasDirectListeners;
   int mCaptureIndex;

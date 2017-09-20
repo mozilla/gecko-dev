@@ -2,84 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-body {
-  font-size: 1rem;
-}
-
-form,
-label,
-div,
-p {
-  display: flex;
-}
-
-form {
-  flex-wrap: wrap;
-}
-
-label,
-p {
-  margin: 0 0 0.5em;
-}
 
 label > span {
-  box-sizing: border-box;
   flex: 0 0 9.5em;
-  padding-inline-end: 0.5em;
-  align-self: center;
-  text-align: end;
-  -moz-user-select: none;
 }
 
 input,
 select {
-  box-sizing: border-box;
-  flex: 1 0 auto;
   width: calc(50% - 9.5em);
-}
-
-option {
-  padding: 5px 10px;
-}
-
-textarea {
-  resize: none;
-}
-
-button {
-  font-size: 1.2em;
-  padding: 3px 2em;
-  margin-inline-start: 10px;
-  margin-inline-end: 0;
+  margin: 0;
 }
 
 #given-name-container,
 #additional-name-container,
 #address-level1-container,
 #postal-code-container,
-#country-container {
+#country-container,
+#country-warning-message,
+#family-name-container,
+#organization-container,
+#address-level2-container,
+#tel-container {
   flex: 0 1 50%;
 }
 
 #family-name-container,
 #organization-container,
-#street-address-container,
 #address-level2-container,
-#email-container,
-#tel-container,
-#controls-container {
+#tel-container {
+  padding-inline-end: 50%;
+}
+
+#street-address-container,
+#email-container {
   flex: 0 1 100%;
-}
-
-#controls-container {
-  justify-content: end;
-}
-
-#family-name,
-#organization,
-#address-level2,
-#tel {
-  flex: 0 0 auto;
 }
 
 #street-address,
@@ -88,7 +44,8 @@ button {
 }
 
 #country-warning-message {
-  flex: 1;
+  box-sizing: border-box;
+  font-size: 1rem;
   align-items: center;
   text-align: start;
   color: #737373;

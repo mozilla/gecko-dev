@@ -18,6 +18,7 @@ Cu.import("resource://gre/modules/JSONFile.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-common/observers.js");
+Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/resource.js");
@@ -887,7 +888,7 @@ SyncEngine.prototype = {
       return;
     }
     this._toFetch = val;
-    Utils.namedTimer(function() {
+    CommonUtils.namedTimer(function() {
       try {
         Async.promiseSpinningly(Utils.jsonSave("toFetch/" + this.name, this, val));
       } catch (error) {
@@ -914,7 +915,7 @@ SyncEngine.prototype = {
       return;
     }
     this._previousFailed = val;
-    Utils.namedTimer(function() {
+    CommonUtils.namedTimer(function() {
       Utils.jsonSave("failed/" + this.name, this, val).then(() => {
         this._log.debug("Successfully wrote previousFailed.");
       })
@@ -1046,6 +1047,7 @@ SyncEngine.prototype = {
     // Clear the tracker now. If the sync fails we'll add the ones we failed
     // to upload back.
     this._tracker.clearChangedIDs();
+    this._tracker.resetScore();
 
     this._log.info(this._modified.count() +
                    " outgoing items pre-reconciliation");
@@ -1261,11 +1263,16 @@ SyncEngine.prototype = {
       }
     }
 
-    // Mobile: check if we got the maximum that we requested; get the rest if so.
+    // History: check if we got the maximum that we requested; get the rest if so.
     if (handled.length == newitems.limit) {
+      // XXX - this block appears to have no test coverage (eg, throwing here,
+      // or commenting the entire block causes no tests to fail.)
+      // See bug 1368951 comment 3 for some insightful analysis of why this
+      // might not be doing what we expect anyway, so it may be the case that
+      // this needs both fixing *and* tests.
       let guidColl = new Collection(this.engineURL, null, this.service);
 
-      // Sort and limit so that on mobile we only get the last X records.
+      // Sort and limit so that we only get the last X records.
       guidColl.limit = this.downloadLimit;
       guidColl.newer = this.lastSync;
 
@@ -1723,7 +1730,6 @@ SyncEngine.prototype = {
   // Save the current snapshot so as to calculate changes at next sync
   async _syncFinish() {
     this._log.trace("Finishing up sync");
-    this._tracker.resetScore();
 
     let doDelete = async (key, val) => {
       let coll = new Collection(this.engineURL, this._recordObj, this.service);
@@ -1735,6 +1741,7 @@ SyncEngine.prototype = {
       // Remove the key for future uses
       delete this._delete[key];
 
+      this._log.trace("doing post-sync deletions", {key, val});
       // Send a simple delete for the property
       if (key != "ids" || val.length <= 100)
         await doDelete(key, val);
@@ -1768,8 +1775,18 @@ SyncEngine.prototype = {
       Observers.notify("weave:engine:sync:status", "process-incoming");
       await this._processIncoming();
       Observers.notify("weave:engine:sync:status", "upload-outgoing");
-      await this._uploadOutgoing();
-      await this._syncFinish();
+      try {
+        await this._uploadOutgoing();
+        await this._syncFinish();
+      } catch (ex) {
+        if (!ex.status || ex.status != 412) {
+          throw ex;
+        }
+        // a 412 posting just means another client raced - but we don't want
+        // to treat that as a sync error - the next sync is almost certain
+        // to work.
+        this._log.warn("412 error during sync - will retry.")
+      }
     } finally {
       await this._syncCleanup();
     }

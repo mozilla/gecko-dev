@@ -6,17 +6,17 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use app_units::Au;
 use cssparser::{Parser, Token, BasicParseError};
 use parser::ParserContext;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss, ParseError, StyleParseError};
-use style_traits::values::specified::AllowedLengthType;
+use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::values::specified::AllowedNumericType;
 use values::{CSSInteger, CSSFloat};
 use values::computed;
 use values::specified::{Angle, Time};
-use values::specified::length::{FontRelativeLength, NoCalcLength, ViewportPercentageLength};
+use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
+use values::specified::length::ViewportPercentageLength;
 
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]
@@ -63,12 +63,13 @@ pub enum CalcUnit {
 }
 
 /// A struct to hold a simplified `<length>` or `<percentage>` expression.
-#[derive(Clone, PartialEq, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
-    pub clamping_mode: AllowedLengthType,
-    pub absolute: Option<Au>,
+    pub clamping_mode: AllowedNumericType,
+    pub absolute: Option<AbsoluteLength>,
     pub vw: Option<CSSFloat>,
     pub vh: Option<CSSFloat>,
     pub vmin: Option<CSSFloat>,
@@ -82,24 +83,27 @@ pub struct CalcLengthOrPercentage {
     pub mozmm: Option<CSSFloat>,
 }
 
-impl HasViewportPercentage for CalcLengthOrPercentage {
-    fn has_viewport_percentage(&self) -> bool {
-        self.vw.is_some() || self.vh.is_some() ||
-        self.vmin.is_some() || self.vmax.is_some()
-    }
-}
-
 impl ToCss for CalcLengthOrPercentage {
+    /// https://drafts.csswg.org/css-values/#calc-serialize
+    ///
+    /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use num_traits::Zero;
+
         let mut first_value = true;
         macro_rules! first_value_check {
-            () => {
+            ($val:expr) => {
                 if !first_value {
-                    dest.write_str(" + ")?;
-                } else {
-                    first_value = false;
+                    dest.write_str(if $val < Zero::zero() {
+                        " - "
+                    } else {
+                        " + "
+                    })?;
+                } else if $val < Zero::zero() {
+                    dest.write_str("-")?;
                 }
+                first_value = false;
             };
         }
 
@@ -107,34 +111,50 @@ impl ToCss for CalcLengthOrPercentage {
             ( $( $val:ident ),* ) => {
                 $(
                     if let Some(val) = self.$val {
-                        first_value_check!();
-                        val.to_css(dest)?;
+                        first_value_check!(val);
+                        val.abs().to_css(dest)?;
                         dest.write_str(stringify!($val))?;
                     }
                 )*
             };
         }
 
+        macro_rules! serialize_abs {
+            ( $( $val:ident ),+ ) => {
+                $(
+                    if let Some(AbsoluteLength::$val(v)) = self.absolute {
+                        first_value_check!(v);
+                        AbsoluteLength::$val(v.abs()).to_css(dest)?;
+                    }
+                )+
+            };
+        }
+
         dest.write_str("calc(")?;
 
-        serialize!(ch, em, ex, rem, vh, vmax, vmin, vw);
+        // NOTE(emilio): Percentages first because of web-compat problems, see:
+        // https://github.com/w3c/csswg-drafts/issues/1731
+        if let Some(val) = self.percentage {
+            first_value_check!(val.0);
+            val.abs().to_css(dest)?;
+        }
+
+        // NOTE(emilio): The order here it's very intentional, and alphabetic
+        // per the spec linked above.
+        serialize!(ch);
+        serialize_abs!(Cm);
+        serialize!(em, ex);
+        serialize_abs!(In);
 
         #[cfg(feature = "gecko")]
         {
             serialize!(mozmm);
         }
 
-        if let Some(val) = self.absolute {
-            first_value_check!();
-            val.to_css(dest)?;
-        }
+        serialize_abs!(Mm, Pc, Pt, Px, Q);
+        serialize!(rem, vh, vmax, vmin, vw);
 
-        if let Some(val) = self.percentage {
-            first_value_check!();
-            val.to_css(dest)?;
-        }
-
-        write!(dest, ")")
+        dest.write_str(")")
     }
 }
 
@@ -194,7 +214,7 @@ impl CalcNode {
         let mut root = Self::parse_product(context, input, expected_unit)?;
 
         loop {
-            let position = input.position();
+            let start = input.state();
             match input.next_including_whitespace() {
                 Ok(&Token::WhiteSpace(_)) => {
                     if input.is_exhausted() {
@@ -220,7 +240,7 @@ impl CalcNode {
                     }
                 }
                 _ => {
-                    input.reset(position);
+                    input.reset(&start);
                     break
                 }
             }
@@ -247,7 +267,7 @@ impl CalcNode {
         let mut root = Self::parse_one(context, input, expected_unit)?;
 
         loop {
-            let position = input.position();
+            let start = input.state();
             match input.next() {
                 Ok(&Token::Delim('*')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
@@ -261,7 +281,7 @@ impl CalcNode {
                     root = new_root;
                 }
                 _ => {
-                    input.reset(position);
+                    input.reset(&start);
                     break
                 }
             }
@@ -272,7 +292,7 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
-    fn to_length_or_percentage(&self, clamping_mode: AllowedLengthType)
+    fn to_length_or_percentage(&self, clamping_mode: AllowedNumericType)
                                -> Result<CalcLengthOrPercentage, ()> {
         let mut ret = CalcLengthOrPercentage {
             clamping_mode: clamping_mode,
@@ -340,8 +360,10 @@ impl CalcNode {
                 match *l {
                     NoCalcLength::Absolute(abs) => {
                         ret.absolute = Some(
-                            ret.absolute.unwrap_or(Au(0)) +
-                            Au::from(abs).scale_by(factor)
+                            match ret.absolute {
+                                Some(value) => value + abs * factor,
+                                None => abs * factor,
+                            }
                         );
                     }
                     NoCalcLength::FontRelative(rel) => {
@@ -544,7 +566,7 @@ impl CalcNode {
     pub fn parse_length_or_percentage<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedLengthType
+        clamping_mode: AllowedNumericType
     ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::LengthOrPercentage)?
             .to_length_or_percentage(clamping_mode)
@@ -565,7 +587,7 @@ impl CalcNode {
     pub fn parse_length<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedLengthType
+        clamping_mode: AllowedNumericType
     ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Length)?
             .to_length_or_percentage(clamping_mode)

@@ -17,7 +17,7 @@ var { LocalDebuggerTransport, ChildDebuggerTransport, WorkerDebuggerTransport } 
 var DevToolsUtils = require("devtools/shared/DevToolsUtils");
 var { dumpn, dumpv } = DevToolsUtils;
 var flags = require("devtools/shared/flags");
-var EventEmitter = require("devtools/shared/event-emitter");
+var OldEventEmitter = require("devtools/shared/old-event-emitter");
 var SyncPromise = require("devtools/shared/deprecated-sync-thenables");
 
 DevToolsUtils.defineLazyGetter(this, "DebuggerSocket", () => {
@@ -86,7 +86,7 @@ function loadSubScript(url) {
   }
 }
 
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
+loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/event-emitter");
 
 var gRegisteredModules = Object.create(null);
 
@@ -493,11 +493,6 @@ var DebuggerServer = {
       constructor: "StyleSheetsActor",
       type: { tab: true }
     });
-    this.registerModule("devtools/server/actors/styleeditor", {
-      prefix: "styleEditor",
-      constructor: "StyleEditorActor",
-      type: { tab: true }
-    });
     this.registerModule("devtools/server/actors/storage", {
       prefix: "storage",
       constructor: "StorageActor",
@@ -549,11 +544,6 @@ var DebuggerServer = {
       type: { tab: true }
     });
     if ("nsIProfiler" in Ci) {
-      this.registerModule("devtools/server/actors/profiler", {
-        prefix: "profiler",
-        constructor: "ProfilerActor",
-        type: { tab: true }
-      });
       this.registerModule("devtools/server/actors/performance", {
         prefix: "performance",
         constructor: "PerformanceActor",
@@ -583,6 +573,11 @@ var DebuggerServer = {
     this.registerModule("devtools/server/actors/webextension-inspected-window", {
       prefix: "webExtensionInspectedWindow",
       constructor: "WebExtensionInspectedWindowActor",
+      type: { tab: true }
+    });
+    this.registerModule("devtools/server/actors/accessibility", {
+      prefix: "accessibility",
+      constructor: "AccessibilityActor",
       type: { tab: true }
     });
   },
@@ -774,7 +769,7 @@ var DebuggerServer = {
 
     function onClose() {
       Services.obs.removeObserver(onMessageManagerClose, "message-manager-close");
-      events.off(connection, "closed", onClose);
+      EventEmitter.off(connection, "closed", onClose);
       if (childTransport) {
         // If we have a child transport, the actor has already
         // been created. We need to stop using this message manager.
@@ -804,7 +799,7 @@ var DebuggerServer = {
     Services.obs.addObserver(onMessageManagerClose,
                              "message-manager-close");
 
-    events.on(connection, "closed", onClose);
+    EventEmitter.on(connection, "closed", onClose);
 
     return deferred.promise;
   },
@@ -1134,7 +1129,7 @@ var DebuggerServer = {
     };
 
     let destroy = DevToolsUtils.makeInfallible(function () {
-      events.off(connection, "closed", destroy);
+      EventEmitter.off(connection, "closed", destroy);
       Services.obs.removeObserver(onMessageManagerClose, "message-manager-close");
 
       // provides hook to actor modules that need to exchange messages
@@ -1199,7 +1194,7 @@ var DebuggerServer = {
 
     // Listen for connection close to cleanup things
     // when user unplug the device or we lose the connection somehow.
-    events.on(connection, "closed", destroy);
+    EventEmitter.on(connection, "closed", destroy);
 
     mm.sendAsyncMessage("debug:connect", { prefix, addonId });
 
@@ -1429,7 +1424,7 @@ DevToolsUtils.defineLazyGetter(DebuggerServer, "AuthenticationResult", () => {
   return Authentication.AuthenticationResult;
 });
 
-EventEmitter.decorate(DebuggerServer);
+OldEventEmitter.decorate(DebuggerServer);
 
 if (this.exports) {
   exports.DebuggerServer = DebuggerServer;
@@ -1892,7 +1887,7 @@ DebuggerServerConnection.prototype = {
     }
     this._actorPool = null;
 
-    events.emit(this, "closed", status);
+    EventEmitter.emit(this, "closed", status);
 
     this._extraPools.forEach(p => p.destroy());
     this._extraPools = null;

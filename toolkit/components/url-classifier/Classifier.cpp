@@ -257,9 +257,6 @@ Classifier::Open(nsIFile& aCacheDirectory)
   rv = CreateStoreDirectory();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mCryptoHash = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   // Build the list of know urlclassifier lists
   // XXX: Disk IO potentially on the main thread during startup
   RegenActiveTables();
@@ -470,7 +467,7 @@ Classifier::Check(const nsACString& aSpec,
   // Now check each lookup fragment against the entries in the DB.
   for (uint32_t i = 0; i < fragments.Length(); i++) {
     Completion lookupHash;
-    lookupHash.FromPlaintext(fragments[i], mCryptoHash);
+    lookupHash.FromPlaintext(fragments[i]);
 
     if (LOG_ENABLED()) {
       nsAutoCString checking;
@@ -992,7 +989,7 @@ Classifier::ScanStoreDir(nsIFile* aDirectory, nsTArray<nsCString>& aTables)
     // Both v2 and v4 contain .pset file
     nsCString suffix(NS_LITERAL_CSTRING(".pset"));
 
-    int32_t dot = leafName.RFind(suffix, 0);
+    int32_t dot = leafName.RFind(suffix);
     if (dot != -1) {
       leafName.Cut(dot, suffix.Length());
       aTables.AppendElement(leafName);
@@ -1582,7 +1579,7 @@ Classifier::LoadMetadata(nsIFile* aDirectory, nsACString& aResult)
     rv = file->GetNativeLeafName(tableName);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    int32_t dot = tableName.RFind(METADATA_SUFFIX, 0);
+    int32_t dot = tableName.RFind(METADATA_SUFFIX);
     if (dot == -1) {
       continue;
     }

@@ -15,12 +15,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "BrowserActions",
 // WeakMap[Extension -> BrowserAction]
 let browserActionMap = new WeakMap();
 
-class BrowserAction {
+class BrowserAction extends EventEmitter {
   constructor(options, extension) {
+    super();
+
     this.uuid = `{${extension.uuid}}`;
 
     this.defaults = {
       name: options.default_title || extension.name,
+      popup: options.default_popup,
     };
 
     this.tabContext = new TabContext(tab => Object.create(this.defaults),
@@ -34,7 +37,6 @@ class BrowserAction {
                        (evt, tabId) => { this.onTabClosed(tabId); });
 
     BrowserActions.register(this);
-    EventEmitter.decorate(this);
   }
 
   /**
@@ -42,7 +44,16 @@ class BrowserAction {
    * called whenever the browser action is clicked on.
    */
   onClicked() {
-    this.emit("click", tabTracker.activeTab);
+    const tab = tabTracker.activeTab;
+
+    this.tabManager.addActiveTabPermission(tab);
+
+    let popup = this.tabContext.get(tab.id).popup || this.defaults.popup;
+    if (popup) {
+      tabTracker.openExtensionPopupTab(popup);
+    } else {
+      this.emit("click", tab);
+    }
   }
 
   /**
@@ -84,7 +95,7 @@ class BrowserAction {
       }
     }
 
-    if (!tab || tab.selected) {
+    if (!tab || tab.getActive()) {
       BrowserActions.update(this.uuid, {[prop]: value});
     }
   }
@@ -166,6 +177,18 @@ this.browserAction = class extends ExtensionAPI {
           let tab = getTab(tabId);
           let title = browserActionMap.get(extension).getProperty(tab, "name");
           return Promise.resolve(title);
+        },
+
+        setPopup(details) {
+          let tab = getTab(details.tabId);
+          let url = details.popup && context.uri.resolve(details.popup);
+          browserActionMap.get(extension).setProperty(tab, "popup", url);
+        },
+
+        getPopup(details) {
+          let tab = getTab(details.tabId);
+          let popup = browserActionMap.get(extension).getProperty(tab, "popup");
+          return Promise.resolve(popup);
         },
       },
     };

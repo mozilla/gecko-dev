@@ -148,12 +148,11 @@ this.pageAction = class extends ExtensionAPI {
   }
 
   getIconData(icons) {
-    // These URLs should already be properly escaped, but make doubly sure CSS
-    // string escape characters are escaped here, since they could lead to a
-    // sandbox break.
-    let escape = str => str.replace(/[\\\s"]/g, encodeURIComponent);
-
-    let getIcon = size => escape(IconDetails.getPreferredIcon(icons, this.extension, size).icon);
+    let getIcon = size => {
+      let {icon} = IconDetails.getPreferredIcon(icons, this.extension, size);
+      // TODO: implement theme based icon for pageAction (Bug 1398156)
+      return IconDetails.escapeUrl(icon);
+    };
 
     let style = `
       --webextension-urlbar-image: url("${getIcon(16)}");
@@ -163,7 +162,7 @@ this.pageAction = class extends ExtensionAPI {
     return {style};
   }
 
-  // Create an |image| node and add it to the |urlbar-icons|
+  // Create an |image| node and add it to the |page-action-buttons|
   // container in the given window.
   addButton(window) {
     let document = window.document;
@@ -179,7 +178,7 @@ this.pageAction = class extends ExtensionAPI {
       document.addEventListener("popupshowing", this);
     }
 
-    document.getElementById("urlbar-icons").appendChild(button);
+    document.getElementById("page-action-buttons").appendChild(button);
 
     return button;
   }
@@ -329,6 +328,9 @@ this.pageAction = class extends ExtensionAPI {
           // For internal consistency, we currently resolve both relative to the
           // calling context.
           let url = details.popup && context.uri.resolve(details.popup);
+          if (url && !context.checkLoadURL(url)) {
+            return Promise.reject({message: `Access denied for URL ${url}`});
+          }
           pageAction.setProperty(tab, "popup", url);
         },
 
@@ -337,6 +339,11 @@ this.pageAction = class extends ExtensionAPI {
 
           let popup = pageAction.getProperty(tab, "popup");
           return Promise.resolve(popup);
+        },
+
+        openPopup: function() {
+          let window = windowTracker.topWindow;
+          pageAction.triggerAction(window);
         },
       },
     };

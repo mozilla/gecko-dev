@@ -49,6 +49,8 @@ const PropertiesView = createClass({
     expandableStrings: PropTypes.bool,
     filterPlaceHolder: PropTypes.string,
     sectionNames: PropTypes.array,
+    openLink: PropTypes.func,
+    cropLimit: PropTypes.number
   },
 
   getDefaultProps() {
@@ -58,6 +60,7 @@ const PropertiesView = createClass({
       expandableStrings: false,
       filterPlaceHolder: "",
       sectionNames: [],
+      cropLimit: 1024
     };
   },
 
@@ -120,10 +123,10 @@ const PropertiesView = createClass({
 
     return Rep(Object.assign(props, {
       // FIXME: A workaround for the issue in StringRep
-      // Force StringRep to crop the text everytime
+      // Force StringRep to crop the text every time
       member: Object.assign({}, member, { open: false }),
       mode: MODE.TINY,
-      cropLimit: 60,
+      cropLimit: this.props.cropLimit,
     }));
   },
 
@@ -148,6 +151,7 @@ const PropertiesView = createClass({
       renderRow,
       renderValue,
       sectionNames,
+      openLink,
     } = this.props;
 
     return (
@@ -181,6 +185,7 @@ const PropertiesView = createClass({
             onFilter: (props) => this.onFilter(props, sectionNames),
             renderRow: renderRow || this.renderRowWithEditor,
             renderValue: renderValue || this.renderValueWithRep,
+            openLink,
           }),
         ),
       )

@@ -647,6 +647,8 @@ VRDisplay::GetLayers(nsTArray<VRLayer>& result)
 void
 VRDisplay::SubmitFrame()
 {
+  AutoProfilerTracing tracing("VR", "SubmitFrameAtVRDisplay");
+
   if (mPresentation) {
     mPresentation->SubmitFrame();
   }
@@ -728,7 +730,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(VRDisplay, DOMEventTargetHelper, mCapabilitie
 NS_IMPL_ADDREF_INHERITED(VRDisplay, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(VRDisplay, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(VRDisplay)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(VRDisplay)
 NS_INTERFACE_MAP_ENTRY(nsIObserver)
 NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, DOMEventTargetHelper)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)

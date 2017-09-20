@@ -28,6 +28,7 @@ from mozharness.mozilla.structuredlog import StructuredOutputParser
 from mozharness.mozilla.taskcluster_helper import TaskClusterArtifactFinderMixin
 from mozharness.mozilla.testing.unittest import DesktopUnittestOutputParser
 from mozharness.mozilla.testing.try_tools import TryToolsMixin, try_config_options
+from mozharness.mozilla.testing.verify_tools import VerifyToolsMixin, verify_config_options
 from mozharness.mozilla.tooltool import TooltoolMixin
 
 from mozharness.lib.python.authentication import get_credentials
@@ -98,12 +99,15 @@ testing_config_options = [
      "choices": ['ondemand', 'true'],
      "help": "Download and extract crash reporter symbols.",
       }],
-] + copy.deepcopy(virtualenv_config_options) + copy.deepcopy(try_config_options)
+] + copy.deepcopy(virtualenv_config_options) \
+  + copy.deepcopy(try_config_options) \
+  + copy.deepcopy(verify_config_options)
 
 
 # TestingMixin {{{1
 class TestingMixin(VirtualenvMixin, BuildbotMixin, ResourceMonitoringMixin,
-                   TaskClusterArtifactFinderMixin, TooltoolMixin, TryToolsMixin):
+                   TaskClusterArtifactFinderMixin, TooltoolMixin, TryToolsMixin,
+                   VerifyToolsMixin):
     """
     The steps to identify + download the proper bits for [browser] unit
     tests and Talos.
@@ -451,39 +455,42 @@ You can set this by:
                                     os.path.join(dirs['abs_work_dir'], 'tests'))
         self.mkdir_p(test_install_dir)
         package_requirements = self._read_packages_manifest()
+        target_packages = []
         for category in suite_categories:
             if category in package_requirements:
-                target_packages = package_requirements[category]
+                target_packages.extend(package_requirements[category])
             else:
                 # If we don't harness specific requirements, assume the common zip
                 # has everything we need to run tests for this suite.
-                target_packages = package_requirements['common']
+                target_packages.extend(package_requirements['common'])
 
-            self.info("Downloading packages: %s for test suite category: %s" %
-                      (target_packages, category))
-            for file_name in target_packages:
-                target_dir = test_install_dir
-                unpack_dirs = extract_dirs
+        # eliminate duplicates -- no need to download anything twice
+        target_packages = list(set(target_packages))
+        self.info("Downloading packages: %s for test suite categories: %s" %
+                  (target_packages, suite_categories))
+        for file_name in target_packages:
+            target_dir = test_install_dir
+            unpack_dirs = extract_dirs
 
-                if "common.tests" in file_name and isinstance(unpack_dirs, list):
-                    # Ensure that the following files are always getting extracted
-                    required_files = ["mach",
-                                      "mozinfo.json",
-                                      ]
-                    for req_file in required_files:
-                        if req_file not in unpack_dirs:
-                            self.info("Adding '{}' for extraction from common.tests zip file"
-                                      .format(req_file))
-                            unpack_dirs.append(req_file)
+            if "common.tests" in file_name and isinstance(unpack_dirs, list):
+                # Ensure that the following files are always getting extracted
+                required_files = ["mach",
+                                  "mozinfo.json",
+                                  ]
+                for req_file in required_files:
+                    if req_file not in unpack_dirs:
+                        self.info("Adding '{}' for extraction from common.tests zip file"
+                                  .format(req_file))
+                        unpack_dirs.append(req_file)
 
-                if "jsshell-" in file_name or file_name == "target.jsshell.zip":
-                    self.info("Special-casing the jsshell zip file")
-                    unpack_dirs = None
-                    target_dir = dirs['abs_test_bin_dir']
+            if "jsshell-" in file_name or file_name == "target.jsshell.zip":
+                self.info("Special-casing the jsshell zip file")
+                unpack_dirs = None
+                target_dir = dirs['abs_test_bin_dir']
 
-                url = self.query_build_dir_url(file_name)
-                self.download_unpack(url, target_dir,
-                                     extract_dirs=unpack_dirs)
+            url = self.query_build_dir_url(file_name)
+            self.download_unpack(url, target_dir,
+                                 extract_dirs=unpack_dirs)
 
     def _download_test_zip(self, extract_dirs=None):
         dirs = self.query_abs_dirs()

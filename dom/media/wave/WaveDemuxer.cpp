@@ -11,14 +11,13 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/EndianUtils.h"
+#include "mp4_demuxer/ByteReader.h"
 #include "nsAutoPtr.h"
 #include "VideoUtils.h"
 #include "TimeUnits.h"
-#include "prenv.h"
 
 using mozilla::media::TimeUnit;
 using mozilla::media::TimeIntervals;
-using mp4_demuxer::ByteReader;
 
 namespace mozilla {
 
@@ -865,8 +864,8 @@ FormatParser::FormatChunk::ParseNext(uint8_t c)
 bool
 FormatParser::FormatChunk::IsValid() const
 {
-  return (FrameSize() == SampleRate() * Channels() / 8)
-         && (mPos >= FMT_CHUNK_MIN_SIZE);
+  return (FrameSize() == SampleRate() * Channels() / 8) &&
+         (mPos >= FMT_CHUNK_MIN_SIZE);
 }
 
 void

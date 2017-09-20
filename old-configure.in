@@ -48,7 +48,7 @@ dnl ========================================================
 MOZJPEG=62
 MOZPNG=10631
 NSPR_VERSION=4
-NSPR_MINVER=4.16
+NSPR_MINVER=4.17
 NSS_VERSION=3
 
 dnl Set the minimum version of toolkit libs used by mozilla
@@ -66,7 +66,7 @@ W32API_VERSION=3.14
 GCONF_VERSION=1.2.1
 STARTUP_NOTIFICATION_VERSION=0.8
 DBUS_VERSION=0.60
-SQLITE_VERSION=3.19.3
+SQLITE_VERSION=3.20.1
 
 dnl Set various checks
 dnl ========================================================
@@ -368,7 +368,7 @@ AC_SUBST(GNU_AS)
 AC_SUBST(GNU_CC)
 AC_SUBST(GNU_CXX)
 
-AC_SUBST(STL_FLAGS)
+AC_SUBST_LIST(STL_FLAGS)
 AC_SUBST(WRAP_STL_INCLUDES)
 AC_SUBST(MOZ_MSVC_STL_WRAP_RAISE)
 
@@ -3697,6 +3697,12 @@ then
     if test "x$ac_cv_sqlite_dbstat_vtab" = "xno"; then
         AC_MSG_ERROR([System SQLite library is not compiled with SQLITE_ENABLE_DBSTAT_VTAB.])
     fi
+else
+    dnl ==============================
+    dnl === SQLite fdatasync check ===
+    dnl ==============================
+    dnl Check to see if fdatasync is available
+    AC_CHECK_FUNC(fdatasync)
 fi
 
 if test -n "$MOZ_SYSTEM_SQLITE"; then
@@ -4025,7 +4031,7 @@ fi
 AC_SUBST(MOZ_DISABLE_STARTUPCACHE)
 
 dnl ========================================================
-dnl = Enable Pico Speech Synthesis (Gonk usually)
+dnl = Enable Pico Speech Synthesis
 dnl ========================================================
 MOZ_ARG_ENABLE_BOOL(synth-pico,
 [  --enable-synth-pico  Set compile flags necessary for compiling Pico Web Speech API ],
@@ -4675,6 +4681,7 @@ AC_SUBST(MOZ_CHILD_PROCESS_BUNDLENAME)
 # packages produced.
 # - MOZ_ANDROID_GCM_SENDERID: On Android, the Android GCM Sender ID used.  GCM
 # sender IDs are not sensitive: see, http://stackoverflow.com/a/18216063.
+# - MOZ_MMA_GCM_SENDERID: This GCM Sender ID is used for MMA integration.
 # - MOZ_PROFILE_MIGRATOR: When set, enables profile migrator.
 
 if test -z "$MOZ_APP_NAME"; then
@@ -4742,6 +4749,7 @@ AC_SUBST(MOZ_APP_ID)
 AC_SUBST(MOZ_APP_ANDROID_VERSION_CODE)
 AC_SUBST(MOZ_ANDROID_SHARED_ID)
 AC_SUBST(MOZ_ANDROID_GCM_SENDERID)
+AC_SUBST(MOZ_MMA_GCM_SENDERID)
 AC_SUBST(MAR_CHANNEL_ID)
 AC_SUBST(ACCEPTED_MAR_CHANNEL_IDS)
 AC_SUBST(MOZ_PROFILE_MIGRATOR)
@@ -5139,6 +5147,7 @@ export MOZ_ZLIB_CFLAGS
 export MOZ_ZLIB_LIBS
 export MOZ_APP_NAME
 export MOZ_APP_REMOTINGNAME
+export MOZ_DEV_EDITION
 export RUSTC
 export MOZILLA_CENTRAL_PATH=$_topsrcdir
 export STLPORT_CPPFLAGS

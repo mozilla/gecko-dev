@@ -105,7 +105,6 @@
 #include "nsGkAtoms.h"
 #include "nsCRT.h"
 #include "nsAppDirectoryServiceDefs.h"
-#include "nsXPIDLString.h"
 #include "nsWidgetsCID.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
@@ -656,7 +655,6 @@ nsWindow::nsWindow(bool aIsChildWindow)
 #if defined(ACCESSIBILITY)
     mozilla::TIPMessageHandler::Initialize();
 #endif // defined(ACCESSIBILITY)
-    IMEHandler::Initialize();
     if (SUCCEEDED(::OleInitialize(nullptr))) {
       sIsOleInitialized = TRUE;
     }
@@ -793,7 +791,8 @@ nsWindow::Create(nsIWidget* aParent,
     }
 
     if (!IsWin8OrLater() &&
-        HasBogusPopupsDropShadowOnMultiMonitor()) {
+        HasBogusPopupsDropShadowOnMultiMonitor() &&
+        ShouldUseOffMainThreadCompositing()) {
       extendedStyle |= WS_EX_COMPOSITED;
     }
 
@@ -1014,7 +1013,7 @@ nsWindow::RegisterWindowClass(const wchar_t* aClassName,
   }
 
   wc.style         = CS_DBLCLKS | aExtraStyle;
-  wc.lpfnWndProc   = WinUtils::GetDefWindowProc();
+  wc.lpfnWndProc   = WinUtils::NonClientDpiScalingDefWindowProcW;
   wc.cbClsExtra    = 0;
   wc.cbWndExtra    = 0;
   wc.hInstance     = nsToolkit::mDllInstance;
@@ -1714,14 +1713,15 @@ void nsWindow::SetThemeRegion()
 
 void nsWindow::RegisterTouchWindow() {
   mTouchWindow = true;
-  mGesture.RegisterTouchWindow(mWnd);
+  ::RegisterTouchWindow(mWnd, TWF_WANTPALM);
   ::EnumChildWindows(mWnd, nsWindow::RegisterTouchForDescendants, 0);
 }
 
 BOOL CALLBACK nsWindow::RegisterTouchForDescendants(HWND aWnd, LPARAM aMsg) {
   nsWindow* win = WinUtils::GetNSWindowPtr(aWnd);
-  if (win)
-    win->mGesture.RegisterTouchWindow(aWnd);
+  if (win) {
+    ::RegisterTouchWindow(aWnd, TWF_WANTPALM);
+  }
   return TRUE;
 }
 
@@ -3020,7 +3020,7 @@ nsWindow::SetCursor(imgIContainer* aCursor,
   rv = nsWindowGfx::CreateIcon(aCursor, true, aHotspotX, aHotspotY, size, &cursor);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mCursor = nsCursor(-1);
+  mCursor = eCursorInvalid;
   ::SetCursor(cursor);
 
   NS_IF_RELEASE(sCursorImgContainer);
@@ -3771,9 +3771,11 @@ nsWindow::ClientToWindowSize(const LayoutDeviceIntSize& aClientSize)
 void
 nsWindow::EnableDragDrop(bool aEnable)
 {
-  NS_ASSERTION(mWnd, "nsWindow::EnableDragDrop() called after Destroy()");
+  if (!mWnd) {
+    // Return early if the window already closed
+    return;
+  }
 
-  nsresult rv = NS_ERROR_FAILURE;
   if (aEnable) {
     if (!mNativeDragTarget) {
       mNativeDragTarget = new nsNativeDragTarget(this);
@@ -6822,7 +6824,8 @@ nsIntPoint nsWindow::GetTouchCoordinates(WPARAM wParam, LPARAM lParam)
     return ret;
   }
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
-  if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
+  if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs,
+                        sizeof(TOUCHINPUT))) {
     ret.x = TOUCH_COORD_TO_PIXEL(pInputs[0].x);
     ret.y = TOUCH_COORD_TO_PIXEL(pInputs[0].y);
   }
@@ -6837,7 +6840,8 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
   uint32_t cInputs = LOWORD(wParam);
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
 
-  if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
+  if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs,
+                        sizeof(TOUCHINPUT))) {
     MultiTouchInput touchInput, touchEndInput;
 
     // Walk across the touch point array processing each contact point.
@@ -6921,7 +6925,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
   }
 
   delete [] pInputs;
-  mGesture.CloseTouchInputHandle((HTOUCHINPUT)lParam);
+  CloseTouchInputHandle((HTOUCHINPUT)lParam);
   return true;
 }
 
@@ -6965,7 +6969,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
       mGesture.PanFeedbackFinalize(mWnd, endFeedback);
     }
 
-    mGesture.CloseGestureInfoHandle((HGESTUREINFO)lParam);
+    CloseGestureInfoHandle((HGESTUREINFO)lParam);
 
     return true;
   }
@@ -6991,7 +6995,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   }
 
   // Only close this if we process and return true.
-  mGesture.CloseGestureInfoHandle((HGESTUREINFO)lParam);
+  CloseGestureInfoHandle((HGESTUREINFO)lParam);
 
   return true; // Handled
 }
@@ -7175,7 +7179,7 @@ void nsWindow::OnDestroy()
   }
 
   // Destroy any custom cursor resources.
-  if (mCursor == -1)
+  if (mCursor == eCursorInvalid)
     SetCursor(eCursor_standard);
 
   if (mCompositorWidgetDelegate) {
@@ -7303,9 +7307,7 @@ nsWindow::OnDPIChanged(int32_t x, int32_t y, int32_t width, int32_t height)
   if (DefaultScaleOverride() > 0.0) {
     return;
   }
-  double oldScale = mDefaultScale;
   mDefaultScale = -1.0; // force recomputation of scale factor
-  double newScale = GetDefaultScaleInternal();
 
   if (mResizeState != RESIZING && mSizeMode == nsSizeMode_Normal) {
     // Limit the position (if not in the middle of a drag-move) & size,
@@ -7705,7 +7707,7 @@ VOID CALLBACK nsWindow::HookTimerForPopups(HWND hwnd, UINT uMsg, UINT idEvent, D
 {
   if (sHookTimerId != 0) {
     // if the window is nullptr then we need to use the ID to kill the timer
-    BOOL status = ::KillTimer(nullptr, sHookTimerId);
+    DebugOnly<BOOL> status = ::KillTimer(nullptr, sHookTimerId);
     NS_ASSERTION(status, "Hook Timer was not killed.");
     sHookTimerId = 0;
   }

@@ -39,7 +39,6 @@ public:
 #endif
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
 
   // nsSVGDisplayableFrame interface:
@@ -82,12 +81,11 @@ nsSVGSwitchFrame::Init(nsIContent*       aContent,
 
 void
 nsSVGSwitchFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                   const nsRect&           aDirtyRect,
                                    const nsDisplayListSet& aLists)
 {
   nsIFrame* kid = GetActiveChildFrame();
   if (kid) {
-    BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+    BuildDisplayListForChild(aBuilder, kid, aLists);
   }
 }
 
@@ -132,7 +130,7 @@ nsSVGSwitchFrame::GetFrameForPoint(const gfxPoint& aPoint)
     // Transform the point from our SVG user space to our child's.
     gfxPoint point = aPoint;
     gfxMatrix m =
-      static_cast<const nsSVGElement*>(mContent)->
+      static_cast<const nsSVGElement*>(GetContent())->
         PrependLocalTransformsTo(gfxMatrix(), eChildToUserSpace);
     m = static_cast<const nsSVGElement*>(kid->GetContent())->
           PrependLocalTransformsTo(m, eUserSpaceToParent);
@@ -229,7 +227,7 @@ nsIFrame *
 nsSVGSwitchFrame::GetActiveChildFrame()
 {
   nsIContent *activeChild =
-    static_cast<mozilla::dom::SVGSwitchElement*>(mContent)->GetActiveChild();
+    static_cast<mozilla::dom::SVGSwitchElement*>(GetContent())->GetActiveChild();
 
   if (activeChild) {
     for (nsIFrame* kid = mFrames.FirstChild(); kid;

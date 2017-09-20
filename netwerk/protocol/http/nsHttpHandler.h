@@ -95,7 +95,7 @@ public:
     PRIntervalTime ResponseTimeoutEnabled()  { return mResponseTimeoutEnabled; }
     uint32_t       NetworkChangedTimeout()   { return mNetworkChangedTimeout; }
     uint16_t       MaxRequestAttempts()      { return mMaxRequestAttempts; }
-    const char    *DefaultSocketType()       { return mDefaultSocketType.get(); /* ok to return null */ }
+    const char    *DefaultSocketType()       { return mDefaultSocketType.IsVoid() ? nullptr : mDefaultSocketType.get(); }
     uint32_t       PhishyUserPassLength()    { return mPhishyUserPassLength; }
     uint8_t        GetQoSBits()              { return mQoSBits; }
     uint16_t       GetIdleSynTimeout()       { return mIdleSynTimeout; }
@@ -136,6 +136,11 @@ public:
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
     bool           IsUrgentStartEnabled() { return mUrgentStartEnabled; }
+    bool           IsTailBlockingEnabled() { return mTailBlockingEnabled; }
+    uint32_t       TailBlockingDelayQuantum(bool aAfterDOMContentLoaded) {
+      return aAfterDOMContentLoaded ? mTailDelayQuantumAfterDCL : mTailDelayQuantum;
+    }
+    uint32_t       TailBlockingDelayMax() { return mTailDelayMax; }
 
     // TCP Keepalive configuration values.
 
@@ -312,10 +317,22 @@ public:
         NotifyObservers(chan, NS_HTTP_ON_MODIFY_REQUEST_TOPIC);
     }
 
+    // Called by the channel before writing a request
+    void OnStopRequest(nsIHttpChannel *chan)
+    {
+        NotifyObservers(chan, NS_HTTP_ON_STOP_REQUEST_TOPIC);
+    }
+
     // Called by the channel and cached in the loadGroup
     void OnUserAgentRequest(nsIHttpChannel *chan)
     {
       NotifyObservers(chan, NS_HTTP_ON_USERAGENT_REQUEST_TOPIC);
+    }
+
+    // Called by the channel before setting up the transaction
+    void OnBeforeConnect(nsIHttpChannel *chan)
+    {
+        NotifyObservers(chan, NS_HTTP_ON_BEFORE_CONNECT_TOPIC);
     }
 
     // Called by the channel once headers are available
@@ -364,11 +381,6 @@ public:
     }
 
     void ShutdownConnectionManager();
-
-    bool KeepEmptyResponseHeadersAsEmtpyString() const
-    {
-        return mKeepEmptyResponseHeadersAsEmtpyString;
-    }
 
     uint32_t DefaultHpackBuffer() const
     {
@@ -463,6 +475,10 @@ private:
     uint32_t mThrottleTimeWindow;
 
     bool mUrgentStartEnabled;
+    bool mTailBlockingEnabled;
+    uint32_t mTailDelayQuantum;
+    uint32_t mTailDelayQuantumAfterDCL;
+    uint32_t mTailDelayMax;
 
     uint8_t  mRedirectionLimit;
 
@@ -481,7 +497,7 @@ private:
     nsCString mHttpAcceptEncodings;
     nsCString mHttpsAcceptEncodings;
 
-    nsXPIDLCString mDefaultSocketType;
+    nsCString mDefaultSocketType;
 
     // cache support
     uint32_t                  mLastUniqueID;
@@ -494,17 +510,17 @@ private:
     nsCString      mOscpu;
     nsCString      mMisc;
     nsCString      mProduct;
-    nsXPIDLCString mProductSub;
-    nsXPIDLCString mAppName;
-    nsXPIDLCString mAppVersion;
+    nsCString      mProductSub;
+    nsCString      mAppName;
+    nsCString      mAppVersion;
     nsCString      mCompatFirefox;
     bool           mCompatFirefoxEnabled;
-    nsXPIDLCString mCompatDevice;
+    nsCString      mCompatDevice;
     nsCString      mDeviceModelId;
 
     nsCString      mUserAgent;
     nsCString      mSpoofedUserAgent;
-    nsXPIDLCString mUserAgentOverride;
+    nsCString      mUserAgentOverride;
     bool           mUserAgentIsDirty; // true if mUserAgent should be rebuilt
     bool           mAcceptLanguagesIsDirty;
 
@@ -593,13 +609,6 @@ private:
     FrameCheckLevel mEnforceH1Framing;
 
     nsCOMPtr<nsIRequestContextService> mRequestContextService;
-
-    // If it is set to false, headers with empty value will not appear in the
-    // header array - behavior as it used to be. If it is true: empty headers
-    // coming from the network will exits in header array as empty string.
-    // Call SetHeader with an empty value will still delete the header.
-    // (Bug 6699259)
-    bool mKeepEmptyResponseHeadersAsEmtpyString;
 
     // The default size (in bytes) of the HPACK decompressor table.
     uint32_t mDefaultHpackBuffer;

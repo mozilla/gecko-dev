@@ -188,14 +188,6 @@ nsAboutCacheEntry::Channel::OpenCacheEntry(nsIURI *uri)
                        mEnhanceId, getter_AddRefs(mCacheURI));
     if (NS_FAILED(rv)) return rv;
 
-    if (!CacheObserver::UseNewCache() &&
-        mLoadInfo->IsPrivate() &&
-        mStorageName.EqualsLiteral("disk")) {
-        // The cache v1 is storing all private entries in the memory-only
-        // cache, so it would not be found in the v1 disk cache.
-        mStorageName = NS_LITERAL_CSTRING("memory");
-    }
-
     return OpenCacheEntry();
 }
 
@@ -307,20 +299,6 @@ nsAboutCacheEntry::Channel::OnCacheEntryAvailable(nsICacheEntry *entry,
     mWaitingForData = false;
     if (entry) {
         rv = WriteCacheEntryDescription(entry);
-    } else if (!CacheObserver::UseNewCache() &&
-               !mLoadInfo->IsPrivate() &&
-               mStorageName.EqualsLiteral("memory")) {
-        // If we were not able to find the entry in the memory storage
-        // try again in the disk storage.
-        // This is a workaround for cache v1: when an originally disk
-        // cache entry is recreated as memory-only, it's clientID doesn't
-        // change and we cannot find it in "HTTP-memory-only" session.
-        // "Disk" cache storage looks at "HTTP".
-        mStorageName = NS_LITERAL_CSTRING("disk");
-        rv = OpenCacheEntry();
-        if (NS_SUCCEEDED(rv)) {
-            return NS_OK;
-        }
     } else {
         rv = WriteCacheEntryUnavailable();
     }
@@ -381,7 +359,8 @@ nsAboutCacheEntry::Channel::WriteCacheEntryDescription(nsICacheEntry *entry)
         uri->SchemeIs("javascript", &isJS);
         uri->SchemeIs("data", &isData);
     }
-    char* escapedStr = nsEscapeHTML(str.get());
+    nsAutoCString escapedStr;
+    nsAppendEscapedHTML(str, escapedStr);
     if (NS_SUCCEEDED(rv) && !(isJS || isData)) {
         buffer.AppendLiteral("<a href=\"");
         buffer.Append(escapedStr);
@@ -392,7 +371,6 @@ nsAboutCacheEntry::Channel::WriteCacheEntryDescription(nsICacheEntry *entry)
     } else {
         buffer.Append(escapedStr);
     }
-    free(escapedStr);
     buffer.AppendLiteral("</td>\n"
                          "  </tr>\n");
 
@@ -529,9 +507,7 @@ nsAboutCacheEntry::Channel::OnMetaDataElement(char const * key, char const * val
     mBuffer->Append(key);
     mBuffer->AppendLiteral(":</th>\n"
                            "    <td>");
-    char* escapedValue = nsEscapeHTML(value);
-    mBuffer->Append(escapedValue);
-    free(escapedValue);
+    nsAppendEscapedHTML(nsDependentCString(value), *mBuffer);
     mBuffer->AppendLiteral("</td>\n"
                            "  </tr>\n");
 

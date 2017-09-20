@@ -3,7 +3,7 @@
 #
 
 
-# Copyright 1996-2016 by
+# Copyright 1996-2017 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -77,7 +77,7 @@ ifeq ($(PLATFORM),windows)
   # So we need to hack.
   #
   # Kudos to Eli Zaretskii (DJGPP guru) that helped debug it.
-  # Details are available in threads of the freetype mailing list
+  # Details are available in threads of the FreeType mailing list
   # (2004-11-11), and then in the devel mailing list (2004-11-20 to -23).
   #
   ifeq ($(OS),Windows_NT)

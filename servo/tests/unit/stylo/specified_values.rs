@@ -4,6 +4,7 @@
 
 use style;
 
+#[cfg(all(test, target_pointer_width = "64"))]
 #[test]
 fn size_of_specified_values() {
     use std::mem::size_of;
@@ -17,7 +18,7 @@ fn size_of_specified_values() {
                 let size = size_of::<style::properties::longhands::$name::SpecifiedValue>();
                 let is_boxed = $boxed;
                 if (!is_boxed && size > threshold) || (is_boxed && size <= threshold) {
-                    bad_properties.push(("$name", size, is_boxed));
+                    bad_properties.push((stringify!($name), size, is_boxed));
                 }
             )+
         }

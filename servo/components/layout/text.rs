@@ -289,9 +289,10 @@ impl TextRunScanner {
             // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
             // `ﬁ n a l l y`.
             let mut flags = ShapingFlags::empty();
-            match letter_spacing.value() {
-                Some(&Au(0)) | None => {}
-                Some(_) => flags.insert(IGNORE_LIGATURES_SHAPING_FLAG),
+            if let Some(v) = letter_spacing.value() {
+                if v.px() != 0. {
+                    flags.insert(IGNORE_LIGATURES_SHAPING_FLAG);
+                }
             }
             if text_rendering == text_rendering::T::optimizespeed {
                 flags.insert(IGNORE_LIGATURES_SHAPING_FLAG);
@@ -301,7 +302,7 @@ impl TextRunScanner {
                 flags.insert(KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
-                letter_spacing: letter_spacing.value().cloned(),
+                letter_spacing: letter_spacing.value().cloned().map(Au::from),
                 word_spacing: word_spacing,
                 script: Script::Common,
                 flags: flags,
@@ -446,11 +447,11 @@ pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: ::Serv
 
 /// Returns the line block-size needed by the given computed style and font size.
 pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
-    let font_size = style.get_font().font_size.0;
+    let font_size = Au::from(style.get_font().font_size);
     match style.get_inheritedtext().line_height {
-        LineHeight::Normal => metrics.line_gap,
+        LineHeight::Normal => Au::from(metrics.line_gap),
         LineHeight::Number(l) => font_size.scale_by(l.0),
-        LineHeight::Length(l) => l.0
+        LineHeight::Length(l) => Au::from(l)
     }
 }
 
@@ -460,7 +461,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
     }
 
     let new_fragment = {
-        let mut first_fragment = fragments.front_mut().unwrap();
+        let first_fragment = fragments.front_mut().unwrap();
         let string_before;
         let selection_before;
         {
@@ -562,7 +563,7 @@ impl RunInfo {
 
 /// A mapping from a portion of an unscanned text fragment to the text run we're going to create
 /// for it.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct RunMapping {
     /// The range of byte indices within the text fragment.
     byte_range: Range<usize>,

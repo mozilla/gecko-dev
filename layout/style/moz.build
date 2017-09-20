@@ -170,7 +170,9 @@ EXPORTS.mozilla.css += [
     'Loader.h',
     'NameSpaceRule.h',
     'Rule.h',
+    'SheetLoadData.h',
     'SheetParsingMode.h',
+    'StreamLoader.h',
     'StyleRule.h',
     'URLMatchingFunction.h',
 ]
@@ -266,6 +268,7 @@ UNIFIED_SOURCES += [
     'ServoStyleSet.cpp',
     'ServoStyleSheet.cpp',
     'ServoSupportsRule.cpp',
+    'StreamLoader.cpp',
     'StyleAnimationValue.cpp',
     'StylePrefs.cpp',
     'StyleRule.cpp',
@@ -300,7 +303,12 @@ JAR_MANIFESTS += ['jar.mn']
 RESOURCE_FILES += [
     'contenteditable.css',
     'designmode.css',
+]
+
+CONTENT_ACCESSIBLE_FILES += [
     'ImageDocument.css',
+    'res/plaintext.css',
+    'res/viewsource.css',
     'TopLevelImageDocument.css',
     'TopLevelVideoDocument.css',
 ]

@@ -67,32 +67,44 @@
   "emptySelectionErrorTitle": {
     "message": "Váš výber je príliš malý"
   },
+  "privateWindowErrorTitle": {
+    "message": "Služba Firefox Screenshots je v režime Súkromné prehliadanie zakázaná"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Ospravedlňujeme sa za spôsobené nepríjemnosti. Pracujeme na vylepšení tejto funkcie v budúcich verziách."
+  },
   "genericErrorTitle": {
     "message": "Ups! Služba Firefox Screenshots prestala pracovať."
   },
   "genericErrorDetails": {
     "message": "Nie sme si istí, čo sa práve stalo. Chcete tú skúsiť znova alebo chcete vytvoriť snímku inej stránky?"
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "Tvorte, ukladajte a zdieľajte snímky obrazovky bez toho, aby ste museli opustiť Firefox."
   },
-  "tourHeaderTwo": {
+  "tourHeaderPageAction": {
+    "message": "Nový spôsob ukladania"
+  },
+  "tourBodyPageAction": {
+    "message": "Kedykoľvek chcete urobiť snímku, otvorte ponuku akcii stránky v paneli s adresou."
+  },
+  "tourHeaderClickAndDrag": {
     "message": "Zachyťte to, čo chcete"
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "Ak chcete zachytiť časť stránky, urobíte to kliknutím a potiahnutím. Váš výber zvýrazníte tak, že sa naň presuniete myšou."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Zachyťte okná alebo celé webové stránky"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "Kliknutím na tlačidlo v pravom hornom rohu môžete zachytiť viditeľnú časť stránky. Pomocou ďalšieho tlačidla zachytíte celú stránku."
   },
-  "tourHeaderFour": {
-    "message": "Tak ako to chcete"
+  "tourHeaderDownloadUpload": {
+    "message": "Urobte to, čo chcete"
   },
-  "tourBodyFour": {
-    "message": "Uložte si orezanú snímku na web, aby ste ju mohli ľahšie zdieľať alebo si ju prevziať do počítača. Môžete si taktiež pozrieť všetky vaše snímky, stačí ak kliknete na tlačidlo Moje snímky."
+  "tourBodyDownloadUpload": {
+    "message": "Uložte si orezanú snímku na web, aby ste ju mohli ľahšie zdieľať alebo si ju prevziať do počítača. Môžete si taktiež pozrieť všetky vaše snímky - stačí, ak kliknete na tlačidlo Moje snímky."
   },
   "tourSkip": {
     "message": "Preskočiť"
@@ -106,8 +118,8 @@
   "tourDone": {
     "message": "Hotovo"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Používaním služby Firefox Screenshots súhlasíte s $TERMSANDPRIVACYNOTICETERMSLINK$ a $TERMSANDPRIVACYNOTICEPRIVACYLINK$ Firefox Cloud Services.",
+  "termsAndPrivacyNotice2": {
+    "message": "Používaním služby Firefox Screenshots súhlasíte s našimi $TERMSANDPRIVACYNOTICETERMSLINK$ a $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +134,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "zásadami ochrany súkromia"
+  },
+  "libraryLabel": {
+    "message": "Snímky obrazovky"
   }
 }

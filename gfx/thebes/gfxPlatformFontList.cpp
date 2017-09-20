@@ -21,6 +21,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
@@ -176,8 +177,8 @@ gfxPlatformFontList::MemoryReporter::CollectReports(
 }
 
 gfxPlatformFontList::gfxPlatformFontList(bool aNeedFullnamePostscriptNames)
-    : mFontFamilies(64), mOtherFamilyNames(16),
-      mBadUnderlineFamilyNames(8), mSharedCmaps(8),
+    : mFontFamiliesMutex("gfxPlatformFontList::mFontFamiliesMutex"), mFontFamilies(64),
+      mOtherFamilyNames(16), mBadUnderlineFamilyNames(8), mSharedCmaps(8),
       mStartIndex(0), mIncrement(1), mNumFamilies(0), mFontlistInitCount(0),
       mFontFamilyWhitelistActive(false)
 {
@@ -248,6 +249,25 @@ gfxPlatformFontList::ApplyWhitelist()
     }
 }
 
+bool
+gfxPlatformFontList::AddWithLegacyFamilyName(const nsAString& aLegacyName,
+                                             gfxFontEntry* aFontEntry)
+{
+    bool added = false;
+    nsAutoString key;
+    ToLowerCase(aLegacyName, key);
+    gfxFontFamily* family = mOtherFamilyNames.GetWeak(key);
+    if (!family) {
+        family = CreateFontFamily(aLegacyName);
+        family->SetHasStyles(true); // we don't want the family to search for
+                                    // faces, we're adding them directly here
+        mOtherFamilyNames.Put(key, family);
+        added = true;
+    }
+    family->AddFontEntry(aFontEntry->Clone());
+    return added;
+}
+
 nsresult
 gfxPlatformFontList::InitFontList()
 {
@@ -267,6 +287,7 @@ gfxPlatformFontList::InitFontList()
     gfxPlatform::PurgeSkiaFontCache();
 
     CancelInitOtherFamilyNamesTask();
+    MutexAutoLock lock(mFontFamiliesMutex);
     mFontFamilies.Clear();
     mOtherFamilyNames.Clear();
     mOtherFamilyNamesInitialized = false;
@@ -462,27 +483,10 @@ gfxPlatformFontList::GetFontList(nsIAtom *aLangGroup,
                                  const nsACString& aGenericFamily,
                                  nsTArray<nsString>& aListOfFonts)
 {
+    MutexAutoLock lock(mFontFamiliesMutex);
     for (auto iter = mFontFamilies.Iter(); !iter.Done(); iter.Next()) {
         RefPtr<gfxFontFamily>& family = iter.Data();
-        // use the first variation for now.  This data should be the same
-        // for all the variations and should probably be moved up to
-        // the Family
-        gfxFontStyle style;
-        style.language = aLangGroup;
-        bool needsBold;
-        RefPtr<gfxFontEntry> fontEntry = family->FindFontForStyle(style, needsBold);
-        NS_ASSERTION(fontEntry, "couldn't find any font entry in family");
-        if (!fontEntry) {
-            continue;
-        }
-
-        /* skip symbol fonts */
-        if (fontEntry->IsSymbolFont()) {
-            continue;
-        }
-
-        if (fontEntry->SupportsLangGroup(aLangGroup) &&
-            fontEntry->MatchesGenericFamily(aGenericFamily)) {
+        if (family->FilterForFontList(aLangGroup, aGenericFamily)) {
             nsAutoString localizedFamilyName;
             family->LocalizedName(localizedFamilyName);
             aListOfFonts.AppendElement(localizedFamilyName);
@@ -685,7 +689,7 @@ gfxPlatformFontList::CheckFamily(gfxFontFamily *aFamily)
 bool
 gfxPlatformFontList::FindAndAddFamilies(const nsAString& aFamily,
                                         nsTArray<gfxFontFamily*>* aOutput,
-                                        bool aDeferOtherFamilyNamesLoading,
+                                        FindFamiliesFlags aFlags,
                                         gfxFontStyle* aStyle,
                                         gfxFloat aDevToCssSize)
 {
@@ -708,7 +712,7 @@ gfxPlatformFontList::FindAndAddFamilies(const nsAString& aFamily,
     // although ASCII localized family names are possible they don't occur
     // in practice so avoid pulling in names at startup
     if (!familyEntry && !mOtherFamilyNamesInitialized && !IsASCII(aFamily)) {
-        InitOtherFamilyNames(aDeferOtherFamilyNamesLoading);
+        InitOtherFamilyNames(!(aFlags & FindFamiliesFlags::eForceOtherFamilyNamesLoading));
         familyEntry = mOtherFamilyNames.GetWeak(key);
         if (!familyEntry && !mOtherFamilyNamesInitialized) {
             // localized family names load timed out, add name to list of
@@ -721,6 +725,34 @@ gfxPlatformFontList::FindAndAddFamilies(const nsAString& aFamily,
     }
 
     familyEntry = CheckFamily(familyEntry);
+
+    // If we failed to find the requested family, check for a space in the
+    // name; if found, and if the "base" name (up to the last space) exists
+    // as a family, then this might be a legacy GDI-style family name for
+    // an additional weight/width. Try searching the faces of the base family
+    // and create any corresponding legacy families.
+    if (!familyEntry && !(aFlags & FindFamiliesFlags::eNoSearchForLegacyFamilyNames)) {
+        // We don't have nsAString::RFindChar, so look for a space manually
+        const char16_t* data = aFamily.BeginReading();
+        int32_t index = aFamily.Length();
+        while (--index > 0) {
+            if (data[index] == ' ') {
+                break;
+            }
+        }
+        if (index > 0) {
+            gfxFontFamily* base =
+                FindFamily(Substring(aFamily, 0, index),
+                           FindFamiliesFlags::eNoSearchForLegacyFamilyNames);
+            // If we found the "base" family name, and if it has members with
+            // legacy names, this will add corresponding font-family entries to
+            // the mOtherFamilyNames list; then retry the legacy-family search.
+            if (base && base->CheckForLegacyFamilyNames(this)) {
+                familyEntry = mOtherFamilyNames.GetWeak(key);
+            }
+        }
+    }
+
     if (familyEntry) {
         aOutput->AppendElement(familyEntry);
         return true;
@@ -882,7 +914,8 @@ gfxPlatformFontList::ResolveGenericFontNames(
         style.language = langGroup;
         style.systemFont = false;
         AutoTArray<gfxFontFamily*,10> families;
-        FindAndAddFamilies(genericFamily, &families, true, &style);
+        FindAndAddFamilies(genericFamily, &families, FindFamiliesFlags(0),
+                           &style);
         for (gfxFontFamily* f : families) {
             if (!aGenericFamilies->Contains(f)) {
                 aGenericFamilies->AppendElement(f);
@@ -1509,7 +1542,8 @@ gfxPlatformFontList::CleanupLoader()
 
     if (mOtherNamesMissed) {
         for (auto it = mOtherNamesMissed->Iter(); !it.Done(); it.Next()) {
-            if (FindFamily(it.Get()->GetKey(), false)) {
+            if (FindFamily(it.Get()->GetKey(),
+                           FindFamiliesFlags::eForceOtherFamilyNamesLoading)) {
                 forceReflow = true;
                 ForceGlobalReflow();
                 break;
@@ -1547,15 +1581,6 @@ gfxPlatformFontList::GetPrefsAndStartLoader()
         std::max(1u, Preferences::GetUint(FONT_LOADER_INTERVAL_PREF));
 
     StartLoader(delay, interval);
-}
-
-void
-gfxPlatformFontList::ForceGlobalReflow()
-{
-    // modify a preference that will trigger reflow everywhere
-    static const char kPrefName[] = "font.internaluseonly.changed";
-    bool fontInternalChange = Preferences::GetBool(kPrefName, false);
-    Preferences::SetBool(kPrefName, !fontInternalChange);
 }
 
 void

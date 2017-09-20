@@ -541,7 +541,7 @@ function _setupTLSServerTest(serverBinName, certsPath) {
 // Returns an Array of OCSP responses for a given ocspRespArray and a location
 // for a nssDB where the certs and public keys are prepopulated.
 // ocspRespArray is an array of arrays like:
-// [ [typeOfResponse, certnick, extracertnick]...]
+// [ [typeOfResponse, certnick, extracertnick, thisUpdateSkew]...]
 function generateOCSPResponses(ocspRespArray, nssDBlocation) {
   let utilBinName = "GenerateOCSPResponse";
   let ocspGenBin = _getBinaryUtil(utilBinName);
@@ -556,13 +556,14 @@ function generateOCSPResponses(ocspRespArray, nssDBlocation) {
     argArray.push(ocspRespArray[i][0]); // ocsRespType;
     argArray.push(ocspRespArray[i][1]); // nick;
     argArray.push(ocspRespArray[i][2]); // extranickname
+    argArray.push(ocspRespArray[i][3]); // thisUpdate skew
     argArray.push(filename);
     do_print("argArray = " + argArray);
 
     let process = Cc["@mozilla.org/process/util;1"]
                     .createInstance(Ci.nsIProcess);
     process.init(ocspGenBin);
-    process.run(true, argArray, 5);
+    process.run(true, argArray, argArray.length);
     Assert.equal(0, process.exitValue, "Process exit value should be 0");
     let ocspFile = do_get_file(i.toString() + ".ocsp", false);
     retArray.push(readFile(ocspFile));
@@ -617,7 +618,7 @@ function startOCSPResponder(serverPort, identity, nssDBLocation,
       if (expectedResponseTypes && expectedResponseTypes.length >= 1) {
         responseType = expectedResponseTypes.shift();
       }
-      return [responseType, expectedNick, "unused"];
+      return [responseType, expectedNick, "unused", 0];
     }
   );
   let ocspResponses = generateOCSPResponses(ocspResponseGenerationArgs,
@@ -767,14 +768,6 @@ function add_prevented_cert_override_test(aHost, aExpectedBits, aExpectedError) 
   add_connection_test(aHost, aExpectedError);
 }
 
-function loginToDBWithDefaultPassword() {
-  let tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"]
-                  .getService(Ci.nsIPK11TokenDB);
-  let token = tokenDB.getInternalKeyToken();
-  token.initPassword("");
-  token.login(/* force */ false);
-}
-
 // Helper for asyncTestCertificateUsages.
 class CertVerificationResult {
   constructor(certName, usageString, successExpected, resolve) {
@@ -847,16 +840,17 @@ function loadPKCS11TestModule(expectModuleUnloadToFail) {
   libraryFile.append(ctypes.libraryName("pkcs11testmodule"));
   ok(libraryFile.exists(), "The pkcs11testmodule file should exist");
 
-  let pkcs11 = Cc["@mozilla.org/security/pkcs11;1"].getService(Ci.nsIPKCS11);
+  let pkcs11ModuleDB = Cc["@mozilla.org/security/pkcs11moduledb;1"]
+                         .getService(Ci.nsIPKCS11ModuleDB);
   do_register_cleanup(() => {
     try {
-      pkcs11.deleteModule("PKCS11 Test Module");
+      pkcs11ModuleDB.deleteModule("PKCS11 Test Module");
     } catch (e) {
       Assert.ok(expectModuleUnloadToFail,
                 `Module unload should suceed only when expected: ${e}`);
     }
   });
-  pkcs11.addModule("PKCS11 Test Module", libraryFile.path, 0, 0);
+  pkcs11ModuleDB.addModule("PKCS11 Test Module", libraryFile.path, 0, 0);
 }
 
 /**

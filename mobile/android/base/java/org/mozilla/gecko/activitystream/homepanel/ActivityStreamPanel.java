@@ -5,6 +5,7 @@
  package org.mozilla.gecko.activitystream.homepanel;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -16,8 +17,12 @@ import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
+import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.activitystream.ActivityStreamTelemetry;
+import org.mozilla.gecko.activitystream.homepanel.model.TopStory;
+import org.mozilla.gecko.activitystream.homepanel.topsites.TopSitesPage;
+import org.mozilla.gecko.activitystream.homepanel.topstories.PocketStoriesLoader;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.home.HomePager;
@@ -33,6 +38,7 @@ public class ActivityStreamPanel extends FrameLayout {
 
     private static final int LOADER_ID_HIGHLIGHTS = 0;
     private static final int LOADER_ID_TOPSITES = 1;
+    private static final int LOADER_ID_POCKET = 2;
 
     /**
      * Number of database entries to consider and rank for finding highlights.
@@ -44,12 +50,13 @@ public class ActivityStreamPanel extends FrameLayout {
      */
     private static final int HIGHLIGHTS_LIMIT = 10;
 
-    public static final int TOP_SITES_COLUMNS = 4;
-    public static final int TOP_SITES_ROWS = 2;
+    public static final String PREF_POCKET_ENABLED = "pref_activitystream_pocket_enabled";
+    public static final String PREF_VISITED_ENABLED = "pref_activitystream_visited_enabled";
+    public static final String PREF_BOOKMARKS_ENABLED = "pref_activitystream_recentbookmarks_enabled";
 
     private int desiredTileWidth;
-    private int desiredTilesHeight;
     private int tileMargin;
+    private final SharedPreferences sharedPreferences;
 
     public ActivityStreamPanel(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -59,6 +66,7 @@ public class ActivityStreamPanel extends FrameLayout {
         inflate(context, R.layout.as_content, this);
 
         adapter = new StreamRecyclerAdapter();
+        sharedPreferences = GeckoSharedPrefs.forProfile(context);
 
         final RecyclerView rv = (RecyclerView) findViewById(R.id.activity_stream_main_recyclerview);
 
@@ -70,11 +78,11 @@ public class ActivityStreamPanel extends FrameLayout {
         rv.addItemDecoration(new HighlightsDividerItemDecoration(context));
 
         RecyclerViewClickSupport.addTo(rv)
-                .setOnItemClickListener(adapter);
+                .setOnItemClickListener(adapter)
+                .setOnItemLongClickListener(adapter);
 
         final Resources resources = getResources();
         desiredTileWidth = resources.getDimensionPixelSize(R.dimen.activity_stream_desired_tile_width);
-        desiredTilesHeight = resources.getDimensionPixelSize(R.dimen.activity_stream_desired_tile_height);
         tileMargin = resources.getDimensionPixelSize(R.dimen.activity_stream_base_margin);
 
         ActivityStreamTelemetry.Extras.setGlobal(
@@ -89,7 +97,13 @@ public class ActivityStreamPanel extends FrameLayout {
 
     public void load(LoaderManager lm) {
         lm.initLoader(LOADER_ID_TOPSITES, null, new TopSitesCallback());
-        lm.initLoader(LOADER_ID_HIGHLIGHTS, null, new HighlightsCallbacks());
+        if (sharedPreferences.getBoolean(PREF_BOOKMARKS_ENABLED, true) || sharedPreferences.getBoolean(PREF_VISITED_ENABLED, true)) {
+            lm.initLoader(LOADER_ID_HIGHLIGHTS, null, new HighlightsCallbacks());
+        }
+
+        if (sharedPreferences.getBoolean(PREF_POCKET_ENABLED, true)) {
+            lm.initLoader(LOADER_ID_POCKET, null, new PocketStoriesCallbacks());
+        }
 
     }
 
@@ -112,14 +126,14 @@ public class ActivityStreamPanel extends FrameLayout {
         // desired tile width.
         int fittingTiles = (w - tileMargin) / (desiredTileWidth + tileMargin);
 
-        if (fittingTiles <= TOP_SITES_COLUMNS) {
+        if (fittingTiles <= TopSitesPage.NUM_COLUMNS) {
             // We can't fit all tiles (or they fit exactly) if we are using the desired tiles width.
             // We will still show all tiles but they might be smaller than what we would like them to be.
             setPadding(0, 0, 0, 0);
-        } else if (fittingTiles > TOP_SITES_COLUMNS) {
+        } else if (fittingTiles > TopSitesPage.NUM_COLUMNS) {
             // We can fit more tiles than we want to display. Calculate how much space we need and
             // use the remaining space as padding on the left and right.
-            int needed = TOP_SITES_COLUMNS * (desiredTileWidth + tileMargin) + tileMargin;
+            int needed = TopSitesPage.NUM_COLUMNS * (desiredTileWidth + tileMargin) + tileMargin;
             int padding = (w - needed) / 2;
 
             // With the padding applied we have less space available for the tiles
@@ -129,9 +143,9 @@ public class ActivityStreamPanel extends FrameLayout {
         }
 
         // Now calculate how large an individual tile is
-        final int tilesSize = (w - (TOP_SITES_COLUMNS * tileMargin) - tileMargin) / TOP_SITES_COLUMNS;
+        final int tilesSize = (w - (TopSitesPage.NUM_COLUMNS * tileMargin) - tileMargin) / TopSitesPage.NUM_COLUMNS;
 
-        adapter.setTileSize(TOP_SITES_COLUMNS * TOP_SITES_ROWS, tilesSize);
+        adapter.setTileSize(tilesSize);
     }
 
     private class HighlightsCallbacks implements LoaderManager.LoaderCallbacks<List<Highlight>> {
@@ -154,7 +168,7 @@ public class ActivityStreamPanel extends FrameLayout {
     private class TopSitesCallback implements LoaderManager.LoaderCallbacks<Cursor> {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            final int topSitesPerPage = TOP_SITES_COLUMNS * TOP_SITES_ROWS;
+            final int topSitesPerPage = TopSitesPage.NUM_COLUMNS * TopSitesPage.NUM_ROWS;
 
             final Context context = getContext();
             return BrowserDB.from(context).getActivityStreamTopSites(
@@ -172,5 +186,25 @@ public class ActivityStreamPanel extends FrameLayout {
         public void onLoaderReset(Loader<Cursor> loader) {
             adapter.swapTopSitesCursor(null);
         }
+    }
+
+    private class PocketStoriesCallbacks implements LoaderManager.LoaderCallbacks<List<TopStory>> {
+
+        @Override
+        public Loader<List<TopStory>> onCreateLoader(int id, Bundle args) {
+            return new PocketStoriesLoader(getContext());
+        }
+
+        @Override
+        public void onLoadFinished(Loader<List<TopStory>> loader, List<TopStory> data) {
+            adapter.swapTopStories(data);
+        }
+
+        @Override
+        public void onLoaderReset(Loader<List<TopStory>> loader) {
+            adapter.swapTopStories(Collections.<TopStory>emptyList());
+        }
+
+
     }
 }

@@ -232,7 +232,6 @@ var gBundle;
 
 const PERMISSION_CONTRACTID     = "@mozilla.org/permissionmanager;1";
 const PREFERENCES_CONTRACTID    = "@mozilla.org/preferences-service;1";
-const ATOM_CONTRACTID           = "@mozilla.org/atom-service;1";
 
 // a number of services I'll need later
 // the cache services
@@ -349,10 +348,10 @@ function loadPageInfo(frameOuterWindowID, imageElement, browser) {
   gStrings["application/xml"]      = gBundle.getString("feedXML");
   gStrings["application/rdf+xml"]  = gBundle.getString("feedXML");
 
+  let imageInfo = imageElement;
+
   // Look for pageInfoListener in content.js. Sends message to listener with arguments.
-  mm.sendAsyncMessage("PageInfo:getData", {strings: gStrings,
-                      frameOuterWindowID},
-                      { imageElement });
+  mm.sendAsyncMessage("PageInfo:getData", {strings: gStrings, frameOuterWindowID});
 
   let pageInfoData;
 
@@ -366,7 +365,7 @@ function loadPageInfo(frameOuterWindowID, imageElement, browser) {
     let principal = docInfo.principal;
     gDocInfo = docInfo;
 
-    gImageElement = pageInfoData.imageInfo;
+    gImageElement = imageInfo;
 
     var titleFormat = windowInfo.isTopWindow ? "pageInfo.page.title"
                                              : "pageInfo.frame.title";

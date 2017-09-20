@@ -16,9 +16,11 @@ module.exports = {
     },
     getBoolPref: pref => {
       const falsey = [
+        PREFS.FILTER.CSS,
         PREFS.FILTER.NET,
         PREFS.FILTER.NETXHR,
         PREFS.UI.FILTER_BAR,
+        PREFS.UI.PERSIST,
       ];
       return !falsey.includes(pref);
     },

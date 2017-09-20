@@ -334,7 +334,7 @@ inline const Stmt *IgnoreTrivials(const Stmt *s) {
 }
 
 inline const Expr *IgnoreTrivials(const Expr *e) {
-  return cast<Expr>(IgnoreTrivials(static_cast<const Stmt *>(e)));
+  return cast_or_null<Expr>(IgnoreTrivials(static_cast<const Stmt *>(e)));
 }
 
 const FieldDecl *getBaseRefCntMember(QualType T);
@@ -426,6 +426,29 @@ inline bool inThirdPartyPath(const Decl *D, ASTContext *context) {
   const SourceManager &SM = context->getSourceManager();
 
   return inThirdPartyPath(Loc, SM);
+}
+
+inline CXXRecordDecl* getNonTemplateSpecializedCXXRecordDecl(QualType Q) {
+  auto *D = Q->getAsCXXRecordDecl();
+
+  if (!D) {
+    auto TemplateQ = Q->getAs<TemplateSpecializationType>();
+    if (!TemplateQ) {
+      return nullptr;
+    }
+
+    auto TemplateDecl = TemplateQ->getTemplateName().getAsTemplateDecl();
+    if (!TemplateDecl) {
+      return nullptr;
+    }
+
+    D = dyn_cast_or_null<CXXRecordDecl>(TemplateDecl->getTemplatedDecl());
+    if (!D) {
+      return nullptr;
+    }
+  }
+
+  return D;
 }
 
 inline bool inThirdPartyPath(const Decl *D) {

@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import unittest
+
 from marionette_driver import errors
 
 from marionette_harness import MarionetteTestCase, skip
@@ -88,6 +90,14 @@ class TestQuitRestart(MarionetteTestCase):
 
         MarionetteTestCase.tearDown(self)
 
+    @property
+    def is_safe_mode(self):
+        with self.marionette.using_context("chrome"):
+            return self.marionette.execute_script("""
+              Cu.import("resource://gre/modules/Services.jsm");
+              return Services.appinfo.inSafeMode;
+            """)
+
     def shutdown(self, restart=False):
         self.marionette.set_context("chrome")
         self.marionette.execute_script("""
@@ -102,8 +112,7 @@ class TestQuitRestart(MarionetteTestCase):
     def test_force_clean_restart(self):
         self.marionette.restart(clean=True)
         self.assertNotEqual(self.marionette.profile, self.profile)
-        self.assertEqual(self.marionette.session_id, self.session_id)
-
+        self.assertNotEqual(self.marionette.session_id, self.session_id)
         # A forced restart will cause a new process id
         self.assertNotEqual(self.marionette.process_id, self.pid)
         self.assertNotEqual(self.marionette.get_pref("startup.homepage_welcome_url"),
@@ -112,8 +121,7 @@ class TestQuitRestart(MarionetteTestCase):
     def test_force_restart(self):
         self.marionette.restart()
         self.assertEqual(self.marionette.profile, self.profile)
-        self.assertEqual(self.marionette.session_id, self.session_id)
-
+        self.assertNotEqual(self.marionette.session_id, self.session_id)
         # A forced restart will cause a new process id
         self.assertNotEqual(self.marionette.process_id, self.pid)
         self.assertNotEqual(self.marionette.get_pref("startup.homepage_welcome_url"),
@@ -188,6 +196,32 @@ class TestQuitRestart(MarionetteTestCase):
 
         self.assertNotEqual(self.marionette.get_pref("startup.homepage_welcome_url"),
                             "about:")
+
+    def test_in_app_restart_safe_mode(self):
+        if self.marionette.session_capabilities["platformName"] != "linux":
+            raise unittest.SkipTest("Bug 1397612 - Hang of Marionette client after the restart.")
+
+        def restart_in_safe_mode():
+            with self.marionette.using_context("chrome"):
+                self.marionette.execute_script("""
+                  Components.utils.import("resource://gre/modules/Services.jsm");
+
+                  let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
+                                     .createInstance(Ci.nsISupportsPRBool);
+                  Services.obs.notifyObservers(cancelQuit,
+                      "quit-application-requested", null);
+
+                  if (!cancelQuit.data) {
+                    Services.startup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit);
+                  }
+                """)
+
+        try:
+            self.assertFalse(self.is_safe_mode, "Safe Mode is unexpectedly enabled")
+            self.marionette.restart(in_app=True, callback=restart_in_safe_mode)
+            self.assertTrue(self.is_safe_mode, "Safe Mode is not enabled")
+        finally:
+            self.marionette.quit(clean=True)
 
     def test_in_app_restart_with_callback_no_shutdown(self):
         try:

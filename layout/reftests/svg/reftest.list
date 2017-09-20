@@ -56,9 +56,6 @@ skip-if(Android) pref(layout.css.mix-blend-mode.enabled,true) == blend-differenc
 
 == border-radius-01.html pass.svg
 
-== box-decoration-break-clone.html box-decoration-break-clone-ref.html
-== box-decoration-break-slice.html box-decoration-break-slice-ref.html
-
 == clip-01.svg pass.svg
 == clip-02a.svg clip-02-ref.svg
 == clip-02b.svg clip-02-ref.svg
@@ -80,12 +77,10 @@ fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu)||/^Windows\x20NT\x206\.[12]/
 == clipPath-basic-07.svg pass.svg
 == clipPath-on-outflowElement-01a.html clipPath-on-outflowElement-01-ref.html
 == clipPath-on-outflowElement-01b.html clipPath-on-outflowElement-01-ref.html
-default-preferences pref(layout.css.clip-path-shapes.enabled,true)
 fuzzy(1,32400) == clipPath-on-outflowElement-02a.html clipPath-on-outflowElement-02-ref.html
 fuzzy(1,32400) == clipPath-on-outflowElement-02b.html clipPath-on-outflowElement-02-ref.html
 == clipPath-polygon-01.svg pass.svg
 == clipPath-polygon-elementFromPoint-01.svg pass.svg
-default-preferences
 != clipPath-on-thin-object.svg about:blank
 == clipPath-winding-01.svg pass.svg
 
@@ -272,6 +267,7 @@ fuzzy-if(skiaContent,1,5) pref(svg.marker-improvements.enabled,true) == marker-o
 
 fuzzy(28,28) == mask-and-clipPath.html mask-and-clipPath-ref.html
 == mask-and-clipPath-2.svg pass.svg
+== mask-ref-loop-01.svg pass.svg
 == mask-basic-01.svg pass.svg
 fuzzy-if(skiaContent,1,10000) == mask-basic-02.svg mask-basic-02-ref.svg
 == mask-basic-03.svg pass.svg
@@ -324,7 +320,7 @@ fuzzy-if(skiaContent,1,10000) == opacity-and-transform-01.svg opacity-and-transf
 
 fuzzy-if(Android,8,200) == outer-svg-border-and-padding-01.svg outer-svg-border-and-padding-01-ref.svg
 
-fuzzy-if(skiaContent,7,175) fuzzy-if(skiaContent&&webrender,1,225) == outline.html outline-ref.html
+fuzzy-if(skiaContent,7,175) fuzzy-if(skiaContent&&webrender,7-7,154-154) == outline.html outline-ref.html
 
 == overflow-on-outer-svg-01.svg overflow-on-outer-svg-01-ref.svg
 == overflow-on-outer-svg-02a.xhtml overflow-on-outer-svg-02-ref.xhtml
@@ -336,7 +332,7 @@ fuzzy-if(skiaContent,7,175) fuzzy-if(skiaContent&&webrender,1,225) == outline.ht
 
 == paint-on-maskLayer-1a.html paint-on-maskLayer-1-ref.html
 == paint-on-maskLayer-1b.html paint-on-maskLayer-1-ref.html
-pref(layout.css.clip-path-shapes.enabled,true) == paint-on-maskLayer-1c.html paint-on-maskLayer-1-ref.html
+== paint-on-maskLayer-1c.html paint-on-maskLayer-1-ref.html
 pref(svg.paint-order.enabled,true) == paint-order-01.svg paint-order-01-ref.svg
 pref(svg.paint-order.enabled,true) fuzzy-if(webrender,1-1,112-112) == paint-order-02.svg paint-order-02-ref.svg
 pref(svg.paint-order.enabled,true) == paint-order-03.svg paint-order-03-ref.svg
@@ -419,6 +415,7 @@ fuzzy-if(skiaContent,1,340) == stroke-dasharray-03.svg pass.svg
 
 == svg-in-foreignObject-01.xhtml svg-in-foreignObject-01-ref.xhtml
 fuzzy-if(skiaContent,1,2600) == svg-in-foreignObject-02.xhtml svg-in-foreignObject-01-ref.xhtml # reuse -01-ref.xhtml
+== svg-in-inner-svg-dimensions.svg pass.svg
 == switch-01.svg pass.svg
 
 == suspend-01.svg pass.svg

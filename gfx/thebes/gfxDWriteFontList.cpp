@@ -282,7 +282,12 @@ gfxDWriteFontFamily::ReadFaceNames(gfxPlatformFontList *aPlatformFontList,
 void
 gfxDWriteFontFamily::LocalizedName(nsAString &aLocalizedName)
 {
-    aLocalizedName.AssignLiteral("Unknown Font");
+    aLocalizedName = Name(); // just return canonical name in case of failure
+
+    if (!mDWFamily) {
+        return;
+    }
+
     HRESULT hr;
     nsAutoCString locale;
     // We use system locale here because it's what user expects to see.
@@ -335,6 +340,19 @@ gfxDWriteFontFamily::LocalizedName(nsAString &aLocalizedName)
     aLocalizedName = nsDependentString(famName.Elements());
 }
 
+bool
+gfxDWriteFontFamily::IsSymbolFontFamily() const
+{
+    // Just check the first font in the family
+    if (mDWFamily->GetFontCount() > 0) {
+        RefPtr<IDWriteFont> font;
+        if (SUCCEEDED(mDWFamily->GetFont(0, getter_AddRefs(font)))) {
+            return font->IsSymbolFont();
+        }
+    }
+    return false;
+}
+
 void
 gfxDWriteFontFamily::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
                                             FontListSizes* aSizes) const
@@ -355,18 +373,15 @@ gfxDWriteFontFamily::AddSizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
 ////////////////////////////////////////////////////////////////////////////////
 // gfxDWriteFontEntry
 
-gfxDWriteFontEntry::~gfxDWriteFontEntry()
+gfxFontEntry*
+gfxDWriteFontEntry::Clone() const
 {
+    MOZ_ASSERT(!IsUserFont(), "we can only clone installed fonts!");
+    return new gfxDWriteFontEntry(Name(), mFont);
 }
 
-bool
-gfxDWriteFontEntry::IsSymbolFont()
+gfxDWriteFontEntry::~gfxDWriteFontEntry()
 {
-    if (mFont) {
-        return mFont->IsSymbolFont();
-    } else {
-        return false;
-    }
 }
 
 static bool
@@ -520,11 +535,9 @@ gfxDWriteFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
 
     RefPtr<gfxCharacterMap> charmap;
     nsresult rv;
-    bool symbolFont;
 
     if (aFontInfoData && (charmap = GetCMAPFromFontInfo(aFontInfoData,
-                                                        mUVSOffset,
-                                                        symbolFont))) {
+                                                        mUVSOffset))) {
         rv = NS_OK;
     } else {
         uint32_t kCMAP = TRUETYPE_TAG('c','m','a','p');
@@ -532,14 +545,12 @@ gfxDWriteFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         AutoTable cmapTable(this, kCMAP);
 
         if (cmapTable) {
-            bool unicodeFont = false, symbolFont = false; // currently ignored
             uint32_t cmapLen;
             const uint8_t* cmapData =
                 reinterpret_cast<const uint8_t*>(hb_blob_get_data(cmapTable,
                                                                   &cmapLen));
             rv = gfxFontUtils::ReadCMAP(cmapData, cmapLen,
-                                        *charmap, mUVSOffset,
-                                        unicodeFont, symbolFont);
+                                        *charmap, mUVSOffset);
         } else {
             rv = NS_ERROR_NOT_AVAILABLE;
         }
@@ -1266,7 +1277,7 @@ gfxDWriteFontList::GetStandardFamilyName(const nsAString& aFontName,
 bool
 gfxDWriteFontList::FindAndAddFamilies(const nsAString& aFamily,
                                       nsTArray<gfxFontFamily*>* aOutput,
-                                      bool aDeferOtherFamilyNamesLoading,
+                                      FindFamiliesFlags aFlags,
                                       gfxFontStyle* aStyle,
                                       gfxFloat aDevToCssSize)
 {
@@ -1285,7 +1296,7 @@ gfxDWriteFontList::FindAndAddFamilies(const nsAString& aFamily,
 
     return gfxPlatformFontList::FindAndAddFamilies(aFamily,
                                                    aOutput,
-                                                   aDeferOtherFamilyNamesLoading,
+                                                   aFlags,
                                                    aStyle,
                                                    aDevToCssSize);
 }
@@ -1661,7 +1672,6 @@ DirectWriteFontInfo::LoadFontFamilyData(const nsAString& aFamilyName)
 
             if (SUCCEEDED(hr)) {
                 bool cmapLoaded = false;
-                bool unicodeFont = false, symbolFont = false;
                 RefPtr<gfxCharacterMap> charmap = new gfxCharacterMap();
                 uint32_t offset;
 
@@ -1669,10 +1679,9 @@ DirectWriteFontInfo::LoadFontFamilyData(const nsAString& aFamilyName)
                     cmapSize > 0 &&
                     NS_SUCCEEDED(
                         gfxFontUtils::ReadCMAP(cmapData, cmapSize, *charmap,
-                                               offset, unicodeFont, symbolFont))) {
+                                               offset))) {
                     fontData.mCharacterMap = charmap;
                     fontData.mUVSOffset = offset;
-                    fontData.mSymbolFont = symbolFont;
                     cmapLoaded = true;
                     mLoadStats.cmaps++;
                 }
@@ -1703,6 +1712,12 @@ gfxDWriteFontList::CreateFontInfoData()
                                );
 
     return fi.forget();
+}
+
+gfxFontFamily*
+gfxDWriteFontList::CreateFontFamily(const nsAString& aName) const
+{
+    return new gfxDWriteFontFamily(aName, nullptr);
 }
 
 

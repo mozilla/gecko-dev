@@ -1501,8 +1501,8 @@ EventSourceImpl::DispatchAllMessageEvents()
                             Sequence<OwningNonNull<MessagePort>>());
     event->SetTrusted(true);
 
-    rv = mEventSource->DispatchDOMEvent(nullptr, static_cast<Event*>(event),
-                                        nullptr, nullptr);
+    bool dummy;
+    rv = mEventSource->DispatchEvent(static_cast<Event*>(event), &dummy);
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to dispatch the message event!!!");
       return;
@@ -1940,7 +1940,8 @@ EventSource::CreateAndDispatchSimpleEvent(const nsAString& aName)
   // it doesn't bubble, and it isn't cancelable
   event->InitEvent(aName, false, false);
   event->SetTrusted(true);
-  return DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+  bool dummy;
+  return DispatchEvent(event, &dummy);
 }
 
 /* static */ already_AddRefed<EventSource>
@@ -2059,7 +2060,7 @@ EventSource::IsCertainlyAliveForCC() const
   return mKeepingAlive;
 }
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(EventSource)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(EventSource)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(EventSource, DOMEventTargetHelper)

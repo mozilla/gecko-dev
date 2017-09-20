@@ -95,9 +95,9 @@ public:
                                     int16_t aStretch,
                                     uint8_t aStyle);
 
-    FcPattern* GetPattern() { return mFontPattern; }
+    gfxFontEntry* Clone() const override;
 
-    bool SupportsLangGroup(nsIAtom *aLangGroup) const override;
+    FcPattern* GetPattern() { return mFontPattern; }
 
     nsresult ReadCMAP(FontInfoData *aFontInfoData = nullptr) override;
     bool TestCharacterMap(uint32_t aCh) override;
@@ -199,8 +199,16 @@ public:
                          bool& aNeedsSyntheticBold,
                          bool aIgnoreSizeTolerance) override;
 
+    bool FilterForFontList(nsIAtom* aLangGroup,
+                           const nsACString& aGeneric) const final {
+        return SupportsLangGroup(aLangGroup);
+    }
+
 protected:
     virtual ~gfxFontconfigFontFamily();
+
+    // helper for FilterForFontList
+    bool SupportsLangGroup(nsIAtom *aLangGroup) const;
 
     nsTArray<nsCountedRef<FcPattern> > mFontPatterns;
 
@@ -260,7 +268,7 @@ public:
 
     bool FindAndAddFamilies(const nsAString& aFamily,
                             nsTArray<gfxFontFamily*>* aOutput,
-                            bool aDeferOtherFamilyNamesLoading,
+                            FindFamiliesFlags aFlags,
                             gfxFontStyle* aStyle = nullptr,
                             gfxFloat aDevToCssSize = 1.0) override;
 
@@ -302,6 +310,8 @@ protected:
 
     virtual gfxFontFamily*
     GetDefaultFontForPlatform(const gfxFontStyle* aStyle) override;
+
+    gfxFontFamily* CreateFontFamily(const nsAString& aName) const override;
 
 #ifdef MOZ_BUNDLED_FONTS
     void ActivateBundledFonts();

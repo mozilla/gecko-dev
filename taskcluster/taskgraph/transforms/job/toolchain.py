@@ -17,6 +17,7 @@ from taskgraph.transforms.job.common import (
     docker_worker_add_tc_vcs_cache,
     docker_worker_add_gecko_vcs_env_vars,
     docker_worker_add_public_artifacts,
+    docker_worker_add_tooltool,
     support_vcs_checkout,
 )
 from taskgraph.util.hash import hash_paths
@@ -58,6 +59,10 @@ def add_optimizations(config, run, taskdesc):
     files.append('taskcluster/taskgraph/transforms/job/toolchain.py')
     # The script
     files.append('taskcluster/scripts/misc/{}'.format(run['script']))
+    # Tooltool manifest if any is defined:
+    tooltool_manifest = taskdesc['worker']['env'].get('TOOLTOOL_MANIFEST')
+    if tooltool_manifest:
+        files.append(tooltool_manifest)
 
     digest = hash_paths(GECKO, files)
 
@@ -96,7 +101,6 @@ def docker_worker_toolchain(config, job, taskdesc):
 
     worker = taskdesc['worker']
     worker['artifacts'] = []
-    worker['caches'] = []
     worker['chain-of-trust'] = True
 
     docker_worker_add_public_artifacts(config, job, taskdesc)
@@ -112,37 +116,17 @@ def docker_worker_toolchain(config, job, taskdesc):
         'MOZ_AUTOMATION': '1',
     })
 
-    # tooltool downloads.  By default we download using the API endpoint, but
-    # the job can optionally request relengapi-proxy (for example when downloading
-    # internal tooltool resources.  So we define the tooltool cache unconditionally.
-    worker['caches'].append({
-        'type': 'persistent',
-        'name': 'tooltool-cache',
-        'mount-point': '/home/worker/tooltool-cache',
-    })
-    env['TOOLTOOL_CACHE'] = '/home/worker/tooltool-cache'
-
-    # tooltool downloads
-    worker['relengapi-proxy'] = False  # but maybe enabled for tooltool below
     if run['tooltool-downloads']:
-        worker['relengapi-proxy'] = True
-        taskdesc['scopes'].extend([
-            'docker-worker:relengapi-proxy:tooltool.download.public',
-        ])
-        if run['tooltool-downloads'] == 'internal':
-            taskdesc['scopes'].append(
-                'docker-worker:relengapi-proxy:tooltool.download.internal')
+        internal = run['tooltool-downloads'] == 'internal'
+        docker_worker_add_tooltool(config, job, taskdesc, internal=internal)
 
     worker['command'] = [
-        '/home/worker/bin/run-task',
-        # Various caches/volumes are default owned by root:root.
-        '--chown-recursive', '/home/worker/workspace',
-        '--chown-recursive', '/home/worker/tooltool-cache',
-        '--vcs-checkout=/home/worker/workspace/build/src',
+        '/builds/worker/bin/run-task',
+        '--vcs-checkout=/builds/worker/workspace/build/src',
         '--',
         'bash',
         '-c',
-        'cd /home/worker && '
+        'cd /builds/worker && '
         './workspace/build/src/taskcluster/scripts/misc/{}'.format(
             run['script'])
     ]

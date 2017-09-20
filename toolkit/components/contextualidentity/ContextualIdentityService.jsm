@@ -11,6 +11,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 const DEFAULT_TAB_COLOR = "#909090";
 const SAVE_DELAY_MS = 1500;
+const CONTEXTUAL_IDENTITY_ENABLED_PREF = "privacy.userContext.enabled";
 
 XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function() {
   return Services.strings.createBundle("chrome://browser/locale/browser.properties");
@@ -114,6 +115,18 @@ _ContextualIdentityService.prototype = {
 
   init(path) {
     this._path = path;
+
+    Services.prefs.addObserver(CONTEXTUAL_IDENTITY_ENABLED_PREF, this);
+  },
+
+  // observe() is only used to listen to container enabling pref
+  async observe() {
+    const contextualIdentitiesEnabled = Services.prefs.getBoolPref(CONTEXTUAL_IDENTITY_ENABLED_PREF);
+    if (!contextualIdentitiesEnabled) {
+      await this.closeContainerTabs();
+      this.notifyAllContainersCleared();
+      this.resetDefault();
+    }
   },
 
   load() {
@@ -147,8 +160,13 @@ _ContextualIdentityService.prototype = {
   },
 
   resetDefault() {
-    this._identities = this._defaultIdentities;
+    this._identities = [];
+    // Clone the array
     this._lastUserContextId = this._defaultIdentities.length;
+    for (let i = 0; i < this._lastUserContextId; i++) {
+      this._identities.push(Object.assign({}, this._defaultIdentities[i]));
+    }
+    this._openedIdentities = new Set();
 
     this._dataReady = true;
 
@@ -216,6 +234,8 @@ _ContextualIdentityService.prototype = {
 
     this._identities.push(identity);
     this.saveSoon();
+    Services.obs.notifyObservers(this.getIdentityObserverOutput(identity),
+                                 "contextual-identity-created");
 
     return Cu.cloneInto(identity, {});
   },
@@ -232,8 +252,9 @@ _ContextualIdentityService.prototype = {
       delete identity.l10nID;
       delete identity.accessKey;
 
-      Services.obs.notifyObservers(null, "contextual-identity-updated", userContextId);
       this.saveSoon();
+      Services.obs.notifyObservers(this.getIdentityObserverOutput(identity),
+                                   "contextual-identity-updated");
     }
 
     return !!identity;
@@ -250,11 +271,24 @@ _ContextualIdentityService.prototype = {
     Services.obs.notifyObservers(null, "clear-origin-attributes-data",
                                  JSON.stringify({ userContextId }));
 
+    let deletedOutput = this.getIdentityObserverOutput(this.getPublicIdentityFromId(userContextId));
     this._identities.splice(index, 1);
     this._openedIdentities.delete(userContextId);
     this.saveSoon();
+    Services.obs.notifyObservers(deletedOutput, "contextual-identity-deleted");
 
     return true;
+  },
+
+  getIdentityObserverOutput(identity) {
+    let wrappedJSObject = {
+      name: this.getUserContextLabel(identity.userContextId),
+      icon: identity.icon,
+      color: identity.color,
+      userContextId: identity.userContextId,
+    };
+
+    return {wrappedJSObject};
   },
 
   ensureDataReady() {
@@ -336,7 +370,7 @@ _ContextualIdentityService.prototype = {
     return new Promise(resolve => {
       let tabParentIds = new Set();
       this._forEachContainerTab((tab, tabbrowser) => {
-        let frameLoader = tab.linkedBrowser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+        let frameLoader = tab.linkedBrowser.frameLoader;
 
         // We don't have tabParent in non-e10s mode.
         if (frameLoader.tabParent) {

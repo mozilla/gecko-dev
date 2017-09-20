@@ -424,16 +424,18 @@ sandbox_finalize(js::FreeOp* fop, JSObject* obj)
     DeferredFinalize(sop);
 }
 
-static void
-sandbox_moved(JSObject* obj, const JSObject* old)
+static size_t
+sandbox_moved(JSObject* obj, JSObject* old)
 {
     // Note that this hook can be called before the private pointer is set. In
     // this case the SandboxPrivate will not exist yet, so there is nothing to
     // do.
     nsIScriptObjectPrincipal* sop =
         static_cast<nsIScriptObjectPrincipal*>(xpc_GetJSPrivate(obj));
-    if (sop)
-        static_cast<SandboxPrivate*>(sop)->ObjectMoved(obj, old);
+    if (!sop)
+        return 0;
+
+    return static_cast<SandboxPrivate*>(sop)->ObjectMoved(obj, old);
 }
 
 static bool
@@ -461,7 +463,7 @@ writeToProto_getProperty(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
 
 struct AutoSkipPropertyMirroring
 {
-    explicit AutoSkipPropertyMirroring(CompartmentPrivate* priv) : priv(priv) {
+    explicit AutoSkipPropertyMirroring(RealmPrivate* priv) : priv(priv) {
         MOZ_ASSERT(!priv->skipWriteToGlobalPrototype);
         priv->skipWriteToGlobalPrototype = true;
     }
@@ -471,7 +473,7 @@ struct AutoSkipPropertyMirroring
     }
 
   private:
-    CompartmentPrivate* priv;
+    RealmPrivate* priv;
 };
 
 // This hook handles the case when writeToGlobalPrototype is set on the
@@ -485,7 +487,7 @@ struct AutoSkipPropertyMirroring
 static bool
 sandbox_addProperty(JSContext* cx, HandleObject obj, HandleId id, HandleValue v)
 {
-    CompartmentPrivate* priv = CompartmentPrivate::Get(obj);
+    RealmPrivate* priv = RealmPrivate::Get(obj);
     MOZ_ASSERT(priv->writeToGlobalPrototype);
 
     // Whenever JS_EnumerateStandardClasses is called, it defines the
@@ -536,11 +538,14 @@ sandbox_addProperty(JSContext* cx, HandleObject obj, HandleId id, HandleValue v)
 
     if (!JS_GetPropertyDescriptorById(cx, obj, id, &pd))
         return false;
+
     unsigned attrs = pd.attributes() & ~(JSPROP_GETTER | JSPROP_SETTER);
-    if (!JS_DefinePropertyById(cx, obj, id, v,
-                               attrs | JSPROP_PROPOP_ACCESSORS | JSPROP_REDEFINE_NONCONFIGURABLE,
+    attrs |= JSPROP_PROPOP_ACCESSORS | JSPROP_REDEFINE_NONCONFIGURABLE;
+
+    if (!JS_DefinePropertyById(cx, obj, id,
                                JS_PROPERTYOP_GETTER(writeToProto_getProperty),
-                               JS_PROPERTYOP_SETTER(writeToProto_setProperty)))
+                               JS_PROPERTYOP_SETTER(writeToProto_setProperty),
+                               attrs))
         return false;
 
     return true;
@@ -549,8 +554,8 @@ sandbox_addProperty(JSContext* cx, HandleObject obj, HandleId id, HandleValue v)
 #define XPCONNECT_SANDBOX_CLASS_METADATA_SLOT (XPCONNECT_GLOBAL_EXTRA_SLOT_OFFSET)
 
 static const js::ClassOps SandboxClassOps = {
-    nullptr, nullptr, nullptr, nullptr,
-    nullptr, JS_NewEnumerateStandardClasses, JS_ResolveStandardClass,
+    nullptr, nullptr, nullptr,
+    JS_NewEnumerateStandardClasses, JS_ResolveStandardClass,
     JS_MayResolveStandardClass,
     sandbox_finalize,
     nullptr, nullptr, nullptr, JS_GlobalObjectTraceHook,
@@ -574,8 +579,8 @@ static const js::Class SandboxClass = {
 // Note to whomever comes here to remove addProperty hooks: billm has promised
 // to do the work for this class.
 static const js::ClassOps SandboxWriteToProtoClassOps = {
-    sandbox_addProperty, nullptr, nullptr, nullptr,
-    nullptr, JS_NewEnumerateStandardClasses, JS_ResolveStandardClass,
+    sandbox_addProperty, nullptr, nullptr,
+    JS_NewEnumerateStandardClasses, JS_ResolveStandardClass,
     JS_MayResolveStandardClass,
     sandbox_finalize,
     nullptr, nullptr, nullptr, JS_GlobalObjectTraceHook,
@@ -592,9 +597,9 @@ static const js::Class SandboxWriteToProtoClass = {
 };
 
 static const JSFunctionSpec SandboxFunctions[] = {
-    JS_FS("dump",    SandboxDump,    1,0),
-    JS_FS("debug",   SandboxDebug,   1,0),
-    JS_FS("importFunction", SandboxImport, 1,0),
+    JS_FN("dump",    SandboxDump,    1,0),
+    JS_FN("debug",   SandboxDebug,   1,0),
+    JS_FN("importFunction", SandboxImport, 1,0),
     JS_FS_END
 };
 
@@ -1111,11 +1116,14 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
     if (!sandbox)
         return NS_ERROR_FAILURE;
 
+    RealmPrivate* realmPriv = RealmPrivate::Get(sandbox);
+    realmPriv->writeToGlobalPrototype = options.writeToGlobalPrototype;
+
     CompartmentPrivate* priv = CompartmentPrivate::Get(sandbox);
     priv->allowWaivers = options.allowWaivers;
-    priv->writeToGlobalPrototype = options.writeToGlobalPrototype;
     priv->isWebExtensionContentScript = options.isWebExtensionContentScript;
     priv->waiveInterposition = options.waiveInterposition;
+    priv->isContentXBLCompartment = options.isContentXBLScope;
 
     // Set up the wantXrays flag, which indicates whether xrays are desired even
     // for same-origin access.
@@ -1142,7 +1150,7 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
             // Don't try to mirror standard class properties, if we're using a
             // mirroring sandbox.  (This is meaningless for non-mirroring
             // sandboxes.)
-            AutoSkipPropertyMirroring askip(CompartmentPrivate::Get(sandbox));
+            AutoSkipPropertyMirroring askip(RealmPrivate::Get(sandbox));
 
             // Ensure |Object.prototype| is instantiated before prototype-
             // splicing below.  For write-to-global-prototype behavior, extend
@@ -1196,7 +1204,7 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
         }
 
         // Don't try to mirror the properties that are set below.
-        AutoSkipPropertyMirroring askip(CompartmentPrivate::Get(sandbox));
+        AutoSkipPropertyMirroring askip(RealmPrivate::Get(sandbox));
 
         bool allowComponents = principal == nsXPConnect::SystemPrincipal() ||
                                nsContentUtils::IsExpandedPrincipal(principal);
@@ -1706,6 +1714,12 @@ AssembleSandboxMemoryReporterName(JSContext* cx, nsCString& sandboxName)
     // Use a default name when the caller did not provide a sandboxName.
     if (sandboxName.IsEmpty())
         sandboxName = NS_LITERAL_CSTRING("[anonymous sandbox]");
+#ifndef DEBUG
+    // Adding the caller location is fairly expensive, so in non-debug builds,
+    // only add it if we don't have an explicit sandbox name.
+    else
+        return NS_OK;
+#endif
 
     // Get the xpconnect native call context.
     XPCCallContext* cc = XPCJSContext::Get()->GetCallContext();

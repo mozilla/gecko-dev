@@ -19,6 +19,7 @@
 #include "nsIDOMStorageManager.h"
 #include "nsDocLoader.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/Move.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/TimeStamp.h"
@@ -61,9 +62,11 @@
 #include "nsRect.h"
 #include "Units.h"
 #include "nsIDeprecationWarner.h"
+#include "nsILoadURIDelegate.h"
 
 namespace mozilla {
 class Encoding;
+class HTMLEditor;
 enum class TaskCategory;
 namespace dom {
 class EventTarget;
@@ -284,6 +287,46 @@ public:
 
   const Encoding* GetForcedCharset() { return mForcedCharset; }
 
+  mozilla::HTMLEditor* GetHTMLEditorInternal();
+  nsresult SetHTMLEditorInternal(mozilla::HTMLEditor* aHTMLEditor);
+
+  nsDOMNavigationTiming* GetNavigationTiming() const;
+
+  /**
+   * Get the list of ancestor principals for this docshell.  The list is meant
+   * to be the list of principals of the documents this docshell is "nested
+   * through" in the sense of
+   * <https://html.spec.whatwg.org/multipage/browsers.html#browsing-context-nested-through>.
+   * In practice, it is defined as follows:
+   *
+   * If this is an <iframe mozbrowser> or a toplevel content docshell
+   * (i.e. toplevel document in spec terms), the list is empty.
+   *
+   * Otherwise the list is the list for the document we're nested through (again
+   * in the spec sense), with the principal of that document prepended.  Note
+   * that this matches the ordering specified for Location.ancestorOrigins.
+   */
+  const nsTArray<nsCOMPtr<nsIPrincipal>>& AncestorPrincipals() const
+  {
+    return mAncestorPrincipals;
+  }
+
+  /**
+   * Set the list of ancestor principals for this docshell.  This is really only
+   * needed for use by the frameloader.  We can't do this ourselves, inside
+   * docshell, because there's a bunch of state setup that frameloader does
+   * (like telling us whether we're a mozbrowser), some of which comes after the
+   * docshell is added to the docshell tree, which can affect what the ancestor
+   * principals should look like.
+   *
+   * This method steals the data from the passed-in array.
+   */
+  void SetAncestorPrincipals(
+    nsTArray<nsCOMPtr<nsIPrincipal>>&& aAncestorPrincipals)
+  {
+    mAncestorPrincipals = mozilla::Move(aAncestorPrincipals);
+  }
+
 private:
   bool CanSetOriginAttributes();
 
@@ -443,7 +486,7 @@ protected:
   void SetReferrerPolicy(uint32_t aReferrerPolicy);
 
   // Session History
-  bool ShouldAddToSessionHistory(nsIURI* aURI);
+  bool ShouldAddToSessionHistory(nsIURI* aURI, nsIChannel* aChannel);
   // Either aChannel or aOwner must be null. If aChannel is
   // present, the owner should be gotten from it.
   // If aCloneChildren is true, then our current session history's
@@ -906,6 +949,8 @@ protected:
 
   eCharsetReloadState mCharsetReloadState;
 
+  nsCOMPtr<nsILoadURIDelegate> mLoadURIDelegate;
+
   // Offset in the parent's child list.
   // -1 if the docshell is added dynamically to the parent shell.
   int32_t mChildOffset;
@@ -921,7 +966,8 @@ protected:
   int32_t mItemType;
 
   // Index into the SHTransaction list, indicating the previous and current
-  // transaction at the time that this DocShell begins to load
+  // transaction at the time that this DocShell begins to load. Consequently
+  // root docshell's indices can differ from child docshells'.
   int32_t mPreviousTransIndex;
   int32_t mLoadedTransIndex;
 
@@ -1050,6 +1096,18 @@ protected:
 
   nsString mInterceptedDocumentId;
 
+  // This represents the CSS display-mode we are currently using.
+  // It can be any of the following values from nsIDocShell.idl:
+  //
+  // DISPLAY_MODE_BROWSER = 0
+  // DISPLAY_MODE_MINIMAL_UI = 1
+  // DISPLAY_MODE_STANDALONE = 2
+  // DISPLAY_MODE_FULLSCREEN = 3
+  //
+  // This is mostly used for media queries. The integer values above
+  // match those used in nsStyleConsts.h
+  uint32_t mDisplayMode;
+
 private:
   const Encoding* mForcedCharset;
   const Encoding* mParentCharset;
@@ -1071,6 +1129,9 @@ private:
   // Whether or not touch events are overridden. Possible values are defined
   // as constants in the nsIDocShell.idl file.
   uint32_t mTouchEventsOverride;
+
+  // Our list of ancestor principals.
+  nsTArray<nsCOMPtr<nsIPrincipal>> mAncestorPrincipals;
 
   // Separate function to do the actual name (i.e. not _top, _self etc.)
   // searching for FindItemWithName.

@@ -2940,47 +2940,20 @@ date_toSource(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif
 
-MOZ_ALWAYS_INLINE bool
-IsObject(HandleValue v)
-{
-    return v.isObject();
-}
-
 // ES6 20.3.4.41.
 MOZ_ALWAYS_INLINE bool
 date_toString_impl(JSContext* cx, const CallArgs& args)
 {
-    // Step 1.
-    RootedObject obj(cx, &args.thisv().toObject());
-
-    // Step 2.
-    ESClass cls;
-    if (!GetBuiltinClass(cx, obj, &cls))
-        return false;
-
-    double tv;
-    if (cls != ESClass::Date) {
-        // Step 2.
-        tv = GenericNaN();
-    } else {
-        // Step 3.
-        RootedValue unboxed(cx);
-        if (!Unbox(cx, obj, &unboxed))
-            return false;
-
-        tv = unboxed.toNumber();
-    }
-
-    // Step 4.
-    return FormatDate(cx, tv, FormatSpec::DateTime, args.rval());
+    // Steps 1-2.
+    return FormatDate(cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),
+                      FormatSpec::DateTime, args.rval());
 }
 
 bool
 date_toString(JSContext* cx, unsigned argc, Value* vp)
 {
-    // Step 1.
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod<IsObject, date_toString_impl>(cx, args);
+    return CallNonGenericMethod<IsDate, date_toString_impl>(cx, args);
 }
 
 MOZ_ALWAYS_INLINE bool
@@ -3283,8 +3256,8 @@ FinishDateClassInit(JSContext* cx, HandleObject ctor, HandleObject proto)
     RootedId toUTCStringId(cx, NameToId(cx->names().toUTCString));
     RootedId toGMTStringId(cx, NameToId(cx->names().toGMTString));
     return NativeGetProperty(cx, proto.as<NativeObject>(), toUTCStringId, &toUTCStringFun) &&
-           NativeDefineProperty(cx, proto.as<NativeObject>(), toGMTStringId, toUTCStringFun,
-                                nullptr, nullptr, 0);
+           NativeDefineDataProperty(cx, proto.as<NativeObject>(), toGMTStringId, toUTCStringFun,
+                                    0);
 }
 
 static const ClassSpec DateObjectClassSpec = {

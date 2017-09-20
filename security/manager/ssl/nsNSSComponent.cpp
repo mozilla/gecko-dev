@@ -8,7 +8,7 @@
 
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
-#include "PKCS11.h"
+#include "PKCS11ModuleDB.h"
 #include "ScopedNSSTypes.h"
 #include "SharedSSLState.h"
 #include "cert.h"
@@ -1768,7 +1768,8 @@ GetNSSProfilePath(nsAutoCString& aProfilePath)
 // returns NS_OK even if renaming the file didn't work. This simplifies the
 // logic of the calling code.
 static nsresult
-AttemptToRenamePKCS11ModuleDB(const nsACString& profilePath)
+AttemptToRenamePKCS11ModuleDB(const nsACString& profilePath,
+                              const nsACString& moduleDBFilename)
 {
   // profilePath may come from the environment variable
   // MOZPSM_NSSDBDIR_OVERRIDE. If so, the user's NSS DBs are most likely not in
@@ -1779,8 +1780,8 @@ AttemptToRenamePKCS11ModuleDB(const nsACString& profilePath)
             ("MOZPSM_NSSDBDIR_OVERRIDE set - not renaming PKCS#11 module DB"));
     return NS_OK;
   }
-  NS_NAMED_LITERAL_CSTRING(moduleDBFilename, "secmod.db");
-  NS_NAMED_LITERAL_CSTRING(destModuleDBFilename, "secmod.db.fips");
+  nsAutoCString destModuleDBFilename(moduleDBFilename);
+  destModuleDBFilename.Append(".fips");
   nsCOMPtr<nsIFile> dbFile = do_CreateInstance("@mozilla.org/file/local;1");
   if (!dbFile) {
     return NS_ERROR_FAILURE;
@@ -1802,7 +1803,7 @@ AttemptToRenamePKCS11ModuleDB(const nsACString& profilePath)
   // This is strange, but not a catastrophic failure.
   if (!exists) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("%s doesn't exist?", moduleDBFilename.get()));
+            ("%s doesn't exist?", PromiseFlatCString(moduleDBFilename).get()));
     return NS_OK;
   }
   nsCOMPtr<nsIFile> destDBFile = do_CreateInstance("@mozilla.org/file/local;1");
@@ -1845,6 +1846,22 @@ AttemptToRenamePKCS11ModuleDB(const nsACString& profilePath)
   Unused << dbFile->MoveToNative(profileDir, destModuleDBFilename);
   return NS_OK;
 }
+
+// We may be using the legacy databases, in which case we need to use
+// "secmod.db". We may be using the sqlite-backed databases, in which case we
+// need to use "pkcs11.txt".
+static nsresult
+AttemptToRenameBothPKCS11ModuleDBVersions(const nsACString& profilePath)
+{
+  NS_NAMED_LITERAL_CSTRING(legacyModuleDBFilename, "secmod.db");
+  NS_NAMED_LITERAL_CSTRING(sqlModuleDBFilename, "pkcs11.txt");
+  nsresult rv = AttemptToRenamePKCS11ModuleDB(profilePath,
+                                              legacyModuleDBFilename);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  return AttemptToRenamePKCS11ModuleDB(profilePath, sqlModuleDBFilename);
+}
 #endif // ifndef ANDROID
 
 // Given a profile directory, attempt to initialize NSS. If nocertdb is true,
@@ -1869,13 +1886,11 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
   }
 
 
-  const nsCString& profilePathCStr = PromiseFlatCString(profilePath);
   // Try read/write mode. If we're in safeMode, we won't load PKCS#11 modules.
 #ifndef ANDROID
   PRErrorCode savedPRErrorCode1;
 #endif // ifndef ANDROID
-  SECStatus srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), false,
-                                                !safeMode);
+  SECStatus srv = ::mozilla::psm::InitializeNSS(profilePath, false, !safeMode);
   if (srv == SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized NSS in r/w mode"));
     return NS_OK;
@@ -1885,13 +1900,17 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
   PRErrorCode savedPRErrorCode2;
 #endif // ifndef ANDROID
   // That failed. Try read-only mode.
-  srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), true, !safeMode);
+  srv = ::mozilla::psm::InitializeNSS(profilePath, true, !safeMode);
   if (srv == SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized NSS in r-o mode"));
     return NS_OK;
   }
 #ifndef ANDROID
   savedPRErrorCode2 = PR_GetError();
+
+  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+          ("failed to initialize NSS with codes %d %d", savedPRErrorCode1,
+           savedPRErrorCode2));
 #endif // ifndef ANDROID
 
 #ifndef ANDROID
@@ -1899,14 +1918,16 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
   // in FIPS mode, but we don't support FIPS? Test load NSS without PKCS#11
   // modules. If that succeeds, that's probably what's going on.
   if (!safeMode && (savedPRErrorCode1 == SEC_ERROR_LEGACY_DATABASE ||
-                    savedPRErrorCode2 == SEC_ERROR_LEGACY_DATABASE)) {
+                    savedPRErrorCode2 == SEC_ERROR_LEGACY_DATABASE ||
+                    savedPRErrorCode1 == SEC_ERROR_PKCS11_DEVICE_ERROR ||
+                    savedPRErrorCode2 == SEC_ERROR_PKCS11_DEVICE_ERROR)) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("attempting no-module db init"));
     // It would make sense to initialize NSS in read-only mode here since this
     // is just a test to see if the PKCS#11 module DB being in FIPS mode is the
     // problem, but for some reason the combination of read-only and no-moddb
     // flags causes NSS initialization to fail, so unfortunately we have to use
     // read-write mode.
-    srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), false, false);
+    srv = ::mozilla::psm::InitializeNSS(profilePath, false, false);
     if (srv == SECSuccess) {
       MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("FIPS may be the problem"));
       // Unload NSS so we can attempt to fix this situation for the user.
@@ -1918,16 +1939,16 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
       // If this fails non-catastrophically, we'll attempt to initialize NSS
       // again in r/w then r-o mode (both of which will fail), and then we'll
       // fall back to NSS_NoDB_Init, which is the behavior we want.
-      nsresult rv = AttemptToRenamePKCS11ModuleDB(profilePath);
+      nsresult rv = AttemptToRenameBothPKCS11ModuleDBVersions(profilePath);
       if (NS_FAILED(rv)) {
         return rv;
       }
-      srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), false, true);
+      srv = ::mozilla::psm::InitializeNSS(profilePath, false, true);
       if (srv == SECSuccess) {
         MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized in r/w mode"));
         return NS_OK;
       }
-      srv = ::mozilla::psm::InitializeNSS(profilePathCStr.get(), true, true);
+      srv = ::mozilla::psm::InitializeNSS(profilePath, true, true);
       if (srv == SECSuccess) {
         MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized in r-o mode"));
         return NS_OK;
@@ -2226,8 +2247,14 @@ NS_IMETHODIMP
 nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
                         const char16_t* someData)
 {
-  if (nsCRT::strcmp(aTopic, PROFILE_BEFORE_CHANGE_TOPIC) == 0) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("receiving profile change topic\n"));
+  // In some tests, we don't receive a "profile-before-change" topic. However,
+  // we still have to shut down before the storage service shuts down, because
+  // closing the sql-backed softoken requires sqlite still be available. Thus,
+  // we observe "xpcom-shutdown" just in case.
+  if (nsCRT::strcmp(aTopic, PROFILE_BEFORE_CHANGE_TOPIC) == 0 ||
+      nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+            ("receiving profile change or XPCOM shutdown notification"));
     ShutdownNSS();
   } else if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     nsNSSShutDownPreventionLock locker;
@@ -2348,6 +2375,7 @@ nsNSSComponent::RegisterObservers()
   // keep a strong reference to this component. As a result, this will live at
   // least as long as the observer service.
   observerService->AddObserver(this, PROFILE_BEFORE_CHANGE_TOPIC, false);
+  observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
 
   return NS_OK;
 }

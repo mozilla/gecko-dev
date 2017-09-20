@@ -15,14 +15,13 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
-use style::traversal::{DomTraversal, TraversalDriver, recalc_style_at};
+use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeLayoutData};
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,
-    driver: TraversalDriver,
 }
 
 impl<'a> RecalcStyleAndConstructFlows<'a> {
@@ -33,10 +32,9 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 
 impl<'a> RecalcStyleAndConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(context: LayoutContext<'a>, driver: TraversalDriver) -> Self {
+    pub fn new(context: LayoutContext<'a>) -> Self {
         RecalcStyleAndConstructFlows {
             context: context,
-            driver: driver,
         }
     }
 
@@ -79,15 +77,11 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
         // (1) They child doesn't yet have layout data (preorder traversal initializes it).
         // (2) The parent element has restyle damage (so the text flow also needs fixup).
         node.get_raw_data().is_none() ||
-        parent_data.restyle.damage != RestyleDamage::empty()
+        parent_data.damage != RestyleDamage::empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {
         &self.context.style_context
-    }
-
-    fn is_parallel(&self) -> bool {
-        self.driver.is_parallel()
     }
 }
 
@@ -243,7 +237,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 }
 
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct AssignISizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -263,7 +257,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 /// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of
 /// layout computation. Determines the final block-sizes for all layout objects and computes
 /// positions. In Gecko this corresponds to `Reflow`.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct AssignBSizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }

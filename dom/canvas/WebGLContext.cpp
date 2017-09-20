@@ -104,10 +104,6 @@ WebGLContextOptions::WebGLContextOptions()
         alpha = false;
 }
 
-
-/*static*/ const uint32_t WebGLContext::kMinMaxColorAttachments = 4;
-/*static*/ const uint32_t WebGLContext::kMinMaxDrawBuffers = 4;
-
 WebGLContext::WebGLContext()
     : WebGLContextUnchecked(nullptr)
     , mMaxPerfWarnings(gfxPrefs::WebGLMaxPerfWarnings())
@@ -134,7 +130,6 @@ WebGLContext::WebGLContext()
     mShouldPresent = true;
     mResetLayer = true;
     mOptionsFrozen = false;
-    mMinCapability = false;
     mDisableExtensions = false;
     mIsMesa = false;
     mEmitContextLostErrorOnce = false;
@@ -718,7 +713,7 @@ WebGLContext::CreateAndInitGL(bool forceEnabled,
 
     if (IsWebGL2()) {
         flags |= gl::CreateContextFlags::PREFER_ES3;
-    } else {
+    } else if (!gfxPrefs::WebGL1AllowCoreProfile()) {
         flags |= gl::CreateContextFlags::REQUIRE_COMPAT_PROFILE;
     }
 
@@ -1322,9 +1317,6 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* builder,
                              LayerManager* manager,
                              bool aMirror /*= false*/)
 {
-    if (IsContextLost())
-        return nullptr;
-
     if (!mResetLayer && oldLayer &&
         oldLayer->HasUserData(aMirror ? &gWebGLMirrorLayerUserData : &gWebGLLayerUserData)) {
         RefPtr<layers::Layer> ret = oldLayer;
@@ -1345,7 +1337,9 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* builder,
     canvasLayer->SetUserData(aMirror ? &gWebGLMirrorLayerUserData : &gWebGLLayerUserData, userData);
 
     CanvasRenderer* canvasRenderer = canvasLayer->CreateOrGetCanvasRenderer();
-    InitializeCanvasRenderer(builder, canvasRenderer, aMirror);
+    if (!InitializeCanvasRenderer(builder, canvasRenderer, aMirror))
+      return nullptr;
+
     uint32_t flags = gl->Caps().alpha ? 0 : Layer::CONTENT_OPAQUE;
     canvasLayer->SetContentFlags(flags);
 
@@ -1358,11 +1352,14 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* builder,
     return canvasLayer.forget();
 }
 
-void
+bool
 WebGLContext::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
                                        CanvasRenderer* aRenderer,
                                        bool aMirror)
 {
+    if (IsContextLost())
+        return false;
+
     CanvasInitializeData data;
     if (aBuilder->IsPaintingToWindow() && mCanvasElement && !aMirror) {
         // Make the layer tell us whenever a transaction finishes (including
@@ -1391,6 +1388,7 @@ WebGLContext::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
 
     aRenderer->Initialize(data);
     aRenderer->SetDirty();
+    return true;
 }
 
 layers::LayersBackend
@@ -1403,6 +1401,16 @@ WebGLContext::GetCompositorBackendType() const
     }
 
     return LayersBackend::LAYERS_NONE;
+}
+
+nsIDocument*
+WebGLContext::GetOwnerDoc() const
+{
+    MOZ_ASSERT(mCanvasElement);
+    if (!mCanvasElement) {
+        return nullptr;
+    }
+    return mCanvasElement->OwnerDoc();
 }
 
 void
@@ -2446,6 +2454,19 @@ WebGLContext::ValidateArrayBufferView(const char* funcName,
 
 ////////////////////////////////////////////////////////////////////////////////
 // XPCOM goop
+
+void
+WebGLContext::UpdateMaxDrawBuffers()
+{
+    gl->MakeCurrent();
+    mGLMaxColorAttachments = gl->GetIntAs<uint32_t>(LOCAL_GL_MAX_COLOR_ATTACHMENTS);
+    mGLMaxDrawBuffers = gl->GetIntAs<uint32_t>(LOCAL_GL_MAX_DRAW_BUFFERS);
+
+    // WEBGL_draw_buffers:
+    // "The value of the MAX_COLOR_ATTACHMENTS_WEBGL parameter must be greater than or
+    //  equal to that of the MAX_DRAW_BUFFERS_WEBGL parameter."
+    mGLMaxDrawBuffers = std::min(mGLMaxDrawBuffers, mGLMaxColorAttachments);
+}
 
 void
 ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,

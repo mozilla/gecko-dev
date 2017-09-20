@@ -12,6 +12,7 @@
 #include "nsISupportsImpl.h"
 #include "nsITextServicesDocument.h"
 #include "nsIWeakReferenceUtils.h"
+#include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nscore.h"
 
@@ -27,7 +28,6 @@ class nsIEditor;
 class nsISelection;
 class nsISelectionController;
 class nsITextServicesFilter;
-class nsString;
 
 /** implementation of a text services object.
  *
@@ -178,7 +178,7 @@ private:
   nsresult GetDocumentContentRootNode(nsIDOMNode **aNode);
   nsresult CreateDocumentContentRange(nsRange** aRange);
   nsresult CreateDocumentContentRootToNodeOffsetRange(nsIDOMNode* aParent,
-                                                      int32_t aOffset,
+                                                      uint32_t aOffset,
                                                       bool aToStart,
                                                       nsRange** aRange);
   nsresult CreateDocumentContentIterator(nsIContentIterator **aIterator);

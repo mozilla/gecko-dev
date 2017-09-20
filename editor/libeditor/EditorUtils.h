@@ -143,52 +143,43 @@ EditActionCanceled(nsresult aRv = NS_OK)
 /***************************************************************************
  * stack based helper class for batching a collection of transactions inside a
  * placeholder transaction.
- * XXX This is used by mozInlineSpellChecker.  Therefore, cannot use concrete
- *     editor class.
  */
-class MOZ_RAII AutoPlaceHolderBatch
+class MOZ_RAII AutoPlaceholderBatch final
 {
 private:
-  nsCOMPtr<nsIEditor> mEditor;
+  RefPtr<EditorBase> mEditorBase;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
 public:
-  AutoPlaceHolderBatch(nsIEditor* aEditor,
-                       nsIAtom* aAtom
+  explicit AutoPlaceholderBatch(EditorBase* aEditorBase
+                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    : mEditorBase(aEditorBase)
+  {
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    BeginPlaceholderTransaction(nullptr);
+  }
+  AutoPlaceholderBatch(EditorBase* aEditorBase,
+                       nsIAtom* aTransactionName
                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : mEditor(aEditor)
+    : mEditorBase(aEditorBase)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    if (mEditor) {
-      mEditor->BeginPlaceHolderTransaction(aAtom);
-    }
+    BeginPlaceholderTransaction(aTransactionName);
   }
-  ~AutoPlaceHolderBatch()
+  ~AutoPlaceholderBatch()
   {
-    if (mEditor) {
-      mEditor->EndPlaceHolderTransaction();
+    if (mEditorBase) {
+      mEditorBase->EndPlaceholderTransaction();
     }
   }
-};
 
-/***************************************************************************
- * stack based helper class for batching a collection of txns.
- * Note: I changed this to use placeholder batching so that we get
- * proper selection save/restore across undo/redo.
- */
-class MOZ_RAII AutoEditBatch final : public AutoPlaceHolderBatch
-{
 private:
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-public:
-  explicit AutoEditBatch(nsIEditor* aEditor
-                         MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : AutoPlaceHolderBatch(aEditor, nullptr)
+  void BeginPlaceholderTransaction(nsIAtom* aTransactionName)
   {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    if (mEditorBase) {
+      mEditorBase->BeginPlaceholderTransaction(aTransactionName);
+    }
   }
-  ~AutoEditBatch() {}
 };
 
 /***************************************************************************
@@ -420,10 +411,13 @@ struct MOZ_STACK_CLASS EditorDOMPoint final
 class EditorUtils final
 {
 public:
+  // Note that aChild isn't a normal XPCOM outparam and won't get AddRef'ed.
   static bool IsDescendantOf(nsINode* aNode, nsINode* aParent,
-                             int32_t* aOffset = 0);
+                             nsIContent** aChild);
+  static bool IsDescendantOf(nsINode* aNode, nsINode* aParent,
+                             int32_t* aOffset = nullptr);
   static bool IsDescendantOf(nsIDOMNode* aNode, nsIDOMNode* aParent,
-                             int32_t* aOffset = 0);
+                             int32_t* aOffset = nullptr);
   static bool IsLeafNode(nsIDOMNode* aNode);
 };
 

@@ -92,6 +92,10 @@ add_task(async function setup() {
   // test when it selects results in the urlbar.
   await PlacesTestUtils.clearHistory();
 
+  // Clear historical search suggestions to avoid interference from previous
+  // tests.
+  await SpecialPowers.pushPrefEnv({"set": [["browser.urlbar.maxHistoricalSearchSuggestions", 0]]});
+
   // Make sure to restore the engine once we're done.
   registerCleanupFunction(async function() {
     Services.telemetry.canRecordExtended = oldCanRecord;
@@ -108,16 +112,12 @@ add_task(async function test_simpleQuery() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
-  let resultIndexHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX");
-  let resultTypeHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE");
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  let resultIndexByTypeHist = Services.telemetry.getKeyedHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
-  resultIndexByTypeHist.clear();
-  resultIndexHist.clear();
-  resultTypeHist.clear();
-  resultMethodHist.clear();
 
-  let search_hist = getSearchCountsHistogram();
+  let resultIndexHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_INDEX");
+  let resultTypeHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_TYPE");
+  let resultIndexByTypeHist = getAndClearKeyedHistogram("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
+  let search_hist = getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
 
@@ -167,16 +167,12 @@ add_task(async function test_searchAlias() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
-  let resultIndexHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX");
-  let resultTypeHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE");
-  let resultIndexByTypeHist = Services.telemetry.getKeyedHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  resultIndexByTypeHist.clear();
-  resultIndexHist.clear();
-  resultTypeHist.clear();
-  resultMethodHist.clear();
 
-  let search_hist = getSearchCountsHistogram();
+  let resultIndexHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_INDEX");
+  let resultTypeHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_TYPE");
+  let resultIndexByTypeHist = getAndClearKeyedHistogram("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
+  let search_hist = getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
 
@@ -228,16 +224,12 @@ add_task(async function test_oneOff_enter() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
-  let resultIndexHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX");
-  let resultTypeHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE");
-  let resultIndexByTypeHist = Services.telemetry.getKeyedHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  resultIndexByTypeHist.clear();
-  resultIndexHist.clear();
-  resultTypeHist.clear();
-  resultMethodHist.clear();
 
-  let search_hist = getSearchCountsHistogram();
+  let resultIndexHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_INDEX");
+  let resultTypeHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_TYPE");
+  let resultIndexByTypeHist = getAndClearKeyedHistogram("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
+  let search_hist = getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
 
@@ -293,8 +285,7 @@ add_task(async function test_oneOff_enterSelection() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
 
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  resultMethodHist.clear();
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
 
   // Create an engine to generate search suggestions and add it as default
   // for this test.
@@ -338,8 +329,7 @@ add_task(async function test_oneOff_click() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
 
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  resultMethodHist.clear();
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
 
@@ -363,16 +353,12 @@ add_task(async function test_suggestion_click() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
-  let resultIndexHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX");
-  let resultTypeHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE");
-  let resultIndexByTypeHist = Services.telemetry.getKeyedHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  resultIndexByTypeHist.clear();
-  resultIndexHist.clear();
-  resultTypeHist.clear();
-  resultMethodHist.clear();
 
-  let search_hist = getSearchCountsHistogram();
+  let resultIndexHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_INDEX");
+  let resultTypeHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_TYPE");
+  let resultIndexByTypeHist = getAndClearKeyedHistogram("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE");
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
+  let search_hist = getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   // Create an engine to generate search suggestions and add it as default
   // for this test.
@@ -442,8 +428,7 @@ add_task(async function test_suggestion_enterSelection() {
   // Let's reset the counts.
   Services.telemetry.clearScalars();
 
-  let resultMethodHist = Services.telemetry.getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD");
-  resultMethodHist.clear();
+  let resultMethodHist = getAndClearHistogram("FX_URLBAR_SELECTED_RESULT_METHOD");
 
   // Create an engine to generate search suggestions and add it as default
   // for this test.

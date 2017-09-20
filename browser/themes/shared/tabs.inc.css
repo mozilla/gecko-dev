@@ -3,15 +3,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 %endif
+%filter substitution
+%define horizontalTabPadding 9px
 
 :root {
   --tab-toolbar-navbar-overlap: 1px;
-/* Temporarily using the compact tab strip by default because of bug 1386964:
+  --tab-line-color: highlight;
   --tab-min-height: 33px;
+  --tab-loading-fill: #0A84FF;
 }
 
 :root[uidensity=compact] {
-*/
   --tab-min-height: 29px;
 }
 
@@ -19,7 +21,22 @@
   --tab-min-height: 41px;
 }
 
+:root:-moz-lwtheme {
+  --tab-line-color: var(--lwt-accent-color);
+}
+
+tabbrowser {
+  /* Value for --in-content-page-background in in-content/common.inc.css */
+  background-color: #f9f9fa;
+}
+
+:root[privatebrowsingmode=temporary] tabbrowser {
+  /* Value for --in-content-page-background in aboutPrivateBrowsing.css */
+  background-color: #25003e;
+}
+
 #tabbrowser-tabs,
+#tabbrowser-tabs > .tabbrowser-arrowscrollbox,
 .tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-tab[pinned] {
   min-height: var(--tab-min-height);
 }
@@ -49,11 +66,57 @@
 }
 
 .tab-content {
-  padding: 0 9px;
+  padding: 0 @horizontalTabPadding@;
 }
 
 .tab-content[pinned] {
   padding: 0 12px;
+}
+
+:root[sessionrestored] .tab-loading-burst {
+  position: relative;
+  overflow: hidden;
+}
+
+:root[sessionrestored] .tab-loading-burst::before {
+  position: absolute;
+  content: "";
+  /* We set the width to be a percentage of the tab's width so that we can use
+     the `scale` transform to scale it up to the full size of the tab when the
+     burst occurs. We also need to set the margin-inline-start so that the
+     center of the burst matches the center of the favicon. */
+  width: 5%;
+  height: 100%;
+  /* Center the burst over the .tab-loading-burst; it's 9px from the edge thanks
+     to .tab-content, plus 8px more since .tab-loading-burst is 16px wide. */
+  margin-inline-start: calc(17px - 2.5%);
+}
+
+:root[sessionrestored] .tab-loading-burst[pinned]::before {
+  /* This is like the margin-inline-start rule above, except that icons for
+     pinned tabs are 12px from the edge. */
+  margin-inline-start: calc(20px - 2.5%);
+}
+
+:root[sessionrestored] .tab-loading-burst[bursting]::before {
+  background-image: url("chrome://browser/skin/tabbrowser/loading-burst.svg");
+  background-position: center center;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  animation: tab-burst-animation 375ms cubic-bezier(0,0,.58,1);
+  -moz-context-properties: fill;
+  fill: var(--tab-loading-fill);
+}
+
+@keyframes tab-burst-animation {
+  0% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(40);
+  }
 }
 
 .tab-throbber,
@@ -64,7 +127,55 @@
   margin-top: 1px;
 }
 
-.tab-throbber,
+:root[sessionrestored] .tab-throbber[busy] {
+  position: relative;
+  overflow: hidden;
+  width: 16px;
+  height: 16px;
+}
+
+:root[sessionrestored] .tab-throbber[busy]::before {
+  content: "";
+  position: absolute;
+  background-image: url("chrome://browser/skin/tabbrowser/loading.svg");
+  background-position: left center;
+  background-repeat: no-repeat;
+  width: 960px;
+  height: 100%;
+  animation: tab-throbber-animation 1.05s steps(60) infinite;
+  -moz-context-properties: fill;
+
+  /* XXX: It would be nice to transition between the "connecting" color and the
+     "loading" color (see the `.tab-throbber[progress]::before` rule below);
+     however, that currently forces main thread painting. When this is fixed
+     (after WebRender lands), we can do something like
+     `transition: fill 0.333s, opacity 0.333s;` */
+
+  fill: currentColor;
+  opacity: 0.7;
+}
+
+:root[sessionrestored] .tab-throbber[busy]:-moz-locale-dir(rtl)::before {
+  animation-name: tab-throbber-animation-rtl;
+}
+
+@keyframes tab-throbber-animation {
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes tab-throbber-animation-rtl {
+  100% { transform: translateX(100%); }
+}
+
+:root[sessionrestored] .tab-throbber[progress]::before {
+  fill: var(--tab-loading-fill);
+  opacity: 1;
+}
+
+#TabsToolbar[brighttext] .tabbrowser-tab:not([visuallyselected=true]) {
+  --tab-loading-fill: #fff;
+}
+
 .tab-sharing-icon-overlay,
 .tab-icon-image {
   height: 16px;
@@ -118,15 +229,15 @@
 }
 
 .tab-sharing-icon-overlay[sharing="camera"] {
-  list-style-image: url("chrome://browser/skin/notification-icons.svg#camera-sharing");
+  list-style-image: url("chrome://browser/skin/notification-icons/camera.svg");
 }
 
 .tab-sharing-icon-overlay[sharing="microphone"] {
-  list-style-image: url("chrome://browser/skin/notification-icons.svg#microphone-sharing");
+  list-style-image: url("chrome://browser/skin/notification-icons/microphone.svg");
 }
 
 .tab-sharing-icon-overlay[sharing="screen"] {
-  list-style-image: url("chrome://browser/skin/notification-icons.svg#screen-sharing");
+  list-style-image: url("chrome://browser/skin/notification-icons/screen.svg");
 }
 
 .tab-icon-overlay {
@@ -136,6 +247,11 @@
   margin-inline-start: -15px;
   margin-inline-end: -1px;
   position: relative;
+}
+
+.tab-icon-overlay[pinned] {
+  margin-inline-start: -6px;
+  margin-inline-end: -10px;
 }
 
 .tab-icon-overlay[crashed] {
@@ -181,23 +297,19 @@
   list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-small.svg#tab-audio-white-blocked");
 }
 
-.tab-throbber[busy] {
-  list-style-image: url("chrome://browser/skin/tabbrowser/connecting.png");
-}
-
-.tab-throbber[progress] {
-  list-style-image: url("chrome://global/skin/icons/loading.png");
-}
-
 .tab-label {
   margin-inline-end: 0;
   margin-inline-start: 0;
 }
 
 .tab-close-button {
-  margin-inline-start: 1px;
   margin-inline-end: -2px;
   padding: 0;
+}
+
+:root[uidensity=touch] .tab-close-button {
+  margin-inline-end: -@horizontalTabPadding@;
+  padding: 10px calc(@horizontalTabPadding@ - 2px);
 }
 
 .tab-icon-sound {
@@ -250,9 +362,15 @@
 /* Tab Overflow */
 .tabbrowser-arrowscrollbox > .arrowscrollbox-overflow-start-indicator:not([collapsed]),
 .tabbrowser-arrowscrollbox > .arrowscrollbox-overflow-end-indicator:not([collapsed]) {
+  width: 18px;
   background-image: url(chrome://browser/skin/tabbrowser/tab-overflow-indicator.png);
-  background-size: 100% 100%;
-  width: 19px;
+  background-size: 17px 100%;
+  background-repeat: no-repeat;
+  border-left: 1px solid;
+  border-image: linear-gradient(rgba(255,255,255,.2),
+                                rgba(255,255,255,.2) calc(100% - 1px - var(--tab-toolbar-navbar-overlap)),
+                                transparent calc(100% - 1px - var(--tab-toolbar-navbar-overlap)));
+  border-image-slice: 1;
   pointer-events: none;
   position: relative;
   z-index: 3; /* the selected tab's z-index + 1 */
@@ -264,13 +382,13 @@
 }
 
 .tabbrowser-arrowscrollbox > .arrowscrollbox-overflow-start-indicator:not([collapsed]) {
-  margin-inline-start: -2px;
+  margin-inline-start: -1px;
   margin-inline-end: -17px;
 }
 
 .tabbrowser-arrowscrollbox > .arrowscrollbox-overflow-end-indicator:not([collapsed]) {
   margin-inline-start: -17px;
-  margin-inline-end: -2px;
+  margin-inline-end: -1px;
 }
 
 .tabbrowser-arrowscrollbox > .arrowscrollbox-overflow-start-indicator[collapsed],
@@ -288,6 +406,10 @@
   color: inherit;
 }
 
+.tabbrowser-tab[visuallyselected=true]:-moz-lwtheme {
+  color: var(--toolbar-color, inherit);
+}
+
 .tab-line {
   height: 2px;
 }
@@ -299,21 +421,31 @@
   background-clip: padding-box;
 }
 
+%ifdef MENUBAR_CAN_AUTOHIDE
 #toolbar-menubar:not([autohide=true]) ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab > .tab-stack > .tab-background {
   border-top-style: solid;
 }
+%endif
 
 .tab-background[selected=true] {
   border-left-style: solid;
   border-right-style: solid;
   border-color: var(--tabs-border);
+  border-image: linear-gradient(var(--tabs-border),
+                                var(--tabs-border) calc(100% - 1px - var(--tab-toolbar-navbar-overlap)),
+                                transparent calc(100% - 1px - var(--tab-toolbar-navbar-overlap)));
+  border-image-slice: 1;
   background-color: var(--toolbar-bgcolor);
   background-image: var(--toolbar-bgimage);
   background-repeat: repeat-x;
 }
 
+:root:not([sizemode=normal]) .tabbrowser-tab[first-visible-tab] > .tab-stack > .tab-background[selected=true] {
+  border-inline-start-style: none;
+}
+
 .tab-line[selected=true] {
-  background-color: Highlight;
+  background-color: var(--tab-line-color);
 }
 
 /*
@@ -406,10 +538,18 @@
   opacity: 0.2;
 }
 
-#TabsToolbar[brighttext] > #tabbrowser-tabs > .tabbrowser-tab::before,
-#TabsToolbar[brighttext] > #tabbrowser-tabs > .tabbrowser-tab::after {
-  opacity: 0.4;
+%ifdef CAN_DRAW_IN_TITLEBAR
+%ifdef MENUBAR_CAN_AUTOHIDE
+:root[tabsintitlebar]:not([extradragspace]) #toolbar-menubar[autohide=true] ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab::after,
+:root[tabsintitlebar]:not([extradragspace]) #toolbar-menubar[autohide=true] ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab::before
+%else
+:root[tabsintitlebar]:not([extradragspace]) .tabbrowser-tab::after,
+:root[tabsintitlebar]:not([extradragspace]) .tabbrowser-tab::before
+%endif
+{
+  border-image: none;
 }
+%endif
 
 /* Also show separators beside the selected tab when dragging it. */
 #tabbrowser-tabs[movingtab] > .tabbrowser-tab[beforeselected]:not([last-visible-tab])::after,
@@ -424,8 +564,9 @@
 .tabbrowser-arrowscrollbox > .scrollbutton-up,
 .tabbrowser-arrowscrollbox > .scrollbutton-down {
   list-style-image: url(chrome://browser/skin/arrow-left.svg);
-  -moz-context-properties: fill;
+  -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
+  fill-opacity: .8;
 }
 
 .tabbrowser-arrowscrollbox > .scrollbutton-up:-moz-locale-dir(rtl),
@@ -439,31 +580,12 @@
 #TabsToolbar > #new-tab-button ,
 #TabsToolbar > toolbarpaletteitem > #new-tab-button {
   list-style-image: url(chrome://browser/skin/tabbrowser/newtab.svg);
-  -moz-context-properties: fill;
-  fill: currentColor;
-  color: inherit;
-}
-
-.tabs-newtab-button {
-  width: 36px;
-}
-
-@media (min-resolution: 1.1dppx) {
-  .tab-throbber[busy] {
-    list-style-image: url("chrome://browser/skin/tabbrowser/connecting@2x.png");
-  }
-
-  .tab-throbber[progress] {
-    list-style-image: url("chrome://global/skin/icons/loading@2x.png");
-  }
 }
 
 /* All tabs button and menupopup */
 
 #alltabs-button {
-  list-style-image: url(chrome://browser/skin/arrow-dropdown-16.svg);
-  -moz-context-properties: fill;
-  fill: currentColor;
+  list-style-image: url(chrome://global/skin/icons/arrow-dropdown-16.svg);
 }
 
 .alltabs-item > .menu-iconic-left > .menu-iconic-icon {

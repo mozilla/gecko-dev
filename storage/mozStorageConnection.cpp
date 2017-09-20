@@ -1451,8 +1451,8 @@ Connection::AsyncClone(bool aReadOnly,
     flags = (~SQLITE_OPEN_CREATE & flags);
   }
 
-  RefPtr<Connection> clone = new Connection(mStorageService, flags,
-                                              mAsyncOnly);
+  // Force the cloned connection to only implement the async connection API.
+  RefPtr<Connection> clone = new Connection(mStorageService, flags, true);
 
   RefPtr<AsyncInitializeClone> initEvent =
     new AsyncInitializeClone(this, clone, aReadOnly, aCallback);
@@ -1490,8 +1490,15 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
         nsCString path;
         rv = stmt->GetUTF8String(2, path);
         if (NS_SUCCEEDED(rv) && !path.IsEmpty()) {
-          rv = aClone->ExecuteSimpleSQL(NS_LITERAL_CSTRING("ATTACH DATABASE '") +
-            path + NS_LITERAL_CSTRING("' AS ") + name);
+          nsCOMPtr<mozIStorageStatement> attachStmt;
+          rv = aClone->CreateStatement(
+            NS_LITERAL_CSTRING("ATTACH DATABASE :path AS ") + name,
+            getter_AddRefs(attachStmt));
+          MOZ_ASSERT(NS_SUCCEEDED(rv));
+          rv = attachStmt->BindUTF8StringByName(NS_LITERAL_CSTRING("path"),
+                                                path);
+          MOZ_ASSERT(NS_SUCCEEDED(rv));
+          rv = attachStmt->Execute();
           MOZ_ASSERT(NS_SUCCEEDED(rv), "couldn't re-attach database to cloned connection");
         }
       }
@@ -1499,6 +1506,9 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
   }
 
   // Copy over pragmas from the original connection.
+  // LIMITATION WARNING!  Many of these pragmas are actually scoped to the
+  // schema ("main" and any other attached databases), and this implmentation
+  // fails to propagate them.  This is being addressed on trunk.
   static const char * pragmas[] = {
     "cache_size",
     "temp_store",
@@ -1581,8 +1591,7 @@ Connection::Clone(bool aReadOnly,
     flags = (~SQLITE_OPEN_CREATE & flags);
   }
 
-  RefPtr<Connection> clone = new Connection(mStorageService, flags,
-                                              mAsyncOnly);
+  RefPtr<Connection> clone = new Connection(mStorageService, flags, mAsyncOnly);
 
   nsresult rv = initializeClone(clone, aReadOnly);
   if (NS_FAILED(rv)) {
@@ -1590,6 +1599,20 @@ Connection::Clone(bool aReadOnly,
   }
 
   NS_IF_ADDREF(*_connection = clone);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Connection::Interrupt()
+{
+  MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
+  if (!mDBConn) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  if (!mAsyncOnly || !(mFlags & SQLITE_OPEN_READONLY)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  ::sqlite3_interrupt(mDBConn);
   return NS_OK;
 }
 

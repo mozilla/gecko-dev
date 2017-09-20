@@ -6,9 +6,8 @@
 
 <% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
-<%helpers:longhand name="content" boxed="True" animation_value_type="none"
+<%helpers:longhand name="content" boxed="True" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
-    use values::computed::ComputedValueAsSpecified;
     #[cfg(feature = "gecko")]
     use values::generics::CounterStyleOrNone;
     #[cfg(feature = "gecko")]
@@ -21,9 +20,6 @@
 
     pub use self::computed_value::T as SpecifiedValue;
     pub use self::computed_value::ContentItem;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use cssparser;
@@ -40,8 +36,9 @@
         #[cfg(feature = "gecko")]
         use values::specified::Attr;
 
-        #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+        #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
         pub enum ContentItem {
             /// Literal string content.
             String(String),
@@ -101,8 +98,9 @@
             }
         }
 
-        #[derive(Debug, PartialEq, Eq, Clone)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
         pub enum T {
             Normal,
             None,
@@ -240,7 +238,8 @@
     use style_traits::ToCss;
     use values::CustomIdent;
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
 
     pub mod computed_value {
@@ -248,7 +247,8 @@
         use style_traits::ToCss;
         use values::CustomIdent;
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<(CustomIdent, i32)>);
 
@@ -296,7 +296,6 @@
         computed_value::T(Vec::new())
     }
 
-    no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result

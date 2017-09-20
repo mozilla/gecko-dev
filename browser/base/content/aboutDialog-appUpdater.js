@@ -27,7 +27,7 @@ function onUnload(aEvent) {
 }
 
 
-function appUpdater() {
+function appUpdater(options = {}) {
   XPCOMUtils.defineLazyServiceGetter(this, "aus",
                                      "@mozilla.org/updates/update-service;1",
                                      "nsIApplicationUpdateService");
@@ -38,6 +38,7 @@ function appUpdater() {
                                      "@mozilla.org/updates/update-manager;1",
                                      "nsIUpdateManager");
 
+  this.options = options;
   this.updateDeck = document.getElementById("updateDeck");
 
   // Hide the update deck when the update window is already open and it's not
@@ -55,7 +56,7 @@ function appUpdater() {
 
   let manualURL = Services.urlFormatter.formatURLPref("app.update.url.manual");
   let manualLink = document.getElementById("manualLink");
-  manualLink.value = manualURL;
+  manualLink.textContent = manualURL;
   manualLink.href = manualURL;
   document.getElementById("failedLink").href = manualURL;
 
@@ -186,9 +187,15 @@ appUpdater.prototype =
         button.label = this.bundle.formatStringFromName("update.downloadAndInstallButton.label", [updateVersion], 1);
         button.accessKey = this.bundle.GetStringFromName("update.downloadAndInstallButton.accesskey");
       }
+      this.updateDeck.selectedPanel = panel;
+      if (this.options.buttonAutoFocus &&
+          (!document.commandDispatcher.focusedElement || // don't steal the focus
+           document.commandDispatcher.focusedElement.localName == "button")) { // except from the other buttons
+        button.focus();
+      }
+    } else {
+      this.updateDeck.selectedPanel = panel;
     }
-
-    this.updateDeck.selectedPanel = panel;
   },
 
   /**
@@ -327,7 +334,7 @@ appUpdater.prototype =
    */
   setupDownloadingUI() {
     this.downloadStatus = document.getElementById("downloadStatus");
-    this.downloadStatus.value =
+    this.downloadStatus.textContent =
       DownloadUtils.getTransferTotal(0, this.update.selectedPatch.size);
     this.selectPanel("downloading");
     this.aus.addDownloadListener(this);
@@ -370,7 +377,7 @@ appUpdater.prototype =
       if (this.backgroundUpdateEnabled) {
         this.selectPanel("applying");
         let self = this;
-        Services.obs.addObserver(function(aSubject, aTopic, aData) {
+        Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
           // Update the UI when the background updater is finished
           let status = aData;
           if (status == "applied" || status == "applied-service" ||
@@ -391,7 +398,7 @@ appUpdater.prototype =
             self.setupDownloadingUI();
             return;
           }
-          Services.obs.removeObserver(arguments.callee, "update-staged");
+          Services.obs.removeObserver(observer, "update-staged");
         }, "update-staged");
       } else {
         this.selectPanel("apply");
@@ -414,7 +421,7 @@ appUpdater.prototype =
    * See nsIProgressEventSink.idl
    */
   onProgress(aRequest, aContext, aProgress, aProgressMax) {
-    this.downloadStatus.value =
+    this.downloadStatus.textContent =
       DownloadUtils.getTransferTotal(aProgress, aProgressMax);
   },
 

@@ -46,7 +46,7 @@ class nsIDOMRange;
 class nsRange;
 
 namespace mozilla {
-
+class AutoSelectionSetterAfterTableEdit;
 class HTMLEditorEventListener;
 class HTMLEditRules;
 class TextEditRules;
@@ -217,6 +217,36 @@ public:
   static bool NodeIsBlockStatic(const nsINode* aElement);
   static nsresult NodeIsBlockStatic(nsIDOMNode *aNode, bool *aIsBlock);
 
+  // non-virtual methods of interface methods
+  bool AbsolutePositioningEnabled() const
+  {
+    return mIsAbsolutelyPositioningEnabled;
+  }
+  nsresult GetAbsolutelyPositionedSelectionContainer(nsINode** aContainer);
+  Element* GetPositionedElement() const
+  {
+    return mAbsolutelyPositionedObject;
+  }
+  nsresult GetElementZIndex(Element* aElement, int32_t* aZindex);
+
+  nsresult SetInlineProperty(nsIAtom* aProperty,
+                             const nsAString& aAttribute,
+                             const nsAString& aValue);
+  nsresult GetInlineProperty(nsIAtom* aProperty,
+                             const nsAString& aAttribute,
+                             const nsAString& aValue,
+                             bool* aFirst,
+                             bool* aAny,
+                             bool* aAll);
+  nsresult GetInlinePropertyWithAttrValue(nsIAtom* aProperty,
+                                          const nsAString& aAttr,
+                                          const nsAString& aValue,
+                                          bool* aFirst,
+                                          bool* aAny,
+                                          bool* aAll,
+                                          nsAString& outValue);
+  nsresult RemoveInlineProperty(nsIAtom* aProperty,
+                                const nsAString& aAttribute);
 protected:
   virtual ~HTMLEditor();
 
@@ -288,11 +318,7 @@ public:
   NS_IMETHOD_(bool) IsModifiableNode(nsIDOMNode* aNode) override;
   virtual bool IsModifiableNode(nsINode* aNode) override;
 
-  NS_IMETHOD GetIsSelectionEditable(bool* aIsSelectionEditable) override;
-
   NS_IMETHOD SelectAll() override;
-
-  NS_IMETHOD GetRootElement(nsIDOMElement** aRootElement) override;
 
   // nsICSSLoaderObserver
   NS_IMETHOD StyleSheetLoaded(StyleSheet* aSheet,
@@ -415,7 +441,7 @@ protected:
   virtual void RemoveEventListeners() override;
 
   bool ShouldReplaceRootElement();
-  void ResetRootElementAndEventTarget();
+  void NotifyRootChanged();
   nsresult GetBodyElement(nsIDOMHTMLElement** aBody);
 
   /**
@@ -727,7 +753,6 @@ protected:
                                 const nsAString* aAttribute,
                                 nsIContent** aOutLeftNode = nullptr,
                                 nsIContent** aOutRightNode = nullptr);
-  nsresult ApplyDefaultProperties();
   nsresult RemoveStyleInside(nsIContent& aNode,
                              nsIAtom* aProperty,
                              const nsAString* aAttribute,
@@ -788,8 +813,7 @@ protected:
                                  bool* aFirst,
                                  bool* aAny,
                                  bool* aAll,
-                                 nsAString* outValue,
-                                 bool aCheckDefaults = true);
+                                 nsAString* outValue);
   bool HasStyleOrIdOrClass(Element* aElement);
   nsresult RemoveElementIfNoStyleOrIdOrClass(Element& aElement);
 
@@ -826,6 +850,30 @@ protected:
 
   void SetElementPosition(Element& aElement, int32_t aX, int32_t aY);
 
+  /**
+   * Reset a selected cell or collapsed selection (the caret) after table
+   * editing.
+   *
+   * @param aTable      A table in the document.
+   * @param aRow        The row ...
+   * @param aCol        ... and column defining the cell where we will try to
+   *                    place the caret.
+   * @param aSelected   If true, we select the whole cell instead of setting
+   *                    caret.
+   * @param aDirection  If cell at (aCol, aRow) is not found, search for
+   *                    previous cell in the same column (aPreviousColumn) or
+   *                    row (ePreviousRow) or don't search for another cell
+   *                    (aNoSearch).  If no cell is found, caret is place just
+   *                    before table; and if that fails, at beginning of
+   *                    document.  Thus we generally don't worry about the
+   *                    return value and can use the
+   *                    AutoSelectionSetterAfterTableEdit stack-based object to
+   *                    insure we reset the caret in a table-editing method.
+   */
+  void SetSelectionAfterTableEdit(nsIDOMElement* aTable,
+                                  int32_t aRow, int32_t aCol,
+                                  int32_t aDirection, bool aSelected);
+
 protected:
   nsTArray<OwningNonNull<nsIContentFilter>> mContentFilters;
 
@@ -845,9 +893,6 @@ protected:
   // Maintain a list of associated style sheets and their urls.
   nsTArray<nsString> mStyleSheetURLs;
   nsTArray<RefPtr<StyleSheet>> mStyleSheets;
-
-  // an array for holding default style settings
-  nsTArray<PropItem*> mDefaultStyles;
 
 protected:
   // ANONYMOUS UTILS
@@ -877,6 +922,8 @@ protected:
   bool IsInObservedSubtree(nsIDocument* aDocument,
                            nsIContent* aContainer,
                            nsIContent* aChild);
+
+  void UpdateRootElement();
 
   // resizing
   bool mIsObjectResizingEnabled;
@@ -1012,6 +1059,7 @@ protected:
   ParagraphSeparator mDefaultParagraphSeparator;
 
 public:
+  friend class AutoSelectionSetterAfterTableEdit;
   friend class HTMLEditorEventListener;
   friend class HTMLEditRules;
   friend class TextEditRules;
@@ -1054,18 +1102,20 @@ private:
                                       bool aIsCreatedHidden);
 };
 
-HTMLEditor*
-EditorBase::AsHTMLEditor()
-{
-  return mIsHTMLEditorClass ? static_cast<HTMLEditor*>(this) : nullptr;
-}
-
-const HTMLEditor*
-EditorBase::AsHTMLEditor() const
-{
-  return mIsHTMLEditorClass ? static_cast<const HTMLEditor*>(this) : nullptr;
-}
-
 } // namespace mozilla
+
+mozilla::HTMLEditor*
+nsIEditor::AsHTMLEditor()
+{
+  return static_cast<mozilla::EditorBase*>(this)->mIsHTMLEditorClass ?
+           static_cast<mozilla::HTMLEditor*>(this) : nullptr;
+}
+
+const mozilla::HTMLEditor*
+nsIEditor::AsHTMLEditor() const
+{
+  return static_cast<const mozilla::EditorBase*>(this)->mIsHTMLEditorClass ?
+           static_cast<const mozilla::HTMLEditor*>(this) : nullptr;
+}
 
 #endif // #ifndef mozilla_HTMLEditor_h

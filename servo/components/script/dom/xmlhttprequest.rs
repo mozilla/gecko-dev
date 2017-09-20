@@ -5,7 +5,6 @@
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
@@ -74,7 +73,7 @@ use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -83,7 +82,7 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
@@ -262,7 +261,7 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             task_source: task_source,
-            wrapper: Some(global.get_runnable_wrapper())
+            canceller: Some(global.task_canceller())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -627,7 +626,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 if !content_type_set {
                     let ct = request.headers.get_mut::<ContentType>();
-                    if let Some(mut ct) = ct {
+                    if let Some(ct) = ct {
                         if let Some(encoding) = encoding {
                             for param in &mut (ct.0).2 {
                                 if param.0 == MimeAttr::Charset {
@@ -1335,7 +1334,7 @@ impl XMLHttpRequest {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct XHRTimeoutCallback {
     #[ignore_heap_size_of = "Because it is non-owning"]
     xhr: Trusted<XMLHttpRequest>,

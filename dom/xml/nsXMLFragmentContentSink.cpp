@@ -96,7 +96,9 @@ protected:
                                     bool aAlternate,
                                     const nsAString& aTitle,
                                     const nsAString& aType,
-                                    const nsAString& aMedia) override;
+                                    const nsAString& aMedia,
+                                    const nsAString& aReferrerPolicy) override;
+
   nsresult LoadXSLStyleSheet(nsIURI* aUrl);
   void StartLayout();
 
@@ -132,7 +134,7 @@ nsXMLFragmentContentSink::~nsXMLFragmentContentSink()
 {
 }
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsXMLFragmentContentSink)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXMLFragmentContentSink)
   NS_INTERFACE_MAP_ENTRY(nsIFragmentContentSink)
 NS_INTERFACE_MAP_END_INHERITING(nsXMLContentSink)
 
@@ -331,7 +333,9 @@ nsXMLFragmentContentSink::ProcessStyleLink(nsIContent* aElement,
                                            bool aAlternate,
                                            const nsAString& aTitle,
                                            const nsAString& aType,
-                                           const nsAString& aMedia)
+                                           const nsAString& aMedia,
+                                           const nsAString& aReferrerPolicy)
+
 {
   // don't process until moved to document
   return NS_OK;

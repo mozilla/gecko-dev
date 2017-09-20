@@ -106,7 +106,14 @@ function renderToolboxButtons({toolboxButtons, focusedButton, focusButton}, isSt
 
   return div({id: `toolbox-buttons-${isStart ? "start" : "end"}`},
     ...visibleButtons.map(command => {
-      const {id, description, onClick, isChecked, className: buttonClass} = command;
+      const {
+        id,
+        description,
+        onClick,
+        isChecked,
+        className: buttonClass,
+        onKeyDown
+      } = command;
       return button({
         id,
         title: description,
@@ -119,9 +126,13 @@ function renderToolboxButtons({toolboxButtons, focusedButton, focusButton}, isSt
           focusButton(id);
         },
         onFocus: () => focusButton(id),
-        tabIndex: id === focusedButton ? "0" : "-1"
+        tabIndex: id === focusedButton ? "0" : "-1",
+        onKeyDown: (event) => {
+          onKeyDown(event);
+        }
       });
-    })
+    }),
+    isStart ? div({className: "devtools-separator"}) : null
   );
 }
 
@@ -150,10 +161,7 @@ function renderOptions({optionsPanel, currentToolId, selectTool, focusedButton,
  * Render a separator.
  */
 function renderSeparator() {
-  return div({
-    id: "toolbox-controls-separator",
-    className: "devtools-separator"
-  });
+  return div({className: "devtools-separator"});
 }
 
 /**

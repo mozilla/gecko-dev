@@ -863,9 +863,6 @@ private:
     void OnResumedCompositor()
     {
         MOZ_ASSERT(NS_IsMainThread());
-        if (!mWindow) {
-            return; // Already shut down.
-        }
 
         // When we receive this, the compositor has already been told to
         // resume. (It turns out that waiting till we reach here to tell
@@ -987,7 +984,11 @@ public:
                 JNIEnv* const env = jni::GetGeckoThreadEnv();
                 LayerViewSupport* const lvs = GetNative(
                         LayerView::Compositor::LocalRef(env, mCompositor));
-                MOZ_CATCH_JNI_EXCEPTION(env);
+
+                if (!lvs || !lvs->mWindow) {
+                    env->ExceptionClear();
+                    return; // Already shut down.
+                }
 
                 lvs->OnResumedCompositor();
             }
@@ -1474,6 +1475,10 @@ nsWindow::~nsWindow()
 {
     gTopLevelWindows.RemoveElement(this);
     ALOG("nsWindow %p destructor", (void*)this);
+    // The mCompositorSession should have been cleaned up in nsWindow::Destroy()
+    // DestroyLayerManager() will call DestroyCompositor() which will crash if
+    // called from nsBaseWidget destructor. See Bug 1392705
+    MOZ_ASSERT(!mCompositorSession);
 }
 
 bool
@@ -1544,6 +1549,9 @@ nsWindow::Destroy()
         ALOG("### Warning: Destroying window %p and reparenting child %p to null!", (void*)this, (void*)mChildren[0]);
         mChildren[0]->SetParent(nullptr);
     }
+
+    // Ensure the compositor has been shutdown before this nsWindow is potentially deleted
+    nsBaseWidget::DestroyCompositor();
 
     nsBaseWidget::Destroy();
 
@@ -1780,6 +1788,12 @@ nsWindow::SetZIndex(int32_t aZIndex)
 void
 nsWindow::SetSizeMode(nsSizeMode aMode)
 {
+    if (aMode == mSizeMode) {
+        return;
+    }
+
+    nsBaseWidget::SetSizeMode(aMode);
+
     switch (aMode) {
         case nsSizeMode_Minimized:
             GeckoAppShell::MoveTaskToBack();
@@ -1929,6 +1943,8 @@ nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen*)
 
     nsIWidgetListener* listener = GetWidgetListener();
     if (listener) {
+        mSizeMode = mIsFullScreen ? nsSizeMode_Fullscreen : nsSizeMode_Normal;
+        listener->SizeModeChanged(mSizeMode);
         listener->FullscreenChanged(mIsFullScreen);
     }
     return NS_OK;

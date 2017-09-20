@@ -75,18 +75,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLLinkElement,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRelList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_ADDREF_INHERITED(HTMLLinkElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLLinkElement, Element)
-
-
-// QueryInterface implementation for HTMLLinkElement
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLLinkElement)
-  NS_INTERFACE_TABLE_INHERITED(HTMLLinkElement,
-                               nsIDOMHTMLLinkElement,
-                               nsIStyleSheetLinkingElement,
-                               Link)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLElement)
-
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLLinkElement,
+                                             nsGenericHTMLElement,
+                                             nsIDOMHTMLLinkElement,
+                                             nsIStyleSheetLinkingElement,
+                                             Link)
 
 NS_IMPL_ELEMENT_CLONE(HTMLLinkElement)
 
@@ -508,11 +501,12 @@ HTMLLinkElement::IntrinsicState() const
   return Link::LinkState() | nsGenericHTMLElement::IntrinsicState();
 }
 
-size_t
-HTMLLinkElement::SizeOfExcludingThis(mozilla::SizeOfState& aState) const
+void
+HTMLLinkElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
+                                        size_t* aNodeSize) const
 {
-  return nsGenericHTMLElement::SizeOfExcludingThis(aState) +
-         Link::SizeOfExcludingThis(aState);
+  nsGenericHTMLElement::AddSizeOfExcludingThis(aSizes, aNodeSize);
+  *aNodeSize += Link::SizeOfExcludingThis(aSizes.mState);
 }
 
 JSObject*

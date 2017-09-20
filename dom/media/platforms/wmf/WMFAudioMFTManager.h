@@ -12,8 +12,6 @@
 #include "WMFMediaDataDecoder.h"
 #include "mozilla/RefPtr.h"
 
-extern const GUID CLSID_WebmMfVpxDec;
-
 namespace mozilla {
 
 class WMFAudioMFTManager : public MFTManager
@@ -38,9 +36,9 @@ public:
     return TrackInfo::kAudioTrack;
   }
 
-  const char* GetDescriptionName() const override
+  nsCString GetDescriptionName() const override
   {
-    return "wmf audio decoder";
+    return NS_LITERAL_CSTRING("wmf audio decoder");
   }
 
 private:

@@ -209,7 +209,7 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   animation_value_type="ComputedValue", logical = logical)}
         ${helpers.predefined_type("min-%s" % size,
                                   "LengthOrPercentage",
-                                  "computed::LengthOrPercentage::Length(Au(0))",
+                                  "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
                                   animation_value_type="ComputedValue",
@@ -232,7 +232,6 @@ ${helpers.single_keyword("box-sizing",
                          spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
                          gecko_enum_prefix="StyleBoxSizing",
                          custom_consts={ "content-box": "Content", "border-box": "Border" },
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete")}
 
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
@@ -291,28 +290,26 @@ ${helpers.predefined_type("object-position",
         animation_value_type="discrete">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
-        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AutoFlow {
             Row,
             Column,
         }
 
-        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub autoflow: AutoFlow,
             pub dense: bool,
         }
     }
-
-    no_viewport_percentage!(SpecifiedValue);
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -417,12 +414,11 @@ ${helpers.predefined_type("object-position",
         products="gecko"
         animation_value_type="discrete"
         boxed="True">
-    use std::collections::HashMap;
+    use hash::HashMap;
     use std::fmt;
     use std::ops::Range;
     use str::HTML_SPACE_CHARACTERS;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -440,6 +436,7 @@ ${helpers.predefined_type("object-position",
         SpecifiedValue::parse(context, input)
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[derive(Clone, Debug, PartialEq)]
     pub struct TemplateAreas {
         pub areas: Box<[NamedArea]>,
@@ -447,6 +444,7 @@ ${helpers.predefined_type("object-position",
         pub width: u32,
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[derive(Clone, Debug, PartialEq)]
     pub struct NamedArea {
         pub name: Box<str>,
@@ -454,12 +452,13 @@ ${helpers.predefined_type("object-position",
         pub columns: Range<u32>,
     }
 
-    no_viewport_percentage!(TemplateAreas);
-    impl ComputedValueAsSpecified for TemplateAreas {}
+    trivial_to_computed_value!(TemplateAreas);
 
     impl Parse for TemplateAreas {
-        fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+        fn parse<'i, 't>(
+            _context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
             while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
                 strings.push(string);

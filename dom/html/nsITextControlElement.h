@@ -9,8 +9,8 @@
 
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
+#include "nsStringFwd.h"
 class nsIContent;
-class nsAString;
 class nsISelectionController;
 class nsFrameSelection;
 class nsTextControlFrame;
@@ -55,12 +55,6 @@ public:
    * @return whether this is a textarea text control
    */
   NS_IMETHOD_(bool) IsTextArea() const = 0;
-
-  /**
-   * Find out whether this control edits plain text.  (Currently always true.)
-   * @return whether this is a plain text control
-   */
-  NS_IMETHOD_(bool) IsPlainTextControl() const = 0;
 
   /**
    * Find out whether this is a password control (input type=password)

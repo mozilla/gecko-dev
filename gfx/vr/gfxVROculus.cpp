@@ -233,7 +233,15 @@ VROculusSession::StartPresentation(const IntSize& aSize)
     mPresenting = true;
     mPresentationSize = aSize;
     Refresh();
-    mPresentationStart = TimeStamp::Now();
+    mTelemetry.Clear();
+    mTelemetry.mPresentationStart = TimeStamp::Now();
+
+    ovrPerfStats perfStats;
+    if (ovr_GetPerfStats(mSession, &perfStats) == ovrSuccess) {
+      if (perfStats.FrameStatsCount) {
+        mTelemetry.mLastDroppedFrameCount = perfStats.FrameStats[0].AppDroppedFrameCount;
+      }
+    }
   }
 }
 
@@ -243,10 +251,22 @@ VROculusSession::StopPresentation()
   if (mPresenting) {
     mLastPresentationEnd = TimeStamp::Now();
     mPresenting = false;
+
+    const TimeDuration duration = mLastPresentationEnd - mTelemetry.mPresentationStart;
     Telemetry::Accumulate(Telemetry::WEBVR_USERS_VIEW_IN, 1);
-    Telemetry::Accumulate(Telemetry::WEBVR_TIME_SPEND_FOR_VIEWING_IN_OCULUS,
-                          static_cast<uint32_t>((TimeStamp::Now() - mPresentationStart)
-                          .ToMilliseconds()));
+    Telemetry::Accumulate(Telemetry::WEBVR_TIME_SPENT_VIEWING_IN_OCULUS,
+                          duration.ToMilliseconds());
+
+    if (mTelemetry.IsLastDroppedFrameValid() && duration.ToSeconds()) {
+      ovrPerfStats perfStats;
+      if (ovr_GetPerfStats(mSession, &perfStats) == ovrSuccess) {
+        if (perfStats.FrameStatsCount) {
+          const uint32_t droppedFramesPerSec = (perfStats.FrameStats[0].AppDroppedFrameCount -
+                                                mTelemetry.mLastDroppedFrameCount) / duration.ToSeconds();
+          Telemetry::Accumulate(Telemetry::WEBVR_DROPPED_FRAMES_IN_OCULUS, droppedFramesPerSec);
+        }
+      }
+    }
     Refresh();
   }
 }
@@ -1121,12 +1141,12 @@ VRDisplayOculus::SubmitFrame(TextureSourceD3D11* aSource,
   layer.Fov[1] = mFOVPort[1];
   layer.Viewport[0].Pos.x = aSize.width * aLeftEyeRect.x;
   layer.Viewport[0].Pos.y = aSize.height * aLeftEyeRect.y;
-  layer.Viewport[0].Size.w = aSize.width * aLeftEyeRect.width;
-  layer.Viewport[0].Size.h = aSize.height * aLeftEyeRect.height;
+  layer.Viewport[0].Size.w = aSize.width * aLeftEyeRect.Width();
+  layer.Viewport[0].Size.h = aSize.height * aLeftEyeRect.Height();
   layer.Viewport[1].Pos.x = aSize.width * aRightEyeRect.x;
   layer.Viewport[1].Pos.y = aSize.height * aRightEyeRect.y;
-  layer.Viewport[1].Size.w = aSize.width * aRightEyeRect.width;
-  layer.Viewport[1].Size.h = aSize.height * aRightEyeRect.height;
+  layer.Viewport[1].Size.w = aSize.width * aRightEyeRect.Width();
+  layer.Viewport[1].Size.h = aSize.height * aRightEyeRect.Height();
 
   const Point3D& l = mDisplayInfo.mEyeTranslation[0];
   const Point3D& r = mDisplayInfo.mEyeTranslation[1];
@@ -1747,7 +1767,8 @@ VRSystemManagerOculus::StopVibrateHaptic(uint32_t aControllerIdx)
 {
   // The session is available after VRDisplay is created
   // at GetHMDs().
-  if (!mSession || !mSession->IsTrackingReady()) {
+  if (!mSession || !mSession->IsTrackingReady() ||
+      (aControllerIdx >= mOculusController.Length())) {
     return;
   }
 

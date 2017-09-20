@@ -99,8 +99,8 @@ class GlobalObject : public NativeObject
         MODULE_PROTO,
         IMPORT_ENTRY_PROTO,
         EXPORT_ENTRY_PROTO,
+        REQUESTED_MODULE_PROTO,
         REGEXP_STATICS,
-        WARNED_ONCE_FLAGS,
         RUNTIME_CODEGEN_ENABLED,
         DEBUGGERS,
         INTRINSICS,
@@ -119,18 +119,6 @@ class GlobalObject : public NativeObject
      */
     static_assert(JSCLASS_GLOBAL_SLOT_COUNT == RESERVED_SLOTS,
                   "global object slot counts are inconsistent");
-
-    enum WarnOnceFlag : int32_t {
-        WARN_WATCH_DEPRECATED                   = 1 << 0,
-    };
-
-    // Emit the specified warning if the given slot in |obj|'s global isn't
-    // true, then set the slot to true.  Thus calling this method warns once
-    // for each global object it's called on, and every other call does
-    // nothing.
-    static bool
-    warnOnceAbout(JSContext* cx, HandleObject obj, WarnOnceFlag flag, unsigned errorNumber);
-
 
   public:
     LexicalEnvironmentObject& lexicalEnvironment() const;
@@ -377,6 +365,13 @@ class GlobalObject : public NativeObject
         return &global->getPrototype(JSProto_SavedFrame).toObject().as<NativeObject>();
     }
 
+    static JSFunction*
+    getOrCreateArrayBufferConstructor(JSContext* cx, Handle<GlobalObject*> global) {
+        if (!ensureConstructor(cx, global, JSProto_ArrayBuffer))
+            return nullptr;
+        return &global->getConstructor(JSProto_ArrayBuffer).toObject().as<JSFunction>();
+    }
+
     static JSObject*
     getOrCreateArrayBufferPrototype(JSContext* cx, Handle<GlobalObject*> global) {
         if (!ensureConstructor(cx, global, JSProto_ArrayBuffer))
@@ -451,10 +446,6 @@ class GlobalObject : public NativeObject
 
     TypedObjectModuleObject& getTypedObjectModule() const;
 
-    JSObject* getLegacyIteratorPrototype() {
-        return &getPrototype(JSProto_Iterator).toObject();
-    }
-
     static JSObject*
     getOrCreateCollatorPrototype(JSContext* cx, Handle<GlobalObject*> global) {
         return getOrCreateObject(cx, global, COLLATOR_PROTO, initIntlObject);
@@ -504,6 +495,11 @@ class GlobalObject : public NativeObject
         return value.isUndefined() ? nullptr : &value.toObject();
     }
 
+    JSObject* maybeGetRequestedModulePrototype() {
+        Value value = getSlot(REQUESTED_MODULE_PROTO);
+        return value.isUndefined() ? nullptr : &value.toObject();
+    }
+
     JSObject* getModulePrototype() {
         JSObject* proto = maybeGetModulePrototype();
         MOZ_ASSERT(proto);
@@ -518,6 +514,12 @@ class GlobalObject : public NativeObject
 
     JSObject* getExportEntryPrototype() {
         JSObject* proto = maybeGetExportEntryPrototype();
+        MOZ_ASSERT(proto);
+        return proto;
+    }
+
+    JSObject* getRequestedModulePrototype() {
+        JSObject* proto = maybeGetRequestedModulePrototype();
         MOZ_ASSERT(proto);
         return proto;
     }
@@ -751,15 +753,6 @@ class GlobalObject : public NativeObject
 
     static bool isRuntimeCodeGenEnabled(JSContext* cx, Handle<GlobalObject*> global);
 
-    // Warn about use of the deprecated watch/unwatch functions in the global
-    // in which |obj| was created, if no prior warning was given.
-    static bool warnOnceAboutWatch(JSContext* cx, HandleObject obj) {
-        // Temporarily disabled until we've provided a watch/unwatch workaround for
-        // debuggers like Firebug (bug 934669).
-        //return warnOnceAbout(cx, obj, WARN_WATCH_DEPRECATED, JSMSG_OBJECT_WATCH_DEPRECATED);
-        return true;
-    }
-
     static bool getOrCreateEval(JSContext* cx, Handle<GlobalObject*> global,
                                 MutableHandleObject eval);
 
@@ -791,6 +784,7 @@ class GlobalObject : public NativeObject
     static bool initModuleProto(JSContext* cx, Handle<GlobalObject*> global);
     static bool initImportEntryProto(JSContext* cx, Handle<GlobalObject*> global);
     static bool initExportEntryProto(JSContext* cx, Handle<GlobalObject*> global);
+    static bool initRequestedModuleProto(JSContext* cx, Handle<GlobalObject*> global);
 
     // Implemented in builtin/TypedObject.cpp
     static bool initTypedObjectModule(JSContext* cx, Handle<GlobalObject*> global);

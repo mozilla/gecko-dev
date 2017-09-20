@@ -63,8 +63,7 @@ nsSVGMaskFrame::GetMaskForMaskedFrame(MaskParams& aParams)
   // and maskArea) is important for performance.
   context->Save();
   nsSVGUtils::SetClipRect(context, aParams.toUserSpace, maskArea);
-  context->SetMatrix(gfxMatrix());
-  gfxRect maskSurfaceRect = context->GetClipExtents();
+  gfxRect maskSurfaceRect = context->GetClipExtents(gfxContext::eDeviceSpace);
   maskSurfaceRect.RoundOut();
   context->Restore();
 
@@ -160,7 +159,7 @@ nsSVGMaskFrame::GetMaskForMaskedFrame(MaskParams& aParams)
 gfxRect
 nsSVGMaskFrame::GetMaskArea(nsIFrame* aMaskedFrame)
 {
-  SVGMaskElement *maskElem = static_cast<SVGMaskElement*>(mContent);
+  SVGMaskElement *maskElem = static_cast<SVGMaskElement*>(GetContent());
 
   uint16_t units =
     maskElem->mEnumAttributes[SVGMaskElement::MASKUNITS].GetAnimValue();
@@ -221,11 +220,17 @@ nsSVGMaskFrame::GetCanvasTM()
 gfxMatrix
 nsSVGMaskFrame::GetMaskTransform(nsIFrame* aMaskedFrame)
 {
-  SVGMaskElement *content = static_cast<SVGMaskElement*>(mContent);
+  SVGMaskElement *content = static_cast<SVGMaskElement*>(GetContent());
 
   nsSVGEnum* maskContentUnits =
     &content->mEnumAttributes[SVGMaskElement::MASKCONTENTUNITS];
 
+  uint32_t flags =
+    nsSVGUtils::eBBoxIncludeFillGeometry |
+    (aMaskedFrame->StyleBorder()->mBoxDecorationBreak == StyleBoxDecorationBreak::Clone
+      ? nsSVGUtils::eIncludeOnlyCurrentFrameForNonSVGElement
+      : 0);
+
   return nsSVGUtils::AdjustMatrixForUnits(gfxMatrix(), maskContentUnits,
-                                          aMaskedFrame);
+                                          aMaskedFrame, flags);
 }

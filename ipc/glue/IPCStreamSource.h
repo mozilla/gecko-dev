@@ -20,6 +20,10 @@ class nsIContentChild;
 class nsIContentParent;
 } // dom namespace
 
+namespace wr {
+struct ByteBuffer;
+} // wr namespace
+
 namespace ipc {
 
 class PBackgroundChild;
@@ -109,7 +113,7 @@ protected:
   Close(nsresult aRv) = 0;
 
   virtual void
-  SendData(const nsCString& aBuffer) = 0;
+  SendData(const wr::ByteBuffer& aBuffer) = 0;
 
   void
   ActorConstructed();

@@ -28,7 +28,7 @@
 use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
@@ -223,7 +223,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState);
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -404,7 +404,12 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     /// Returns true if this is an absolute containing block.
     fn is_absolute_containing_block(&self) -> bool {
-        false
+        self.contains_positioned_fragments()
+    }
+
+    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.contains_relatively_positioned_fragments() || self.is_root()
     }
 
     /// Updates the inline position of a child flow during the assign-height traversal. At present,
@@ -502,9 +507,6 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is one of table-related flows.
     fn is_table_kind(self) -> bool;
 
-    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
-    fn contains_roots_of_absolute_flow_tree(&self) -> bool;
-
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
 
@@ -557,7 +559,7 @@ pub trait MutableOwnedFlowUtils {
                                             absolute_descendants: &mut AbsoluteDescendants);
 }
 
-#[derive(Copy, Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum FlowClass {
     Block,
     Inline,
@@ -763,13 +765,17 @@ impl<'a> Iterator for AbsoluteDescendantIter<'a> {
     fn next(&mut self) -> Option<&'a mut Flow> {
         self.iter.next().map(|info| FlowRef::deref_mut(&mut info.flow))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, IterMut<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during block-size assignment.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct EarlyAbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -791,7 +797,7 @@ impl EarlyAbsolutePositionInfo {
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during final position assignment.
-#[derive(Serialize, Copy, Clone)]
+#[derive(Clone, Copy, Serialize)]
 pub struct LateAbsolutePositionInfo {
     /// The position of the absolute containing block relative to the nearest ancestor stacking
     /// context. If the absolute containing block establishes the stacking context for this flow,
@@ -807,7 +813,7 @@ impl LateAbsolutePositionInfo {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct FragmentationContext {
     pub available_block_size: Au,
     pub this_fragment_is_empty: bool,
@@ -1104,7 +1110,8 @@ impl BaseFlow {
         return self as *const BaseFlow as usize;
     }
 
-    pub fn collect_stacking_contexts_for_children(&mut self, state: &mut DisplayListBuildState) {
+    pub fn collect_stacking_contexts_for_children(&mut self,
+                                                  state: &mut StackingContextCollectionState) {
         for kid in self.children.iter_mut() {
             kid.collect_stacking_contexts(state);
         }
@@ -1198,11 +1205,6 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         }
     }
 
-    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
-    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
-        self.contains_relatively_positioned_fragments() || self.is_root()
-    }
-
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool {
         base(self).children.is_empty()
@@ -1282,9 +1284,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     return Some(base(kid).position.start.b + baseline_offset)
                 }
             }
-            if kid.is_block_like() &&
-                    kid.as_block().formatting_context_type() == FormattingContextType::None &&
-                    !base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            if kid.is_block_like() && !base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 if let Some(baseline_offset) = kid.baseline_offset_of_last_line_box_in_flow() {
                     return Some(base(kid).position.start.b + baseline_offset)
                 }
@@ -1415,7 +1415,7 @@ impl ContainingBlockLink {
 
 /// A wrapper for the pointer address of a flow. These pointer addresses may only be compared for
 /// equality with other such pointer addresses, never dereferenced.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct OpaqueFlow(pub usize);
 
 impl OpaqueFlow {

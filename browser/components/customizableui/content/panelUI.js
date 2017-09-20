@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-XPCOMUtils.defineLazyModuleGetter(this, "ScrollbarSampler",
-                                  "resource:///modules/ScrollbarSampler.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AppMenuNotifications",
                                   "resource://gre/modules/AppMenuNotifications.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
+                                  "resource://gre/modules/NewTabUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ScrollbarSampler",
+                                  "resource:///modules/ScrollbarSampler.jsm");
 
 /**
  * Maintains the state and dispatches events for the main menu panel.
@@ -25,6 +27,7 @@ const PanelUI = {
       mainView: "appMenu-mainView",
       multiView: "appMenu-multiView",
       helpView: "PanelUI-helpView",
+      libraryView: "appMenu-libraryView",
       menuButton: "PanelUI-menu-button",
       panel: "appMenu-popup",
       notificationPanel: "appMenu-notification-popup",
@@ -74,6 +77,12 @@ const PanelUI = {
       window.addEventListener("MozDOMFullscreen:Entered", this);
       window.addEventListener("MozDOMFullscreen:Exited", this);
     }
+
+    XPCOMUtils.defineLazyPreferenceGetter(this, "libraryRecentHighlightsEnabled",
+      "browser.library.activity-stream.enabled", false, (pref, previousValue, newValue) => {
+        if (!newValue)
+          this.clearLibraryRecentHighlights();
+      });
 
     window.addEventListener("activate", this);
     window.matchMedia("(-moz-overlay-scrollbars)").addListener(this._overlayScrollListenerBoundFn);
@@ -150,6 +159,7 @@ const PanelUI = {
     window.matchMedia("(-moz-overlay-scrollbars)").removeListener(this._overlayScrollListenerBoundFn);
     CustomizableUI.removeListener(this);
     this._overlayScrollListenerBoundFn = null;
+    this.libraryView.removeEventListener("ViewShowing", this);
   },
 
   /**
@@ -293,6 +303,11 @@ const PanelUI = {
       case "activate":
         this._updateNotifications();
         break;
+      case "ViewShowing":
+        if (aEvent.target == this.libraryView) {
+          this.onLibraryViewShowing(aEvent.target);
+        }
+        break;
     }
   },
 
@@ -318,15 +333,15 @@ const PanelUI = {
    *
    * @return a Promise that resolves once the panel is ready to roll.
    */
-  ensureReady() {
-    if (this._readyPromise) {
-      return this._readyPromise;
+  async ensureReady() {
+    if (this._isReady) {
+      return;
     }
+
+    await window.delayedStartupPromise;
     this._ensureEventListenersAdded();
     this.panel.hidden = false;
-    this._readyPromise = Promise.resolve();
     this._isReady = true;
-    return this._readyPromise;
   },
 
   /**
@@ -359,6 +374,9 @@ const PanelUI = {
 
     let domEvent = null;
     if (aEvent) {
+      if (aEvent.type == "mousedown" && aEvent.button != 0) {
+        return;
+      }
       if (aEvent.type == "command" && aEvent.inputSource != null) {
         // Synthesize a new DOM mouse event to pass on the inputSource.
         domEvent = document.createEvent("MouseEvent");
@@ -380,6 +398,8 @@ const PanelUI = {
       Cu.reportError("Expected an anchor when opening subview with id: " + aViewId);
       return;
     }
+
+    this.ensureLibraryInitialized(viewNode);
 
     let container = aAnchor.closest("panelmultiview,photonpanelmultiview");
     if (container) {
@@ -476,6 +496,95 @@ const PanelUI = {
         triggerEvent: domEvent,
       });
     }
+  },
+
+  /**
+   * Sets up the event listener for when the Library view is shown.
+   *
+   * @param {panelview} viewNode The library view.
+   */
+  ensureLibraryInitialized(viewNode) {
+    if (viewNode != this.libraryView || viewNode._initialized)
+      return;
+
+    viewNode._initialized = true;
+    viewNode.addEventListener("ViewShowing", this);
+  },
+
+  /**
+   * When the Library view is showing, we can start fetching and populating the
+   * list of Recent Highlights.
+   * This is done asynchronously and may finish when the view is already visible.
+   *
+   * @param {panelview} viewNode The library view.
+   */
+  async onLibraryViewShowing(viewNode) {
+    if (this._loadingRecentHighlights) {
+      return;
+    }
+    this._loadingRecentHighlights = true;
+
+    // Since the library is the first view shown, we don't want to add a blocker
+    // to the event, which would make PanelMultiView wait to show it.
+    let container = this.clearLibraryRecentHighlights();
+    if (!this.libraryRecentHighlightsEnabled) {
+      this._loadingRecentHighlights = false;
+      return;
+    }
+
+    let highlights = await NewTabUtils.activityStreamLinks.getHighlights({ withFavicons: true });
+    // If there's nothing to display, or the panel is already hidden, get out.
+    if (!highlights.length || viewNode.panelMultiView.getAttribute("panelopen") != "true") {
+      this._loadingRecentHighlights = false;
+      return;
+    }
+
+    container.hidden = container.previousSibling.hidden =
+      container.previousSibling.previousSibling.hidden = false;
+    let fragment = document.createDocumentFragment();
+    for (let highlight of highlights) {
+      let button = document.createElement("toolbarbutton");
+      button.classList.add("subviewbutton", "highlight", "subviewbutton-iconic", "bookmark-item");
+      let title = highlight.title || highlight.url;
+      button.setAttribute("label", title);
+      button.setAttribute("tooltiptext", title);
+      button.setAttribute("type", "highlight-" + highlight.type);
+      button.setAttribute("onclick", "PanelUI.onLibraryHighlightClick(event)");
+      if (highlight.favicon) {
+        button.setAttribute("image", highlight.favicon);
+      }
+      button._highlight = highlight;
+      fragment.appendChild(button);
+    }
+    container.appendChild(fragment);
+
+    this._loadingRecentHighlights = false;
+  },
+
+  /**
+   * Remove all the nodes from the 'Recent Highlights' section and hide it as well.
+   */
+  clearLibraryRecentHighlights() {
+    let container = document.getElementById("appMenu-library-recentHighlights")
+    while (container.firstChild) {
+      container.firstChild.remove();
+    }
+    container.hidden = container.previousSibling.hidden =
+      container.previousSibling.previousSibling.hidden = true;
+    return container;
+  },
+
+  /**
+   * Event handler; invoked when an item of the Recent Highlights is clicked.
+   *
+   * @param {MouseEvent} event Click event, originating from the Highlight.
+   */
+  onLibraryHighlightClick(event) {
+    let button = event.target;
+    if (event.button > 1 || !button._highlight) {
+      return;
+    }
+    window.openUILink(button._highlight.url, event);
   },
 
   /**

@@ -1646,6 +1646,8 @@ CSSParserImpl::ParseSheet(const nsAString& aInput,
       mSection = eCSSSection_General;
     }
   }
+
+  mSheet->SetSourceMapURLFromComment(scanner.GetSourceMapURL());
   ReleaseScanner();
 
   mParsingMode = css::eAuthorSheetFeatures;
@@ -9449,13 +9451,6 @@ CSSParserImpl::ParseGrid()
     return true;
   }
 
-  // https://drafts.csswg.org/css-grid/#grid-shorthand
-  // "Also, the gutter properties are reset by this shorthand,
-  //  even though they can't be set by it."
-  value.SetFloatValue(0.0f, eCSSUnit_Pixel);
-  AppendValue(eCSSProperty_grid_row_gap, value);
-  AppendValue(eCSSProperty_grid_column_gap, value);
-
   // [ auto-flow && dense? ] <'grid-auto-rows'>? / <'grid-template-columns'>
   auto res = ParseGridShorthandAutoProps(NS_STYLE_GRID_AUTO_FLOW_ROW);
   if (res == CSSParseResult::Error) {
@@ -13913,15 +13908,15 @@ CSSParserImpl::ParseContent()
   // We need to divide the 'content' keywords into two classes for
   // ParseVariant's sake, so we can't just use nsCSSProps::kContentKTable.
   static const KTableEntry kContentListKWs[] = {
-    { eCSSKeyword_open_quote, NS_STYLE_CONTENT_OPEN_QUOTE },
-    { eCSSKeyword_close_quote, NS_STYLE_CONTENT_CLOSE_QUOTE },
-    { eCSSKeyword_no_open_quote, NS_STYLE_CONTENT_NO_OPEN_QUOTE },
-    { eCSSKeyword_no_close_quote, NS_STYLE_CONTENT_NO_CLOSE_QUOTE },
+    { eCSSKeyword_open_quote, uint8_t(StyleContent::OpenQuote) },
+    { eCSSKeyword_close_quote, uint8_t(StyleContent::CloseQuote) },
+    { eCSSKeyword_no_open_quote, uint8_t(StyleContent::NoOpenQuote) },
+    { eCSSKeyword_no_close_quote, uint8_t(StyleContent::NoCloseQuote) },
     { eCSSKeyword_UNKNOWN, -1 }
   };
 
   static const KTableEntry kContentSolitaryKWs[] = {
-    { eCSSKeyword__moz_alt_content, NS_STYLE_CONTENT_ALT_CONTENT },
+    { eCSSKeyword__moz_alt_content, uint8_t(StyleContent::AltContent) },
     { eCSSKeyword_UNKNOWN, -1 }
   };
 
@@ -16435,13 +16430,6 @@ CSSParserImpl::ParseClipPath(nsCSSValue& aValue)
 {
   if (ParseSingleTokenVariant(aValue, VARIANT_HUO, nullptr)) {
     return true;
-  }
-
-  if (!nsLayoutUtils::CSSClipPathShapesEnabled()) {
-    // With CSS Clip Path Shapes disabled, we should only accept
-    // SVG clipPath reference and none.
-    REPORT_UNEXPECTED_TOKEN(PEExpectedNoneOrURL);
-    return false;
   }
 
   return ParseReferenceBoxAndBasicShape(

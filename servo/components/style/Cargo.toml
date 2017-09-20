@@ -16,7 +16,8 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring_vendor", "num_cpus", "style_traits/gecko"]
+gecko = ["malloc_size_of", "malloc_size_of_derive", "nsstring_vendor", "num_cpus",
+         "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
@@ -29,25 +30,27 @@ servo = ["serde", "heapsize", "heapsize_derive",
 gecko_debug = ["nsstring_vendor/gecko_debug"]
 
 [dependencies]
-app_units = "0.5.2"
+app_units = "0.5.5"
 arrayvec = "0.3.20"
-arraydeque = "0.2.3"
 atomic_refcell = "0.1"
 bitflags = "0.7"
-bit-vec = "0.4.3"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.18"
+cssparser = "0.21.1"
 encoding = {version = "0.2", optional = true}
 euclid = "0.15"
+fallible = { path = "../fallible" }
 fnv = "1.0"
+hashglobe = { path = "../hashglobe" }
 heapsize = {version = "0.4", optional = true}
 heapsize_derive = {version = "0.1", optional = true}
 itertools = "0.5"
 itoa = "0.3"
-html5ever = {version = "0.18", optional = true}
+html5ever = {version = "0.19", optional = true}
 lazy_static = "0.2"
 log = "0.3"
+malloc_size_of = { path = "../malloc_size_of", optional=true }
+malloc_size_of_derive = { path = "../malloc_size_of_derive", optional=true }
 matches = "0.1"
 nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
 num_cpus = {version = "1.1.0", optional = true}
@@ -64,6 +67,7 @@ serde = {version = "1.0", optional = true, features = ["derive"]}
 servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
+smallbitvec = "1.0.6"
 smallvec = "0.4"
 style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}

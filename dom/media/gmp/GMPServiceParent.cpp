@@ -36,14 +36,11 @@
 #include "nsHashKeys.h"
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"
-#if defined(MOZ_CRASHREPORTER)
-#include "nsExceptionHandler.h"
-#include "nsPrintfCString.h"
-#endif
 #include "nsIXULRuntime.h"
 #include "GMPDecoderModule.h"
 #include <limits>
 #include "MediaPrefs.h"
+#include "mozilla/SystemGroup.h"
 
 using mozilla::ipc::Transport;
 

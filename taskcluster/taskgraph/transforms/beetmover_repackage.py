@@ -9,6 +9,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
+from taskgraph.util.partials import (get_balrog_platform_name,
+                                     get_partials_artifacts,
+                                     get_partials_artifact_map)
 from taskgraph.util.schema import validate_schema, Schema
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope)
@@ -16,6 +19,8 @@ from taskgraph.transforms.task import task_description_schema
 from voluptuous import Any, Required, Optional
 
 import logging
+import re
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,21 +68,15 @@ _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N = [
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_UNSIGNED_PATHS = {
-    'macosx64-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
-        "host/bin/mar",
-        "host/bin/mbsdiff",
+    r'^(linux(|64)|macosx64)-nightly$': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
+        'host/bin/mar',
+        'host/bin/mbsdiff',
     ],
-    'macosx64-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
-    'win64-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
+    r'^win(32|64)-nightly$': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
         "host/bin/mar.exe",
         "host/bin/mbsdiff.exe",
     ],
-    'win64-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
-    'win32-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
-        "host/bin/mar.exe",
-        "host/bin/mbsdiff.exe",
-    ],
-    'win32-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
+    r'^(linux(|64)|macosx64|win(32|64))-nightly-l10n$': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
 }
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
@@ -85,10 +84,8 @@ UPSTREAM_ARTIFACT_UNSIGNED_PATHS = {
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_SIGNED_PATHS = {
-    'win64-nightly': ['target.zip'],
-    'win64-nightly-l10n': ['target.zip'],
-    'win32-nightly': ['target.zip'],
-    'win32-nightly-l10n': ['target.zip'],
+    r'^linux(|64)-nightly(|-l10n)$': ['target.tar.bz2', 'target.tar.bz2.asc'],
+    r'^win(32|64)-nightly(|-l10n)$': ['target.zip'],
 }
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
@@ -96,29 +93,31 @@ UPSTREAM_ARTIFACT_SIGNED_PATHS = {
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_REPACKAGE_PATHS = {
-    'macosx64-nightly': ['target.dmg'],
-    'macosx64-nightly-l10n': ['target.dmg'],
+    r'^macosx64-nightly(|-l10n)$': ['target.dmg'],
 }
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
 # need to be transfered to S3, please be aware you also need to follow-up
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_SIGNED_REPACKAGE_PATHS = {
-    'macosx64-nightly': ['target.complete.mar'],
-    'macosx64-nightly-l10n': ['target.complete.mar'],
-    'win64-nightly': ['target.complete.mar', 'target.installer.exe'],
-    'win64-nightly-l10n': ['target.complete.mar', 'target.installer.exe'],
-    'win32-nightly': [
-        'target.complete.mar',
-        'target.installer.exe',
-        'target.stub-installer.exe'
-    ],
-    'win32-nightly-l10n': [
+    r'^(linux(|64)|macosx64)-nightly(|-l10n)$': ['target.complete.mar'],
+    r'^win64-nightly(|-l10n)$': ['target.complete.mar', 'target.installer.exe'],
+    r'^win32-nightly(|-l10n)$': [
         'target.complete.mar',
         'target.installer.exe',
         'target.stub-installer.exe'
     ],
 }
+
+# Compile every regex once at import time
+for dict_ in (
+    UPSTREAM_ARTIFACT_UNSIGNED_PATHS, UPSTREAM_ARTIFACT_SIGNED_PATHS,
+    UPSTREAM_ARTIFACT_REPACKAGE_PATHS, UPSTREAM_ARTIFACT_SIGNED_REPACKAGE_PATHS,
+):
+    for uncompiled_regex, value in dict_.iteritems():
+        compiled_regex = re.compile(uncompiled_regex)
+        del dict_[uncompiled_regex]
+        dict_[compiled_regex] = value
 
 # Voluptuous uses marker objects as dictionary *keys*, but they are not
 # comparable, so we cast all of the keys back to regular strings
@@ -219,6 +218,14 @@ def make_task_description(config, jobs):
                                   }
         dependencies.update(repackage_dependencies)
 
+        # If this isn't a direct dependency, it won't be in there.
+        if 'repackage-signing' not in dependencies:
+            repackage_signing_name = "repackage-signing"
+            repackage_signing_deps = {"repackage-signing":
+                                      dep_job.dependencies[repackage_signing_name]
+                                      }
+            dependencies.update(repackage_signing_deps)
+
         attributes = copy_attributes_from_dependent_job(dep_job)
         if job.get('locale'):
             attributes['locale'] = job['locale']
@@ -271,21 +278,60 @@ def generate_upstream_artifacts(build_task_ref, build_signing_task_ref,
     ]
 
     for ref, tasktype, mapping in zip(task_refs, tasktypes, mapping):
-        if platform in mapping:
-            upstream_artifacts.append({
-                "taskId": {"task-reference": ref},
-                "taskType": tasktype,
-                "paths": ["{}/{}".format(artifact_prefix, p)
-                          for p in mapping[platform]],
-                "locale": locale or "en-US",
-            })
+        plarform_was_previously_matched_by_regex = None
+        for platform_regex, paths in mapping.iteritems():
+            if platform_regex.match(platform) is not None:
+                _check_platform_matched_only_one_regex(
+                    tasktype, platform, plarform_was_previously_matched_by_regex, platform_regex
+                )
+                upstream_artifacts.append({
+                    "taskId": {"task-reference": ref},
+                    "taskType": tasktype,
+                    "paths": ["{}/{}".format(artifact_prefix, path) for path in paths],
+                    "locale": locale or "en-US",
+                })
+                plarform_was_previously_matched_by_regex = platform_regex
 
     return upstream_artifacts
 
 
+def generate_partials_upstream_artifacts(artifacts, platform, locale=None):
+    if not locale or locale == 'en-US':
+        artifact_prefix = 'public/build'
+    else:
+        artifact_prefix = 'public/build/{}'.format(locale)
+
+    upstream_artifacts = [{
+        'taskId': {'task-reference': '<partials-signing>'},
+        'taskType': 'signing',
+        'paths': ["{}/{}".format(artifact_prefix, p)
+                  for p in artifacts],
+        'locale': locale or 'en-US',
+    }]
+
+    return upstream_artifacts
+
+
+def _check_platform_matched_only_one_regex(
+    task_type, platform, plarform_was_previously_matched_by_regex, platform_regex
+):
+    if plarform_was_previously_matched_by_regex is not None:
+        raise Exception('In task type "{task_type}", platform "{platform}" matches at \
+least 2 regular expressions. First matched: "{first_matched}". Second matched: \
+"{second_matched}"'.format(
+            task_type=task_type, platform=platform,
+            first_matched=plarform_was_previously_matched_by_regex.pattern,
+            second_matched=platform_regex.pattern
+        ))
+
+
 def is_valid_beetmover_job(job):
-    # windows builds don't have docker-image, so fewer dependencies
-    if any(b in job['attributes']['build_platform'] for b in _WINDOWS_BUILD_PLATFORMS):
+    # beetmover after partials-signing should have six dependencies.
+    # windows builds w/o partials don't have docker-image, so fewer
+    # dependencies
+    if 'partials-signing' in job['dependencies'].keys():
+        expected_dep_count = 6
+    elif any(b in job['attributes']['build_platform'] for b in _WINDOWS_BUILD_PLATFORMS):
         expected_dep_count = 4
     else:
         expected_dep_count = 5
@@ -306,6 +352,7 @@ def make_task_worker(config, jobs):
         build_signing_task = None
         repackage_task = None
         repackage_signing_task = None
+
         for dependency in job["dependencies"].keys():
             if 'repackage-signing' in dependency:
                 repackage_signing_task = dependency
@@ -331,5 +378,59 @@ def make_task_worker(config, jobs):
         if locale:
             worker["locale"] = locale
         job["worker"] = worker
+
+        yield job
+
+
+@transforms.add
+def make_partials_artifacts(config, jobs):
+    for job in jobs:
+        locale = job["attributes"].get("locale")
+        if not locale:
+            locale = 'en-US'
+
+        # Remove when proved reliable
+        # job['treeherder']['tier'] = 3
+
+        platform = job["attributes"]["build_platform"]
+
+        balrog_platform = get_balrog_platform_name(platform)
+
+        artifacts = get_partials_artifacts(config.params.get('release_history'),
+                                           balrog_platform, locale)
+
+        # Dependency:        | repackage-signing | partials-signing
+        # Partials artifacts |              Skip | Populate & yield
+        # No partials        |             Yield |         continue
+        if len(artifacts) == 0:
+            if 'partials-signing' in job['dependencies']:
+                continue
+            else:
+                yield job
+                continue
+        else:
+            if 'partials-signing' not in job['dependencies']:
+                continue
+
+        upstream_artifacts = generate_partials_upstream_artifacts(
+            artifacts, balrog_platform, locale
+        )
+
+        job['worker']['upstream-artifacts'].extend(upstream_artifacts)
+
+        extra = list()
+
+        artifact_map = get_partials_artifact_map(
+            config.params.get('release_history'), balrog_platform, locale)
+        for artifact in artifact_map:
+            extra.append({
+                'locale': locale,
+                'artifact_name': artifact,
+                'buildid': artifact_map[artifact],
+                'platform': balrog_platform,
+            })
+
+        job.setdefault('extra', {})
+        job['extra']['partials'] = extra
 
         yield job

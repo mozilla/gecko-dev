@@ -70,14 +70,13 @@ nsMathMLmoFrame::UseMathMLChar()
 
 void
 nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                  const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
   bool useMathMLChar = UseMathMLChar();
 
   if (!useMathMLChar) {
     // let the base class do everything
-    nsMathMLTokenFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    nsMathMLTokenFrame::BuildDisplayList(aBuilder, aLists);
   } else {
     DisplayBorderBackgroundOutline(aBuilder, aLists);
 
@@ -941,6 +940,8 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
                         const ReflowInput& aReflowInput,
                         nsReflowStatus&          aStatus)
 {
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
+
   // certain values use units that depend on our style context, so
   // it is safer to just process the whole lot here
   ProcessOperatorData();

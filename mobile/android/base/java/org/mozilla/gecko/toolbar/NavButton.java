@@ -7,7 +7,6 @@ package org.mozilla.gecko.toolbar;
 import android.content.res.TypedArray;
 import android.support.v4.content.ContextCompat;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.skin.SkinConfig;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -59,10 +58,17 @@ abstract class NavButton extends ShapedButton {
     public void draw(Canvas canvas) {
         super.draw(canvas);
 
-        if (SkinConfig.isPhoton()) {
-            final double alpha = 255 * (isEnabled() ? 1 : 0.05);
-            mBorderPaint.setAlpha((int) alpha);
+        final double alphaRatio;
+        if (getTheme().isEnabled()) {
+            // When LightweightTheme is enabled, we don't want to show clear border.
+            alphaRatio = 0.4;
+        } else if (isEnabled()) {
+            alphaRatio = 1;
+        } else {
+            // We also use low alpha value to present disabled state.
+            alphaRatio = 0.05;
         }
+        mBorderPaint.setAlpha((int) (255 * alphaRatio));
 
         // Draw the border on top.
         canvas.drawPath(mBorderPath, mBorderPaint);

@@ -35,9 +35,6 @@ module.exports = {
     // Require braces around blocks that start a new line
     "curly": ["error", "all"],
 
-    // Require function* name()
-    "generator-star-spacing": ["error", {"before": false, "after": true}],
-
     // Two space indent
     "indent": ["error", 2, {"SwitchCase": 1}],
 
@@ -77,9 +74,6 @@ module.exports = {
 
     // Maximum depth callbacks can be nested.
     "max-nested-callbacks": ["error", 4],
-
-    // Disallow use of arguments.caller or arguments.callee.
-    "no-caller": "error",
 
     // Disallow using the console API.
     "no-console": "error",

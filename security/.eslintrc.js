@@ -17,17 +17,11 @@ module.exports = {
     // Require default case in switch statements.
     "default-case": "error",
 
-    // Require function* name()
-    "generator-star-spacing": ["error", {"before": false, "after": true}],
-
     // Always require parenthesis for new calls
     "new-parens": "error",
 
     // Disallow use of alert(), confirm(), and prompt().
     "no-alert": "error",
-
-    // Disallow use of arguments.caller or arguments.callee.
-    "no-caller": "error",
 
     // Disallow likely erroneous `switch` scoped lexical declarations in
     // case/default clauses.

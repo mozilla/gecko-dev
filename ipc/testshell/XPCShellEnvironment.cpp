@@ -247,15 +247,15 @@ GCZeal(JSContext *cx, unsigned argc, JS::Value *vp)
 
 const JSFunctionSpec gGlobalFunctions[] =
 {
-    JS_FS("print",           Print,          0,0),
-    JS_FS("load",            Load,           1,0),
-    JS_FS("quit",            Quit,           0,0),
-    JS_FS("version",         Version,        1,0),
-    JS_FS("dumpXPC",         DumpXPC,        1,0),
-    JS_FS("dump",            Dump,           1,0),
-    JS_FS("gc",              GC,             0,0),
+    JS_FN("print",           Print,          0,0),
+    JS_FN("load",            Load,           1,0),
+    JS_FN("quit",            Quit,           0,0),
+    JS_FN("version",         Version,        1,0),
+    JS_FN("dumpXPC",         DumpXPC,        1,0),
+    JS_FN("dump",            Dump,           1,0),
+    JS_FN("gc",              GC,             0,0),
  #ifdef JS_GC_ZEAL
-    JS_FS("gczeal",          GCZeal,         1,0),
+    JS_FN("gczeal",          GCZeal,         1,0),
  #endif
     JS_FS_END
 };
@@ -451,7 +451,7 @@ XPCShellEnvironment::Init()
 
     JS::CompartmentOptions options;
     options.creationOptions().setSystemZone();
-    options.behaviors().setVersion(JSVERSION_LATEST);
+    options.behaviors().setVersion(JSVERSION_DEFAULT);
     if (xpc::SharedMemoryEnabled())
         options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);
 
@@ -478,8 +478,7 @@ XPCShellEnvironment::Init()
     JS::Rooted<Value> privateVal(cx, PrivateValue(this));
     if (!JS_DefineProperty(cx, globalObj, "__XPCShellEnvironment",
                            privateVal,
-                           JSPROP_READONLY | JSPROP_PERMANENT,
-                           JS_STUBGETTER, JS_STUBSETTER) ||
+                           JSPROP_READONLY | JSPROP_PERMANENT) ||
         !JS_DefineFunctions(cx, globalObj, gGlobalFunctions) ||
         !JS_DefineProfilingFunctions(cx, globalObj))
     {

@@ -95,6 +95,9 @@ var whitelist = [
   {file: "resource://gre/modules/ClusterLib.js"},
   {file: "resource://gre/modules/ColorConversion.js"},
 
+  // Needed by HiddenFrame.jsm, but can't be packaged test-only
+  {file: "chrome://global/content/win.xul"},
+
   // The l10n build system can't package string files only for some platforms.
   {file: "resource://gre/chrome/en-US/locale/en-US/global-platform/mac/accessible.properties",
    platforms: ["linux", "win"]},
@@ -118,15 +121,14 @@ var whitelist = [
   // browser/extensions/pdfjs/content/web/viewer.js#7450
   {file: "resource://pdf.js/web/debugger.js"},
 
-  // Needed by Normandy
-  {file: "resource://gre/modules/IndexedDB.jsm"},
+  // These are used in content processes. They are actually referenced.
+  {file: "resource://shield-recipe-client-content/shield-content-frame.js"},
+  {file: "resource://shield-recipe-client-content/shield-content-process.js"},
 
   // New L10n API that is not yet used in production
-  {file: "resource://gre/modules/Localization.jsm"},
+  {file: "resource://gre/modules/DOMLocalization.jsm"},
 
   // Starting from here, files in the whitelist are bugs that need fixing.
-  // Bug 1339420
-  {file: "chrome://branding/content/icon128.png"},
   // Bug 1339424 (wontfix?)
   {file: "chrome://browser/locale/taskbar.properties",
    platforms: ["linux", "macosx"]},
@@ -134,8 +136,6 @@ var whitelist = [
   {file: "chrome://global/content/customizeToolbar.xul"},
   // Bug 1343837
   {file: "chrome://global/content/findUtils.js"},
-  // Bug 1343843
-  {file: "chrome://global/content/url-classifier/unittests.xul"},
   // Bug 1348362
   {file: "chrome://global/skin/icons/warning-64.png", platforms: ["linux", "win"]},
   // Bug 1348525
@@ -164,17 +164,12 @@ var whitelist = [
   {file: "chrome://pippki/content/resetpassword.xul"},
   // Bug 1351078
   {file: "resource://gre/modules/Battery.jsm"},
-  // Bug 1351070
-  {file: "resource://gre/modules/ContentPrefInstance.jsm"},
   // Bug 1351079
   {file: "resource://gre/modules/ISO8601DateUtils.jsm"},
   // Bug 1337345
   {file: "resource://gre/modules/Manifest.jsm"},
   // Bug 1351097
   {file: "resource://gre/modules/accessibility/AccessFu.jsm"},
-  // Bug 1351637
-  {file: "resource://gre/modules/sdk/bootstrap.js"},
-
 ];
 
 whitelist = new Set(whitelist.filter(item =>
@@ -476,7 +471,8 @@ function findChromeUrlsFromArray(array, prefix) {
 
     // Only keep strings that look like real chrome or resource urls.
     if (/chrome:\/\/[a-zA-Z09 -]+\/(content|skin|locale)\//.test(string) ||
-        /resource:\/\/gre.*\.[a-z]+/.test(string))
+        /resource:\/\/gre.*\.[a-z]+/.test(string) ||
+        string.startsWith("resource://content-accessible/"))
       gReferencesFromCode.add(string);
   }
 }
@@ -538,6 +534,8 @@ add_task(async function checkAllTheFiles() {
   let devtoolsPrefixes = ["chrome://webide/",
                           "chrome://devtools",
                           "resource://devtools/",
+                          "resource://devtools-client-jsonview/",
+                          "resource://devtools-client-shared/",
                           "resource://app/modules/devtools",
                           "resource://gre/modules/devtools"];
   let chromeFiles = [];

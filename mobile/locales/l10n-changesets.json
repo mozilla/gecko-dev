@@ -684,10 +684,18 @@
         ], 
         "revision": "default"
     }, 
-    "wo": {
+    "vi": {
         "platforms": [
             "android", 
             "android-api-15"
+        ], 
+        "revision": "default"
+    }, 
+    "wo": {
+        "platforms": [
+            "android", 
+            "android-api-15", 
+            "android-multilocale"
         ], 
         "revision": "default"
     }, 

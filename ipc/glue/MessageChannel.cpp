@@ -672,7 +672,7 @@ MessageChannel::CanSend() const
 void
 MessageChannel::WillDestroyCurrentMessageLoop()
 {
-#if defined(DEBUG) && !defined(ANDROID)
+#if !defined(ANDROID)
 #if defined(MOZ_CRASHREPORTER)
     CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ProtocolName"),
                                        nsDependentCString(mName));
@@ -1845,16 +1845,25 @@ MessageChannel::RunMessage(MessageTask& aTask)
     }
 
     // Check that we're going to run the first message that's valid to run.
+#if 0
 #ifdef DEBUG
+    nsCOMPtr<nsIEventTarget> messageTarget =
+        mListener->GetMessageEventTarget(msg);
+
     for (MessageTask* task : mPending) {
         if (task == &aTask) {
             break;
         }
 
+        nsCOMPtr<nsIEventTarget> taskTarget =
+            mListener->GetMessageEventTarget(task->Msg());
+
         MOZ_ASSERT(!ShouldRunMessage(task->Msg()) ||
+                   taskTarget != messageTarget ||
                    aTask.Msg().priority() != task->Msg().priority());
 
     }
+#endif
 #endif
 
     if (!mDeferred.empty()) {
@@ -1971,9 +1980,32 @@ MessageChannel::MessageTask::Clear()
 NS_IMETHODIMP
 MessageChannel::MessageTask::GetPriority(uint32_t* aPriority)
 {
-  *aPriority = mMessage.priority() == Message::HIGH_PRIORITY ?
-               PRIORITY_HIGH : PRIORITY_NORMAL;
+  switch (mMessage.priority()) {
+  case Message::NORMAL_PRIORITY:
+    *aPriority = PRIORITY_NORMAL;
+    break;
+  case Message::INPUT_PRIORITY:
+    *aPriority = PRIORITY_INPUT;
+    break;
+  case Message::HIGH_PRIORITY:
+    *aPriority = PRIORITY_HIGH;
+    break;
+  default:
+    MOZ_ASSERT(false);
+    break;
+  }
   return NS_OK;
+}
+
+bool
+MessageChannel::MessageTask::GetAffectedSchedulerGroups(nsTArray<RefPtr<SchedulerGroup>>& aGroups)
+{
+    if (!mChannel) {
+        return false;
+    }
+
+    mChannel->AssertWorkerThread();
+    return mChannel->mListener->GetMessageSchedulerGroups(mMessage, aGroups);
 }
 
 void
@@ -2059,11 +2091,7 @@ MessageChannel::DispatchSyncMessage(const Message& aMsg, Message*& aReply)
     }
 
     if (!MaybeHandleError(rv, aMsg, "DispatchSyncMessage")) {
-        aReply = new Message();
-        aReply->set_sync();
-        aReply->set_nested_level(aMsg.nested_level());
-        aReply->set_reply();
-        aReply->set_reply_error();
+        aReply = Message::ForSyncDispatchError(aMsg.nested_level());
     }
     aReply->set_seqno(aMsg.seqno());
     aReply->set_transaction_id(aMsg.transaction_id());
@@ -2120,10 +2148,7 @@ MessageChannel::DispatchInterruptMessage(Message&& aMsg, size_t stackDepth)
     --mRemoteStackDepthGuess;
 
     if (!MaybeHandleError(rv, aMsg, "DispatchInterruptMessage")) {
-        reply = new Message();
-        reply->set_interrupt();
-        reply->set_reply();
-        reply->set_reply_error();
+        reply = Message::ForInterruptDispatchError();
     }
     reply->set_seqno(aMsg.seqno());
 

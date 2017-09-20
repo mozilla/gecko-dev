@@ -57,6 +57,7 @@ class imgRequestProxy;
 class nsAutoScriptBlockerSuppressNodeRemoved;
 class nsCacheableFuncStringHTMLCollection;
 class nsHtml5StringParser;
+class nsIAtom;
 class nsIChannel;
 class nsIConsoleService;
 class nsIContent;
@@ -71,7 +72,6 @@ class nsIDOMHTMLInputElement;
 class nsIDOMKeyEvent;
 class nsIDOMNode;
 class nsIDragSession;
-class nsIEditor;
 class nsIEventTarget;
 class nsIFragmentContentSink;
 class nsIFrame;
@@ -85,7 +85,6 @@ class nsIMessageBroadcaster;
 class nsNameSpaceManager;
 class nsIObserver;
 class nsIParser;
-class nsIParserService;
 class nsIPluginTag;
 class nsIPresShell;
 class nsIPrincipal;
@@ -127,6 +126,7 @@ namespace mozilla {
 class Dispatcher;
 class ErrorResult;
 class EventListenerManager;
+class HTMLEditor;
 
 namespace dom {
 struct CustomElementDefinition;
@@ -276,6 +276,7 @@ public:
   // This function can be called both in the main thread and worker threads.
   static bool ShouldResistFingerprinting();
   static bool ShouldResistFingerprinting(nsIDocShell* aDocShell);
+  static bool ShouldResistFingerprinting(nsIDocument* aDoc);
 
   // A helper function to calculate the rounded window size for fingerprinting
   // resistance. The rounded size is based on the chrome UI size and available
@@ -342,6 +343,16 @@ public:
   ContentIsFlattenedTreeDescendantOf(const nsINode* aPossibleDescendant,
                                      const nsINode* aPossibleAncestor);
 
+  /**
+   * Same as `ContentIsFlattenedTreeDescendantOf`, but from the flattened tree
+   * point of view of the style system
+   *
+   * @see nsINode::GetFlattenedTreeParentNodeForStyle()
+   */
+  static bool
+  ContentIsFlattenedTreeDescendantOfForStyle(const nsINode* aPossibleDescendant,
+                                             const nsINode* aPossibleAncestor);
+
   /*
    * This method fills the |aArray| with all ancestor nodes of |aNode|
    * including |aNode| at the zero index.
@@ -399,6 +410,13 @@ public:
 
     return GetCommonFlattenedTreeAncestorHelper(aContent1, aContent2);
   }
+
+  /**
+   * Returns the common flattened tree ancestor from the point of view of the
+   * style system, if any, for two given content nodes.
+   */
+  static Element* GetCommonFlattenedTreeAncestorForStyle(
+      Element* aElement1, Element* aElement2);
 
   /**
    * Returns true if aNode1 is before aNode2 in the same connected
@@ -572,10 +590,10 @@ public:
   static bool CanCallerAccess(nsPIDOMWindowInner* aWindow);
 
   // Check if the principal is chrome or an addon with the permission.
-  static bool PrincipalHasPermission(nsIPrincipal* aPrincipal, const nsAString& aPerm);
+  static bool PrincipalHasPermission(nsIPrincipal* aPrincipal, const nsIAtom* aPerm);
 
   // Check if the JS caller is chrome or an addon with the permission.
-  static bool CallerHasPermission(JSContext* aCx, const nsAString& aPerm);
+  static bool CallerHasPermission(JSContext* aCx, const nsIAtom* aPerm);
 
   /**
    * GetDocumentFromCaller gets its document by looking at the last called
@@ -592,8 +610,6 @@ public:
   // Check if a node is in the document prolog, i.e. before the document
   // element.
   static bool InProlog(nsINode *aNode);
-
-  static nsIParserService* GetParserService();
 
   static nsNameSpaceManager* NameSpaceManager()
   {
@@ -629,7 +645,7 @@ public:
   static nsIPrincipal* ObjectPrincipal(JSObject* aObj);
 
   static nsresult GenerateStateKey(nsIContent* aContent,
-                                   const nsIDocument* aDocument,
+                                   nsIDocument* aDocument,
                                    nsACString& aKey);
 
   /**
@@ -1076,6 +1092,17 @@ public:
   static nsresult GenerateUUIDInPlace(nsID& aUUID);
 
   static bool PrefetchPreloadEnabled(nsIDocShell* aDocShell);
+
+  static void
+  ExtractErrorValues(JSContext* aCx, JS::Handle<JS::Value> aValue,
+                     nsACString& aSourceSpecOut, uint32_t *aLineOut,
+                     uint32_t *aColumnOut, nsString& aMessageOut);
+
+  /**
+   * Helper function to tell if user ever enabled DevTools explicitely.
+   * Allows making DevTools related API no-op until user do so.
+   */
+  static bool DevToolsEnabled(JSContext* aCx);
 
   /**
    * Fill (with the parameters given) the localized string named |aKey| in
@@ -1665,12 +1692,6 @@ public:
    * Delete strings allocated for nsContentList matches
    */
   static void DestroyMatchString(void* aData);
-
-  /**
-   * Unbinds the content from the tree and nulls it out if it's not null.
-   */
-  static void DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent);
-  static void DestroyAnonymousContent(nsCOMPtr<Element>* aElement);
 
   /*
    * Notify when the first XUL menu is opened and when the all XUL menus are
@@ -2617,7 +2638,13 @@ public:
   static int32_t GetAdjustedOffsetInTextControl(nsIFrame* aOffsetFrame,
                                                 int32_t aOffset);
 
-  static nsIEditor* GetHTMLEditor(nsPresContext* aPresContext);
+  /**
+   * Returns pointer to HTML editor instance for the aPresContext when there is.
+   * The HTML editor is shared by contenteditable elements or used in
+   * designMode.  When there are no contenteditable elements and the document
+   * is not in designMode, this returns nullptr.
+   */
+  static mozilla::HTMLEditor* GetHTMLEditor(nsPresContext* aPresContext);
 
   /**
    * Returns true if the browser.dom.window.dump.enabled pref is set.
@@ -2864,6 +2891,8 @@ public:
 
   static bool PushEnabled(JSContext* aCx, JSObject* aObj);
 
+  static bool StreamsEnabled(JSContext* aCx, JSObject* aObj);
+
   static bool IsNonSubresourceRequest(nsIChannel* aChannel);
 
   static uint32_t CookiesBehavior()
@@ -2951,6 +2980,11 @@ public:
 
   static void SetupCustomElement(Element* aElement,
                                  const nsAString* aTypeExtension = nullptr);
+
+  static mozilla::dom::CustomElementDefinition*
+  GetElementDefinitionIfObservingAttr(Element* aCustomElement,
+                                      nsIAtom* aExtensionType,
+                                      nsIAtom* aAttrName);
 
   static void EnqueueLifecycleCallback(nsIDocument* aDoc,
                                        nsIDocument::ElementCallbackType aType,
@@ -3048,6 +3082,13 @@ public:
   static bool
   IsLocalRefURL(const nsString& aString);
 
+  /**
+   * Detect whether a string is a local-url.
+   * https://drafts.csswg.org/css-values/#local-urls
+   */
+  static bool
+  IsLocalRefURL(const nsACString& aString);
+
   static bool
   IsCustomElementsEnabled() { return sIsCustomElementsEnabled; }
 
@@ -3073,6 +3114,9 @@ public:
   // Check pref "privacy.trackingprotection.lower_network_priority" to see
   // if we want to lower the priority of the channel.
   static bool IsLowerNetworkPriority() { return sLowerNetworkPriority; }
+
+  // Whether tracker tailing is turned on - "network.http.tailing.enabled".
+  static bool IsTailingEnabled() { return sTailingEnabled; }
 
   // Check pref "dom.placeholder.show_on_focus" to see
   // if we want to show the placeholder inside input elements
@@ -3111,6 +3155,13 @@ public:
    * @param aResult The string result.
    */
   static bool GetSourceMapURL(nsIHttpChannel* aChannel, nsACString& aResult);
+
+  /**
+   * Returns true if the passed-in mesasge is a pending InputEvent.
+   *
+   * @param aMsg  The message to check
+   */
+  static bool IsMessageInputEvent(const IPC::Message& aMsg);
 
 private:
   static bool InitializeEventTable();
@@ -3200,8 +3251,6 @@ private:
   static nsIPrincipal *sSystemPrincipal;
   static nsIPrincipal *sNullSubjectPrincipal;
 
-  static nsIParserService *sParserService;
-
   static nsNameSpaceManager *sNameSpaceManager;
 
   static nsIIOService *sIOService;
@@ -3249,6 +3298,7 @@ private:
   static bool sIsFormAutofillAutocompleteEnabled;
   static bool sIsWebComponentsEnabled;
   static bool sIsCustomElementsEnabled;
+  static bool sDevToolsEnabled;
   static bool sSendPerformanceTimingNotifications;
   static bool sUseActivityCursor;
   static bool sAnimationsAPICoreEnabled;
@@ -3257,6 +3307,7 @@ private:
   static bool sSkipCursorMoveForSameValueSet;
   static bool sRequestIdleCallbackEnabled;
   static bool sLowerNetworkPriority;
+  static bool sTailingEnabled;
   static bool sShowInputPlaceholderOnFocus;
   static bool sAutoFocusEnabled;
 #ifndef RELEASE_OR_BETA

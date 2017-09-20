@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -28,7 +27,6 @@ use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg, FetchResponse
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
-use script_thread::Runnable;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -43,10 +41,10 @@ header! { (LastEventId, "Last-Event-ID") => [String] }
 
 const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 struct GenerationId(u32);
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 /// https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate
 enum ReadyState {
     Connecting = 0,
@@ -92,26 +90,46 @@ struct EventSourceContext {
 }
 
 impl EventSourceContext {
+    /// https://html.spec.whatwg.org/multipage/#announce-the-connection
     fn announce_the_connection(&self) {
         let event_source = self.event_source.root();
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let runnable = box AnnounceConnectionRunnable {
-            event_source: self.event_source.clone()
-        };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let global = event_source.global();
+        let event_source = self.event_source.clone();
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(announce_the_event_source_connection: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event_source.ready_state.set(ReadyState::Open);
+                    event_source.upcast::<EventTarget>().fire_event(atom!("open"));
+                }
+            }),
+            &global,
+        );
     }
 
+    /// https://html.spec.whatwg.org/multipage/#fail-the-connection
     fn fail_the_connection(&self) {
         let event_source = self.event_source.root();
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let runnable = box FailConnectionRunnable {
-            event_source: self.event_source.clone()
-        };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let global = event_source.global();
+        let event_source = self.event_source.clone();
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(fail_the_event_source_connection: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event_source.ready_state.set(ReadyState::Closed);
+                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                }
+            }),
+            &global,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
@@ -122,12 +140,43 @@ impl EventSourceContext {
             return;
         }
 
-        // Step 1
-        let runnable = box ReestablishConnectionRunnable {
-            event_source: self.event_source.clone(),
-            action_sender: self.action_sender.clone()
-        };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let trusted_event_source = self.event_source.clone();
+        let action_sender = self.action_sender.clone();
+        let global = event_source.global();
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(reestablish_the_event_source_onnection: move || {
+                let event_source = trusted_event_source.root();
+
+                // Step 1.1.
+                if event_source.ready_state.get() == ReadyState::Closed {
+                    return;
+                }
+
+                // Step 1.2.
+                event_source.ready_state.set(ReadyState::Connecting);
+
+                // Step 1.3.
+                event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+
+                // Step 2.
+                let duration = Length::new(event_source.reconnection_time.get());
+
+                // Step 3.
+                // TODO: Optionally wait some more.
+
+                // Steps 4-5.
+                let callback = OneshotTimerCallback::EventSourceTimeout(
+                    EventSourceTimeoutCallback {
+                        event_source: trusted_event_source,
+                        action_sender,
+                    }
+                );
+                // FIXME(nox): Why are errors silenced here?
+                let _ = event_source.global().schedule_callback(callback, duration);
+            }),
+            &global,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#processField
@@ -186,12 +235,21 @@ impl EventSourceContext {
         // Step 7
         self.event_type.clear();
         self.data.clear();
-        // Step 8
-        let runnable = box DispatchEventRunnable {
-            event_source: self.event_source.clone(),
-            event: Trusted::new(&event)
-        };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+
+        // Step 8.
+        let global = event_source.global();
+        let event_source = self.event_source.clone();
+        let event = Trusted::new(&*event);
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(dispatch_the_event_source_event: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event.root().upcast::<Event>().fire(&event_source.upcast());
+                }
+            }),
+            &global,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#event-stream-interpretation
@@ -426,7 +484,7 @@ impl EventSource {
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.networking_task_source(),
-            wrapper: Some(global.get_runnable_wrapper())
+            canceller: Some(global.task_canceller())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -470,72 +528,7 @@ impl EventSourceMethods for EventSource {
     }
 }
 
-pub struct AnnounceConnectionRunnable {
-    event_source: Trusted<EventSource>,
-}
-
-impl Runnable for AnnounceConnectionRunnable {
-    fn name(&self) -> &'static str { "EventSource AnnounceConnectionRunnable" }
-
-    // https://html.spec.whatwg.org/multipage/#announce-the-connection
-    fn handler(self: Box<AnnounceConnectionRunnable>) {
-        let event_source = self.event_source.root();
-        if event_source.ready_state.get() != ReadyState::Closed {
-            event_source.ready_state.set(ReadyState::Open);
-            event_source.upcast::<EventTarget>().fire_event(atom!("open"));
-        }
-    }
-}
-
-pub struct FailConnectionRunnable {
-    event_source: Trusted<EventSource>,
-}
-
-impl Runnable for FailConnectionRunnable {
-    fn name(&self) -> &'static str { "EventSource FailConnectionRunnable" }
-
-    // https://html.spec.whatwg.org/multipage/#fail-the-connection
-    fn handler(self: Box<FailConnectionRunnable>) {
-        let event_source = self.event_source.root();
-        if event_source.ready_state.get() != ReadyState::Closed {
-            event_source.ready_state.set(ReadyState::Closed);
-            event_source.upcast::<EventTarget>().fire_event(atom!("error"));
-        }
-    }
-}
-
-pub struct ReestablishConnectionRunnable {
-    event_source: Trusted<EventSource>,
-    action_sender: ipc::IpcSender<FetchResponseMsg>,
-}
-
-impl Runnable for ReestablishConnectionRunnable {
-    fn name(&self) -> &'static str { "EventSource ReestablishConnectionRunnable" }
-
-    // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
-    fn handler(self: Box<ReestablishConnectionRunnable>) {
-        let event_source = self.event_source.root();
-        // Step 1.1
-        if event_source.ready_state.get() == ReadyState::Closed {
-            return;
-        }
-        // Step 1.2
-        event_source.ready_state.set(ReadyState::Connecting);
-        // Step 1.3
-        event_source.upcast::<EventTarget>().fire_event(atom!("error"));
-        // Step 2
-        let duration = Length::new(event_source.reconnection_time.get());
-        // TODO Step 3: Optionally wait some more
-        // Steps 4-5
-        let callback = OneshotTimerCallback::EventSourceTimeout(EventSourceTimeoutCallback {
-            event_source: self.event_source.clone(),
-            action_sender: self.action_sender.clone()
-        });
-        let _ = event_source.global().schedule_callback(callback, duration);
-    }
-}
-
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct EventSourceTimeoutCallback {
     #[ignore_heap_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
@@ -560,23 +553,5 @@ impl EventSourceTimeoutCallback {
         }
         // Step 5.4
         global.core_resource_thread().send(CoreResourceMsg::Fetch(request, self.action_sender)).unwrap();
-    }
-}
-
-pub struct DispatchEventRunnable {
-    event_source: Trusted<EventSource>,
-    event: Trusted<MessageEvent>,
-}
-
-impl Runnable for DispatchEventRunnable {
-    fn name(&self) -> &'static str { "EventSource DispatchEventRunnable" }
-
-    // https://html.spec.whatwg.org/multipage/#dispatchMessage
-    fn handler(self: Box<DispatchEventRunnable>) {
-        let event_source = self.event_source.root();
-        // Step 8
-        if event_source.ready_state.get() != ReadyState::Closed {
-            self.event.root().upcast::<Event>().fire(&event_source.upcast());
-        }
     }
 }

@@ -25,7 +25,6 @@
 #include "nsContentUtils.h"
 #include "ImageContainer.h"
 #include "ImageLayers.h"
-#include "nsContentList.h"
 #include "nsStyleUtil.h"
 #include <algorithm>
 
@@ -177,9 +176,9 @@ nsVideoFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
 void
 nsVideoFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  nsContentUtils::DestroyAnonymousContent(&mCaptionDiv);
-  nsContentUtils::DestroyAnonymousContent(&mVideoControls);
-  nsContentUtils::DestroyAnonymousContent(&mPosterImage);
+  DestroyAnonymousContent(mCaptionDiv.forget());
+  DestroyAnonymousContent(mVideoControls.forget());
+  DestroyAnonymousContent(mPosterImage.forget());
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -288,14 +287,13 @@ nsVideoFrame::Reflow(nsPresContext* aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsVideoFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aMetrics, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                  ("enter nsVideoFrame::Reflow: availSize=%d,%d",
                   aReflowInput.AvailableWidth(),
                   aReflowInput.AvailableHeight()));
 
   NS_PRECONDITION(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
-
-  aStatus.Reset();
 
   const WritingMode myWM = aReflowInput.GetWritingMode();
   nscoord contentBoxBSize = aReflowInput.ComputedBSize();
@@ -434,6 +432,7 @@ public:
   NS_DISPLAY_DECL_NAME("Video", TYPE_VIDEO)
 
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       mozilla::wr::IpcResourceUpdateQueue& aResources,
                                        const mozilla::layers::StackingContextHelper& aSc,
                                        nsTArray<mozilla::layers::WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
@@ -499,7 +498,8 @@ public:
   // away completely (e.g. because of a decoder error). The problem would
   // be especially acute if we have off-main-thread rendering.
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
+                           bool* aSnap) const override
   {
     *aSnap = true;
     nsIFrame* f = Frame();
@@ -534,7 +534,6 @@ public:
 
 void
 nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                               const nsRect&           aDirtyRect,
                                const nsDisplayListSet& aLists)
 {
   if (!IsVisibleForPainting(aBuilder))
@@ -570,14 +569,15 @@ nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // but only want to draw mPosterImage conditionally. Others we
   // always add to the display list.
   for (nsIFrame* child : mFrames) {
-    if (child->GetContent() != mPosterImage || shouldDisplayPoster) {
-      child->BuildDisplayListForStackingContext(aBuilder,
-                                                aDirtyRect - child->GetOffsetTo(this),
-                                                aLists.Content());
-    } else if (child->IsBoxFrame()) {
-      child->BuildDisplayListForStackingContext(aBuilder,
-                                                aDirtyRect - child->GetOffsetTo(this),
-                                                aLists.Content());
+    if (child->GetContent() != mPosterImage || shouldDisplayPoster ||
+        child->IsBoxFrame()) {
+
+      nsDisplayListBuilder::AutoBuildingDisplayList
+        buildingForChild(aBuilder, child,
+                         aBuilder->GetDirtyRect() - child->GetOffsetTo(this),
+                         aBuilder->IsAtRootOfPseudoStackingContext());
+
+      child->BuildDisplayListForStackingContext(aBuilder, aLists.Content());
     }
   }
 }

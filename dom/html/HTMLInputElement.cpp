@@ -86,7 +86,7 @@
 #include "mozilla/dom/FileList.h"
 #include "nsIFile.h"
 #include "nsDirectoryServiceDefs.h"
-#include "nsIContentPrefService.h"
+#include "nsIContentPrefService2.h"
 #include "nsIMIMEService.h"
 #include "nsIObserverService.h"
 #include "nsIPopupWindowManager.h"
@@ -1149,9 +1149,10 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
   , mPickerRunning(false)
   , mSelectionCached(true)
   , mIsPreviewEnabled(false)
+  , mHasPatternAttribute(false)
 {
   // If size is above 512, mozjemalloc allocates 1kB, see
-  // memory/mozjemalloc/jemalloc.c
+  // memory/build/mozjemalloc.cpp
   static_assert(sizeof(HTMLInputElement) <= 512,
                 "Keep the size of HTMLInputElement under 512 to avoid "
                 "performance regression!");
@@ -1249,20 +1250,15 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLInputElement,
   //XXX should unlink more?
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_ADDREF_INHERITED(HTMLInputElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLInputElement, Element)
-
-// QueryInterface implementation for HTMLInputElement
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLInputElement)
-  NS_INTERFACE_TABLE_INHERITED(HTMLInputElement,
-                               nsIDOMHTMLInputElement,
-                               nsITextControlElement,
-                               imgINotificationObserver,
-                               nsIImageLoadingContent,
-                               imgIOnloadBlocker,
-                               nsIDOMNSEditableElement,
-                               nsIConstraintValidation)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElementWithState)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLInputElement,
+                                             nsGenericHTMLFormElementWithState,
+                                             nsIDOMHTMLInputElement,
+                                             nsITextControlElement,
+                                             imgINotificationObserver,
+                                             nsIImageLoadingContent,
+                                             imgIOnloadBlocker,
+                                             nsIDOMNSEditableElement,
+                                             nsIConstraintValidation)
 
 // nsIDOMNode
 
@@ -1457,8 +1453,15 @@ HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       UpdateTooLongValidityState();
     } else if (aName == nsGkAtoms::minlength) {
       UpdateTooShortValidityState();
-    } else if (aName == nsGkAtoms::pattern && mDoneCreating) {
-      UpdatePatternMismatchValidityState();
+    } else if (aName == nsGkAtoms::pattern) {
+      // Although pattern attribute only applies to single line text controls,
+      // we set this flag for all input types to save having to check the type
+      // here.
+      mHasPatternAttribute = !!aValue;
+
+      if (mDoneCreating) {
+        UpdatePatternMismatchValidityState();
+      }
     } else if (aName == nsGkAtoms::multiple) {
       UpdateTypeMismatchValidityState();
     } else if (aName == nsGkAtoms::max) {
@@ -2948,6 +2951,26 @@ HTMLInputElement::GetFiles()
   return mFileData->mFileList;
 }
 
+void
+HTMLInputElement::SetFiles(FileList* aFiles)
+{
+  if (mType != NS_FORM_INPUT_FILE || !aFiles) {
+    return;
+  }
+
+  // Clear |mFileData->mFileList| to omit |UpdateFileList|
+  if (mFileData->mFileList) {
+    mFileData->mFileList->Clear();
+    mFileData->mFileList = nullptr;
+  }
+
+  // Update |mFileData->mFilesOrDirectories|
+  SetFiles(aFiles, true);
+
+  // Update |mFileData->mFileList| without copy
+  mFileData->mFileList = aFiles;
+}
+
 /* static */ void
 HTMLInputElement::HandleNumberControlSpin(void* aData)
 {
@@ -3544,13 +3567,17 @@ HTMLInputElement::NeedToInitializeEditorForEvent(
   // are lazily initialized.  We don't need to initialize the control for
   // certain types of events, because we know that those events are safe to be
   // handled without the editor being initialized.  These events include:
-  // mousein/move/out, overflow/underflow, and DOM mutation events.
+  // mousein/move/out, overflow/underflow, DOM mutation, and void events. Void
+  // events are dispatched frequently by async keyboard scrolling to focused
+  // elements, so it's important to handle them to prevent excessive DOM
+  // mutations.
   if (!IsSingleLineTextControl(false) ||
       aVisitor.mEvent->mClass == eMutationEventClass) {
     return false;
   }
 
   switch (aVisitor.mEvent->mMessage) {
+  case eVoidEvent:
   case eMouseMove:
   case eMouseEnterIntoWidget:
   case eMouseExitFromWidget:
@@ -7372,13 +7399,6 @@ NS_IMETHODIMP_(bool)
 HTMLInputElement::IsTextArea() const
 {
   return false;
-}
-
-NS_IMETHODIMP_(bool)
-HTMLInputElement::IsPlainTextControl() const
-{
-  // need to check our HTML attribute and/or CSS.
-  return true;
 }
 
 NS_IMETHODIMP_(bool)

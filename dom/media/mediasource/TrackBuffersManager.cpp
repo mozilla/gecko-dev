@@ -10,11 +10,10 @@
 #include "MediaSourceDemuxer.h"
 #include "MediaSourceUtils.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/StateMirroring.h"
-#include "SourceBufferResource.h"
 #include "SourceBuffer.h"
-#include "WebMDemuxer.h"
+#include "SourceBufferResource.h"
 #include "SourceBufferTask.h"
+#include "WebMDemuxer.h"
 
 #ifdef MOZ_FMP4
 #include "MP4Demuxer.h"
@@ -41,16 +40,17 @@ using media::TimeUnit;
 using media::TimeInterval;
 using media::TimeIntervals;
 typedef SourceBufferTask::AppendBufferResult AppendBufferResult;
+typedef SourceBufferAttributes::AppendState AppendState;
 
 static const char*
-AppendStateToStr(SourceBufferAttributes::AppendState aState)
+AppendStateToStr(AppendState aState)
 {
   switch (aState) {
-    case SourceBufferAttributes::AppendState::WAITING_FOR_SEGMENT:
+    case AppendState::WAITING_FOR_SEGMENT:
       return "WAITING_FOR_SEGMENT";
-    case SourceBufferAttributes::AppendState::PARSING_INIT_SEGMENT:
+    case AppendState::PARSING_INIT_SEGMENT:
       return "PARSING_INIT_SEGMENT";
-    case SourceBufferAttributes::AppendState::PARSING_MEDIA_SEGMENT:
+    case AppendState::PARSING_MEDIA_SEGMENT:
       return "PARSING_MEDIA_SEGMENT";
     default:
       return "IMPOSSIBLE";
@@ -832,8 +832,8 @@ TrackBuffersManager::CreateDemuxerforMIMEType()
   }
 
 #ifdef MOZ_FMP4
-  if (mType.Type() == MEDIAMIMETYPE("video/mp4")
-      || mType.Type() == MEDIAMIMETYPE("audio/mp4")) {
+  if (mType.Type() == MEDIAMIMETYPE("video/mp4") ||
+      mType.Type() == MEDIAMIMETYPE("audio/mp4")) {
     mInputDemuxer = new MP4Demuxer(mCurrentInputBuffer);
     return;
   }
@@ -1488,12 +1488,15 @@ TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples, TrackData& aTrackData)
   // Some videos do not exactly start at 0, but instead a small negative value.
   // To avoid evicting the starting frame of those videos, we allow a leeway
   // of +- mLongestFrameDuration on the append window start.
-  // We only apply the leeway with the default append window start of 0
-  // otherwise do as per spec.
+  // We only apply the leeway with the default append window start of 0 and
+  // append window end of infinity.
+  // Otherwise do as per spec.
   TimeInterval targetWindow =
-    mAppendWindow.mStart != TimeUnit::FromSeconds(0)
+    (mAppendWindow.mStart != TimeUnit::FromSeconds(0) ||
+     mAppendWindow.mEnd != TimeUnit::FromInfinity())
     ? mAppendWindow
-    : TimeInterval(mAppendWindow.mStart, mAppendWindow.mEnd,
+    : TimeInterval(mAppendWindow.mStart,
+                   mAppendWindow.mEnd,
                    trackBuffer.mLastFrameDuration.isSome()
                    ? trackBuffer.mLongestFrameDuration
                    : aSamples[0]->mDuration);
@@ -1775,8 +1778,8 @@ TrackBuffersManager::InsertFrames(TrackBuffer& aSamples,
 
   if (intersection.Length()) {
     if (aSamples[0]->mKeyframe &&
-        (mType.Type() == MEDIAMIMETYPE("video/webm")
-         || mType.Type() == MEDIAMIMETYPE("audio/webm"))) {
+        (mType.Type() == MEDIAMIMETYPE("video/webm") ||
+         mType.Type() == MEDIAMIMETYPE("audio/webm"))) {
       // We are starting a new GOP, we do not have to worry about breaking an
       // existing current coded frame group. Reset the next insertion index
       // so the search for when to start our frames removal can be exhaustive.
@@ -2024,7 +2027,7 @@ TrackBuffersManager::GetTracksList() const
 }
 
 void
-TrackBuffersManager::SetAppendState(SourceBufferAttributes::AppendState aAppendState)
+TrackBuffersManager::SetAppendState(AppendState aAppendState)
 {
   MSE_DEBUG("AppendState changed from %s to %s",
             AppendStateToStr(mSourceBufferAttributes->GetAppendState()), AppendStateToStr(aAppendState));

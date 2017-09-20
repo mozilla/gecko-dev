@@ -23,8 +23,9 @@ AsyncImagePipelineManager::AsyncImagePipeline::AsyncImagePipeline()
  , mMixBlendMode(wr::MixBlendMode::Normal)
 {}
 
-AsyncImagePipelineManager::AsyncImagePipelineManager(wr::IdNamespace aIdNamespace)
- : mIdNamespace(aIdNamespace)
+AsyncImagePipelineManager::AsyncImagePipelineManager(already_AddRefed<wr::WebRenderAPI>&& aApi)
+ : mApi(aApi)
+ , mIdNamespace(mApi->GetNamespace())
  , mResourceId(0)
  , mAsyncImageEpoch(0)
  , mDestroyed(false)
@@ -38,9 +39,11 @@ AsyncImagePipelineManager::~AsyncImagePipelineManager()
 }
 
 void
-AsyncImagePipelineManager::Destroy(wr::WebRenderAPI* aApi)
+AsyncImagePipelineManager::Destroy()
 {
-  DeleteOldAsyncImages(aApi);
+  MOZ_ASSERT(!mDestroyed);
+  DeleteOldAsyncImages();
+  mApi = nullptr;
   mDestroyed = true;
 }
 
@@ -51,11 +54,14 @@ AsyncImagePipelineManager::HasKeysToDelete()
 }
 
 void
-AsyncImagePipelineManager::DeleteOldAsyncImages(wr::WebRenderAPI* aApi)
+AsyncImagePipelineManager::DeleteOldAsyncImages()
 {
+  MOZ_ASSERT(!mDestroyed);
+  wr::ResourceUpdateQueue resources;
   for (wr::ImageKey key : mKeysToDelete) {
-    aApi->DeleteImage(key);
+    resources.DeleteImage(key);
   }
+  mApi->UpdateResources(resources);
   mKeysToDelete.Clear();
 }
 
@@ -111,7 +117,7 @@ AsyncImagePipelineManager::AddAsyncImagePipeline(const wr::PipelineId& aPipeline
 }
 
 void
-AsyncImagePipelineManager::RemoveAsyncImagePipeline(wr::WebRenderAPI* aApi, const wr::PipelineId& aPipelineId)
+AsyncImagePipelineManager::RemoveAsyncImagePipeline(const wr::PipelineId& aPipelineId)
 {
   if (mDestroyed) {
     return;
@@ -121,10 +127,12 @@ AsyncImagePipelineManager::RemoveAsyncImagePipeline(wr::WebRenderAPI* aApi, cons
   if (auto entry = mAsyncImagePipelines.Lookup(id)) {
     AsyncImagePipeline* holder = entry.Data();
     ++mAsyncImageEpoch; // Update webrender epoch
-    aApi->ClearRootDisplayList(wr::NewEpoch(mAsyncImageEpoch), aPipelineId);
+    mApi->ClearDisplayList(wr::NewEpoch(mAsyncImageEpoch), aPipelineId);
+    wr::ResourceUpdateQueue resources;
     for (wr::ImageKey key : holder->mKeys) {
-      aApi->DeleteImage(key);
+      resources.DeleteImage(key);
     }
+    mApi->UpdateResources(resources);
     entry.Remove();
     RemovePipeline(aPipelineId, wr::NewEpoch(mAsyncImageEpoch));
   }
@@ -155,7 +163,9 @@ AsyncImagePipelineManager::UpdateAsyncImagePipeline(const wr::PipelineId& aPipel
 }
 
 bool
-AsyncImagePipelineManager::GenerateImageKeyForTextureHost(wr::WebRenderAPI* aApi, TextureHost* aTexture, nsTArray<wr::ImageKey>& aKeys)
+AsyncImagePipelineManager::GenerateImageKeyForTextureHost(wr::ResourceUpdateQueue& aResources,
+                                                          TextureHost* aTexture,
+                                                          nsTArray<wr::ImageKey>& aKeys)
 {
   MOZ_ASSERT(aKeys.IsEmpty());
   MOZ_ASSERT(aTexture);
@@ -166,7 +176,7 @@ AsyncImagePipelineManager::GenerateImageKeyForTextureHost(wr::WebRenderAPI* aApi
     wrTexture->GetWRImageKeys(aKeys, std::bind(&AsyncImagePipelineManager::GenerateImageKey, this));
     MOZ_ASSERT(!aKeys.IsEmpty());
     Range<const wr::ImageKey> keys(&aKeys[0], aKeys.Length());
-    wrTexture->AddWRImage(aApi, keys, wrTexture->GetExternalImageKey());
+    wrTexture->AddWRImage(aResources, keys, wrTexture->GetExternalImageKey());
     return true;
   } else {
     RefPtr<gfx::DataSourceSurface> dSurf = aTexture->GetAsSurface();
@@ -180,19 +190,20 @@ AsyncImagePipelineManager::GenerateImageKeyForTextureHost(wr::WebRenderAPI* aApi
       return false;
     }
     gfx::IntSize size = dSurf->GetSize();
+    wr::Vec_u8 imgBytes;
+    imgBytes.PushBytes(Range<uint8_t>(map.mData, size.height * map.mStride));
     wr::ImageDescriptor descriptor(size, map.mStride, dSurf->GetFormat());
-    auto slice = Range<uint8_t>(map.mData, size.height * map.mStride);
 
     wr::ImageKey key = GenerateImageKey();
     aKeys.AppendElement(key);
-    aApi->AddImage(key, descriptor, slice);
+    aResources.AddImage(key, descriptor, imgBytes);
     dSurf->Unmap();
   }
   return false;
 }
 
 bool
-AsyncImagePipelineManager::UpdateImageKeys(wr::WebRenderAPI* aApi,
+AsyncImagePipelineManager::UpdateImageKeys(wr::ResourceUpdateQueue& aResources,
                                            bool& aUseExternalImage,
                                            AsyncImagePipeline* aImageMgr,
                                            nsTArray<wr::ImageKey>& aKeys,
@@ -231,7 +242,7 @@ AsyncImagePipelineManager::UpdateImageKeys(wr::WebRenderAPI* aApi,
     return true;
   }
 
-  aUseExternalImage = aImageMgr->mUseExternalImage = GenerateImageKeyForTextureHost(aApi, texture, aKeys);
+  aUseExternalImage = aImageMgr->mUseExternalImage = GenerateImageKeyForTextureHost(aResources, texture, aKeys);
   MOZ_ASSERT(!aKeys.IsEmpty());
   aImageMgr->mKeys.AppendElements(aKeys);
   aImageMgr->mCurrentTexture = texture;
@@ -239,7 +250,7 @@ AsyncImagePipelineManager::UpdateImageKeys(wr::WebRenderAPI* aApi,
 }
 
 void
-AsyncImagePipelineManager::ApplyAsyncImages(wr::WebRenderAPI* aApi)
+AsyncImagePipelineManager::ApplyAsyncImages()
 {
   if (mDestroyed || mAsyncImagePipelines.Count() == 0) {
     return;
@@ -249,13 +260,15 @@ AsyncImagePipelineManager::ApplyAsyncImages(wr::WebRenderAPI* aApi)
   wr::Epoch epoch = wr::NewEpoch(mAsyncImageEpoch);
   nsTArray<wr::ImageKey> keysToDelete;
 
+  wr::ResourceUpdateQueue resourceUpdates;
+
   for (auto iter = mAsyncImagePipelines.Iter(); !iter.Done(); iter.Next()) {
     wr::PipelineId pipelineId = wr::AsPipelineId(iter.Key());
     AsyncImagePipeline* pipeline = iter.Data();
 
     nsTArray<wr::ImageKey> keys;
     bool useExternalImage = false;
-    bool updateDisplayList = UpdateImageKeys(aApi,
+    bool updateDisplayList = UpdateImageKeys(resourceUpdates,
                                              useExternalImage,
                                              pipeline,
                                              keys,
@@ -264,7 +277,7 @@ AsyncImagePipelineManager::ApplyAsyncImages(wr::WebRenderAPI* aApi)
       continue;
     }
 
-    wr::LayoutSize contentSize { pipeline->mScBounds.width, pipeline->mScBounds.height };
+    wr::LayoutSize contentSize { pipeline->mScBounds.Width(), pipeline->mScBounds.Height() };
     wr::DisplayListBuilder builder(pipelineId, contentSize);
 
     if (!keys.IsEmpty()) {
@@ -276,6 +289,7 @@ AsyncImagePipelineManager::ApplyAsyncImages(wr::WebRenderAPI* aApi)
                                   &opacity,
                                   pipeline->mScTransform.IsIdentity() ? nullptr : &pipeline->mScTransform,
                                   wr::TransformStyle::Flat,
+                                  nullptr,
                                   pipeline->mMixBlendMode,
                                   nsTArray<wr::WrFilterOp>());
 
@@ -306,11 +320,12 @@ AsyncImagePipelineManager::ApplyAsyncImages(wr::WebRenderAPI* aApi)
     wr::BuiltDisplayList dl;
     wr::LayoutSize builderContentSize;
     builder.Finalize(builderContentSize, dl);
-    aApi->SetRootDisplayList(gfx::Color(0.f, 0.f, 0.f, 0.f), epoch, LayerSize(pipeline->mScBounds.width, pipeline->mScBounds.height),
-                             pipelineId, builderContentSize,
-                             dl.dl_desc, dl.dl.inner.data, dl.dl.inner.length);
+    mApi->SetDisplayList(gfx::Color(0.f, 0.f, 0.f, 0.f), epoch, LayerSize(pipeline->mScBounds.Width(), pipeline->mScBounds.Height()),
+                         pipelineId, builderContentSize,
+                         dl.dl_desc, dl.dl.inner.data, dl.dl.inner.length,
+                         resourceUpdates);
   }
-  DeleteOldAsyncImages(aApi);
+  DeleteOldAsyncImages();
   mKeysToDelete.SwapElements(keysToDelete);
 }
 

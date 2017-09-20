@@ -57,9 +57,11 @@ AnimationState::UpdateStateInternal(LookupResult& aResult,
     // no frames yet, but a decoder is or will be working on it.
     mDiscarded = false;
     mIsCurrentlyDecoded = false;
+    mHasRequestedDecode = true;
   } else {
     MOZ_ASSERT(aResult.Type() == MatchType::EXACT);
     mDiscarded = false;
+    mHasRequestedDecode = true;
 
     // If mHasBeenDecoded is true then we know the true total frame count and
     // we can use it to determine if we have all the frames now so we know if
@@ -99,7 +101,7 @@ AnimationState::UpdateStateInternal(LookupResult& aResult,
       mCompositedFrameInvalid = false;
     } else if (aResult.Type() == MatchType::NOT_FOUND ||
                aResult.Type() == MatchType::PENDING) {
-      if (mHasBeenDecoded) {
+      if (mHasRequestedDecode) {
         MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
         mCompositedFrameInvalid = true;
       }
@@ -209,7 +211,7 @@ FrameAnimator::GetCurrentImgFrameEndTime(AnimationState& aState,
     GetTimeoutForFrame(aState, aFrames, aState.mCurrentAnimationFrameIndex);
 
   if (timeout.isNothing()) {
-    MOZ_ASSERT(aState.GetHasBeenDecoded() && !aState.GetIsCurrentlyDecoded());
+    MOZ_ASSERT(aState.GetHasRequestedDecode() && !aState.GetIsCurrentlyDecoded());
     return Nothing();
   }
 
@@ -416,7 +418,7 @@ FrameAnimator::RequestRefresh(AnimationState& aState,
     GetCurrentImgFrameEndTime(aState, result.Surface());
   if (currentFrameEndTime.isNothing()) {
     MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
-    MOZ_ASSERT(aState.GetHasBeenDecoded() && !aState.GetIsCurrentlyDecoded());
+    MOZ_ASSERT(aState.GetHasRequestedDecode() && !aState.GetIsCurrentlyDecoded());
     MOZ_ASSERT(aState.mCompositedFrameInvalid);
     // Nothing we can do but wait for our previous current frame to be decoded
     // again so we can determine what to do next.
@@ -465,7 +467,7 @@ FrameAnimator::GetCompositedFrame(AnimationState& aState)
 
   if (aState.mCompositedFrameInvalid) {
     MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
-    MOZ_ASSERT(aState.GetHasBeenDecoded());
+    MOZ_ASSERT(aState.GetHasRequestedDecode());
     MOZ_ASSERT(!aState.GetIsCurrentlyDecoded());
     if (result.Type() == MatchType::NOT_FOUND) {
       return result;
@@ -512,7 +514,7 @@ FrameAnimator::GetTimeoutForFrame(AnimationState& aState,
     return Some(data.mTimeout);
   }
 
-  MOZ_ASSERT(aState.mHasBeenDecoded && !aState.mIsCurrentlyDecoded);
+  MOZ_ASSERT(aState.mHasRequestedDecode && !aState.mIsCurrentlyDecoded);
   return Nothing();
 }
 
@@ -528,7 +530,9 @@ DoCollectSizeOfCompositingSurfaces(const RawAccessFrameRef& aSurface,
                                     PlaybackType::eStatic);
 
   // Create a counter for this surface.
-  SurfaceMemoryCounter counter(key, /* aIsLocked = */ true, aType);
+  SurfaceMemoryCounter counter(key, /* aIsLocked = */ true,
+                               /* aCannotSubstitute */ false,
+                               /* aIsFactor2 */ false, aType);
 
   // Extract the surface's memory usage information.
   size_t heap = 0, nonHeap = 0, handles = 0;
@@ -599,8 +603,8 @@ FrameAnimator::DoBlend(DrawableSurface& aFrames,
                    : prevFrameData.mRect;
 
   bool isFullPrevFrame = prevRect.x == 0 && prevRect.y == 0 &&
-                         prevRect.width == mSize.width &&
-                         prevRect.height == mSize.height;
+                         prevRect.Width() == mSize.width &&
+                         prevRect.Height() == mSize.height;
 
   // Optimization: DisposeClearAll if the previous frame is the same size as
   //               container and it's clearing itself
@@ -616,8 +620,8 @@ FrameAnimator::DoBlend(DrawableSurface& aFrames,
                    : nextFrameData.mRect;
 
   bool isFullNextFrame = nextRect.x == 0 && nextRect.y == 0 &&
-                         nextRect.width == mSize.width &&
-                         nextRect.height == mSize.height;
+                         nextRect.Width() == mSize.width &&
+                         nextRect.Height() == mSize.height;
 
   if (!nextFrame->GetIsPaletted()) {
     // Optimization: Skip compositing if the previous frame wants to clear the
@@ -716,8 +720,8 @@ FrameAnimator::DoBlend(DrawableSurface& aFrames,
       needToBlankComposite = false;
     } else {
       if ((prevRect.x >= nextRect.x) && (prevRect.y >= nextRect.y) &&
-          (prevRect.x + prevRect.width <= nextRect.x + nextRect.width) &&
-          (prevRect.y + prevRect.height <= nextRect.y + nextRect.height)) {
+          (prevRect.XMost() <= nextRect.XMost()) &&
+          (prevRect.YMost() <= nextRect.YMost())) {
         // Optimization: No need to dispose prev.frame when
         // next frame fully overlaps previous frame.
         doDisposal = false;
@@ -870,7 +874,7 @@ FrameAnimator::ClearFrame(uint8_t* aFrameData, const IntRect& aFrameRect)
     return;
   }
 
-  memset(aFrameData, 0, aFrameRect.width * aFrameRect.height * 4);
+  memset(aFrameData, 0, aFrameRect.Width() * aFrameRect.Height() * 4);
 }
 
 //******************************************************************************
@@ -878,8 +882,8 @@ void
 FrameAnimator::ClearFrame(uint8_t* aFrameData, const IntRect& aFrameRect,
                           const IntRect& aRectToClear)
 {
-  if (!aFrameData || aFrameRect.width <= 0 || aFrameRect.height <= 0 ||
-      aRectToClear.width <= 0 || aRectToClear.height <= 0) {
+  if (!aFrameData || aFrameRect.Width() <= 0 || aFrameRect.Height() <= 0 ||
+      aRectToClear.Width() <= 0 || aRectToClear.Height() <= 0) {
     return;
   }
 
@@ -888,10 +892,10 @@ FrameAnimator::ClearFrame(uint8_t* aFrameData, const IntRect& aFrameRect,
     return;
   }
 
-  uint32_t bytesPerRow = aFrameRect.width * 4;
-  for (int row = toClear.y; row < toClear.y + toClear.height; ++row) {
+  uint32_t bytesPerRow = aFrameRect.Width() * 4;
+  for (int row = toClear.y; row < toClear.YMost(); ++row) {
     memset(aFrameData + toClear.x * 4 + row * bytesPerRow, 0,
-           toClear.width * 4);
+           toClear.Width() * 4);
   }
 }
 
@@ -904,8 +908,8 @@ FrameAnimator::CopyFrameImage(const uint8_t* aDataSrc,
                               uint8_t* aDataDest,
                               const IntRect& aRectDest)
 {
-  uint32_t dataLengthSrc = aRectSrc.width * aRectSrc.height * 4;
-  uint32_t dataLengthDest = aRectDest.width * aRectDest.height * 4;
+  uint32_t dataLengthSrc = aRectSrc.Width() * aRectSrc.Height() * 4;
+  uint32_t dataLengthDest = aRectDest.Width() * aRectDest.Height() * 4;
 
   if (!aDataDest || !aDataSrc || dataLengthSrc != dataLengthDest) {
     return false;
@@ -931,23 +935,23 @@ FrameAnimator::DrawFrameTo(const uint8_t* aSrcData, const IntRect& aSrcRect,
     return NS_ERROR_FAILURE;
   }
   // Outside the destination frame, skip it
-  if ((aSrcRect.x > aDstRect.width) || (aSrcRect.y > aDstRect.height)) {
+  if ((aSrcRect.x > aDstRect.Width()) || (aSrcRect.y > aDstRect.Height())) {
     return NS_OK;
   }
 
   if (aSrcPaletteLength) {
     // Larger than the destination frame, clip it
-    int32_t width = std::min(aSrcRect.width, aDstRect.width - aSrcRect.x);
-    int32_t height = std::min(aSrcRect.height, aDstRect.height - aSrcRect.y);
+    int32_t width = std::min(aSrcRect.Width(), aDstRect.Width() - aSrcRect.x);
+    int32_t height = std::min(aSrcRect.Height(), aDstRect.Height() - aSrcRect.y);
 
     // The clipped image must now fully fit within destination image frame
     NS_ASSERTION((aSrcRect.x >= 0) && (aSrcRect.y >= 0) &&
-                 (aSrcRect.x + width <= aDstRect.width) &&
-                 (aSrcRect.y + height <= aDstRect.height),
+                 (aSrcRect.x + width <= aDstRect.Width()) &&
+                 (aSrcRect.y + height <= aDstRect.Height()),
                 "FrameAnimator::DrawFrameTo: Invalid aSrcRect");
 
     // clipped image size may be smaller than source, but not larger
-    NS_ASSERTION((width <= aSrcRect.width) && (height <= aSrcRect.height),
+    NS_ASSERTION((width <= aSrcRect.Width()) && (height <= aSrcRect.Height()),
       "FrameAnimator::DrawFrameTo: source must be smaller than dest");
 
     // Get pointers to image data
@@ -956,15 +960,15 @@ FrameAnimator::DrawFrameTo(const uint8_t* aSrcData, const IntRect& aSrcRect,
     const uint32_t* colormap = reinterpret_cast<const uint32_t*>(aSrcData);
 
     // Skip to the right offset
-    dstPixels += aSrcRect.x + (aSrcRect.y * aDstRect.width);
+    dstPixels += aSrcRect.x + (aSrcRect.y * aDstRect.Width());
     if (!aSrcHasAlpha) {
       for (int32_t r = height; r > 0; --r) {
         for (int32_t c = 0; c < width; c++) {
           dstPixels[c] = colormap[srcPixels[c]];
         }
         // Go to the next row in the source resp. destination image
-        srcPixels += aSrcRect.width;
-        dstPixels += aDstRect.width;
+        srcPixels += aSrcRect.Width();
+        dstPixels += aDstRect.Width();
       }
     } else {
       for (int32_t r = height; r > 0; --r) {
@@ -975,26 +979,26 @@ FrameAnimator::DrawFrameTo(const uint8_t* aSrcData, const IntRect& aSrcRect,
           }
         }
         // Go to the next row in the source resp. destination image
-        srcPixels += aSrcRect.width;
-        dstPixels += aDstRect.width;
+        srcPixels += aSrcRect.Width();
+        dstPixels += aDstRect.Width();
       }
     }
   } else {
     pixman_image_t* src =
       pixman_image_create_bits(
           aSrcHasAlpha ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
-          aSrcRect.width, aSrcRect.height,
+          aSrcRect.Width(), aSrcRect.Height(),
           reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(aSrcData)),
-          aSrcRect.width * 4);
+          aSrcRect.Width() * 4);
     if (!src) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
     pixman_image_t* dst =
       pixman_image_create_bits(PIXMAN_a8r8g8b8,
-                               aDstRect.width,
-                               aDstRect.height,
+                               aDstRect.Width(),
+                               aDstRect.Height(),
                                reinterpret_cast<uint32_t*>(aDstPixels),
-                               aDstRect.width * 4);
+                               aDstRect.Width() * 4);
     if (!dst) {
       pixman_image_unref(src);
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1027,7 +1031,7 @@ FrameAnimator::DrawFrameTo(const uint8_t* aSrcData, const IntRect& aSrcRect,
                                0, 0,
                                0, 0,
                                aSrcRect.x, aSrcRect.y,
-                               aSrcRect.width, aSrcRect.height);
+                               aSrcRect.Width(), aSrcRect.Height());
     } else {
       // We need to do the OVER followed by SOURCE trick above.
       pixman_image_composite32(PIXMAN_OP_OVER,
@@ -1037,7 +1041,7 @@ FrameAnimator::DrawFrameTo(const uint8_t* aSrcData, const IntRect& aSrcRect,
                                0, 0,
                                0, 0,
                                aSrcRect.x, aSrcRect.y,
-                               aSrcRect.width, aSrcRect.height);
+                               aSrcRect.Width(), aSrcRect.Height());
       pixman_image_composite32(PIXMAN_OP_SRC,
                                src,
                                nullptr,
@@ -1045,7 +1049,7 @@ FrameAnimator::DrawFrameTo(const uint8_t* aSrcData, const IntRect& aSrcRect,
                                aBlendRect->x, aBlendRect->y,
                                0, 0,
                                aBlendRect->x, aBlendRect->y,
-                               aBlendRect->width, aBlendRect->height);
+                               aBlendRect->Width(), aBlendRect->Height());
     }
 
     pixman_image_unref(src);

@@ -57,7 +57,7 @@ VRDisplayOpenVR::VRDisplayOpenVR(::vr::IVRSystem *aVRSystem,
   MOZ_COUNT_CTOR_INHERITED(VRDisplayOpenVR, VRDisplayHost);
 
   mDisplayInfo.mDisplayName.AssignLiteral("OpenVR HMD");
-  mDisplayInfo.mIsConnected = true;
+  mDisplayInfo.mIsConnected = mVRSystem->IsTrackedDeviceConnected(::vr::k_unTrackedDeviceIndex_Hmd);
   mDisplayInfo.mIsMounted = false;
   mDisplayInfo.mCapabilityFlags = VRDisplayCapabilityFlags::Cap_None |
                                   VRDisplayCapabilityFlags::Cap_Orientation |
@@ -65,6 +65,7 @@ VRDisplayOpenVR::VRDisplayOpenVR(::vr::IVRSystem *aVRSystem,
                                   VRDisplayCapabilityFlags::Cap_External |
                                   VRDisplayCapabilityFlags::Cap_Present |
                                   VRDisplayCapabilityFlags::Cap_StageParameters;
+  mIsHmdPresent = ::vr::VR_IsHmdPresent();
 
   ::vr::ETrackedPropertyError err;
   bool bHasProximitySensor = mVRSystem->GetBoolTrackedDeviceProperty(::vr::k_unTrackedDeviceIndex_Hmd, ::vr::Prop_ContainsProximitySensor_Bool, &err);
@@ -174,24 +175,44 @@ VRDisplayOpenVR::ZeroSensor()
   UpdateStageParameters();
 }
 
+bool
+VRDisplayOpenVR::GetIsHmdPresent()
+{
+  return mIsHmdPresent;
+}
+
 void
 VRDisplayOpenVR::PollEvents()
 {
   ::vr::VREvent_t event;
-  while (mVRSystem->PollNextEvent(&event, sizeof(event))) {
+  while (mVRSystem && mVRSystem->PollNextEvent(&event, sizeof(event))) {
     switch (event.eventType) {
       case ::vr::VREvent_TrackedDeviceUserInteractionStarted:
-        mDisplayInfo.mIsMounted = true;
+        if (event.trackedDeviceIndex == ::vr::k_unTrackedDeviceIndex_Hmd) {
+          mDisplayInfo.mIsMounted = true;
+        }
         break;
       case ::vr::VREvent_TrackedDeviceUserInteractionEnded:
-        mDisplayInfo.mIsMounted = false;
+        if (event.trackedDeviceIndex == ::vr::k_unTrackedDeviceIndex_Hmd) {
+          mDisplayInfo.mIsMounted = false;
+        }
+        break;
+      case ::vr::EVREventType::VREvent_TrackedDeviceActivated:
+        if (event.trackedDeviceIndex == ::vr::k_unTrackedDeviceIndex_Hmd) {
+          mDisplayInfo.mIsConnected = true;
+        }
+        break;
+      case ::vr::EVREventType::VREvent_TrackedDeviceDeactivated:
+        if (event.trackedDeviceIndex == ::vr::k_unTrackedDeviceIndex_Hmd) {
+          mDisplayInfo.mIsConnected = false;
+        }
         break;
       case ::vr::EVREventType::VREvent_DriverRequestedQuit:
       case ::vr::EVREventType::VREvent_Quit:
       case ::vr::EVREventType::VREvent_ProcessQuit:
       case ::vr::EVREventType::VREvent_QuitAcknowledged:
       case ::vr::EVREventType::VREvent_QuitAborted_UserPrompt:
-        mDisplayInfo.mIsConnected = false;
+        mIsHmdPresent = false;
         break;
       default:
         // ignore
@@ -268,7 +289,12 @@ VRDisplayOpenVR::StartPresentation()
     return;
   }
   mIsPresenting = true;
-  mPresentationStart = TimeStamp::Now();
+  mTelemetry.Clear();
+  mTelemetry.mPresentationStart = TimeStamp::Now();
+
+  ::vr::Compositor_CumulativeStats stats;
+  mVRCompositor->GetCumulativeStats(&stats, sizeof(::vr::Compositor_CumulativeStats));
+  mTelemetry.mLastDroppedFrameCount = stats.m_nNumReprojectedFrames;
 }
 
 void
@@ -281,10 +307,16 @@ VRDisplayOpenVR::StopPresentation()
   mVRCompositor->ClearLastSubmittedFrame();
 
   mIsPresenting = false;
+  const TimeDuration duration = TimeStamp::Now() - mTelemetry.mPresentationStart;
   Telemetry::Accumulate(Telemetry::WEBVR_USERS_VIEW_IN, 2);
-  Telemetry::Accumulate(Telemetry::WEBVR_TIME_SPEND_FOR_VIEWING_IN_OPENVR,
-                        static_cast<uint32_t>((TimeStamp::Now() - mPresentationStart)
-                        .ToMilliseconds()));
+  Telemetry::Accumulate(Telemetry::WEBVR_TIME_SPENT_VIEWING_IN_OPENVR,
+                        duration.ToMilliseconds());
+
+  ::vr::Compositor_CumulativeStats stats;
+  mVRCompositor->GetCumulativeStats(&stats, sizeof(::vr::Compositor_CumulativeStats));
+  const uint32_t droppedFramesPerSec = (stats.m_nNumReprojectedFrames -
+                                        mTelemetry.mLastDroppedFrameCount) / duration.ToSeconds();
+  Telemetry::Accumulate(Telemetry::WEBVR_DROPPED_FRAMES_IN_OPENVR, droppedFramesPerSec);
 }
 
 bool
@@ -306,8 +338,8 @@ VRDisplayOpenVR::SubmitFrame(void* aTextureHandle,
   ::vr::VRTextureBounds_t bounds;
   bounds.uMin = aLeftEyeRect.x;
   bounds.vMin = 1.0 - aLeftEyeRect.y;
-  bounds.uMax = aLeftEyeRect.x + aLeftEyeRect.width;
-  bounds.vMax = 1.0 - aLeftEyeRect.y - aLeftEyeRect.height;
+  bounds.uMax = aLeftEyeRect.x + aLeftEyeRect.Width();
+  bounds.vMax = 1.0 - aLeftEyeRect.y - aLeftEyeRect.Height();
 
   ::vr::EVRCompositorError err;
   err = mVRCompositor->Submit(::vr::EVREye::Eye_Left, &tex, &bounds);
@@ -317,8 +349,8 @@ VRDisplayOpenVR::SubmitFrame(void* aTextureHandle,
 
   bounds.uMin = aRightEyeRect.x;
   bounds.vMin = 1.0 - aRightEyeRect.y;
-  bounds.uMax = aRightEyeRect.x + aRightEyeRect.width;
-  bounds.vMax = 1.0 - aRightEyeRect.y - aRightEyeRect.height;
+  bounds.uMax = aRightEyeRect.x + aRightEyeRect.Width();
+  bounds.vMax = 1.0 - aRightEyeRect.y - aRightEyeRect.Height();
 
   err = mVRCompositor->Submit(::vr::EVREye::Eye_Right, &tex, &bounds);
   if (err != ::vr::EVRCompositorError::VRCompositorError_None) {
@@ -367,9 +399,8 @@ VRDisplayOpenVR::SubmitFrame(MacIOSurface* aMacIOSurface,
 void
 VRDisplayOpenVR::NotifyVSync()
 {
-  // We update mIsConneced once per frame.
-  mDisplayInfo.mIsConnected = ::vr::VR_IsHmdPresent();
-
+  // We check if HMD is available once per frame.
+  mIsHmdPresent = ::vr::VR_IsHmdPresent();
   // Make sure we respond to OpenVR events even when not presenting
   PollEvents();
 
@@ -580,7 +611,7 @@ bool
 VRSystemManagerOpenVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
 {
   if (!::vr::VR_IsHmdPresent() ||
-      (mOpenVRHMD && !mOpenVRHMD->GetIsConnected())) {
+      (mOpenVRHMD && !mOpenVRHMD->GetIsHmdPresent())) {
     // OpenVR runtime could be quit accidentally,
     // and we make it re-initialize.
     mOpenVRHMD = nullptr;
@@ -936,7 +967,7 @@ VRSystemManagerOpenVR::StopVibrateHaptic(uint32_t aControllerIdx)
 {
   // mVRSystem is available after VRDisplay is created
   // at GetHMDs().
-  if (!mVRSystem) {
+  if (!mVRSystem || (aControllerIdx >= mOpenVRController.Length())) {
     return;
   }
 

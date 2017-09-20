@@ -20,11 +20,17 @@
 #include "jsapi.h"
 
 #include "xpcIJSGetFactory.h"
+#include "xpcpublic.h"
 
 class nsIFile;
 class nsIPrincipal;
 class nsIXPConnectJSObjectHolder;
 class ComponentLoaderInfo;
+
+namespace mozilla {
+    class ScriptPreloader;
+} // namespace mozilla
+
 
 /* 6bd13476-1dd2-11b2-bbef-f0ccb5fa64b6 (thanks, mozbot) */
 
@@ -33,9 +39,9 @@ class ComponentLoaderInfo;
     { 0xbb, 0xef, 0xf0, 0xcc, 0xb5, 0xfa, 0x64, 0xb6 }}
 #define MOZJSCOMPONENTLOADER_CONTRACTID "@mozilla.org/moz/jsloader;1"
 
-class mozJSComponentLoader : public mozilla::ModuleLoader,
-                             public xpcIJSModuleLoader,
-                             public nsIObserver
+class mozJSComponentLoader final : public mozilla::ModuleLoader,
+                                   public xpcIJSModuleLoader,
+                                   public nsIObserver
 {
  public:
     NS_DECL_ISUPPORTS
@@ -56,25 +62,43 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
                     JSContext* aCx, uint8_t aArgc, JS::MutableHandleValue aRetval);
     nsresult Unload(const nsACString& aResourceURI);
     nsresult IsModuleLoaded(const nsACString& aResourceURI, bool* aRetval);
+    bool IsLoaderGlobal(JSObject* aObj) {
+        return mLoaderGlobal == aObj;
+    }
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
  protected:
     virtual ~mozJSComponentLoader();
 
+    friend class mozilla::ScriptPreloader;
+
+    JSObject* CompilationScope(JSContext* aCx)
+    {
+        if (mLoaderGlobal)
+            return mLoaderGlobal;
+        return GetSharedGlobal(aCx);
+    }
+
+ private:
     static mozJSComponentLoader* sSelf;
 
     nsresult ReallyInit();
     void UnloadModules();
 
     void CreateLoaderGlobal(JSContext* aCx,
-                            nsACString& aLocation,
+                            const nsACString& aLocation,
                             JSAddonId* aAddonID,
                             JS::MutableHandleObject aGlobal);
+
+    bool ReuseGlobal(bool aIsAddon, nsIURI* aComponent);
+
+    JSObject* GetSharedGlobal(JSContext* aCx);
 
     JSObject* PrepareObjectForLocation(JSContext* aCx,
                                        nsIFile* aComponentFile,
                                        nsIURI* aComponent,
+                                       bool* aReuseGlobal,
                                        bool* aRealFile);
 
     nsresult ObjectForLocation(ComponentLoaderInfo& aInfo,
@@ -134,6 +158,9 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
             obj = nullptr;
             thisObjectKey = nullptr;
             location = nullptr;
+#if defined(NIGHTLY_BUILD) || defined(DEBUG)
+            importStack.Truncate();
+#endif
         }
 
         size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
@@ -146,9 +173,10 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
         JS::PersistentRootedScript thisObjectKey;
         char* location;
         nsCString resolvedURL;
+#if defined(NIGHTLY_BUILD) || defined(DEBUG)
+        nsCString importStack;
+#endif
     };
-
-    friend class ModuleEntry;
 
     static size_t DataEntrySizeOfExcludingThis(const nsACString& aKey, ModuleEntry* const& aData,
                                                mozilla::MallocSizeOf aMallocSizeOf, void* arg);
@@ -168,6 +196,8 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
     nsClassHashtable<nsCStringHashKey, nsCString> mLocations;
 
     bool mInitialized;
+    bool mShareLoaderGlobal;
+    JS::PersistentRooted<JSObject*> mLoaderGlobal;
 };
 
 #endif

@@ -72,38 +72,40 @@ class PayloadDispatcher {
      * Depending on the type of payload and batch mode status, inform our delegate of progress.
      *
      * @param response success response to our commit post
-     * @param guids list of successfully posted record guids
      * @param isCommit was this a commit upload?
      * @param isLastPayload was this a very last payload we'll upload?
      */
-    void payloadSucceeded(final SyncStorageResponse response, final String[] guids, final boolean isCommit, final boolean isLastPayload) {
+    void payloadSucceeded(final SyncStorageResponse response, final boolean isCommit, final boolean isLastPayload) {
         // Sanity check.
         if (batchWhiteboard.getInBatchingMode() == null) {
             throw new IllegalStateException("Can't process payload success until we know if we're in a batching mode");
         }
 
+        final String[] guids = batchWhiteboard.getSuccessRecordGuids();
         // We consider records to have been committed if we're not in a batching mode or this was a commit.
         // If records have been committed, notify our store delegate.
         if (!batchWhiteboard.getInBatchingMode() || isCommit) {
             for (String guid : guids) {
                 uploader.sessionStoreDelegate.onRecordStoreSucceeded(guid);
             }
+
+            // If we're not in a batching mode, or just committed a batch, uploaded records have
+            // been applied to the server storage and are now visible to other clients.
+            // Therefore, we bump our local "last store" timestamp.
+            bumpTimestampTo(uploadTimestamp, response.normalizedTimestampForHeader(SyncResponse.X_LAST_MODIFIED));
+            uploader.setLastStoreTimestamp(uploadTimestamp);
+            batchWhiteboard.clearSuccessRecordGuids();
         }
 
         // If this was our very last commit, we're done storing records.
         // Get Last-Modified timestamp from the response, and pass it upstream.
         if (isLastPayload) {
-            finished(response.normalizedTimestampForHeader(SyncResponse.X_LAST_MODIFIED));
+            uploader.finished();
         }
     }
 
-    void lastPayloadFailed() {
-        uploader.finished(uploadTimestamp);
-    }
-
-    private void finished(long lastModifiedTimestamp) {
-        bumpTimestampTo(uploadTimestamp, lastModifiedTimestamp);
-        uploader.finished(uploadTimestamp);
+    void lastPayloadFailed(Exception e) {
+        uploader.sessionStoreDelegate.onStoreFailed(e);
     }
 
     void finalizeQueue(final boolean needToCommit, final Runnable finalRunnable) {
@@ -116,7 +118,7 @@ class PayloadDispatcher {
 
                     // Otherwise, we're done.
                 } else {
-                    uploader.finished(uploadTimestamp);
+                    uploader.finished();
                 }
             }
         });

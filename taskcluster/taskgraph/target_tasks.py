@@ -7,11 +7,11 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
-import json
 
 from taskgraph import try_option_syntax
 from taskgraph.util.attributes import match_run_on_projects
 
+here = os.path.abspath(os.path.dirname(__file__))
 _target_task_methods = {}
 
 
@@ -53,20 +53,11 @@ def standard_filter(task, parameters):
 
 
 def _try_task_config(full_task_graph, parameters):
-    task_config_file = os.path.join(os.getcwd(), 'try_task_config.json')
-
-    if not os.path.isfile(task_config_file):
+    if not parameters.get('target_task_labels'):
         return []
 
-    with open(task_config_file, 'r') as fh:
-        task_config = json.load(fh)
-
-    target_task_labels = []
-    for task in full_task_graph.tasks.itervalues():
-        if task.label in task_config:
-            target_task_labels.append(task.label)
-
-    return target_task_labels
+    return [t.label for t in full_task_graph.tasks.itervalues()
+            if t.label in parameters['target_task_labels']]
 
 
 def _try_option_syntax(full_task_graph, parameters):
@@ -227,8 +218,8 @@ def target_tasks_nightly_fennec(full_task_graph, parameters):
     def filter(task):
         platform = task.attributes.get('build_platform')
         if platform in ('android-aarch64-nightly',
-                        'android-api-15-nightly',
-                        'android-api-15-old-id-nightly',
+                        'android-api-16-nightly',
+                        'android-api-16-old-id-nightly',
                         'android-nightly',
                         'android-x86-nightly',
                         'android-x86-old-id-nightly'):
@@ -264,7 +255,7 @@ def target_tasks_mozilla_beta(full_task_graph, parameters):
                 # On beta, Nightly builds are already PGOs
                 'linux-pgo', 'linux64-pgo',
                 'win32-pgo', 'win64-pgo',
-                'android-api-15-nightly', 'android-x86-nightly'
+                'android-api-16-nightly', 'android-x86-nightly'
                 ):
             return False
 
@@ -350,8 +341,8 @@ def target_tasks_nightly_macosx(full_task_graph, parameters):
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
 
 
-@_target_task('nightly_win')
-def target_tasks_nightly_win(full_task_graph, parameters):
+@_target_task('nightly_win32')
+def target_tasks_nightly_win32(full_task_graph, parameters):
     """Select the set of tasks required for a nightly build of win32 and win64.
     The nightly build process involves a pipeline of builds, signing,
     and, eventually, uploading the tasks to balrog."""
@@ -359,7 +350,21 @@ def target_tasks_nightly_win(full_task_graph, parameters):
         platform = task.attributes.get('build_platform')
         if not filter_for_project(task, parameters):
             return False
-        if platform in ('win32-nightly', 'win64-nightly'):
+        if platform in ('win32-nightly', ):
+            return task.attributes.get('nightly', False)
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('nightly_win64')
+def target_tasks_nightly_win64(full_task_graph, parameters):
+    """Select the set of tasks required for a nightly build of win32 and win64.
+    The nightly build process involves a pipeline of builds, signing,
+    and, eventually, uploading the tasks to balrog."""
+    def filter(task):
+        platform = task.attributes.get('build_platform')
+        if not filter_for_project(task, parameters):
+            return False
+        if platform in ('win64-nightly', ):
             return task.attributes.get('nightly', False)
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
 
@@ -370,7 +375,8 @@ def target_tasks_nightly_desktop(full_task_graph, parameters):
     windows."""
     # Avoid duplicate tasks.
     return list(
-        set(target_tasks_nightly_win(full_task_graph, parameters))
+        set(target_tasks_nightly_win32(full_task_graph, parameters))
+        | set(target_tasks_nightly_win64(full_task_graph, parameters))
         | set(target_tasks_nightly_macosx(full_task_graph, parameters))
         | set(target_tasks_nightly_linux(full_task_graph, parameters))
     )

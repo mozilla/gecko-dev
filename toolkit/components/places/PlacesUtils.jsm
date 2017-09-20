@@ -31,24 +31,18 @@ Cu.importGlobalProperties(["URL"]);
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/AppConstants.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Services",
-                                  "resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
-                                  "resource://gre/modules/Sqlite.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
-                                  "resource://gre/modules/Deprecated.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Bookmarks",
-                                  "resource://gre/modules/Bookmarks.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "History",
-                                  "resource://gre/modules/History.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
-                                  "resource://gre/modules/AsyncShutdown.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesSyncUtils",
-                                  "resource://gre/modules/PlacesSyncUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Services: "resource://gre/modules/Services.jsm",
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
+  Sqlite: "resource://gre/modules/Sqlite.jsm",
+  Deprecated: "resource://gre/modules/Deprecated.jsm",
+  Bookmarks: "resource://gre/modules/Bookmarks.jsm",
+  History: "resource://gre/modules/History.jsm",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
+  PlacesSyncUtils: "resource://gre/modules/PlacesSyncUtils.jsm",
+});
 
 // The minimum amount of transactions before starting a batch. Usually we do
 // do incremental updates, a batch will cause views to completely
@@ -1701,6 +1695,8 @@ this.PlacesUtils = {
    *  - [deprecated] id (number): the item's id. This is only if
    *    aOptions.includeItemIds is set.
    *  - type (string):  the item's type.  @see PlacesUtils.TYPE_X_*
+   *  - typeCode (number):  the item's type in numeric format.
+   *    @see PlacesUtils.bookmarks.TYPE_*
    *  - title (string): the item's title. If it has no title, this property
    *    isn't set.
    *  - dateAdded (number, microseconds from the epoch): the date-added value of
@@ -1759,6 +1755,7 @@ this.PlacesUtils = {
       GuidHelper.updateCache(itemId, item.guid);
 
       let type = aRow.getResultByName("type");
+      item.typeCode = type;
       if (type == Ci.nsINavBookmarksService.TYPE_BOOKMARK)
         copyProps("charset", "tags", "iconuri");
 

@@ -63,6 +63,8 @@ async function openPrefsFromMenuPanel(expectedPanelId, entryPoint) {
   Services.prefs.setCharPref("identity.fxaccounts.remote.signup.uri", "http://example.com/");
   CustomizableUI.addWidgetToArea("sync-button", CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
 
+  await waitForOverflowButtonShown();
+
   // check the button's functionality
   await document.getElementById("nav-bar").overflowable.show();
 
@@ -90,7 +92,7 @@ async function openPrefsFromMenuPanel(expectedPanelId, entryPoint) {
   setupButton.click();
 
   await new Promise(resolve => {
-    let handler = (e) => {
+    let handler = async(e) => {
       if (e.originalTarget != gBrowser.selectedBrowser.contentDocument ||
           e.target.location.href == "about:blank") {
         info("Skipping spurious 'load' event for " + e.target.location.href);

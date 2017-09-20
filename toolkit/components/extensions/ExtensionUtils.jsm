@@ -6,10 +6,7 @@
 
 this.EXPORTED_SYMBOLS = ["ExtensionUtils"];
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cu = Components.utils;
-const Cr = Components.results;
+const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -31,15 +28,10 @@ XPCOMUtils.defineLazyGetter(this, "console", getConsole);
 const appinfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
 
 let nextId = 0;
-XPCOMUtils.defineLazyGetter(this, "uniqueProcessID", () => appinfo.uniqueProcessID);
+const uniqueProcessID = String(appinfo.uniqueProcessID);
 
 function getUniqueId() {
   return `${nextId++}-${uniqueProcessID}`;
-}
-
-async function promiseFileContents(file) {
-  let res = await OS.File.read(file.path);
-  return res.buffer;
 }
 
 
@@ -63,55 +55,11 @@ function runSafeSyncWithoutClone(f, ...args) {
   }
 }
 
-// Run a function and report exceptions.
-function runSafeWithoutClone(f, ...args) {
-  if (typeof(f) != "function") {
-    dump(`Extension error: expected function\n${filterStack(Error())}`);
-    return;
-  }
-
-  Promise.resolve().then(() => {
-    runSafeSyncWithoutClone(f, ...args);
-  });
-}
-
-// Run a function, cloning arguments into context.cloneScope, and
-// report exceptions. |f| is expected to be in context.cloneScope.
-function runSafeSync(context, f, ...args) {
-  if (context.unloaded) {
-    Cu.reportError("runSafeSync called after context unloaded");
-    return;
-  }
-
-  try {
-    args = Cu.cloneInto(args, context.cloneScope);
-  } catch (e) {
-    Cu.reportError(e);
-    dump(`runSafe failure: cloning into ${context.cloneScope}: ${e}\n\n${filterStack(Error())}`);
-  }
-  return runSafeSyncWithoutClone(f, ...args);
-}
-
-// Run a function, cloning arguments into context.cloneScope, and
-// report exceptions. |f| is expected to be in context.cloneScope.
-function runSafe(context, f, ...args) {
-  try {
-    args = Cu.cloneInto(args, context.cloneScope);
-  } catch (e) {
-    Cu.reportError(e);
-    dump(`runSafe failure: cloning into ${context.cloneScope}: ${e}\n\n${filterStack(Error())}`);
-  }
-  if (context.unloaded) {
-    dump(`runSafe failure: context is already unloaded ${filterStack(new Error())}\n`);
-    return undefined;
-  }
-  return runSafeWithoutClone(f, ...args);
-}
-
 // Return true if the given value is an instance of the given
 // native type.
 function instanceOf(value, type) {
-  return {}.toString.call(value) == `[object ${type}]`;
+  return (value && typeof value === "object" &&
+          ChromeUtils.getClassName(value) === type);
 }
 
 /**
@@ -125,10 +73,12 @@ class DefaultWeakMap extends WeakMap {
   }
 
   get(key) {
-    if (!this.has(key)) {
-      this.set(key, this.defaultConstructor(key));
+    let value = super.get(key);
+    if (value === undefined && !this.has(key)) {
+      value = this.defaultConstructor(key);
+      this.set(key, value);
     }
-    return super.get(key);
+    return value;
   }
 }
 
@@ -139,10 +89,12 @@ class DefaultMap extends Map {
   }
 
   get(key) {
-    if (!this.has(key)) {
-      this.set(key, this.defaultConstructor(key));
+    let value = super.get(key);
+    if (value === undefined && !this.has(key)) {
+      value = this.defaultConstructor(key);
+      this.set(key, value);
     }
-    return super.get(key);
+    return value;
   }
 }
 
@@ -187,11 +139,13 @@ class EventEmitter {
    *        The listener to call when events are emitted.
    */
   on(event, listener) {
-    if (!this[LISTENERS].has(event)) {
-      this[LISTENERS].set(event, new Set());
+    let listeners = this[LISTENERS].get(event);
+    if (!listeners) {
+      listeners = new Set();
+      this[LISTENERS].set(event, listeners);
     }
 
-    this[LISTENERS].get(event).add(listener);
+    listeners.add(listener);
   }
 
   /**
@@ -203,9 +157,8 @@ class EventEmitter {
    *        The listener function to remove.
    */
   off(event, listener) {
-    if (this[LISTENERS].has(event)) {
-      let set = this[LISTENERS].get(event);
-
+    let set = this[LISTENERS].get(event);
+    if (set) {
       set.delete(listener);
       set.delete(this[ONCE_MAP].get(listener));
       if (!set.size) {
@@ -236,49 +189,75 @@ class EventEmitter {
 
 
   /**
-   * Triggers all listeners for the given event, and returns a promise
-   * which resolves when all listeners have been called, and any
-   * promises they have returned have likewise resolved.
+   * Triggers all listeners for the given event. If any listeners return
+   * a value, returns a promise which resolves when all returned
+   * promises have resolved. Otherwise, returns undefined.
    *
    * @param {string} event
    *       The name of the event to emit.
    * @param {any} args
    *        Arbitrary arguments to pass to the listener functions, after
    *        the event name.
-   * @returns {Promise}
+   * @returns {Promise?}
    */
   emit(event, ...args) {
-    let listeners = this[LISTENERS].get(event) || new Set();
+    let listeners = this[LISTENERS].get(event);
 
-    let promises = Array.from(listeners, listener => {
-      return runSafeSyncWithoutClone(listener, event, ...args);
-    });
+    if (listeners) {
+      let promises = [];
 
-    return Promise.all(promises);
+      for (let listener of listeners) {
+        try {
+          let result = listener(event, ...args);
+          if (result !== undefined) {
+            promises.push(result);
+          }
+        } catch (e) {
+          Cu.reportError(e);
+        }
+      }
+
+      if (promises.length) {
+        return Promise.all(promises);
+      }
+    }
   }
 }
 
 /**
  * A set with a limited number of slots, which flushes older entries as
  * newer ones are added.
+ *
+ * @param {integer} limit
+ *        The maximum size to trim the set to after it grows too large.
+ * @param {integer} [slop = limit * .25]
+ *        The number of extra entries to allow in the set after it
+ *        reaches the size limit, before it is truncated to the limit.
+ * @param {iterable} [iterable]
+ *        An iterable of initial entries to add to the set.
  */
 class LimitedSet extends Set {
-  constructor(limit, iterable = undefined) {
+  constructor(limit, slop = Math.round(limit * .25), iterable = undefined) {
     super(iterable);
     this.limit = limit;
+    this.slop = slop;
   }
 
   truncate(limit) {
     for (let item of this) {
-      if (this.size <= limit) {
-        break;
+      // Live set iterators can ge relatively expensive, since they need
+      // to be updated after every modification to the set. Since
+      // breaking out of the loop early will keep the iterator alive
+      // until the next full GC, we're currently better off finishing
+      // the entire loop even after we're done truncating.
+      if (this.size > limit) {
+        this.delete(item);
       }
-      this.delete(item);
     }
   }
 
   add(item) {
-    if (!this.has(item) && this.size >= this.limit) {
+    if (this.size >= this.limit + this.slop && !this.has(item)) {
       this.truncate(this.limit - 1);
     }
     super.add(item);
@@ -320,9 +299,7 @@ function promiseDocumentLoaded(doc) {
   }
 
   return new Promise(resolve => {
-    doc.defaultView.addEventListener("load", function(event) {
-      resolve(doc);
-    }, {once: true});
+    doc.defaultView.addEventListener("load", () => resolve(doc), {once: true});
   });
 }
 
@@ -380,8 +357,8 @@ function promiseObserved(topic, test = () => true) {
 }
 
 function getMessageManager(target) {
-  if (target instanceof Ci.nsIFrameLoaderOwner) {
-    return target.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
+  if (target.frameLoader) {
+    return target.frameLoader.messageManager;
   }
   return target.QueryInterface(Ci.nsIMessageSender);
 }
@@ -463,11 +440,7 @@ class MessageManagerProxy {
     this.listeners = new DefaultMap(() => new Map());
 
     if (target instanceof Ci.nsIMessageSender) {
-      Object.defineProperty(this, "messageManager", {
-        value: target,
-        configurable: true,
-        writable: true,
-      });
+      this.messageManager = target;
     } else {
       this.addListeners(target);
     }
@@ -485,9 +458,8 @@ class MessageManagerProxy {
     if (this.eventTarget) {
       this.removeListeners(this.eventTarget);
       this.eventTarget = null;
-    } else {
-      this.messageManager = null;
     }
+    this.messageManager = null;
   }
 
   /**
@@ -515,9 +487,6 @@ class MessageManagerProxy {
    *        may change during the life of the proxy object, so should
    *        not be stored elsewhere.
    */
-  get messageManager() {
-    return this.eventTarget && this.eventTarget.messageManager;
-  }
 
   /**
    * Sends a message on the proxied message manager.
@@ -596,11 +565,12 @@ class MessageManagerProxy {
   addListeners(target) {
     target.addEventListener("SwapDocShells", this);
 
-    for (let {message, listener, listenWhenClosed} of this.iterListeners()) {
-      target.addMessageListener(message, listener, listenWhenClosed);
-    }
-
     this.eventTarget = target;
+    this.messageManager = target.messageManager;
+
+    for (let {message, listener, listenWhenClosed} of this.iterListeners()) {
+      this.messageManager.addMessageListener(message, listener, listenWhenClosed);
+    }
   }
 
   /**
@@ -614,7 +584,7 @@ class MessageManagerProxy {
     target.removeEventListener("SwapDocShells", this);
 
     for (let {message, listener} of this.iterListeners()) {
-      target.removeMessageListener(message, listener);
+      this.messageManager.removeMessageListener(message, listener);
     }
   }
 
@@ -626,7 +596,32 @@ class MessageManagerProxy {
   }
 }
 
+function checkLoadURL(url, principal, options) {
+  let ssm = Services.scriptSecurityManager;
+
+  let flags = ssm.STANDARD;
+  if (!options.allowScript) {
+    flags |= ssm.DISALLOW_SCRIPT;
+  }
+  if (!options.allowInheritsPrincipal) {
+    flags |= ssm.DISALLOW_INHERIT_PRINCIPAL;
+  }
+  if (options.dontReportErrors) {
+    flags |= ssm.DONT_REPORT_ERRORS;
+  }
+
+  try {
+    ssm.checkLoadURIWithPrincipal(principal,
+                                  Services.io.newURI(url),
+                                  flags);
+  } catch (e) {
+    return false;
+  }
+  return true;
+}
+
 this.ExtensionUtils = {
+  checkLoadURL,
   defineLazyGetter,
   flushJarCache,
   getConsole,
@@ -640,12 +635,8 @@ this.ExtensionUtils = {
   promiseDocumentLoaded,
   promiseDocumentReady,
   promiseEvent,
-  promiseFileContents,
   promiseObserved,
-  runSafe,
-  runSafeSync,
   runSafeSyncWithoutClone,
-  runSafeWithoutClone,
   withHandlingUserInput,
   DefaultMap,
   DefaultWeakMap,

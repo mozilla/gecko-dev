@@ -42,6 +42,9 @@ class gfxMissingFontRecorder;
 namespace mozilla {
 class SVGContextPaint;
 enum class StyleHyphens : uint8_t;
+namespace layout {
+class TextDrawTarget;
+};
 };
 
 /**
@@ -241,9 +244,10 @@ public:
         virtual uint32_t GetAppUnitsPerDevUnit() const = 0;
     };
 
-    struct DrawParams
+    struct MOZ_STACK_CLASS DrawParams
     {
         gfxContext* context;
+        mozilla::layout::TextDrawTarget* textDrawer = nullptr;
         DrawMode drawMode = DrawMode::GLYPH_FILL;
         nscolor textStrokeColor = 0;
         gfxPattern* textStrokePattern = nullptr;
@@ -284,7 +288,9 @@ public:
      * from aProvider. The provided point is the baseline origin of the
      * line of emphasis marks.
      */
-    void DrawEmphasisMarks(gfxContext* aContext, gfxTextRun* aMark,
+    void DrawEmphasisMarks(gfxContext* aContext,
+                           mozilla::layout::TextDrawTarget* aTextDrawer,
+                           gfxTextRun* aMark,
                            gfxFloat aMarkAdvance, gfxPoint aPt,
                            Range aRange, PropertyProvider* aProvider) const;
 
@@ -464,7 +470,7 @@ public:
         uint8_t         mMatchType;
     };
 
-    class GlyphRunIterator {
+    class MOZ_STACK_CLASS GlyphRunIterator {
     public:
         GlyphRunIterator(const gfxTextRun *aTextRun, Range aRange)
           : mTextRun(aTextRun)
@@ -813,8 +819,12 @@ private:
     }
 
     void             *mUserData;
-    gfxFontGroup     *mFontGroup; // addrefed on creation, but our reference
-                                  // may be released by ReleaseFontGroup()
+
+    // mFontGroup is usually a strong reference, but refcounting is managed
+    // manually because it may be explicitly released by ReleaseFontGroup()
+    // in the case where the font group actually owns the textrun.
+    gfxFontGroup* MOZ_OWNING_REF mFontGroup;
+
     gfxSkipChars      mSkipChars;
 
     nsTextFrameUtils::Flags mFlags2; // additional flags (see also gfxShapedText::mFlags)
@@ -1129,8 +1139,10 @@ protected:
         RefPtr<gfxFontFamily> mFamily;
         // either a font or a font entry exists
         union {
-            gfxFont*            mFont;
-            gfxFontEntry*       mFontEntry;
+            // Whichever of these fields is actually present will be a strong
+            // reference, with refcounting handled manually.
+            gfxFont* MOZ_OWNING_REF      mFont;
+            gfxFontEntry* MOZ_OWNING_REF mFontEntry;
         };
         bool                    mNeedsBold   : 1;
         bool                    mFontCreated : 1;

@@ -30,7 +30,7 @@ const MULTI_EXPERIMENT = {
             // at all.
             addonsDisableExperiment(prefix) { return getAddonsDisqualifyForMulti(); } },
 
-  "release": { buckets: { 1: .5, 4: 1 }, // 1 process: 50%, 4 processes: 50%
+  "release": { buckets: { 4: 1 }, // 4 processes: 100%
 
                // See above for an explanation of this: we only allow users
                // with no extensions or users with WebExtensions.
@@ -160,7 +160,7 @@ function defineCohort() {
     // Users who are qualified for e10s and on channels where some population
     // would not receive e10s can be pushed into e10s anyway via a temporary
     // qualification which overrides the user sample value when non-empty.
-    Services.prefs.setBoolPref.set(PREF_TOGGLE_E10S, true);
+    Services.prefs.setBoolPref(PREF_TOGGLE_E10S, true);
     eligibleForMulti = true;
     setCohort(`temp-qualified-${temporaryQualification}`);
   } else if (testGroup) {

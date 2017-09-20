@@ -20,10 +20,10 @@ use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use script_thread::Runnable;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
+use task::Task;
 use time;
 
 #[dom_struct]
@@ -294,7 +294,7 @@ impl EventMethods for Event {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum EventBubbles {
     Bubbles,
     DoesNotBubble
@@ -318,7 +318,7 @@ impl From<EventBubbles> for bool {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable
@@ -342,7 +342,7 @@ impl From<EventCancelable> for bool {
     }
 }
 
-#[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, JSTraceable, PartialEq)]
 #[repr(u16)]
 #[derive(HeapSizeOf)]
 pub enum EventPhase {
@@ -363,7 +363,7 @@ pub enum EventPhase {
 ///
 /// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
 ///
-#[derive(JSTraceable, HeapSizeOf, Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum EventDefault {
     /// The default action of the event is allowed (constructor's default)
     Allowed,
@@ -381,17 +381,15 @@ pub enum EventStatus {
 }
 
 // https://dom.spec.whatwg.org/#concept-event-fire
-pub struct EventRunnable {
+pub struct EventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
     pub bubbles: EventBubbles,
     pub cancelable: EventCancelable,
 }
 
-impl Runnable for EventRunnable {
-    fn name(&self) -> &'static str { "EventRunnable" }
-
-    fn handler(self: Box<EventRunnable>) {
+impl Task for EventTask {
+    fn run(self: Box<Self>) {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
@@ -400,15 +398,13 @@ impl Runnable for EventRunnable {
 }
 
 // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-pub struct SimpleEventRunnable {
+pub struct SimpleEventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
 }
 
-impl Runnable for SimpleEventRunnable {
-    fn name(&self) -> &'static str { "SimpleEventRunnable" }
-
-    fn handler(self: Box<SimpleEventRunnable>) {
+impl Task for SimpleEventTask {
+    fn run(self: Box<Self>) {
         let target = self.target.root();
         target.fire_event(self.name);
     }

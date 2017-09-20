@@ -80,12 +80,15 @@ inline bool TestBits(int aBitset,int aTest) {
 struct nsHTMLElement {
   bool            IsMemberOf(int32_t aType) const;
 
+#ifdef DEBUG
   eHTMLTags       mTagID;
+#endif
   int             mParentBits;        //defines groups that can contain this element
   bool            mLeaf;
 
   static  bool    IsContainer(eHTMLTags aTag);
-}; 
+  static  bool    IsBlock(eHTMLTags aTag);
+};
 
 extern const nsHTMLElement gHTMLElements[];
 

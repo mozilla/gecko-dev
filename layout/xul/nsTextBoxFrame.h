@@ -47,7 +47,6 @@ public:
                         bool&          aRedraw);
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
 
   virtual ~nsTextBoxFrame();
@@ -57,7 +56,7 @@ public:
                   nsPoint              aPt,
                   const nscolor*       aOverrideColor);
 
-  nsRect GetComponentAlphaBounds();
+  nsRect GetComponentAlphaBounds() const;
 
   virtual bool ComputesOwnOverflowArea() override;
 

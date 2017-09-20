@@ -12,6 +12,8 @@
 #include "VorbisUtils.h"
 #include "mozilla/Base64.h"
 #include "mozilla/SharedThreadPool.h"
+#include "mozilla/SystemGroup.h"
+#include "mozilla/TaskCategory.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/Telemetry.h"
 #include "nsCharSeparatedTokenizer.h"
@@ -21,7 +23,6 @@
 #include "nsIServiceManager.h"
 #include "nsMathUtils.h"
 #include "nsServiceManagerUtils.h"
-#include "nsSize.h"
 #include "nsThreadUtils.h"
 
 #include <functional>
@@ -81,7 +82,8 @@ static int32_t ConditionDimension(float aValue)
   return 0;
 }
 
-void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio)
+void
+ScaleDisplayByAspectRatio(gfx::IntSize& aDisplay, float aAspectRatio)
 {
   if (aAspectRatio > 1.0) {
     // Increase the intrinsic width
@@ -171,8 +173,9 @@ IsVideoContentType(const nsCString& aContentType)
 }
 
 bool
-IsValidVideoRegion(const nsIntSize& aFrame, const nsIntRect& aPicture,
-                   const nsIntSize& aDisplay)
+IsValidVideoRegion(const gfx::IntSize& aFrame,
+                   const gfx::IntRect& aPicture,
+                   const gfx::IntSize& aDisplay)
 {
   return
     aFrame.width <= PlanarYCbCrImage::MAX_DIMENSION &&

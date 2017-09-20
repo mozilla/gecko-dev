@@ -1,16 +1,14 @@
 const {SnippetsFeed} = require("lib/SnippetsFeed.jsm");
-const {actionTypes: at} = require("common/Actions.jsm");
+const {actionCreators: ac, actionTypes: at} = require("common/Actions.jsm");
 const {GlobalOverrider} = require("test/unit/utils");
-const {createStore, combineReducers} = require("redux");
-const {reducers} = require("common/Reducers.jsm");
 
 const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+const searchData = {searchEngineIdentifier: "google", engines: ["searchEngine-google", "searchEngine-bing"]};
 
 let overrider = new GlobalOverrider();
 
 describe("SnippetsFeed", () => {
   let sandbox;
-  let store;
   let clock;
   beforeEach(() => {
     clock = sinon.useFakeTimers();
@@ -23,8 +21,6 @@ describe("SnippetsFeed", () => {
       }
     });
     sandbox = sinon.sandbox.create();
-    store = createStore(combineReducers(reducers));
-    sinon.spy(store, "dispatch");
   });
   afterEach(() => {
     clock.restore();
@@ -35,62 +31,78 @@ describe("SnippetsFeed", () => {
     const url = "foo.com/%STARTPAGE_VERSION%";
     sandbox.stub(global.Services.prefs, "getStringPref").returns(url);
     sandbox.stub(global.Services.prefs, "getBoolPref")
+      .withArgs("datareporting.healthreport.uploadEnabled")
+      .returns(true)
       .withArgs("browser.onboarding.notification.finished")
       .returns(false);
     sandbox.stub(global.Services.prefs, "prefHasUserValue")
       .withArgs("services.sync.username")
       .returns(true);
-    sandbox.stub(global.Services.telemetry, "canRecordBase").value(false);
 
     const feed = new SnippetsFeed();
-    feed.store = store;
+    feed.store = {dispatch: sandbox.stub()};
+
     clock.tick(WEEK_IN_MS * 2);
 
     await feed.init();
 
-    const state = store.getState().Snippets;
+    assert.calledOnce(feed.store.dispatch);
 
-    assert.propertyVal(state, "snippetsURL", "foo.com/5");
-    assert.propertyVal(state, "version", 5);
-    assert.propertyVal(state, "profileCreatedWeeksAgo", 2);
-    assert.propertyVal(state, "profileResetWeeksAgo", 1);
-    assert.propertyVal(state, "telemetryEnabled", false);
-    assert.propertyVal(state, "onboardingFinished", false);
-    assert.propertyVal(state, "fxaccount", true);
+    const action = feed.store.dispatch.firstCall.args[0];
+    assert.propertyVal(action, "type", at.SNIPPETS_DATA);
+    assert.isObject(action.data);
+    assert.propertyVal(action.data, "snippetsURL", "foo.com/5");
+    assert.propertyVal(action.data, "version", 5);
+    assert.propertyVal(action.data, "profileCreatedWeeksAgo", 2);
+    assert.propertyVal(action.data, "profileResetWeeksAgo", 1);
+    assert.propertyVal(action.data, "telemetryEnabled", true);
+    assert.propertyVal(action.data, "onboardingFinished", false);
+    assert.propertyVal(action.data, "fxaccount", true);
+    assert.property(action.data, "selectedSearchEngine");
+    assert.deepEqual(action.data.selectedSearchEngine, searchData);
+    assert.propertyVal(action.data, "defaultBrowser", true);
   });
-  it("should update telemetryEnabled on each new tab", () => {
-    sandbox.stub(global.Services.telemetry, "canRecordBase").value(false);
-    const feed = new SnippetsFeed();
-    feed.store = store;
-
-    feed.onAction({type: at.NEW_TAB_INIT});
-
-    const state = store.getState().Snippets;
-    assert.propertyVal(state, "telemetryEnabled", false);
-  });
-  it("should call .init on an INIT aciton", () => {
+  it("should call .init on an INIT action", () => {
     const feed = new SnippetsFeed();
     sandbox.stub(feed, "init");
-    feed.store = store;
+    feed.store = {dispatch: sandbox.stub()};
 
     feed.onAction({type: at.INIT});
     assert.calledOnce(feed.init);
   });
-  it("should call .init when a FEED_INIT happens for feeds.snippets", () => {
+  it("should call .uninit on an UNINIT action", () => {
     const feed = new SnippetsFeed();
-    sandbox.stub(feed, "init");
-    feed.store = store;
+    sandbox.stub(feed, "uninit");
+    feed.store = {dispatch: sandbox.stub()};
 
-    feed.onAction({type: at.FEED_INIT, data: "feeds.snippets"});
-
-    assert.calledOnce(feed.init);
+    feed.onAction({type: at.UNINIT});
+    assert.calledOnce(feed.uninit);
   });
-  it("should dispatch a SNIPPETS_RESET on uninit", () => {
+  it("should broadcast a SNIPPETS_RESET on uninit", () => {
     const feed = new SnippetsFeed();
-    feed.store = store;
+    feed.store = {dispatch: sandbox.stub()};
 
     feed.uninit();
 
-    assert.calledWith(feed.store.dispatch, {type: at.SNIPPETS_RESET});
+    assert.calledWith(feed.store.dispatch, ac.BroadcastToContent({type: at.SNIPPETS_RESET}));
+  });
+  it("should dispatch an update event when the Search observer is called", async () => {
+    const feed = new SnippetsFeed();
+    feed.store = {dispatch: sandbox.stub()};
+    sandbox.stub(feed, "getSelectedSearchEngine")
+      .returns(Promise.resolve(searchData));
+
+    await feed.observe(null, "browser-search-engine-modified");
+
+    assert.calledOnce(feed.store.dispatch);
+    const action = feed.store.dispatch.firstCall.args[0];
+    assert.equal(action.type, at.SNIPPETS_DATA);
+    assert.deepEqual(action.data, {selectedSearchEngine: searchData});
+  });
+  it("should open Firefox Accounts", () => {
+    const feed = new SnippetsFeed();
+    const browser = {loadURI: sinon.spy()};
+    feed.onAction({type: at.SHOW_FIREFOX_ACCOUNTS, _target: {browser}});
+    assert.calledWith(browser.loadURI, "about:accounts?action=signup&entrypoint=snippets");
   });
 });

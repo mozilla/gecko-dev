@@ -13,6 +13,7 @@
 #include "nsContentUtils.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMSerializer.h"
+#include "nsIGlobalObject.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
 #include "nsIStorageStream.h"
@@ -134,7 +135,9 @@ BodyExtractor<const nsAString>::GetAsStream(nsIInputStream** aResult,
                                             nsACString& aCharset) const
 {
   nsCString encoded;
-  CopyUTF16toUTF8(*mBody, encoded);
+  if (!CopyUTF16toUTF8(*mBody, encoded, fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   nsresult rv = NS_NewCStringInputStream(aResult, encoded);
   if (NS_WARN_IF(NS_FAILED(rv))) {

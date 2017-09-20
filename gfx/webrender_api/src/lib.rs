@@ -11,13 +11,11 @@ extern crate byteorder;
 #[cfg(feature = "nightly")]
 extern crate core;
 extern crate euclid;
-extern crate gleam;
+extern crate fxhash;
 #[macro_use]
 extern crate heapsize;
 #[cfg(feature = "ipc")]
 extern crate ipc_channel;
-#[cfg(feature = "webgl")]
-extern crate offscreen_gl_context;
 #[macro_use]
 extern crate serde;
 extern crate time;
@@ -39,8 +37,6 @@ mod display_item;
 mod display_list;
 mod font;
 mod image;
-#[cfg(feature = "webgl")]
-mod webgl;
 
 pub use api::*;
 pub use color::*;
@@ -48,6 +44,8 @@ pub use display_item::*;
 pub use display_list::*;
 pub use font::*;
 pub use image::*;
+use std::collections::{HashMap, HashSet};
+use std::hash::BuildHasherDefault;
 pub use units::*;
-#[cfg(feature = "webgl")]
-pub use webgl::*;
+type FastHashMap<K, V> = HashMap<K, V, BuildHasherDefault<fxhash::FxHasher>>;
+type FastHashSet<T> = HashSet<T, BuildHasherDefault<fxhash::FxHasher>>;

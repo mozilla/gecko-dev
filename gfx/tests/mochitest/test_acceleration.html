@@ -104,7 +104,7 @@ switch(osName)
     var advancedLayersEnabled = false;
     var advancedLayersEnabledOnWin7 = false;
     try {
-      advancedLayersEnabled = SpecialPowers.getBoolPref("layers.mlgpu.dev-enabled");
+      advancedLayersEnabled = SpecialPowers.getBoolPref("layers.mlgpu.enabled");
       advancedLayersEnabledOnWin7 = SpecialPowers.getBoolPref("layers.mlgpu.enable-on-windows7");
     } catch (e) {}
     var shouldGetAL = advancedLayersEnabled;
@@ -123,7 +123,7 @@ switch(osName)
     break;
 
   default:
-    if (xr.OS == "Android" && xr.widgetToolkit != "gonk") {
+    if (xr.OS == "Android") {
       isnot(acceleratedWindows, 0, "Acceleration enabled on Android");
     } else {
       is(acceleratedWindows, 0, "Acceleration not supported on '" + osName + "'");

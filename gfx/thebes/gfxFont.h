@@ -33,6 +33,7 @@
 #include "harfbuzz/hb.h"
 #include "mozilla/gfx/2D.h"
 #include "nsColor.h"
+#include "mozilla/ServoUtils.h"
 
 typedef struct _cairo cairo_t;
 typedef struct _cairo_scaled_font cairo_scaled_font_t;
@@ -74,6 +75,9 @@ class SVGContextPaint;
 namespace gfx {
 class GlyphRenderingOptions;
 } // namespace gfx
+namespace layout {
+class TextDrawTarget;
+} // namespace layout
 } // namespace mozilla
 
 struct gfxFontStyle {
@@ -255,12 +259,41 @@ struct FontCacheSizes {
     size_t mShapedWords; // memory used by the per-font shapedWord caches
 };
 
-class gfxFontCache final : public nsExpirationTracker<gfxFont,3> {
+class gfxFontCacheExpirationTracker
+    : public ExpirationTrackerImpl<gfxFont, 3,
+                                   ::detail::PlaceholderLock,
+                                   ::detail::PlaceholderAutoLock>
+{
+protected:
+    typedef ::detail::PlaceholderLock Lock;
+    typedef ::detail::PlaceholderAutoLock AutoLock;
+
+    Lock mLock;
+
+    AutoLock FakeLock()
+    {
+        return AutoLock(mLock);
+    }
+
+    Lock& GetMutex() override
+    {
+        mozilla::AssertIsMainThreadOrServoFontMetricsLocked();
+        return mLock;
+    }
+
 public:
-    enum {
-        FONT_TIMEOUT_SECONDS = 10,
-        SHAPED_WORD_TIMEOUT_SECONDS = 60
-    };
+    enum { FONT_TIMEOUT_SECONDS = 10 };
+
+    gfxFontCacheExpirationTracker(nsIEventTarget* aEventTarget)
+        : ExpirationTrackerImpl<gfxFont, 3, Lock, AutoLock>(
+            FONT_TIMEOUT_SECONDS * 1000, "gfxFontCache", aEventTarget)
+    {
+    }
+};
+
+class gfxFontCache final : private gfxFontCacheExpirationTracker {
+public:
+    enum { SHAPED_WORD_TIMEOUT_SECONDS = 60 };
 
     explicit gfxFontCache(nsIEventTarget* aEventTarget);
     ~gfxFontCache();
@@ -294,10 +327,6 @@ public:
     // amount of time.
     void NotifyReleased(gfxFont *aFont);
 
-    // This gets called when the timeout has expired on a zero-refcount
-    // font; we just delete it.
-    virtual void NotifyExpired(gfxFont *aFont) override;
-
     // Cleans out the hashtable and removes expired fonts waiting for cleanup.
     // Other gfxFont objects may be still in use but they will be pushed
     // into the expiration queues and removed.
@@ -313,6 +342,16 @@ public:
                                 FontCacheSizes* aSizes) const;
     void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                 FontCacheSizes* aSizes) const;
+
+    void AgeAllGenerations()
+    {
+        AgeAllGenerationsLocked(FakeLock());
+    }
+
+    void RemoveObject(gfxFont* aFont)
+    {
+        RemoveObjectLocked(aFont, FakeLock());
+    }
 
 protected:
     class MemoryReporter final : public nsIMemoryReporter
@@ -333,11 +372,25 @@ protected:
         NS_DECL_NSIOBSERVER
     };
 
+    nsresult AddObject(gfxFont* aFont)
+    {
+        return AddObjectLocked(aFont, FakeLock());
+    }
+
+    // This gets called when the timeout has expired on a zero-refcount
+    // font; we just delete it.
+    virtual void NotifyExpiredLocked(gfxFont* aFont, const AutoLock&) override
+    {
+        NotifyExpired(aFont);
+    }
+
+    void NotifyExpired(gfxFont* aFont);
+
     void DestroyFont(gfxFont *aFont);
 
     static gfxFontCache *gGlobalCache;
 
-    struct Key {
+    struct MOZ_STACK_CLASS Key {
         const gfxFontEntry* mFontEntry;
         const gfxFontStyle* mStyle;
         const gfxCharacterMap* mUnicodeRangeMap;
@@ -367,7 +420,11 @@ protected:
         }
         enum { ALLOW_MEMMOVE = true };
 
-        gfxFont* mFont;
+        // The cache tracks gfxFont objects whose refcount has dropped to zero,
+        // so they are not immediately deleted but may be "resurrected" if they
+        // have not yet expired from the tracker when they are needed again.
+        // See the custom AddRef/Release methods in gfxFont.
+        gfxFont* MOZ_UNSAFE_REF("tracking for deferred deletion") mFont;
     };
 
     nsTHashtable<HashEntry> mFonts;
@@ -543,7 +600,7 @@ public:
     /**
      * This record contains all the parameters needed to initialize a textrun.
      */
-    struct Parameters {
+    struct MOZ_STACK_CLASS Parameters {
         // Shape text params suggesting where the textrun will be rendered
         DrawTarget   *mDrawTarget;
         // Pointer to arbitrary user data (which should outlive the textrun)
@@ -2221,7 +2278,7 @@ protected:
 // The TextRunDrawParams are set up once per textrun; the FontDrawParams
 // are dependent on the specific font, so they are set per GlyphRun.
 
-struct TextRunDrawParams {
+struct MOZ_STACK_CLASS TextRunDrawParams {
     RefPtr<mozilla::gfx::DrawTarget> dt;
     gfxContext              *context;
     gfxFont::Spacing        *spacing;
@@ -2240,7 +2297,7 @@ struct TextRunDrawParams {
     bool                     paintSVGGlyphs;
 };
 
-struct FontDrawParams {
+struct MOZ_STACK_CLASS FontDrawParams {
     RefPtr<mozilla::gfx::ScaledFont>            scaledFont;
     RefPtr<mozilla::gfx::GlyphRenderingOptions> renderingOptions;
     mozilla::SVGContextPaint *contextPaint;
@@ -2254,8 +2311,9 @@ struct FontDrawParams {
     bool                      haveColorGlyphs;
 };
 
-struct EmphasisMarkDrawParams {
+struct MOZ_STACK_CLASS EmphasisMarkDrawParams {
     gfxContext* context;
+    mozilla::layout::TextDrawTarget* textDrawer = nullptr;
     gfxFont::Spacing* spacing;
     gfxTextRun* mark;
     gfxFloat advance;

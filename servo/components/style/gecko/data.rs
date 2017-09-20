@@ -4,27 +4,24 @@
 
 //! Data needed to style a Gecko document.
 
-use Atom;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::TElement;
-use gecko::rules::{CounterStyleRule, FontFaceRule};
 use gecko_bindings::bindings::{self, RawServoStyleSet};
-use gecko_bindings::structs::{ServoStyleSheet, StyleSheetInfo, ServoStyleSheetInner};
-use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::{RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
+use gecko_bindings::structs::{StyleSheetInfo, ServoStyleSheetInner};
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
+use malloc_size_of::MallocSizeOfOps;
 use media_queries::{Device, MediaList};
 use properties::ComputedValues;
-use selector_map::PrecomputedHashMap;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
-use stylesheet_set::StylesheetSet;
-use stylesheets::{Origin, StylesheetContents, StylesheetInDocument};
-use stylist::{ExtraStyleData, Stylist};
+use stylesheets::{StylesheetContents, StylesheetInDocument};
+use stylist::Stylist;
 
 /// Little wrapper to a Gecko style sheet.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct GeckoStyleSheet(*const ServoStyleSheet);
 
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
@@ -116,15 +113,6 @@ impl StylesheetInDocument for GeckoStyleSheet {
 pub struct PerDocumentStyleDataImpl {
     /// Rule processor.
     pub stylist: Stylist,
-
-    /// List of stylesheets, mirrored from Gecko.
-    pub stylesheets: StylesheetSet<GeckoStyleSheet>,
-
-    /// List of effective font face rules.
-    pub font_faces: Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
-
-    /// Map for effective counter style rules.
-    pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -141,9 +129,6 @@ impl PerDocumentStyleData {
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
-            stylesheets: StylesheetSet::new(),
-            font_faces: vec![],
-            counter_styles: PrecomputedHashMap::default(),
         }))
     }
 
@@ -160,31 +145,18 @@ impl PerDocumentStyleData {
 
 impl PerDocumentStyleDataImpl {
     /// Recreate the style data if the stylesheets have changed.
-    pub fn flush_stylesheets<E>(&mut self,
-                                guard: &SharedRwLockReadGuard,
-                                document_element: Option<E>)
-        where E: TElement,
+    pub fn flush_stylesheets<E>(
+        &mut self,
+        guard: &SharedRwLockReadGuard,
+        document_element: Option<E>,
+    ) -> bool
+    where
+        E: TElement,
     {
-        if !self.stylesheets.has_changed() {
-            return;
-        }
-
-        let mut extra_data = ExtraStyleData {
-            font_faces: &mut self.font_faces,
-            counter_styles: &mut self.counter_styles,
-        };
-
-        let author_style_disabled = self.stylesheets.author_style_disabled();
-        self.stylist.clear();
-        let iter = self.stylesheets.flush(document_element);
-        self.stylist.rebuild(
-            iter,
+        self.stylist.flush(
             &StylesheetGuards::same(guard),
-            /* ua_sheets = */ None,
-            /* stylesheets_changed = */ true,
-            author_style_disabled,
-            &mut extra_data
-        );
+            document_element,
+        )
     }
 
     /// Returns whether private browsing is enabled.
@@ -199,12 +171,6 @@ impl PerDocumentStyleDataImpl {
         self.stylist.device().default_computed_values_arc()
     }
 
-    /// Clear the stylist.  This will be a no-op if the stylist is
-    /// already cleared; the stylist handles that.
-    pub fn clear_stylist(&mut self) {
-        self.stylist.clear();
-    }
-
     /// Returns whether visited links are enabled.
     fn visited_links_enabled(&self) -> bool {
         unsafe { bindings::Gecko_AreVisitedLinksEnabled() }
@@ -212,6 +178,11 @@ impl PerDocumentStyleDataImpl {
     /// Returns whether visited styles are enabled.
     pub fn visited_styles_enabled(&self) -> bool {
         self.visited_links_enabled() && !self.is_private_browsing_enabled()
+    }
+
+    /// Measure heap usage.
+    pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        self.stylist.add_size_of_children(ops, sizes);
     }
 }
 

@@ -40,7 +40,9 @@ template <typename Node, typename Derived> class ComponentFinder;
 
 class GlobalObject;
 class LexicalEnvironmentObject;
+class MapObject;
 class ScriptSourceObject;
+class SetObject;
 struct NativeIterator;
 
 /*
@@ -625,6 +627,7 @@ struct JSCompartment
     bool                         warnedAboutExprClosure : 1;
     bool                         warnedAboutForEach : 1;
     bool                         warnedAboutLegacyGenerator : 1;
+    bool                         warnedAboutObjectWatch : 1;
     uint32_t                     warnedAboutStringGenericsMethods;
 
 #ifdef DEBUG
@@ -942,6 +945,7 @@ struct JSCompartment
     bool preserveJitCode() { return creationOptions_.preserveJitCode(); }
 
     void sweepAfterMinorGC(JSTracer* trc);
+    void sweepMapAndSetObjectsAfterMinorGC();
 
     void sweepCrossCompartmentWrappers();
     void sweepSavedStacks();
@@ -1218,6 +1222,27 @@ struct JSCompartment
     // Aggregated output used to collect JSScript hit counts when code coverage
     // is enabled.
     js::coverage::LCovCompartment lcovOutput;
+
+    bool addMapWithNurseryMemory(js::MapObject* obj) {
+        MOZ_ASSERT_IF(!mapsWithNurseryMemory.empty(),
+                      mapsWithNurseryMemory.back() != obj);
+        return mapsWithNurseryMemory.append(obj);
+    }
+
+    bool addSetWithNurseryMemory(js::SetObject* obj) {
+        MOZ_ASSERT_IF(!setsWithNurseryMemory.empty(),
+                      setsWithNurseryMemory.back() != obj);
+        return setsWithNurseryMemory.append(obj);
+    }
+
+  private:
+
+    /*
+     * Lists of map and set objects allocated in the nursery or with iterators
+     * allocated there. Such objects need to be swept after minor GC.
+     */
+    js::Vector<js::MapObject*, 0, js::SystemAllocPolicy> mapsWithNurseryMemory;
+    js::Vector<js::SetObject*, 0, js::SystemAllocPolicy> setsWithNurseryMemory;
 };
 
 namespace js {

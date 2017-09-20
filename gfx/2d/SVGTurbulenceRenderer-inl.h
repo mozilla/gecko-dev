@@ -108,14 +108,6 @@ SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::SVGTurbulenceRendere
   }
 }
 
-template<typename T>
-static void
-Swap(T& a, T& b) {
-  T c = a;
-  a = b;
-  b = c;
-}
-
 template<TurbulenceType Type, bool Stitch, typename f32x4_t, typename i32x4_t, typename u8x16_t>
 void
 SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::InitFromSeed(int32_t aSeed)
@@ -175,8 +167,8 @@ template<TurbulenceType Type, bool Stitch, typename f32x4_t, typename i32x4_t, t
 void
 SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::AdjustBaseFrequencyForStitch(const Rect &aTileRect)
 {
-  mBaseFrequency = Size(AdjustForLength(mBaseFrequency.width, aTileRect.width),
-                        AdjustForLength(mBaseFrequency.height, aTileRect.height));
+  mBaseFrequency = Size(AdjustForLength(mBaseFrequency.width, aTileRect.Width()),
+                        AdjustForLength(mBaseFrequency.height, aTileRect.Height()));
 }
 
 template<TurbulenceType Type, bool Stitch, typename f32x4_t, typename i32x4_t, typename u8x16_t>
@@ -184,8 +176,8 @@ typename SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::StitchInfo
 SVGTurbulenceRenderer<Type,Stitch,f32x4_t,i32x4_t,u8x16_t>::CreateStitchInfo(const Rect &aTileRect) const
 {
   StitchInfo stitch;
-  stitch.width = int32_t(floorf(aTileRect.width * mBaseFrequency.width + 0.5f));
-  stitch.height = int32_t(floorf(aTileRect.height * mBaseFrequency.height + 0.5f));
+  stitch.width = int32_t(floorf(aTileRect.Width() * mBaseFrequency.width + 0.5f));
+  stitch.height = int32_t(floorf(aTileRect.Height() * mBaseFrequency.height + 0.5f));
   stitch.wrapX = int32_t(aTileRect.x * mBaseFrequency.width) + stitch.width;
   stitch.wrapY = int32_t(aTileRect.y * mBaseFrequency.height) + stitch.height;
   return stitch;

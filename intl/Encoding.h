@@ -35,6 +35,9 @@ class Encoder;
 
 extern "C" {
 
+mozilla::Encoding const*
+mozilla_encoding_for_name(uint8_t const* name, size_t name_len);
+
 nsresult
 mozilla_encoding_decode_to_nsstring(mozilla::Encoding const** encoding,
                                     uint8_t const* src,
@@ -84,6 +87,14 @@ mozilla_encoding_decode_to_nscstring_without_bom_handling(
   mozilla::Encoding const* encoding,
   nsACString const* src,
   nsACString* dst);
+
+nsresult
+mozilla_encoding_decode_from_slice_to_nscstring_without_bom_handling(
+  mozilla::Encoding const* encoding,
+  uint8_t const* src,
+  size_t src_len,
+  nsACString* dst,
+  size_t already_validated);
 
 nsresult
 mozilla_encoding_decode_to_nscstring_without_bom_handling_and_without_replacement(
@@ -260,7 +271,7 @@ public:
   static inline NotNull<const mozilla::Encoding*> ForName(
     Span<const char> aName)
   {
-    return WrapNotNull(encoding_for_name(
+    return WrapNotNull(mozilla_encoding_for_name(
       reinterpret_cast<const uint8_t*>(aName.Elements()), aName.Length()));
   }
 
@@ -547,6 +558,41 @@ public:
     }
     return mozilla_encoding_decode_to_nscstring_without_bom_handling_and_without_replacement(
       this, bytes, out);
+  }
+
+  /**
+   * Decode complete input to `nsACString` _without BOM handling_ and
+   * with malformed sequences replaced with the REPLACEMENT CHARACTER when
+   * the entire input is available as a single buffer (i.e. the end of the
+   * buffer marks the end of the stream) _asserting that a number of bytes
+   * from the start are already known to be valid UTF-8_.
+   *
+   * The use case for this method is avoiding copying when dealing with
+   * input that has a UTF-8 BOM. _When in doubt, do not use this method._
+   *
+   * When invoked on `UTF_8`, this method implements the (non-streaming
+   * version of) the _UTF-8 decode without BOM_
+   * (https://encoding.spec.whatwg.org/#utf-8-decode-without-bom) spec concept.
+   *
+   * Returns `NS_ERROR_OUT_OF_MEMORY` upon OOM, `NS_OK_HAD_REPLACEMENTS`
+   * if there were malformed sequences (that were replaced with the
+   * REPLACEMENT CHARACTER) and `NS_OK` otherwise.
+   *
+   * _Note:_ It is wrong to use this when the input buffer represents only
+   * a segment of the input instead of the whole input. Use
+   * `NewDecoderWithoutBOMHandling()` when decoding segmented input.
+   *
+   * # Safety
+   *
+   * The first `aAlreadyValidated` bytes of `aBytes` _must_ be valid UTF-8.
+   * `aBytes` _must not_ alias the buffer (if any) of `aOut`.
+   */
+  inline nsresult DecodeWithoutBOMHandling(Span<const uint8_t> aBytes,
+                                           nsACString& aOut,
+                                           size_t aAlreadyValidated) const
+  {
+    return mozilla_encoding_decode_from_slice_to_nscstring_without_bom_handling(
+      this, aBytes.Elements(), aBytes.Length(), &aOut, aAlreadyValidated);
   }
 
   /**

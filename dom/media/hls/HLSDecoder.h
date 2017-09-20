@@ -7,25 +7,17 @@
 #ifndef HLSDecoder_h_
 #define HLSDecoder_h_
 
-#include "HLSResource.h"
 #include "MediaDecoder.h"
 
 namespace mozilla {
+
+class HLSResourceCallbacksSupport;
 
 class HLSDecoder final : public MediaDecoder
 {
 public:
   // MediaDecoder interface.
-  explicit HLSDecoder(MediaDecoderInit& aInit)
-    : MediaDecoder(aInit)
-  {
-  }
-
-  MediaResource* GetResource() const override final;
-
-  void Shutdown() override;
-
-  MediaDecoderStateMachine* CreateStateMachine() override;
+  explicit HLSDecoder(MediaDecoderInit& aInit);
 
   // Returns true if the HLS backend is pref'ed on.
   static bool IsEnabled();
@@ -41,10 +33,21 @@ public:
 
   void Pause() override;
 
+  void AddSizeOfResources(ResourceSizes* aSizes) override;
+  already_AddRefed<nsIPrincipal> GetCurrentPrincipal() override;
+  bool IsTransportSeekable() override { return true; }
   void Suspend() override;
   void Resume() override;
+  void Shutdown() override;
 
 private:
+  friend class HLSResourceCallbacksSupport;
+
+  void PinForSeek() override {}
+  void UnpinForSeek() override {}
+
+  MediaDecoderStateMachine* CreateStateMachine();
+
   bool CanPlayThroughImpl() override final
   {
     // TODO: We don't know how to estimate 'canplaythrough' for this decoder.
@@ -52,7 +55,13 @@ private:
     return true;
   }
 
-  RefPtr<HLSResource> mResource;
+  bool IsLiveStream() override final { return false; }
+
+  nsCOMPtr<nsIChannel> mChannel;
+  nsCOMPtr<nsIURI> mURI;
+  java::GeckoHLSResourceWrapper::GlobalRef mHLSResourceWrapper;
+  java::GeckoHLSResourceWrapper::Callbacks::GlobalRef mJavaCallbacks;
+  RefPtr<HLSResourceCallbacksSupport> mCallbackSupport;
 };
 
 } // namespace mozilla

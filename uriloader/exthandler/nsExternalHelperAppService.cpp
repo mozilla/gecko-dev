@@ -25,7 +25,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsICategoryManager.h"
 #include "nsDependentSubstring.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsIStringEnumerator.h"
 #include "nsMemory.h"
@@ -1799,7 +1799,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         if (type == kWriteError) {
           // Attempt to write without sufficient permissions.
 #if defined(ANDROID)
-          // On Android (and Gonk), this means the SD card is present but
+          // On Android this means the SD card is present but
           // unavailable (read-only).
           msgId = "SDAccessErrorCardReadOnly";
 #else
@@ -1820,7 +1820,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         }
 #if defined(ANDROID)
         else if (type == kWriteError) {
-          // On Android (and Gonk), this means the SD card is missing (not in
+          // On Android this means the SD card is missing (not in
           // SD slot).
           msgId = "SDAccessErrorCardMissing";
           break;
@@ -2737,7 +2737,7 @@ nsExternalHelperAppService::GetTypeFromExtension(const nsACString& aFileExt,
     nsAutoCString lowercaseFileExt(aFileExt);
     ToLowerCase(lowercaseFileExt);
     // Read the MIME type from the category entry, if available
-    nsXPIDLCString type;
+    nsCString type;
     nsresult rv = catMan->GetCategoryEntry("ext-to-type-mapping",
                                            lowercaseFileExt.get(),
                                            getter_Copies(type));

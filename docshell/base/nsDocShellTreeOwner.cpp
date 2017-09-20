@@ -15,7 +15,7 @@
 #include "mozilla/ReflowInput.h"
 #include "nsIServiceManager.h"
 #include "nsComponentManagerUtils.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsIAtom.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
@@ -43,7 +43,6 @@
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsIDOMHTMLHtmlElement.h"
 #include "nsIDOMHTMLObjectElement.h"
-#include "nsIDOMHTMLEmbedElement.h"
 #include "nsIDOMHTMLDocument.h"
 #include "nsIImageLoadingContent.h"
 #include "nsIWebNavigation.h"
@@ -993,7 +992,6 @@ nsDocShellTreeOwner::HandleEvent(nsIDOMEvent* aEvent)
           if (webBrowserChrome) {
             nsCOMPtr<nsITabChild> tabChild = do_QueryInterface(webBrowserChrome);
             if (tabChild) {
-              // Bug 1370843 - Explicitly pass triggeringPrincipal
               nsresult rv = tabChild->RemoteDropLinks(linksCount, links);
               for (uint32_t i = 0; i < linksCount; i++) {
                 NS_RELEASE(links[i]);
@@ -1545,10 +1543,10 @@ ChromeContextMenuListener::HandleEvent(nsIDOMEvent* aMouseEvent)
 
   // First, checks for nodes that never have children.
   if (nodeType == nsIDOMNode::ELEMENT_NODE) {
-    nsCOMPtr<nsIImageLoadingContent> content(do_QueryInterface(node));
-    if (content) {
+    nsCOMPtr<nsIImageLoadingContent> imageContent(do_QueryInterface(node));
+    if (imageContent) {
       nsCOMPtr<nsIURI> imgUri;
-      content->GetCurrentURI(getter_AddRefs(imgUri));
+      imageContent->GetCurrentURI(getter_AddRefs(imgUri));
       if (imgUri) {
         flags |= nsIContextMenuListener::CONTEXT_IMAGE;
         flags2 |= nsIContextMenuListener2::CONTEXT_IMAGE;
@@ -1587,9 +1585,9 @@ ChromeContextMenuListener::HandleEvent(nsIDOMEvent* aMouseEvent)
     if (!(flags & nsIContextMenuListener::CONTEXT_IMAGE)) {
       objectElement = do_QueryInterface(node);
     }
-    nsCOMPtr<nsIDOMHTMLEmbedElement> embedElement(do_QueryInterface(node));
 
-    if (objectElement || embedElement) {
+    nsCOMPtr<nsIContent> content = do_QueryInterface(node);
+    if (objectElement || (content && content->IsHTMLElement(nsGkAtoms::embed))) {
       return NS_OK;
     }
   }

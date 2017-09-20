@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType glyph rasterizer interface (body).                      */
 /*                                                                         */
-/*  Copyright 1996-2016 by                                                 */
+/*  Copyright 1996-2017 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -31,12 +31,7 @@
   static FT_Error
   ft_raster1_init( FT_Renderer  render )
   {
-    FT_Library  library = FT_MODULE_LIBRARY( render );
-
-
-    render->clazz->raster_class->raster_reset( render->raster,
-                                               library->raster_pool,
-                                               library->raster_pool_size );
+    render->clazz->raster_class->raster_reset( render->raster, NULL, 0 );
 
     return FT_Err_Ok;
   }
@@ -194,7 +189,7 @@
     bitmap->rows  = height;
     bitmap->pitch = (int)pitch;
 
-    if ( FT_ALLOC_MULT( bitmap->buffer, pitch, height ) )
+    if ( FT_ALLOC_MULT( bitmap->buffer, height, pitch ) )
       goto Exit;
 
     slot->internal->flags |= FT_GLYPH_OWN_BITMAP;

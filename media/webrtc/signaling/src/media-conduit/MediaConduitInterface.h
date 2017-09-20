@@ -394,15 +394,6 @@ public:
   virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
       const std::vector<VideoCodecConfig* >& recvCodecConfigList) = 0;
 
-  /**
-   * This method allows unit tests to double-check that the
-   * max-fs and max-fr related settings are as expected.
-   */
-  virtual void SetSendingWidthAndHeight(unsigned short frame_width,
-                                        unsigned short frame_height,
-                                        unsigned short &result_width,
-                                        unsigned short &result_height) = 0;
-
   virtual unsigned int SendingMaxFs() = 0;
 
   virtual unsigned int SendingMaxFr() = 0;
@@ -475,9 +466,10 @@ public:
    *
    */
   virtual MediaConduitErrorCode SendAudioFrame(const int16_t audioData[],
-                                                int32_t lengthSamples,
-                                                int32_t samplingFreqHz,
-                                                int32_t capture_delay) = 0;
+                                               int32_t lengthSamples,
+                                               int32_t samplingFreqHz,
+                                               uint32_t channels,
+                                               int32_t capture_delay) = 0;
 
   /**
    * Function to grab a decoded audio-sample from the media engine for rendering

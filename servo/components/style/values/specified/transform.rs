@@ -21,8 +21,9 @@ use values::specified::position::{Side, X, Y};
 pub type TransformOrigin = GenericTransformOrigin<OriginComponent<X>, OriginComponent<Y>, Length>;
 
 /// The specified value of a component of a CSS `<transform-origin>`.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum OriginComponent<S> {
     /// `center`
     Center,

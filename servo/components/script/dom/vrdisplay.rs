@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::CanvasMsg;
+use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use core::ops::Deref;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
@@ -32,18 +32,15 @@ use dom::vrpose::VRPose;
 use dom::vrstageparameters::VRStageParameters;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
-use ipc_channel::ipc::{IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
-use script_thread::Runnable;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc;
 use std::thread;
-use webrender_api::VRCompositorCommand;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
 #[dom_struct]
@@ -71,7 +68,7 @@ pub struct VRDisplay {
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_heap_size_of = "channels are hard"]
-    frame_data_receiver: DOMRefCell<Option<IpcReceiver<Result<Vec<u8>, ()>>>>,
+    frame_data_receiver: DOMRefCell<Option<WebGLReceiver<Result<Vec<u8>, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
@@ -81,7 +78,7 @@ unsafe_no_jsmanaged_fields!(WebVRDisplayData);
 unsafe_no_jsmanaged_fields!(WebVRFrameData);
 unsafe_no_jsmanaged_fields!(WebVRLayer);
 
-#[derive(Clone, Copy, PartialEq, Eq, HeapSizeOf)]
+#[derive(Clone, Copy, Eq, HeapSizeOf, PartialEq)]
 enum VRFrameDataStatus {
     Waiting,
     Synced,
@@ -268,7 +265,7 @@ impl VRDisplayMethods for VRDisplay {
     fn CancelAnimationFrame(&self, handle: u32) {
         if self.presenting.get() {
             let mut list = self.raf_callback_list.borrow_mut();
-            if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == handle) {
+            if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle) {
                 pair.1 = None;
             }
         } else {
@@ -386,11 +383,10 @@ impl VRDisplayMethods for VRDisplay {
             return;
         }
 
-        let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
-        let display_id = self.display.borrow().display_id as u64;
+        let display_id = self.display.borrow().display_id;
         let layer = self.layer.borrow();
-        let msg = VRCompositorCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
-        api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
+        let msg = WebVRCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
+        self.layer_ctx.get().unwrap().send_vr_command(msg);
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#dom-vrdisplay-getlayers
@@ -489,11 +485,11 @@ impl VRDisplay {
 
     fn init_present(&self) {
         self.presenting.set(true);
-        let (sync_sender, sync_receiver) = ipc::channel().unwrap();
+        let (sync_sender, sync_receiver) = webgl_channel().unwrap();
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
-        let display_id = self.display.borrow().display_id as u64;
-        let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
+        let display_id = self.display.borrow().display_id;
+        let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
         let js_sender = self.global().script_chan();
         let address = Trusted::new(&*self);
         let near_init = self.depth_near.get();
@@ -511,18 +507,19 @@ impl VRDisplay {
             let mut far = far_init;
 
             // Initialize compositor
-            api_sender.send(CanvasMsg::WebVR(VRCompositorCommand::Create(display_id))).unwrap();
+            api_sender.send_vr(WebVRCommand::Create(display_id)).unwrap();
             loop {
                 // Run RAF callbacks on JavaScript thread
-                let msg = box NotifyDisplayRAF {
-                    address: address.clone(),
-                    sender: raf_sender.clone()
-                };
-                js_sender.send(CommonScriptMsg::RunnableMsg(WebVREvent, msg)).unwrap();
+                let this = address.clone();
+                let sender = raf_sender.clone();
+                let task = box task!(handle_vrdisplay_raf: move || {
+                    this.root().handle_raf(&sender);
+                });
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task)).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
-                let msg = VRCompositorCommand::SyncPoses(display_id, near, far, sync_sender.clone());
-                api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
+                let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
+                api_sender.send_vr(msg).unwrap();
 
                 // Wait until both SyncPoses & RAF ends
                 if let Ok(depth) = raf_receiver.recv().unwrap() {
@@ -541,10 +538,9 @@ impl VRDisplay {
         self.presenting.set(false);
         *self.frame_data_receiver.borrow_mut() = None;
 
-        let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
-        let display_id = self.display.borrow().display_id as u64;
-        let msg = VRCompositorCommand::Release(display_id);
-        api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
+        let api_sender = self.layer_ctx.get().unwrap().webgl_sender();
+        let display_id = self.display.borrow().display_id;
+        api_sender.send_vr(WebVRCommand::Release(display_id)).unwrap();
     }
 
     // Only called when the JSContext is destroyed while presenting.
@@ -612,22 +608,7 @@ impl VRDisplay {
     }
 }
 
-struct NotifyDisplayRAF {
-    address: Trusted<VRDisplay>,
-    sender: mpsc::Sender<Result<(f64, f64), ()>>
-}
-
-impl Runnable for NotifyDisplayRAF {
-    fn name(&self) -> &'static str { "NotifyDisplayRAF" }
-
-    fn handler(self: Box<Self>) {
-        let display = self.address.root();
-        display.handle_raf(&self.sender);
-    }
-}
-
-
-// WebVR Spect: If the number of values in the leftBounds/rightBounds arrays
+// WebVR Spec: If the number of values in the leftBounds/rightBounds arrays
 // is not 0 or 4 for any of the passed layers the promise is rejected
 fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<(), &'static str> {
     match *src {

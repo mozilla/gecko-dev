@@ -22,8 +22,10 @@ var {
 // WeakMap[Extension -> PageAction]
 let pageActionMap = new WeakMap();
 
-class PageAction {
+class PageAction extends EventEmitter {
   constructor(manifest, extension) {
+    super();
+
     this.id = null;
 
     this.extension = extension;
@@ -43,13 +45,12 @@ class PageAction {
       id: `{${extension.uuid}}`,
       clickCallback: () => {
         let tab = tabTracker.activeTab;
+
+        this.tabManager.addActiveTabPermission(tab);
+
         let popup = this.tabContext.get(tab.id).popup || this.defaults.popup;
         if (popup) {
-          let win = Services.wm.getMostRecentWindow("navigator:browser");
-          win.BrowserApp.addTab(popup, {
-            selected: true,
-            parentId: win.BrowserApp.selectedTab.id,
-          });
+          tabTracker.openExtensionPopupTab(popup);
         } else {
           this.emit("click", tab);
         }
@@ -62,8 +63,6 @@ class PageAction {
                        (evt, tabId) => { this.onTabSelected(tabId); });
     this.tabContext.on("tab-closed", // eslint-disable-line mozilla/balanced-listeners
                        (evt, tabId) => { this.onTabClosed(tabId); });
-
-    EventEmitter.decorate(this);
   }
 
   /**
@@ -148,7 +147,8 @@ class PageAction {
    * @returns {Promise} resolves when the page action is shown.
    */
   show() {
-    if (this.id) {
+    // The PageAction icon has been created or it is being converted.
+    if (this.id || this.shouldShow) {
       return Promise.resolve();
     }
 
@@ -178,6 +178,10 @@ class PageAction {
         this.id = PageActions.add(this.options);
       }
     }).catch(() => {
+      // The "icon conversion" promise has been rejected, set `this.shouldShow` to `false`
+      // so that we will try again on the next `pageAction.show` call.
+      this.shouldShow = false;
+
       return Promise.reject({
         message: "Failed to load PageAction icon",
       });
@@ -189,6 +193,7 @@ class PageAction {
    */
   hide() {
     this.shouldShow = false;
+
     if (this.id) {
       PageActions.remove(this.id);
       this.id = null;

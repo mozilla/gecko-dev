@@ -17,6 +17,7 @@ const EventEmitter = require("devtools-modules/src/utils/event-emitter");
 const { Services: { appinfo, pref }} = require("devtools-modules");
 
 // Initialize preferences as early as possible
+pref("devtools.theme", "light");
 pref("devtools.cache.disabled", false);
 pref("devtools.netmonitor.enabled", true);
 pref("devtools.netmonitor.filters", "[\"all\"]");
@@ -35,7 +36,7 @@ pref("devtools.netmonitor.har.compress", false);
 pref("devtools.netmonitor.har.forceExport", false);
 pref("devtools.netmonitor.har.pageLoadedTimeout", 1500);
 pref("devtools.netmonitor.har.enableAutoExportToFile", false);
-pref("devtools.webconsole.persistlog", false);
+pref("devtools.netmonitor.persistlog", false);
 pref("devtools.styleeditor.enabled", true);
 
 const { configureStore } = require("./src/utils/create-store");

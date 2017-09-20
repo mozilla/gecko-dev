@@ -25,7 +25,6 @@ public:
   NS_DECL_FRAMEARENA_HELPERS(SVGFEUnstyledLeafFrame)
 
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override {}
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override
@@ -63,7 +62,7 @@ SVGFEUnstyledLeafFrame::AttributeChanged(int32_t  aNameSpaceID,
                                          nsIAtom* aAttribute,
                                          int32_t  aModType)
 {
-  SVGFEUnstyledElement *element = static_cast<SVGFEUnstyledElement*>(mContent);
+  SVGFEUnstyledElement *element = static_cast<SVGFEUnstyledElement*>(GetContent());
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {
     MOZ_ASSERT(GetParent()->GetParent()->IsSVGFilterFrame(),
                "Observers observe the filter, so that's what we must invalidate");

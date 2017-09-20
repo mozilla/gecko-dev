@@ -169,26 +169,9 @@
  *
  * Mac:        ~/Library/Caches/Mozilla/updates/<absolute path to app dir>
  *
- * Gonk:       /data/local
- *
  * All others: Parent directory of XRE_EXECUTABLE_FILE.
  */
 #define XRE_UPDATE_ROOT_DIR "UpdRootD"
-
-/**
- * A directory service key which provides an alternate location
- * to UpdRootD to  to store large files. This key is currently
- * only implemented in the Gonk directory service provider.
- */
-
-#define XRE_UPDATE_ARCHIVE_DIR "UpdArchD"
-
-/**
- * A directory service key which provides the directory where an OS update is
-*  applied.
- * At present this is supported only in Gonk.
- */
-#define XRE_OS_UPDATE_APPLY_TO_DIR "OSUpdApplyToD"
 
 /**
  * Begin an XUL application. Does not return until the user exits the
@@ -461,6 +444,13 @@ XRE_API(bool,
 
 XRE_API(bool,
         XRE_IsGPUProcess, ())
+
+/**
+ * Returns true if the appshell should run its own native event loop. Returns
+ * false if we should rely solely on the Gecko event loop.
+ */
+XRE_API(bool,
+        XRE_UseNativeEventProcessing, ())
 
 typedef void (*MainFunction)(void* aData);
 

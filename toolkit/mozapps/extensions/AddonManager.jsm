@@ -77,14 +77,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/AsyncShutdown.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
-                                  "resource://gre/modules/addons/AddonRepository.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Extension",
-                                  "resource://gre/modules/Extension.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromptUtils",
-                                  "resource://gre/modules/SharedPromptUtils.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
+  Extension: "resource://gre/modules/Extension.jsm",
+  FileUtils: "resource://gre/modules/FileUtils.jsm",
+  PromptUtils: "resource://gre/modules/SharedPromptUtils.jsm",
+});
 
 XPCOMUtils.defineLazyGetter(this, "CertUtils", function() {
   let certUtils = {};
@@ -568,9 +566,7 @@ AddonCompatibilityOverride.prototype = {
  *         The URI of a localized properties file to get the displayable name
  *         for the type from
  * @param  aLocaleKey
- *         The key for the string in the properties file or the actual display
- *         name if aLocaleURI is null. Include %ID% to include the type ID in
- *         the key
+ *         The key for the string in the properties file.
  * @param  aViewType
  *         The optional type of view to use in the UI
  * @param  aUIPriority
@@ -600,7 +596,7 @@ function AddonType(aID, aLocaleURI, aLocaleKey, aViewType, aUIPriority, aFlags) 
   if (aLocaleURI) {
     XPCOMUtils.defineLazyGetter(this, "name", () => {
       let bundle = Services.strings.createBundle(aLocaleURI);
-      return bundle.GetStringFromName(aLocaleKey.replace("%ID%", aID));
+      return bundle.GetStringFromName(aLocaleKey);
     });
   } else {
     this.name = aLocaleKey;
@@ -622,7 +618,6 @@ var gRepoShutdownState = "";
 var gShutdownInProgress = false;
 var gPluginPageListener = null;
 var gBrowserUpdated = null;
-var gNonMpcDisabled = false;
 
 /**
  * This is the real manager, kept here rather than in AddonManager to keep its
@@ -2219,7 +2214,7 @@ var AddonManagerInternal = {
 
    this.getAddonByInstanceID(aInstanceID).then(wrapper => {
      if (!wrapper) {
-       throw Error("No addon matching instanceID:", aInstanceID.toString());
+       throw Error(`No addon matching instanceID: ${aInstanceID}`);
      }
      let addonId = wrapper.id;
      logger.debug(`Registering upgrade listener for ${addonId}`);
@@ -2240,12 +2235,12 @@ var AddonManagerInternal = {
 
     return this.getAddonByInstanceID(aInstanceID).then(addon => {
       if (!addon) {
-        throw Error("No addon for instanceID:", aInstanceID.toString());
+        throw Error(`No addon for instanceID: ${aInstanceID}`);
       }
       if (this.upgradeListeners.has(addon.id)) {
         this.upgradeListeners.delete(addon.id);
       } else {
-        throw Error("No upgrade listener registered for addon ID:", addon.id);
+        throw Error(`No upgrade listener registered for addon ID: ${addon.id}`);
       }
     });
   },
@@ -3276,10 +3271,6 @@ this.AddonManagerPrivate = {
                                .isTemporaryInstallID(extensionId);
   },
 
-  set nonMpcDisabled(val) {
-    gNonMpcDisabled = val;
-  },
-
   isDBLoaded() {
     let provider = AddonManagerInternal._getProviderByName("XPIProvider");
     return provider ? provider.isDBLoaded : false;
@@ -3798,10 +3789,6 @@ this.AddonManager = {
 
   get webAPI() {
     return AddonManagerInternal.webAPI;
-  },
-
-  get nonMpcDisabled() {
-    return gNonMpcDisabled;
   },
 
   get shutdown() {

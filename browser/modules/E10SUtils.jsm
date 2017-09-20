@@ -11,8 +11,6 @@ const {interfaces: Ci, utils: Cu, classes: Cc} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyPreferenceGetter(this, "useRemoteWebExtensions",
-                                      "extensions.webextensions.remote", false);
 XPCOMUtils.defineLazyPreferenceGetter(this, "useSeparateFileUriProcess",
                                       "browser.tabs.remote.separateFileUriProcess", false);
 XPCOMUtils.defineLazyPreferenceGetter(this, "allowLinkedWebInFileUriProcess",
@@ -185,7 +183,7 @@ this.E10SUtils = {
         return NOT_REMOTE;
 
       case "moz-extension":
-        return useRemoteWebExtensions ? EXTENSION_REMOTE_TYPE : NOT_REMOTE;
+        return WebExtensionPolicy.useRemoteWebExtensions ? EXTENSION_REMOTE_TYPE : NOT_REMOTE;
 
       default:
         // For any other nested URIs, we use the innerURI to determine the
@@ -241,6 +239,14 @@ this.E10SUtils = {
       let remoteType = Services.appinfo.remoteType;
       return remoteType ==
         this.getRemoteTypeForURIObject(aURI, true, remoteType, webNav.currentURI);
+    }
+
+    if (sessionHistory.count == 1 && webNav.currentURI.spec == "about:newtab") {
+      // This is possibly a preloaded browser and we're about to navigate away for
+      // the first time. On the child side there is no way to tell for sure if that
+      // is the case, so let's redirect this request to the parent to decide if a new
+      // process is needed.
+      return false;
     }
 
     // If the URI can be loaded in the current process then continue

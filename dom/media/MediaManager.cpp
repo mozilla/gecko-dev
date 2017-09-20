@@ -952,7 +952,7 @@ protected:
 
 NS_IMPL_ADDREF_INHERITED(FakeTrackSourceGetter, MediaStreamTrackSourceGetter)
 NS_IMPL_RELEASE_INHERITED(FakeTrackSourceGetter, MediaStreamTrackSourceGetter)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FakeTrackSourceGetter)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FakeTrackSourceGetter)
 NS_INTERFACE_MAP_END_INHERITING(MediaStreamTrackSourceGetter)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(FakeTrackSourceGetter,
                                    MediaStreamTrackSourceGetter,
@@ -1062,8 +1062,7 @@ public:
       mAudioDevice ? MediaStreamGraph::AUDIO_THREAD_DRIVER
                    : MediaStreamGraph::SYSTEM_THREAD_DRIVER;
     MediaStreamGraph* msg =
-      MediaStreamGraph::GetInstance(graphDriverType,
-                                    dom::AudioChannel::Normal, window);
+      MediaStreamGraph::GetInstance(graphDriverType, window);
 
     RefPtr<DOMMediaStream> domStream;
     RefPtr<SourceMediaStream> stream;
@@ -1233,8 +1232,13 @@ public:
                                                  self->mSourceListener->GetPrincipalHandle());
         if (NS_FAILED(rv)) {
           nsString log;
-          log.AssignASCII("Starting audio failed");
-          error = new MediaMgrError(NS_LITERAL_STRING("InternalError"), log);
+          if (rv == NS_ERROR_NOT_AVAILABLE) {
+            log.AssignASCII("Concurrent mic process limit.");
+            error = new MediaMgrError(NS_LITERAL_STRING("NotReadableError"), log);
+          } else {
+            log.AssignASCII("Starting audio failed");
+            error = new MediaMgrError(NS_LITERAL_STRING("InternalError"), log);
+          }
         }
       }
 
@@ -2061,6 +2065,9 @@ void MediaManager::OnDeviceChange() {
   RefPtr<MediaManager> self(this);
   NS_DispatchToMainThread(media::NewRunnableFrom([self]() mutable {
     MOZ_ASSERT(NS_IsMainThread());
+    if (sInShutdown) {
+      return NS_OK;
+    }
     self->DeviceChangeCallback::OnDeviceChange();
 
     // On some Windows machine, if we call EnumertaeRawDevices immediately after receiving
@@ -2927,6 +2934,12 @@ MediaManager::AddWindowID(uint64_t aWindowId,
     MOZ_ASSERT(false, "Window already added");
     return;
   }
+
+  auto* window = nsGlobalWindow::GetInnerWindowWithId(aWindowId);
+  if (window) {
+    window->AsInner()->UpdateUserMediaCount(1);
+  }
+
   GetActiveWindows()->Put(aWindowId, aListener);
 }
 
@@ -2941,6 +2954,8 @@ MediaManager::RemoveWindowID(uint64_t aWindowId)
     LOG(("No inner window for %" PRIu64, aWindowId));
     return;
   }
+
+  window->AsInner()->UpdateUserMediaCount(-1);
 
   nsPIDOMWindowOuter* outer = window->AsInner()->GetOuterWindow();
   if (!outer) {
@@ -3719,8 +3734,7 @@ SourceListener::StopSharing()
     MOZ_RELEASE_ASSERT(window);
     window->SetAudioCapture(false);
     MediaStreamGraph* graph =
-      MediaStreamGraph::GetInstance(MediaStreamGraph::AUDIO_THREAD_DRIVER,
-                                    dom::AudioChannel::Normal, window);
+      MediaStreamGraph::GetInstance(MediaStreamGraph::AUDIO_THREAD_DRIVER, window);
     graph->UnregisterCaptureStreamForWindow(windowID);
     mStream->Destroy();
   }

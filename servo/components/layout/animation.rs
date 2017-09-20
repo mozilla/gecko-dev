@@ -39,7 +39,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
             // run.
             if let Some(ref mut animations) = running_animations.get_mut(node) {
                 // TODO: This being linear is probably not optimal.
-                for mut anim in animations.iter_mut() {
+                for anim in animations.iter_mut() {
                     if let Animation::Keyframes(_, ref anim_name, ref mut anim_state) = *anim {
                         if *name == *anim_name {
                             debug!("update_animation_state: Found other animation {}", name);
@@ -161,9 +161,10 @@ pub fn recalc_style_for_animations(context: &LayoutContext,
                                            &mut fragment.style,
                                            &ServoMetricsProvider);
                 let difference =
-                    RestyleDamage::compute_style_difference(&old_style,
-                                                            &old_style,
-                                                            &fragment.style);
+                    RestyleDamage::compute_style_difference(
+                        &old_style,
+                        &fragment.style,
+                    );
                 damage |= difference.damage;
             }
         }

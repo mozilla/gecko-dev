@@ -29,7 +29,7 @@ tasks:
             description: 'Created by a [cron task](https://tools.taskcluster.net/tasks/${cron.task_id})'
 
     provisionerId: "aws-provisioner-v1"
-    workerType: "gecko-decision"
+    workerType: "gecko-${repository.level}-decision"
 
     tags:
       $if: 'tasks_for == "hg-push"'
@@ -72,10 +72,11 @@ tasks:
         GECKO_HEAD_REF: '${push.revision}'
         GECKO_HEAD_REV: '${push.revision}'
         GECKO_COMMIT_MSG: '${push.comment}'
-        HG_STORE_PATH: /home/worker/checkouts/hg-store
+        HG_STORE_PATH: /builds/worker/checkouts/hg-store
+        TASKCLUSTER_CACHES: /builds/worker/checkouts
 
       cache:
-        level-${repository.level}-checkouts: /home/worker/checkouts
+        level-${repository.level}-checkouts-sparse-v1: /builds/worker/checkouts
 
       features:
         taskclusterProxy: true
@@ -85,15 +86,16 @@ tasks:
       # exist in tree so we must hard code the hash
       # XXX Changing this will break Chain of Trust without an associated puppet and
       # scriptworker patch!
-      image: 'taskcluster/decision:0.1.8@sha256:195d8439c8e90d59311d877bd2a8964849b2e43bfc6c234092618518d8b2891b'
+      image: 'taskcluster/decision:2.0.0@sha256:4039fd878e5700b326d4a636e28c595c053fbcb53909c1db84ad1f513cf644ef'
 
       maxRunTime: 1800
 
       # TODO use mozilla-unified for the base repository once the tc-vcs
       # tar.gz archives are created or tc-vcs isn't being used.
       command:
-        - /home/worker/bin/run-task
-        - '--vcs-checkout=/home/worker/checkouts/gecko'
+        - /builds/worker/bin/run-task
+        - '--vcs-checkout=/builds/worker/checkouts/gecko'
+        - '--sparse-profile=build/sparse-profiles/taskgraph'
         - '--'
         - bash
         - -cx
@@ -103,8 +105,8 @@ tasks:
           # still uses tc-vcs, which does not support mozilla-unified
           # https://bugzilla.mozilla.org/show_bug.cgi?id=1383973
           in: >
-            cd /home/worker/checkouts/gecko &&
-            ln -s /home/worker/artifacts artifacts &&
+            cd /builds/worker/checkouts/gecko &&
+            ln -s /builds/worker/artifacts artifacts &&
             ./mach --log-no-times taskgraph decision
             --pushlog-id='${push.pushlog_id}'
             --pushdate='${push.pushdate}'
@@ -121,14 +123,17 @@ tasks:
       artifacts:
         'public':
           type: 'directory'
-          path: '/home/worker/artifacts'
+          path: '/builds/worker/artifacts'
           expires: {$fromNow: '1 year'}
 
     extra:
       treeherder:
-        $if: 'tasks_for == "hg-push"'
-        then:
-          symbol: D
-        else:
-          groupSymbol: cron
-          symbol: "${cron.job_symbol}"
+        $merge:
+          - machine:
+              platform: gecko-decision
+          - $if: 'tasks_for == "hg-push"'
+            then:
+              symbol: D
+            else:
+              groupSymbol: cron
+              symbol: "${cron.job_symbol}"

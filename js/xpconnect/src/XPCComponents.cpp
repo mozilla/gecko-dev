@@ -21,6 +21,8 @@
 #include "mozilla/Preferences.h"
 #include "nsJSEnvironment.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/ResultExtensions.h"
+#include "mozilla/URLPreloader.h"
 #include "mozilla/XPTInterfaceInfoManager.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
@@ -753,6 +755,14 @@ nsXPCComponents_Classes::Resolve(nsIXPConnectWrappedNative* wrapper,
     }
     return NS_OK;
 }
+
+NS_IMETHODIMP
+nsXPCComponents_Classes::Initialize(nsIJSCID* cid,
+                                    const char* str)
+{
+    return cid->Initialize(str);
+}
+
 
 /***************************************************************************/
 /***************************************************************************/
@@ -2402,16 +2412,12 @@ nsXPCComponents_Utils::EvalInSandbox(const nsAString& source,
         if (!bytes)
             return NS_ERROR_INVALID_ARG;
 
-        jsVersion = JS_StringToVersion(bytes.ptr());
-        // Explicitly check for "latest", which we support for sandboxes but
-        // isn't in the set of web-exposed version strings.
-        if (jsVersion == JSVERSION_UNKNOWN &&
-            !strcmp(bytes.ptr(), "latest"))
+        // Treat non-default version designation as default.
+        if (JS_StringToVersion(bytes.ptr()) == JSVERSION_UNKNOWN &&
+            strcmp(bytes.ptr(), "latest"))
         {
-            jsVersion = JSVERSION_LATEST;
-        }
-        if (jsVersion == JSVERSION_UNKNOWN)
             return NS_ERROR_INVALID_ARG;
+        }
     }
 
     // Optional fourth and fifth arguments: filename and line number.
@@ -2878,6 +2884,8 @@ nsXPCComponents_Utils::PermitCPOWsInScope(HandleValue obj)
         return NS_ERROR_INVALID_ARG;
 
     JSObject* scopeObj = js::UncheckedUnwrap(&obj.toObject());
+    MOZ_DIAGNOSTIC_ASSERT(!mozJSComponentLoader::Get()->IsLoaderGlobal(scopeObj),
+                          "Don't call Cu.PermitCPOWsInScope() in a JSM that shares its global");
     CompartmentPrivate::Get(scopeObj)->allowCPOWs = true;
     return NS_OK;
 }
@@ -2907,6 +2915,8 @@ nsXPCComponents_Utils::SetWantXrays(HandleValue vscope, JSContext* cx)
     if (!vscope.isObject())
         return NS_ERROR_INVALID_ARG;
     JSObject* scopeObj = js::UncheckedUnwrap(&vscope.toObject());
+    MOZ_DIAGNOSTIC_ASSERT(!mozJSComponentLoader::Get()->IsLoaderGlobal(scopeObj),
+                          "Don't call Cu.setWantXrays() in a JSM that shares its global");
     JSCompartment* compartment = js::GetObjectCompartment(scopeObj);
     CompartmentPrivate::Get(scopeObj)->wantXrays = true;
     bool ok = js::RecomputeWrappers(cx, js::SingleCompartment(compartment),
@@ -2919,7 +2929,10 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::ForcePermissiveCOWs(JSContext* cx)
 {
     xpc::CrashIfNotInAutomation();
-    CompartmentPrivate::Get(CurrentGlobalOrNull(cx))->forcePermissiveCOWs = true;
+    JSObject* currentGlobal = CurrentGlobalOrNull(cx);
+    MOZ_DIAGNOSTIC_ASSERT(!mozJSComponentLoader::Get()->IsLoaderGlobal(currentGlobal),
+                          "Don't call Cu.forcePermissiveCOWs() in a JSM that shares its global");
+    CompartmentPrivate::Get(currentGlobal)->forcePermissiveCOWs = true;
     return NS_OK;
 }
 
@@ -3178,7 +3191,18 @@ class WrappedJSHolder : public nsISupports
 private:
     virtual ~WrappedJSHolder() {}
 };
-NS_IMPL_ISUPPORTS0(WrappedJSHolder);
+
+NS_IMPL_ADDREF(WrappedJSHolder)
+NS_IMPL_RELEASE(WrappedJSHolder)
+
+// nsINamed is always supported by nsXPCWrappedJSClass.
+// We expose this interface only for the identity in telemetry analysis.
+NS_INTERFACE_TABLE_HEAD(WrappedJSHolder)
+  if (aIID.Equals(NS_GET_IID(nsINamed))) {
+    return mWrappedJS->QueryInterface(aIID, aInstancePtr);
+  }
+NS_INTERFACE_TABLE0(WrappedJSHolder)
+NS_INTERFACE_TABLE_TAIL
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::GenerateXPCWrappedJS(HandleValue aObj, HandleValue aScope,
@@ -3230,11 +3254,6 @@ nsXPCComponents_Utils::GetJSEngineTelemetryValue(JSContext* cx, MutableHandleVal
     size_t i = JS_SetProtoCalled(cx);
     RootedValue v(cx, DoubleValue(i));
     if (!JS_DefineProperty(cx, obj, "setProto", v, attrs))
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    i = JS_GetCustomIteratorCount(cx);
-    v.setDouble(i);
-    if (!JS_DefineProperty(cx, obj, "customIter", v, attrs))
         return NS_ERROR_OUT_OF_MEMORY;
 
     rval.setObject(*obj);
@@ -3366,6 +3385,15 @@ nsXPCComponents_Utils::AllowCPOWsInAddon(const nsACString& addonIdStr,
     if (!XPCWrappedNativeScope::AllowCPOWsInAddon(cx, addonId, allow))
         return NS_ERROR_FAILURE;
 
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::ReadFile(nsIFile* aFile, nsACString& aResult)
+{
+    NS_ENSURE_TRUE(aFile, NS_ERROR_INVALID_ARG);
+
+    MOZ_TRY_VAR(aResult, URLPreloader::ReadFile(aFile));
     return NS_OK;
 }
 

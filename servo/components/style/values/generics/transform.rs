@@ -5,13 +5,14 @@
 //! Generic types for CSS values that are related to transformations.
 
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss};
+use style_traits::ToCss;
 use values::CSSFloat;
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 #[css(comma, function)]
 pub struct Matrix<T, U = T> {
     pub a: T,
@@ -23,8 +24,10 @@ pub struct Matrix<T, U = T> {
 }
 
 /// A generic transform origin.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct TransformOrigin<H, V, Depth> {
     /// The horizontal origin.
     pub horizontal: H,
@@ -37,6 +40,7 @@ pub struct TransformOrigin<H, V, Depth> {
 /// A generic timing function.
 ///
 /// https://drafts.csswg.org/css-timing-1/#single-timing-function-production
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TimingFunction<Integer, Number> {
@@ -75,10 +79,6 @@ impl<H, V, D> TransformOrigin<H, V, D> {
             depth: depth,
         }
     }
-}
-
-impl<I, N> HasViewportPercentage for TimingFunction<I, N> {
-    fn has_viewport_percentage(&self) -> bool { false }
 }
 
 impl<Integer, Number> TimingFunction<Integer, Number> {

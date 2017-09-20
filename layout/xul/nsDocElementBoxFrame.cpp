@@ -19,7 +19,6 @@
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
-#include "nsContentList.h"
 #include "mozilla/dom/Element.h"
 
 //#define DEBUG_REFLOW
@@ -75,8 +74,8 @@ NS_IMPL_FRAMEARENA_HELPERS(nsDocElementBoxFrame)
 void
 nsDocElementBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  nsContentUtils::DestroyAnonymousContent(&mPopupgroupContent);
-  nsContentUtils::DestroyAnonymousContent(&mTooltipContent);
+  DestroyAnonymousContent(mPopupgroupContent.forget());
+  DestroyAnonymousContent(mTooltipContent.forget());
   nsBoxFrame::DestroyFrom(aDestructRoot);
 }
 

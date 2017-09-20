@@ -95,8 +95,9 @@ public:
   virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override;
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion) override;
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override;
+                                         nsRegion *aInvalidRegion) const override;
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
+                           bool* aSnap) const override;
   NS_DISPLAY_DECL_NAME("FieldSetBorder", TYPE_FIELDSET_BORDER_BACKGROUND)
 };
 
@@ -119,7 +120,7 @@ nsDisplayFieldSetBorder::AllocateGeometry(nsDisplayListBuilder* aBuilder)
 void
 nsDisplayFieldSetBorder::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                                    const nsDisplayItemGeometry* aGeometry,
-                                                   nsRegion *aInvalidRegion)
+                                                   nsRegion *aInvalidRegion) const
 {
   auto geometry =
     static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
@@ -135,7 +136,7 @@ nsDisplayFieldSetBorder::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilde
 
 nsRect
 nsDisplayFieldSetBorder::GetBounds(nsDisplayListBuilder* aBuilder,
-                                   bool* aSnap)
+                                   bool* aSnap) const
 {
   // Just go ahead and claim our frame's overflow rect as the bounds, because we
   // may have border-image-outset or other features that cause borders to extend
@@ -148,7 +149,6 @@ nsDisplayFieldSetBorder::GetBounds(nsDisplayListBuilder* aBuilder,
 
 void
 nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                  const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists) {
   // Paint our background and border in a special way.
   // REVIEW: We don't really need to check frame emptiness here; if it's empty,
@@ -175,7 +175,7 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   if (GetPrevInFlow()) {
-    DisplayOverflowContainers(aBuilder, aDirtyRect, aLists);
+    DisplayOverflowContainers(aBuilder, aLists);
   }
 
   nsDisplayListCollection contentDisplayItems;
@@ -186,13 +186,13 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     // legend. However, we want the inner frame's display items to be
     // after the legend's display items in z-order, so we need to save them
     // and append them later.
-    BuildDisplayListForChild(aBuilder, inner, aDirtyRect, contentDisplayItems);
+    BuildDisplayListForChild(aBuilder, inner, contentDisplayItems);
   }
   if (nsIFrame* legend = GetLegend()) {
     // The legend's background goes on our BlockBorderBackgrounds list because
     // it's a block child.
     nsDisplayListSet set(aLists, aLists.BlockBorderBackgrounds());
-    BuildDisplayListForChild(aBuilder, legend, aDirtyRect, set);
+    BuildDisplayListForChild(aBuilder, legend, set);
   }
   // Put the inner frame's display items on the master list. Note that this
   // moves its border/background display items to our BorderBackground() list,
@@ -325,12 +325,9 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsFieldSetFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
-
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_PRECONDITION(aReflowInput.ComputedISize() != NS_INTRINSICSIZE,
                   "Should have a precomputed inline-size!");
-
-  // Initialize OUT parameter
-  aStatus.Reset();
 
   nsOverflowAreas ocBounds;
   nsReflowStatus ocStatus;

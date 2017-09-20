@@ -336,6 +336,12 @@ class ConsoleRegexp(Regexp):
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "Console logging API used"
 
+class GenerateTestsRegexp(Regexp):
+    pattern = b"generate_tests\s*\("
+    error = "GENERATE_TESTS"
+    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
+    description = "generate_tests used"
+
 class PrintRegexp(Regexp):
     pattern = b"print(?:\s|\s*\()"
     error = "PRINT STATEMENT"
@@ -350,6 +356,7 @@ regexps = [item() for item in
             W3CTestOrgRegexp,
             Webidl2Regexp,
             ConsoleRegexp,
+            GenerateTestsRegexp,
             PrintRegexp]]
 
 def check_regexp_line(repo_root, path, f, css_mode):
@@ -679,6 +686,26 @@ def changed_files(wpt_root):
     return [os.path.relpath(item, wpt_root) for item in changed]
 
 
+def lint_paths(kwargs, wpt_root):
+    if kwargs.get("paths"):
+        paths = kwargs["paths"]
+    elif kwargs["all"]:
+        paths = list(all_filesystem_paths(wpt_root))
+    else:
+        changed_paths = changed_files(wpt_root)
+        force_all = False
+        # If we changed the lint itself ensure that we retest everything
+        for path in changed_paths:
+            path = path.replace(os.path.sep, "/")
+            if path == "lint.whitelist" or path.startswith("tools/lint/"):
+                force_all = True
+                break
+        paths = (list(changed_paths) if not force_all
+                 else list(all_filesystem_paths(wpt_root)))
+
+    return paths
+
+
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*",
@@ -707,12 +734,11 @@ def main(**kwargs):
                      (False, False): "normal"}[(kwargs.get("json", False),
                                                 kwargs.get("markdown", False))]
 
-    paths = list(kwargs.get("paths") if kwargs.get("paths") else
-                 changed_files(repo_root) if not kwargs.get("all") else
-                 all_filesystem_paths(repo_root))
-
     if output_format == "markdown":
         setup_logging(True)
+
+    paths = lint_paths(kwargs, repo_root)
+
     return lint(repo_root, paths, output_format, kwargs.get("css_mode", False))
 
 

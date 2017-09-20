@@ -38,6 +38,7 @@ class ManifestEntry(object):
         'xpcnativewrappers',
         'tablet',
         'process',
+        'contentaccessible',
     ]
 
     def __init__(self, base, *flags):
@@ -195,12 +196,6 @@ class ManifestOverload(ManifestEntry):
 
     def __str__(self):
         return self.serialize(self.overloaded, self.overload)
-
-    @property
-    def localized(self):
-        u = urlparse(self.overload)
-        return u.scheme == 'chrome' and \
-               u.path.split('/')[0:2] == ['', 'locale']
 
 
 class ManifestOverlay(ManifestOverload):

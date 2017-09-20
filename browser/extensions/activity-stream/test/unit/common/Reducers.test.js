@@ -26,12 +26,20 @@ describe("Reducers", () => {
       const nextState = App(undefined, {type: at.LOCALE_UPDATED});
       assert.equal(nextState, INITIAL_STATE.App);
     });
-    it("should set locale, strings on LOCALE_UPDATE", () => {
+    it("should set locale, strings and text direction on LOCALE_UPDATE", () => {
       const strings = {};
       const action = {type: "LOCALE_UPDATED", data: {locale: "zh-CN", strings}};
       const nextState = App(undefined, action);
       assert.propertyVal(nextState, "locale", "zh-CN");
       assert.propertyVal(nextState, "strings", strings);
+      assert.propertyVal(nextState, "textDirection", "ltr");
+    });
+    it("should set rtl text direction for RTL locales", () => {
+      const action = {type: "LOCALE_UPDATED", data: {locale: "ar"}};
+
+      const nextState = App(undefined, action);
+
+      assert.propertyVal(nextState, "textDirection", "rtl");
     });
   });
   describe("TopSites", () => {
@@ -68,7 +76,7 @@ describe("Reducers", () => {
           url: "bar.com",
           bookmarkGuid: "bookmark123",
           bookmarkTitle: "Title for bar.com",
-          lastModified: 1234567
+          dateAdded: 1234567
         }
       };
       const nextState = TopSites(oldState, action);
@@ -77,7 +85,7 @@ describe("Reducers", () => {
       assert.equal(newRow.url, action.data.url);
       assert.equal(newRow.bookmarkGuid, action.data.bookmarkGuid);
       assert.equal(newRow.bookmarkTitle, action.data.bookmarkTitle);
-      assert.equal(newRow.bookmarkDateCreated, action.data.lastModified);
+      assert.equal(newRow.bookmarkDateCreated, action.data.dateAdded);
 
       // old row is unchanged
       assert.equal(nextState.rows[0], oldState.rows[0]);
@@ -92,7 +100,7 @@ describe("Reducers", () => {
           url: "bar.com",
           bookmarkGuid: "bookmark123",
           bookmarkTitle: "Title for bar.com",
-          lastModified: 123456
+          dateAdded: 123456
         }]
       };
       const action = {type: at.PLACES_BOOKMARK_REMOVED, data: {url: "bar.com"}};
@@ -111,20 +119,14 @@ describe("Reducers", () => {
       const nextState = TopSites(undefined, {type: at.PLACES_BOOKMARK_REMOVED});
       assert.equal(nextState, INITIAL_STATE.TopSites);
     });
-    it("should remove a link on PLACES_LINK_BLOCKED and PLACES_LINK_DELETED", () => {
-      const events = [at.PLACES_LINK_BLOCKED, at.PLACES_LINK_DELETED];
+    it("should remove a link on BLOCK_URL and DELETE_HISTORY_URL", () => {
+      const events = [at.BLOCK_URL, at.DELETE_HISTORY_URL];
       events.forEach(event => {
         const oldState = {rows: [{url: "foo.com"}, {url: "bar.com"}]};
         const action = {type: event, data: {url: "bar.com"}};
         const nextState = TopSites(oldState, action);
         assert.deepEqual(nextState.rows, [{url: "foo.com"}]);
       });
-    });
-    it("should insert pinned links on PINNED_SITES_UPDATED", () => {
-      const oldState = {rows: [{url: "foo.com"}, {url: "bar.com"}]};
-      const action = {type: at.PINNED_SITES_UPDATED, data: [{url: "baz.com", title: "baz"}]};
-      const nextState = TopSites(oldState, action);
-      assert.deepEqual(nextState.rows, [{url: "baz.com", title: "baz", isPinned: true, pinIndex: 0, pinTitle: "baz"}, {url: "foo.com"}, {url: "bar.com"}]);
     });
   });
   describe("Prefs", () => {
@@ -200,7 +202,9 @@ describe("Reducers", () => {
         id: `foo_bar_${i}`,
         title: `Foo Bar ${i}`,
         initialized: false,
-        rows: [{url: "www.foo.bar"}, {url: "www.other.url"}]
+        rows: [{url: "www.foo.bar"}, {url: "www.other.url"}],
+        order: i,
+        type: "history"
       }));
     });
 
@@ -220,6 +224,47 @@ describe("Reducers", () => {
       const insertedSection = newState.find(section => section.id === "foo_bar_5");
       assert.propertyVal(insertedSection, "title", action.data.title);
     });
+    it("should ensure sections are sorted by property `order` (increasing) on SECTION_REGISTER", () => {
+      let newState = [];
+      const state = Object.assign([], oldState);
+      state.forEach(section => {
+        Object.assign(section, {order: 5 - section.order});
+        const action = {type: at.SECTION_REGISTER, data: section};
+        newState = Sections(newState, action);
+      });
+      // Should have been inserted into newState in reverse order
+      assert.deepEqual(newState.map(section => section.id), state.map(section => section.id).reverse());
+      const newSection = {id: "new_section", order: 2.5};
+      const action = {type: at.SECTION_REGISTER, data: newSection};
+      newState = Sections(newState, action);
+      // Should have been inserted at index 2, between second and third section
+      assert.equal(newState[2].id, newSection.id);
+    });
+    it("should insert sections without an `order` at the top on SECTION_REGISTER", () => {
+      const newSection = {id: "new_section"};
+      const action = {type: at.SECTION_REGISTER, data: newSection};
+      const newState = Sections(oldState, action);
+      assert.equal(newState[0].id, newSection.id);
+      assert.ok(newState[0].order < newState[1].order);
+    });
+    it("should insert sections with a 0 `order` at the top on SECTION_REGISTER", () => {
+      const newSection = {id: "new_section", order: 0};
+      const action = {type: at.SECTION_REGISTER, data: newSection};
+      const newState = Sections(oldState, action);
+      assert.equal(newState[0].id, newSection.id);
+    });
+    it("should insert sections with a 1 `order` in the right spot on SECTION_REGISTER", () => {
+      const newSection = {id: "new_section", order: 1};
+      const action = {type: at.SECTION_REGISTER, data: newSection};
+      const newState = Sections(oldState, action);
+      assert.equal(newState[1].id, newSection.id);
+    });
+    it("should insert sections with higher `order` than any existing at the bottom on SECTION_REGISTER", () => {
+      const newSection = {id: "new_section", order: 10000};
+      const action = {type: at.SECTION_REGISTER, data: newSection};
+      const newState = Sections(oldState, action);
+      assert.equal(newState[newState.length - 1].id, newSection.id);
+    });
     it("should set newSection.rows === [] if no rows are provided on SECTION_REGISTER", () => {
       const action = {type: at.SECTION_REGISTER, data: {id: "foo_bar_5", title: "Foo Bar 5"}};
       const newState = Sections(oldState, action);
@@ -234,17 +279,69 @@ describe("Reducers", () => {
       const updatedSection = newState.find(section => section.id === "foo_bar_2");
       assert.ok(updatedSection && updatedSection.title === NEW_TITLE);
     });
-    it("should have no effect on SECTION_ROWS_UPDATE if the id doesn't exist", () => {
-      const action = {type: at.SECTION_ROWS_UPDATE, data: {id: "fake_id", data: "fake_data"}};
+    it("should set initialized to false on SECTION_REGISTER if there are no rows", () => {
+      const NEW_TITLE = "New Title";
+      const action = {type: at.SECTION_REGISTER, data: {id: "bloop", title: NEW_TITLE}};
+      const newState = Sections(oldState, action);
+      const updatedSection = newState.find(section => section.id === "bloop");
+      assert.propertyVal(updatedSection, "initialized", false);
+    });
+    it("should set initialized to true on SECTION_REGISTER if there are rows", () => {
+      const NEW_TITLE = "New Title";
+      const action = {type: at.SECTION_REGISTER, data: {id: "bloop", title: NEW_TITLE, rows: [{}, {}]}};
+      const newState = Sections(oldState, action);
+      const updatedSection = newState.find(section => section.id === "bloop");
+      assert.propertyVal(updatedSection, "initialized", true);
+    });
+    it("should have no effect on SECTION_UPDATE if the id doesn't exist", () => {
+      const action = {type: at.SECTION_UPDATE, data: {id: "fake_id", data: "fake_data"}};
       const newState = Sections(oldState, action);
       assert.deepEqual(oldState, newState);
     });
-    it("should update the section rows with the correct data on SECTION_ROWS_UPDATE", () => {
-      const FAKE_DATA = ["some", "fake", "data"];
-      const action = {type: at.SECTION_ROWS_UPDATE, data: {id: "foo_bar_2", rows: FAKE_DATA}};
+    it("should update the section with the correct data on SECTION_UPDATE", () => {
+      const FAKE_DATA = {rows: ["some", "fake", "data"], foo: "bar"};
+      const action = {type: at.SECTION_UPDATE, data: Object.assign(FAKE_DATA, {id: "foo_bar_2"})};
       const newState = Sections(oldState, action);
       const updatedSection = newState.find(section => section.id === "foo_bar_2");
-      assert.equal(updatedSection.rows, FAKE_DATA);
+      assert.include(updatedSection, FAKE_DATA);
+    });
+    it("should set initialized to true on SECTION_UPDATE if rows is defined on action.data", () => {
+      const data = {rows: [], id: "foo_bar_2"};
+      const action = {type: at.SECTION_UPDATE, data};
+      const newState = Sections(oldState, action);
+      const updatedSection = newState.find(section => section.id === "foo_bar_2");
+      assert.propertyVal(updatedSection, "initialized", true);
+    });
+    it("should have no effect on SECTION_UPDATE_CARD if the id or url doesn't exist", () => {
+      const noIdAction = {type: at.SECTION_UPDATE_CARD, data: {id: "non-existent", url: "www.foo.bar", options: {title: "New title"}}};
+      const noIdState = Sections(oldState, noIdAction);
+      const noUrlAction = {type: at.SECTION_UPDATE_CARD, data: {id: "foo_bar_2", url: "www.non-existent.url", options: {title: "New title"}}};
+      const noUrlState = Sections(oldState, noUrlAction);
+      assert.deepEqual(noIdState, oldState);
+      assert.deepEqual(noUrlState, oldState);
+    });
+    it("should update the card with the correct data on SECTION_UPDATE_CARD", () => {
+      const action = {type: at.SECTION_UPDATE_CARD, data: {id: "foo_bar_2", url: "www.other.url", options: {title: "Fake new title"}}};
+      const newState = Sections(oldState, action);
+      const updatedSection = newState.find(section => section.id === "foo_bar_2");
+      const updatedCard = updatedSection.rows.find(card => card.url === "www.other.url");
+      assert.propertyVal(updatedCard, "title", "Fake new title");
+    });
+    it("should only update the cards belonging to the right section on SECTION_UPDATE_CARD", () => {
+      const action = {type: at.SECTION_UPDATE_CARD, data: {id: "foo_bar_2", url: "www.other.url", options: {title: "Fake new title"}}};
+      const newState = Sections(oldState, action);
+      newState.forEach((section, i) => {
+        if (section.id !== "foo_bar_2") {
+          assert.deepEqual(section, oldState[i]);
+        }
+      });
+    });
+    it("should allow action.data to set .initialized", () => {
+      const data = {rows: [], initialized: false, id: "foo_bar_2"};
+      const action = {type: at.SECTION_UPDATE, data};
+      const newState = Sections(oldState, action);
+      const updatedSection = newState.find(section => section.id === "foo_bar_2");
+      assert.propertyVal(updatedSection, "initialized", false);
     });
     it("should remove blocked and deleted urls from all rows in all sections", () => {
       const blockAction = {type: at.PLACES_LINK_BLOCKED, data: {url: "www.foo.bar"}};
@@ -266,7 +363,7 @@ describe("Reducers", () => {
           url: "www.foo.bar",
           bookmarkGuid: "bookmark123",
           bookmarkTitle: "Title for bar.com",
-          lastModified: 1234567
+          dateAdded: 1234567
         }
       };
       const nextState = Sections(oldState, action);
@@ -276,9 +373,10 @@ describe("Reducers", () => {
 
       // new row has bookmark data
       assert.equal(newRow.url, action.data.url);
+      assert.equal(newRow.type, "bookmark");
       assert.equal(newRow.bookmarkGuid, action.data.bookmarkGuid);
       assert.equal(newRow.bookmarkTitle, action.data.bookmarkTitle);
-      assert.equal(newRow.bookmarkDateCreated, action.data.lastModified);
+      assert.equal(newRow.bookmarkDateCreated, action.data.dateAdded);
 
       // old row is unchanged
       assert.equal(oldRow, oldState[0].rows[1]);
@@ -300,14 +398,16 @@ describe("Reducers", () => {
         item.rows[0].bookmarkGuid = "bookmark123";
         item.rows[0].bookmarkTitle = "Title for bar.com";
         item.rows[0].bookmarkDateCreated = 1234567;
+        item.rows[0].type = "bookmark";
       });
       const nextState = Sections(oldState, action);
       // check a section to ensure the correct bookmark was removed
       const newRow = nextState[0].rows[0];
       const oldRow = nextState[0].rows[1];
 
-      // new row has bookmark data
+      // new row isn't a bookmark
       assert.equal(newRow.url, action.data.url);
+      assert.equal(newRow.type, "history");
       assert.isUndefined(newRow.bookmarkGuid);
       assert.isUndefined(newRow.bookmarkTitle);
       assert.isUndefined(newRow.bookmarkDateCreated);
@@ -332,7 +432,6 @@ describe("Reducers", () => {
       for (let index of [0, 1]) {
         assert.equal(result[index].url, pinned[index].url);
         assert.ok(result[index].isPinned);
-        assert.equal(result[index].pinTitle, pinned[index].title);
         assert.equal(result[index].pinIndex, index);
       }
       assert.deepEqual(result.slice(2), links);
@@ -349,7 +448,6 @@ describe("Reducers", () => {
       for (let index of [1, 4]) {
         assert.equal(result[index].url, pinned[index].url);
         assert.ok(result[index].isPinned);
-        assert.equal(result[index].pinTitle, pinned[index].title);
         assert.equal(result[index].pinIndex, index);
       }
       result.splice(4, 1);
@@ -362,17 +460,14 @@ describe("Reducers", () => {
       const result = insertPinned([], pinned);
       assert.equal(result[11].url, pinned[11].url);
       assert.isTrue(result[11].isPinned);
-      assert.equal(result[11].pinTitle, pinned[11].title);
       assert.equal(result[11].pinIndex, 11);
     });
     it("should unpin previously pinned links no longer in the pinned list", () => {
       const pinned = [];
       links[2].isPinned = true;
-      links[2].pinTitle = "pinned site";
       links[2].pinIndex = 2;
       const result = insertPinned(links, pinned);
       assert.notProperty(result[2], "isPinned");
-      assert.notProperty(result[2], "pinTitle");
       assert.notProperty(result[2], "pinIndex");
     });
     it("should handle a link present in both the links and pinned list", () => {

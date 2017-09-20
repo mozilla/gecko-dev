@@ -229,18 +229,20 @@ public:
      * aIsPlugin is used to tell the backend that they can optimize this surface
      * specifically because it's used for a plugin. This is mostly for Skia.
      */
-    static already_AddRefed<SourceSurface>
-      GetSourceSurfaceForSurface(mozilla::gfx::DrawTarget *aTarget,
-                                 gfxASurface *aSurface,
-                                 bool aIsPlugin = false);
+    static already_AddRefed<SourceSurface> GetSourceSurfaceForSurface(
+      RefPtr<mozilla::gfx::DrawTarget> aTarget,
+      gfxASurface* aSurface,
+      bool aIsPlugin = false);
 
     static void ClearSourceSurfaceForSurface(gfxASurface *aSurface);
 
     static already_AddRefed<DataSourceSurface>
         GetWrappedDataSourceSurface(gfxASurface *aSurface);
 
-    already_AddRefed<DrawTarget>
-      CreateOffscreenContentDrawTarget(const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat);
+    already_AddRefed<DrawTarget> CreateOffscreenContentDrawTarget(
+      const mozilla::gfx::IntSize& aSize,
+      mozilla::gfx::SurfaceFormat aFormat,
+      bool aFallback = false);
 
     already_AddRefed<DrawTarget>
       CreateOffscreenCanvasDrawTarget(const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat);
@@ -555,6 +557,14 @@ public:
 
     int32_t GetBidiNumeralOption();
 
+    /**
+     * This is a bit ugly, but useful... force all presContexts to reflow,
+     * by toggling a preference that they observe. This is used when
+     * something about platform settings changes that might have an effect
+     * on layout, such as font rendering settings that influence metrics.
+     */
+    static void ForceGlobalReflow();
+
     static void
     FlushFontAndWordCaches();
 
@@ -569,7 +579,7 @@ public:
      * it would measure if rendered on-screen.  Guaranteed to return a
      * non-null and valid DrawTarget.
      */
-    mozilla::gfx::DrawTarget* ScreenReferenceDrawTarget() { return mScreenReferenceDrawTarget; }
+    RefPtr<mozilla::gfx::DrawTarget> ScreenReferenceDrawTarget();
 
     virtual mozilla::gfx::SurfaceFormat Optimal2DFormatForContent(gfxContentType aContent);
 
@@ -594,8 +604,6 @@ public:
     mozilla::gl::SkiaGLGlue* GetSkiaGLGlue();
     void PurgeSkiaGPUCache();
     static void PurgeSkiaFontCache();
-
-    virtual bool IsInGonkEmulator() const { return false; }
 
     static bool UsesOffMainThreadCompositing();
 
@@ -642,6 +650,7 @@ public:
     bool SupportsApzTouchInput() const;
     bool SupportsApzDragInput() const;
     bool SupportsApzKeyboardInput() const;
+    bool SupportsApzAutoscrolling() const;
 
     virtual void FlushContentDrawing() {}
 

@@ -154,7 +154,7 @@ impl CSSStyleOwner {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(HeapSizeOf, PartialEq)]
 pub enum CSSModificationAccess {
     ReadWrite,
     Readonly,
@@ -238,7 +238,7 @@ impl CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        self.owner.mutate_associated_block(|ref mut pdb, mut changed| {
+        self.owner.mutate_associated_block(|pdb, changed| {
             if value.is_empty() {
                 // Step 3
                 *changed = pdb.remove_property(&id);
@@ -296,7 +296,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(&property) {
+        let id = if let Ok(id) = PropertyId::parse(&property, None) {
             id
         } else {
             // Unkwown property
@@ -307,7 +307,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(&property) {
+        let id = if let Ok(id) = PropertyId::parse(&property, None) {
             id
         } else {
             // Unkwown property
@@ -331,7 +331,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                    priority: DOMString)
                    -> ErrorResult {
         // Step 3
-        let id = if let Ok(id) = PropertyId::parse(&property) {
+        let id = if let Ok(id) = PropertyId::parse(&property, None) {
             id
         } else {
             // Unknown property
@@ -348,7 +348,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 2 & 3
-        let id = match PropertyId::parse(&property) {
+        let id = match PropertyId::parse(&property, None) {
             Ok(id) => id,
             Err(..) => return Ok(()), // Unkwown property
         };
@@ -360,7 +360,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             _ => return Ok(()),
         };
 
-        self.owner.mutate_associated_block(|ref mut pdb, mut changed| {
+        self.owner.mutate_associated_block(|pdb, changed| {
             // Step 5 & 6
             *changed = pdb.set_importance(&id, importance);
         });
@@ -380,7 +380,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        let id = if let Ok(id) = PropertyId::parse(&property) {
+        let id = if let Ok(id) = PropertyId::parse(&property, None) {
             id
         } else {
             // Unkwown property, cannot be there to remove.
@@ -388,7 +388,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         };
 
         let mut string = String::new();
-        self.owner.mutate_associated_block(|mut pdb, mut changed| {
+        self.owner.mutate_associated_block(|pdb, changed| {
             pdb.property_value_to_css(&id, &mut string).unwrap();
             *changed = pdb.remove_property(&id);
         });
@@ -410,10 +410,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.owner.with_block(|pdb| {
-            pdb.declarations().get(index as usize).map(|entry| {
-                let (ref declaration, importance) = *entry;
+            pdb.declarations().get(index as usize).map(|declaration| {
+                let important = pdb.declarations_importance().get(index);
                 let mut css = declaration.to_css_string();
-                if importance.important() {
+                if important {
                     css += " !important";
                 }
                 DOMString::from(css)
@@ -438,7 +438,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         let quirks_mode = window.Document().quirks_mode();
-        self.owner.mutate_associated_block(|mut pdb, mut _changed| {
+        self.owner.mutate_associated_block(|pdb, _changed| {
             // Step 3
             *pdb = parse_style_attribute(&value,
                                          &self.owner.base_url(),

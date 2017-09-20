@@ -10,7 +10,7 @@ use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::OpaqueNode;
 use font_metrics::FontMetricsProvider;
-use properties::{self, CascadeFlags, ComputedValues, Importance};
+use properties::{self, CascadeFlags, ComputedValues};
 use properties::animated_properties::{AnimatableLonghand, AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
@@ -28,7 +28,7 @@ use values::generics::transform::{StepPosition, TimingFunction as GenericTimingF
 ///
 /// If the iteration count is infinite, there's no other state, otherwise we
 /// have to keep track the current iteration and the max iteration count.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum KeyframesIterationState {
     /// Infinite iterations, so no need to track a state.
     Infinite,
@@ -39,7 +39,7 @@ pub enum KeyframesIterationState {
 /// This structure represents wether an animation is actually running.
 ///
 /// An animation can be running, or paused at a given time.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum KeyframesRunningState {
     /// This animation is paused. The inner field is the percentage of progress
     /// when it was paused, from 0 to 1.
@@ -52,7 +52,7 @@ pub enum KeyframesRunningState {
 /// duration, the current and maximum iteration count, and the state (either
 /// playing or paused).
 // TODO: unify the use of f32/f64 in this file.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct KeyframesAnimationState {
     /// The time this animation started at.
     pub started_at: f64,
@@ -244,7 +244,7 @@ impl Animation {
 
 
 /// A single animation frame of a single property.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct AnimationFrame {
     /// A description of the property animation that is occurring.
     pub property_animation: PropertyAnimation,
@@ -254,7 +254,7 @@ pub struct AnimationFrame {
 }
 
 /// Represents an animation for a given property.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct PropertyAnimation {
     property: AnimatedProperty,
     timing_function: TimingFunction,
@@ -419,17 +419,15 @@ impl PropertyAnimation {
 /// Inserts transitions into the queue of running animations as applicable for
 /// the given style difference. This is called from the layout worker threads.
 /// Returns true if any animations were kicked off and false otherwise.
-//
-// TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
-// cloneable part and a non-cloneable part..
 #[cfg(feature = "servo")]
-pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
-                                       opaque_node: OpaqueNode,
-                                       old_style: &ComputedValues,
-                                       new_style: &mut Arc<ComputedValues>,
-                                       timer: &Timer,
-                                       possibly_expired_animations: &[PropertyAnimation])
-                                       -> bool {
+pub fn start_transitions_if_applicable(
+    new_animations_sender: &Sender<Animation>,
+    opaque_node: OpaqueNode,
+    old_style: &ComputedValues,
+    new_style: &mut Arc<ComputedValues>,
+    timer: &Timer,
+    possibly_expired_animations: &[PropertyAnimation]
+) -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
         // Create any property animations, if applicable.
@@ -437,20 +435,22 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
                                                                      old_style,
                                                                      Arc::make_mut(new_style));
         for property_animation in property_animations {
-            // Per [1], don't trigger a new transition if the end state for that transition is
-            // the same as that of a transition that's already running on the same node.
-            //
-            // [1]: https://drafts.csswg.org/css-transitions/#starting
-            if possibly_expired_animations.iter().any(|animation| {
-                    animation.has_the_same_end_value_as(&property_animation)
-                }) {
-                continue
-            }
-
             // Set the property to the initial value.
+            //
             // NB: get_mut is guaranteed to succeed since we called make_mut()
             // above.
             property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
+
+            // Per [1], don't trigger a new transition if the end state for that
+            // transition is the same as that of a transition that's already
+            // running on the same node.
+            //
+            // [1]: https://drafts.csswg.org/css-transitions/#starting
+            if possibly_expired_animations.iter().any(|animation| {
+                animation.has_the_same_end_value_as(&property_animation)
+            }) {
+                continue
+            }
 
             // Kick off the animation.
             let box_style = new_style.get_box();
@@ -482,12 +482,11 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             let guard = declarations.read_with(context.guards.author);
 
             // No !important in keyframes.
-            debug_assert!(guard.declarations().iter()
-                            .all(|&(_, importance)| importance == Importance::Normal));
+            debug_assert!(!guard.any_important());
 
             let iter = || {
                 guard.declarations().iter().rev()
-                     .map(|&(ref decl, _importance)| (decl, CascadeLevel::Animations))
+                     .map(|decl| (decl, CascadeLevel::Animations))
             };
 
             // This currently ignores visited styles, which seems acceptable,
@@ -500,11 +499,12 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                Some(previous_style),
                                                Some(previous_style),
                                                Some(previous_style),
-                                               /* cascade_info = */ None,
                                                /* visited_style = */ None,
                                                font_metrics_provider,
                                                CascadeFlags::empty(),
-                                               context.quirks_mode);
+                                               context.quirks_mode(),
+                                               /* rule_cache = */ None,
+                                               &mut Default::default());
             computed
         }
     }
@@ -533,7 +533,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             continue
         }
 
-        if let Some(ref anim) = context.stylist.animations().get(name) {
+        if let Some(ref anim) = context.stylist.get_animation(name) {
             debug!("maybe_start_animations: animation {} found", name);
 
             // If this animation doesn't have any keyframe, we can just continue
@@ -637,7 +637,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
                 KeyframesRunningState::Paused(progress) => started_at + duration * progress,
             };
 
-            let animation = match context.stylist.animations().get(name) {
+            let animation = match context.stylist.get_animation(name) {
                 None => {
                     warn!("update_style_for_animation: Animation {:?} not found", name);
                     return;

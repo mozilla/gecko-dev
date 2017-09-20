@@ -263,6 +263,7 @@ define(function (require, exports, module) {
               ref,
               role: "presentation",
             },
+              DOM.span({className: "devtools-tab-line"}),
               DOM.a({
                 id: id ? id + "-tab" : "tab-" + index,
                 tabIndex: isTabSelected ? 0 : -1,
@@ -333,6 +334,13 @@ define(function (require, exports, module) {
             width: selected ? "100%" : "0",
           };
 
+          // Allows lazy loading panels by creating them only if they are selected,
+          // then store a copy of the lazy created panel in `tab.panel`.
+          if (typeof tab.panel == "function" && selected) {
+            tab.panel = tab.panel(tab);
+          }
+          let panel = tab.panel || tab;
+
           return (
             DOM.div({
               id: id ? id + "-panel" : "panel-" + index,
@@ -342,7 +350,7 @@ define(function (require, exports, module) {
               role: "tabpanel",
               "aria-labelledby": id ? id + "-tab" : "tab-" + index,
             },
-              (selected || this.state.created[index]) ? tab : null
+              (selected || this.state.created[index]) ? panel : null
             )
           );
         });

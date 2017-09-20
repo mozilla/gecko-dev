@@ -18,6 +18,7 @@ from .create import create_tasks
 from .parameters import Parameters
 from .taskgraph import TaskGraph
 from .actions import render_actions_json
+from taskgraph.util.partials import populate_release_history
 from . import GECKO
 
 from taskgraph.util.templates import Templates
@@ -107,6 +108,7 @@ def taskgraph_decision(options):
     """
 
     parameters = get_decision_parameters(options)
+
     # create a TaskGraphGenerator instance
     tgg = TaskGraphGenerator(
         root_dir=options['root'],
@@ -166,6 +168,8 @@ def get_decision_parameters(options):
         'check_servo',
         'target_tasks_method',
     ]
+    parameters['target_task_labels'] = []
+    parameters['morph_templates'] = {}
 
     # owner must be an email, but sometimes (e.g., for ffxbld) it is not, in which
     # case, fake it
@@ -187,9 +191,25 @@ def get_decision_parameters(options):
                        "for this project".format(project, __file__))
         parameters.update(PER_PROJECT_PARAMETERS['default'])
 
+    # morph_templates and target_task_labels are only used on try, so don't
+    # bother loading them elsewhere
+    task_config_file = os.path.join(GECKO, 'try_task_config.json')
+    if project == 'try' and os.path.isfile(task_config_file):
+        with open(task_config_file, 'r') as fh:
+            task_config = json.load(fh)
+        parameters['morph_templates'] = task_config.get('templates', {})
+        parameters['target_task_labels'] = task_config.get('tasks')
+
     # `target_tasks_method` has higher precedence than `project` parameters
     if options.get('target_tasks_method'):
         parameters['target_tasks_method'] = options['target_tasks_method']
+
+    # If the target method is nightly, we should build partials. This means
+    # knowing what has been released previously.
+    # An empty release_history is fine, it just means no partials will be built
+    parameters.setdefault('release_history', dict())
+    if 'nightly' in parameters.get('target_tasks_method', ''):
+        parameters['release_history'] = populate_release_history('Firefox', project)
 
     return Parameters(parameters)
 
@@ -210,6 +230,7 @@ def write_artifact(filename, data):
 
 
 def get_action_yml(parameters):
+    # NOTE: when deleting this function, delete taskcluster/taskgraph/util/templates.py too
     templates = Templates(os.path.join(GECKO, "taskcluster/taskgraph"))
     action_parameters = parameters.copy()
 

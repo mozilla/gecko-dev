@@ -2,28 +2,43 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
-                                  "resource://gre/modules/Preferences.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ExtensionSettingsStore",
+                                  "resource://gre/modules/ExtensionSettingsStore.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(this, "aboutNewTabService",
+                                   "@mozilla.org/browser/aboutnewtab-service;1",
+                                   "nsIAboutNewTabService");
 
 Cu.import("resource://gre/modules/ExtensionPreferencesManager.jsm");
 
-const getSettingsAPI = (extension, name, callback) => {
+const HOMEPAGE_OVERRIDE_SETTING = "homepage_override";
+const HOMEPAGE_URL_PREF = "browser.startup.homepage";
+const URL_STORE_TYPE = "url_overrides";
+const NEW_TAB_OVERRIDE_SETTING = "newTabURL";
+
+const getSettingsAPI = (extension, name, callback, storeType, readOnly = false) => {
   return {
     async get(details) {
       return {
         levelOfControl: details.incognito ?
           "not_controllable" :
           await ExtensionPreferencesManager.getLevelOfControl(
-            extension, name),
+            extension, name, storeType),
         value: await callback(),
       };
     },
     set(details) {
-      return ExtensionPreferencesManager.setSetting(
-        extension, name, details.value);
+      if (!readOnly) {
+        return ExtensionPreferencesManager.setSetting(
+          extension, name, details.value);
+      }
     },
     clear(details) {
-      return ExtensionPreferencesManager.removeSetting(extension, name);
+      if (!readOnly) {
+        return ExtensionPreferencesManager.removeSetting(extension, name);
+      }
     },
   };
 };
@@ -57,6 +72,16 @@ ExtensionPreferencesManager.addSetting("cacheEnabled", {
   },
 });
 
+ExtensionPreferencesManager.addSetting("imageAnimationBehavior", {
+  prefNames: [
+    "image.animation_mode",
+  ],
+
+  setCallback(value) {
+    return {[this.prefNames[0]]: value};
+  },
+});
+
 this.browserSettings = class extends ExtensionAPI {
   getAPI(context) {
     let {extension} = context;
@@ -65,14 +90,30 @@ this.browserSettings = class extends ExtensionAPI {
         allowPopupsForUserEvents: getSettingsAPI(extension,
           "allowPopupsForUserEvents",
           () => {
-            return Preferences.get("dom.popup_allowed_events") != "";
+            return Services.prefs.getCharPref("dom.popup_allowed_events") != "";
           }),
         cacheEnabled: getSettingsAPI(extension,
           "cacheEnabled",
           () => {
-            return Preferences.get("browser.cache.disk.enable") &&
-              Preferences.get("browser.cache.memory.enable");
+            return Services.prefs.getBoolPref("browser.cache.disk.enable") &&
+              Services.prefs.getBoolPref("browser.cache.memory.enable");
           }),
+        homepageOverride: getSettingsAPI(extension,
+          HOMEPAGE_OVERRIDE_SETTING,
+          () => {
+            return Services.prefs.getComplexValue(
+              HOMEPAGE_URL_PREF, Ci.nsIPrefLocalizedString).data;
+          }, undefined, true),
+        imageAnimationBehavior: getSettingsAPI(extension,
+          "imageAnimationBehavior",
+          () => {
+            return Services.prefs.getCharPref("image.animation_mode");
+          }),
+        newTabPageOverride: getSettingsAPI(extension,
+          NEW_TAB_OVERRIDE_SETTING,
+          () => {
+            return aboutNewTabService.newTabURL;
+          }, URL_STORE_TYPE, true),
       },
     };
   }

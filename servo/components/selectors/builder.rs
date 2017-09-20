@@ -90,6 +90,12 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         self.simple_selectors.is_empty()
     }
 
+    /// Returns true if combinators have ever been pushed to this builder.
+    #[inline(always)]
+    pub fn has_combinators(&self) -> bool {
+        !self.combinators.is_empty()
+    }
+
     /// Consumes the builder, producing a Selector.
     #[inline(always)]
     pub fn build(&mut self, parsed_pseudo: bool) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
@@ -183,7 +189,7 @@ fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
 
 pub const HAS_PSEUDO_BIT: u32 = 1 << 30;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SpecificityAndFlags(pub u32);
 
 impl SpecificityAndFlags {

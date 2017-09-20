@@ -15,15 +15,29 @@ const LINUX_CLANG39_IMAGE = {
   path: "automation/taskcluster/docker-clang-3.9"
 };
 
+const LINUX_GCC44_IMAGE = {
+  name: "linux-gcc-4.4",
+  path: "automation/taskcluster/docker-gcc-4.4"
+};
+
 const FUZZ_IMAGE = {
   name: "fuzz",
   path: "automation/taskcluster/docker-fuzz"
+};
+
+const HACL_GEN_IMAGE = {
+  name: "hacl",
+  path: "automation/taskcluster/docker-hacl"
 };
 
 const WINDOWS_CHECKOUT_CMD =
   "bash -c \"hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss || " +
     "(sleep 2; hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss) || " +
     "(sleep 5; hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss)\"";
+const MAC_CHECKOUT_CMD = ["bash", "-c",
+            "hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss || " +
+            "(sleep 2; hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss) || " +
+            "(sleep 5; hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss)"];
 
 /*****************************************************************************/
 
@@ -51,6 +65,15 @@ queue.filter(task => {
     if (task.platform == "aarch64") {
       return false;
     }
+
+    // No mac
+    if (task.platform == "mac") {
+      return false;
+    }
+  }
+
+  if (task.tests == "fips" && task.platform == "mac") {
+    return false;
   }
 
   // Only old make builds have -Ddisable_libpkix=0 and can run chain tests.
@@ -78,9 +101,17 @@ queue.filter(task => {
 queue.map(task => {
   if (task.collection == "asan") {
     // CRMF and FIPS tests still leak, unfortunately.
-    if (task.tests == "crmf" || task.tests == "fips") {
+    if (task.tests == "crmf") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
     }
+  }
+
+  // We don't run FIPS SSL tests
+  if (task.tests == "ssl") {
+    if (!task.env) {
+      task.env = {};
+    }
+    task.env.NSS_SSL_TESTS = "crl iopr policy";
   }
 
   // Windows is slow.
@@ -216,6 +247,71 @@ export default async function main() {
       collection: "opt",
     }, aarch64_base)
   );
+
+  await scheduleMac("Mac (opt)", {collection: "opt"}, "--opt");
+  await scheduleMac("Mac (debug)", {collection: "debug"});
+}
+
+
+async function scheduleMac(name, base, args = "") {
+  let mac_base = merge(base, {
+    env: {
+      PATH: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      NSS_TASKCLUSTER_MAC: "1",
+      DOMSUF: "localdomain",
+      HOST: "localhost",
+    },
+    provisioner: "localprovisioner",
+    workerType: "nss-macos-10-12",
+    platform: "mac",
+    tier: 3
+  });
+
+  // Build base definition.
+  let build_base = merge({
+    command: [
+      MAC_CHECKOUT_CMD,
+      ["bash", "-c",
+       "nss/automation/taskcluster/scripts/build_gyp.sh", args]
+    ],
+    provisioner: "localprovisioner",
+    workerType: "nss-macos-10-12",
+    platform: "mac",
+    maxRunTime: 7200,
+    artifacts: [{
+      expires: 24 * 7,
+      type: "directory",
+      path: "public"
+    }],
+    kind: "build",
+    symbol: "B"
+  }, mac_base);
+
+  // The task that builds NSPR+NSS.
+  let task_build = queue.scheduleTask(merge(build_base, {name}));
+
+  // The task that generates certificates.
+  let task_cert = queue.scheduleTask(merge(build_base, {
+    name: "Certificates",
+    command: [
+      MAC_CHECKOUT_CMD,
+      ["bash", "-c",
+       "nss/automation/taskcluster/scripts/gen_certs.sh"]
+    ],
+    parent: task_build,
+    symbol: "Certs"
+  }));
+
+  // Schedule tests.
+  scheduleTests(task_build, task_cert, merge(mac_base, {
+    command: [
+      MAC_CHECKOUT_CMD,
+      ["bash", "-c",
+       "nss/automation/taskcluster/scripts/run_tests.sh"]
+    ]
+  }));
+
+  return queue.submit();
 }
 
 /*****************************************************************************/
@@ -241,6 +337,46 @@ async function scheduleLinux(name, base, args = "") {
 
   // The task that builds NSPR+NSS.
   let task_build = queue.scheduleTask(merge(build_base, {name}));
+
+  // Make builds run FIPS tests, which need an extra FIPS build.
+  if (base.collection == "make") {
+    let extra_build = queue.scheduleTask(merge(build_base, {
+      env: { NSS_FORCE_FIPS: "1" },
+      group: "FIPS",
+      name: `${name} w/ NSS_FORCE_FIPS`
+    }));
+
+    // The task that generates certificates.
+    let task_cert = queue.scheduleTask(merge(build_base, {
+      name: "Certificates",
+      command: [
+        "/bin/bash",
+        "-c",
+        "bin/checkout.sh && nss/automation/taskcluster/scripts/gen_certs.sh"
+      ],
+      parent: extra_build,
+      symbol: "Certs-F",
+      group: "FIPS",
+      env: { NSS_TEST_ENABLE_FIPS: "1" }
+    }));
+
+    // Schedule FIPS tests.
+    queue.scheduleTask(merge(base, {
+      parent: task_cert,
+      name: "FIPS",
+      command: [
+        "/bin/bash",
+        "-c",
+        "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+      ],
+      cycle: "standard",
+      kind: "test",
+      name: "FIPS tests",
+      symbol: "Tests-F",
+      tests: "fips",
+      group: "FIPS"
+    }));
+  }
 
   // The task that generates certificates.
   let task_cert = queue.scheduleTask(merge(build_base, {
@@ -272,6 +408,26 @@ async function scheduleLinux(name, base, args = "") {
       CCC: "clang++",
     },
     symbol: "clang-4.0"
+  }));
+
+  queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ gcc-4.4`,
+    image: LINUX_GCC44_IMAGE,
+    env: {
+      USE_64: "1",
+      CC: "gcc-4.4",
+      CCC: "g++-4.4",
+      // gcc-4.6 introduced nullptr.
+      NSS_DISABLE_GTESTS: "1",
+    },
+    // Use the old Makefile-based build system, GYP doesn't have a proper GCC
+    // version check for __int128 support. It's mainly meant to cover RHEL6.
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/build.sh",
+    ],
+    symbol: "gcc-4.4"
   }));
 
   queue.scheduleTask(merge(extra_base, {
@@ -403,12 +559,13 @@ async function scheduleFuzzing() {
 
   // Schedule MPI fuzzing runs.
   let mpi_base = merge(run_base, {group: "MPI"});
-  let mpi_names = ["add", "addmod", "div", "expmod", "mod", "mulmod", "sqr",
+  let mpi_names = ["add", "addmod", "div", "mod", "mulmod", "sqr",
                    "sqrmod", "sub", "submod"];
   for (let name of mpi_names) {
     scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, 4096, name);
   }
   scheduleFuzzingRun(mpi_base, `MPI (invmod)`, `mpi-invmod`, 256, "invmod");
+  scheduleFuzzingRun(mpi_base, `MPI (expmod)`, `mpi-expmod`, 2048, "expmod");
 
   // Schedule TLS fuzzing runs (non-fuzzing mode).
   let tls_base = merge(run_base, {group: "TLS"});
@@ -625,6 +782,44 @@ async function scheduleWindows(name, base, build_script) {
     symbol: "B"
   });
 
+  // Make builds run FIPS tests, which need an extra FIPS build.
+  if (base.collection == "make") {
+    let extra_build = queue.scheduleTask(merge(build_base, {
+      env: { NSS_FORCE_FIPS: "1" },
+      group: "FIPS",
+      name: `${name} w/ NSS_FORCE_FIPS`
+    }));
+
+    // The task that generates certificates.
+    let task_cert = queue.scheduleTask(merge(build_base, {
+      name: "Certificates",
+      command: [
+        WINDOWS_CHECKOUT_CMD,
+        "bash -c nss/automation/taskcluster/windows/gen_certs.sh"
+      ],
+      parent: extra_build,
+      symbol: "Certs-F",
+      group: "FIPS",
+      env: { NSS_TEST_ENABLE_FIPS: "1" }
+    }));
+
+    // Schedule FIPS tests.
+    queue.scheduleTask(merge(base, {
+      parent: task_cert,
+      name: "FIPS",
+      command: [
+        WINDOWS_CHECKOUT_CMD,
+        "bash -c nss/automation/taskcluster/windows/run_tests.sh"
+      ],
+      cycle: "standard",
+      kind: "test",
+      name: "FIPS tests",
+      symbol: "Tests-F",
+      tests: "fips",
+      group: "FIPS"
+    }));
+  }
+
   // The task that builds NSPR+NSS.
   let task_build = queue.scheduleTask(merge(build_base, {name}));
 
@@ -703,9 +898,6 @@ function scheduleTests(task_build, task_cert, test_base) {
     name: "DB tests", symbol: "DB", tests: "dbtests"
   }));
   queue.scheduleTask(merge(cert_base, {
-    name: "FIPS tests", symbol: "FIPS", tests: "fips"
-  }));
-  queue.scheduleTask(merge(cert_base, {
     name: "Merge tests", symbol: "Merge", tests: "merge"
   }));
   queue.scheduleTask(merge(cert_base, {
@@ -770,6 +962,17 @@ async function scheduleTools() {
       "/bin/bash",
       "-c",
       "bin/checkout.sh && nss/automation/taskcluster/scripts/run_scan_build.sh"
+    ]
+  }));
+
+  queue.scheduleTask(merge(base, {
+    symbol: "hacl",
+    name: "hacl",
+    image: HACL_GEN_IMAGE,
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_hacl.sh"
     ]
   }));
 

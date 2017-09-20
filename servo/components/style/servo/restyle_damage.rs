@@ -60,24 +60,20 @@ impl HeapSizeOf for ServoRestyleDamage {
 impl ServoRestyleDamage {
     /// Compute the `StyleDifference` (including the appropriate restyle damage)
     /// for a given style change between `old` and `new`.
-    pub fn compute_style_difference(_source: &ComputedValues,
-                                    old: &ComputedValues,
-                                    new: &ComputedValues)
-                                    -> StyleDifference {
-        let damage = compute_damage(old, new);
-        let change = if damage.is_empty() { StyleChange::Unchanged } else { StyleChange::Changed };
-        StyleDifference::new(damage, change)
-    }
-
-    /// Computes the `StyleDifference` between the two `ComputedValues` objects
-    /// for the case where the old and new style are both `display: none`.
-    ///
-    /// For Servo we never need to generate any damage for such elements.
-    pub fn compute_undisplayed_style_difference(
-        _old_style: &ComputedValues,
-        _new_style: &ComputedValues,
+    pub fn compute_style_difference(
+        old: &ComputedValues,
+        new: &ComputedValues,
     ) -> StyleDifference {
-        StyleDifference::new(Self::empty(), StyleChange::Unchanged)
+        let damage = compute_damage(old, new);
+        let change = if damage.is_empty() {
+            StyleChange::Unchanged
+        } else {
+            // FIXME(emilio): Differentiate between reset and inherited
+            // properties here, and set `reset_only` appropriately so the
+            // optimization to skip the cascade in those cases applies.
+            StyleChange::Changed { reset_only: false }
+        };
+        StyleDifference::new(damage, change)
     }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
@@ -134,11 +130,6 @@ impl ServoRestyleDamage {
                 self & (REPAINT | REPOSITION | REFLOW)
             }
         }
-    }
-
-    /// Servo doesn't implement this optimization.
-    pub fn handled_for_descendants(self) -> Self {
-        Self::empty()
     }
 }
 
@@ -207,7 +198,6 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
                        REFLOW, RECONSTRUCT_FLOW], [
         get_box.clear, get_box.float, get_box.display, get_box.position, get_counters.content,
         get_counters.counter_reset, get_counters.counter_increment,
-        get_inheritedbox._servo_under_display_none,
         get_list.quotes, get_list.list_style_type,
 
         // If these text or font properties change, we need to reconstruct the flow so that

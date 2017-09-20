@@ -67,35 +67,41 @@
   "emptySelectionErrorTitle": {
     "message": "Избраната област е твърде малка"
   },
+  "privateWindowErrorTitle": {
+    "message": "Правене на снимки е изключено в поверителен режим"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Съжаляваме за неудобството. Очаквайте тази възможност в бъдещите версии."
+  },
   "genericErrorTitle": {
     "message": "Леле! Нещо се обърка с Firefox Screenshots."
   },
   "genericErrorDetails": {
     "message": "Не сме сигурни какво точно се случи. Може да опитате отново, както и да снимате друга страница."
   },
-  "tourBodyOne": {
-    "message": "Правете, запазвайте и споделяйте снимки на екрана без да напускате Firefox."
+  "tourBodyIntro": {
+    "message": "Създавайте, запазвайте и споделяйте снимки на екрана без да напускате Firefox."
   },
-  "tourHeaderTwo": {
+  "tourHeaderClickAndDrag": {
     "message": "Уловете само нужното"
   },
-  "tourBodyTwo": {
-    "message": "Щракнете с мишката или влачете, за да уловите части от страницата. Посочвайки елементи от страницата – те се осветяват."
+  "tourBodyClickAndDrag": {
+    "message": "Щракнете с мишката или влачете, за да уловите части от страницата. А когато посочите елементи от страницата – те се осветяват."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Улавяйте прозорци и цели страници"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "Използвайте бутоните в горния десен ъгъл, за да уловите само видимата част или цялата страница."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "Както ви харесва"
   },
-  "tourBodyFour": {
-    "message": "Запазете снимките на страници от Мрежата за по-лесно споделяне или ги изтеглете на компютъра си. А бутонът „Моите снимки“ ще ви покаже всички направени от вас снимки."
+  "tourBodyDownloadUpload": {
+    "message": "Запазвайте снимките на страници от Мрежата, за да ги споделяте по-лесно или ги изтегляйте на компютъра си. А бутонът „Моите снимки“ ще ви покаже всички направени от вас снимки."
   },
   "tourSkip": {
-    "message": "Прескачане"
+    "message": "Пропускане"
   },
   "tourNext": {
     "message": "Напред"
@@ -106,8 +112,8 @@
   "tourDone": {
     "message": "Готово"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Използвайки Firefox Screenshots вие се съгласявате с $TERMSANDPRIVACYNOTICETERMSLINK$ и $TERMSANDPRIVACYNOTICEPRIVACYLINK$ на облачните услуги на Firefox.",
+  "termsAndPrivacyNotice2": {
+    "message": "Използвайки Firefox Screenshots вие се съгласявате с $TERMSANDPRIVACYNOTICETERMSLINK$ и $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +128,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "Политиката на поверителност"
+  },
+  "libraryLabel": {
+    "message": "Снимки"
   }
 }

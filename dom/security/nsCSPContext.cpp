@@ -740,7 +740,7 @@ nsCSPContext::EnsureEventTarget(nsIEventTarget* aEventTarget)
 }
 
 struct ConsoleMsgQueueElem {
-  nsXPIDLString mMsg;
+  nsString      mMsg;
   nsString      mSourceName;
   nsString      mSourceLine;
   uint32_t      mLineNumber;
@@ -1227,6 +1227,14 @@ nsCSPContext::AsyncReportViolation(nsISupports* aBlockedContentSource,
                                 aScriptSample,
                                 aLineNum,
                                 this);
+
+  // If the document is currently buffering up CSP violation reports, send the
+  // runnable to it instead of dispatching it immediately.
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(mLoadingContext);
+  if (doc && doc->ShouldBufferCSPViolations()) {
+    doc->BufferCSPViolation(task);
+    return NS_OK;
+  }
 
   if (XRE_IsContentProcess()) {
     if (mEventTarget) {

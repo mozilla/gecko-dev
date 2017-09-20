@@ -37,21 +37,21 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                   flex="1" xbl:inherits="tooltiptext=inputtooltiptext">
           <children/>
           <html:input anonid="input"
-                      class="autocomplete-textbox urlbar-input textbox-input uri-element-right-align"
+                      class="autocomplete-textbox urlbar-input textbox-input"
                       allowevents="true"
                       inputmode="url"
                       xbl:inherits="tooltiptext=inputtooltiptext,value,maxlength,disabled,size,readonly,placeholder,tabindex,accesskey,focused,textoverflow"/>
-          <xul:image anonid="go-button"
-                     class="urlbar-go-button"
-                     onclick="gURLBar.handleCommand(event);"
-                     tooltiptext="&goEndCap.tooltip;"
-                     xbl:inherits="pageproxystate,parentfocused=focused"/>
         </xul:hbox>
+        <xul:image anonid="urlbar-go-button"
+                   class="urlbar-go-button urlbar-icon"
+                   onclick="gURLBar.handleCommand(event);"
+                   tooltiptext="&goEndCap.tooltip;"
+                   xbl:inherits="pageproxystate,parentfocused=focused,usertyping"/>
         <xul:dropmarker anonid="historydropmarker"
-                        class="autocomplete-history-dropmarker urlbar-history-dropmarker"
+                        class="autocomplete-history-dropmarker urlbar-history-dropmarker urlbar-icon"
                         tooltiptext="&urlbar.openHistoryPopup.tooltip;"
                         allowevents="true"
-                        xbl:inherits="open,enablehistory,parentfocused=focused"/>
+                        xbl:inherits="open,enablehistory,parentfocused=focused,usertyping"/>
         <children includes="hbox"/>
       </xul:hbox>
       <xul:popupset anonid="popupset"
@@ -159,7 +159,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
       ]]></destructor>
 
       <field name="goButton">
-        document.getAnonymousElementByAttribute(this, "anonid", "go-button");
+        document.getAnonymousElementByAttribute(this, "anonid", "urlbar-go-button");
       </field>
 
       <field name="_value">""</field>
@@ -183,6 +183,12 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
       -->
       <property name="maxRows"
                 onget="return this.popup.maxResults;"/>
+
+      <!--
+        Set by focusAndSelectUrlBar to indicate whether the next focus event was
+        initiated by an explicit user action. See the "focus" handler below.
+      -->
+      <field name="userInitiatedFocus">false</field>
 
       <!--
         onBeforeValueGet is called by the base-binding's .value getter.
@@ -227,7 +233,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           } else {
             let originalUrl = ReaderMode.getOriginalUrlObjectForDisplay(aValue);
             if (originalUrl) {
-              returnValue = originalUrl.spec;
+              returnValue = originalUrl.displaySpec;
             }
           }
 
@@ -941,6 +947,26 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         ]]></body>
       </method>
 
+      <method name="makeURIReadable">
+        <parameter name="aURI"/>
+        <body>
+          <![CDATA[
+            // Avoid copying 'about:reader?url=', and always provide the original URI:
+            // Reader mode ensures we call createExposableURI itself.
+            let readerStrippedURI = ReaderMode.getOriginalUrlObjectForDisplay(aURI.displaySpec);
+            if (readerStrippedURI) {
+              aURI = readerStrippedURI;
+            } else {
+              // Only copy exposable URIs
+              try {
+                aURI = Services.uriFixup.createExposableURI(aURI);
+              } catch (ex) {}
+            }
+            return aURI;
+          ]]>
+        </body>
+      </method>
+
       <method name="_getSelectedValueForClipboard">
         <body><![CDATA[
           // Grab the actual input field's value, not our value, which could include moz-action:
@@ -979,17 +1005,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
               return selectedVal;
           }
 
-          // Avoid copying 'about:reader?url=', and always provide the original URI:
-          // Reader mode ensures we call createExposableURI itself.
-          let readerStrippedURI = ReaderMode.getOriginalUrlObjectForDisplay(uri.spec);
-          if (readerStrippedURI) {
-            uri = readerStrippedURI;
-          } else {
-            // Only copy exposable URIs
-            try {
-              uri = uriFixup.createExposableURI(uri);
-            } catch (ex) {}
-          }
+          uri = this.makeURIReadable(uri);
 
           // If the entire URL is selected, just use the actual loaded URI,
           // unless we want a decoded URI, or it's a data: or javascript: URI,
@@ -997,12 +1013,12 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           if (inputVal == selectedVal &&
               !uri.schemeIs("javascript") && !uri.schemeIs("data") &&
               !Services.prefs.getBoolPref("browser.urlbar.decodeURLsOnCopy")) {
-            return uri.spec;
+            return uri.displaySpec;
           }
 
           // Just the beginning of the URL is selected, or we want a decoded
           // url. First check for a trimmed value.
-          let spec = uri.spec;
+          let spec = uri.displaySpec;
           let trimmedSpec = this.trimValue(spec);
           if (spec != trimmedSpec) {
             // Prepend the portion that trimValue removed from the beginning.
@@ -1290,6 +1306,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             this._value = this.inputField.value;
             gBrowser.userTypedValue = this.value;
             this.valueIsTyped = true;
+            if (this.inputField.value) {
+              this.setAttribute("usertyping", "true");
+            } else {
+              this.removeAttribute("usertyping");
+            }
             // Only wait for a result when we are sure to get one.  In some
             // cases, like when pasting the same exact text, we may not fire
             // a new search and we won't get a result.
@@ -1430,6 +1451,27 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         ]]></body>
       </method>
 
+      <method name="maybeShowSearchSuggestionsNotificationOnFocus">
+        <parameter name="mouseFocused"/>
+        <body><![CDATA[
+          let whichNotification = this.whichSearchSuggestionsNotification;
+          if (this._showSearchSuggestionNotificationOnMouseFocus &&
+              mouseFocused) {
+            // Force showing the opt-out notification.
+            this._whichSearchSuggestionsNotification = whichNotification = "opt-out";
+          }
+          if (whichNotification == "opt-out") {
+            try {
+              this.popup.openAutocompletePopup(this, this);
+            } finally {
+              if (mouseFocused) {
+                delete this._whichSearchSuggestionsNotification;
+                this._showSearchSuggestionNotificationOnMouseFocus = false;
+              }
+            }
+          }
+        ]]></body>
+      </method>
     </implementation>
 
     <handlers>
@@ -1454,6 +1496,14 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         }
       ]]></handler>
 
+      <handler event="mousedown"><![CDATA[
+        // Eventually show the opt-out notification even if the location bar is
+        // empty, focused, and the user clicks on it.
+        if (event.button == 0 && this.focused && this.textValue == "") {
+          this.maybeShowSearchSuggestionsNotificationOnFocus(true);
+        }
+      ]]></handler>
+
       <handler event="focus"><![CDATA[
         if (event.originalTarget == this.inputField) {
           this._hideURLTooltip();
@@ -1462,8 +1512,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             UpdatePopupNotificationsVisibility();
           }
 
-          // We show the opt-out notification on every kind of focus to the urlbar
-          // included opening a new tab, but we want to enforce at least one
+          // We show the opt-out notification when the mouse/keyboard focus the
+          // urlbar, but in any case we want to enforce at least one
           // notification when the user focuses it with the mouse.
           let whichNotification = this.whichSearchSuggestionsNotification;
           if (whichNotification == "opt-out" &&
@@ -1471,25 +1521,16 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             this._showSearchSuggestionNotificationOnMouseFocus = true;
           }
 
-          // Check whether the focus change came from a user mouse action.
+          // Check whether the focus change came from a keyboard/mouse action.
           let focusMethod = Services.focus.getLastFocusMethod(window);
-          let mouseFocused = !!(focusMethod & Services.focus.FLAG_BYMOUSE);
-          if (this._showSearchSuggestionNotificationOnMouseFocus &&
-              mouseFocused) {
-            // Force showing the opt-out notification.
-            this._whichSearchSuggestionsNotification = whichNotification = "opt-out";
+          // If it's a focus started by code and the primary user intention was
+          // not to go to the location bar, don't show a notification.
+          if (!focusMethod && !this.userInitiatedFocus) {
+            return;
           }
 
-          if (whichNotification == "opt-out") {
-            try {
-              this.popup.openAutocompletePopup(this, this);
-            } finally {
-              if (mouseFocused) {
-                delete this._whichSearchSuggestionsNotification;
-                this._showSearchSuggestionNotificationOnMouseFocus = false;
-              }
-            }
-          }
+          let mouseFocused = !!(focusMethod & Services.focus.FLAG_BYMOUSE);
+          this.maybeShowSearchSuggestionsNotificationOnFocus(mouseFocused);
         }
       ]]></handler>
 
@@ -1525,7 +1566,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
             this.getAttribute("pageproxystate") != "valid")
           return;
 
-        var urlString = gBrowser.selectedBrowser.currentURI.spec;
+        var urlString = gBrowser.selectedBrowser.currentURI.displaySpec;
         var title = gBrowser.selectedBrowser.contentTitle || urlString;
         var htmlString = "<a href=\"" + urlString + "\">" + urlString + "</a>";
 
@@ -1841,8 +1882,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           this.view = aInput.controller.QueryInterface(Components.interfaces.nsITreeView);
           this._invalidate();
 
-          var rect = window.document.documentElement.getBoundingClientRect();
-          var width = rect.right - rect.left;
+          var documentRect = window.document.documentElement.getBoundingClientRect();
+          var width = documentRect.right - documentRect.left;
           this.setAttribute("width", width);
 
           // Adjust the direction of the autocomplete popup list based on the textbox direction, bug 649840
@@ -1853,25 +1894,21 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           // of the popup aligns with the window border.
           let elementRect = aElement.getBoundingClientRect();
           if (popupDirection == "rtl") {
-            let offset = elementRect.right - rect.right
+            let offset = elementRect.right - documentRect.right
             this.style.marginRight = offset + "px";
           } else {
-            let offset = rect.left - elementRect.left;
+            let offset = documentRect.left - elementRect.left;
             this.style.marginLeft = offset + "px";
           }
 
           // Keep the popup items' site icons aligned with the urlbar's identity
-          // icon if it's not too far from the edge of the window.  If there are
-          // at most two toolbar buttons between the window edge and the urlbar,
-          // then consider that as "not too far."  The forward button's
-          // visibility may have changed since the last time the popup was
-          // opened, so this needs to happen now.  Do it *before* the popup
-          // opens because otherwise the items will visibly shift.
-          let nodes = [...document.getElementById("nav-bar-customization-target").childNodes];
-          let urlbarPosition = nodes.findIndex(n => n.id == "urlbar-container");
-          let alignSiteIcons = urlbarPosition <= 5 &&
-                               nodes.slice(0, urlbarPosition)
-                                    .every(n => n.localName == "toolbarbutton" || n.id == "stop-reload-button");
+          // icon if it's not too far from the edge of the window.  We define
+          // "too far" as "more than 30% of the window's width AND more than
+          // 250px"
+          let boundToCheck = popupDirection == "rtl" ? "right" : "left";
+          let inputRect = this.DOMWindowUtils.getBoundsWithoutFlushing(aInput);
+          let startOffset = Math.abs(inputRect[boundToCheck] - documentRect[boundToCheck]);
+          let alignSiteIcons = startOffset / width <= 0.3 || startOffset <= 250;
           if (alignSiteIcons) {
             let identityRect =
               document.getElementById("identity-icon").getBoundingClientRect();
@@ -1906,9 +1943,10 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           // Position the popup below the navbar.  To get the y-coordinate,
           // which is an offset from the bottom of the input, subtract the
           // bottom of the navbar from the buttom of the input.
-          let yOffset =
+          let yOffset = Math.round(
             this.DOMWindowUtils.getBoundsWithoutFlushing(document.getElementById("nav-bar")).bottom -
-            this.DOMWindowUtils.getBoundsWithoutFlushing(aInput).bottom;
+            this.DOMWindowUtils.getBoundsWithoutFlushing(aInput).bottom);
+
           this.openPopup(aElement, "after_start", 0, yOffset, false, false);
         ]]></body>
       </method>
@@ -1960,6 +1998,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
           // Don't show the one-off buttons if we are showing onboarding and
           // there's no result, since it would be ugly and pointless.
           this.footer.collapsed = this._matchCount == 0;
+          this.input.tabScrolling = this._matchCount != 0;
 
           // This event allows accessibility APIs to see the notification.
           if (!this.popupOpen) {
@@ -2178,6 +2217,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
             // When a result is present the footer should always be visible.
             this.footer.collapsed = false;
+            this.input.tabScrolling = true;
 
             this.input.gotResultForCurrentQuery = true;
             this.input.maybeReplayDeferredKeyEvents();
@@ -2309,6 +2349,52 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         // browser-search-autocomplete-result-popup, which apparently had a
         // similar problem.
         event.preventDefault();
+
+        if (!this.input.speculativeConnectEnabled) {
+          return;
+        }
+        if (event.button == 2) {
+          // Ignore right-clicks.
+          return;
+        }
+        // Ensure the user is clicking on an url instead of other buttons
+        // on the popup.
+        let elt = event.originalTarget;
+        while (elt && elt.localName != "richlistitem" && elt != this) {
+          elt = elt.parentNode;
+        }
+        if (!elt || elt.localName != "richlistitem") {
+          return;
+        }
+        // The user might click on a ghost entry which was removed because of
+        // the coming new results.
+        if (this.input.controller.matchCount <= this.selectedIndex) {
+          return;
+        }
+
+        let url = this.input.controller.getFinalCompleteValueAt(this.selectedIndex);
+
+        // Whitelist the cases that we want to speculative connect, and ignore
+        // other moz-action uris or fancy protocols.
+        // Note that it's likely we've speculatively connected to the first
+        // url because it is a heuristic "autofill" result (see bug 1348275).
+        // "moz-action:searchengine" is also the same case. (see bug 1355443)
+        // So we won't duplicate the effort here.
+        if (url.startsWith("http") && this.selectedIndex > 0) {
+          this.maybeSetupSpeculativeConnect(url);
+        } else if (url.startsWith("moz-action:remotetab")) {
+          // URL is in the format moz-action:ACTION,PARAMS
+          // Where PARAMS is a JSON encoded object.
+          const MOZ_ACTION_REGEX = /^moz-action:([^,]+),(.*)$/;
+          if (!MOZ_ACTION_REGEX.test(url))
+            return;
+
+          let params = JSON.parse(url.match(MOZ_ACTION_REGEX)[2]);
+          if (params.url) {
+            this.maybeSetupSpeculativeConnect(decodeURIComponent(params.url));
+          }
+        }
+
       ]]></handler>
 
     </handlers>
@@ -2609,17 +2695,15 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
   <binding id="click-to-play-plugins-notification" extends="chrome://global/content/bindings/notification.xml#popup-notification">
     <content align="start" style="width: &pluginNotification.width;;">
-      <xul:vbox flex="1" align="stretch" class="popup-notification-main-box"
+      <xul:vbox flex="1" align="stretch" class="click-to-play-plugins-notification-main-box"
                 xbl:inherits="popupid">
         <xul:hbox class="click-to-play-plugins-notification-description-box" flex="1" align="start">
           <xul:description class="click-to-play-plugins-outer-description" flex="1">
             <html:span anonid="click-to-play-plugins-notification-description" />
-            <xul:label class="text-link click-to-play-plugins-notification-link" anonid="click-to-play-plugins-notification-link" />
+            <html:br/>
+            <xul:label class="text-link click-to-play-plugins-notification-link popup-notification-learnmore-link"
+                       anonid="click-to-play-plugins-notification-link" />
           </xul:description>
-          <xul:toolbarbutton anonid="closebutton"
-                             class="messageCloseButton popup-notification-closebutton tabbable close-icon"
-                             xbl:inherits="oncommand=closebuttoncommand"
-                             tooltiptext="&closeNotification.tooltip;"/>
         </xul:hbox>
         <xul:grid anonid="click-to-play-plugins-notification-center-box"
                   class="click-to-play-plugins-notification-center-box">
@@ -2641,11 +2725,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                   class="click-to-play-plugins-notification-button-container"
                   pack="center" align="center">
           <xul:button anonid="primarybutton"
-                      class="click-to-play-popup-button"
+                      class="click-to-play-popup-button popup-notification-button"
                       oncommand="document.getBindingParent(this)._onButton(this)"
                       flex="1"/>
           <xul:button anonid="secondarybutton"
-                      class="click-to-play-popup-button"
+                      default="true"
+                      highlight="true"
+                      class="click-to-play-popup-button popup-notification-button"
                       oncommand="document.getBindingParent(this)._onButton(this);"
                       flex="1"/>
         </xul:hbox>

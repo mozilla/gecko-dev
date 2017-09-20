@@ -307,7 +307,7 @@ CacheStorage::CacheStorage(nsresult aFailureResult)
 }
 
 already_AddRefed<Promise>
-CacheStorage::Match(const RequestOrUSVString& aRequest,
+CacheStorage::Match(JSContext* aCx, const RequestOrUSVString& aRequest,
                     const CacheQueryOptions& aOptions, ErrorResult& aRv)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStorage);
@@ -317,8 +317,8 @@ CacheStorage::Match(const RequestOrUSVString& aRequest,
     return nullptr;
   }
 
-  RefPtr<InternalRequest> request = ToInternalRequest(aRequest, IgnoreBody,
-                                                        aRv);
+  RefPtr<InternalRequest> request =
+    ToInternalRequest(aCx, aRequest, IgnoreBody, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -333,7 +333,7 @@ CacheStorage::Match(const RequestOrUSVString& aRequest,
 
   nsAutoPtr<Entry> entry(new Entry());
   entry->mPromise = promise;
-  entry->mArgs = StorageMatchArgs(CacheRequest(), params);
+  entry->mArgs = StorageMatchArgs(CacheRequest(), params, GetOpenMode());
   entry->mRequest = request;
 
   mPendingRequests.AppendElement(entry.forget());
@@ -615,6 +615,12 @@ CacheStorage::MaybeRunPendingRequests()
     mActor->ExecuteOp(mGlobal, entry->mPromise, this, args.SendAsOpArgs());
   }
   mPendingRequests.Clear();
+}
+
+OpenMode
+CacheStorage::GetOpenMode() const
+{
+  return mNamespace == CHROME_ONLY_NAMESPACE ? OpenMode::Eager : OpenMode::Lazy;
 }
 
 } // namespace cache

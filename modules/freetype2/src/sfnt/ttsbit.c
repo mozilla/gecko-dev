@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType and OpenType embedded bitmap support (body).                */
 /*                                                                         */
-/*  Copyright 2005-2016 by                                                 */
+/*  Copyright 2005-2017 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  Copyright 2013 by Google, Inc.                                         */
@@ -24,6 +24,10 @@
 #include FT_INTERNAL_STREAM_H
 #include FT_TRUETYPE_TAGS_H
 #include FT_BITMAP_H
+
+
+#ifdef TT_CONFIG_OPTION_EMBEDDED_BITMAPS
+
 #include "ttsbit.h"
 
 #include "sferrors.h"
@@ -443,6 +447,15 @@
                      ppem_ * 64, upem );
         metrics->max_advance =
           FT_MulDiv( hori->advance_Width_Max, ppem_ * 64, upem );
+
+        /* set the scale values (in 16.16 units) so advances */
+        /* from the hmtx and vmtx table are scaled correctly */
+        metrics->x_scale = FT_MulDiv( metrics->x_ppem,
+                                      64 * 0x10000,
+                                      face->header.Units_Per_EM );
+        metrics->y_scale = FT_MulDiv( metrics->y_ppem,
+                                      64 * 0x10000,
+                                      face->header.Units_Per_EM );
 
         return error;
       }
@@ -1435,10 +1448,17 @@
     return FT_THROW( Invalid_Table );
 
   NoBitmap:
+    if ( recurse_count )
+    {
+      FT_TRACE4(( "tt_sbit_decoder_load_image:"
+                  " missing subglyph sbit with glyph index %d\n",
+                  glyph_index ));
+      return FT_THROW( Invalid_Composite );
+    }
+
     FT_TRACE4(( "tt_sbit_decoder_load_image:"
                 " no sbit found for glyph index %d\n", glyph_index ));
-
-    return FT_THROW( Invalid_Argument );
+    return FT_THROW( Missing_Bitmap );
   }
 
 
@@ -1460,6 +1480,9 @@
     FT_Byte*  p;
 
     FT_UNUSED( map );
+#ifndef FT_CONFIG_OPTION_USE_PNG
+    FT_UNUSED( metrics_only );
+#endif
 
 
     strike_index = face->sbit_strike_map[strike_index];
@@ -1647,5 +1670,12 @@
     return error;
   }
 
+#else /* !TT_CONFIG_OPTION_EMBEDDED_BITMAPS */
 
-/* EOF */
+  /* ANSI C doesn't like empty source files */
+  typedef int  _tt_sbit_dummy;
+
+#endif /* !TT_CONFIG_OPTION_EMBEDDED_BITMAPS */
+
+
+/* END */

@@ -2,6 +2,11 @@
 
 Cu.import("resource://gre/modules/ExtensionCommon.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                 "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DevToolsShim",
+                                 "chrome://devtools-shim/content/DevToolsShim.jsm");
+
 // These are defined on "global" which is used for the same scopes as the other
 // ext-c-*.js files.
 /* exported EventManager */
@@ -16,11 +21,7 @@ global.initializeBackgroundPage = (contentWindow) => {
   let alertDisplayedWarning = false;
   let alertOverwrite = text => {
     if (!alertDisplayedWarning) {
-      require("devtools/client/framework/devtools-browser");
-
-      let hudservice = require("devtools/client/webconsole/hudservice");
-      hudservice.openBrowserConsoleOrFocus();
-
+      DevToolsShim.openBrowserConsole();
       contentWindow.console.warn("alert() is not supported in background windows; please use console.log instead.");
 
       alertDisplayedWarning = true;
@@ -74,6 +75,13 @@ extensions.registerModules({
     scopes: ["addon_child", "content_child", "devtools_child", "proxy_script"],
     paths: [
       ["test"],
+    ],
+  },
+  webRequest: {
+    url: "chrome://extensions/content/ext-c-webRequest.js",
+    scopes: ["addon_child"],
+    paths: [
+      ["webRequest"],
     ],
   },
 });

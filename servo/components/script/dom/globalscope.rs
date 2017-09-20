@@ -5,6 +5,7 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
@@ -17,6 +18,7 @@ use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::eventtarget::EventTarget;
+use dom::performance::Performance;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScope;
@@ -31,21 +33,24 @@ use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use libc;
-use microtask::Microtask;
+use microtask::{Microtask, MicrotaskQueue};
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
-use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
+use script_thread::{MainThreadScriptChan, ScriptThread};
+use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
+use std::rc::Rc;
+use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
@@ -80,7 +85,7 @@ pub struct GlobalScope {
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: IpcSender<ConstellationMsg>,
+    script_to_constellation_chan: ScriptToConstellationChan,
 
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -96,36 +101,47 @@ pub struct GlobalScope {
 
     /// The origin of the globalscope
     origin: MutableOrigin,
+
+    /// The microtask queue associated with this global.
+    ///
+    /// It is refcounted because windows in the same script thread share the
+    /// same microtask queue.
+    ///
+    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    #[ignore_heap_size_of = "Rc<T> is hard"]
+    microtask_queue: Rc<MicrotaskQueue>,
 }
 
 impl GlobalScope {
     pub fn new_inherited(
-            pipeline_id: PipelineId,
-            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-            mem_profiler_chan: mem::ProfilerChan,
-            time_profiler_chan: time::ProfilerChan,
-            constellation_chan: IpcSender<ConstellationMsg>,
-            scheduler_chan: IpcSender<TimerSchedulerMsg>,
-            resource_threads: ResourceThreads,
-            timer_event_chan: IpcSender<TimerEvent>,
-            origin: MutableOrigin)
-            -> Self {
-        GlobalScope {
+        pipeline_id: PipelineId,
+        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        mem_profiler_chan: mem::ProfilerChan,
+        time_profiler_chan: time::ProfilerChan,
+        script_to_constellation_chan: ScriptToConstellationChan,
+        scheduler_chan: IpcSender<TimerSchedulerMsg>,
+        resource_threads: ResourceThreads,
+        timer_event_chan: IpcSender<TimerEvent>,
+        origin: MutableOrigin,
+        microtask_queue: Rc<MicrotaskQueue>,
+    ) -> Self {
+        Self {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
-            pipeline_id: pipeline_id,
+            pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DOMRefCell::new(Default::default()),
-            devtools_chan: devtools_chan,
-            mem_profiler_chan: mem_profiler_chan,
-            time_profiler_chan: time_profiler_chan,
-            constellation_chan: constellation_chan,
+            devtools_chan,
+            mem_profiler_chan,
+            time_profiler_chan,
+            script_to_constellation_chan,
             scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
-            resource_threads: resource_threads,
+            resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
-            origin: origin,
+            origin,
+            microtask_queue,
         }
     }
 
@@ -231,8 +247,8 @@ impl GlobalScope {
     }
 
     /// Get a sender to the constellation thread.
-    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
-        &self.constellation_chan
+    pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
+        &self.script_to_constellation_chan
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
@@ -297,30 +313,34 @@ impl GlobalScope {
         // Step 2.
         self.in_error_reporting_mode.set(true);
 
-        // Steps 3-12.
+        // Steps 3-6.
         // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(self,
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.as_str().into(),
-                                    error_info.filename.as_str().into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    value);
+        let event = ErrorEvent::new(
+            self,
+            atom!("error"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::Cancelable,
+            error_info.message.as_str().into(),
+            error_info.filename.as_str().into(),
+            error_info.lineno,
+            error_info.column,
+            value,
+        );
 
-        // Step 13.
+        // Step 7.
         let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
 
-        // Step 15
+        // Step 8.
+        self.in_error_reporting_mode.set(false);
+
+        // Step 9.
         if event_status == EventStatus::NotCanceled {
+            // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
             }
         }
 
-        // Step 14
-        self.in_error_reporting_mode.set(false);
     }
 
     /// Get the `&ResourceThreads` for this global scope.
@@ -462,44 +482,26 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// Returns a wrapper for runnables to ensure they are cancelled if
-    /// the global scope is being destroyed.
-    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+    /// Returns the task canceller of this global to ensure that everything is
+    /// properly cancelled when the global scope is destroyed.
+    pub fn task_canceller(&self) -> TaskCanceller {
         if let Some(window) = self.downcast::<Window>() {
-            return window.get_runnable_wrapper();
+            return window.task_canceller();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.get_runnable_wrapper();
+            return worker.task_canceller();
         }
         unreachable!();
     }
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        if self.is::<Window>() {
-            return ScriptThread::invoke_perform_a_microtask_checkpoint();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.perform_a_microtask_checkpoint();
-        }
-        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
-            return worker.perform_a_microtask_checkpoint();
-        }
-        unreachable!();
+        self.microtask_queue.checkpoint(|_| Some(Root::from_ref(self)));
     }
 
     /// Enqueue a microtask for subsequent execution.
     pub fn enqueue_microtask(&self, job: Microtask) {
-        if self.is::<Window>() {
-            return ScriptThread::enqueue_microtask(job);
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.enqueue_microtask(job);
-        }
-        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
-            return worker.enqueue_microtask(job);
-        }
-        unreachable!();
+        self.microtask_queue.enqueue(job);
     }
 
     /// Create a new sender/receiver pair that can be used to implement an on-demand
@@ -513,6 +515,11 @@ impl GlobalScope {
             return worker.new_script_pair();
         }
         unreachable!();
+    }
+
+    /// Returns the microtask queue of this global.
+    pub fn microtask_queue(&self) -> &Rc<MicrotaskQueue> {
+        &self.microtask_queue
     }
 
     /// Process a single event as if it were the next event
@@ -569,6 +576,29 @@ impl GlobalScope {
     pub fn incumbent() -> Option<Root<Self>> {
         incumbent_global()
     }
+
+    pub fn performance(&self) -> Root<Performance> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Performance();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.Performance();
+        }
+        unreachable!();
+    }
+
+    /// Channel to send messages to the performance timeline task source
+    /// of this global scope.
+    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.performance_timeline_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.performance_timeline_task_source();
+        }
+        unreachable!();
+    }
+
 }
 
 fn timestamp_in_ms(time: Timespec) -> u64 {

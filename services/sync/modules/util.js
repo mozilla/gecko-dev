@@ -44,20 +44,6 @@ class HMACMismatch extends Error {
  * Utility functions
  */
 this.Utils = {
-  // Alias in functions from CommonUtils. These previously were defined here.
-  // In the ideal world, references to these would be removed.
-  nextTick: CommonUtils.nextTick,
-  namedTimer: CommonUtils.namedTimer,
-  makeURI: CommonUtils.makeURI,
-  encodeUTF8: CommonUtils.encodeUTF8,
-  decodeUTF8: CommonUtils.decodeUTF8,
-  safeAtoB: CommonUtils.safeAtoB,
-  byteArrayToString: CommonUtils.byteArrayToString,
-  bytesAsHex: CommonUtils.bytesAsHex,
-  hexToBytes: CommonUtils.hexToBytes,
-  encodeBase32: CommonUtils.encodeBase32,
-  decodeBase32: CommonUtils.decodeBase32,
-
   // Aliases from CryptoUtils.
   generateRandomBytes: CryptoUtils.generateRandomBytes,
   computeHTTPMACSHA1: CryptoUtils.computeHTTPMACSHA1,
@@ -297,12 +283,12 @@ this.Utils = {
   // Return an octet string in friendly base32 *with no trailing =*.
   encodeKeyBase32: function encodeKeyBase32(keyData) {
     return Utils.base32ToFriendly(
-             Utils.encodeBase32(keyData))
+             CommonUtils.encodeBase32(keyData))
            .slice(0, SYNC_KEY_ENCODED_LENGTH);
   },
 
   decodeKeyBase32: function decodeKeyBase32(encoded) {
-    return Utils.decodeBase32(
+    return CommonUtils.decodeBase32(
              Utils.base32FromFriendly(
                Utils.normalizePassphrase(encoded)))
            .slice(0, SYNC_KEY_DECODED_LENGTH);
@@ -592,11 +578,19 @@ this.Utils = {
       "chrome://branding/locale/brand.properties");
     let brandName = brand.GetStringFromName("brandShortName");
 
+    // The DNS service may fail to provide a hostname in edge-cases we don't
+    // fully understand - bug 1391488.
+    let hostname;
+    try {
+      // hostname of the system, usually assigned by the user or admin
+      hostname = Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService).myHostName;
+    } catch (ex) {
+      Cu.reportError(ex);
+    }
     let system =
       // 'device' is defined on unix systems
       Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2).get("device") ||
-      // hostname of the system, usually assigned by the user or admin
-      Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService).myHostName ||
+      hostname ||
       // fall back on ua info string
       Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).oscpu;
 

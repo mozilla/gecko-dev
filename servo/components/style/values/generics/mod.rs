@@ -15,6 +15,8 @@ use super::CustomIdent;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+#[path = "box.rs"]
+pub mod box_;
 pub mod effects;
 pub mod flex;
 #[cfg(feature = "gecko")]
@@ -23,6 +25,7 @@ pub mod grid;
 pub mod image;
 pub mod position;
 pub mod rect;
+pub mod size;
 pub mod svg;
 pub mod text;
 pub mod transform;
@@ -69,7 +72,8 @@ impl SymbolsType {
 ///
 /// Since wherever <counter-style> is used, 'none' is a valid value as
 /// well, we combine them into one type to make code simpler.
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub enum CounterStyleOrNone {
     /// `none`
     None,
@@ -92,7 +96,6 @@ impl CounterStyleOrNone {
     }
 }
 
-no_viewport_percentage!(CounterStyleOrNone);
 
 impl Parse for CounterStyleOrNone {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -128,8 +131,9 @@ impl Parse for CounterStyleOrNone {
 ///
 /// For font-feature-settings, this is a tag and an integer,
 /// for font-variation-settings this is a tag and a float
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub struct FontSettingTag<T> {
     /// A four-character tag, packed into a u32 (one byte per character)
     pub tag: u32,
@@ -185,8 +189,9 @@ impl<T: Parse> Parse for FontSettingTag<T> {
 
 
 /// A font settings value for font-variation-settings or font-feature-settings
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub enum FontSettings<T> {
     /// No settings (default)
     Normal,
@@ -209,15 +214,18 @@ impl<T: Parse> Parse for FontSettings<T> {
 ///
 /// Do not use this type anywhere except within FontSettings
 /// because it serializes with the preceding space
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
 pub struct FontSettingTagInt(pub u32);
+
 /// A number value to be used for font-variation-settings
 ///
 /// Do not use this type anywhere except within FontSettings
 /// because it serializes with the preceding space
-#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(Animate, ComputeSquaredDistance, MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct FontSettingTagFloat(pub f32);
 
 impl ToCss for FontSettingTagInt {
@@ -225,7 +233,10 @@ impl ToCss for FontSettingTagInt {
         match self.0 {
             1 => Ok(()),
             0 => dest.write_str(" off"),
-            x => write!(dest, " {}", x)
+            x => {
+                dest.write_char(' ')?;
+                x.to_css(dest)
+            }
         }
     }
 }
@@ -267,11 +278,15 @@ impl ToCss for FontSettingTagFloat {
 }
 
 /// A wrapper of Non-negative values.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct NonNegative<T>(pub T);
 
 /// A wrapper of greater-than-or-equal-to-one values.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);

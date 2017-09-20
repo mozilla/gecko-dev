@@ -48,6 +48,8 @@ class GeckoInstance(object):
         "extensions.getAddons.cache.enabled": False,
         # Disable intalling any distribution add-ons
         "extensions.installDistroAddons": False,
+        # Make sure Shield doesn't hit the network.
+        "extensions.shield-recipe-client.api_url": "",
         "extensions.showMismatchUI": False,
         # Turn off extension updates so they don't bother tests
         "extensions.update.enabled": False,
@@ -296,7 +298,11 @@ class FennecInstance(GeckoInstance):
         "browser.snippets.firstrunHomepage.enabled": False,
 
         # Disable safebrowsing components
+        "browser.safebrowsing.blockedURIs.enabled": False,
         "browser.safebrowsing.downloads.enabled": False,
+        "browser.safebrowsing.passwords.enabled": False,
+        "browser.safebrowsing.malware.enabled": False,
+        "browser.safebrowsing.phishing.enabled": False,
 
         # Do not restore the last open set of tabs if the browser has crashed
         "browser.sessionstore.resume_from_crash": False,
@@ -433,6 +439,7 @@ class DesktopInstance(GeckoInstance):
         # Disable safebrowsing components
         "browser.safebrowsing.blockedURIs.enabled": False,
         "browser.safebrowsing.downloads.enabled": False,
+        "browser.safebrowsing.passwords.enabled": False,
         "browser.safebrowsing.malware.enabled": False,
         "browser.safebrowsing.phishing.enabled": False,
 

@@ -19,66 +19,6 @@ define_css_keyword_enum!(Orientation:
                          "portrait" => Portrait,
                          "landscape" => Landscape);
 
-/// A trait used to query whether this value has viewport units.
-pub trait HasViewportPercentage {
-    /// Returns true if this value has viewport units.
-    fn has_viewport_percentage(&self) -> bool;
-}
-
-/// A macro used to implement HasViewportPercentage trait
-/// for a given type that may never contain viewport units.
-#[macro_export]
-macro_rules! no_viewport_percentage {
-    ($($name: ident),+) => {
-        $(impl $crate::HasViewportPercentage for $name {
-            #[inline]
-            fn has_viewport_percentage(&self) -> bool {
-                false
-            }
-        })+
-    };
-}
-
-no_viewport_percentage!(bool, f32);
-
-impl<T> HasViewportPercentage for Box<T>
-where
-    T: ?Sized + HasViewportPercentage
-{
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        (**self).has_viewport_percentage()
-    }
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for Option<T> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.as_ref().map_or(false, T::has_viewport_percentage)
-    }
-}
-
-impl<T: HasViewportPercentage, U> HasViewportPercentage for TypedSize2D<T, U> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.width.has_viewport_percentage() || self.height.has_viewport_percentage()
-    }
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for Vec<T> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.iter().any(T::has_viewport_percentage)
-    }
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for [T] {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.iter().any(T::has_viewport_percentage)
-    }
-}
-
 /// A set of viewport descriptors:
 ///
 /// https://drafts.csswg.org/css-device-adapt/#viewport-desc
@@ -105,24 +45,36 @@ impl ToCss for ViewportConstraints {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        write!(dest, "@viewport {{")?;
-        write!(dest, " width: {}px;", self.size.width)?;
-        write!(dest, " height: {}px;", self.size.height)?;
-        write!(dest, " zoom: {};", self.initial_zoom.get())?;
+        dest.write_str("@viewport { width: ")?;
+        self.size.width.to_css(dest)?;
+
+        dest.write_str("px; height: ")?;
+        self.size.height.to_css(dest)?;
+
+        dest.write_str("px; zoom: ")?;
+        self.initial_zoom.get().to_css(dest)?;
+
         if let Some(min_zoom) = self.min_zoom {
-            write!(dest, " min-zoom: {};", min_zoom.get())?;
+            dest.write_str("; min-zoom: ")?;
+            min_zoom.get().to_css(dest)?;
         }
+
         if let Some(max_zoom) = self.max_zoom {
-            write!(dest, " max-zoom: {};", max_zoom.get())?;
+            dest.write_str("; max-zoom: ")?;
+            max_zoom.get().to_css(dest)?;
         }
-        write!(dest, " user-zoom: ")?; self.user_zoom.to_css(dest)?;
-        write!(dest, "; orientation: ")?; self.orientation.to_css(dest)?;
-        write!(dest, "; }}")
+
+        dest.write_str("; user-zoom: ")?;
+        self.user_zoom.to_css(dest)?;
+
+        dest.write_str("; orientation: ")?;
+        self.orientation.to_css(dest)?;
+        dest.write_str("; }")
     }
 }
 
 /// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Zoom {
     /// A number value.
@@ -138,9 +90,12 @@ impl ToCss for Zoom {
         where W: fmt::Write,
     {
         match *self {
-            Zoom::Number(number) => write!(dest, "{}", number),
-            Zoom::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
-            Zoom::Auto => write!(dest, "auto")
+            Zoom::Number(number) => number.to_css(dest),
+            Zoom::Auto => dest.write_str("auto"),
+            Zoom::Percentage(percentage) => {
+                (percentage * 100.).to_css(dest)?;
+                dest.write_char('%')
+            }
         }
     }
 }
@@ -152,7 +107,7 @@ impl Zoom {
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
         use PARSING_MODE_DEFAULT;
         use cssparser::Token;
-        use values::specified::AllowedLengthType::NonNegative;
+        use values::specified::AllowedNumericType::NonNegative;
 
         match *input.next()? {
             // TODO: This parse() method should take ParserContext as an

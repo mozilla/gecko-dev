@@ -51,7 +51,7 @@ SdpHelper::CopyTransportParams(size_t numComponents,
         candidateAttrs->mValues.push_back(candidate);
       }
     }
-    if (candidateAttrs->mValues.size()) {
+    if (!candidateAttrs->mValues.empty()) {
       newLocalAttrs.SetAttribute(candidateAttrs.release());
     }
   }
@@ -138,9 +138,11 @@ SdpHelper::MsectionIsDisabled(const SdpMediaSection& msection) const
 void
 SdpHelper::DisableMsection(Sdp* sdp, SdpMediaSection* msection)
 {
+  std::string mid;
+
   // Make sure to remove the mid from any group attributes
   if (msection->GetAttributeList().HasAttribute(SdpAttribute::kMidAttribute)) {
-    std::string mid = msection->GetAttributeList().GetMid();
+    mid = msection->GetAttributeList().GetMid();
     if (sdp->GetAttributeList().HasAttribute(SdpAttribute::kGroupAttribute)) {
       UniquePtr<SdpGroupAttributeList> newGroupAttr(new SdpGroupAttributeList(
             sdp->GetAttributeList().GetGroup()));
@@ -156,6 +158,12 @@ SdpHelper::DisableMsection(Sdp* sdp, SdpMediaSection* msection)
     new SdpDirectionAttribute(SdpDirectionAttribute::kInactive);
   msection->GetAttributeList().SetAttribute(direction);
   msection->SetPort(0);
+
+  // maintain the mid for easier identification on other side
+  if (!mid.empty()) {
+    msection->GetAttributeList().SetAttribute(new SdpStringAttribute(
+          SdpAttribute::kMidAttribute, mid));
+  }
 
   msection->ClearCodecs();
 

@@ -87,7 +87,7 @@ use js::jsval::JSVal;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{Runnable, ScriptThread};
+use script_thread::ScriptThread;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
@@ -101,6 +101,7 @@ use std::cell::{Cell, Ref};
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
+use std::mem;
 use std::rc::Rc;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -118,6 +119,7 @@ use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
 use stylesheet_loader::StylesheetOwner;
+use task::Task;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -149,6 +151,8 @@ pub struct Element {
     /// https://dom.spec.whatwg.org/#concept-element-custom-element-definition
     #[ignore_heap_size_of = "Rc"]
     custom_element_definition: DOMRefCell<Option<Rc<CustomElementDefinition>>>,
+    /// https://dom.spec.whatwg.org/#concept-element-custom-element-state
+    custom_element_state: Cell<CustomElementState>,
 }
 
 impl fmt::Debug for Element {
@@ -167,7 +171,7 @@ impl fmt::Debug for Root<Element> {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(HeapSizeOf, PartialEq)]
 pub enum ElementCreator {
     ParserCreated(u64),
     ScriptCreated,
@@ -176,6 +180,15 @@ pub enum ElementCreator {
 pub enum CustomElementCreationMode {
     Synchronous,
     Asynchronous,
+}
+
+/// https://dom.spec.whatwg.org/#concept-element-custom-element-state
+#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+pub enum CustomElementState {
+    Undefined,
+    Failed,
+    Uncustomized,
+    Custom,
 }
 
 impl ElementCreator {
@@ -254,6 +267,7 @@ impl Element {
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             custom_element_reaction_queue: Default::default(),
             custom_element_definition: Default::default(),
+            custom_element_state: Cell::new(CustomElementState::Uncustomized),
         }
     }
 
@@ -288,6 +302,14 @@ impl Element {
         self.is.borrow().clone()
     }
 
+    pub fn set_custom_element_state(&self, state: CustomElementState) {
+        self.custom_element_state.set(state);
+    }
+
+    pub fn get_custom_element_state(&self) -> CustomElementState {
+        self.custom_element_state.get()
+    }
+
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
         *self.custom_element_definition.borrow_mut() = Some(definition);
     }
@@ -300,12 +322,25 @@ impl Element {
         self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Callback(function, args));
     }
 
+    pub fn push_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
+        self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Upgrade(definition));
+    }
+
+    pub fn clear_reaction_queue(&self) {
+        self.custom_element_reaction_queue.borrow_mut().clear();
+    }
+
     pub fn invoke_reactions(&self) {
-        let mut reaction_queue = self.custom_element_reaction_queue.borrow_mut();
-        for reaction in reaction_queue.iter() {
-            reaction.invoke(self);
+        // TODO: This is not spec compliant, as this will allow some reactions to be processed
+        // after clear_reaction_queue has been called.
+        rooted_vec!(let mut reactions);
+        while !self.custom_element_reaction_queue.borrow().is_empty() {
+            mem::swap(&mut *reactions, &mut *self.custom_element_reaction_queue.borrow_mut());
+            for reaction in reactions.iter() {
+                reaction.invoke(self);
+            }
+            reactions.clear();
         }
-        reaction_queue.clear();
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -547,10 +582,12 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderSpacing(
-                    Box::new(border_spacing::SpecifiedValue {
-                        horizontal: width_value.into(),
-                        vertical: None,
-                    }))));
+                    Box::new(border_spacing::SpecifiedValue::new(
+                        width_value.clone().into(),
+                        width_value.into()
+                    ))
+                )
+            ));
         }
 
 
@@ -1077,7 +1114,7 @@ impl Element {
 
         if self.get_custom_element_definition().is_some() {
             let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
-            ScriptThread::enqueue_callback_reaction(self, reaction);
+            ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
         assert!(attr.GetOwnerElement().r() == Some(self));
@@ -1220,7 +1257,7 @@ impl Element {
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
             let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
-            ScriptThread::enqueue_callback_reaction(self, reaction);
+            ScriptThread::enqueue_callback_reaction(self, reaction, None);
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
@@ -1615,16 +1652,21 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
     fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
-        // Workaround for https://github.com/servo/servo/issues/17366
-        // This ensures that if this is an "id" attr, its value is an Atom
-        attr.swap_value(&mut self.parse_plain_attribute(attr.local_name(), attr.Value()));
-
         // Step 1.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
                 return Err(Error::InUseAttribute);
             }
         }
+
+        let vtable = vtable_for(self.upcast());
+
+        // This ensures that the attribute is of the expected kind for this
+        // specific element. This is inefficient and should probably be done
+        // differently.
+        attr.swap_value(
+            &mut vtable.parse_plain_attribute(attr.local_name(), attr.Value()),
+        );
 
         // Step 2.
         let position = self.attrs.borrow().iter().position(|old_attr| {
@@ -1640,12 +1682,21 @@ impl ElementMethods for Element {
             }
 
             // Step 4.
+            if self.get_custom_element_definition().is_some() {
+                let old_name = old_attr.local_name().clone();
+                let old_value = DOMString::from(&**old_attr.value());
+                let new_value = DOMString::from(&**attr.value());
+                let namespace = old_attr.namespace().clone();
+                let reaction = CallbackReaction::AttributeChanged(old_name, Some(old_value),
+                    Some(new_value), namespace);
+                ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            }
             self.will_mutate_attr(attr);
             attr.set_owner(Some(self));
             self.attrs.borrow_mut()[position] = JS::from_ref(attr);
             old_attr.set_owner(None);
             if attr.namespace() == &ns!() {
-                vtable_for(self.upcast()).attribute_mutated(
+                vtable.attribute_mutated(
                     &attr, AttributeMutation::Set(Some(&old_attr.value())));
             }
 
@@ -2253,6 +2304,16 @@ impl ElementMethods for Element {
 impl VirtualMethods for Element {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<Node>() as &VirtualMethods)
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        // FIXME: This should be more fine-grained, not all elements care about these.
+        if attr.local_name() == &local_name!("width") ||
+           attr.local_name() == &local_name!("height") {
+            return true;
+        }
+
+        self.super_type().unwrap().attribute_affects_presentational_hints(attr)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -2938,7 +2999,7 @@ impl<'a> AttributeMutation<'a> {
 /// A holder for an element's "tag name", which will be lazily
 /// resolved and cached. Should be reset when the document
 /// owner changes.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct TagName {
     ptr: DOMRefCell<Option<LocalName>>,
 }
@@ -2986,11 +3047,9 @@ impl ElementPerformFullscreenEnter {
     }
 }
 
-impl Runnable for ElementPerformFullscreenEnter {
-    fn name(&self) -> &'static str { "ElementPerformFullscreenEnter" }
-
+impl Task for ElementPerformFullscreenEnter {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<ElementPerformFullscreenEnter>) {
+    fn run(self: Box<Self>) {
         let element = self.element.root();
         let document = document_from_node(element.r());
 
@@ -3041,11 +3100,9 @@ impl ElementPerformFullscreenExit {
     }
 }
 
-impl Runnable for ElementPerformFullscreenExit {
-    fn name(&self) -> &'static str { "ElementPerformFullscreenExit" }
-
+impl Task for ElementPerformFullscreenExit {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<ElementPerformFullscreenExit>) {
+    fn run(self: Box<Self>) {
         let element = self.element.root();
         let document = document_from_node(element.r());
         // TODO Step 9.1-5

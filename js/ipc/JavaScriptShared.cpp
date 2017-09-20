@@ -356,8 +356,7 @@ JavaScriptShared::fromVariant(JSContext* cx, const JSVariant& from, MutableHandl
           const JSIID& id = from.get_JSIID();
           ConvertID(id, &iid);
 
-          JSCompartment* compartment = GetContextCompartment(cx);
-          RootedObject global(cx, JS_GetGlobalForCompartmentOrNull(cx, compartment));
+          RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
           JSObject* obj = xpc_NewIDObject(cx, global, iid);
           if (!obj)
               return false;
@@ -575,7 +574,6 @@ JavaScriptShared::fromDescriptor(JSContext* cx, Handle<PropertyDescriptor> desc,
             return false;
         out->getter() = objVar;
     } else {
-        MOZ_ASSERT(desc.getter() != JS_PropertyStub);
         out->getter() = UnknownPropertyOp;
     }
 
@@ -588,7 +586,6 @@ JavaScriptShared::fromDescriptor(JSContext* cx, Handle<PropertyDescriptor> desc,
             return false;
         out->setter() = objVar;
     } else {
-        MOZ_ASSERT(desc.setter() != JS_StrictPropertyStub);
         out->setter() = UnknownPropertyOp;
     }
 

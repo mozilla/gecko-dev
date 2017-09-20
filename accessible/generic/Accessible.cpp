@@ -57,7 +57,7 @@
 #include "nsIScrollableFrame.h"
 #include "nsFocusManager.h"
 
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 #include "prdtoa.h"
@@ -848,8 +848,10 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
   if (profiler_is_active()) {
     nsAutoCString strEventType;
     GetAccService()->GetStringEventType(aEvent->GetEventType(), strEventType);
-
-    profiler_tracing("A11y Event", strEventType.get());
+    nsAutoCString strMarker;
+    strMarker.AppendLiteral("A11y Event - ");
+    strMarker.Append(strEventType);
+    profiler_add_marker(strMarker.get());
   }
 
   if (IPCAccessibilityActive() && Document()) {
@@ -953,10 +955,6 @@ Accessible::Attributes()
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::hidden,
                            NS_LITERAL_STRING("true"));
   }
-
-  // XXX: In ARIA 1.1, the value of aria-haspopup became a token (bug 1355449).
-  if (aria::UniversalStatesFor(mContent->AsElement()) & states::HASPOPUP)
-    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::haspopup, NS_LITERAL_STRING("true"));
 
   // If there is no aria-live attribute then expose default value of 'live'
   // object attribute used for ARIA role of this accessible.

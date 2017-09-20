@@ -7,32 +7,44 @@ package org.mozilla.gecko.util;
 
 import android.app.Activity;
 import android.os.Build;
+import android.support.annotation.ColorRes;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.view.Window;
 
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.skin.SkinConfig;
 
 public class WindowUtil {
 
-    public static void invalidateStatusBarColor(final Activity activity, boolean darkTheme) {
-        // Don't support status bar color change in Australis.
-        if (SkinConfig.isAustralis()) {
+    public static void setTabsTrayStatusBarColor(final Activity activity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;
         }
+        setStatusBarColor(activity, R.color.status_bar_bg_color_tabs_tray, true);
+    }
 
+    public static void setStatusBarColor(final Activity activity, final boolean isPrivate) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;
         }
 
         final int colorResId;
+        final boolean isDarkTheme;
 
         if (HardwareUtils.isTablet()) {
             colorResId = R.color.status_bar_bg_color_tablet;
-            darkTheme = true;
+            isDarkTheme = true;
         } else {
-            colorResId = darkTheme ? R.color.status_bar_bg_color_private : R.color.status_bar_bg_color;
+            colorResId = isPrivate ? R.color.status_bar_bg_color_private : R.color.status_bar_bg_color;
+            isDarkTheme = isPrivate;
+        }
+        setStatusBarColor(activity, colorResId, isDarkTheme);
+    }
+
+    public static void setStatusBarColor(final Activity activity, @ColorRes final int colorResId,
+                                         final boolean isDarkTheme) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
         }
 
         final Window window = activity.getWindow();
@@ -41,7 +53,7 @@ public class WindowUtil {
 
         final View view = window.getDecorView();
         int flags = view.getSystemUiVisibility();
-        if (darkTheme) {
+        if (isDarkTheme) {
             flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
         } else {
             flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;

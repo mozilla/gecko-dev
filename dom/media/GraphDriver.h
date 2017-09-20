@@ -15,6 +15,10 @@
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/StaticPtr.h"
 
+#if defined(XP_WIN)
+#include "mozilla/audio/AudioNotificationReceiver.h"
+#endif
+
 struct cubeb_stream;
 
 template <>
@@ -146,6 +150,9 @@ public:
   void SetNextDriver(GraphDriver* aNextDriver);
   void SetPreviousDriver(GraphDriver* aPreviousDriver);
 
+  /* Return whether we have been scheduled to start. */
+  bool Scheduled();
+
   /**
    * If we are running a real time graph, get the current time stamp to schedule
    * video frames. This has to be reimplemented by real time drivers.
@@ -249,6 +256,9 @@ protected:
   // driver at the end of this iteration.
   // This must be accessed using the {Set,Get}NextDriver methods.
   RefPtr<GraphDriver> mNextDriver;
+  // This is initially false, but set to true as soon the driver has been
+  // scheduled to start through GraphDriver::Start().
+  bool mScheduled;
   virtual ~GraphDriver()
   { }
 };
@@ -376,6 +386,9 @@ enum AsyncCubebOperation {
  */
 class AudioCallbackDriver : public GraphDriver,
                             public MixerCallbackReceiver
+#if defined(XP_WIN)
+                            , public audio::DeviceChangeListener
+#endif
 {
 public:
   explicit AudioCallbackDriver(MediaStreamGraphImpl* aGraphImpl);
@@ -389,6 +402,9 @@ public:
   void RemoveCallback() override;
   void WaitForNextIteration() override;
   void WakeUp() override;
+#if defined(XP_WIN)
+  void ResetDefaultDevice() override;
+#endif
 
   /* Static wrapper function cubeb calls back. */
   static long DataCallback_s(cubeb_stream * aStream,
@@ -435,6 +451,12 @@ public:
     return this;
   }
 
+  uint32_t OutputChannelCount()
+  {
+    MOZ_ASSERT(mOuputChannels != 0 && mOuputChannels <= 8);
+    return mOuputChannels;
+  }
+
   /* Enqueue a promise that is going to be resolved when a specific operation
    * occurs on the cubeb stream. */
   void EnqueueStreamAndPromiseForOperation(MediaStream* aStream,
@@ -470,18 +492,18 @@ private:
   bool StartStream();
   friend class AsyncCubebTask;
   bool Init();
-  /* MediaStreamGraphs are always down/up mixed to stereo for now. */
-  static const uint32_t ChannelCount = 2;
+  /* MediaStreamGraphs are always down/up mixed to output channels. */
+  uint32_t mOuputChannels;
   /* The size of this buffer comes from the fact that some audio backends can
    * call back with a number of frames lower than one block (128 frames), so we
    * need to keep at most two block in the SpillBuffer, because we always round
    * up to block boundaries during an iteration.
    * This is only ever accessed on the audio callback thread. */
-  SpillBuffer<AudioDataValue, WEBAUDIO_BLOCK_SIZE * 2, ChannelCount> mScratchBuffer;
+  SpillBuffer<AudioDataValue, WEBAUDIO_BLOCK_SIZE * 2> mScratchBuffer;
   /* Wrapper to ensure we write exactly the number of frames we need in the
    * audio buffer cubeb passes us. This is only ever accessed on the audio
    * callback thread. */
-  AudioCallbackBufferWrapper<AudioDataValue, ChannelCount> mBuffer;
+  AudioCallbackBufferWrapper<AudioDataValue> mBuffer;
   /* cubeb stream for this graph. This is guaranteed to be non-null after Init()
    * has been called, and is synchronized internaly. */
   nsAutoRef<cubeb_stream> mAudioStream;
@@ -525,8 +547,6 @@ private:
   nsCOMPtr<nsIThread> mInitShutdownThread;
   /* This must be accessed with the graph monitor held. */
   AutoTArray<StreamAndPromiseForOperation, 1> mPromisesForOperation;
-  /* This is set during initialization, and can be read safely afterwards. */
-  dom::AudioChannel mAudioChannel;
   /* Used to queue us to add the mixer callback on first run. */
   bool mAddedMixer;
 

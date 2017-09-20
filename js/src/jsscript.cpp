@@ -1409,8 +1409,6 @@ ScriptSourceObject::finalize(FreeOp* fop, JSObject* obj)
 static const ClassOps ScriptSourceObjectClassOps = {
     nullptr, /* addProperty */
     nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
     nullptr, /* enumerate */
     nullptr, /* newEnumerate */
     nullptr, /* resolve */
@@ -2072,6 +2070,10 @@ ScriptSource::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
 bool
 ScriptSource::xdrEncodeTopLevel(JSContext* cx, HandleScript script)
 {
+    // Encoding failures are reported by the xdrFinalizeEncoder function.
+    if (containsAsmJS())
+        return true;
+
     xdrEncoder_ = js::MakeUnique<XDRIncrementalEncoder>(cx);
     if (!xdrEncoder_) {
         ReportOutOfMemory(cx);
@@ -2089,8 +2091,12 @@ ScriptSource::xdrEncodeTopLevel(JSContext* cx, HandleScript script)
     }
 
     RootedScript s(cx, script);
-    if (!xdrEncoder_->codeScript(&s))
-        return false;
+    if (!xdrEncoder_->codeScript(&s)) {
+        if (xdrEncoder_->resultCode() == JS::TranscodeResult_Throw)
+            return false;
+        // Encoding failures are reported by the xdrFinalizeEncoder function.
+        return true;
+    }
 
     failureCase.release();
     return true;
@@ -2408,6 +2414,10 @@ js::SharedScriptData::new_(JSContext* cx, uint32_t codeLength,
         ReportOutOfMemory(cx);
         return nullptr;
     }
+
+    /* Diagnostic for Bug 1399373.
+     * We expect bytecode is always non-empty. */
+    MOZ_DIAGNOSTIC_ASSERT(codeLength > 0);
 
     entry->refCount_ = 0;
     entry->dataLength_ = dataLength;

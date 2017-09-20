@@ -11,7 +11,7 @@ const { ConsoleCommand } = require("devtools/client/webconsole/new-console-outpu
 const { getVisibleMessages } = require("devtools/client/webconsole/new-console-output/selectors/messages");
 const { getAllFilters } = require("devtools/client/webconsole/new-console-output/selectors/filters");
 const { setupStore } = require("devtools/client/webconsole/new-console-output/test/helpers");
-const { MESSAGE_LEVEL } = require("devtools/client/webconsole/new-console-output/constants");
+const { FILTERS } = require("devtools/client/webconsole/new-console-output/constants");
 const { stubPackets } = require("devtools/client/webconsole/new-console-output/test/fixtures/stubs/index");
 const { stubPreparedMessages } = require("devtools/client/webconsole/new-console-output/test/fixtures/stubs/index");
 
@@ -28,36 +28,58 @@ describe("Filtering", () => {
     numMessages = getVisibleMessages(store.getState()).length;
   });
 
+  /**
+   * Tests for filter buttons in Console toolbar. The test switches off
+   * all filters and consequently tests one by one on the list of messages
+   * created in `prepareBaseStore` method.
+   */
   describe("Level filter", () => {
-    it("filters log messages", () => {
-      store.dispatch(actions.filterToggle(MESSAGE_LEVEL.LOG));
+    beforeEach(() => {
+      // Switch off all filters (include those which are on by default).
+      store.dispatch(actions.filtersClear());
+      store.dispatch(actions.filterToggle(FILTERS.DEBUG));
+      store.dispatch(actions.filterToggle(FILTERS.ERROR));
+      store.dispatch(actions.filterToggle(FILTERS.INFO));
+      store.dispatch(actions.filterToggle(FILTERS.LOG));
+      store.dispatch(actions.filterToggle(FILTERS.WARN));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages - 3);
+      expect(messages.length).toEqual(numUnfilterableMessages);
+    });
+
+    it("filters log messages", () => {
+      store.dispatch(actions.filterToggle(FILTERS.LOG));
+
+      let messages = getVisibleMessages(store.getState());
+      expect(messages.length).toEqual(numUnfilterableMessages + 5);
     });
 
     it("filters debug messages", () => {
-      store.dispatch(actions.filterToggle(MESSAGE_LEVEL.DEBUG));
+      store.dispatch(actions.filterToggle(FILTERS.DEBUG));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages - 1);
+      expect(messages.length).toEqual(numUnfilterableMessages + 1);
     });
 
-    // @TODO add info stub
-    it("filters info messages");
-
-    it("filters warning messages", () => {
-      store.dispatch(actions.filterToggle(MESSAGE_LEVEL.WARN));
+    it("filters info messages", () => {
+      store.dispatch(actions.filterToggle(FILTERS.INFO));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages - 1);
+      expect(messages.length).toEqual(numUnfilterableMessages + 1);
+    });
+
+    it("filters warning messages", () => {
+      store.dispatch(actions.filterToggle(FILTERS.WARN));
+
+      let messages = getVisibleMessages(store.getState());
+      expect(messages.length).toEqual(numUnfilterableMessages + 1);
     });
 
     it("filters error messages", () => {
-      store.dispatch(actions.filterToggle(MESSAGE_LEVEL.ERROR));
+      store.dispatch(actions.filterToggle(FILTERS.ERROR));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages - 1);
+      expect(messages.length).toEqual(numUnfilterableMessages + 3);
     });
 
     it("filters css messages", () => {
@@ -67,11 +89,11 @@ describe("Filtering", () => {
       store.dispatch(messageAdd(message));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages);
+      expect(messages.length).toEqual(numUnfilterableMessages);
 
       store.dispatch(actions.filterToggle("css"));
       messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages + 1);
+      expect(messages.length).toEqual(numUnfilterableMessages + 1);
     });
 
     it("filters xhr messages", () => {
@@ -79,11 +101,11 @@ describe("Filtering", () => {
       store.dispatch(messageAdd(message));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages);
+      expect(messages.length).toEqual(numUnfilterableMessages);
 
       store.dispatch(actions.filterToggle("netxhr"));
       messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages + 1);
+      expect(messages.length).toEqual(numUnfilterableMessages + 1);
     });
 
     it("filters network messages", () => {
@@ -91,11 +113,11 @@ describe("Filtering", () => {
       store.dispatch(messageAdd(message));
 
       let messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages);
+      expect(messages.length).toEqual(numUnfilterableMessages);
 
       store.dispatch(actions.filterToggle("net"));
       messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numMessages + 1);
+      expect(messages.length).toEqual(numUnfilterableMessages + 1);
     });
   });
 
@@ -184,20 +206,24 @@ describe("Clear filters", () => {
     const store = setupStore([]);
 
     // Setup test case
-    store.dispatch(actions.filterToggle(MESSAGE_LEVEL.ERROR));
-    store.dispatch(actions.filterToggle("netxhr"));
+    store.dispatch(actions.filterToggle(FILTERS.ERROR));
+    store.dispatch(actions.filterToggle(FILTERS.CSS));
+    store.dispatch(actions.filterToggle(FILTERS.NET));
+    store.dispatch(actions.filterToggle(FILTERS.NETXHR));
     store.dispatch(actions.filterTextSet("foobar"));
 
     let filters = getAllFilters(store.getState());
     expect(filters.toJS()).toEqual({
-      "css": true,
-      "debug": true,
-      "error": false,
-      "info": true,
-      "log": true,
-      "net": false,
-      "netxhr": true,
+      // default
       "warn": true,
+      "log": true,
+      "info": true,
+      "debug": true,
+      "css": true,
+      // changed
+      "error": false,
+      "net": true,
+      "netxhr": true,
       "text": "foobar",
     });
 
@@ -218,6 +244,52 @@ describe("Clear filters", () => {
   });
 });
 
+describe("Resets filters", () => {
+  it("resets default filters value to their original one.", () => {
+    const store = setupStore([]);
+
+    // Setup test case
+    store.dispatch(actions.filterToggle(FILTERS.ERROR));
+    store.dispatch(actions.filterToggle(FILTERS.LOG));
+    store.dispatch(actions.filterToggle(FILTERS.CSS));
+    store.dispatch(actions.filterToggle(FILTERS.NET));
+    store.dispatch(actions.filterToggle(FILTERS.NETXHR));
+    store.dispatch(actions.filterTextSet("foobar"));
+
+    let filters = getAllFilters(store.getState());
+    expect(filters.toJS()).toEqual({
+      // default
+      "warn": true,
+      "info": true,
+      "debug": true,
+      // changed
+      "error": false,
+      "log": false,
+      "css": true,
+      "net": true,
+      "netxhr": true,
+      "text": "foobar",
+    });
+
+    store.dispatch(actions.defaultFiltersReset());
+
+    filters = getAllFilters(store.getState());
+    expect(filters.toJS()).toEqual({
+      // default
+      "error": true,
+      "warn": true,
+      "log": true,
+      "info": true,
+      "debug": true,
+      "text": "",
+      // non-default filters weren't changed
+      "css": true,
+      "net": true,
+      "netxhr": true,
+    });
+  });
+});
+
 function prepareBaseStore() {
   const store = setupStore([
     // Console API
@@ -230,7 +302,12 @@ function prepareBaseStore() {
     "new Date(0)",
     // PageError
     "ReferenceError: asdf is not defined",
-    "console.group('bar')"
+    "console.group('bar')",
+    "console.debug('debug message');",
+    "console.info('info message');",
+    "console.error('error message');",
+    "console.table(['red', 'green', 'blue']);",
+    "console.assert(false, {message: 'foobar'})",
   ]);
 
   // Console Command - never filtered

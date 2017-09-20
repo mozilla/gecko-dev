@@ -85,7 +85,7 @@ MultipartBlobImpl::GetInternalStream(nsIInputStream** aStream,
     }
   }
 
-  stream.forget(aStream);
+  CallQueryInterface(stream, aStream);
 }
 
 already_AddRefed<BlobImpl>
@@ -410,4 +410,14 @@ MultipartBlobImpl::MayBeClonedToOtherThreads() const
   }
 
   return true;
+}
+
+size_t MultipartBlobImpl::GetAllocationSize() const
+{
+  size_t total = 0;
+  for (uint32_t i = 0; i < mBlobImpls.Length(); ++i) {
+    total += mBlobImpls[i]->GetAllocationSize();
+  }
+
+  return total;
 }

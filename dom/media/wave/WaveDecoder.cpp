@@ -4,33 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "WaveDemuxer.h"
-#include "MediaContainerType.h"
 #include "WaveDecoder.h"
-#include "PDMFactory.h"
+#include "MediaContainerType.h"
+#include "MediaDecoder.h"
 
 namespace mozilla {
-
-ChannelMediaDecoder*
-WaveDecoder::CloneImpl(MediaDecoderInit& aInit)
-{
-  return new WaveDecoder(aInit);
-}
 
 /* static */ bool
 WaveDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 {
-  if (!IsWaveEnabled()) {
+  if (!MediaDecoder::IsWaveEnabled()) {
     return false;
   }
-  if (aContainerType.Type() == MEDIAMIMETYPE("audio/wave")
-      || aContainerType.Type() == MEDIAMIMETYPE("audio/x-wav")
-      || aContainerType.Type() == MEDIAMIMETYPE("audio/wav")
-      || aContainerType.Type() == MEDIAMIMETYPE("audio/x-pn-wav")) {
-    return (aContainerType.ExtendedType().Codecs().IsEmpty()
-            || aContainerType.ExtendedType().Codecs() == "1"
-            || aContainerType.ExtendedType().Codecs() == "6"
-            || aContainerType.ExtendedType().Codecs() == "7");
+  if (aContainerType.Type() == MEDIAMIMETYPE("audio/wave") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/x-wav") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/wav") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/x-pn-wav")) {
+    return (aContainerType.ExtendedType().Codecs().IsEmpty() ||
+            aContainerType.ExtendedType().Codecs() == "1" ||
+            aContainerType.ExtendedType().Codecs() == "6" ||
+            aContainerType.ExtendedType().Codecs() == "7");
   }
 
   return false;

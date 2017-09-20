@@ -10,11 +10,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.schema import validate_schema, Schema
+from taskgraph.util.taskcluster import get_taskcluster_artifact_prefix
 from taskgraph.transforms.task import task_description_schema
 from voluptuous import Any, Required, Optional
-
-_TC_ARTIFACT_LOCATION = \
-        'https://queue.taskcluster.net/v1/task/{task_id}/artifacts/public/build/{postfix}'
 
 transforms = TransformSequence()
 
@@ -148,11 +146,18 @@ def make_job_description(config, jobs):
         if build_platform.startswith('win'):
             worker_type = 'aws-provisioner-v1/gecko-%s-b-win2012' % level
             run['use-magic-mh-args'] = False
-        elif build_platform.startswith('macosx'):
-            worker_type = 'aws-provisioner-v1/gecko-%s-b-macosx64' % level
+        else:
+            if build_platform.startswith('macosx'):
+                worker_type = 'aws-provisioner-v1/gecko-%s-b-macosx64' % level
+            elif build_platform.startswith('linux'):
+                worker_type = 'aws-provisioner-v1/gecko-%s-b-linux' % level
+            else:
+                raise NotImplementedError(
+                    'Unsupported build_platform: "{}"'.format(build_platform)
+                )
 
             run['tooltool-downloads'] = 'internal'
-            worker['docker-image'] = {"in-tree": "desktop-build"},
+            worker['docker-image'] = {"in-tree": "desktop-build"}
 
             cot = job.setdefault('extra', {}).setdefault('chainOfTrust', {})
             cot.setdefault('inputs', {})['docker-image'] = {"task-reference": "<docker-image>"}
@@ -185,20 +190,26 @@ def make_job_description(config, jobs):
 def _generate_task_mozharness_config(build_platform):
     if build_platform.startswith('macosx'):
         return ['repackage/osx_signed.py']
-    elif build_platform.startswith('win'):
-        return ['repackage/win32_signed.py'] if '32' in build_platform \
-            else ['repackage/win64_signed.py']
     else:
-        raise NotImplemented('Unsupported build_platform: "{}"'.format(build_platform))
+        bits = 32 if '32' in build_platform else 64
+        if build_platform.startswith('linux'):
+            return ['repackage/linux{}_signed.py'.format(bits)]
+        elif build_platform.startswith('win'):
+            return ['repackage/win{}_signed.py'.format(bits)]
+
+    raise NotImplementedError('Unsupported build_platform: "{}"'.format(build_platform))
 
 
 def _generate_task_env(build_platform, build_task_ref, signing_task_ref, locale=None):
-    mar_prefix = _generate_taskcluster_prefix(build_task_ref, postfix='host/bin/', locale=None)
-    signed_prefix = _generate_taskcluster_prefix(signing_task_ref, locale=locale)
+    mar_prefix = get_taskcluster_artifact_prefix(build_task_ref, postfix='host/bin/', locale=None)
+    signed_prefix = get_taskcluster_artifact_prefix(signing_task_ref, locale=locale)
 
-    if build_platform.startswith('macosx'):
+    if build_platform.startswith('linux') or build_platform.startswith('macosx'):
+        tarball_extension = 'bz2' if build_platform.startswith('linux') else 'gz'
         return {
-            'SIGNED_INPUT': {'task-reference': '{}target.tar.gz'.format(signed_prefix)},
+            'SIGNED_INPUT': {'task-reference': '{}target.tar.{}'.format(
+                signed_prefix, tarball_extension
+            )},
             'UNSIGNED_MAR': {'task-reference': '{}mar'.format(mar_prefix)},
         }
     elif build_platform.startswith('win'):
@@ -215,31 +226,28 @@ def _generate_task_env(build_platform, build_task_ref, signing_task_ref, locale=
             }
         return task_env
 
-    else:
-        raise NotImplemented('Unsupported build_platform: "{}"'.format(build_platform))
-
-
-def _generate_taskcluster_prefix(task_id, postfix='', locale=None):
-    if locale:
-        postfix = '{}/{}'.format(locale, postfix)
-
-    return _TC_ARTIFACT_LOCATION.format(task_id=task_id, postfix=postfix)
+    raise NotImplementedError('Unsupported build_platform: "{}"'.format(build_platform))
 
 
 def _generate_task_output_files(build_platform, locale=None):
     locale_output_path = '{}/'.format(locale) if locale else ''
-    if build_platform.startswith('macosx'):
-        return [{
+
+    if build_platform.startswith('linux') or build_platform.startswith('macosx'):
+        output_files = [{
             'type': 'file',
-            'path': '/home/worker/workspace/build/artifacts/{}target.dmg'
-                    .format(locale_output_path),
-            'name': 'public/build/{}target.dmg'.format(locale_output_path),
-        }, {
-            'type': 'file',
-            'path': '/home/worker/workspace/build/artifacts/{}target.complete.mar'
+            'path': '/builds/worker/workspace/build/artifacts/{}target.complete.mar'
                     .format(locale_output_path),
             'name': 'public/build/{}target.complete.mar'.format(locale_output_path),
         }]
+
+        if build_platform.startswith('macosx'):
+            output_files.append({
+                'type': 'file',
+                'path': '/builds/worker/workspace/build/artifacts/{}target.dmg'
+                        .format(locale_output_path),
+                'name': 'public/build/{}target.dmg'.format(locale_output_path),
+            })
+
     elif build_platform.startswith('win'):
         output_files = [{
             'type': 'file',
@@ -259,6 +267,7 @@ def _generate_task_output_files(build_platform, locale=None):
                 'name': 'public/build/{}target.stub-installer.exe'.format(locale_output_path),
             })
 
+    if output_files:
         return output_files
-    else:
-        raise NotImplemented('Unsupported build_platform: "{}"'.format(build_platform))
+
+    raise NotImplementedError('Unsupported build_platform: "{}"'.format(build_platform))

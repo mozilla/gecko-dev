@@ -67,31 +67,37 @@
   "emptySelectionErrorTitle": {
     "message": "Din markering er for lille"
   },
+  "privateWindowErrorTitle": {
+    "message": "Screenshots er deaktiveret i privat browsing-tilstand"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Vi beklager ulejligheden. Vi arbejder på at få funktionen til at virke i fremtidige udgivelser."
+  },
   "genericErrorTitle": {
     "message": "Hov! Noget gik helt galt med Firefox Screenshots."
   },
   "genericErrorDetails": {
     "message": "Vi er ikke sikre på, hvad der lige skete. Vil du prøve igen - eller vil du tage et skærmbillede af en anden side?"
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "Tag, gem og del skærmbilleder uden at forlade Firefox. "
   },
-  "tourHeaderTwo": {
+  "tourHeaderClickAndDrag": {
     "message": "Gem lige hvad du vil."
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "Klik og træk for at tage et udklip af en del af en side. Du kan også holde markøren over for at fremhæve din markering."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Tag skærmbilleder af vinduer eller hele sider."
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "Brug knapperne øverst til højre for at tage et skærmbillede af det synlige område i vinduet eller for at tage et skærmbillede af hele siden."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "Som du vil have det."
   },
-  "tourBodyFour": {
+  "tourBodyDownloadUpload": {
     "message": "Gem dine beskårne skærmbilleder på nettet for nemmere at dele dem - eller hent dem ned på din computer. Du kan også klikke på knappen \"Mine skærmbilleder\" for at finde de skærmbilleder, du har taget."
   },
   "tourSkip": {
@@ -106,8 +112,8 @@
   "tourDone": {
     "message": "Færdig"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Ved at anvende Firefox Screenshots godkender du $TERMSANDPRIVACYNOTICETERMSLINK$ og $TERMSANDPRIVACYNOTICEPRIVACYLINK$ for Firefox Cloud Services.",
+  "termsAndPrivacyNotice2": {
+    "message": "Ved at anvende Firefox Screenshots godkender du vores $TERMSANDPRIVACYNOTICETERMSLINK$ og $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +128,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "privatlivspolitik"
+  },
+  "libraryLabel": {
+    "message": "Skærmbilleder"
   }
 }

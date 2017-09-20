@@ -127,7 +127,7 @@ JsepSessionImpl::AddTrack(const RefPtr<JsepTrack>& track)
     std::vector<JsepTrack::JsConstraints> constraints;
     track->GetJsConstraints(&constraints);
     for (auto constraint : constraints) {
-      if (constraint.rid != "") {
+      if (!constraint.rid.empty()) {
         minimumSsrcCount++;
       }
     }
@@ -231,6 +231,13 @@ JsepSessionImpl::AddRtpExtension(std::vector<SdpExtmapAttributeList::Extmap>& ex
     return NS_ERROR_FAILURE;
   }
 
+  // Avoid adding duplicate entries
+  for (auto ext = extensions.begin(); ext != extensions.end(); ++ext) {
+    if (ext->direction == direction && ext->extensionname == extensionName) {
+      return NS_OK;
+    }
+  }
+
   SdpExtmapAttributeList::Extmap extmap =
       { static_cast<uint16_t>(extensions.size() + 1),
         direction,
@@ -311,7 +318,7 @@ JsepSessionImpl::SetParameters(const std::string& streamId,
   SdpDirectionAttribute::Direction addVideoExt = SdpDirectionAttribute::kInactive;
   SdpDirectionAttribute::Direction addAudioExt = SdpDirectionAttribute::kInactive;
   for (auto constraintEntry: constraints) {
-    if (constraintEntry.rid != "") {
+    if (!constraintEntry.rid.empty()) {
       switch (it->mTrack->GetMediaType()) {
         case SdpMediaSection::kVideo: {
           addVideoExt = static_cast<SdpDirectionAttribute::Direction>(addVideoExt
@@ -344,7 +351,7 @@ JsepSessionImpl::SetParameters(const std::string& streamId,
     std::vector<JsepTrack::JsConstraints> constraints;
     track->GetJsConstraints(&constraints);
     for (auto constraint : constraints) {
-      if (constraint.rid != "") {
+      if (!constraint.rid.empty()) {
         minimumSsrcCount++;
       }
     }
@@ -641,7 +648,8 @@ JsepSessionImpl::SetupBundle(Sdp* sdp) const
 
   for (size_t i = 0; i < sdp->GetMediaSectionCount(); ++i) {
     auto& attrs = sdp->GetMediaSection(i).GetAttributeList();
-    if (attrs.HasAttribute(SdpAttribute::kMidAttribute)) {
+    if ((sdp->GetMediaSection(i).GetPort() != 0) &&
+        attrs.HasAttribute(SdpAttribute::kMidAttribute)) {
       bool useBundleOnly = false;
       switch (mBundlePolicy) {
         case kBundleMaxCompat:
@@ -673,7 +681,7 @@ JsepSessionImpl::SetupBundle(Sdp* sdp) const
     }
   }
 
-  if (mids.size() >= 1) {
+  if (!mids.empty()) {
     UniquePtr<SdpGroupAttributeList> groupAttr(new SdpGroupAttributeList);
     groupAttr->PushEntry(SdpGroupAttributeList::kBundle, mids);
     sdp->GetAttributeList().SetAttribute(groupAttr.release());
@@ -2259,12 +2267,8 @@ JsepSessionImpl::SetupDefaultCodecs()
       48000,
       2,
       960,
-#ifdef WEBRTC_GONK
       // TODO Move this elsewhere to be adaptive to rate - Bug 1207925
-      16000 // B2G uses lower capture sampling rate
-#else
       40000
-#endif
       ));
 
   mSupportedCodecs.values.push_back(new JsepAudioCodecDescription(
@@ -2367,9 +2371,7 @@ JsepSessionImpl::SetupDefaultCodecs()
       "webrtc-datachannel",
       WEBRTC_DATACHANNEL_STREAMS_DEFAULT,
       WEBRTC_DATACHANNEL_PORT_DEFAULT,
-      // TODO: Bug 979417 needs to change this to
-      // WEBRTC_DATACHANELL_MAX_MESSAGE_SIZE_DEFAULT
-      0
+      WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL
       ));
 
   // Update the redundant encodings for the RED codec with the supported

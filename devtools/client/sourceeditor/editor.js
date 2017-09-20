@@ -30,7 +30,7 @@ const RE_SCRATCHPAD_ERROR = /(?:@Scratchpad\/\d+:|\()(\d+):?(\d+)?(?:\)|\n)/;
 const RE_JUMP_TO_LINE = /^(\d+):?(\d+)?/;
 
 const Services = require("Services");
-const events = require("devtools/shared/event-emitter");
+const events = require("devtools/shared/old-event-emitter");
 const { PrefObserver } = require("devtools/client/shared/prefs");
 const { getClientCssProperties } = require("devtools/shared/fronts/css-properties");
 const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
@@ -551,7 +551,7 @@ Editor.prototype = {
   setText: function (value) {
     let cm = editors.get(this);
 
-    if (typeof value !== "string") {  // wasm?
+    if (typeof value !== "string" && "binary" in value) {  // wasm?
       // binary does not survive as Uint8Array, converting from string
       let binary = value.binary;
       let data = new Uint8Array(binary.length);

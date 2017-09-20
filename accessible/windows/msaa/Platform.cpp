@@ -20,6 +20,8 @@
 #include "mozilla/mscom/Utils.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WindowsVersion.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsDirectoryServiceUtils.h"
 #include "ProxyWrappers.h"
 
 using namespace mozilla;
@@ -30,29 +32,28 @@ static StaticAutoPtr<RegisteredProxy> gRegCustomProxy;
 static StaticAutoPtr<RegisteredProxy> gRegProxy;
 static StaticAutoPtr<RegisteredProxy> gRegAccTlb;
 static StaticAutoPtr<RegisteredProxy> gRegMiscTlb;
+static nsString* gInstantiator = nullptr;
+
 void
 a11y::PlatformInit()
 {
-  Compatibility::Init();
-
   nsWinUtils::MaybeStartWindowEmulation();
   ia2AccessibleText::InitTextChangeData();
-  if (BrowserTabsRemoteAutostart()) {
-    mscom::InterceptorLog::Init();
-    UniquePtr<RegisteredProxy> regCustomProxy(
-        mscom::RegisterProxy());
-    gRegCustomProxy = regCustomProxy.release();
-    UniquePtr<RegisteredProxy> regProxy(
-        mscom::RegisterProxy(L"ia2marshal.dll"));
-    gRegProxy = regProxy.release();
-    UniquePtr<RegisteredProxy> regAccTlb(
-        mscom::RegisterTypelib(L"oleacc.dll",
-                               RegistrationFlags::eUseSystemDirectory));
-    gRegAccTlb = regAccTlb.release();
-    UniquePtr<RegisteredProxy> regMiscTlb(
-        mscom::RegisterTypelib(L"Accessible.tlb"));
-    gRegMiscTlb = regMiscTlb.release();
-  }
+
+  mscom::InterceptorLog::Init();
+  UniquePtr<RegisteredProxy> regCustomProxy(
+      mscom::RegisterProxy());
+  gRegCustomProxy = regCustomProxy.release();
+  UniquePtr<RegisteredProxy> regProxy(
+      mscom::RegisterProxy(L"ia2marshal.dll"));
+  gRegProxy = regProxy.release();
+  UniquePtr<RegisteredProxy> regAccTlb(
+      mscom::RegisterTypelib(L"oleacc.dll",
+                             RegistrationFlags::eUseSystemDirectory));
+  gRegAccTlb = regAccTlb.release();
+  UniquePtr<RegisteredProxy> regMiscTlb(
+      mscom::RegisterTypelib(L"Accessible.tlb"));
+  gRegMiscTlb = regMiscTlb.release();
 }
 
 void
@@ -65,6 +66,11 @@ a11y::PlatformShutdown()
   gRegProxy = nullptr;
   gRegAccTlb = nullptr;
   gRegMiscTlb = nullptr;
+
+  if (gInstantiator) {
+    delete gInstantiator;
+    gInstantiator = nullptr;
+  }
 }
 
 void
@@ -191,18 +197,65 @@ a11y::IsHandlerRegistered()
     return false;
   }
 
-  nsAutoString subKey;
-  subKey.AppendLiteral("CLSID\\");
-  nsAutoString iid;
-  GUIDToString(CLSID_AccessibleHandler, iid);
-  subKey.Append(iid);
-  subKey.AppendLiteral("\\InprocHandler32");
+  nsAutoString clsid;
+  GUIDToString(CLSID_AccessibleHandler, clsid);
 
-  rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT, subKey,
+  nsAutoString subKey;
+  subKey.AppendLiteral(u"SOFTWARE\\Classes\\CLSID\\");
+  subKey.Append(clsid);
+  subKey.AppendLiteral(u"\\InprocHandler32");
+
+  rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE, subKey,
                     nsIWindowsRegKey::ACCESS_READ);
   if (NS_FAILED(rv)) {
     return false;
   }
 
+  nsAutoString handlerPath;
+  rv = regKey->ReadStringValue(nsAutoString(), handlerPath);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  nsCOMPtr<nsIFile> actualHandler;
+  rv = NS_NewLocalFile(handlerPath, false, getter_AddRefs(actualHandler));
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  nsCOMPtr<nsIFile> expectedHandler;
+  rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(expectedHandler));
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  rv = expectedHandler->Append(NS_LITERAL_STRING("AccessibleHandler.dll"));
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  bool equal;
+  rv = expectedHandler->Equals(actualHandler, &equal);
+  return NS_SUCCEEDED(rv) && equal;
+}
+
+void
+a11y::SetInstantiator(const nsAString& aInstantiator)
+{
+  if (!gInstantiator) {
+    gInstantiator = new nsString();
+  }
+
+  gInstantiator->Assign(aInstantiator);
+}
+
+bool
+a11y::GetInstantiator(nsAString& aInstantiator)
+{
+  if (!gInstantiator) {
+    return false;
+  }
+
+  aInstantiator.Assign(*gInstantiator);
   return true;
 }

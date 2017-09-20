@@ -267,4 +267,30 @@ public class GeckoViewActivity extends Activity {
             prompt.promptForMedia(view, title, video, audio, callback);
         }
     }
+
+    private class Navigation implements GeckoView.NavigationListener {
+        @Override
+        public void onLocationChange(GeckoView view, final String url) {
+        }
+
+        @Override
+        public void onCanGoBack(GeckoView view, boolean canGoBack) {
+        }
+
+        @Override
+        public void onCanGoForward(GeckoView view, boolean value) {
+        }
+
+        @Override
+        public boolean onLoadUri(final GeckoView view, final String uri,
+                                 final TargetWindow where) {
+            Log.d(LOGTAG, "onLoadUri=" + uri +
+                          " where=" + where);
+            if (where != TargetWindow.NEW) {
+                return false;
+            }
+            view.loadUri(uri);
+            return true;
+        }
+    }
 }

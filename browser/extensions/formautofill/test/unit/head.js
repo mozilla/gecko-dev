@@ -3,7 +3,7 @@
  */
 
 /* exported getTempFile, loadFormAutofillContent, runHeuristicsTest, sinon,
- *          initProfileStorage, getSyncChangeCounter, objectMatches
+ *          initProfileStorage, getSyncChangeCounter, objectMatches, bootstrapURI
  */
 
 "use strict";
@@ -29,20 +29,8 @@ do_get_profile();
 // Load mocking/stubbing library, sinon
 // docs: http://sinonjs.org/releases/v2.3.2/
 Cu.import("resource://gre/modules/Timer.jsm");
-var {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
-var loader = new Loader.Loader({
-  paths: {
-    "": "resource://testing-common/",
-  },
-  globals: {
-    setTimeout,
-    setInterval,
-    clearTimeout,
-    clearInterval,
-  },
-});
-var require = Loader.Require(loader, {id: ""});
-var sinon = require("sinon-2.3.2");
+Services.scriptloader.loadSubScript("resource://testing-common/sinon-2.3.2.js", this);
+/* globals sinon */
 // ================================================
 
 // Load our bootstrap extension manifest so we can access our chrome/resource URIs.
@@ -51,10 +39,15 @@ let extensionDir = Services.dirsvc.get("GreD", Ci.nsIFile);
 extensionDir.append("browser");
 extensionDir.append("features");
 extensionDir.append(EXTENSION_ID);
+let bootstrapFile = extensionDir.clone();
+bootstrapFile.append("bootstrap.js");
+let bootstrapURI = Services.io.newFileURI(bootstrapFile).spec;
 // If the unpacked extension doesn't exist, use the packed version.
 if (!extensionDir.exists()) {
   extensionDir = extensionDir.parent;
   extensionDir.append(EXTENSION_ID + ".xpi");
+  let jarURI = Services.io.newFileURI(extensionDir);
+  bootstrapURI = "jar:" + jarURI.spec + "!/bootstrap.js";
 }
 Components.manager.addBootstrappedManifestLocation(extensionDir);
 
@@ -144,6 +137,7 @@ function runHeuristicsTest(patterns, fixturePathPrefix) {
         Assert.equal(formInfo.length, testPattern.expectedResult[formIndex].length, "Expected field count.");
         formInfo.forEach((field, fieldIndex) => {
           let expectedField = testPattern.expectedResult[formIndex][fieldIndex];
+          delete field._reason;
           expectedField.elementWeakRef = field.elementWeakRef;
           Assert.deepEqual(field, expectedField);
         });

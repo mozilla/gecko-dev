@@ -74,12 +74,12 @@ Decoder::startSection(SectionId id, ModuleEnvironment* env, uint32_t* sectionSta
 
     // Only start a section with 'id', skipping any custom sections before it.
 
-    uint32_t idValue;
-    if (!readVarU32(&idValue))
+    uint8_t idValue;
+    if (!readFixedU8(&idValue))
         goto rewind;
 
-    while (idValue != uint32_t(id)) {
-        if (idValue != uint32_t(SectionId::Custom))
+    while (idValue != uint8_t(id)) {
+        if (idValue != uint8_t(SectionId::Custom))
             goto rewind;
 
         // Rewind to the beginning of the current section since this is what
@@ -91,7 +91,7 @@ Decoder::startSection(SectionId id, ModuleEnvironment* env, uint32_t* sectionSta
         // Having successfully skipped a custom section, consider the next
         // section.
         currentSectionStart = cur_;
-        if (!readVarU32(&idValue))
+        if (!readFixedU8(&idValue))
             goto rewind;
     }
 
@@ -207,8 +207,8 @@ Decoder::startNameSubsection(NameType nameType, uint32_t* endOffset)
 {
     const uint8_t* initialPosition = cur_;
 
-    uint32_t nameTypeValue;
-    if (!readVarU32(&nameTypeValue))
+    uint8_t nameTypeValue;
+    if (!readFixedU8(&nameTypeValue))
         return false;
 
     if (nameTypeValue != uint8_t(nameType)) {
@@ -579,6 +579,15 @@ DecodeFunctionBodyExprs(const ModuleEnvironment& env, const Sig& sig, const ValT
             CHECK(iter.readConversion(ValType::I64, ValType::F64, &nothing));
           case uint16_t(Op::F64PromoteF32):
             CHECK(iter.readConversion(ValType::F32, ValType::F64, &nothing));
+#ifdef ENABLE_WASM_THREAD_OPS
+          case uint16_t(Op::I32Extend8S):
+          case uint16_t(Op::I32Extend16S):
+            CHECK(iter.readConversion(ValType::I32, ValType::I32, &nothing));
+          case uint16_t(Op::I64Extend8S):
+          case uint16_t(Op::I64Extend16S):
+          case uint16_t(Op::I64Extend32S):
+            CHECK(iter.readConversion(ValType::I64, ValType::I64, &nothing));
+#endif
           case uint16_t(Op::I32Load8S):
           case uint16_t(Op::I32Load8U): {
             LinearMemoryAddress<Nothing> addr;
@@ -751,8 +760,8 @@ DecodeTypeSection(Decoder& d, ModuleEnvironment* env)
         return false;
 
     for (uint32_t sigIndex = 0; sigIndex < numSigs; sigIndex++) {
-        uint32_t form;
-        if (!d.readVarU32(&form) || form != uint32_t(TypeCode::Func))
+        uint8_t form;
+        if (!d.readFixedU8(&form) || form != uint8_t(TypeCode::Func))
             return d.fail("expected function form");
 
         uint32_t numArgs;
@@ -811,6 +820,9 @@ DecodeName(Decoder& d)
     if (!d.readBytes(numBytes, &bytes))
         return nullptr;
 
+    if (!JS::StringIsUTF8(bytes, numBytes))
+        return nullptr;
+
     UniqueChars name(js_pod_malloc<char>(numBytes + 1));
     if (!name)
         return nullptr;
@@ -836,12 +848,12 @@ DecodeSignatureIndex(Decoder& d, const SigWithIdVector& sigs, uint32_t* sigIndex
 static bool
 DecodeLimits(Decoder& d, Limits* limits)
 {
-    uint32_t flags;
-    if (!d.readVarU32(&flags))
+    uint8_t flags;
+    if (!d.readFixedU8(&flags))
         return d.fail("expected flags");
 
-    if (flags & ~uint32_t(0x1))
-        return d.failf("unexpected bits set in flags: %" PRIu32, (flags & ~uint32_t(0x1)));
+    if (flags & ~uint8_t(0x1))
+        return d.failf("unexpected bits set in flags: %" PRIu32, (flags & ~uint8_t(0x1)));
 
     if (!d.readVarU32(&limits->initial))
         return d.fail("expected initial length");
@@ -866,11 +878,11 @@ DecodeLimits(Decoder& d, Limits* limits)
 static bool
 DecodeTableLimits(Decoder& d, TableDescVector* tables)
 {
-    uint32_t elementType;
-    if (!d.readVarU32(&elementType))
+    uint8_t elementType;
+    if (!d.readFixedU8(&elementType))
         return d.fail("expected table element type");
 
-    if (elementType != uint32_t(TypeCode::AnyFunc))
+    if (elementType != uint8_t(TypeCode::AnyFunc))
         return d.fail("expected 'anyfunc' element type");
 
     Limits limits;
@@ -914,14 +926,14 @@ DecodeGlobalType(Decoder& d, ValType* type, bool* isMutable)
     if (!DecodeValType(d, ModuleKind::Wasm, type))
         return false;
 
-    uint32_t flags;
-    if (!d.readVarU32(&flags))
+    uint8_t flags;
+    if (!d.readFixedU8(&flags))
         return d.fail("expected global flags");
 
-    if (flags & ~uint32_t(GlobalTypeImmediate::AllowedMask))
+    if (flags & ~uint8_t(GlobalTypeImmediate::AllowedMask))
         return d.fail("unexpected bits set in global flags");
 
-    *isMutable = flags & uint32_t(GlobalTypeImmediate::IsMutable);
+    *isMutable = flags & uint8_t(GlobalTypeImmediate::IsMutable);
     return true;
 }
 
@@ -972,8 +984,8 @@ DecodeImport(Decoder& d, ModuleEnvironment* env)
     if (!funcName)
         return d.fail("expected valid import func name");
 
-    uint32_t rawImportKind;
-    if (!d.readVarU32(&rawImportKind))
+    uint8_t rawImportKind;
+    if (!d.readFixedU8(&rawImportKind))
         return d.fail("failed to read import kind");
 
     DefinitionKind importKind = DefinitionKind(rawImportKind);
@@ -1272,8 +1284,8 @@ DecodeExport(Decoder& d, ModuleEnvironment* env, CStringSet* dupSet)
     if (!fieldName)
         return false;
 
-    uint32_t exportKind;
-    if (!d.readVarU32(&exportKind))
+    uint8_t exportKind;
+    if (!d.readFixedU8(&exportKind))
         return d.fail("failed to read export kind");
 
     switch (DefinitionKind(exportKind)) {

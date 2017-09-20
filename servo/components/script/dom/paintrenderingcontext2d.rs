@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::CanvasData;
-use canvas_traits::CanvasMsg;
-use canvas_traits::FromLayoutMsg;
+use canvas_traits::canvas::CanvasImageData;
+use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::canvas::FromLayoutMsg;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
@@ -58,9 +58,9 @@ impl PaintRenderingContext2D {
                            PaintRenderingContext2DBinding::Wrap)
     }
 
-    pub fn send_data(&self, sender: IpcSender<CanvasData>) {
+    pub fn send_data(&self, sender: IpcSender<CanvasImageData>) {
         let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender));
-        let _ = self.context.ipc_renderer().send(msg);
+        let _ = self.context.get_ipc_renderer().send(msg);
     }
 
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
@@ -261,6 +261,11 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
     fn ArcTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
         self.context.ArcTo(cp1x, cp1y, cp2x, cp2y, r)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
+    fn Ellipse(&self, x: f64, y: f64, rx: f64, ry: f64, rotation: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
+        self.context.Ellipse(x, y, rx, ry, rotation, start, end, ccw)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled

@@ -35,16 +35,6 @@ pub use servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
 #[cfg(feature = "gecko")]
 pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 
-/// A type that represents the previous computed values needed for restyle
-/// damage calculation.
-#[cfg(feature = "servo")]
-pub type PreExistingComputedValues = ::properties::ComputedValues;
-
-/// A type that represents the previous computed values needed for restyle
-/// damage calculation.
-#[cfg(feature = "gecko")]
-pub type PreExistingComputedValues = ::gecko_bindings::structs::nsStyleContext;
-
 /// Servo's selector parser.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorParser<'a> {
@@ -90,7 +80,7 @@ impl<'a> SelectorParser<'a> {
 ///
 /// If you're implementing a public selector for `Servo` that the end-user might
 /// customize, then you probably need to make it eager.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PseudoElementCascadeType {
     /// Eagerly cascaded pseudo-elements are "normal" pseudo-elements (i.e.
     /// `::before` and `::after`). They inherit styles normally as another
@@ -197,5 +187,10 @@ impl<T> PerPseudoElementMap<T> {
             self.entries[index] = Some(f());
         }
         Ok(self.entries[index].as_mut().unwrap())
+    }
+
+    /// Get an iterator for the entries.
+    pub fn iter(&self) -> ::std::slice::Iter<Option<T>> {
+        self.entries.iter()
     }
 }

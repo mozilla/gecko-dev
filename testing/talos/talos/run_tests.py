@@ -3,24 +3,24 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+from __future__ import absolute_import, print_function
 
 import copy
-import mozversion
 import os
 import sys
 import time
 import traceback
 import urllib
-import utils
+
 import mozhttpd
-
+import mozversion
+import utils
 from mozlog import get_proxy_logger
-
+from talos.config import get_configs, ConfigurationError
 from talos.mitmproxy import mitmproxy
 from talos.results import TalosResults
 from talos.ttest import TTest
 from talos.utils import TalosError, TalosRegression
-from talos.config import get_configs, ConfigurationError
 
 # directory of this file
 here = os.path.dirname(os.path.realpath(__file__))
@@ -118,7 +118,7 @@ def run_tests(config, browser_config):
         browser_config['extra_args'] = '--no-remote'
 
     # with addon signing for production talos, we want to develop without it
-    if browser_config['develop'] or browser_config['branch_name'] == 'Try':
+    if browser_config['develop'] or 'try' in str.lower(browser_config['branch_name']):
         browser_config['preferences']['xpinstall.signatures.required'] = False
 
     browser_config['preferences']['extensions.allow-non-mpc-extensions'] = True
@@ -195,8 +195,10 @@ def run_tests(config, browser_config):
         talos_results.add_extra_option('e10s')
 
     # stylo is another option for testing
-    if config['stylo']:
+    if config['enable_stylo']:
         talos_results.add_extra_option('stylo')
+    if config['disable_stylo']:
+        talos_results.add_extra_option('stylo_disabled')
 
     # measuring the difference of a a certain thread level
     if config.get('stylothreads', 0) > 0:

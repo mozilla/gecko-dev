@@ -235,6 +235,8 @@ public:
   NS_IMETHOD SetAllowAltSvc(bool aAllowAltSvc) override;
   NS_IMETHOD GetBeConservative(bool *aBeConservative) override;
   NS_IMETHOD SetBeConservative(bool aBeConservative) override;
+  NS_IMETHOD GetTlsFlags(uint32_t *aTlsFlags) override;
+  NS_IMETHOD SetTlsFlags(uint32_t aTlsFlags) override;
   NS_IMETHOD GetApiRedirectToURI(nsIURI * *aApiRedirectToURI) override;
   virtual MOZ_MUST_USE nsresult AddSecurityMessage(const nsAString &aMessageTag, const nsAString &aMessageCategory);
   NS_IMETHOD TakeAllSecurityMessages(nsCOMArray<nsISecurityConsoleMessage> &aMessages) override;
@@ -362,10 +364,7 @@ public: /* Necko internal use only... */
     // |EnsureUploadStreamIsCloneableComplete| to main thread.
     virtual void OnCopyComplete(nsresult aStatus);
 
-    void SetIsTrackingResource()
-    {
-      mIsTrackingResource = true;
-    }
+    void SetIsTrackingResource();
 
     const uint64_t& ChannelId() const
     {
@@ -541,6 +540,15 @@ protected:
   // Used to enforce that flag's behavior but not expose it externally.
   uint32_t                          mAllowStaleCacheContent : 1;
 
+  // True iff this request has been calculated in its request context as
+  // a non tail request.  We must remove it again when this channel is done.
+  uint32_t                          mAddedAsNonTailRequest : 1;
+
+  // An opaque flags for non-standard behavior of the TLS system.
+  // It is unlikely this will need to be set outside of telemetry studies
+  // relating to the TLS implementation.
+  uint32_t                          mTlsFlags;
+
   // Current suspension depth for this channel object
   uint32_t                          mSuspendCount;
 
@@ -611,6 +619,14 @@ protected:
 
   uint64_t mRequestContextID;
   bool EnsureRequestContextID();
+  nsCOMPtr<nsIRequestContext> mRequestContext;
+  bool EnsureRequestContext();
+
+  // Adds/removes this channel as a non-tailed request in its request context
+  // these helpers ensure we add it only once and remove it only when added
+  // via mAddedAsNonTailRequest member tracking.
+  void AddAsNonTailRequest();
+  void RemoveAsNonTailRequest();
 
   // ID of the top-level document's inner window this channel is being
   // originated from.
@@ -639,6 +655,9 @@ protected:
   // will reflect the redirect flags passed to the SetupReplacementChannel()
   // method.
   uint32_t mLastRedirectFlags;
+
+  uint64_t mReqContentLength;
+  bool mReqContentLengthDetermined;
 
   nsString mIntegrityMetadata;
 

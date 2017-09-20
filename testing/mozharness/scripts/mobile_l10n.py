@@ -202,7 +202,7 @@ class MobileSingleLocale(MockMixin, LocalesMixin, ReleaseMixin,
 
         # Android l10n builds use a non-standard location for l10n files.  Other
         # builds go to 'mozilla-central-l10n', while android builds add part of
-        # the platform name as well, like 'mozilla-central-android-api-15-l10n'.
+        # the platform name as well, like 'mozilla-central-android-api-16-l10n'.
         # So we override the branch with something that contains the platform
         # name.
         replace_dict['branch'] = c['upload_branch']
@@ -505,12 +505,6 @@ class MobileSingleLocale(MockMixin, LocalesMixin, ReleaseMixin,
         success_count = total_count = 0
         for locale in locales:
             total_count += 1
-            self.enable_mock()
-            result = self.run_compare_locales(locale)
-            self.disable_mock()
-            if result:
-                self.add_failure(locale, message="%s failed in compare-locales!" % locale)
-                continue
             if self.run_command_m([make, "installers-%s" % locale],
                                   cwd=dirs['abs_locales_dir'],
                                   env=repack_env,

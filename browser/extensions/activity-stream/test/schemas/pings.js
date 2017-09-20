@@ -2,11 +2,13 @@ const Joi = require("joi-browser");
 const {MAIN_MESSAGE_TYPE, CONTENT_MESSAGE_TYPE} = require("common/Actions.jsm");
 
 const baseKeys = {
-  client_id: Joi.string().required(),
+  // client_id will be set by PingCentre if it doesn't exist.
+  client_id: Joi.string().optional(),
   addon_version: Joi.string().required(),
   locale: Joi.string().required(),
   session_id: Joi.string(),
-  page: Joi.valid(["about:home", "about:newtab"])
+  page: Joi.valid(["about:home", "about:newtab", "unknown"]),
+  user_prefs: Joi.number().integer().required()
 };
 
 const BasePing = Joi.object().keys(baseKeys).options({allowUnknown: true});
@@ -44,7 +46,7 @@ const UserEventAction = Joi.object().keys({
       "UNPIN",
       "SAVE_TO_POCKET"
     ]).required(),
-    source: Joi.valid(["TOP_SITES"]),
+    source: Joi.valid(["TOP_SITES", "TOP_STORIES"]),
     action_position: Joi.number().integer()
   }).required(),
   meta: Joi.object().keys({
@@ -58,6 +60,20 @@ const UndesiredPing = Joi.object().keys(Object.assign({}, baseKeys, {
   event: Joi.string().required(),
   action: Joi.valid("activity_stream_undesired_event").required(),
   value: Joi.number().required()
+}));
+
+const TileSchema = Joi.object().keys({
+  id: Joi.number().integer().required(),
+  pos: Joi.number().integer()
+});
+
+const ImpressionStatsPing = Joi.object().keys(Object.assign({}, baseKeys, {
+  source: Joi.string().required(),
+  action: Joi.valid("activity_stream_impression_stats").required(),
+  tiles: Joi.array().items(TileSchema).required(),
+  click: Joi.number().integer(),
+  block: Joi.number().integer(),
+  pocket: Joi.number().integer()
 }));
 
 const PerfPing = Joi.object().keys(Object.assign({}, baseKeys, {
@@ -147,6 +163,7 @@ module.exports = {
   UndesiredPing,
   UserEventPing,
   UserEventAction,
+  ImpressionStatsPing,
   PerfPing,
   SessionPing,
   chaiAssertions

@@ -1,6 +1,6 @@
 {
   "addonDescription": {
-    "message": "Tire clipes e capturas de tela da Web e guarde-as temporariamente ou permanentemente."
+    "message": "Tire capturas de tela da Web e guarde-as temporariamente ou permanentemente."
   },
   "addonAuthorsList": {
     "message": "Mozilla <screenshots-feedback@mozilla.com>"
@@ -41,31 +41,37 @@
     }
   },
   "requestErrorTitle": {
-    "message": "Com defeito."
+    "message": "Oops! Fora do ar."
   },
   "requestErrorDetails": {
-    "message": "Desculpa! Não pudemos salvar a sua captura de tela. Por favor, tente novamente mais tarde."
+    "message": "Desculpe! Não conseguimos salvar a sua captura de tela. Por favor, tente novamente mais tarde."
   },
   "connectionErrorTitle": {
-    "message": "Não conseguimos conectar suas capturas de tela."
+    "message": "Não conseguimos nos conectar às suas capturas de tela."
   },
   "connectionErrorDetails": {
-    "message": "Por favor verifique a sua conexão com a Internet. Se consegue conecta-se à Internet, pode existir um problema temporário com o serviço capturas de tela do Firefox."
+    "message": "Por favor, verifique a sua conexão com a Internet. Se consegue conectar-se à Internet, pode haver um problema temporário com o serviço Firefox Screenshots."
   },
   "loginErrorDetails": {
-    "message": "Não conseguimos salvar a sua captura porque existe um problema com o serviço de capturas de tela do Firefox. Por favor tente novamente mais tarde."
+    "message": "Não conseguimos salvar sua captura porque há um problema com o serviço Firefox Screenshots. Por favor, tente novamente mais tarde."
   },
   "unshootablePageErrorTitle": {
     "message": "Não conseguimos capturar a tela nesta página."
   },
   "unshootablePageErrorDetails": {
-    "message": "Esta não é uma página web padrão, por isso não podemos tirar uma captura de tela da mesma."
+    "message": "Esta não é uma página web padrão, por isso não podemos capturar sua tela."
   },
   "selfScreenshotErrorTitle": {
-    "message": "Você não pode tirar uma captura em uma página de capturas de tela do Firefox!"
+    "message": "Você não pode capturar uma página do Firefox Screenshots!"
   },
   "emptySelectionErrorTitle": {
     "message": "Sua seleção é muito pequena"
+  },
+  "privateWindowErrorTitle": {
+    "message": "As capturas de tela estão desabilitadas no modo de navegação privativa"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Lamentamos o inconveniente. Estamos trabalhando neste recurso para lançamentos futuros."
   },
   "genericErrorTitle": {
     "message": "Uau! Algo correu mal com a capturas de tela do Firefox."
@@ -73,25 +79,25 @@
   "genericErrorDetails": {
     "message": "Não temos certeza do que acabou de acontecer. Tentar novamente ou fazer uma captura de uma página diferente?"
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "Capture, salve e compartilhe telas sem sair do Firefox."
   },
-  "tourHeaderTwo": {
+  "tourHeaderClickAndDrag": {
     "message": "Capture apenas o que você quer"
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "Clique e arraste para capturar apenas uma parte de uma página. Você também pode passar o mouse para realçar sua seleção."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Capture janelas ou páginas inteiras"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "Selecione os botões no canto superior direito para capturar a área visível na janela ou capturar uma página inteira."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "Como você quiser"
   },
-  "tourBodyFour": {
+  "tourBodyDownloadUpload": {
     "message": "Salve as suas capturas na Web para compartilhar mais facilmente ou baixe-as no seu computador. Você também pode clicar no botão Minhas capturas para encontras todas as capturas que tirou."
   },
   "tourSkip": {
@@ -104,10 +110,10 @@
     "message": "Slide anterior"
   },
   "tourDone": {
-    "message": "Concluir"
+    "message": "Concluído"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Usando o Firefox Screenshots, você concorda com os $TERMSANDPRIVACYNOTICETERMSLINK$ e $TERMSANDPRIVACYNOTICEPRIVACYLINK$ dos serviços na nuvem do Firefox .",
+  "termsAndPrivacyNotice2": {
+    "message": "Ao usar o Firefox Screenshots, você concorda com os $TERMSANDPRIVACYNOTICETERMSLINK$ e $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +128,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "Política de privacidade"
+  },
+  "libraryLabel": {
+    "message": "Screenshots"
   }
 }

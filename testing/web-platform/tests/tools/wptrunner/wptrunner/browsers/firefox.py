@@ -93,9 +93,6 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
     if test_type == "wdspec":
-        executor_kwargs["binary"] = kwargs["binary"]
-        executor_kwargs["webdriver_binary"] = kwargs.get("webdriver_binary")
-        executor_kwargs["webdriver_args"] = kwargs.get("webdriver_args")
         fxOptions = {}
         if kwargs["binary"]:
             fxOptions["binary"] = kwargs["binary"]
@@ -155,7 +152,7 @@ class FirefoxBrowser(Browser):
         self.certutil_binary = certutil_binary
         self.e10s = e10s
         self.binary_args = binary_args
-        if self.symbols_path and stackfix_dir:
+        if stackfix_dir:
             self.stack_fixer = get_stack_fixer_function(stackfix_dir,
                                                         self.symbols_path)
         else:

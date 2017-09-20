@@ -94,18 +94,24 @@ body,
 
 .requests-list-filter-buttons {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
-.learn-more-link {
-  color: var(--theme-highlight-blue);
-  cursor: pointer;
-  margin: 0 5px;
-  white-space: nowrap;
+/* Learn more links */
+
+.learn-more-link::before {
+  background-image: url(chrome://devtools/skin/images/help.svg);
 }
 
-.learn-more-link:hover {
-  text-decoration: underline;
+.tree-container .treeTable tr .learn-more-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+}
+
+.tree-container .treeTable tr:not(:hover) .learn-more-link {
+  opacity: 0.1;
 }
 
 /* Status bar */
@@ -132,11 +138,11 @@ body,
 }
 
 .status-bar-label.dom-content-loaded {
-  color: blue;
+  color: var(--theme-highlight-blue);
 }
 
 .status-bar-label.load {
-  color: red;
+  color: var(--theme-highlight-red);
 }
 
 /* Request list empty panel */
@@ -736,7 +742,7 @@ body,
 }
 
 .request-list-item:not(.selected):hover {
-  background-color: var(--theme-selection-background-semitransparent);
+  background-color: var(--theme-selection-background-hover);
 }
 
 .request-list-item.fromCache > .requests-list-column:not(.requests-list-waterfall) {
@@ -779,6 +785,11 @@ body,
   overflow-y: auto;
 }
 
+.panel-container .tree-container .objectBox {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
 .properties-view {
   flex-grow: 1;
 }
@@ -804,13 +815,20 @@ body,
 .devtools-checkbox-label {
   margin-inline-start: 10px;
   margin-inline-end: 3px;
+  white-space: nowrap;
 }
 
 /* Empty notices in tab panels */
 
 .empty-notice {
-  color: var(--theme-body-color-alt);
+  color: var(--theme-body-color-inactive);
   padding: 3px 8px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 24px;
 }
 
 /* Text inputs in tab panels */
@@ -855,6 +873,7 @@ body,
 
 .tree-container .treeTable tr {
   display: block;
+  position: relative;
 }
 
 /* Make right td fill available horizontal space */
@@ -882,7 +901,8 @@ body,
 }
 
 .tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel,
-.tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel:hover {
+.tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel:hover,
+.tree-container .treeTable .treeRow.tree-section > .treeValueCell:not(:hover) * {
   color: var(--theme-body-color-alt);
 }
 
@@ -982,10 +1002,6 @@ body,
 
 .headers-summary .status-text {
     width: auto!important;
-}
-
-.headers-summary .learn-more-link {
-  flex-grow: 1;
 }
 
 /* Response tabpanel */
@@ -1171,7 +1187,7 @@ body,
 
 .requests-list-network-summary-button > .summary-info-icon {
   background: url(chrome://devtools/skin/images/profiler-stopwatch.svg) no-repeat;
-  filter: var(--icon-filter);
+  filter: var(--theme-icon-filter);
   width: 16px;
   height: 16px;
   opacity: 0.8;

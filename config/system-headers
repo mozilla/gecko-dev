@@ -392,9 +392,6 @@ DiskInit.h
 dlfcn.h
 dlgs.h
 dl.h
-#ifdef MOZ_WIDGET_GONK
-dns_sd.h
-#endif
 docobj.h
 dos/dosextens.h
 dos.h
@@ -838,6 +835,7 @@ PMApplication.h
 pmddim.h
 poll.h
 Polygon.h
+port.h
 portable.h
 Power.h
 PP_ClassHeaders.cp

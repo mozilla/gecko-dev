@@ -4,7 +4,6 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
@@ -32,17 +31,17 @@ use net_traits::CoreResourceMsg::WebsocketConnect;
 use net_traits::MessageData;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
-use script_thread::{Runnable, RunnableWrapper};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 use std::thread;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 enum WebSocketRequestState {
     Connecting = 0,
     Open = 1,
@@ -68,30 +67,34 @@ mod close_code {
     pub const TLS_FAILED: u16 = 1015;
 }
 
-pub fn close_the_websocket_connection(address: Trusted<WebSocket>,
-                                      task_source: &NetworkingTaskSource,
-                                      wrapper: &RunnableWrapper,
-                                      code: Option<u16>,
-                                      reason: String) {
+pub fn close_the_websocket_connection(
+    address: Trusted<WebSocket>,
+    task_source: &NetworkingTaskSource,
+    canceller: &TaskCanceller,
+    code: Option<u16>,
+    reason: String,
+) {
     let close_task = box CloseTask {
         address: address,
         failed: false,
         code: code,
         reason: Some(reason),
     };
-    task_source.queue_with_wrapper(close_task, &wrapper).unwrap();
+    task_source.queue_with_canceller(close_task, &canceller).unwrap();
 }
 
-pub fn fail_the_websocket_connection(address: Trusted<WebSocket>,
-                                     task_source: &NetworkingTaskSource,
-                                     wrapper: &RunnableWrapper) {
+pub fn fail_the_websocket_connection(
+    address: Trusted<WebSocket>,
+    task_source: &NetworkingTaskSource,
+    canceller: &TaskCanceller,
+) {
     let close_task = box CloseTask {
         address: address,
         failed: true,
         code: Some(close_code::ABNORMAL),
         reason: None,
     };
-    task_source.queue_with_wrapper(close_task, &wrapper).unwrap();
+    task_source.queue_with_canceller(close_task, &canceller).unwrap();
 }
 
 #[dom_struct]
@@ -198,7 +201,7 @@ impl WebSocket {
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
         let task_source = global.networking_task_source();
-        let wrapper = global.get_runnable_wrapper();
+        let canceller = global.task_canceller();
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
@@ -207,22 +210,22 @@ impl WebSocket {
                             address: address.clone(),
                             protocol_in_use,
                         };
-                        task_source.queue_with_wrapper(open_thread, &wrapper).unwrap();
+                        task_source.queue_with_canceller(open_thread, &canceller).unwrap();
                     },
                     WebSocketNetworkEvent::MessageReceived(message) => {
                         let message_thread = box MessageReceivedTask {
                             address: address.clone(),
                             message: message,
                         };
-                        task_source.queue_with_wrapper(message_thread, &wrapper).unwrap();
+                        task_source.queue_with_canceller(message_thread, &canceller).unwrap();
                     },
                     WebSocketNetworkEvent::Fail => {
                         fail_the_websocket_connection(address.clone(),
-                            &task_source, &wrapper);
+                            &task_source, &canceller);
                     },
                     WebSocketNetworkEvent::Close(code, reason) => {
                         close_the_websocket_connection(address.clone(),
-                            &task_source, &wrapper, code, reason);
+                            &task_source, &canceller, code, reason);
                     },
                 }
             }
@@ -262,7 +265,7 @@ impl WebSocket {
 
             self.global()
                 .script_chan()
-                .send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task))
+                .send(CommonScriptMsg::Task(WebSocketEvent, task))
                 .unwrap();
         }
 
@@ -369,7 +372,7 @@ impl WebSocketMethods for WebSocket {
 
                 let address = Trusted::new(self);
                 let task_source = self.global().networking_task_source();
-                fail_the_websocket_connection(address, &task_source, &self.global().get_runnable_wrapper());
+                fail_the_websocket_connection(address, &task_source, &self.global().task_canceller());
             }
             WebSocketRequestState::Open => {
                 self.ready_state.set(WebSocketRequestState::Closing);
@@ -394,11 +397,9 @@ struct ConnectionEstablishedTask {
     protocol_in_use: Option<String>,
 }
 
-impl Runnable for ConnectionEstablishedTask {
-    fn name(&self) -> &'static str { "ConnectionEstablishedTask" }
-
+impl Task for ConnectionEstablishedTask {
     /// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
-    fn handler(self: Box<Self>) {
+    fn run(self: Box<Self>) {
         let ws = self.address.root();
 
         // Step 1.
@@ -421,15 +422,13 @@ struct BufferedAmountTask {
     address: Trusted<WebSocket>,
 }
 
-impl Runnable for BufferedAmountTask {
+impl Task for BufferedAmountTask {
     // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
     //
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
     // reaches step 1.  In our implementation, the bytes will already have been sent on a background
     // thread.
-    fn name(&self) -> &'static str { "BufferedAmountTask" }
-
-    fn handler(self: Box<Self>) {
+    fn run(self: Box<Self>) {
         let ws = self.address.root();
 
         ws.buffered_amount.set(0);
@@ -444,10 +443,8 @@ struct CloseTask {
     reason: Option<String>,
 }
 
-impl Runnable for CloseTask {
-    fn name(&self) -> &'static str { "CloseTask" }
-
-    fn handler(self: Box<Self>) {
+impl Task for CloseTask {
+    fn run(self: Box<Self>) {
         let ws = self.address.root();
 
         if ws.ready_state.get() == WebSocketRequestState::Closed {
@@ -486,11 +483,9 @@ struct MessageReceivedTask {
     message: MessageData,
 }
 
-impl Runnable for MessageReceivedTask {
-    fn name(&self) -> &'static str { "MessageReceivedTask" }
-
+impl Task for MessageReceivedTask {
     #[allow(unsafe_code)]
-    fn handler(self: Box<Self>) {
+    fn run(self: Box<Self>) {
         let ws = self.address.root();
         debug!("MessageReceivedTask::handler({:p}): readyState={:?}", &*ws,
                ws.ready_state.get());

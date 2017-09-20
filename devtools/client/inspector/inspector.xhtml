@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="resource://devtools/client/shared/components/splitter/split-box.css"/>
   <link rel="stylesheet" href="resource://devtools/client/inspector/layout/components/Accordion.css"/>
   <link rel="stylesheet" href="resource://devtools/client/shared/components/reps/reps.css"/>
+  <link rel="stylesheet" href="resource://devtools/client/shared/components/tree/tree-view.css"/>
 
   <script type="application/javascript"
           src="chrome://devtools/content/shared/theme-switching.js"></script>
@@ -32,7 +33,7 @@
     if (isInChrome) {
       var exports = {};
       var Cu = Components.utils;
-      var { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
+      var { require, loader } = Cu.import("resource://devtools/shared/Loader.jsm", {});
       var { BrowserLoader } = Cu.import("resource://devtools/client/shared/browser-loader.js", {});
     }
   </script>
@@ -44,7 +45,7 @@
   <div class="inspector-responsive-container theme-body inspector">
 
     <!-- Main Panel Content -->
-    <div id="inspector-main-content" class="devtools-main-content">
+    <div id="inspector-main-content" class="devtools-main-content" style="visibility: hidden;">
       <div id="inspector-toolbar" class="devtools-toolbar" nowindowdrag="true"
            data-localization-bundle="devtools/client/locales/inspector.properties">
         <button id="inspector-element-add-button" class="devtools-button"
@@ -78,7 +79,7 @@
 
     <!-- Sidebar panel definitions -->
     <div id="tabpanels" style="visibility:collapse">
-      <div id="sidebar-panel-ruleview" class="devtools-monospace theme-sidebar inspector-tabpanel"
+      <div id="sidebar-panel-ruleview" class="theme-sidebar inspector-tabpanel"
            data-localization-bundle="devtools/client/locales/inspector.properties">
         <div id="ruleview-toolbar-container" class="devtools-toolbar">
           <div id="ruleview-toolbar">
@@ -109,7 +110,7 @@
         </div>
       </div>
 
-      <div id="sidebar-panel-computedview" class="devtools-monospace theme-sidebar inspector-tabpanel"
+      <div id="sidebar-panel-computedview" class="theme-sidebar inspector-tabpanel"
            data-localization-bundle="devtools/client/locales/inspector.properties">
         <div id="computed-toolbar" class="devtools-toolbar">
           <div class="devtools-searchbox has-clear-btn">
@@ -129,13 +130,13 @@
         <div id="computed-container">
           <div id="computed-container-focusable" tabindex="-1">
             <div id="boxmodel-wrapper"></div>
-            <div id="computed-property-container" class="theme-separator" tabindex="0" dir="ltr"></div>
-            <div id="computed-no-results" hidden="" data-localization="content=inspector.noProperties"></div>
+            <div id="computed-property-container" class="devtools-monospace" tabindex="0" dir="ltr"></div>
+            <div id="computed-no-results" class="devtools-sidepanel-no-result" hidden="" data-localization="content=inspector.noProperties"></div>
           </div>
         </div>
       </div>
 
-      <div id="sidebar-panel-animationinspector" class="devtools-monospace theme-sidebar inspector-tabpanel">
+      <div id="sidebar-panel-animationinspector" class="theme-sidebar inspector-tabpanel">
         <iframe class="devtools-inspector-tab-frame"></iframe>
       </div>
     </div>

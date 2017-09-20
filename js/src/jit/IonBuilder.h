@@ -578,6 +578,7 @@ class IonBuilder
     AbortReasonOr<Ok> jsop_itermore();
     AbortReasonOr<Ok> jsop_isnoiter();
     AbortReasonOr<Ok> jsop_iterend();
+    AbortReasonOr<Ok> jsop_iternext();
     AbortReasonOr<Ok> jsop_in();
     AbortReasonOr<Ok> jsop_hasown();
     AbortReasonOr<Ok> jsop_instanceof();
@@ -683,6 +684,7 @@ class IonBuilder
     InliningResult inlineGetFirstDollarIndex(CallInfo& callInfo);
 
     // Object natives and intrinsics.
+    InliningResult inlineObject(CallInfo& callInfo);
     InliningResult inlineObjectCreate(CallInfo& callInfo);
     InliningResult inlineObjectToString(CallInfo& callInfo);
     InliningResult inlineDefineDataProperty(CallInfo& callInfo);
@@ -1079,9 +1081,6 @@ class IonBuilder
     // an outer script.
     bool failedLexicalCheck_;
 
-    // Has an iterator other than 'for in'.
-    bool nonStringIteration_;
-
 #ifdef DEBUG
     // If this script uses the lazy arguments object.
     bool hasLazyArguments_;
@@ -1196,16 +1195,18 @@ class CallInfo
     bool ignoresReturnValue_:1;
 
     bool setter_:1;
+    bool apply_:1;
 
   public:
-    CallInfo(TempAllocator& alloc, bool constructing, bool ignoresReturnValue)
+    CallInfo(TempAllocator& alloc, jsbytecode* pc, bool constructing, bool ignoresReturnValue)
       : fun_(nullptr),
         thisArg_(nullptr),
         newTargetArg_(nullptr),
         args_(alloc),
         constructing_(constructing),
         ignoresReturnValue_(ignoresReturnValue),
-        setter_(false)
+        setter_(false),
+        apply_(JSOp(*pc) == JSOP_FUNAPPLY)
     { }
 
     MOZ_MUST_USE bool init(CallInfo& callInfo) {
@@ -1249,7 +1250,16 @@ class CallInfo
         current->popn(numFormals());
     }
 
-    void pushFormals(MBasicBlock* current) {
+    AbortReasonOr<Ok> pushFormals(MIRGenerator* mir, MBasicBlock* current) {
+        // Ensure sufficient space in the slots: needed for inlining from FUNAPPLY.
+        if (apply_) {
+            uint32_t depth = current->stackDepth() + numFormals();
+            if (depth > current->nslots()) {
+                if (!current->increaseSlots(depth - current->nslots()))
+                    return mir->abort(AbortReason::Alloc);
+            }
+        }
+
         current->push(fun());
         current->push(thisArg());
 
@@ -1258,6 +1268,8 @@ class CallInfo
 
         if (constructing())
             current->push(getNewTarget());
+
+        return Ok();
     }
 
     uint32_t argc() const {

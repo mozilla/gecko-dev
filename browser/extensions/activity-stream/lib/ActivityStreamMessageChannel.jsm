@@ -11,6 +11,7 @@ Cu.import("resource://gre/modules/RemotePageManager.jsm");
 const {actionCreators: ac, actionTypes: at, actionUtils: au} = Cu.import("resource://activity-stream/common/Actions.jsm", {});
 
 const ABOUT_NEW_TAB_URL = "about:newtab";
+const ABOUT_HOME_URL = "about:home";
 
 const DEFAULT_OPTIONS = {
   dispatch(action) {
@@ -59,7 +60,8 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
    */
   middleware(store) {
     return next => action => {
-      if (!this.channel) {
+      const skipMain = action.meta && action.meta.skipMain;
+      if (!this.channel && !skipMain) {
         next(action);
         return;
       }
@@ -68,7 +70,10 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
       } else if (au.isBroadcastToContent(action)) {
         this.broadcast(action);
       }
-      next(action);
+
+      if (!skipMain) {
+        next(action);
+      }
     };
   }
 
@@ -128,16 +133,18 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
   createChannel() {
     //  Receive AboutNewTab's Remote Pages instance, if it exists, on override
     const channel = this.pageURL === ABOUT_NEW_TAB_URL && AboutNewTab.override(true);
-    this.channel = channel || new RemotePages(this.pageURL);
+    this.channel = channel || new RemotePages([ABOUT_HOME_URL, ABOUT_NEW_TAB_URL]);
     this.channel.addMessageListener("RemotePage:Init", this.onNewTabInit);
     this.channel.addMessageListener("RemotePage:Load", this.onNewTabLoad);
     this.channel.addMessageListener("RemotePage:Unload", this.onNewTabUnload);
     this.channel.addMessageListener(this.incomingMessageName, this.onMessage);
 
     // Some pages might have already loaded, so we won't get the usual message
-    for (const {loaded, portID} of this.channel.messagePorts) {
-      if (loaded) {
-        this.onNewTabLoad({target: {portID}});
+    for (const target of this.channel.messagePorts) {
+      const simulatedMsg = {target};
+      this.onNewTabInit(simulatedMsg);
+      if (target.loaded) {
+        this.onNewTabLoad(simulatedMsg);
       }
     }
   }
@@ -165,7 +172,10 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
  * @param  {obj} msg The messsage from a page that was just initialized
  */
   onNewTabInit(msg) {
-    this.onActionFromContent({type: at.NEW_TAB_INIT}, msg.target.portID);
+    this.onActionFromContent({
+      type: at.NEW_TAB_INIT,
+      data: {url: msg.target.url}
+    }, msg.target.portID);
   }
 
   /**

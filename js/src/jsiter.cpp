@@ -73,12 +73,6 @@ NativeIterator::trace(JSTracer* trc)
 
 typedef HashSet<jsid, DefaultHasher<jsid>> IdSet;
 
-static inline bool
-NewKeyValuePair(JSContext* cx, jsid id, const Value& val, MutableHandleValue rval)
-{
-    return NewValuePair(cx, IdToValue(id), val, rval);
-}
-
 template <bool CheckForDuplicates>
 static inline bool
 Enumerate(JSContext* cx, HandleObject pobj, jsid id,
@@ -542,56 +536,7 @@ js::GetPropertyKeys(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVecto
                     props);
 }
 
-size_t sCustomIteratorCount = 0;
-
-static inline bool
-GetCustomIterator(JSContext* cx, HandleObject obj, unsigned flags, MutableHandleObject objp)
-{
-    if (MOZ_UNLIKELY(!CheckRecursionLimit(cx)))
-        return false;
-
-    RootedValue rval(cx);
-    /* Check whether we have a valid __iterator__ method. */
-    HandlePropertyName name = cx->names().iteratorIntrinsic;
-    if (!GetProperty(cx, obj, obj, name, &rval))
-        return false;
-
-    /* If there is no custom __iterator__ method, we are done here. */
-    if (MOZ_LIKELY(!rval.isObject())) {
-        objp.set(nullptr);
-        return true;
-    }
-
-    if (!cx->runningWithTrustedPrincipals())
-        ++sCustomIteratorCount;
-
-    /* Otherwise call it and return that object. */
-    {
-        FixedInvokeArgs<1> args(cx);
-
-        args[0].setBoolean((flags & JSITER_FOREACH) == 0);
-
-        RootedValue thisv(cx, ObjectValue(*obj));
-        if (!js::Call(cx, rval, thisv, args, &rval))
-            return false;
-    }
-
-    if (rval.isPrimitive()) {
-        // Ignore the stack when throwing. We can't tell whether we were
-        // supposed to skip over a new.target or not.
-        JSAutoByteString bytes;
-        if (!AtomToPrintableString(cx, name, &bytes))
-            return false;
-        RootedValue val(cx, ObjectValue(*obj));
-        ReportValueError2(cx, JSMSG_BAD_TRAP_RETURN_VALUE,
-                          JSDVG_IGNORE_STACK, val, nullptr, bytes.ptr());
-        return false;
-    }
-    objp.set(&rval.toObject());
-    return true;
-}
-
-static bool legacy_iterator_next(JSContext* cx, unsigned argc, Value* vp);
+static bool property_iterator_next(JSContext* cx, unsigned argc, Value* vp);
 
 static inline PropertyIteratorObject*
 NewPropertyIteratorObject(JSContext* cx, unsigned flags)
@@ -632,13 +577,13 @@ NewPropertyIteratorObject(JSContext* cx, unsigned flags)
         // next method on the prototype doesn't break cross-global for .. in.
         // We don't have to do this for JSITER_ENUMERATE because that object always
         // takes an optimized path.
-        RootedFunction next(cx, NewNativeFunction(cx, legacy_iterator_next, 0,
+        RootedFunction next(cx, NewNativeFunction(cx, property_iterator_next, 0,
                                                   HandlePropertyName(cx->names().next)));
         if (!next)
             return nullptr;
 
         RootedValue value(cx, ObjectValue(*next));
-        if (!DefineProperty(cx, res, cx->names().next, value))
+        if (!DefineDataProperty(cx, res, cx->names().next, value))
             return nullptr;
     }
 
@@ -926,9 +871,6 @@ CanStoreInIteratorCache(JSContext* cx, JSObject* obj)
                 return false;
             if (MOZ_UNLIKELY(clasp->getNewEnumerate() || clasp->getEnumerate()))
                 return false;
-
-            if (MOZ_UNLIKELY(obj->as<NativeObject>().containsPure(cx->names().iteratorIntrinsic)))
-                return false;
         } else {
             MOZ_ASSERT(obj->is<UnboxedPlainObject>());
         }
@@ -997,18 +939,12 @@ js::GetIterator(JSContext* cx, HandleObject obj, unsigned flags)
             return Proxy::enumerate(cx, obj);
     }
 
-    RootedObject res(cx);
-    if (!GetCustomIterator(cx, obj, flags, &res))
-        return nullptr;
-    if (res) {
-        assertSameCompartment(cx, res);
-        return res;
-    }
 
     AutoIdVector keys(cx);
     if (!Snapshot(cx, obj, flags, &keys))
         return nullptr;
 
+    JSObject* res;
     if (flags & JSITER_FOREACH) {
         MOZ_ASSERT(numGuards == 0);
         res = VectorToValueIterator(cx, obj, flags, keys);
@@ -1051,12 +987,12 @@ js::CreateIterResultObject(JSContext* cx, HandleValue value, bool done)
         return nullptr;
 
     // Step 3.
-    if (!DefineProperty(cx, resultObj, cx->names().value, value))
+    if (!DefineDataProperty(cx, resultObj, cx->names().value, value))
         return nullptr;
 
     // Step 4.
-    if (!DefineProperty(cx, resultObj, cx->names().done,
-                        done ? TrueHandleValue : FalseHandleValue))
+    if (!DefineDataProperty(cx, resultObj, cx->names().done,
+                            done ? TrueHandleValue : FalseHandleValue))
     {
         return nullptr;
     }
@@ -1079,27 +1015,6 @@ js::ThrowStopIteration(JSContext* cx)
 }
 
 /*** Iterator objects ****************************************************************************/
-
-bool
-js::IteratorConstructor(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (args.length() == 0) {
-        ReportMissingArg(cx, args.calleev(), 0);
-        return false;
-    }
-
-    bool keyonly = false;
-    if (args.length() >= 2)
-        keyonly = ToBoolean(args[1]);
-    unsigned flags = JSITER_OWNONLY | (keyonly ? 0 : (JSITER_FOREACH | JSITER_KEYVALUE));
-
-    RootedObject iterobj(cx, ValueToIterator(cx, flags, args[0]));
-    if (!iterobj)
-        return false;
-    args.rval().setObject(*iterobj);
-    return true;
-}
 
 MOZ_ALWAYS_INLINE bool
 NativeIteratorNext(JSContext* cx, NativeIterator* ni, MutableHandleValue rval, bool* done)
@@ -1127,22 +1042,19 @@ NativeIteratorNext(JSContext* cx, NativeIterator* ni, MutableHandleValue rval, b
     if (!GetProperty(cx, obj, obj, id, rval))
         return false;
 
-    // JS 1.7 only: for each (let [k, v] in obj)
-    if (ni->flags & JSITER_KEYVALUE)
-        return NewKeyValuePair(cx, id, rval, rval);
     return true;
 }
 
-MOZ_ALWAYS_INLINE bool
-IsIterator(HandleValue v)
+bool
+js::IsPropertyIterator(HandleValue v)
 {
-    return v.isObject() && v.toObject().hasClass(&PropertyIteratorObject::class_);
+    return v.isObject() && v.toObject().is<PropertyIteratorObject>();
 }
 
 MOZ_ALWAYS_INLINE bool
-legacy_iterator_next_impl(JSContext* cx, const CallArgs& args)
+property_iterator_next_impl(JSContext* cx, const CallArgs& args)
 {
-    MOZ_ASSERT(IsIterator(args.thisv()));
+    MOZ_ASSERT(IsPropertyIterator(args.thisv()));
 
     RootedObject thisObj(cx, &args.thisv().toObject());
 
@@ -1163,17 +1075,11 @@ legacy_iterator_next_impl(JSContext* cx, const CallArgs& args)
 }
 
 static bool
-legacy_iterator_next(JSContext* cx, unsigned argc, Value* vp)
+property_iterator_next(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod<IsIterator, legacy_iterator_next_impl>(cx, args);
+    return CallNonGenericMethod<IsPropertyIterator, property_iterator_next_impl>(cx, args);
 }
-
-static const JSFunctionSpec legacy_iterator_methods[] = {
-    JS_SELF_HOSTED_SYM_FN(iterator, "LegacyIteratorShim", 0, 0),
-    JS_FN("next",      legacy_iterator_next,       0, 0),
-    JS_FS_END
-};
 
 size_t
 PropertyIteratorObject::sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf) const
@@ -1198,8 +1104,6 @@ PropertyIteratorObject::finalize(FreeOp* fop, JSObject* obj)
 const ClassOps PropertyIteratorObject::classOps_ = {
     nullptr, /* addProperty */
     nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
     nullptr, /* enumerate */
     nullptr, /* newEnumerate */
     nullptr, /* resolve */
@@ -1213,7 +1117,6 @@ const ClassOps PropertyIteratorObject::classOps_ = {
 
 const Class PropertyIteratorObject::class_ = {
     "Iterator",
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Iterator) |
     JSCLASS_HAS_PRIVATE |
     JSCLASS_BACKGROUND_FINALIZE,
     &PropertyIteratorObject::classOps_
@@ -1286,9 +1189,6 @@ js::NewStringIteratorObject(JSContext* cx, NewObjectKind newKind)
 JSObject*
 js::ValueToIterator(JSContext* cx, unsigned flags, HandleValue vp)
 {
-    /* JSITER_KEYVALUE must always come with JSITER_FOREACH */
-    MOZ_ASSERT_IF(flags & JSITER_KEYVALUE, flags & JSITER_FOREACH);
-
     RootedObject obj(cx);
     if (vp.isObject()) {
         /* Common case. */
@@ -1611,8 +1511,6 @@ stopiter_hasInstance(JSContext* cx, HandleObject obj, MutableHandleValue v, bool
 static const ClassOps StopIterationObjectClassOps = {
     nullptr, /* addProperty */
     nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
     nullptr, /* enumerate */
     nullptr, /* enumerate */
     nullptr, /* resolve */
@@ -1693,44 +1591,6 @@ GlobalObject::initStringIteratorProto(JSContext* cx, Handle<GlobalObject*> globa
 
     global->setReservedSlot(STRING_ITERATOR_PROTO, ObjectValue(*proto));
     return true;
-}
-
-JSObject*
-js::InitLegacyIteratorClass(JSContext* cx, HandleObject obj)
-{
-    Handle<GlobalObject*> global = obj.as<GlobalObject>();
-
-    if (global->getPrototype(JSProto_Iterator).isObject())
-        return &global->getPrototype(JSProto_Iterator).toObject();
-
-    RootedObject iteratorProto(cx);
-    iteratorProto = GlobalObject::createBlankPrototype(cx, global,
-                                                       &PropertyIteratorObject::class_);
-    if (!iteratorProto)
-        return nullptr;
-
-    NativeIterator* ni = NativeIterator::allocateIterator(cx, 0, 0);
-    if (!ni)
-        return nullptr;
-
-    iteratorProto->as<PropertyIteratorObject>().setNativeIterator(ni);
-    ni->init(nullptr, nullptr, 0 /* flags */, 0, 0);
-
-    Rooted<JSFunction*> ctor(cx);
-    ctor = GlobalObject::createConstructor(cx, IteratorConstructor, cx->names().Iterator, 2);
-    if (!ctor)
-        return nullptr;
-    if (!LinkConstructorAndPrototype(cx, ctor, iteratorProto))
-        return nullptr;
-    if (!DefinePropertiesAndFunctions(cx, iteratorProto, nullptr, legacy_iterator_methods))
-        return nullptr;
-    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_Iterator,
-                                              ctor, iteratorProto))
-    {
-        return nullptr;
-    }
-
-    return &global->getPrototype(JSProto_Iterator).toObject();
 }
 
 JSObject*

@@ -24,14 +24,15 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionContent",
-                                  "resource://gre/modules/ExtensionContent.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
-                                  "resource://gre/modules/MessageChannel.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NativeApp",
-                                  "resource://gre/modules/NativeMessaging.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
-                                  "resource://gre/modules/PromiseUtils.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "finalizationService",
+  "@mozilla.org/toolkit/finalizationwitness;1", "nsIFinalizationWitnessService");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  ExtensionContent: "resource://gre/modules/ExtensionContent.jsm",
+  MessageChannel: "resource://gre/modules/MessageChannel.jsm",
+  NativeApp: "resource://gre/modules/NativeMessaging.jsm",
+  PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
+});
 
 Cu.import("resource://gre/modules/ExtensionCommon.jsm");
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
@@ -43,6 +44,7 @@ const {
   defineLazyGetter,
   getMessageManager,
   getUniqueId,
+  getWinUtils,
   withHandlingUserInput,
 } = ExtensionUtils;
 
@@ -75,6 +77,38 @@ function injectAPI(source, dest) {
     }
   }
 }
+
+/**
+ * A finalization witness helper that wraps a sendMessage response and
+ * guarantees to either get the promise resolved, or rejected when the
+ * wrapped promise goes out of scope.
+ *
+ * Holding a reference to a returned StrongPromise doesn't prevent the
+ * wrapped promise from being garbage collected.
+ */
+const StrongPromise = {
+  wrap(promise, channelId, location) {
+    return new Promise((resolve, reject) => {
+      const tag = `${channelId}|${location}`;
+      const witness = finalizationService.make("extensions-sendMessage-witness", tag);
+      promise.then(value => {
+        witness.forget();
+        resolve(value);
+      }, error => {
+        witness.forget();
+        reject(error);
+      });
+    });
+  },
+  observe(subject, topic, tag) {
+    const pos = tag.indexOf("|");
+    const channel = tag.substr(0, pos);
+    const location = tag.substr(pos + 1);
+    const message = `Promised response from onMessage listener at ${location} went out of scope`;
+    MessageChannel.abortChannel(channel, {message});
+  },
+};
+Services.obs.addObserver(StrongPromise, "extensions-sendMessage-witness");
 
 /**
  * Abstraction for a Port object in the extension API.
@@ -317,6 +351,13 @@ class Messenger {
     this.sender = sender;
     this.filter = filter;
     this.optionalFilter = optionalFilter;
+
+    // Include the context envType in the sender info.
+    this.sender.envType = context.envType;
+
+    // Exclude messages coming from content scripts for the devtools extension contexts
+    // (See Bug 1383310).
+    this.excludeContentScriptSender = (this.context.envType === "devtools_child");
   }
 
   _sendMessage(messageManager, message, data, recipient) {
@@ -340,6 +381,7 @@ class Messenger {
           return Promise.reject({message: error.message});
         }
       });
+    holder = null;
 
     return this.context.wrapPromise(promise, responseCallback);
   }
@@ -351,17 +393,25 @@ class Messenger {
 
   _onMessage(name, filter) {
     return new EventManager(this.context, name, fire => {
+      const [location] = new this.context.cloneScope.Error().stack.split("\n", 1);
+
       let listener = {
         messageFilterPermissive: this.optionalFilter,
         messageFilterStrict: this.filter,
 
         filterMessage: (sender, recipient) => {
+          // Exclude messages coming from content scripts for the devtools extension contexts
+          // (See Bug 1383310).
+          if (this.excludeContentScriptSender && sender.envType === "content_child") {
+            return false;
+          }
+
           // Ignore the message if it was sent by this Messenger.
           return (sender.contextId !== this.context.contextId &&
                   filter(sender, recipient));
         },
 
-        receiveMessage: ({target, data: holder, sender, recipient}) => {
+        receiveMessage: ({target, data: holder, sender, recipient, channelId}) => {
           if (!this.context.active) {
             return;
           }
@@ -376,16 +426,20 @@ class Messenger {
           });
 
           let message = holder.deserialize(this.context.cloneScope);
+          holder = null;
+
           sender = Cu.cloneInto(sender, this.context.cloneScope);
           sendResponse = Cu.exportFunction(sendResponse, this.context.cloneScope);
 
           // Note: We intentionally do not use runSafe here so that any
           // errors are propagated to the message sender.
           let result = fire.raw(message, sender, sendResponse);
+          message = null;
+
           if (result instanceof this.context.cloneScope.Promise) {
-            return result;
+            return StrongPromise.wrap(result, channelId, location);
           } else if (result === true) {
-            return promise;
+            return StrongPromise.wrap(promise, channelId, location);
           }
           return response;
         },
@@ -447,6 +501,12 @@ class Messenger {
         messageFilterStrict: this.filter,
 
         filterMessage: (sender, recipient) => {
+          // Exclude messages coming from content scripts for the devtools extension contexts
+          // (See Bug 1383310).
+          if (this.excludeContentScriptSender && sender.envType === "content_child") {
+            return false;
+          }
+
           // Ignore the port if it was created by this Messenger.
           return (sender.contextId !== this.context.contextId &&
                   filter(sender, recipient));
@@ -501,7 +561,7 @@ class BrowserExtensionContent extends EventEmitter {
     Services.cpmm.addMessageListener(this.MESSAGE_EMIT_EVENT, this);
 
     defineLazyGetter(this, "scripts", () => {
-      return data.content_scripts.map(scriptData => new ExtensionContent.Script(this, scriptData));
+      return data.contentScripts.map(scriptData => new ExtensionContent.Script(this, scriptData));
     });
 
     this.webAccessibleResources = data.webAccessibleResources.map(res => new MatchGlob(res));
@@ -513,6 +573,7 @@ class BrowserExtensionContent extends EventEmitter {
     this.localeData = new LocaleData(data.localeData);
 
     this.manifest = data.manifest;
+    this.baseURL = data.baseURL;
     this.baseURI = Services.io.newURI(data.baseURL);
 
     // Only used in addon processes.
@@ -643,8 +704,7 @@ class ProxyAPIImplementation extends SchemaAPIInterface {
   callAsyncFunction(args, callback, requireUserInput) {
     if (requireUserInput) {
       let context = this.childApiManager.context;
-      let winUtils = context.contentWindow.getInterface(Ci.nsIDOMWindowUtils);
-      if (!winUtils.isHandlingUserInput) {
+      if (!getWinUtils(context.contentWindow).isHandlingUserInput) {
         let err = new context.cloneScope.Error(`${this.path} may only be called from a user input handler`);
         return context.wrapPromise(Promise.reject(err), callback);
       }
@@ -815,9 +875,6 @@ class ChildAPIManager {
    * @param {function(*)} [callback] The callback to be called when the function
    *     completes.
    * @param {object} [options] Extra options.
-   * @param {boolean} [options.noClone = false] If true, do not clone
-   *     the arguments into an extension sandbox before calling the API
-   *     method.
    * @returns {Promise|undefined} Must be void if `callback` is set, and a
    *     promise otherwise. The promise is resolved when the function completes.
    */
@@ -831,7 +888,6 @@ class ChildAPIManager {
       callId,
       path,
       args,
-      noClone: options.noClone || false,
     });
 
     return this.context.wrapPromise(deferred.promise, callback);

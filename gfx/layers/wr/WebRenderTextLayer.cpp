@@ -20,6 +20,7 @@ using namespace mozilla::gfx;
 
 void
 WebRenderTextLayer::RenderLayer(wr::DisplayListBuilder& aBuilder,
+                                wr::IpcResourceUpdateQueue& aResources,
                                 const StackingContextHelper& aSc)
 {
     if (mBounds.IsEmpty()) {
@@ -40,7 +41,10 @@ WebRenderTextLayer::RenderLayer(wr::DisplayListBuilder& aBuilder,
     );
     DumpLayerInfo("TextLayer", rect);
 
-    WrBridge()->PushGlyphs(aBuilder, mGlyphs, mFont, aSc, rect, rect);
+    for (GlyphArray& glyphs : mGlyphs) {
+        WrBridge()->PushGlyphs(aBuilder, glyphs.glyphs(), mFont,
+                               glyphs.color().value(), aSc, rect, rect);
+    }
 }
 
 } // namespace layers

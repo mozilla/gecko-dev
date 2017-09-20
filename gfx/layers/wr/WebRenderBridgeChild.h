@@ -18,6 +18,8 @@ class CompositorWidget;
 
 namespace wr {
 class DisplayListBuilder;
+class ResourceUpdateQueue;
+class IpcResourceUpdateQueue;
 }
 
 namespace layers {
@@ -27,13 +29,14 @@ class CompositorBridgeChild;
 class StackingContextHelper;
 class TextureForwarder;
 
-class UnscaledFontHashKey : public PLDHashEntryHdr
+template<class T>
+class WeakPtrHashKey : public PLDHashEntryHdr
 {
 public:
-  typedef gfx::UnscaledFont* KeyType;
-  typedef const gfx::UnscaledFont* KeyTypePointer;
+  typedef T* KeyType;
+  typedef const T* KeyTypePointer;
 
-  explicit UnscaledFontHashKey(KeyTypePointer aKey) : mKey(const_cast<KeyType>(aKey)) {}
+  explicit WeakPtrHashKey(KeyTypePointer aKey) : mKey(const_cast<KeyType>(aKey)) {}
 
   KeyType GetKey() const { return mKey; }
   bool KeyEquals(KeyTypePointer aKey) const { return aKey == mKey; }
@@ -46,8 +49,11 @@ public:
   enum { ALLOW_MEMMOVE = true };
 
 private:
-  WeakPtr<gfx::UnscaledFont> mKey;
+  WeakPtr<T> mKey;
 };
+
+typedef WeakPtrHashKey<gfx::UnscaledFont> UnscaledFontHashKey;
+typedef WeakPtrHashKey<gfx::ScaledFont> ScaledFontHashKey;
 
 class WebRenderBridgeChild final : public PWebRenderBridgeChild
                                  , public CompositableForwarder
@@ -60,10 +66,14 @@ public:
   void AddWebRenderParentCommand(const WebRenderParentCommand& aCmd);
   void AddWebRenderParentCommands(const nsTArray<WebRenderParentCommand>& aCommands);
 
-  bool DPBegin(const  gfx::IntSize& aSize);
-  void DPEnd(wr::DisplayListBuilder &aBuilder, const gfx::IntSize& aSize,
-             bool aIsSync, uint64_t aTransactionId,
-             const WebRenderScrollData& aScrollData);
+  void UpdateResources(wr::IpcResourceUpdateQueue& aResources);
+  bool BeginTransaction(const  gfx::IntSize& aSize);
+  void EndTransaction(wr::DisplayListBuilder &aBuilder,
+                      wr::IpcResourceUpdateQueue& aResources,
+                      const gfx::IntSize& aSize,
+                      bool aIsSync, uint64_t aTransactionId,
+                      const WebRenderScrollData& aScrollData,
+                      const mozilla::TimeStamp& aTxnStartTime);
   void ProcessWebRenderParentCommands();
 
   CompositorBridgeChild* GetCompositorBridgeChild();
@@ -103,17 +113,20 @@ public:
     return wr::WrImageKey{ GetNamespace(), GetNextResourceId() };
   }
 
-  void PushGlyphs(wr::DisplayListBuilder& aBuilder, const nsTArray<GlyphArray>& aGlyphs,
-                  gfx::ScaledFont* aFont, const StackingContextHelper& aSc,
+  void PushGlyphs(wr::DisplayListBuilder& aBuilder, const nsTArray<gfx::Glyph>& aGlyphs,
+                  gfx::ScaledFont* aFont, const gfx::Color& aColor,
+                  const StackingContextHelper& aSc,
                   const LayerRect& aBounds, const LayerRect& aClip);
 
-  wr::FontKey GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont);
+  wr::FontInstanceKey GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont);
 
   void RemoveExpiredFontKeys();
   void ClearReadLocks();
 
   void BeginClearCachedResources();
   void EndClearCachedResources();
+
+  ipc::IShmemAllocator* GetShmemAllocator();
 
 private:
   friend class CompositorBridgeChild;
@@ -177,6 +190,9 @@ private:
 
   uint32_t mFontKeysDeleted;
   nsDataHashtable<UnscaledFontHashKey, wr::FontKey> mFontKeys;
+
+  uint32_t mFontInstanceKeysDeleted;
+  nsDataHashtable<ScaledFontHashKey, wr::FontInstanceKey> mFontInstanceKeys;
 };
 
 } // namespace layers

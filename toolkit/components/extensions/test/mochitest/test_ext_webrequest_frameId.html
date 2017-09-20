@@ -69,29 +69,46 @@ let expected = {
   "xhr_resource_2": {
     type: "xmlhttprequest",
   },
+  // This is loaded in a sandbox iframe.
+  "file_simple_sandboxed_frame.html": {
+    type: "sub_frame",
+  },
+  "xhr_sandboxed": {
+    type: "xmlhttprequest",
+    sandboxed: true,
+  },
+  "file_image_great.png": {
+    type: "image",
+    sandboxed: true,
+  },
 };
 
-let subframeId, parentId;
 function checkDetails(details) {
   let url = new URL(details.url);
   let filename = url.pathname.split("/").pop();
   let expect = expected[filename];
   is(expect.type, details.type, `${details.type} type matches`);
   if (expect.toplevel) {
-    is(0, details.frameId, "expect load at top level");
-    is(-1, details.parentFrameId, "expect top level frame to have no parent");
+    is(details.frameId, 0, "expect load at top level");
+    is(details.parentFrameId, -1, "expect top level frame to have no parent");
   } else if (details.type == "sub_frame") {
     ok(details.frameId > 0, "expect sub_frame to load into a new frame");
     if (expect.toplevelParent) {
-      is(0, details.parentFrameId, "expect sub_frame to have top level parent");
+      is(details.parentFrameId, 0, "expect sub_frame to have top level parent");
     } else {
       ok(details.parentFrameId > 0, "expect sub_frame to have parent");
     }
-    subframeId = details.frameId;
-    parentId = details.parentFrameId;
+    expect.subframeId = details.frameId;
+    expect.parentId = details.parentFrameId;
+  } else if (expect.sandboxed) {
+    is(details.documentUrl, undefined, "null principal documentUrl for sandboxed request");
   } else {
-    is(subframeId, details.frameId, "expect load in subframe");
-    is(parentId, details.parentFrameId, "expect subframe parent");
+    // get the parent frame.
+    let purl = new URL(details.documentUrl);
+    let pfilename = purl.pathname.split("/").pop();
+    let parent = expected[pfilename];
+    is(details.frameId, parent.subframeId, "expect load in subframe");
+    is(details.parentFrameId, parent.parentId, "expect subframe parent");
   }
 }
 

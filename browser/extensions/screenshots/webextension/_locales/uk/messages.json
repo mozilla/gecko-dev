@@ -67,31 +67,37 @@
   "emptySelectionErrorTitle": {
     "message": "Обрана область є замалою"
   },
+  "privateWindowErrorTitle": {
+    "message": "Знімки екрану вимкнено в приватному перегляді"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Вибачте за незручності. Ми працюємо над цією функцією для майбутніх випусків."
+  },
   "genericErrorTitle": {
     "message": "Оу! З Firefox Screenshots щось негаразд."
   },
   "genericErrorDetails": {
     "message": "Ми не впевнені, в чому проблема. Спробувати ще раз, або ж зробити знімок іншої сторінки?"
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "Робіть знімки екрану, зберігайте та діліться ними прямо в Firefox."
   },
-  "tourHeaderTwo": {
+  "tourHeaderClickAndDrag": {
     "message": "Робіть знімки чого завгодно"
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "Клацніть і потягніть мишею для захоплення частини сторінки. Ви також можете навести курсор миші для підсвічення вибраної області."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Захоплюйте вікна або цілі сторінки"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "За допомогою кнопок у верхній правій частині обирайте захоплення видимої області вікна, або сторінки повністю."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "Як вам подобається"
   },
-  "tourBodyFour": {
+  "tourBodyDownloadUpload": {
     "message": "Зберігайте свої знімки в Інтернеті, щоб легко ними ділитися, або завантажуйте їх на свій комп'ютер. Ви також можете переглянути всі збережені знімки, натиснувши на кнопку Мої знімки."
   },
   "tourSkip": {
@@ -106,8 +112,8 @@
   "tourDone": {
     "message": "Готово"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Використовуючи Firefox Screenshots, ви погоджуєтеся з умовами хмарних послуг Firefox: $TERMSANDPRIVACYNOTICETERMSLINK$ та $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
+  "termsAndPrivacyNotice2": {
+    "message": "Використовуючи Firefox Screenshots, ви погоджуєтеся з нашими $TERMSANDPRIVACYNOTICETERMSLINK$ та $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +128,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "Повідомленням про приватність"
+  },
+  "libraryLabel": {
+    "message": "Знімки екрану"
   }
 }

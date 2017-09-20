@@ -13,6 +13,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/EventStates.h"
+#include "mozilla/HTMLEditor.h"
 #include "mozilla/PresShell.h"
 
 #include "nsCOMPtr.h"
@@ -82,8 +83,6 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #include "mozilla/Telemetry.h"
 #include "mozilla/layers/ScrollInputMethods.h"
 
-#include "nsIEditor.h"
-#include "nsIHTMLEditor.h"
 #include "nsFocusManager.h"
 #include "nsPIDOMWindow.h"
 
@@ -145,56 +144,31 @@ nsPeekOffsetStruct::nsPeekOffsetStruct(nsSelectionAmount aAmount,
 {
 }
 
-static int8_t
+// Array which contains index of each SelecionType in Selection::mDOMSelections.
+// For avoiding using if nor switch to retrieve the index, this needs to have
+// -1 for SelectionTypes which won't be created its Selection instance.
+static const int8_t kIndexOfSelections[] = {
+  -1,    // SelectionType::eInvalid
+  -1,    // SelectionType::eNone
+  0,     // SelectionType::eNormal
+  1,     // SelectionType::eSpellCheck
+  2,     // SelectionType::eIMERawClause
+  3,     // SelectionType::eIMESelectedRawClause
+  4,     // SelectionType::eIMEConvertedClause
+  5,     // SelectionType::eIMESelectedClause
+  6,     // SelectionType::eAccessibility
+  7,     // SelectionType::eFind
+  8,     // SelectionType::eURLSecondary
+  9,     // SelectionType::eURLStrikeout
+};
+
+inline int8_t
 GetIndexFromSelectionType(SelectionType aSelectionType)
 {
-  switch (aSelectionType) {
-    case SelectionType::eNormal:
-      return 0;
-    case SelectionType::eSpellCheck:
-      return 1;
-    case SelectionType::eIMERawClause:
-      return 2;
-    case SelectionType::eIMESelectedRawClause:
-      return 3;
-    case SelectionType::eIMEConvertedClause:
-      return 4;
-    case SelectionType::eIMESelectedClause:
-      return 5;
-    case SelectionType::eAccessibility:
-      return 6;
-    case SelectionType::eFind:
-      return 7;
-    case SelectionType::eURLSecondary:
-      return 8;
-    case SelectionType::eURLStrikeout:
-      return 9;
-    default:
-      return -1;
-  }
-  /* NOTREACHED */
-}
-
-static SelectionType
-GetSelectionTypeFromIndex(int8_t aIndex)
-{
-  static const SelectionType kSelectionTypes[] = {
-    SelectionType::eNormal,
-    SelectionType::eSpellCheck,
-    SelectionType::eIMERawClause,
-    SelectionType::eIMESelectedRawClause,
-    SelectionType::eIMEConvertedClause,
-    SelectionType::eIMESelectedClause,
-    SelectionType::eAccessibility,
-    SelectionType::eFind,
-    SelectionType::eURLSecondary,
-    SelectionType::eURLStrikeout
-  };
-  if (NS_WARN_IF(aIndex < 0) ||
-      NS_WARN_IF(static_cast<size_t>(aIndex) >= ArrayLength(kSelectionTypes))) {
-    return SelectionType::eNormal;
-  }
-  return kSelectionTypes[aIndex];
+  // The enum value of eInvalid is -1 and the others are sequential value
+  // starting from 0.  Therefore, |SelectionType + 1| is the index of
+  // kIndexOfSelections.
+  return kIndexOfSelections[static_cast<int8_t>(aSelectionType) + 1];
 }
 
 /*
@@ -327,9 +301,9 @@ struct MOZ_RAII AutoPrepareFocusRange
 
 nsFrameSelection::nsFrameSelection()
 {
-  for (size_t i = 0; i < kPresentSelectionTypeCount; i++){
+  for (size_t i = 0; i < ArrayLength(mDomSelections); i++) {
     mDomSelections[i] = new Selection(this);
-    mDomSelections[i]->SetType(GetSelectionTypeFromIndex(i));
+    mDomSelections[i]->SetType(kPresentSelectionTypes[i]);
   }
   mBatching = 0;
   mChangesDuringBatching = false;
@@ -384,7 +358,7 @@ nsFrameSelection::~nsFrameSelection()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsFrameSelection)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsFrameSelection)
-  for (size_t i = 0; i < kPresentSelectionTypeCount; ++i) {
+  for (size_t i = 0; i < ArrayLength(tmp->mDomSelections); ++i) {
     tmp->mDomSelections[i] = nullptr;
   }
 
@@ -406,7 +380,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
                                               GetMarkedCCGeneration())) {
     return NS_SUCCESS_INTERRUPTED_TRAVERSE;
   }
-  for (size_t i = 0; i < kPresentSelectionTypeCount; ++i) {
+  for (size_t i = 0; i < ArrayLength(tmp->mDomSelections); ++i) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDomSelections[i])
   }
 
@@ -1458,10 +1432,10 @@ nsFrameSelection::TakeFocus(nsIContent*        aNewFocus,
     bool editableCell = false;
     RefPtr<nsPresContext> context = mShell->GetPresContext();
     if (context) {
-      nsCOMPtr<nsIHTMLEditor> editor = do_QueryInterface(nsContentUtils::GetHTMLEditor(context));
-      if (editor) {
+      RefPtr<HTMLEditor> htmlEditor = nsContentUtils::GetHTMLEditor(context);
+      if (htmlEditor) {
         nsINode* cellparent = GetCellParent(aNewFocus);
-        nsCOMPtr<nsINode> editorHostNode = editor->GetActiveEditingHost();
+        nsCOMPtr<nsINode> editorHostNode = htmlEditor->GetActiveEditingHost();
         editableCell = cellparent && editorHostNode &&
                    nsContentUtils::ContentIsDescendantOf(cellparent, editorHostNode);
         if (editableCell) {
@@ -1541,11 +1515,11 @@ nsFrameSelection::LookUpSelection(nsIContent *aContent,
 
   UniquePtr<SelectionDetails> details;
 
-  for (size_t j = 0; j < kPresentSelectionTypeCount; j++) {
+  for (size_t j = 0; j < ArrayLength(mDomSelections); j++) {
     if (mDomSelections[j]) {
       details = mDomSelections[j]->LookUpSelection(aContent, aContentOffset,
                                                    aContentLength, Move(details),
-                                                   ToSelectionType(1 << j),
+                                                   kPresentSelectionTypes[j],
                                                    aSlowCheck);
     }
   }
@@ -2934,9 +2908,7 @@ nsFrameSelection::DeleteFromDocument()
   // Collapse to the new location.
   // If we deleted one character, then we move back one element.
   // FIXME  We don't know how to do this past frame boundaries yet.
-  if (isCollapsed)
-    mDomSelections[index]->Collapse(mDomSelections[index]->GetAnchorNode(), mDomSelections[index]->AnchorOffset()-1);
-  else if (mDomSelections[index]->AnchorOffset() > 0)
+  if (mDomSelections[index]->AnchorOffset() > 0)
     mDomSelections[index]->Collapse(mDomSelections[index]->GetAnchorNode(), mDomSelections[index]->AnchorOffset());
 #ifdef DEBUG
   else
@@ -2970,7 +2942,7 @@ nsFrameSelection::DisconnectFromPresShell()
   }
 
   StopAutoScrollTimer();
-  for (size_t i = 0; i < kPresentSelectionTypeCount; i++) {
+  for (size_t i = 0; i < ArrayLength(mDomSelections); i++) {
     mDomSelections[i]->Clear(nullptr);
   }
   mShell = nullptr;

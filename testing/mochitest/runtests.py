@@ -417,7 +417,10 @@ class MochitestServer(object):
         # get testing environment
         env = test_environment(xrePath=self._xrePath, log=self._log)
         env["XPCOM_DEBUG_BREAK"] = "warn"
-        env["LD_LIBRARY_PATH"] = self._xrePath
+        if "LD_LIBRARY_PATH" not in env or env["LD_LIBRARY_PATH"] is None:
+            env["LD_LIBRARY_PATH"] = self._xrePath
+        else:
+            env["LD_LIBRARY_PATH"] = ":".join([self._xrePath, env["LD_LIBRARY_PATH"]])
 
         # When running with an ASan build, our xpcshell server will also be ASan-enabled,
         # thus consuming too much resources when running together with the browser on
@@ -850,11 +853,8 @@ class MochitestDesktop(object):
             "Mochitest specific tbpl formatter")
         self.log = commandline.setup_logging("mochitest", logger_options, {"tbpl": sys.stdout})
 
-        # Jetpack flavors still don't use the structured logger. We need to process their output
-        # slightly differently.
-        structured = not self.flavor.startswith('jetpack')
         self.message_logger = MessageLogger(
-                logger=self.log, buffering=quiet, structured=structured)
+                logger=self.log, buffering=quiet, structured=True)
 
         # Max time in seconds to wait for server startup before tests will fail -- if
         # this seems big, it's mostly for debug machines where cold startup
@@ -933,7 +933,7 @@ class MochitestDesktop(object):
         if options.logFile:
             options.logFile = self.getLogFilePath(options.logFile)
 
-        if options.flavor in ('a11y', 'browser', 'chrome', 'jetpack-addon', 'jetpack-package'):
+        if options.flavor in ('a11y', 'browser', 'chrome'):
             self.makeTestConfig(options)
         else:
             if options.autorun:
@@ -1025,11 +1025,6 @@ class MochitestDesktop(object):
         if options.flavor == 'browser':
             allow_js_css = True
             testPattern = re.compile(r"browser_.+\.js")
-        elif options.flavor == 'jetpack-package':
-            allow_js_css = True
-            testPattern = re.compile(r"test-.+\.js")
-        elif options.flavor == 'jetpack-addon':
-            testPattern = re.compile(r".+\.xpi")
         elif options.flavor in ('a11y', 'chrome'):
             testPattern = re.compile(r"(browser|test)_.+\.(xul|html|js|xhtml)")
         else:
@@ -1073,7 +1068,7 @@ class MochitestDesktop(object):
 
         if options.flavor in ('a11y', 'chrome'):
             testURL = "/".join([testHost, self.CHROME_PATH])
-        elif options.flavor in ('browser', 'jetpack-addon', 'jetpack-package'):
+        elif options.flavor == 'browser':
             testURL = "about:blank"
         if options.nested_oop:
             testURL = "/".join([testHost, self.NESTED_OOP_TEST_PATH])
@@ -1401,6 +1396,8 @@ toolbar#nav-bar {
                 mozinfo.update(options.extra_mozinfo_json)
             if 'STYLO_FORCE_ENABLED' in os.environ:
                 mozinfo.update({'stylo': True})
+            if 'STYLO_FORCE_DISABLED' in os.environ:
+                mozinfo.update({'stylo': False})
 
             info = mozinfo.info
 
@@ -1657,9 +1654,9 @@ toolbar#nav-bar {
 
         return browserEnv
 
-    def killNamedOrphans(self, pname):
-        """ Kill orphan processes matching the given command name """
-        self.log.info("Checking for orphan %s processes..." % pname)
+    def killNamedProc(self, pname):
+        """ Kill processes matching the given command name """
+        self.log.info("Checking for %s processes..." % pname)
 
         def _psInfo(line):
             if pname in line:
@@ -1674,8 +1671,8 @@ toolbar#nav-bar {
             parts = line.split()
             if len(parts) == 3 and parts[0].isdigit():
                 pid = int(parts[0])
-                if parts[2] == pname and parts[1] == '1':
-                    self.log.info("killing %s orphan with pid %d" % (pname, pid))
+                if parts[2] == pname:
+                    self.log.info("killing %s with pid %d" % (pname, pid))
                     killPid(pid, self.log)
         process = mozprocess.ProcessHandler(['ps', '-o', 'pid,ppid,comm'],
                                             processOutputLine=_psKill)
@@ -1809,15 +1806,15 @@ toolbar#nav-bar {
         except AttributeError:
             pass
         try:
-            if options.topsrcdir:
-                sandbox_whitelist_paths.append(options.topsrcdir)
+            if options.objPath:
+                sandbox_whitelist_paths.append(options.objPath)
         except AttributeError:
             pass
-        if platform.system() == "Linux":
-            # Trailing slashes are needed to indicate directories on Linux
-            for idx, path in enumerate(sandbox_whitelist_paths):
-                if not path.endswith("/"):
-                    sandbox_whitelist_paths[idx] = path + "/"
+        if (platform.system() == "Linux" or
+            platform.system() in ("Windows", "Microsoft")):
+            # Trailing slashes are needed to indicate directories on Linux and Windows
+            sandbox_whitelist_paths = map(lambda p: os.path.join(p, ""),
+                                          sandbox_whitelist_paths)
 
         # interpolate preferences
         interpolation = {
@@ -2155,18 +2152,16 @@ toolbar#nav-bar {
 
             # start marionette and kick off the tests
             marionette_args = marionette_args or {}
-            port_timeout = marionette_args.pop('port_timeout', 60)
             self.marionette = Marionette(**marionette_args)
-            self.marionette.start_session(timeout=port_timeout)
+            self.marionette.start_session()
 
             # install specialpowers and mochikit addons
             addons = Addons(self.marionette)
 
-            if mozinfo.info.get('toolkit') != 'gonk':
-                addons.install(create_zip(
-                    os.path.join(here, 'extensions', 'specialpowers')
-                ))
-                addons.install(create_zip(self.mochijar))
+            addons.install(create_zip(
+                os.path.join(here, 'extensions', 'specialpowers')
+            ))
+            addons.install(create_zip(self.mochijar))
 
             self.execute_start_script()
 
@@ -2339,7 +2334,9 @@ toolbar#nav-bar {
             stepOptions = copy.deepcopy(options)
             stepOptions.repeat = VERIFY_REPEAT
             stepOptions.keep_open = False
+            stepOptions.runUntilFailure = True
             result = self.runTests(stepOptions)
+            result = result or (-2 if self.countfail > 0 else 0)
             self.message_logger.finish()
             return result
 
@@ -2349,27 +2346,7 @@ toolbar#nav-bar {
             stepOptions.keep_open = False
             for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
                 result = self.runTests(stepOptions)
-                self.message_logger.finish()
-                if result != 0:
-                    break
-            return result
-
-        def step3():
-            stepOptions = copy.deepcopy(options)
-            stepOptions.repeat = VERIFY_REPEAT
-            stepOptions.keep_open = False
-            stepOptions.environment.append("MOZ_CHAOSMODE=")
-            result = self.runTests(stepOptions)
-            self.message_logger.finish()
-            return result
-
-        def step4():
-            stepOptions = copy.deepcopy(options)
-            stepOptions.repeat = 0
-            stepOptions.keep_open = False
-            stepOptions.environment.append("MOZ_CHAOSMODE=")
-            for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
-                result = self.runTests(stepOptions)
+                result = result or (-2 if self.countfail > 0 else 0)
                 self.message_logger.finish()
                 if result != 0:
                     break
@@ -2381,12 +2358,6 @@ toolbar#nav-bar {
             ("2. Run each test %d times in a new browser each time." %
              VERIFY_REPEAT_SINGLE_BROWSER,
              step2),
-            ("3. Run each test %d times in one browser, in chaos mode." %
-             VERIFY_REPEAT,
-             step3),
-            ("4. Run each test %d times in a new browser each time, "
-             "in chaos mode." % VERIFY_REPEAT_SINGLE_BROWSER,
-             step4),
         ]
 
         stepResults = {}
@@ -2426,7 +2397,7 @@ toolbar#nav-bar {
         self.log.info('::: Test verification %s' % finalResult)
         self.log.info(':::')
 
-        return result
+        return 0
 
     def runTests(self, options):
         """ Prepare, configure, run tests and cleanup """
@@ -2437,15 +2408,18 @@ toolbar#nav-bar {
             options.e10s = False
         mozinfo.update({"e10s": options.e10s})  # for test manifest parsing.
 
+        if options.jscov_dir_prefix is not None:
+            mozinfo.update({'coverage': True})
+
         self.setTestRoot(options)
 
         # Despite our efforts to clean up servers started by this script, in practice
         # we still see infrequent cases where a process is orphaned and interferes
         # with future tests, typically because the old server is keeping the port in use.
-        # Try to avoid those failures by checking for and killing orphan servers before
+        # Try to avoid those failures by checking for and killing servers before
         # trying to start new ones.
-        self.killNamedOrphans('ssltunnel')
-        self.killNamedOrphans('xpcshell')
+        self.killNamedProc('ssltunnel')
+        self.killNamedProc('xpcshell')
 
         if options.cleanupCrashes:
             mozcrash.cleanup_pending_crash_reports()
@@ -2454,7 +2428,7 @@ toolbar#nav-bar {
         self.logPreamble(tests)
         tests = [t for t in tests if 'disabled' not in t]
 
-        # Until we have all green, this does not run on jetpack*, or a11y (for perf reasons)
+        # Until we have all green, this does not run on a11y (for perf reasons)
         if not options.runByManifest:
             return self.runMochitests(options, [t['path'] for t in tests])
 
@@ -2465,7 +2439,7 @@ toolbar#nav-bar {
         for m in sorted(manifests):
             self.log.info("Running manifest: {}".format(m))
 
-            prefs = self.prefs_by_manifest[m].pop()
+            prefs = list(self.prefs_by_manifest[m])[0]
             options.extraPrefs = origPrefs[:]
             if prefs:
                 prefs = prefs.strip().split()
@@ -2614,7 +2588,6 @@ toolbar#nav-bar {
             marionette_args = {
                 'symbols_path': options.symbolsPath,
                 'socket_timeout': options.marionette_socket_timeout,
-                'port_timeout': options.marionette_port_timeout,
                 'startup_timeout': options.marionette_startup_timeout,
             }
 

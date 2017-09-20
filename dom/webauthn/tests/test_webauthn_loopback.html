@@ -56,15 +56,30 @@ function() {
     ok(aCredInfo.rawId.length > 0, "Key ID exists");
     is(aCredInfo.id, bytesToBase64UrlSafe(aCredInfo.rawId), "Encoded Key ID and Raw Key ID match");
 
+    ok(aCredInfo.rawId === aCredInfo.rawId, "PublicKeyCredential.RawID is SameObject");
+    ok(aCredInfo.response === aCredInfo.response, "PublicKeyCredential.Response is SameObject");
+    ok(aCredInfo.response.clientDataJSON === aCredInfo.response.clientDataJSON, "PublicKeyCredential.Response.ClientDataJSON is SameObject");
+    ok(aCredInfo.response.attestationObject === aCredInfo.response.attestationObject, "PublicKeyCredential.Response.AttestationObject is SameObject");
+
     let clientData = JSON.parse(buffer2string(aCredInfo.response.clientDataJSON));
     is(clientData.challenge, bytesToBase64UrlSafe(gCredentialChallenge), "Challenge is correct");
-    // WD-05 vs. WD-06: In WD-06, the second parameter should be "window.location.origin". Fix
-    // this in Bug 1384776
-    is(clientData.origin, document.domain, "Origin is correct");
-    is(clientData.hashAlg, "S256", "Hash algorithm is correct");
+    is(clientData.origin, window.location.origin, "Origin is correct");
+    is(clientData.hashAlg, "SHA-256", "Hash algorithm is correct");
 
-    return webAuthnDecodeAttestation(aCredInfo.response.attestationObject.buffer)
+    return webAuthnDecodeCBORAttestation(aCredInfo.response.attestationObject.buffer)
     .then(function(decodedResult) {
+      // Make sure the RP ID hash matches what we calculate.
+      return crypto.subtle.digest("SHA-256", string2buffer(document.domain))
+      .then(function(calculatedHash) {
+        is(bytesToBase64(new Uint8Array(calculatedHash)), bytesToBase64(decodedResult.rpIdHash),
+           "Calculated RP ID hash must match what the browser derived.");
+        return Promise.resolve(decodedResult);
+      });
+    })
+    .then(function(decodedResult) {
+      ok(decodedResult.flags == (flag_TUP | flag_AT),
+         "User presence and Attestation Object must both be set");
+
       aCredInfo.clientDataObj = clientData;
       aCredInfo.publicKeyHandle = decodedResult.publicKeyHandle;
       aCredInfo.attestationObject = decodedResult.attestationObject;
@@ -88,34 +103,31 @@ function() {
     ok(aAssertion.rawId.length > 0, "Key ID exists");
     is(aAssertion.id, bytesToBase64UrlSafe(aAssertion.rawId), "Encoded Key ID and Raw Key ID match");
 
+    ok(aAssertion.response.authenticatorData === aAssertion.response.authenticatorData, "AuthenticatorAssertionResponse.AuthenticatorData is SameObject");
+    ok(aAssertion.response.signature === aAssertion.response.signature, "AuthenticatorAssertionResponse.Signature is SameObject");
+
     ok(aAssertion.response.authenticatorData.length > 0, "Authenticator data exists");
     let clientData = JSON.parse(buffer2string(aAssertion.response.clientDataJSON));
     is(clientData.challenge, bytesToBase64UrlSafe(gAssertionChallenge), "Challenge is correct");
-    // WD-05 vs. WD-06: In WD-06, the second parameter should be "window.location.origin". Fix
-    // this in Bug 1384776
-    is(clientData.origin, document.domain, "Origin is correct");
-    is(clientData.hashAlg, "S256", "Hash algorithm is correct");
+    is(clientData.origin, window.location.origin, "Origin is correct");
+    is(clientData.hashAlg, "SHA-256", "Hash algorithm is correct");
 
-    // Parse the signature data
-    if (aAssertion.response.signature[0] != 0x01) {
-      throw "User presence byte not set";
-    }
-    let presenceAndCounter = aAssertion.response.signature.slice(0,5);
-    let signatureValue = aAssertion.response.signature.slice(5);
-
-    let rpIdHash = aAssertion.response.authenticatorData.slice(0,32);
-
-    // Assemble the signed data and verify the signature
-    return deriveAppAndChallengeParam(window.location.host, aAssertion.response.clientDataJSON)
+    return webAuthnDecodeAttestation(aAssertion.response.authenticatorData)
+    .then(function(decodedResult) {
+      ok(decodedResult.flags == flag_TUP, "User presence must be the only flag set");
+      is(decodedResult.counter.length, 4, "Counter must be 4 bytes");
+      return deriveAppAndChallengeParam(window.location.host, aAssertion.response.clientDataJSON, decodedResult)
+    })
     .then(function(aParams) {
-      console.log(aParams.appParam, rpIdHash, presenceAndCounter, aParams.challengeParam);
+      console.log(aParams);
       console.log("ClientData buffer: ", hexEncode(aAssertion.response.clientDataJSON));
       console.log("ClientDataHash: ", hexEncode(aParams.challengeParam));
-      return assembleSignedData(aParams.appParam, presenceAndCounter, aParams.challengeParam);
+      return assembleSignedData(aParams.appParam, aParams.attestation.flags,
+                                aParams.attestation.counter, aParams.challengeParam);
     })
     .then(function(aSignedData) {
-      console.log(aPublicKey, aSignedData, signatureValue);
-      return verifySignature(aPublicKey, aSignedData, signatureValue);
+      console.log(aPublicKey, aSignedData, aAssertion.response.signature);
+      return verifySignature(aPublicKey, aSignedData, aAssertion.response.signature);
     })
   }
 

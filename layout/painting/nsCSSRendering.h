@@ -19,6 +19,7 @@
 #include "nsIFrame.h"
 #include "nsImageRenderer.h"
 #include "nsCSSRenderingBorders.h"
+#include "TextDrawTarget.h"
 
 class gfxContext;
 class nsStyleContext;
@@ -549,10 +550,9 @@ struct nsCSSRendering {
                                      nscolor       aBGColor,
                                      const nsRect& aBorderRect,
                                      int32_t       aAppUnitsPerDevPixel,
-                                     int32_t       aAppUnitsPerCSSPixel,
-                                     uint8_t       aStartBevelSide = 0,
+                                     mozilla::Side aStartBevelSide = mozilla::eSideTop,
                                      nscoord       aStartBevelOffset = 0,
-                                     uint8_t       aEndBevelSide = 0,
+                                     mozilla::Side aEndBevelSide = mozilla::eSideTop,
                                      nscoord       aEndBevelOffset = 0);
 
   // NOTE: pt, dirtyRect, lineSize, ascent, offset in the following
@@ -588,6 +588,7 @@ struct nsCSSRendering {
     uint8_t style = NS_STYLE_TEXT_DECORATION_STYLE_NONE;
     bool vertical = false;
   };
+
   struct PaintDecorationLineParams : DecorationRectParams
   {
     // No need to paint outside this rect.
@@ -599,6 +600,7 @@ struct nsCSSRendering {
     // The distance between the left edge of the given frame and the
     // position of the text as positioned without offset of the shadow.
     Float icoordInFrame = 0.0f;
+    mozilla::layout::TextDrawTarget* textDrawer = nullptr;
   };
 
   /**

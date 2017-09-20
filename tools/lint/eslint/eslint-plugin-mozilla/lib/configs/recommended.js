@@ -113,7 +113,7 @@ module.exports = {
     "func-call-spacing": "error",
 
     // Require function* name()
-    // "generator-star-spacing": ["error", {"before": false, "after": true}],
+    "generator-star-spacing": ["error", {"after": true, "before": false}],
 
     // Two space indent
     // "indent": ["error", 2, { "SwitchCase": 1 }],
@@ -153,6 +153,8 @@ module.exports = {
 
     // Use [] instead of Array()
     "no-array-constructor": "error",
+
+    "no-caller": "error",
 
     // Disallow modifying variables of class declarations.
     "no-class-assign": "error",

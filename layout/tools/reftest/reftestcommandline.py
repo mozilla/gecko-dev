@@ -136,10 +136,6 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
                           default=None,
                           help="host:port to use when connecting to Marionette")
 
-        self.add_argument("--marionette-port-timeout",
-                          default=None,
-                          help=argparse.SUPPRESS)
-
         self.add_argument("--marionette-socket-timeout",
                           default=None,
                           help=argparse.SUPPRESS)
@@ -244,7 +240,22 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
         self.add_argument("--work-path",
                           action="store",
                           dest="workPath",
-                          help="Path to the base dir of all test files.")
+                          help="Path to the base dir of all source files.")
+
+        self.add_argument("--obj-path",
+                          action="store",
+                          dest="objPath",
+                          help="Path to the base dir of all object files.")
+
+        self.add_argument("--verify",
+                          action="store_true",
+                          default=False,
+                          help="Test verification mode.")
+
+        self.add_argument("--verify-max-time",
+                          type=int,
+                          default=3600,
+                          help="Maximum time, in seconds, to run in --verify mode..")
 
         mozlog.commandline.add_logging_group(self)
 
@@ -358,7 +369,7 @@ class DesktopArgumentsParser(ReftestArgumentsParser):
         if options.debugger:
             # valgrind and some debuggers may cause Gecko to start slowly. Make sure
             # marionette waits long enough to connect.
-            options.marionette_port_timeout = 900
+            options.marionette_startup_timeout = 900
             options.marionette_socket_timeout = 540
 
         if not options.tests:

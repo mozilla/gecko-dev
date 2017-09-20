@@ -92,7 +92,6 @@ nsHTMLButtonControlFrame::ShouldClipPaintingToBorderBox()
 
 void
 nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                           const nsRect&           aDirtyRect,
                                            const nsDisplayListSet& aLists)
 {
   // Clip to our border area for event hit testing.
@@ -126,7 +125,7 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       clipState.ClipContainingBlockDescendants(rect, hasRadii ? radii : nullptr);
     }
 
-    BuildDisplayListForChild(aBuilder, mFrames.FirstChild(), aDirtyRect, set,
+    BuildDisplayListForChild(aBuilder, mFrames.FirstChild(), set,
                              DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT);
     // That should put the display items in set.Content()
   }
@@ -178,6 +177,7 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsHTMLButtonControlFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
     nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
@@ -209,7 +209,6 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   // else, we ignore child overflow -- anything that overflows beyond our
   // own border-box will get clipped when painting.
 
-  aStatus.Reset();
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize,
                                  aReflowInput, aStatus);
 

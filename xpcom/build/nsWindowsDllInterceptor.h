@@ -122,7 +122,7 @@ class WindowsDllNopSpacePatcher
   // (This should be nsTArray, but non-XPCOM code uses this class.)
   static const size_t maxPatchedFns = 16;
   byteptr_t mPatchedFns[maxPatchedFns];
-  int mPatchedFnsLen;
+  size_t mPatchedFnsLen;
 
 public:
   WindowsDllNopSpacePatcher()
@@ -135,7 +135,7 @@ public:
   {
     // Restore the mov edi, edi to the beginning of each function we patched.
 
-    for (int i = 0; i < mPatchedFnsLen; i++) {
+    for (size_t i = 0; i < mPatchedFnsLen; i++) {
       byteptr_t fn = mPatchedFns[i];
 
       // Ensure we can write to the code.
@@ -909,7 +909,25 @@ protected:
           MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
           return;
         }
-      } else if (origBytes[nOrigBytes] == 0x45) {
+      } else if (origBytes[nOrigBytes] == 0x44) {
+        // REX.R
+        COPY_CODES(1);
+
+        // TODO: Combine with the "0x89" case below in the REX.W section
+        if (origBytes[nOrigBytes] == 0x89) {
+          // mov r/m32, r32
+          COPY_CODES(1);
+          int len = CountModRmSib(origBytes + nOrigBytes);
+          if (len < 0) {
+            MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
+            return;
+          }
+          COPY_CODES(len);
+        } else {
+          MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
+          return;
+        }
+       } else if (origBytes[nOrigBytes] == 0x45) {
         // REX.R & REX.B
         COPY_CODES(1);
 

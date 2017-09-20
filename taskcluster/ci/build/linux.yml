@@ -69,7 +69,6 @@ linux64/pgo:
         max-run-time: 36000
         env:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
-    coalesce-name: linux64-pgo
     run:
         using: mozharness
         actions: [get-secrets build check-test update]
@@ -221,7 +220,6 @@ linux/opt:
         max-run-time: 36000
         env:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
-    coalesce-name: opt_linux32
     run:
         using: mozharness
         actions: [get-secrets build check-test update]
@@ -250,7 +248,6 @@ linux/debug:
         max-run-time: 36000
         env:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
-    coalesce-name: dbg_linux32
     run:
         using: mozharness
         actions: [get-secrets build check-test update]
@@ -280,7 +277,6 @@ linux/pgo:
         max-run-time: 36000
         env:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
-    coalesce-name: linux32-pgo
     run:
         using: mozharness
         actions: [get-secrets build check-test update]
@@ -425,6 +421,36 @@ linux64-asan-fuzzing/opt:
         - linux64-gcc
         - linux64-sccache
 
+linux64-asan-reporter/opt:
+    description: "Linux64 Opt ASAN Reporter Nightly"
+    index:
+        product: firefox
+        job-name: linux64-asan-reporter-opt
+    treeherder:
+        platform: linux64/asan
+        symbol: tc(BoR)
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        env:
+            PERFHERDER_EXTRA_OPTIONS: asan-reporter
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
+        max-run-time: 36000
+    run:
+        using: mozharness
+        actions: [get-secrets build check-test update]
+        config:
+            - builds/releng_base_linux_64_builds.py
+            - balrog/production.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        custom-build-variant-cfg: asan-reporter-tc
+        tooltool-downloads: public
+        need-xvfb: true
+    toolchains:
+        - linux64-clang-4
+        - linux64-gcc
+        - linux64-sccache
+
 linux64-asan/debug:
     description: "Linux64 Debug ASAN"
     index:
@@ -554,7 +580,6 @@ linux64-ccov/opt:
     index:
         product: firefox
         job-name: linux64-ccov-opt
-    needs-sccache: false
     treeherder:
         platform: linux64-ccov/opt
         symbol: tc(B)
@@ -579,7 +604,6 @@ linux64-ccov/opt:
     toolchains:
         - linux64-clang
         - linux64-gcc
-        - linux64-sccache
 
 linux64-add-on-devel/opt:
     description: "Linux64 add-on-devel"

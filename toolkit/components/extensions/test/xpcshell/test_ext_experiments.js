@@ -5,7 +5,10 @@
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
 
+AddonTestUtils.init(this);
+
 add_task(async function setup() {
+  AddonTestUtils.overrideCertDB();
   await ExtensionTestUtils.startAddonManager();
 });
 
@@ -129,7 +132,7 @@ add_task(async function test_experiments_api() {
   // Install API add-on.
   let apiAddon = await AddonManager.installTemporaryAddon(apiAddonFile);
 
-  let {ExtensionAPIs} = Cu.import("resource://gre/modules/ExtensionAPI.jsm", {});
+  let {ExtensionAPIs} = Cu.import("resource://gre/modules/ExtensionCommon.jsm", {}).ExtensionCommon;
   ok(ExtensionAPIs.apis.has("fooBar"), "Should have fooBar API.");
 
 

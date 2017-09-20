@@ -6,16 +6,26 @@
 package org.mozilla.gecko.activitystream.ranking;
 
 import android.database.Cursor;
+import android.net.Uri;
 import android.support.annotation.VisibleForTesting;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
-import org.mozilla.gecko.activitystream.homepanel.model.Highlight;
 
+import org.mozilla.gecko.SharedPreferencesHelper;
+import org.mozilla.gecko.activitystream.homepanel.model.Highlight;
+import org.mozilla.gecko.util.MapUtils;
+
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static android.R.attr.candidatesTextStyleSpans;
+import static android.R.attr.filter;
 import static java.util.Collections.sort;
 import static org.mozilla.gecko.activitystream.ranking.HighlightCandidate.FEATURE_AGE_IN_DAYS;
 import static org.mozilla.gecko.activitystream.ranking.HighlightCandidate.FEATURE_BOOKMARK_AGE_IN_MILLISECONDS;
@@ -46,6 +56,8 @@ import static org.mozilla.gecko.activitystream.ranking.RankingUtils.mapWithLimit
  */
 public class HighlightsRanking {
     private static final String LOG_TAG = "HighlightsRanking";
+
+    private static final String WWW = "www.";
 
     /** An array of all the features that are weighted while scoring. */
     private static final int[] HIGHLIGHT_WEIGHT_FEATURES;
@@ -94,8 +106,10 @@ public class HighlightsRanking {
      * THIS METHOD IS CRITICAL FOR HIGHLIGHTS PERFORMANCE AND HAS BEEN OPTIMIZED (bug 1369604):
      * please be careful what you add to it!
      */
-    public static List<Highlight> rank(Cursor cursor, int limit) {
+    public static List<Highlight> rank(Cursor cursor, int limit, boolean includeHistory, boolean includeBookmarks) {
         List<HighlightCandidate> highlights = extractFeatures(cursor);
+
+        filterOutItemsPreffedOff(highlights, includeHistory, includeBookmarks);
 
         normalize(highlights);
 
@@ -124,12 +138,12 @@ public class HighlightsRanking {
         return looselyMapCursor(cursor, new Func1<Cursor, HighlightCandidate>() {
             @Override
             public HighlightCandidate call(Cursor cursor) {
-                try {
-                    return HighlightCandidate.fromCursor(cursor, cursorIndices);
-                } catch (HighlightCandidate.InvalidHighlightCandidateException e) {
-                    Log.w(LOG_TAG, "Skipping invalid highlight item", e);
+                final HighlightCandidate candidate = HighlightCandidate.fromCursor(cursor, cursorIndices);
+                if (candidate == null) {
+                    Log.w(LOG_TAG, "Skipping invalid highlight item.");
                     return null;
                 }
+                return candidate;
             }
         });
     }
@@ -198,6 +212,23 @@ public class HighlightsRanking {
         });
     }
 
+    @VisibleForTesting static void filterOutItemsPreffedOff(List<HighlightCandidate> candidates, final boolean includeHistory, final boolean includeBookmarks) {
+        // Pinned items are not bookmarks, and will be grouped with history.
+        filter(candidates, new Func1<HighlightCandidate, Boolean>() {
+            @Override
+            public Boolean call(HighlightCandidate candidate) {
+                if (includeBookmarks && includeHistory) {
+                    return true;
+                } else if (!includeBookmarks && !includeHistory) {
+                    return false;
+                } else {
+                    // Either B or H are enabled, but not both, so we can filter on bookmark state.
+                    return includeBookmarks == candidate.isBookmark();
+                }
+            }
+        });
+    }
+
     /**
      * Remove all items without or with a negative score.
      */
@@ -240,17 +271,54 @@ public class HighlightsRanking {
     }
 
     /**
-     * Remove candidates that are pointing to the same host.
+     * Remove candidates that are pointing to the same host, with special restrictions for "www." hosts.
      */
     @VisibleForTesting static void dedupeSites(List<HighlightCandidate> candidates) {
-        final Set<String> knownHosts = new HashSet<String>();
+        final Map<String, HighlightCandidate> knownHostToHighlightCandidate = new HashMap<>();
+        final List<HighlightCandidate> wwwHighlightCandidates = new ArrayList<>();
 
         filter(candidates, new Func1<HighlightCandidate, Boolean>() {
             @Override
             public Boolean call(HighlightCandidate candidate) {
-                return knownHosts.add(candidate.getHost());
+                final String host = candidate.getHost();
+                if (!TextUtils.isEmpty(host) && host.startsWith(WWW)) {
+                    // Process "www." hosts later.
+                    wwwHighlightCandidates.add(candidate);
+                    return false;
+                }
+
+                return MapUtils.putIfAbsent(knownHostToHighlightCandidate, host, candidate) == null;
             }
         });
+
+        // Include "www." hosts only if (see ifs below):
+        for (final HighlightCandidate wwwCandidate : wwwHighlightCandidates) {
+            final String wwwCandidateHostNoWWW = wwwCandidate.getHost().substring(WWW.length()); // non-null b/c we check above.
+            final HighlightCandidate knownCandidate = knownHostToHighlightCandidate.get(wwwCandidateHostNoWWW);
+
+            // The same host without "www." does not exist.
+            if (knownCandidate == null) {
+                candidates.add(wwwCandidate);
+                return;
+            }
+
+            // Or if the same host exists, the paths differ.
+            final String wwwCandidateURLStr = wwwCandidate.getUrl();
+            final String correspondingCandidateURLStr = knownCandidate.getUrl();
+            if (wwwCandidateURLStr == null || correspondingCandidateURLStr == null) { // cannot be passed to Uri.parse.
+                // Error: could not create Uri. Let's keep the url to give the address the benefit of the doubt.
+                candidates.add(wwwCandidate);
+                return;
+            }
+
+            final String wwwCandidatePath = Uri.parse(wwwCandidateURLStr).getPath();
+            final String correspondingCandidatePath = Uri.parse(correspondingCandidateURLStr).getPath();
+            if (wwwCandidatePath != null && correspondingCandidatePath != null &&
+                    !wwwCandidatePath.equals(correspondingCandidatePath)) {
+                candidates.add(wwwCandidate);
+                return;
+            }
+        }
     }
 
     /**

@@ -55,7 +55,7 @@ public class IconGenerator implements IconLoader {
     /**
      * Generate default favicon for the given page URL.
      */
-    @VisibleForTesting static IconResponse generate(Context context, String pageURL) {
+    public static IconResponse generate(Context context, String pageURL) {
         final Resources resources = context.getResources();
         final int widthAndHeight = resources.getDimensionPixelSize(R.dimen.favicon_bg);
         final int roundedCorners = resources.getDimensionPixelOffset(R.dimen.favicon_corner_radius);
@@ -87,7 +87,7 @@ public class IconGenerator implements IconLoader {
                 (int) ((canvas.getHeight() / 2) - ((paint.descent() + paint.ascent()) / 2)),
                 paint);
 
-        return IconResponse.createGenerated(favicon, color & 0x7FFFFFFF);
+        return IconResponse.createGenerated(favicon, color);
     }
 
     /**

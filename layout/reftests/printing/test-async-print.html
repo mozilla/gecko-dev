@@ -1,33 +1,16 @@
-<!DOCTYPE html><html class="reftest-wait reftest-paged"><style>html{font-size:12pt}</style>
+<!DOCTYPE html>
+<html class="reftest-wait">
 <head>
-  <script type="text/javascript">
-
-    window.onload = function (){ 
-                      setTimeout(function() {
-                                   document.documentElement.className = "reftest-paged";},
-                                 1000);
-                    }
+  <meta charset="utf-8">
+  <link href="print.css" rel="stylesheet">
+  <script>
+    window.addEventListener("MozReftestInvalidate", function() {
+        document.getElementById("page1").innerText = 'This text should appear on page 1';
+        document.documentElement.className = "";
+    });
   </script>
 </head>
 <body>
-<table>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>xxxxxxxxxxxxxxxxxxx</td></tr></tbody>
- <tbody><tr><td>last line</td></tr></tbody>
-
-</table>
-
+  <p id="page1"></p>
 </body>
-
 </html>

@@ -9,6 +9,8 @@
 use applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use servo_arc::{Arc, ArcBorrow, NonZeroPtrMut};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
@@ -62,6 +64,15 @@ impl Drop for RuleTree {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for RuleTree {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = unsafe { ops.malloc_size_of(self.root.ptr()) };
+        n += self.root.get().size_of(ops);
+        n
+    }
+}
+
 /// A style source for the rule node. It can either be a CSS style rule or a
 /// declaration block.
 ///
@@ -69,7 +80,7 @@ impl Drop for RuleTree {
 /// could be enough to implement the rule tree, keeping the whole rule provides
 /// more debuggability, and also the ability of show those selectors to
 /// devtools.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum StyleSource {
     /// A style rule stable pointer.
     Style(Arc<Locked<StyleRule>>),
@@ -193,10 +204,11 @@ impl RuleTree {
         for (source, level) in iter {
             debug_assert!(last_level <= level, "Not really ordered");
             debug_assert!(!level.is_important(), "Important levels handled internally");
-            let (any_normal, any_important) = {
+            let any_important = {
                 let pdb = source.read(level.guard(guards));
-                (pdb.any_normal(), pdb.any_important())
+                pdb.any_important()
             };
+
             if any_important {
                 found_important = true;
                 match level {
@@ -210,16 +222,25 @@ impl RuleTree {
                     _ => {},
                 };
             }
-            if any_normal {
-                if matches!(level, Transitions) && found_important {
-                    // There can be at most one transition, and it will come at
-                    // the end of the iterator. Stash it and apply it after
-                    // !important rules.
-                    debug_assert!(transition.is_none());
-                    transition = Some(source);
-                } else {
-                    current = current.ensure_child(self.root.downgrade(), source, level);
-                }
+
+            // We don't optimize out empty rules, even though we could.
+            //
+            // Inspector relies on every rule being inserted in the normal level
+            // at least once, in order to return the rules with the correct
+            // specificity order.
+            //
+            // TODO(emilio): If we want to apply these optimizations without
+            // breaking inspector's expectations, we'd need to run
+            // selector-matching again at the inspector's request. That may or
+            // may not be a better trade-off.
+            if matches!(level, Transitions) && found_important {
+                // There can be at most one transition, and it will come at
+                // the end of the iterator. Stash it and apply it after
+                // !important rules.
+                debug_assert!(transition.is_none());
+                transition = Some(source);
+            } else {
+                current = current.ensure_child(self.root.downgrade(), source, level);
             }
             last_level = level;
         }
@@ -439,7 +460,7 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 ///
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
 #[repr(u8)]
-#[derive(Eq, PartialEq, Copy, Clone, Debug, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
@@ -780,13 +801,25 @@ impl RuleNode {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for RuleNode {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = 0;
+        for child in self.iter_children() {
+            n += unsafe { ops.malloc_size_of(child.ptr()) };
+            n += unsafe { (*child.ptr()).size_of(ops) };
+        }
+        n
+    }
+}
+
 #[derive(Clone)]
 struct WeakRuleNode {
     p: NonZeroPtrMut<RuleNode>,
 }
 
 /// A strong reference to a rule node.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct StrongRuleNode {
     p: NonZeroPtrMut<RuleNode>,
 }
@@ -983,7 +1016,7 @@ impl StrongRuleNode {
 
     unsafe fn assert_free_list_has_no_duplicates_or_null(&self) {
         assert!(cfg!(debug_assertions), "This is an expensive check!");
-        use std::collections::HashSet;
+        use hash::HashSet;
 
         let me = &*self.ptr();
         assert!(me.is_root());
@@ -1080,6 +1113,19 @@ impl StrongRuleNode {
             LonghandId::BorderTopRightRadius,
             LonghandId::BorderBottomRightRadius,
             LonghandId::BorderBottomLeftRadius,
+
+            LonghandId::BorderInlineStartColor,
+            LonghandId::BorderInlineStartStyle,
+            LonghandId::BorderInlineStartWidth,
+            LonghandId::BorderInlineEndColor,
+            LonghandId::BorderInlineEndStyle,
+            LonghandId::BorderInlineEndWidth,
+            LonghandId::BorderBlockStartColor,
+            LonghandId::BorderBlockStartStyle,
+            LonghandId::BorderBlockStartWidth,
+            LonghandId::BorderBlockEndColor,
+            LonghandId::BorderBlockEndStyle,
+            LonghandId::BorderBlockEndWidth,
         ];
 
         const PADDING_PROPS: &'static [LonghandId] = &[
@@ -1087,6 +1133,11 @@ impl StrongRuleNode {
             LonghandId::PaddingRight,
             LonghandId::PaddingBottom,
             LonghandId::PaddingLeft,
+
+            LonghandId::PaddingInlineStart,
+            LonghandId::PaddingInlineEnd,
+            LonghandId::PaddingBlockStart,
+            LonghandId::PaddingBlockEnd,
         ];
 
         // Inherited properties:
@@ -1131,6 +1182,10 @@ impl StrongRuleNode {
             LonghandId::BorderRightColor,
             LonghandId::BorderBottomColor,
             LonghandId::BorderLeftColor,
+            LonghandId::BorderInlineStartColor,
+            LonghandId::BorderInlineEndColor,
+            LonghandId::BorderBlockStartColor,
+            LonghandId::BorderBlockEndColor,
             LonghandId::TextShadow,
         ];
 
@@ -1165,15 +1220,15 @@ impl StrongRuleNode {
             for node in element_rule_node.self_and_ancestors() {
                 let source = node.style_source();
                 let declarations = if source.is_some() {
-                    source.read(node.cascade_level().guard(guards)).declarations()
+                    source.read(node.cascade_level().guard(guards)).declaration_importance_iter()
                 } else {
                     continue
                 };
 
                 // Iterate over declarations of the longhands we care about.
                 let node_importance = node.importance();
-                let longhands = declarations.iter().rev()
-                    .filter_map(|&(ref declaration, importance)| {
+                let longhands = declarations.rev()
+                    .filter_map(|(declaration, importance)| {
                         if importance != node_importance { return None }
                         match declaration.id() {
                             PropertyDeclarationId::Longhand(id) => {
@@ -1283,9 +1338,8 @@ impl StrongRuleNode {
         let mut result = (LonghandIdSet::new(), false);
         for node in iter {
             let style = node.style_source();
-            for &(ref decl, important) in style.read(node.cascade_level().guard(guards))
-                                               .declarations()
-                                               .iter() {
+            for (decl, important) in style.read(node.cascade_level().guard(guards))
+                                               .declaration_importance_iter() {
                 // Although we are only iterating over cascade levels that
                 // override animations, in a given property declaration block we
                 // can have a mixture of !important and non-!important

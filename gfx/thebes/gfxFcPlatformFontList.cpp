@@ -245,6 +245,13 @@ gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsAString& aFaceName,
     mStretch = MapFcWidth(width);
 }
 
+gfxFontEntry*
+gfxFontconfigFontEntry::Clone() const
+{
+    MOZ_ASSERT(!IsUserFont(), "we can only clone installed fonts!");
+    return new gfxFontconfigFontEntry(Name(), mFontPattern, mIgnoreFcCharmap);
+}
+
 gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsAString& aFaceName,
                                                uint16_t aWeight,
                                                int16_t aStretch,
@@ -318,39 +325,6 @@ gfxFontconfigFontEntry::~gfxFontconfigFontEntry()
 {
 }
 
-static bool
-PatternHasLang(const FcPattern *aPattern, const FcChar8 *aLang)
-{
-    FcLangSet *langset;
-
-    if (FcPatternGetLangSet(aPattern, FC_LANG, 0, &langset) != FcResultMatch) {
-        return false;
-    }
-
-    if (FcLangSetHasLang(langset, aLang) != FcLangDifferentLang) {
-        return true;
-    }
-    return false;
-}
-
-bool
-gfxFontconfigFontEntry::SupportsLangGroup(nsIAtom *aLangGroup) const
-{
-    if (!aLangGroup || aLangGroup == nsGkAtoms::Unicode) {
-        return true;
-    }
-
-    nsAutoCString fcLang;
-    gfxFcPlatformFontList* pfl = gfxFcPlatformFontList::PlatformFontList();
-    pfl->GetSampleLangForGroup(aLangGroup, fcLang);
-    if (fcLang.IsEmpty()) {
-        return true;
-    }
-
-    // is lang included in the underlying pattern?
-    return PatternHasLang(mFontPattern, ToFcChar8Ptr(fcLang.get()));
-}
-
 nsresult
 gfxFontconfigFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
 {
@@ -361,11 +335,9 @@ gfxFontconfigFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
 
     RefPtr<gfxCharacterMap> charmap;
     nsresult rv;
-    bool symbolFont = false; // currently ignored
 
     if (aFontInfoData && (charmap = GetCMAPFromFontInfo(aFontInfoData,
-                                                        mUVSOffset,
-                                                        symbolFont))) {
+                                                        mUVSOffset))) {
         rv = NS_OK;
     } else {
         uint32_t kCMAP = TRUETYPE_TAG('c','m','a','p');
@@ -373,14 +345,12 @@ gfxFontconfigFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         AutoTable cmapTable(this, kCMAP);
 
         if (cmapTable) {
-            bool unicodeFont = false; // currently ignored
             uint32_t cmapLen;
             const uint8_t* cmapData =
                 reinterpret_cast<const uint8_t*>(hb_blob_get_data(cmapTable,
                                                                   &cmapLen));
             rv = gfxFontUtils::ReadCMAP(cmapData, cmapLen,
-                                        *charmap, mUVSOffset,
-                                        unicodeFont, symbolFont);
+                                        *charmap, mUVSOffset);
         } else {
             rv = NS_ERROR_NOT_AVAILABLE;
         }
@@ -1182,6 +1152,54 @@ gfxFontconfigFontFamily::FindAllFontsForStyle(const gfxFontStyle& aFontStyle,
     }
 }
 
+static bool
+PatternHasLang(const FcPattern *aPattern, const FcChar8 *aLang)
+{
+    FcLangSet *langset;
+
+    if (FcPatternGetLangSet(aPattern, FC_LANG, 0, &langset) != FcResultMatch) {
+        return false;
+    }
+
+    if (FcLangSetHasLang(langset, aLang) != FcLangDifferentLang) {
+        return true;
+    }
+    return false;
+}
+
+bool
+gfxFontconfigFontFamily::SupportsLangGroup(nsIAtom *aLangGroup) const
+{
+    if (!aLangGroup || aLangGroup == nsGkAtoms::Unicode) {
+        return true;
+    }
+
+    nsAutoCString fcLang;
+    gfxFcPlatformFontList* pfl = gfxFcPlatformFontList::PlatformFontList();
+    pfl->GetSampleLangForGroup(aLangGroup, fcLang);
+    if (fcLang.IsEmpty()) {
+        return true;
+    }
+
+    // Before FindStyleVariations has been called, mFontPatterns will contain
+    // the font patterns.  Afterward, it'll be empty, but mAvailableFonts
+    // will contain the font entries, each of which holds a reference to its
+    // pattern.  We only check the first pattern in each list, because support
+    // for langs is considered to be consistent across all faces in a family.
+    FcPattern* fontPattern;
+    if (mFontPatterns.Length()) {
+        fontPattern = mFontPatterns[0];
+    } else if (mAvailableFonts.Length()) {
+        fontPattern = static_cast<gfxFontconfigFontEntry*>
+                      (mAvailableFonts[0].get())->GetPattern();
+    } else {
+        return true;
+    }
+
+    // is lang included in the underlying pattern?
+    return PatternHasLang(fontPattern, ToFcChar8Ptr(fcLang.get()));
+}
+
 /* virtual */
 gfxFontconfigFontFamily::~gfxFontconfigFontFamily()
  {
@@ -1516,7 +1534,7 @@ gfxFcPlatformFontList::MakePlatformFont(const nsAString& aFontName,
 bool
 gfxFcPlatformFontList::FindAndAddFamilies(const nsAString& aFamily,
                                           nsTArray<gfxFontFamily*>* aOutput,
-                                          bool aDeferOtherFamilyNamesLoading,
+                                          FindFamiliesFlags aFlags,
                                           gfxFontStyle* aStyle,
                                           gfxFloat aDevToCssSize)
 {
@@ -1601,7 +1619,7 @@ gfxFcPlatformFontList::FindAndAddFamilies(const nsAString& aFamily,
         }
         gfxPlatformFontList::FindAndAddFamilies(subst,
                                                 &cachedFamilies,
-                                                aDeferOtherFamilyNamesLoading);
+                                                aFlags);
     }
 
     // Cache the resulting list, so we don't have to do this again.
@@ -1884,7 +1902,7 @@ gfxFcPlatformFontList::FindGenericFamilies(const nsAString& aGeneric,
             AutoTArray<gfxFontFamily*,1> genericFamilies;
             if (gfxPlatformFontList::FindAndAddFamilies(mappedGenericName,
                                                         &genericFamilies,
-                                                        true)) {
+                                                        FindFamiliesFlags(0))) {
                 MOZ_ASSERT(genericFamilies.Length() == 1,
                            "expected a single family");
                 if (!prefFonts->Contains(genericFamilies[0])) {
@@ -1974,6 +1992,12 @@ gfxFcPlatformFontList::CheckFontUpdates(nsITimer *aTimer, void *aThis)
         pfl->UpdateFontList();
         pfl->ForceGlobalReflow();
     }
+}
+
+gfxFontFamily*
+gfxFcPlatformFontList::CreateFontFamily(const nsAString& aName) const
+{
+    return new gfxFontconfigFontFamily(aName);
 }
 
 #ifdef MOZ_BUNDLED_FONTS

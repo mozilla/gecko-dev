@@ -6,6 +6,7 @@
 #include "VideoDecoderChild.h"
 #include "VideoDecoderManagerChild.h"
 #include "mozilla/layers/TextureClient.h"
+#include "mozilla/Telemetry.h"
 #include "base/thread.h"
 #include "MediaInfo.h"
 #include "ImageContainer.h"
@@ -18,6 +19,24 @@ using base::Thread;
 using namespace ipc;
 using namespace layers;
 using namespace gfx;
+
+#ifdef XP_WIN
+static void
+ReportUnblacklistingTelemetry(bool isGPUProcessCrashed,
+                              const nsCString& aD3D11BlacklistedDriver,
+                              const nsCString& aD3D9BlacklistedDriver)
+{
+  const nsCString& blacklistedDLL = !aD3D11BlacklistedDriver.IsEmpty()
+                                    ? aD3D11BlacklistedDriver
+                                    : aD3D9BlacklistedDriver;
+
+  if (!blacklistedDLL.IsEmpty()) {
+    Telemetry::Accumulate(Telemetry::VIDEO_UNBLACKINGLISTING_DXVA_DRIVER_RUNTIME_STATUS,
+                          blacklistedDLL,
+                          isGPUProcessCrashed ? 1 : 0);
+  }
+}
+#endif // XP_WIN
 
 VideoDecoderChild::VideoDecoderChild()
   : mThread(VideoDecoderManagerChild::GetManagerThread())
@@ -88,13 +107,15 @@ VideoDecoderChild::RecvError(const nsresult& aError)
 }
 
 mozilla::ipc::IPCResult
-VideoDecoderChild::RecvInitComplete(const bool& aHardware,
+VideoDecoderChild::RecvInitComplete(const nsCString& aDecoderDescription,
+                                    const bool& aHardware,
                                     const nsCString& aHardwareReason,
                                     const uint32_t& aConversion)
 {
   AssertOnManagerThread();
   mInitPromise.ResolveIfExists(TrackInfo::kVideoTrack, __func__);
   mInitialized = true;
+  mDescription = aDecoderDescription;
   mIsHardwareAccelerated = aHardware;
   mHardwareAcceleratedReason = aHardwareReason;
   mConversion = static_cast<MediaDataDecoder::ConversionRequired>(aConversion);
@@ -121,53 +142,80 @@ void
 VideoDecoderChild::ActorDestroy(ActorDestroyReason aWhy)
 {
   if (aWhy == AbnormalShutdown) {
+    // GPU process crashed, record the time and send back to MFR for telemetry.
+    mGPUCrashTime = TimeStamp::Now();
+
     // Defer reporting an error until we've recreated the manager so that
     // it'll be safe for MediaFormatReader to recreate decoders
     RefPtr<VideoDecoderChild> ref = this;
     GetManager()->RunWhenRecreated(
       NS_NewRunnableFunction("dom::VideoDecoderChild::ActorDestroy", [=]() {
+        MediaResult error(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER);
+        error.SetGPUCrashTimeStamp(ref->mGPUCrashTime);
         if (ref->mInitialized) {
           mDecodedData.Clear();
-          mDecodePromise.RejectIfExists(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER,
-                                        __func__);
-          mDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER,
-                                       __func__);
-          mFlushPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER,
-                                       __func__);
+          mDecodePromise.RejectIfExists(error, __func__);
+          mDrainPromise.RejectIfExists(error, __func__);
+          mFlushPromise.RejectIfExists(error, __func__);
           // Make sure the next request will be rejected accordingly if ever
           // called.
           mNeedNewDecoder = true;
         } else {
-          ref->mInitPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER,
-                                           __func__);
+          ref->mInitPromise.RejectIfExists(error, __func__);
         }
       }));
   }
   mCanSend = false;
+
+#ifdef XP_WIN
+  ReportUnblacklistingTelemetry(aWhy == AbnormalShutdown,
+                                mBlacklistedD3D11Driver,
+                                mBlacklistedD3D9Driver);
+#endif // XP_WIN
 }
 
-bool
+MediaResult
 VideoDecoderChild::InitIPDL(const VideoInfo& aVideoInfo,
+                            float aFramerate,
                             const layers::TextureFactoryIdentifier& aIdentifier)
 {
   RefPtr<VideoDecoderManagerChild> manager =
     VideoDecoderManagerChild::GetSingleton();
-  // If the manager isn't available, then don't initialize mIPDLSelfRef and
+
+  // The manager isn't available because VideoDecoderManagerChild has been
+  // initialized with null end points and we don't want to decode video on GPU
+  // process anymore. Return false here so that we can fallback to other PDMs.
+  if (!manager) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                       RESULT_DETAIL("VideoDecoderManager is not available."));
+  }
+
+  // The manager doesn't support sending messages because we've just crashed
+  // and are working on reinitialization. Don't initialize mIPDLSelfRef and
   // leave us in an error state. We'll then immediately reject the promise when
   // Init() is called and the caller can try again. Hopefully by then the new
   // manager is ready, or we've notified the caller of it being no longer
   // available. If not, then the cycle repeats until we're ready.
-  if (!manager || !manager->CanSend()) {
-    return true;
+  if (!manager->CanSend()) {
+    return NS_OK;
   }
 
   mIPDLSelfRef = this;
   bool success = false;
-  if (manager->SendPVideoDecoderConstructor(this, aVideoInfo, aIdentifier,
-                                            &success)) {
+  nsCString errorDescription;
+  if (manager->SendPVideoDecoderConstructor(this,
+                                            aVideoInfo,
+                                            aFramerate,
+                                            aIdentifier,
+                                            &success,
+                                            &mBlacklistedD3D11Driver,
+                                            &mBlacklistedD3D9Driver,
+                                            &errorDescription)) {
     mCanSend = true;
   }
-  return success;
+
+  return success ? MediaResult(NS_OK) :
+                   MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, errorDescription);
 }
 
 void
@@ -209,8 +257,9 @@ VideoDecoderChild::Decode(MediaRawData* aSample)
   AssertOnManagerThread();
 
   if (mNeedNewDecoder) {
-    return MediaDataDecoder::DecodePromise::CreateAndReject(
-      NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER, __func__);
+    MediaResult error(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER);
+    error.SetGPUCrashTimeStamp(mGPUCrashTime);
+    return MediaDataDecoder::DecodePromise::CreateAndReject(error, __func__);
   }
   if (!mCanSend) {
     // We're here if the IPC channel has died but we're still waiting for the
@@ -248,8 +297,9 @@ VideoDecoderChild::Flush()
   mDecodePromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
   mDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
   if (mNeedNewDecoder) {
-    return MediaDataDecoder::FlushPromise::CreateAndReject(
-      NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER, __func__);
+    MediaResult error(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER);
+    error.SetGPUCrashTimeStamp(mGPUCrashTime);
+    return MediaDataDecoder::FlushPromise::CreateAndReject(error, __func__);
   }
   if (mCanSend) {
     SendFlush();
@@ -262,8 +312,9 @@ VideoDecoderChild::Drain()
 {
   AssertOnManagerThread();
   if (mNeedNewDecoder) {
-    return MediaDataDecoder::DecodePromise::CreateAndReject(
-      NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER, __func__);
+    MediaResult error(NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER);
+    error.SetGPUCrashTimeStamp(mGPUCrashTime);
+    return MediaDataDecoder::DecodePromise::CreateAndReject(error, __func__);
   }
   if (mCanSend) {
     SendDrain();
@@ -285,8 +336,16 @@ VideoDecoderChild::Shutdown()
 bool
 VideoDecoderChild::IsHardwareAccelerated(nsACString& aFailureReason) const
 {
+  AssertOnManagerThread();
   aFailureReason = mHardwareAcceleratedReason;
   return mIsHardwareAccelerated;
+}
+
+nsCString
+VideoDecoderChild::GetDescriptionName() const
+{
+  AssertOnManagerThread();
+  return mDescription;
 }
 
 void
@@ -301,6 +360,7 @@ VideoDecoderChild::SetSeekThreshold(const media::TimeUnit& aTime)
 MediaDataDecoder::ConversionRequired
 VideoDecoderChild::NeedsConversion() const
 {
+  AssertOnManagerThread();
   return mConversion;
 }
 

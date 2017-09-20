@@ -307,6 +307,50 @@ def shell(value, mozillabuild):
     return find_program(shell)
 
 
+# Python 3
+# ========
+
+option(env='PYTHON3', nargs=1, help='Python 3 interpreter (3.5 or later)')
+
+@depends('PYTHON3')
+@checking('for Python 3',
+          callback=lambda x: '%s (%s)' % (x.path, x.str_version) if x else 'no')
+@imports(_from='__builtin__', _import='Exception')
+@imports(_from='mozbuild.pythonutil', _import='find_python3_executable')
+@imports(_from='mozbuild.pythonutil', _import='python_executable_version')
+def python3(env_python):
+    python = env_python[0] if env_python else None
+
+    # If Python given by environment variable, it must work.
+    if python:
+        try:
+            version = python_executable_version(python).version
+        except Exception as e:
+            raise FatalCheckError('could not determine version of PYTHON '
+                                  '(%s): %s' % (python, e))
+
+        if version < (3, 5, 0):
+            raise FatalCheckError('PYTHON3 must point to Python 3.5 or newer; '
+                                  '%d.%d found' % (version[0], version[1]))
+    else:
+        # Fall back to the search routine.
+        python, version = find_python3_executable(min_version='3.5.0')
+
+        if not python:
+            return None
+
+        # The API returns a bytes whereas everything in configure is unicode.
+        python = python.decode('utf-8')
+
+    return namespace(
+        path=python,
+        version=version,
+        str_version='.'.join(str(v) for v in version),
+    )
+
+set_config('PYTHON3', depends_if(python3)(lambda p: p.path))
+set_config('PYTHON3_VERSION', depends_if(python3)(lambda p: p.str_version))
+
 # Source checkout and version control integration.
 # ================================================
 
@@ -421,6 +465,24 @@ def exposed_vcs_checkout_type(vcs_checkout_type, hg, git, automation):
         raise FatalCheckError('unhandled VCS type: %s' % vcs_checkout_type)
 
 set_config('VCS_CHECKOUT_TYPE', exposed_vcs_checkout_type)
+
+# Obtain a Repository interface for the current VCS repository.
+@depends(check_build_environment, exposed_vcs_checkout_type, hg, git)
+@imports(_from='mozversioncontrol', _import='get_repository_object')
+def vcs_repository(build_env, vcs_checkout_type, hg, git):
+    if vcs_checkout_type == 'hg':
+        return get_repository_object(build_env.topsrcdir, hg=hg)
+    elif vcs_checkout_type == 'git':
+        return get_repository_object(build_env.topsrcdir, git=git)
+    elif vcs_checkout_type:
+        raise FatalCheckError('unhandled VCS type: %s' % vcs_checkout_type)
+
+@depends_if(vcs_repository)
+@checking('for sparse checkout')
+def vcs_sparse_checkout(repo):
+    return repo.sparse_checkout_present()
+
+set_config('VCS_SPARSE_CHECKOUT', vcs_sparse_checkout)
 
 # Host and target systems
 # ==============================================================

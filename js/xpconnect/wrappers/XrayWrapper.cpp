@@ -291,7 +291,7 @@ ReportWrapperDenial(JSContext* cx, HandleId id, WrapperDenialType type, const ch
         MOZ_ASSERT(type == WrapperDenialForCOW);
         errorMessage.emplace("Security wrapper denied access to property %s on privileged "
                              "Javascript object. Support for exposing privileged objects "
-                             "to untrusted content via __exposedProps__ is being gradually "
+                             "to untrusted content via __exposedProps__ has been "
                              "removed - use WebIDL bindings or Components.utils.cloneInto "
                              "instead. Note that only the first denied property access from a "
                              "given global object will be reported.",
@@ -451,11 +451,19 @@ TryResolvePropertyFromSpecs(JSContext* cx, HandleId id, HandleObject holder,
         }
     }
     if (psMatch) {
+        // The generic Xray machinery only defines non-own properties on the holder.
+        // This is broken, and will be fixed at some point, but for now we need to
+        // cache the value explicitly. See the corresponding call to
+        // JS_GetPropertyById at the top of JSXrayTraits::resolveOwnProperty.
+        //
+        // Note also that the public-facing API here doesn't give us a way to
+        // pass along JITInfo. It's probably ok though, since Xrays are already
+        // pretty slow.
         desc.value().setUndefined();
-        RootedFunction getterObj(cx);
-        RootedFunction setterObj(cx);
         unsigned flags = psMatch->flags;
         if (psMatch->isAccessor()) {
+            RootedFunction getterObj(cx);
+            RootedFunction setterObj(cx);
             if (psMatch->isSelfHosted()) {
                 getterObj = JS::GetSelfHostedFunction(cx, psMatch->accessors.getter.selfHosted.funname, id, 0);
                 if (!getterObj)
@@ -475,32 +483,26 @@ TryResolvePropertyFromSpecs(JSContext* cx, HandleId id, HandleObject holder,
                                                  JSSetterOp));
             }
             desc.setAttributes(flags);
+            if (!JS_DefinePropertyById(cx, holder, id,
+                                       JS_PROPERTYOP_GETTER(desc.getter()),
+                                       JS_PROPERTYOP_SETTER(desc.setter()),
+                                       // This particular descriptor, unlike most,
+                                       // actually stores JSNatives directly,
+                                       // since we just set it up.  Do NOT pass
+                                       // JSPROP_PROPOP_ACCESSORS here!
+                                       desc.attributes()))
+            {
+                return false;
+            }
         } else {
             RootedValue v(cx);
             if (!psMatch->getValue(cx, &v))
                 return false;
-            desc.value().set(v);
-            desc.setAttributes(flags & ~JSPROP_INTERNAL_USE_BIT);
+            if (!JS_DefinePropertyById(cx, holder, id, v, flags & ~JSPROP_INTERNAL_USE_BIT))
+                return false;
         }
 
-        // The generic Xray machinery only defines non-own properties on the holder.
-        // This is broken, and will be fixed at some point, but for now we need to
-        // cache the value explicitly. See the corresponding call to
-        // JS_GetPropertyById at the top of JSXrayTraits::resolveOwnProperty.
-        //
-        // Note also that the public-facing API here doesn't give us a way to
-        // pass along JITInfo. It's probably ok though, since Xrays are already
-        // pretty slow.
-        return JS_DefinePropertyById(cx, holder, id,
-                                     desc.value(),
-                                     // This particular descriptor, unlike most,
-                                     // actually stores JSNatives directly,
-                                     // since we just set it up.  Do NOT pass
-                                     // JSPROP_PROPOP_ACCESSORS here!
-                                     desc.attributes(),
-                                     JS_PROPERTYOP_GETTER(desc.getter()),
-                                     JS_PROPERTYOP_SETTER(desc.setter())) &&
-               JS_GetOwnPropertyDescriptorById(cx, holder, id, desc);
+        return JS_GetOwnPropertyDescriptorById(cx, holder, id, desc);
     }
 
     return true;
@@ -1094,7 +1096,7 @@ ExpandoObjectFinalize(JSFreeOp* fop, JSObject* obj)
 
 const JSClassOps XrayExpandoObjectClassOps = {
     nullptr, nullptr, nullptr, nullptr,
-    nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr,
     ExpandoObjectFinalize
 };
 
@@ -1648,9 +1650,8 @@ XrayTraits::resolveOwnProperty(JSContext* cx, HandleObject wrapper, HandleObject
     {
         if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found))
             return false;
-        if (!found && !JS_DefinePropertyById(cx, holder, id, UndefinedHandleValue,
-                                             JSPROP_ENUMERATE | JSPROP_SHARED,
-                                             wrappedJSObject_getter)) {
+        if (!found && !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getter, nullptr,
+                                             JSPROP_ENUMERATE | JSPROP_SHARED)) {
             return false;
         }
         if (!JS_GetOwnPropertyDescriptorById(cx, holder, id, desc))
@@ -2219,10 +2220,10 @@ RecreateLostWaivers(JSContext* cx, const PropertyDescriptor* orig,
         orig->value.isObject() &&
         WrapperFactory::HasWaiveXrayFlag(&orig->value.toObject());
     bool getterWasWaived =
-        (orig->attrs & JSPROP_GETTER) &&
+        (orig->attrs & JSPROP_GETTER) && orig->getter &&
         WrapperFactory::HasWaiveXrayFlag(JS_FUNC_TO_DATA_PTR(JSObject*, orig->getter));
     bool setterWasWaived =
-        (orig->attrs & JSPROP_SETTER) &&
+        (orig->attrs & JSPROP_SETTER) && orig->setter &&
         WrapperFactory::HasWaiveXrayFlag(JS_FUNC_TO_DATA_PTR(JSObject*, orig->setter));
 
     // Recreate waivers. Note that for value, we need an extra UncheckedUnwrap

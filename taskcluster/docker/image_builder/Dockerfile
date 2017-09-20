@@ -21,12 +21,13 @@ ADD download-and-compress /usr/local/bin/download-and-compress
 ADD setup.sh            /setup/setup.sh
 RUN bash /setup/setup.sh
 
-# Setup a workspace that won't use AUFS
-VOLUME /home/worker/workspace
+# Setup a workspace that won't use AUFS.
+VOLUME /builds/worker/checkouts
+VOLUME /builds/worker/workspace
 
 # Set variable normally configured at login, by the shells parent process, these
 # are taken from GNU su manual
-ENV           HOME          /home/worker
+ENV           HOME          /builds/worker
 ENV           SHELL         /bin/bash
 ENV           USER          worker
 ENV           LOGNAME       worker
@@ -34,8 +35,8 @@ ENV           HOSTNAME      taskcluster-worker
 ENV           LC_ALL        C
 
 # Create worker user
-RUN useradd -d /home/worker -s /bin/bash -m worker
+RUN useradd -d /builds/worker -s /bin/bash -m worker
 
 # Set some sane defaults
-WORKDIR /home/worker/
+WORKDIR /builds/worker/
 CMD     build-image.sh

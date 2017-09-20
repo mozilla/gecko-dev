@@ -222,6 +222,11 @@ public:
 
   wr::PipelineId GetNextPipelineId();
 
+  // Must only be called from the main thread. Ensures that any paints from
+  // previous frames have been flushed. The main thread blocks until the
+  // operation completes.
+  void FlushAsyncPaints();
+
   // Must only be called from the main thread. Notifies the CompositorBridge
   // that the paint thread is going to begin painting asynchronously.
   void NotifyBeginAsyncPaint(CapturedPaintState* aState);
@@ -230,15 +235,21 @@ public:
   // that the paint thread has finished an asynchronous paint request.
   void NotifyFinishedAsyncPaint(CapturedPaintState* aState);
 
+  // Must only be called from the main thread. Notifies the CompositorBridge
+  // that the paint thread is going to perform texture synchronization at the
+  // end of async painting, and should postpone messages if needed until
+  // finished.
+  void NotifyBeginAsyncEndLayerTransaction();
+
+  // Must only be called from the paint thread. Notifies the CompositorBridge
+  // that the paint thread has finished all async paints and texture syncs from
+  // a given transaction and may resume sending messages.
+  void NotifyFinishedAsyncEndLayerTransaction();
+
   // Must only be called from the main thread. Notifies the CompoistorBridge
   // that a transaction is about to be sent, and if the paint thread is
   // currently painting, to begin delaying IPC messages.
   void PostponeMessagesIfAsyncPainting();
-
-  // Must only be called from the main thread. Ensures that any paints from
-  // previous frames have been flushed. The main thread blocks until the
-  // operation completes.
-  void FlushAsyncPaints();
 
 private:
   // Private destructor, to discourage deletion outside of Release():
@@ -273,6 +284,9 @@ private:
   mozilla::ipc::IPCResult RecvObserveLayerUpdate(const uint64_t& aLayersId,
                                                  const uint64_t& aEpoch,
                                                  const bool& aActive) override;
+
+  virtual mozilla::ipc::IPCResult
+  RecvNotifyWebRenderError(const WebRenderError& aError) override;
 
   uint64_t GetNextResourceId();
 
@@ -366,6 +380,9 @@ private:
   // PLayerTransaction on this bridge. This is R/W on both the main and paint
   // threads, and must be accessed within the paint lock.
   size_t mOutstandingAsyncPaints;
+
+  // Whether we are waiting for an async paint end transaction
+  bool mOutstandingAsyncEndTransaction;
 
   // True if this CompositorBridge is currently delaying its messages until the
   // paint thread completes. This is R/W on both the main and paint threads, and

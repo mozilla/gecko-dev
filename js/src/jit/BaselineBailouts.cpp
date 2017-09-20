@@ -85,7 +85,7 @@ class BufferPointer
  */
 struct BaselineStackBuilder
 {
-    JitFrameIterator& iter_;
+    const JSJitFrameIter& iter_;
     JitFrameLayout* frame_;
 
     static size_t HeaderSize() {
@@ -99,7 +99,7 @@ struct BaselineStackBuilder
 
     size_t framePushed_;
 
-    BaselineStackBuilder(JitFrameIterator& iter, size_t initialSize)
+    BaselineStackBuilder(const JSJitFrameIter& iter, size_t initialSize)
       : iter_(iter),
         frame_(static_cast<JitFrameLayout*>(iter.current())),
         bufferTotal_(initialSize),
@@ -428,10 +428,10 @@ struct BaselineStackBuilder
 class SnapshotIteratorForBailout : public SnapshotIterator
 {
     JitActivation* activation_;
-    JitFrameIterator& iter_;
+    const JSJitFrameIter& iter_;
 
   public:
-    SnapshotIteratorForBailout(JitActivation* activation, JitFrameIterator& iter)
+    SnapshotIteratorForBailout(JitActivation* activation, const JSJitFrameIter& iter)
       : SnapshotIterator(iter, activation->bailoutData()->machineState()),
         activation_(activation),
         iter_(iter)
@@ -1493,8 +1493,9 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
 }
 
 uint32_t
-jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation, JitFrameIterator& iter,
-                          bool invalidate, BaselineBailoutInfo** bailoutInfo,
+jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
+                          const JSJitFrameIter& iter, bool invalidate,
+                          BaselineBailoutInfo** bailoutInfo,
                           const ExceptionBailoutInfo* excInfo)
 {
     MOZ_ASSERT(bailoutInfo != nullptr);
@@ -1781,6 +1782,18 @@ HandleLexicalCheckFailure(JSContext* cx, HandleScript outerScript, HandleScript 
         Invalidate(cx, innerScript);
 }
 
+static void
+HandleIterNextNonStringBailout(JSContext* cx, HandleScript outerScript, HandleScript innerScript)
+{
+    JitSpew(JitSpew_IonBailouts, "Non-string iterator value %s:%zu, inlined into %s:%zu",
+            innerScript->filename(), innerScript->lineno(),
+            outerScript->filename(), outerScript->lineno());
+
+    // This should only happen when legacy generators are used.
+    ForbidCompilation(cx, innerScript);
+    InvalidateAfterBailout(cx, outerScript, "non-string iterator value");
+}
+
 static bool
 CopyFromRematerializedFrame(JSContext* cx, JitActivation* act, uint8_t* fp, size_t inlineDepth,
                             BaselineFrame* frame)
@@ -1879,7 +1892,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfo)
     RootedScript outerScript(cx, nullptr);
 
     MOZ_ASSERT(cx->currentlyRunningInJit());
-    JitFrameIterator iter(cx);
+    JSJitFrameIter iter(cx);
     uint8_t* outerFp = nullptr;
 
     // Iter currently points at the exit frame.  Get the previous frame
@@ -1941,7 +1954,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfo)
     // on.
     JitActivation* act = cx->activation()->asJit();
     if (act->hasRematerializedFrame(outerFp)) {
-        JitFrameIterator iter(cx);
+        JSJitFrameIter iter(cx);
         size_t inlineDepth = numFrames;
         bool ok = true;
         while (inlineDepth > 0) {
@@ -2016,10 +2029,13 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfo)
       case Bailout_OverflowInvalidate:
         outerScript->setHadOverflowBailout();
         MOZ_FALLTHROUGH;
-      case Bailout_NonStringInputInvalidate:
       case Bailout_DoubleOutput:
       case Bailout_ObjectIdentityOrTypeGuard:
         HandleBaselineInfoBailout(cx, outerScript, innerScript);
+        break;
+
+      case Bailout_IterNextNonString:
+        HandleIterNextNonStringBailout(cx, outerScript, innerScript);
         break;
 
       case Bailout_ArgumentCheck:

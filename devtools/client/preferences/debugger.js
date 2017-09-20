@@ -6,7 +6,6 @@ pref("devtools.debugger.new-debugger-frontend", true);
 // Enable the Debugger
 pref("devtools.debugger.enabled", true);
 pref("devtools.debugger.chrome-debugging-host", "localhost");
-pref("devtools.debugger.chrome-debugging-port", 6080);
 pref("devtools.debugger.chrome-debugging-websocket", false);
 pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-timeout", 20000);
@@ -39,3 +38,6 @@ pref("devtools.debugger.expressions", "[]");
 pref("devtools.debugger.file-search-case-sensitive", false);
 pref("devtools.debugger.file-search-whole-word", false);
 pref("devtools.debugger.file-search-regex-match", false);
+pref("devtools.debugger.features.async-stepping", true);
+pref("devtools.debugger.project-text-search-enabled", true);
+pref("devtools.debugger.features.wasm", true);

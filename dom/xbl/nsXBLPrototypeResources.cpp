@@ -167,18 +167,14 @@ nsXBLPrototypeResources::GatherRuleProcessor()
 void
 nsXBLPrototypeResources::ComputeServoStyleSet(nsPresContext* aPresContext)
 {
-  mServoStyleSet.reset(new ServoStyleSet());
-  mServoStyleSet->Init(aPresContext, nullptr);
+  nsTArray<RefPtr<ServoStyleSheet>> sheets(mStyleSheetList.Length());
   for (StyleSheet* sheet : mStyleSheetList) {
     MOZ_ASSERT(sheet->IsServo(),
                "This should only be called with Servo-flavored style backend!");
-    // The XBL style sheets aren't document level sheets, but we need to
-    // decide a particular SheetType to add them to style set. This type
-    // doesn't affect the place where we pull those rules from
-    // stylist::push_applicable_declarations_as_xbl_only_stylist().
-    mServoStyleSet->AppendStyleSheet(SheetType::Doc, sheet->AsServo());
+    sheets.AppendElement(sheet->AsServo());
   }
-  mServoStyleSet->UpdateStylistIfNeeded();
+
+  mServoStyleSet = ServoStyleSet::CreateXBLServoStyleSet(aPresContext, sheets);
 }
 
 void

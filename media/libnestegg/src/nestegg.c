@@ -2115,7 +2115,7 @@ nestegg_init(nestegg ** context, nestegg_io io, nestegg_log callback, int64_t ma
 
   if (ne_get_string(ctx->ebml.doctype, &doctype) != 0)
     doctype = "matroska";
-  if (strcmp(doctype, "webm") != 0) {
+  if (!!strcmp(doctype, "webm") && !!strcmp(doctype, "matroska")) {
     nestegg_destroy(ctx);
     return -1;
   }
@@ -2174,7 +2174,7 @@ nestegg_duration(nestegg * ctx, uint64_t * duration)
     return -1;
 
   if (unscaled_duration != unscaled_duration ||
-      unscaled_duration < 0 || unscaled_duration > (double) UINT64_MAX ||
+      unscaled_duration < 0 || unscaled_duration >= (double) UINT64_MAX ||
       (uint64_t) unscaled_duration > UINT64_MAX / tc_scale)
     return -1;
 

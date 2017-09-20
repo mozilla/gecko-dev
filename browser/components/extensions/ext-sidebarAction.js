@@ -70,6 +70,23 @@ this.sidebarAction = class extends ExtensionAPI {
     };
     windowTracker.addOpenListener(this.windowOpenListener);
 
+    this.updateHeader = (event) => {
+      let window = event.target.ownerGlobal;
+      let details = this.tabContext.get(window.gBrowser.selectedTab);
+      let header = window.document.getElementById("sidebar-switcher-target");
+      if (window.SidebarUI.currentID === this.id) {
+        this.setMenuIcon(header, details);
+      }
+    };
+
+    this.windowCloseListener = (window) => {
+      let header = window.document.getElementById("sidebar-switcher-target");
+      if (header) {
+        header.removeEventListener("SidebarShown", this.updateHeader);
+      }
+    };
+    windowTracker.addCloseListener(this.windowCloseListener);
+
     sidebarActionMap.set(extension, this);
   }
 
@@ -105,8 +122,11 @@ this.sidebarAction = class extends ExtensionAPI {
       if (broadcaster) {
         broadcaster.remove();
       }
+      let header = document.getElementById("sidebar-switcher-target");
+      header.removeEventListener("SidebarShown", this.updateHeader);
     }
     windowTracker.removeOpenListener(this.windowOpenListener);
+    windowTracker.removeCloseListener(this.windowCloseListener);
   }
 
   build() {
@@ -114,11 +134,10 @@ this.sidebarAction = class extends ExtensionAPI {
                        (evt, tab) => { this.updateWindow(tab.ownerGlobal); });
 
     let install = this.extension.startupReason === "ADDON_INSTALL";
-    let upgrade = ["ADDON_UPGRADE", "ADDON_DOWNGRADE"].includes(this.extension.startupReason);
     for (let window of windowTracker.browserWindows()) {
       this.updateWindow(window);
       let {SidebarUI} = window;
-      if (install || (upgrade && SidebarUI.lastOpenedId == this.id)) {
+      if (install || SidebarUI.lastOpenedId == this.id) {
         SidebarUI.show(this.id);
       }
     }
@@ -163,7 +182,10 @@ this.sidebarAction = class extends ExtensionAPI {
 
     // oncommand gets attached to menuitem, so we use the observes attribute to
     // get the command id we pass to SidebarUI.
-    broadcaster.setAttribute("oncommand", "SidebarUI.show(this.getAttribute('observes'))");
+    broadcaster.setAttribute("oncommand", "SidebarUI.toggle(this.getAttribute('observes'))");
+
+    let header = document.getElementById("sidebar-switcher-target");
+    header.addEventListener("SidebarShown", this.updateHeader);
 
     // Insert a menuitem for View->Show Sidebars.
     let menuitem = document.createElementNS(XUL_NS, "menuitem");
@@ -232,6 +254,8 @@ this.sidebarAction = class extends ExtensionAPI {
     // Update the sidebar if this extension is the current sidebar.
     if (SidebarUI.currentID === this.id) {
       SidebarUI.title = title;
+      let header = document.getElementById("sidebar-switcher-target");
+      this.setMenuIcon(header, tabData);
       if (SidebarUI.isOpen && urlChanged) {
         SidebarUI.show(this.id);
       }
@@ -321,6 +345,30 @@ this.sidebarAction = class extends ExtensionAPI {
     }
   }
 
+  /**
+   * Opens this sidebar action for the given window.
+   *
+   * @param {ChromeWindow} window
+   */
+  open(window) {
+    let {SidebarUI} = window;
+    if (SidebarUI) {
+      SidebarUI.show(this.id);
+    }
+  }
+
+  /**
+   * Closes this sidebar action for the given window if this sidebar action is open.
+   *
+   * @param {ChromeWindow} window
+   */
+  close(window) {
+    let {SidebarUI} = window;
+    if (SidebarUI.isOpen && this.id == SidebarUI.currentID) {
+      SidebarUI.hide();
+    }
+  }
+
   getAPI(context) {
     let {extension} = context;
     const sidebarAction = this;
@@ -368,6 +416,9 @@ this.sidebarAction = class extends ExtensionAPI {
             url = null;
           } else if (details.panel !== "") {
             url = context.uri.resolve(details.panel);
+            if (!context.checkLoadURL(url)) {
+              return Promise.reject({message: `Access denied for URL ${url}`});
+            }
           } else {
             throw new ExtensionError("Invalid url for sidebar panel.");
           }
@@ -380,6 +431,16 @@ this.sidebarAction = class extends ExtensionAPI {
 
           let panel = sidebarAction.getProperty(nativeTab, "panel");
           return Promise.resolve(panel);
+        },
+
+        open() {
+          let window = windowTracker.topWindow;
+          sidebarAction.open(window);
+        },
+
+        close() {
+          let window = windowTracker.topWindow;
+          sidebarAction.close(window);
         },
       },
     };

@@ -23,7 +23,7 @@
 #include "private/pprio.h"  // To get PR_ImportFile
 #include "nsHashKeys.h"
 
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsReadableUtils.h"
 
 #include <direct.h>
@@ -39,7 +39,6 @@
 #include  <stdlib.h>
 #include  <mbstring.h>
 
-#include "nsXPIDLString.h"
 #include "prproces.h"
 #include "prlink.h"
 
@@ -1025,9 +1024,9 @@ nsLocalFile::ResolveAndStat()
   // this is usually correct
   mResolvedPath.Assign(mWorkingPath);
 
-  // slutty hack designed to work around bug 134796 until it is fixed
-  nsAutoString nsprPath(mWorkingPath.get());
-  if (mWorkingPath.Length() == 2 && mWorkingPath.CharAt(1) == L':') {
+  // Make sure root paths have a trailing slash.
+  nsAutoString nsprPath(mWorkingPath);
+  if (mWorkingPath.Length() == 2 && mWorkingPath.CharAt(1) == u':') {
     nsprPath.Append('\\');
   }
 
@@ -1205,7 +1204,7 @@ CleanupHandlerPath(nsString& aPath)
   aPath.Append(' ');
 
   // case insensitive
-  uint32_t index = aPath.Find(".exe ", true);
+  int32_t index = aPath.Find(".exe ", true);
   if (index == kNotFound)
     index = aPath.Find(".dll ", true);
   if (index == kNotFound)
@@ -1270,7 +1269,7 @@ nsLocalFile::CleanupCmdHandlerPath(nsAString& aCommandHandler)
 
   // Expand environment variables so we have full path strings.
   uint32_t bufLength = ::ExpandEnvironmentStringsW(handlerCommand.get(),
-                                                   L"", 0);
+                                                   nullptr, 0);
   if (bufLength == 0) // Error
     return false;
 

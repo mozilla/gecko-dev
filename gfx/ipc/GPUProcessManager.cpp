@@ -408,6 +408,15 @@ ShouldLimitDeviceResets(uint32_t count, int32_t deltaMilliseconds)
 }
 
 void
+GPUProcessManager::ResetCompositors()
+{
+  // Note: this will recreate devices in addition to recreating compositors.
+  // This isn't optimal, but this is only used on linux where acceleration
+  // isn't enabled by default, and this way we don't need a new code path.
+  SimulateDeviceReset();
+}
+
+void
 GPUProcessManager::SimulateDeviceReset()
 {
   // Make sure we rebuild environment and configuration for accelerated features.
@@ -421,17 +430,30 @@ GPUProcessManager::SimulateDeviceReset()
 }
 
 void
-GPUProcessManager::DisableWebRender()
+GPUProcessManager::DisableWebRender(wr::WebRenderError aError)
 {
-  MOZ_ASSERT(gfx::gfxVars::UseWebRender());
   if (!gfx::gfxVars::UseWebRender()) {
     return;
   }
   // Disable WebRender
-  gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER).ForceDisable(
-    gfx::FeatureStatus::Unavailable,
-    "WebRender initialization failed",
-    NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_INITIALIZE"));
+  if (aError == wr::WebRenderError::INITIALIZE) {
+    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER).ForceDisable(
+      gfx::FeatureStatus::Unavailable,
+      "WebRender initialization failed",
+      NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_INITIALIZE"));
+  } else if (aError == wr::WebRenderError::MAKE_CURRENT) {
+    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER).ForceDisable(
+      gfx::FeatureStatus::Unavailable,
+      "Failed to make render context current",
+      NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_MAKE_CURRENT"));
+  } else if (aError == wr::WebRenderError::RENDER) {
+    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER).ForceDisable(
+      gfx::FeatureStatus::Unavailable,
+      "Failed to render WebRender",
+      NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_RENDER"));
+  } else {
+    MOZ_ASSERT_UNREACHABLE("Invalid value");
+  }
   gfx::gfxVars::SetUseWebRender(false);
 
   if (mProcess) {
@@ -439,6 +461,12 @@ GPUProcessManager::DisableWebRender()
   } else {
     OnInProcessDeviceReset();
   }
+}
+
+void
+GPUProcessManager::NotifyWebRenderError(wr::WebRenderError aError)
+{
+  DisableWebRender(aError);
 }
 
 void

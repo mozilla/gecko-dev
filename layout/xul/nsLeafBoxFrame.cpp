@@ -101,7 +101,6 @@ void nsLeafBoxFrame::UpdateMouseThrough()
 
 void
 nsLeafBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                 const nsRect&           aDirtyRect,
                                  const nsDisplayListSet& aLists)
 {
   // REVIEW: GetFrameForPoint used to not report events for the background
@@ -199,6 +198,7 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsLeafBoxFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   NS_ASSERTION(aReflowInput.ComputedWidth() >=0 &&
                aReflowInput.ComputedHeight() >= 0, "Computed Size < 0");
@@ -229,8 +229,6 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   printf(" *\n");
 
 #endif
-
-  aStatus.Reset();
 
   // create the layout state
   nsBoxLayoutState state(aPresContext, aReflowInput.mRenderingContext);

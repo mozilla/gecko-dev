@@ -6,7 +6,7 @@
 
 "use strict";
 
-var EventEmitter = require("devtools/shared/event-emitter");
+var EventEmitter = require("devtools/shared/old-event-emitter");
 var Telemetry = require("devtools/client/shared/telemetry");
 var { Task } = require("devtools/shared/task");
 
@@ -76,6 +76,7 @@ ToolSidebar.prototype = {
       "devtools/client/shared/components/tabs/tabbar"));
 
     let sidebar = Tabbar({
+      menuDocument: this._toolPanel._toolbox.doc,
       showAllTabsMenu: true,
       onSelect: this.handleSelectionChange.bind(this),
     });

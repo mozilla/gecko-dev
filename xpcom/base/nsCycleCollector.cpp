@@ -197,6 +197,35 @@
 
 using namespace mozilla;
 
+struct NurseryPurpleBufferEntry
+{
+  void* mPtr;
+  nsCycleCollectionParticipant* mParticipant;
+  nsCycleCollectingAutoRefCnt* mRefCnt;
+};
+
+#define NURSERY_PURPLE_BUFFER_SIZE 2048
+bool gNurseryPurpleBufferEnabled = true;
+NurseryPurpleBufferEntry gNurseryPurpleBufferEntry[NURSERY_PURPLE_BUFFER_SIZE];
+uint32_t gNurseryPurpleBufferEntryCount = 0;
+
+void ClearNurseryPurpleBuffer();
+
+void SuspectUsingNurseryPurpleBuffer(void* aPtr,
+                                     nsCycleCollectionParticipant* aCp,
+                                     nsCycleCollectingAutoRefCnt* aRefCnt)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  MOZ_ASSERT(gNurseryPurpleBufferEnabled);
+  if (gNurseryPurpleBufferEntryCount == NURSERY_PURPLE_BUFFER_SIZE) {
+    ClearNurseryPurpleBuffer();
+  }
+
+  gNurseryPurpleBufferEntry[gNurseryPurpleBufferEntryCount] =
+    { aPtr, aCp, aRefCnt };
+  ++gNurseryPurpleBufferEntryCount;
+}
+
 //#define COLLECT_TIME_DEBUG
 
 // Enable assertions that are useful for diagnosing errors in graph construction.
@@ -1039,6 +1068,13 @@ public:
   template<class PurpleVisitor>
   void VisitEntries(PurpleVisitor& aVisitor)
   {
+    Maybe<AutoRestore<bool>> ar;
+    if (NS_IsMainThread()) {
+      ar.emplace(gNurseryPurpleBufferEnabled);
+      gNurseryPurpleBufferEnabled = false;
+      ClearNurseryPurpleBuffer();
+    }
+
     if (mEntries.IsEmpty()) {
       return;
     }
@@ -1289,6 +1325,7 @@ public:
 
   void Suspect(void* aPtr, nsCycleCollectionParticipant* aCp,
                nsCycleCollectingAutoRefCnt* aRefCnt);
+  void SuspectNurseryEntries();
   uint32_t SuspectedCount();
   void ForgetSkippable(js::SliceBudget& aBudget, bool aRemoveChildlessNodes,
                        bool aAsyncSnowWhiteFreeing);
@@ -2063,6 +2100,7 @@ private:
   RefPtr<nsCycleCollectorLogger> mLogger;
   bool mMergeZones;
   nsAutoPtr<NodePool::Enumerator> mCurrNode;
+  uint32_t mNoteChildCount;
 
 public:
   CCGraphBuilder(CCGraph& aGraph,
@@ -2176,6 +2214,7 @@ CCGraphBuilder::CCGraphBuilder(CCGraph& aGraph,
   , mJSZoneParticipant(nullptr)
   , mLogger(aLogger)
   , mMergeZones(aMergeZones)
+  , mNoteChildCount(0)
 {
   if (aCCRuntime) {
     mJSParticipant = aCCRuntime->GCThingParticipant();
@@ -2259,6 +2298,8 @@ CCGraphBuilder::BuildGraph(SliceBudget& aBudget)
   MOZ_ASSERT(mCurrNode);
 
   while (!aBudget.isOverBudget() && !mCurrNode->IsDone()) {
+    mNoteChildCount = 0;
+
     PtrInfo* pi = mCurrNode->GetNext();
     if (!pi) {
       MOZ_CRASH();
@@ -2279,7 +2320,7 @@ CCGraphBuilder::BuildGraph(SliceBudget& aBudget)
       SetLastChild();
     }
 
-    aBudget.step(kStep);
+    aBudget.step(kStep * (mNoteChildCount + 1));
   }
 
   if (!mCurrNode->IsDone()) {
@@ -2370,6 +2411,8 @@ CCGraphBuilder::NoteXPCOMChild(nsISupports* aChild)
     return;
   }
 
+  ++mNoteChildCount;
+
   nsXPCOMCycleCollectionParticipant* cp;
   ToParticipant(aChild, &cp);
   if (cp && (!cp->CanSkipThis(aChild) || WantAllTraces())) {
@@ -2390,6 +2433,8 @@ CCGraphBuilder::NoteNativeChild(void* aChild,
     return;
   }
 
+  ++mNoteChildCount;
+
   MOZ_ASSERT(aParticipant, "Need a nsCycleCollectionParticipant!");
   if (!aParticipant->CanSkipThis(aChild) || WantAllTraces()) {
     NoteChild(aChild, aParticipant, edgeName);
@@ -2402,6 +2447,8 @@ CCGraphBuilder::NoteJSChild(const JS::GCCellPtr& aChild)
   if (!aChild) {
     return;
   }
+
+  ++mNoteChildCount;
 
   nsCString edgeName;
   if (MOZ_UNLIKELY(WantDebugInfo())) {
@@ -3492,6 +3539,17 @@ nsCycleCollector::Suspect(void* aPtr, nsCycleCollectionParticipant* aParti,
 }
 
 void
+nsCycleCollector::SuspectNurseryEntries()
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  while (gNurseryPurpleBufferEntryCount) {
+    NurseryPurpleBufferEntry& entry =
+      gNurseryPurpleBufferEntry[--gNurseryPurpleBufferEntryCount];
+    mPurpleBuf.Put(entry.mPtr, entry.mParticipant, entry.mRefCnt);
+  }
+}
+
+void
 nsCycleCollector::CheckThreadSafety()
 {
 #ifdef DEBUG
@@ -3537,7 +3595,8 @@ nsCycleCollector::FixGrayBits(bool aForceGC, TimeLog& aTimeLog)
     // It's possible that FixWeakMappingGrayBits will hit OOM when unmarking
     // gray and we will have to go round again. The second time there should not
     // be any weak mappings to fix up so the loop body should run at most twice.
-    MOZ_RELEASE_ASSERT(count++ < 2);
+    MOZ_RELEASE_ASSERT(count < 2);
+    count++;
   } while (!mCCJSRuntime->AreGCGrayBitsValid());
 
   aTimeLog.Checkpoint("FixGrayBits");
@@ -3605,6 +3664,7 @@ void
 nsCycleCollector::ShutdownCollect()
 {
   FinishAnyIncrementalGCInProgress();
+  JS::ShutdownAsyncTasks(CycleCollectedJSContext::Get()->Context());
 
   SliceBudget unlimitedBudget = SliceBudget::unlimited();
   uint32_t i;
@@ -3892,6 +3952,10 @@ uint32_t
 nsCycleCollector::SuspectedCount()
 {
   CheckThreadSafety();
+  if (NS_IsMainThread()) {
+    return gNurseryPurpleBufferEntryCount + mPurpleBuf.Count();
+  }
+
   return mPurpleBuf.Count();
 }
 
@@ -3899,6 +3963,10 @@ void
 nsCycleCollector::Shutdown(bool aDoCollect)
 {
   CheckThreadSafety();
+
+  if (NS_IsMainThread()) {
+    gNurseryPurpleBufferEnabled = false;
+  }
 
   // Always delete snow white objects.
   FreeSnowWhite(true);
@@ -4035,6 +4103,30 @@ NS_CycleCollectorSuspect3(void* aPtr, nsCycleCollectionParticipant* aCp,
     return;
   }
   SuspectAfterShutdown(aPtr, aCp, aRefCnt, aShouldDelete);
+}
+
+void ClearNurseryPurpleBuffer()
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  CollectorData* data = sCollectorData.get();
+  MOZ_ASSERT(data);
+  MOZ_ASSERT(data->mCollector);
+  data->mCollector->SuspectNurseryEntries();
+}
+
+void
+NS_CycleCollectorSuspectUsingNursery(void* aPtr,
+                                     nsCycleCollectionParticipant* aCp,
+                                     nsCycleCollectingAutoRefCnt* aRefCnt,
+                                     bool* aShouldDelete)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  if (!gNurseryPurpleBufferEnabled) {
+    NS_CycleCollectorSuspect3(aPtr, aCp, aRefCnt, aShouldDelete);
+    return;
+  }
+
+  SuspectUsingNurseryPurpleBuffer(aPtr, aCp, aRefCnt);
 }
 
 uint32_t

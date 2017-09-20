@@ -6,6 +6,7 @@
 
 #include "amIAddonManager.h"
 #include "nsWindowMemoryReporter.h"
+#include "nsWindowSizes.h"
 #include "nsGlobalWindow.h"
 #include "nsIDocument.h"
 #include "nsIDOMWindowCollection.h"
@@ -34,7 +35,8 @@ const int32_t kTimeBetweenChecks = 45; /* seconds */
 nsWindowMemoryReporter::nsWindowMemoryReporter()
   : mLastCheckForGhostWindows(TimeStamp::NowLoRes()),
     mCycleCollectorIsRunning(false),
-    mCheckTimerWaitingForCCEnd(false)
+    mCheckTimerWaitingForCCEnd(false),
+    mGhostWindowCount(0)
 {
 }
 
@@ -53,13 +55,13 @@ AddNonJSSizeOfWindowAndItsDescendents(nsGlobalWindow* aWindow,
   // Measure the window.
   SizeOfState state(moz_malloc_size_of);
   nsWindowSizes windowSizes(state);
-  aWindow->AddSizeOfIncludingThis(&windowSizes);
+  aWindow->AddSizeOfIncludingThis(windowSizes);
 
   // Measure the inner window, if there is one.
   nsGlobalWindow* inner = aWindow->IsOuterWindow() ? aWindow->GetCurrentInnerWindowInternal()
                                                    : nullptr;
   if (inner) {
-    inner->AddSizeOfIncludingThis(&windowSizes);
+    inner->AddSizeOfIncludingThis(windowSizes);
   }
 
   windowSizes.addToTabSizes(aSizes);
@@ -119,8 +121,7 @@ nsWindowMemoryReporter::Init()
                     /* weakRef = */ true);
   }
 
-  RegisterStrongMemoryReporter(new GhostWindowsReporter());
-  RegisterGhostWindowsDistinguishedAmount(GhostWindowsReporter::DistinguishedAmount);
+  RegisterGhostWindowsDistinguishedAmount(GhostWindowsDistinguishedAmount);
 }
 
 /* static */ nsWindowMemoryReporter*
@@ -313,7 +314,7 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   // this window.
   SizeOfState state(WindowsMallocSizeOf);
   nsWindowSizes windowSizes(state);
-  aWindow->AddSizeOfIncludingThis(&windowSizes);
+  aWindow->AddSizeOfIncludingThis(windowSizes);
 
   REPORT_SIZE("/dom/element-nodes", windowSizes.mDOMElementNodesSize,
               "Memory used by the element nodes in a window's DOM.");
@@ -336,79 +337,6 @@ CollectWindowReports(nsGlobalWindow *aWindow,
               "the objects it points to, which include XHRs.");
   aWindowTotalSizes->mDOMEventTargetsSize += windowSizes.mDOMEventTargetsSize;
 
-  REPORT_COUNT("/dom/event-targets", windowSizes.mDOMEventTargetsCount,
-               "Number of non-node event targets in the event targets table "
-               "in a window's DOM, such as XHRs.");
-  aWindowTotalSizes->mDOMEventTargetsCount +=
-    windowSizes.mDOMEventTargetsCount;
-
-  REPORT_COUNT("/dom/event-listeners", windowSizes.mDOMEventListenersCount,
-               "Number of event listeners in a window, including event "
-               "listeners on nodes and other event targets.");
-  aWindowTotalSizes->mDOMEventListenersCount +=
-    windowSizes.mDOMEventListenersCount;
-
-  REPORT_SIZE("/dom/other", windowSizes.mDOMOtherSize,
-              "Memory used by a window's DOM that isn't measured by the "
-              "other 'dom/' numbers.");
-  aWindowTotalSizes->mDOMOtherSize += windowSizes.mDOMOtherSize;
-
-  REPORT_SIZE("/property-tables",
-              windowSizes.mPropertyTablesSize,
-              "Memory used for the property tables within a window.");
-  aWindowTotalSizes->mPropertyTablesSize += windowSizes.mPropertyTablesSize;
-
-  REPORT_SIZE("/style-sheets", windowSizes.mStyleSheetsSize,
-              "Memory used by style sheets within a window.");
-  aWindowTotalSizes->mStyleSheetsSize += windowSizes.mStyleSheetsSize;
-
-  REPORT_SIZE("/layout/pres-shell", windowSizes.mLayoutPresShellSize,
-              "Memory used by layout's PresShell, along with any structures "
-              "allocated in its arena and not measured elsewhere, "
-              "within a window.");
-  aWindowTotalSizes->mLayoutPresShellSize += windowSizes.mLayoutPresShellSize;
-
-  REPORT_SIZE("/layout/line-boxes", windowSizes.mArenaStats.mLineBoxes,
-              "Memory used by line boxes within a window.");
-  aWindowTotalSizes->mArenaStats.mLineBoxes
-    += windowSizes.mArenaStats.mLineBoxes;
-
-  REPORT_SIZE("/layout/rule-nodes", windowSizes.mArenaStats.mRuleNodes,
-              "Memory used by CSS rule nodes within a window.");
-  aWindowTotalSizes->mArenaStats.mRuleNodes
-    += windowSizes.mArenaStats.mRuleNodes;
-
-  REPORT_SIZE("/layout/style-contexts", windowSizes.mArenaStats.mStyleContexts,
-              "Memory used by style contexts within a window.");
-  aWindowTotalSizes->mArenaStats.mStyleContexts
-    += windowSizes.mArenaStats.mStyleContexts;
-
-  REPORT_SIZE("/layout/style-structs", windowSizes.mArenaStats.mStyleStructs,
-              "Memory used by style structs within a window.");
-  aWindowTotalSizes->mArenaStats.mStyleStructs
-    += windowSizes.mArenaStats.mStyleStructs;
-
-  REPORT_SIZE("/layout/style-sets", windowSizes.mLayoutStyleSetsSize,
-              "Memory used by style sets within a window.");
-  aWindowTotalSizes->mLayoutStyleSetsSize += windowSizes.mLayoutStyleSetsSize;
-
-  REPORT_SIZE("/layout/text-runs", windowSizes.mLayoutTextRunsSize,
-              "Memory used for text-runs (glyph layout) in the PresShell's "
-              "frame tree, within a window.");
-  aWindowTotalSizes->mLayoutTextRunsSize += windowSizes.mLayoutTextRunsSize;
-
-  REPORT_SIZE("/layout/pres-contexts", windowSizes.mLayoutPresContextSize,
-         "Memory used for the PresContext in the PresShell's frame "
-         "within a window.");
-  aWindowTotalSizes->mLayoutPresContextSize +=
-    windowSizes.mLayoutPresContextSize;
-
-  REPORT_SIZE("/layout/frame-properties", windowSizes.mLayoutFramePropertiesSize,
-         "Memory used for frame properties attached to frames "
-         "within a window.");
-  aWindowTotalSizes->mLayoutFramePropertiesSize +=
-    windowSizes.mLayoutFramePropertiesSize;
-
   REPORT_SIZE("/dom/performance/user-entries",
               windowSizes.mDOMPerformanceUserEntries,
               "Memory used for performance user entries.");
@@ -421,6 +349,185 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   aWindowTotalSizes->mDOMPerformanceResourceEntries +=
     windowSizes.mDOMPerformanceResourceEntries;
 
+  REPORT_SIZE("/dom/other", windowSizes.mDOMOtherSize,
+              "Memory used by a window's DOM that isn't measured by the "
+              "other 'dom/' numbers.");
+  aWindowTotalSizes->mDOMOtherSize += windowSizes.mDOMOtherSize;
+
+  REPORT_SIZE("/layout/style-sheets", windowSizes.mLayoutStyleSheetsSize,
+              "Memory used by style sheets within a window.");
+  aWindowTotalSizes->mLayoutStyleSheetsSize +=
+    windowSizes.mLayoutStyleSheetsSize;
+
+  REPORT_SIZE("/layout/pres-shell", windowSizes.mLayoutPresShellSize,
+              "Memory used by layout's PresShell, along with any structures "
+              "allocated in its arena and not measured elsewhere, "
+              "within a window.");
+  aWindowTotalSizes->mLayoutPresShellSize += windowSizes.mLayoutPresShellSize;
+
+  REPORT_SIZE("/layout/gecko-style-sets", windowSizes.mLayoutGeckoStyleSets,
+              "Memory used by Gecko style sets within a window.");
+  aWindowTotalSizes->mLayoutGeckoStyleSets += windowSizes.mLayoutGeckoStyleSets;
+
+  REPORT_SIZE("/layout/servo-style-sets/stylist/rule-tree",
+              windowSizes.mLayoutServoStyleSetsStylistRuleTree,
+              "Memory used by rule trees within Servo style sets within a "
+              "window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsStylistRuleTree +=
+    windowSizes.mLayoutServoStyleSetsStylistRuleTree;
+
+  REPORT_SIZE("/layout/servo-style-sets/stylist/precomputed-pseudos",
+              windowSizes.mLayoutServoStyleSetsStylistPrecomputedPseudos,
+              "Memory used by precomputed pseudo-element declarations within "
+              "Servo style sets within a window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsStylistPrecomputedPseudos +=
+    windowSizes.mLayoutServoStyleSetsStylistPrecomputedPseudos;
+
+  REPORT_SIZE("/layout/servo-style-sets/stylist/element-and-pseudos-maps",
+              windowSizes.mLayoutServoStyleSetsStylistElementAndPseudosMaps,
+              "Memory used by element and pseudos maps within Servo style "
+              "sets within a window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsStylistElementAndPseudosMaps +=
+    windowSizes.mLayoutServoStyleSetsStylistElementAndPseudosMaps;
+
+  REPORT_SIZE("/layout/servo-style-sets/stylist/invalidation-map",
+              windowSizes.mLayoutServoStyleSetsStylistInvalidationMap,
+              "Memory used by invalidation maps within Servo style sets "
+              "within a window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsStylistInvalidationMap +=
+    windowSizes.mLayoutServoStyleSetsStylistInvalidationMap;
+
+  REPORT_SIZE("/layout/servo-style-sets/stylist/revalidation-selectors",
+              windowSizes.mLayoutServoStyleSetsStylistRevalidationSelectors,
+              "Memory used by selectors for cache revalidation within Servo "
+              "style sets within a window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsStylistRevalidationSelectors +=
+    windowSizes.mLayoutServoStyleSetsStylistRevalidationSelectors;
+
+  REPORT_SIZE("/layout/servo-style-sets/stylist/other",
+              windowSizes.mLayoutServoStyleSetsStylistOther,
+              "Memory used by other Stylist data within Servo style sets "
+              "within a window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsStylistOther +=
+    windowSizes.mLayoutServoStyleSetsStylistOther;
+
+  REPORT_SIZE("/layout/servo-style-sets/other",
+              windowSizes.mLayoutServoStyleSetsOther,
+              "Memory used by other parts of Servo style sets within a "
+              "window.");
+  aWindowTotalSizes->mLayoutServoStyleSetsOther +=
+    windowSizes.mLayoutServoStyleSetsOther;
+
+  REPORT_SIZE("/layout/servo-element-data-objects",
+              windowSizes.mLayoutServoElementDataObjects,
+              "Memory used for Servo ElementData objects, but not the things"
+              "hanging off them.");
+  aWindowTotalSizes->mLayoutServoElementDataObjects +=
+    windowSizes.mLayoutServoElementDataObjects;
+
+  REPORT_SIZE("/layout/text-runs", windowSizes.mLayoutTextRunsSize,
+              "Memory used for text-runs (glyph layout) in the PresShell's "
+              "frame tree, within a window.");
+  aWindowTotalSizes->mLayoutTextRunsSize += windowSizes.mLayoutTextRunsSize;
+
+  REPORT_SIZE("/layout/pres-contexts", windowSizes.mLayoutPresContextSize,
+              "Memory used for the PresContext in the PresShell's frame "
+              "within a window.");
+  aWindowTotalSizes->mLayoutPresContextSize +=
+    windowSizes.mLayoutPresContextSize;
+
+  REPORT_SIZE("/layout/frame-properties",
+              windowSizes.mLayoutFramePropertiesSize,
+              "Memory used for frame properties attached to frames "
+              "within a window.");
+  aWindowTotalSizes->mLayoutFramePropertiesSize +=
+    windowSizes.mLayoutFramePropertiesSize;
+
+  REPORT_SIZE("/layout/computed-values/dom",
+              windowSizes.mLayoutComputedValuesDom,
+              "Memory used by ComputedValues objects accessible from DOM "
+              "elements.");
+  aWindowTotalSizes->mLayoutComputedValuesDom +=
+    windowSizes.mLayoutComputedValuesDom;
+
+  REPORT_SIZE("/layout/computed-values/non-dom",
+              windowSizes.mLayoutComputedValuesNonDom,
+              "Memory used by ComputedValues objects not accessible from DOM "
+              "elements.");
+  aWindowTotalSizes->mLayoutComputedValuesNonDom +=
+    windowSizes.mLayoutComputedValuesNonDom;
+
+  REPORT_SIZE("/layout/computed-values/visited",
+              windowSizes.mLayoutComputedValuesVisited,
+              "Memory used by ComputedValues objects used for visited styles.");
+  aWindowTotalSizes->mLayoutComputedValuesVisited +=
+    windowSizes.mLayoutComputedValuesVisited;
+
+  REPORT_SIZE("/property-tables",
+              windowSizes.mPropertyTablesSize,
+              "Memory used for the property tables within a window.");
+  aWindowTotalSizes->mPropertyTablesSize += windowSizes.mPropertyTablesSize;
+
+  REPORT_COUNT("/dom/event-targets", windowSizes.mDOMEventTargetsCount,
+               "Number of non-node event targets in the event targets table "
+               "in a window's DOM, such as XHRs.");
+  aWindowTotalSizes->mDOMEventTargetsCount +=
+    windowSizes.mDOMEventTargetsCount;
+
+  REPORT_COUNT("/dom/event-listeners", windowSizes.mDOMEventListenersCount,
+               "Number of event listeners in a window, including event "
+               "listeners on nodes and other event targets.");
+  aWindowTotalSizes->mDOMEventListenersCount +=
+    windowSizes.mDOMEventListenersCount;
+
+  REPORT_SIZE("/layout/line-boxes", windowSizes.mArenaSizes.mLineBoxes,
+              "Memory used by line boxes within a window.");
+  aWindowTotalSizes->mArenaSizes.mLineBoxes
+    += windowSizes.mArenaSizes.mLineBoxes;
+
+  REPORT_SIZE("/layout/rule-nodes", windowSizes.mArenaSizes.mRuleNodes,
+              "Memory used by CSS rule nodes within a window.");
+  aWindowTotalSizes->mArenaSizes.mRuleNodes
+    += windowSizes.mArenaSizes.mRuleNodes;
+
+  REPORT_SIZE("/layout/style-contexts", windowSizes.mArenaSizes.mStyleContexts,
+              "Memory used by style contexts within a window.");
+  aWindowTotalSizes->mArenaSizes.mStyleContexts
+    += windowSizes.mArenaSizes.mStyleContexts;
+
+  // There are many different kinds of style structs, but it is likely that
+  // only a few matter. Implement a cutoff so we don't bloat about:memory with
+  // many uninteresting entries.
+  const size_t STYLE_SUNDRIES_THRESHOLD =
+    js::MemoryReportingSundriesThreshold();
+
+  // This is the Gecko style structs, which are in the nsPresArena.
+  size_t geckoStyleSundriesSize = 0;
+#define STYLE_STRUCT(name_, cb_) \
+  { \
+    size_t size = \
+      windowSizes.mArenaSizes.mGeckoStyleSizes.NS_STYLE_SIZES_FIELD(name_); \
+    if (size < STYLE_SUNDRIES_THRESHOLD) { \
+      geckoStyleSundriesSize += size; \
+    } else { \
+      REPORT_SIZE("/layout/gecko-style-structs/" # name_, size, \
+                  "Memory used by the " #name_ " Gecko style structs " \
+                  "within a window."); \
+    } \
+    aWindowTotalSizes->mArenaSizes.mGeckoStyleSizes.NS_STYLE_SIZES_FIELD(name_) += \
+      size; \
+  }
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
+
+  if (geckoStyleSundriesSize > 0) {
+    REPORT_SIZE("/layout/gecko-style-structs/sundries", geckoStyleSundriesSize,
+                "The sum of all memory used by Gecko style structs which were "
+                "too small to be shown individually.");
+  }
+
   // There are many different kinds of frames, but it is very likely
   // that only a few matter.  Implement a cutoff so we don't bloat
   // about:memory with many uninteresting entries.
@@ -428,19 +535,17 @@ CollectWindowReports(nsGlobalWindow *aWindow,
     js::MemoryReportingSundriesThreshold();
 
   size_t frameSundriesSize = 0;
-#define FRAME_ID(classname, ...)                                        \
-  {                                                                     \
-    size_t frameSize                                                    \
-      = windowSizes.mArenaStats.FRAME_ID_STAT_FIELD(classname);         \
-    if (frameSize < FRAME_SUNDRIES_THRESHOLD) {                         \
-      frameSundriesSize += frameSize;                                   \
-    } else {                                                            \
-      REPORT_SIZE("/layout/frames/" # classname, frameSize,             \
-                  "Memory used by frames of "                           \
-                  "type " #classname " within a window.");              \
-    }                                                                   \
-    aWindowTotalSizes->mArenaStats.FRAME_ID_STAT_FIELD(classname)       \
-      += frameSize;                                                     \
+#define FRAME_ID(classname, ...) \
+  { \
+    size_t size = windowSizes.mArenaSizes.NS_ARENA_SIZES_FIELD(classname); \
+    if (size < FRAME_SUNDRIES_THRESHOLD) { \
+      frameSundriesSize += size; \
+    } else { \
+      REPORT_SIZE("/layout/frames/" # classname, size, \
+                  "Memory used by frames of " \
+                  "type " #classname " within a window."); \
+    } \
+    aWindowTotalSizes->mArenaSizes.NS_ARENA_SIZES_FIELD(classname) += size; \
   }
 #define ABSTRACT_FRAME_ID(...)
 #include "nsFrameIdList.h"
@@ -451,6 +556,31 @@ CollectWindowReports(nsGlobalWindow *aWindow,
     REPORT_SIZE("/layout/frames/sundries", frameSundriesSize,
                 "The sum of all memory used by frames which were too small "
                 "to be shown individually.");
+  }
+
+  // This is the Servo style structs.
+  size_t servoStyleSundriesSize = 0;
+#define STYLE_STRUCT(name_, cb_) \
+  { \
+    size_t size = windowSizes.mServoStyleSizes.NS_STYLE_SIZES_FIELD(name_); \
+    if (size < STYLE_SUNDRIES_THRESHOLD) { \
+      servoStyleSundriesSize += size; \
+    } else { \
+      REPORT_SIZE("/layout/servo-style-structs/" # name_, size, \
+                  "Memory used by the " #name_ " Servo style structs " \
+                  "within a window."); \
+    } \
+    aWindowTotalSizes->mServoStyleSizes.NS_STYLE_SIZES_FIELD(name_) += size; \
+  }
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
+
+  if (servoStyleSundriesSize > 0) {
+    REPORT_SIZE("/layout/servo-style-structs/sundries", servoStyleSundriesSize,
+                "The sum of all memory used by Servo style structs which were "
+                "too small to be shown individually.");
   }
 
 #undef REPORT_SIZE
@@ -506,6 +636,17 @@ nsWindowMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
       aData);
   }
 
+  MOZ_COLLECT_REPORT(
+    "ghost-windows", KIND_OTHER, UNITS_COUNT, ghostWindows.Count(),
+"The number of ghost windows present (the number of nodes underneath "
+"explicit/window-objects/top(none)/ghost, modulo race conditions).  A ghost "
+"window is not shown in any tab, does not share a domain with any non-detached "
+"windows, and has met these criteria for at least "
+"memory.ghost_window_timeout_seconds, or has survived a round of "
+"about:memory's minimize memory usage button.\n\n"
+"Ghost windows can happen legitimately, but they are often indicative of "
+"leaks in the browser or add-ons.");
+
   WindowPaths windowPaths;
   WindowPaths topWindowPaths;
 
@@ -534,7 +675,8 @@ nsWindowMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
                           KIND_OTHER, UNITS_BYTES, _amount, \
                           NS_LITERAL_CSTRING(_desc), aData);
 
-  REPORT("window-objects/dom/element-nodes", windowTotalSizes.mDOMElementNodesSize,
+  REPORT("window-objects/dom/element-nodes",
+         windowTotalSizes.mDOMElementNodesSize,
          "This is the sum of all windows' 'dom/element-nodes' numbers.");
 
   REPORT("window-objects/dom/text-nodes", windowTotalSizes.mDOMTextNodesSize,
@@ -549,50 +691,90 @@ nsWindowMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
   REPORT("window-objects/dom/event-targets", windowTotalSizes.mDOMEventTargetsSize,
          "This is the sum of all windows' 'dom/event-targets' numbers.");
 
+  REPORT("window-objects/dom/performance",
+         windowTotalSizes.mDOMPerformanceUserEntries +
+         windowTotalSizes.mDOMPerformanceResourceEntries,
+         "This is the sum of all windows' 'dom/performance/' numbers.");
+
   REPORT("window-objects/dom/other", windowTotalSizes.mDOMOtherSize,
          "This is the sum of all windows' 'dom/other' numbers.");
+
+  REPORT("window-objects/layout/style-sheets",
+         windowTotalSizes.mLayoutStyleSheetsSize,
+         "This is the sum of all windows' 'layout/style-sheets' numbers.");
+
+  REPORT("window-objects/layout/pres-shell",
+         windowTotalSizes.mLayoutPresShellSize,
+         "This is the sum of all windows' 'layout/arenas' numbers.");
+
+  REPORT("window-objects/layout/gecko-style-sets",
+         windowTotalSizes.mLayoutGeckoStyleSets,
+         "This is the sum of all windows' 'layout/gecko-style-sets' numbers.");
+
+  REPORT("window-objects/layout/servo-style-sets",
+         windowTotalSizes.mLayoutServoStyleSetsStylistRuleTree +
+         windowTotalSizes.mLayoutServoStyleSetsStylistPrecomputedPseudos +
+         windowTotalSizes.mLayoutServoStyleSetsStylistElementAndPseudosMaps +
+         windowTotalSizes.mLayoutServoStyleSetsStylistInvalidationMap +
+         windowTotalSizes.mLayoutServoStyleSetsStylistRevalidationSelectors +
+         windowTotalSizes.mLayoutServoStyleSetsStylistOther +
+         windowTotalSizes.mLayoutServoStyleSetsOther,
+         "This is the sum of all windows' 'layout/servo-style-sets/' numbers.");
+
+  REPORT("window-objects/layout/servo-element-data-objects",
+         windowTotalSizes.mLayoutServoElementDataObjects,
+         "This is the sum of all windows' 'layout/servo-element-data-objects' "
+         "numbers.");
+
+  REPORT("window-objects/layout/text-runs", windowTotalSizes.mLayoutTextRunsSize,
+         "This is the sum of all windows' 'layout/text-runs' numbers.");
+
+  REPORT("window-objects/layout/pres-contexts",
+         windowTotalSizes.mLayoutPresContextSize,
+         "This is the sum of all windows' 'layout/pres-contexts' numbers.");
+
+  REPORT("window-objects/layout/frame-properties",
+         windowTotalSizes.mLayoutFramePropertiesSize,
+         "This is the sum of all windows' 'layout/frame-properties' numbers.");
+
+  REPORT("window-objects/layout/computed-values",
+         windowTotalSizes.mLayoutComputedValuesDom +
+         windowTotalSizes.mLayoutComputedValuesNonDom +
+         windowTotalSizes.mLayoutComputedValuesVisited,
+         "This is the sum of all windows' 'layout/computed-values/' numbers.");
 
   REPORT("window-objects/property-tables",
          windowTotalSizes.mPropertyTablesSize,
          "This is the sum of all windows' 'property-tables' numbers.");
 
-  REPORT("window-objects/style-sheets", windowTotalSizes.mStyleSheetsSize,
-         "This is the sum of all windows' 'style-sheets' numbers.");
-
-  REPORT("window-objects/layout/pres-shell", windowTotalSizes.mLayoutPresShellSize,
-         "This is the sum of all windows' 'layout/arenas' numbers.");
-
   REPORT("window-objects/layout/line-boxes",
-         windowTotalSizes.mArenaStats.mLineBoxes,
+         windowTotalSizes.mArenaSizes.mLineBoxes,
          "This is the sum of all windows' 'layout/line-boxes' numbers.");
 
   REPORT("window-objects/layout/rule-nodes",
-         windowTotalSizes.mArenaStats.mRuleNodes,
+         windowTotalSizes.mArenaSizes.mRuleNodes,
          "This is the sum of all windows' 'layout/rule-nodes' numbers.");
 
   REPORT("window-objects/layout/style-contexts",
-         windowTotalSizes.mArenaStats.mStyleContexts,
+         windowTotalSizes.mArenaSizes.mStyleContexts,
          "This is the sum of all windows' 'layout/style-contexts' numbers.");
 
-  REPORT("window-objects/layout/style-structs",
-         windowTotalSizes.mArenaStats.mStyleStructs,
-         "This is the sum of all windows' 'layout/style-structs' numbers.");
+  size_t geckoStyleTotal = 0;
+#define STYLE_STRUCT(name_, cb_) \
+  geckoStyleTotal += \
+    windowTotalSizes.mArenaSizes.mGeckoStyleSizes.NS_STYLE_SIZES_FIELD(name_);
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
 
-  REPORT("window-objects/layout/style-sets", windowTotalSizes.mLayoutStyleSetsSize,
-         "This is the sum of all windows' 'layout/style-sets' numbers.");
-
-  REPORT("window-objects/layout/text-runs", windowTotalSizes.mLayoutTextRunsSize,
-         "This is the sum of all windows' 'layout/text-runs' numbers.");
-
-  REPORT("window-objects/layout/pres-contexts", windowTotalSizes.mLayoutPresContextSize,
-         "This is the sum of all windows' 'layout/pres-contexts' numbers.");
-
-  REPORT("window-objects/layout/frame-properties", windowTotalSizes.mLayoutFramePropertiesSize,
-         "This is the sum of all windows' 'layout/frame-properties' numbers.");
+  REPORT("window-objects/layout/gecko-style-structs", geckoStyleTotal,
+         "Memory used for style structs within windows. This is the sum of "
+         "all windows' 'layout/gecko-style-structs/' numbers.");
 
   size_t frameTotal = 0;
-#define FRAME_ID(classname, ...)                \
-  frameTotal += windowTotalSizes.mArenaStats.FRAME_ID_STAT_FIELD(classname);
+#define FRAME_ID(classname, ...) \
+  frameTotal += windowTotalSizes.mArenaSizes.NS_ARENA_SIZES_FIELD(classname);
 #define ABSTRACT_FRAME_ID(...)
 #include "nsFrameIdList.h"
 #undef FRAME_ID
@@ -601,6 +783,19 @@ nsWindowMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
   REPORT("window-objects/layout/frames", frameTotal,
          "Memory used for layout frames within windows. "
          "This is the sum of all windows' 'layout/frames/' numbers.");
+
+  size_t servoStyleTotal = 0;
+#define STYLE_STRUCT(name_, cb_) \
+  servoStyleTotal += \
+    windowTotalSizes.mServoStyleSizes.NS_STYLE_SIZES_FIELD(name_);
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
+
+  REPORT("window-objects/layout/servo-style-structs", servoStyleTotal,
+         "Memory used for style structs within windows. This is the sum of "
+         "all windows' 'layout/servo-style-structs/' numbers.");
 
 #undef REPORT
 
@@ -750,6 +945,7 @@ nsWindowMemoryReporter::CheckForGhostWindows(
   KillCheckTimer();
 
   nsTHashtable<nsCStringHashKey> nonDetachedWindowDomains;
+  nsDataHashtable<nsISupportsHashKey, nsCString> domainMap;
 
   // Populate nonDetachedWindowDomains.
   for (auto iter = windowsById->Iter(); !iter.Done(); iter.Next()) {
@@ -764,8 +960,13 @@ nsWindowMemoryReporter::CheckForGhostWindows(
     nsCOMPtr<nsIURI> uri = GetWindowURI(window);
     nsAutoCString domain;
     if (uri) {
-      tldService->GetBaseDomain(uri, 0, domain);
+      domain = domainMap.LookupForAdd(uri).OrInsert([&]() {
+        nsCString d;
+        tldService->GetBaseDomain(uri, 0, d);
+        return d;
+      });
     }
+
     nonDetachedWindowDomains.PutEntry(domain);
   }
 
@@ -773,6 +974,7 @@ nsWindowMemoryReporter::CheckForGhostWindows(
   // if it's not null.
   uint32_t ghostTimeout = GetGhostTimeout();
   TimeStamp now = mLastCheckForGhostWindows;
+  mGhostWindowCount = 0;
   for (auto iter = mDetachedWindows.Iter(); !iter.Done(); iter.Next()) {
     nsWeakPtr weakKey = do_QueryInterface(iter.Key());
     nsCOMPtr<mozIDOMWindow> iwindow = do_QueryReferent(weakKey);
@@ -823,6 +1025,7 @@ nsWindowMemoryReporter::CheckForGhostWindows(
       } else if ((now - timeStamp).ToSeconds() > ghostTimeout) {
         // This definitely is a ghost window, so add it to aOutGhostIDs, if
         // that is not null.
+        mGhostWindowCount++;
         if (aOutGhostIDs && window) {
           aOutGhostIDs->PutEntry(window->WindowID());
         }
@@ -831,15 +1034,10 @@ nsWindowMemoryReporter::CheckForGhostWindows(
   }
 }
 
-NS_IMPL_ISUPPORTS(nsWindowMemoryReporter::GhostWindowsReporter,
-                  nsIMemoryReporter)
-
 /* static */ int64_t
-nsWindowMemoryReporter::GhostWindowsReporter::DistinguishedAmount()
+nsWindowMemoryReporter::GhostWindowsDistinguishedAmount()
 {
-  nsTHashtable<nsUint64HashKey> ghostWindows;
-  sWindowReporter->CheckForGhostWindows(&ghostWindows);
-  return ghostWindows.Count();
+  return sWindowReporter->mGhostWindowCount;
 }
 
 void

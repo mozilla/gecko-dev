@@ -18,8 +18,11 @@
  * so don't add significant include dependencies to this file.
  */
 
+class nsWindowSizes;
 struct ServoNodeData;
 namespace mozilla {
+
+class SizeOfState;
 
 /*
  * Replaced types. These get mapped to associated Servo types in bindgen.
@@ -56,20 +59,27 @@ enum class ServoTraversalFlags : uint32_t {
   AnimationOnly = 1 << 0,
   // Traverses as normal mode but tries to update all CSS animations.
   ForCSSRuleChanges = 1 << 1,
-  // Traverse only unstyled children of the root (and their descendants).
-  UnstyledChildrenOnly = 1 << 2,
+  // Styles unstyled elements, but does not handle invalidations on
+  // already-styled elements.
+  UnstyledOnly = 1 << 2,
   // A forgetful traversal ignores the previous state of the frame tree, and
   // thus does not compute damage or maintain other state describing the styles
   // pre-traversal. A forgetful traversal is usually the right thing if you
   // aren't going to do a post-traversal.
   Forgetful = 1 << 3,
-  // Actively seeks out and clears change hints that may have been posted into
-  // the tree. Nonsensical without also passing Forgetful.
-  AggressivelyForgetful = 1 << 4,
-  // Clears the dirty descendants bit in the subtree.
-  ClearDirtyDescendants = 1 << 5,
-  // Clears the animation-only dirty descendants bit in the subtree.
+  // Clears all the dirty bits (dirty descendants, animation-only dirty-descendants,
+  // needs frame, descendants need frames) on the elements traversed.
+  // in the subtree.
+  ClearDirtyBits = 1 << 5,
+  // Clears only the animation-only dirty descendants bit in the subtree.
   ClearAnimationOnlyDirtyDescendants = 1 << 6,
+  // Allows the traversal to run in parallel if there are sufficient cores on
+  // the machine.
+  ParallelTraversal = 1 << 7,
+  // Flush throttled animations. By default, we only update throttled animations
+  // when we have other non-throttled work to do. With this flag, we
+  // unconditionally tick and process them.
+  FlushThrottledAnimations = 1 << 8,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(ServoTraversalFlags)
@@ -148,6 +158,7 @@ enum ServoKeywordSize {
 struct ServoFontComputationData {
   ServoKeywordSize mKeyword;
   float/*32_t*/ mRatio;
+  int32_t mAbsolute;
 
   static_assert(sizeof(float) == 4, "float should be 32 bit");
 };
@@ -179,7 +190,7 @@ struct ServoRawOffsetArc {
 };
 
 struct ServoComputedValueFlags {
-  uint8_t mFlags;
+  uint16_t mFlags;
 };
 
 #define STYLE_STRUCT(name_, checkdata_cb_) struct Gecko##name_;
@@ -187,6 +198,28 @@ struct ServoComputedValueFlags {
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
+
+class ServoStyleSetSizes
+{
+public:
+  size_t mStylistRuleTree;
+  size_t mStylistPrecomputedPseudos;
+  size_t mStylistElementAndPseudosMaps;
+  size_t mStylistInvalidationMap;
+  size_t mStylistRevalidationSelectors;
+  size_t mStylistOther;
+  size_t mOther;
+
+  ServoStyleSetSizes()
+    : mStylistRuleTree(0)
+    , mStylistPrecomputedPseudos(0)
+    , mStylistElementAndPseudosMaps(0)
+    , mStylistInvalidationMap(0)
+    , mStylistRevalidationSelectors(0)
+    , mStylistOther(0)
+    , mOther(0)
+  {}
+};
 
 } // namespace mozilla
 
@@ -221,6 +254,8 @@ public:
 #undef STYLE_STRUCT
 #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
   const nsStyleVariables* GetStyleVariables() const;
+
+  void AddSizeOfExcludingThis(nsWindowSizes& aSizes) const;
 
 private:
   mozilla::ServoCustomPropertiesMap custom_properties;

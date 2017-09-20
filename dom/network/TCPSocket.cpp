@@ -132,7 +132,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_ADDREF_INHERITED(TCPSocket, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(TCPSocket, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TCPSocket)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TCPSocket)
   NS_INTERFACE_MAP_ENTRY(nsITransportEventSink)
   NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
   NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
@@ -210,6 +210,7 @@ TCPSocket::CreateStream()
 
   mMultiplexStream = do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIInputStream> stream = do_QueryInterface(mMultiplexStream);
 
   mMultiplexStreamCopier = do_CreateInstance("@mozilla.org/network/async-stream-copier;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -218,7 +219,7 @@ TCPSocket::CreateStream()
       do_GetService("@mozilla.org/network/socket-transport-service;1");
 
   nsCOMPtr<nsIEventTarget> target = do_QueryInterface(sts);
-  rv = mMultiplexStreamCopier->Init(mMultiplexStream,
+  rv = mMultiplexStreamCopier->Init(stream,
                                     mSocketOutputStream,
                                     target,
                                     true, /* source buffered */
@@ -596,7 +597,8 @@ TCPSocket::BufferedAmount()
   }
   if (mMultiplexStream) {
     uint64_t available = 0;
-    mMultiplexStream->Available(&available);
+    nsCOMPtr<nsIInputStream> stream(do_QueryInterface(mMultiplexStream));
+    stream->Available(&available);
     return available;
   }
   return 0;

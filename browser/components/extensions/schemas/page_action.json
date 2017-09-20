@@ -143,7 +143,9 @@
                   { "$ref": "ImageDataType" },
                   {
                     "type": "object",
-                    "additionalProperties": {"$ref": "ImageDataType"}
+                    "patternProperties": {
+                      "^[1-9]\\d*$": {"$ref": "ImageDataType"}
+                    }
                   }
                 ],
                 "optional": true,
@@ -154,7 +156,9 @@
                   { "type": "string" },
                   {
                     "type": "object",
-                    "additionalProperties": {"type": "string"}
+                    "patternProperties": {
+                      "^[1-9]\\d*$": { "type": "string" }
+                    }
                   }
                 ],
                 "optional": true,
@@ -173,6 +177,7 @@
       {
         "name": "setPopup",
         "type": "function",
+        "async": true,
         "description": "Sets the html document to be opened as a popup when the user clicks on the page action's icon.",
         "parameters": [
           {
@@ -215,6 +220,14 @@
             ]
           }
         ]
+      },
+      {
+        "name": "openPopup",
+        "type": "function",
+        "requireUserInput": true,
+        "description": "Opens the extension page action in the active window.",
+        "async": true,
+        "parameters": []
       }
     ],
     "events": [

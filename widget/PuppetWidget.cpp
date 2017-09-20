@@ -28,6 +28,7 @@
 #include "nsIWidgetListener.h"
 #include "imgIContainer.h"
 #include "nsView.h"
+#include "nsPrintfCString.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -543,7 +544,7 @@ PuppetWidget::ClearNativeTouchSequence(nsIObserver* aObserver)
   mTabChild->SendClearNativeTouchSequence(notifier.SaveObserver());
   return NS_OK;
 }
- 
+
 void
 PuppetWidget::SetConfirmedTargetAPZC(
                 uint64_t aInputBlockId,
@@ -805,11 +806,19 @@ PuppetWidget::NotifyIMEOfFocusChange(const IMENotification& aIMENotification)
     mContentCache.Clear();
   }
 
-  mIMENotificationRequestsOfParent = IMENotificationRequests();
-  if (!mTabChild->SendNotifyIMEFocus(mContentCache, aIMENotification,
-                                     &mIMENotificationRequestsOfParent)) {
-    return NS_ERROR_FAILURE;
-  }
+  mIMENotificationRequestsOfParent =
+  IMENotificationRequests(IMENotificationRequests::NOTIFY_ALL);
+  RefPtr<PuppetWidget> self = this;
+  mTabChild->SendNotifyIMEFocus(mContentCache, aIMENotification)->Then(
+    mTabChild->TabGroup()->EventTargetFor(TaskCategory::UI),
+    __func__,
+    [self] (IMENotificationRequests aRequests) {
+      self->mIMENotificationRequestsOfParent = aRequests;
+    },
+    [self] (mozilla::ipc::PromiseRejectReason aReason) {
+      NS_WARNING("SendNotifyIMEFocus got rejected.");
+    });
+
   return NS_OK;
 }
 
@@ -880,7 +889,7 @@ PuppetWidget::NotifyIMEOfSelectionChange(
   // Note that selection change must be notified after text change if it occurs.
   // Therefore, we don't need to query text content again here.
   mContentCache.SetSelection(
-    this, 
+    this,
     aIMENotification.mSelectionChangeData.mOffset,
     aIMENotification.mSelectionChangeData.Length(),
     aIMENotification.mSelectionChangeData.mReversed,
@@ -1003,7 +1012,7 @@ PuppetWidget::SetCursor(imgIContainer* aCursor,
     return NS_ERROR_FAILURE;
   }
 
-  mCursor = nsCursor(-1);
+  mCursor = eCursorInvalid;
   mCustomCursor = aCursor;
   mCursorHotspotX = aHotspotX;
   mCursorHotspotY = aHotspotY;
@@ -1404,23 +1413,9 @@ PuppetWidget::HasPendingInputEvent()
 
   mTabChild->GetIPCChannel()->PeekMessages(
     [&ret](const IPC::Message& aMsg) -> bool {
-      if ((aMsg.type() & mozilla::dom::PBrowser::PBrowserStart)
-          == mozilla::dom::PBrowser::PBrowserStart) {
-        switch (aMsg.type()) {
-          case mozilla::dom::PBrowser::Msg_RealMouseMoveEvent__ID:
-          case mozilla::dom::PBrowser::Msg_RealMouseButtonEvent__ID:
-          case mozilla::dom::PBrowser::Msg_RealKeyEvent__ID:
-          case mozilla::dom::PBrowser::Msg_MouseWheelEvent__ID:
-          case mozilla::dom::PBrowser::Msg_RealTouchEvent__ID:
-          case mozilla::dom::PBrowser::Msg_RealTouchMoveEvent__ID:
-          case mozilla::dom::PBrowser::Msg_RealDragEvent__ID:
-          case mozilla::dom::PBrowser::Msg_UpdateDimensions__ID:
-          case mozilla::dom::PBrowser::Msg_MouseEvent__ID:
-          case mozilla::dom::PBrowser::Msg_KeyEvent__ID:
-          case mozilla::dom::PBrowser::Msg_SetDocShellIsActive__ID:
-            ret = true;
-            return false;  // Stop peeking.
-        }
+      if (nsContentUtils::IsMessageInputEvent(aMsg)) {
+        ret = true;
+        return false; // Stop peeking.
       }
       return true;
     }

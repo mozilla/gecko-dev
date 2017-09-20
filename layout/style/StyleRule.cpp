@@ -503,12 +503,15 @@ int32_t nsCSSSelector::CalcWeightWithoutNegations() const
              "If pseudo-elements can have id or attribute selectors "
              "after them, specificity calculation must be updated");
 
+  if (IsPseudoElement()) {
+    weight += 1;
+  }
   if (nullptr != mCasedTag) {
-    weight += 0x000001;
+    weight += 1;
   }
   nsAtomList* list = mIDList;
   while (nullptr != list) {
-    weight += 0x010000;
+    weight += 1 << 20;
     list = list->mNext;
   }
   list = mClassList;
@@ -520,7 +523,7 @@ int32_t nsCSSSelector::CalcWeightWithoutNegations() const
   }
 #endif
   while (nullptr != list) {
-    weight += 0x000100;
+    weight += 1 << 10;
     list = list->mNext;
   }
   // FIXME (bug 561154):  This is incorrect for :-moz-any(), which isn't
@@ -530,12 +533,12 @@ int32_t nsCSSSelector::CalcWeightWithoutNegations() const
   // highest-specificity options first).
   nsPseudoClassList *plist = mPseudoClassList;
   while (nullptr != plist) {
-    weight += 0x000100;
+    weight += 1 << 10;
     plist = plist->mNext;
   }
   nsAttrSelector* attr = mAttrList;
   while (nullptr != attr) {
-    weight += 0x000100;
+    weight += 1 << 10;
     attr = attr->mNext;
   }
   return weight;
@@ -1242,7 +1245,7 @@ StyleRule::DropReferences()
 }
 
 // QueryInterface implementation for StyleRule
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(StyleRule)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(StyleRule)
   if (aIID.Equals(NS_GET_IID(mozilla::css::StyleRule))) {
     *aInstancePtr = this;
     NS_ADDREF_THIS();

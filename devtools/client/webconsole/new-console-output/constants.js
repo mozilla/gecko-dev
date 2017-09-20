@@ -12,15 +12,17 @@ const actionTypes = {
   MESSAGE_OPEN: "MESSAGE_OPEN",
   MESSAGE_CLOSE: "MESSAGE_CLOSE",
   NETWORK_MESSAGE_UPDATE: "NETWORK_MESSAGE_UPDATE",
+  NETWORK_UPDATE_REQUEST: "NETWORK_UPDATE_REQUEST",
   MESSAGE_TABLE_RECEIVE: "MESSAGE_TABLE_RECEIVE",
-  MESSAGE_OBJECT_PROPERTIES_RECEIVE: "MESSAGE_OBJECT_PROPERTIES_RECEIVE",
-  MESSAGE_OBJECT_ENTRIES_RECEIVE: "MESSAGE_OBJECT_ENTRIES_RECEIVE",
   REMOVED_ACTORS_CLEAR: "REMOVED_ACTORS_CLEAR",
   TIMESTAMPS_TOGGLE: "TIMESTAMPS_TOGGLE",
   FILTER_TOGGLE: "FILTER_TOGGLE",
   FILTER_TEXT_SET: "FILTER_TEXT_SET",
   FILTERS_CLEAR: "FILTERS_CLEAR",
+  DEFAULT_FILTERS_RESET: "DEFAULT_FILTERS_RESET",
   FILTER_BAR_TOGGLE: "FILTER_BAR_TOGGLE",
+  SELECT_NETWORK_MESSAGE_TAB: "SELECT_NETWORK_MESSAGE_TAB",
+  PERSIST_TOGGLE: "PERSIST_TOGGLE",
 };
 
 const prefs = {
@@ -36,10 +38,38 @@ const prefs = {
       NETXHR: "devtools.webconsole.filter.netxhr",
     },
     UI: {
-      FILTER_BAR: "devtools.webconsole.ui.filterbar"
+      FILTER_BAR: "devtools.webconsole.ui.filterbar",
+      PERSIST: "devtools.webconsole.persistlog",
     }
   }
 };
+
+const FILTERS = {
+  CSS: "css",
+  DEBUG: "debug",
+  ERROR: "error",
+  INFO: "info",
+  LOG: "log",
+  NET: "net",
+  NETXHR: "netxhr",
+  TEXT: "text",
+  WARN: "warn",
+};
+
+const DEFAULT_FILTERS_VALUES = {
+  [FILTERS.TEXT]: "",
+  [FILTERS.ERROR]: true,
+  [FILTERS.WARN]: true,
+  [FILTERS.LOG]: true,
+  [FILTERS.INFO]: true,
+  [FILTERS.DEBUG]: true,
+  [FILTERS.CSS]: false,
+  [FILTERS.NET]: false,
+  [FILTERS.NETXHR]: false,
+};
+
+const DEFAULT_FILTERS = Object.keys(DEFAULT_FILTERS_VALUES)
+  .filter(filter => DEFAULT_FILTERS_VALUES[filter] !== false);
 
 const chromeRDPEnums = {
   MESSAGE_SOURCE: {
@@ -65,6 +95,7 @@ const chromeRDPEnums = {
     START_GROUP_COLLAPSED: "startGroupCollapsed",
     END_GROUP: "endGroup",
     ASSERT: "assert",
+    DEBUG: "debug",
     PROFILE: "profile",
     PROFILE_END: "profileEnd",
     // Undocumented in Chrome RDP, but is used for evaluation results.
@@ -91,7 +122,11 @@ const jstermCommands = {
 };
 
 // Combine into a single constants object
-module.exports = Object.assign({},
+module.exports = Object.assign({
+  FILTERS,
+  DEFAULT_FILTERS,
+  DEFAULT_FILTERS_VALUES,
+},
   actionTypes,
   chromeRDPEnums,
   jstermCommands,

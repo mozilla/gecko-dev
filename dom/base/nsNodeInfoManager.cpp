@@ -11,7 +11,6 @@
 #include "nsNodeInfoManager.h"
 
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "mozilla/dom/NodeInfoInlines.h"
 #include "nsCOMPtr.h"
@@ -118,7 +117,9 @@ nsNodeInfoManager::nsNodeInfoManager()
     mTextNodeInfo(nullptr),
     mCommentNodeInfo(nullptr),
     mDocumentNodeInfo(nullptr),
-    mRecentlyUsedNodeInfos{}
+    mRecentlyUsedNodeInfos{},
+    mSVGEnabled(eTriUnset),
+    mMathMLEnabled(eTriUnset)
 {
   nsLayoutStatics::AddRef();
 
@@ -418,9 +419,6 @@ nsNodeInfoManager::SetDocumentPrincipal(nsIPrincipal *aPrincipal)
   NS_ASSERTION(aPrincipal, "Must have principal by this point!");
   MOZ_DIAGNOSTIC_ASSERT(!nsContentUtils::IsExpandedPrincipal(aPrincipal),
                         "Documents shouldn't have an expanded principal");
-  if (nsContentUtils::IsExpandedPrincipal(aPrincipal)) {
-    Telemetry::Accumulate(Telemetry::DOCUMENT_WITH_EXPANDED_PRINCIPAL, 1);
-  }
 
   mPrincipal = aPrincipal;
 }
@@ -462,4 +460,47 @@ nsNodeInfoManager::RemoveNodeInfo(NodeInfo *aNodeInfo)
   PL_HashTableRemove(mNodeInfoHash, &aNodeInfo->mInner);
 
   NS_POSTCONDITION(ret, "Can't find mozilla::dom::NodeInfo to remove!!!");
+}
+
+bool
+nsNodeInfoManager::InternalSVGEnabled()
+{
+  // If the svg.disabled pref. is true, convert all SVG nodes into
+  // disabled SVG nodes by swapping the namespace.
+  nsNameSpaceManager* nsmgr = nsNameSpaceManager::GetInstance();
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  bool SVGEnabled = false;
+
+  if (nsmgr && !nsmgr->mSVGDisabled) {
+    SVGEnabled = true;
+  } else {
+    nsCOMPtr<nsIChannel> channel = mDocument->GetChannel();
+    // We don't have a channel for SVGs constructed inside a SVG script
+    if (channel) {
+      loadInfo = channel->GetLoadInfo();
+    }
+  }
+  bool conclusion =
+    (SVGEnabled || nsContentUtils::IsSystemPrincipal(mPrincipal) ||
+     (loadInfo &&
+      (loadInfo->GetExternalContentPolicyType() ==
+         nsIContentPolicy::TYPE_IMAGE ||
+       loadInfo->GetExternalContentPolicyType() ==
+         nsIContentPolicy::TYPE_OTHER) &&
+      (nsContentUtils::IsSystemPrincipal(loadInfo->LoadingPrincipal()) ||
+       nsContentUtils::IsSystemPrincipal(loadInfo->TriggeringPrincipal()))));
+  mSVGEnabled = conclusion ? eTriTrue : eTriFalse;
+  return conclusion;
+}
+
+bool
+nsNodeInfoManager::InternalMathMLEnabled()
+{
+  // If the mathml.disabled pref. is true, convert all MathML nodes into
+  // disabled MathML nodes by swapping the namespace.
+  nsNameSpaceManager* nsmgr = nsNameSpaceManager::GetInstance();
+  bool conclusion = ((nsmgr && !nsmgr->mMathMLDisabled) ||
+                     nsContentUtils::IsSystemPrincipal(mPrincipal));
+  mMathMLEnabled = conclusion ? eTriTrue : eTriFalse;
+  return conclusion;
 }

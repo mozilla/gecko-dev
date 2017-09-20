@@ -346,6 +346,8 @@ PopupNotifications.prototype = {
    *              - checkboxChecked: (boolean) If the optional checkbox is checked.
    *          - [optional] dismiss (boolean): If this is true, the notification
    *            will be dismissed instead of removed after running the callback.
+   *          - [optional] disableHighlight (boolean): If this is true, the button
+   *            will not apply the default highlight style.
    *        If null, the notification will have a default "OK" action button
    *        that can be used to dismiss the popup and secondaryActions will be ignored.
    * @param secondaryActions
@@ -769,6 +771,7 @@ PopupNotifications.prototype = {
       popupnotification.setAttribute("label", n.message);
       popupnotification.setAttribute("id", popupnotificationID);
       popupnotification.setAttribute("popupid", n.id);
+      popupnotification.setAttribute("oncommand", "PopupNotifications._onCommand(event);");
       if (Services.prefs.getBoolPref("privacy.permissionPrompts.showCloseButton")) {
         popupnotification.setAttribute("closebuttoncommand", "PopupNotifications._onButtonEvent(event, 'secondarybuttoncommand');");
       } else {
@@ -777,6 +780,7 @@ PopupNotifications.prototype = {
       if (n.mainAction) {
         popupnotification.setAttribute("buttonlabel", n.mainAction.label);
         popupnotification.setAttribute("buttonaccesskey", n.mainAction.accessKey);
+        popupnotification.setAttribute("buttonhighlight", !n.mainAction.disableHighlight);
         popupnotification.setAttribute("buttoncommand", "PopupNotifications._onButtonEvent(event, 'buttoncommand');");
         popupnotification.setAttribute("dropmarkerpopupshown", "PopupNotifications._onButtonEvent(event, 'dropmarkerpopupshown');");
         popupnotification.setAttribute("learnmoreclick", "PopupNotifications._onButtonEvent(event, 'learnmoreclick');");
@@ -784,6 +788,7 @@ PopupNotifications.prototype = {
       } else {
         // Enable the default button to let the user close the popup if the close button is hidden
         popupnotification.setAttribute("buttoncommand", "PopupNotifications._onButtonEvent(event, 'buttoncommand');");
+        popupnotification.setAttribute("buttonhighlight", "true");
         popupnotification.removeAttribute("buttonlabel");
         popupnotification.removeAttribute("buttonaccesskey");
         popupnotification.removeAttribute("dropmarkerpopupshown");
@@ -887,7 +892,8 @@ PopupNotifications.prototype = {
   },
 
   _setNotificationUIState(notification, state = {}) {
-    if (state.disableMainAction) {
+    if (state.disableMainAction ||
+        notification.hasAttribute("invalidselection")) {
       notification.setAttribute("mainactiondisabled", "true");
     } else {
       notification.removeAttribute("mainactiondisabled");
@@ -897,21 +903,6 @@ PopupNotifications.prototype = {
       notification.removeAttribute("warninghidden");
     } else {
       notification.setAttribute("warninghidden", "true");
-    }
-  },
-
-  _onCheckboxCommand(event) {
-    let notificationEl = getNotificationFromElement(event.originalTarget);
-    let checked = notificationEl.checkbox.checked;
-    let notification = notificationEl.notification;
-
-    // Save checkbox state to be able to persist it when re-opening the doorhanger.
-    notification._checkboxChecked = checked;
-
-    if (checked) {
-      this._setNotificationUIState(notificationEl, notification.options.checkbox.checkedState);
-    } else {
-      this._setNotificationUIState(notificationEl, notification.options.checkbox.uncheckedState);
     }
   },
 
@@ -1411,6 +1402,39 @@ PopupNotifications.prototype = {
         this._fireCallback(notificationObj, NOTIFICATION_EVENT_DISMISSED);
       }
     }, this);
+  },
+
+  _onCheckboxCommand(event) {
+    let notificationEl = getNotificationFromElement(event.originalTarget);
+    let checked = notificationEl.checkbox.checked;
+    let notification = notificationEl.notification;
+
+    // Save checkbox state to be able to persist it when re-opening the doorhanger.
+    notification._checkboxChecked = checked;
+
+    if (checked) {
+      this._setNotificationUIState(notificationEl, notification.options.checkbox.checkedState);
+    } else {
+      this._setNotificationUIState(notificationEl, notification.options.checkbox.uncheckedState);
+    }
+    event.stopPropagation();
+  },
+
+  _onCommand(event) {
+    // Ignore events from buttons as they are submitting and so don't need checks
+    if (event.originalTarget.localName == "button") {
+      return;
+    }
+    let notificationEl = event.target;
+    // Find notification like getNotificationFromElement but some nodes are non-anon
+    while (notificationEl) {
+      if (notificationEl.localName == "popupnotification") {
+        break;
+      }
+      notificationEl =
+        notificationEl.ownerDocument.getBindingParent(notificationEl) || notificationEl.parentNode;
+    }
+    this._setNotificationUIState(notificationEl);
   },
 
   _onButtonEvent(event, type, notificationEl = null) {

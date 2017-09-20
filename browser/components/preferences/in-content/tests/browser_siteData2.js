@@ -1,9 +1,36 @@
 "use strict";
+const { SiteDataManager } = Cu.import("resource:///modules/SiteDataManager.jsm", {});
+const REMOVE_DIALOG_URL = "chrome://browser/content/preferences/siteDataRemoveSelected.xul";
+
+function promiseSettingsDialogClose() {
+  return new Promise(resolve => {
+    let win = gBrowser.selectedBrowser.contentWindow;
+    let dialogOverlay = win.gSubDialog._topDialog._overlay;
+    let dialogWin = win.gSubDialog._topDialog._frame.contentWindow;
+    dialogWin.addEventListener("unload", function unload() {
+      if (dialogWin.document.documentURI === "chrome://browser/content/preferences/siteDataSettings.xul") {
+        isnot(dialogOverlay.style.visibility, "visible", "The Settings dialog should be hidden");
+        resolve();
+      }
+    }, { once: true });
+  });
+}
+
+function assertAllSitesNotListed(win) {
+  let frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
+  let removeBtn = frameDoc.getElementById("removeSelected");
+  let removeAllBtn = frameDoc.getElementById("removeAll");
+  let sitesList = frameDoc.getElementById("sitesList");
+  let sites = sitesList.getElementsByTagName("richlistitem");
+  is(sites.length, 0, "Should not list all sites");
+  is(removeBtn.disabled, true, "Should disable the removeSelected button");
+  is(removeAllBtn.disabled, true, "Should disable the removeAllBtn button");
+}
 
 // Test selecting and removing all sites one by one
 add_task(async function() {
   await SpecialPowers.pushPrefEnv({set: [["browser.storageManager.enabled", true]]});
-  mockSiteDataManager.register();
+  mockSiteDataManager.register(SiteDataManager);
   mockSiteDataManager.fakeSites = [
     {
       usage: 1024,
@@ -32,10 +59,10 @@ add_task(async function() {
   ];
   let fakeHosts = mockSiteDataManager.fakeSites.map(site => site.principal.URI.host);
 
-  let updatePromise = promiseSitesUpdated();
-  await openPreferencesViaOpenPreferencesAPI("advanced", "networkTab", { leaveOpen: true });
+  let updatePromise = promiseSiteDataManagerSitesUpdated();
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
   await updatePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
 
   let win = gBrowser.selectedBrowser.contentWindow;
   let doc = gBrowser.selectedBrowser.contentDocument;
@@ -52,10 +79,10 @@ add_task(async function() {
   frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
   cancelBtn = frameDoc.getElementById("cancel");
   removeAllSitesOneByOne();
-  assertAllSitesNotListed();
+  assertAllSitesNotListed(win);
   cancelBtn.doCommand();
   await settingsDialogClosePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
   assertSitesListed(doc, fakeHosts);
 
   // Test the "Save Changes" button but cancelling save
@@ -64,27 +91,27 @@ add_task(async function() {
   frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
   saveBtn = frameDoc.getElementById("save");
   removeAllSitesOneByOne();
-  assertAllSitesNotListed();
+  assertAllSitesNotListed(win);
   saveBtn.doCommand();
   await cancelPromise;
   await settingsDialogClosePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
   assertSitesListed(doc, fakeHosts);
 
   // Test the "Save Changes" button and accepting save
   let acceptPromise = promiseAlertDialogOpen("accept");
   settingsDialogClosePromise = promiseSettingsDialogClose();
-  updatePromise = promiseSitesUpdated();
+  updatePromise = promiseSiteDataManagerSitesUpdated();
   frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
   saveBtn = frameDoc.getElementById("save");
   removeAllSitesOneByOne();
-  assertAllSitesNotListed();
+  assertAllSitesNotListed(win);
   saveBtn.doCommand();
   await acceptPromise;
   await settingsDialogClosePromise;
   await updatePromise;
-  await openSettingsDialog();
-  assertAllSitesNotListed();
+  await openSiteDataSettingsDialog();
+  assertAllSitesNotListed(win);
 
   mockSiteDataManager.unregister();
   await BrowserTestUtils.removeTab(gBrowser.selectedTab);
@@ -99,23 +126,12 @@ add_task(async function() {
       removeBtn.doCommand();
     }
   }
-
-  function assertAllSitesNotListed() {
-    frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
-    let removeBtn = frameDoc.getElementById("removeSelected");
-    let removeAllBtn = frameDoc.getElementById("removeAll");
-    let sitesList = frameDoc.getElementById("sitesList");
-    let sites = sitesList.getElementsByTagName("richlistitem");
-    is(sites.length, 0, "Should not list all sites");
-    is(removeBtn.disabled, true, "Should disable the removeSelected button");
-    is(removeAllBtn.disabled, true, "Should disable the removeAllBtn button");
-  }
 });
 
 // Test selecting and removing partial sites
 add_task(async function() {
   await SpecialPowers.pushPrefEnv({set: [["browser.storageManager.enabled", true]]});
-  mockSiteDataManager.register();
+  mockSiteDataManager.register(SiteDataManager);
   mockSiteDataManager.fakeSites = [
     {
       usage: 1024,
@@ -162,10 +178,10 @@ add_task(async function() {
   ];
   let fakeHosts = mockSiteDataManager.fakeSites.map(site => site.principal.URI.host);
 
-  let updatePromise = promiseSitesUpdated();
-  await openPreferencesViaOpenPreferencesAPI("advanced", "networkTab", { leaveOpen: true });
+  let updatePromise = promiseSiteDataManagerSitesUpdated();
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
   await updatePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
 
   let win = gBrowser.selectedBrowser.contentWindow;
   let doc = gBrowser.selectedBrowser.contentDocument;
@@ -186,7 +202,7 @@ add_task(async function() {
   assertSitesListed(doc, fakeHosts.slice(2));
   cancelBtn.doCommand();
   await settingsDialogClosePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
   assertSitesListed(doc, fakeHosts);
 
   // Test the "Save Changes" button but canceling save
@@ -199,7 +215,7 @@ add_task(async function() {
   saveBtn.doCommand();
   await removeDialogOpenPromise;
   await settingsDialogClosePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
   assertSitesListed(doc, fakeHosts);
 
   // Test the "Save Changes" button and accepting save
@@ -212,7 +228,7 @@ add_task(async function() {
   saveBtn.doCommand();
   await removeDialogOpenPromise;
   await settingsDialogClosePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
   assertSitesListed(doc, fakeHosts.slice(2));
 
   mockSiteDataManager.unregister();
@@ -266,10 +282,10 @@ add_task(async function() {
   ];
   let fakeHosts = mockSiteDataManager.fakeSites.map(site => site.principal.URI.host);
 
-  let updatePromise = promiseSitesUpdated();
-  await openPreferencesViaOpenPreferencesAPI("advanced", "networkTab", { leaveOpen: true });
+  let updatePromise = promiseSiteDataManagerSitesUpdated();
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
   await updatePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
 
   // Search "foo" to only list foo.com sites
   let win = gBrowser.selectedBrowser.contentWindow;
@@ -281,7 +297,7 @@ add_task(async function() {
   assertSitesListed(doc, fakeHosts.filter(host => host.includes("xyz")));
 
   // Test only removing all visible sites listed
-  updatePromise = promiseSitesUpdated();
+  updatePromise = promiseSiteDataManagerSitesUpdated();
   let acceptRemovePromise = promiseWindowDialogOpen("accept", REMOVE_DIALOG_URL);
   let settingsDialogClosePromise = promiseSettingsDialogClose();
   let removeAllBtn = frameDoc.getElementById("removeAll");
@@ -291,8 +307,69 @@ add_task(async function() {
   await acceptRemovePromise;
   await settingsDialogClosePromise;
   await updatePromise;
-  await openSettingsDialog();
+  await openSiteDataSettingsDialog();
   assertSitesListed(doc, fakeHosts.filter(host => !host.includes("xyz")));
+
+  mockSiteDataManager.unregister();
+  await BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+// Test dynamically clearing all site data
+add_task(async function() {
+  await SpecialPowers.pushPrefEnv({set: [["browser.storageManager.enabled", true]]});
+  mockSiteDataManager.register(SiteDataManager);
+  mockSiteDataManager.fakeSites = [
+    {
+      usage: 1024,
+      principal: Services.scriptSecurityManager
+                         .createCodebasePrincipalFromOrigin("https://account.xyz.com"),
+      persisted: true
+    },
+    {
+      usage: 1024,
+      principal: Services.scriptSecurityManager
+                         .createCodebasePrincipalFromOrigin("https://shopping.xyz.com"),
+      persisted: false
+    },
+  ];
+  let fakeHosts = mockSiteDataManager.fakeSites.map(site => site.principal.URI.host);
+
+  // Test the initial state
+  let updatePromise = promiseSiteDataManagerSitesUpdated();
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+  await updatePromise;
+  await openSiteDataSettingsDialog();
+  let doc = gBrowser.selectedBrowser.contentDocument;
+  assertSitesListed(doc, fakeHosts);
+
+  // Add more sites dynamically
+  mockSiteDataManager.fakeSites.push({
+    usage: 1024,
+    principal: Services.scriptSecurityManager
+                       .createCodebasePrincipalFromOrigin("http://cinema.bar.com"),
+    persisted: true
+  }, {
+    usage: 1024,
+    principal: Services.scriptSecurityManager
+                       .createCodebasePrincipalFromOrigin("http://email.bar.com"),
+    persisted: false
+  });
+
+  // Test clearing all site data dynamically
+  let win = gBrowser.selectedBrowser.contentWindow;
+  let frameDoc = win.gSubDialog._topDialog._frame.contentDocument;
+  updatePromise = promiseSiteDataManagerSitesUpdated();
+  let acceptRemovePromise = promiseAlertDialogOpen("accept");
+  let settingsDialogClosePromise = promiseSettingsDialogClose();
+  let removeAllBtn = frameDoc.getElementById("removeAll");
+  let saveBtn = frameDoc.getElementById("save");
+  removeAllBtn.doCommand();
+  saveBtn.doCommand();
+  await acceptRemovePromise;
+  await settingsDialogClosePromise;
+  await updatePromise;
+  await openSiteDataSettingsDialog();
+  assertAllSitesNotListed(win);
 
   mockSiteDataManager.unregister();
   await BrowserTestUtils.removeTab(gBrowser.selectedTab);

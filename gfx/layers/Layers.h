@@ -1087,14 +1087,14 @@ public:
     if (mClipRect) {
       if (!aRect) {
         MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ClipRect was %d,%d,%d,%d is <none>", this,
-                         mClipRect->x, mClipRect->y, mClipRect->width, mClipRect->height));
+                                            mClipRect->x, mClipRect->y, mClipRect->Width(), mClipRect->Height()));
         mClipRect.reset();
         Mutated();
       } else {
         if (!aRect->IsEqualEdges(*mClipRect)) {
           MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ClipRect was %d,%d,%d,%d is %d,%d,%d,%d", this,
-                           mClipRect->x, mClipRect->y, mClipRect->width, mClipRect->height,
-                           aRect->x, aRect->y, aRect->width, aRect->height));
+                                              mClipRect->x, mClipRect->y, mClipRect->Width(), mClipRect->Height(),
+                                              aRect->x, aRect->y, aRect->Width(), aRect->Height()));
           mClipRect = aRect;
           Mutated();
         }
@@ -1102,7 +1102,7 @@ public:
     } else {
       if (aRect) {
         MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ClipRect was <none> is %d,%d,%d,%d", this,
-                         aRect->x, aRect->y, aRect->width, aRect->height));
+                                            aRect->x, aRect->y, aRect->Width(), aRect->Height()));
         mClipRect = aRect;
         Mutated();
       }
@@ -1681,6 +1681,15 @@ public:
   {
     return mEffectiveTransform;
   }
+
+  /**
+   * If the current layers participates in a preserve-3d
+   * context (returns true for Combines3DTransformWithAncestors),
+   * returns the combined transform up to the preserve-3d (nearest
+   * ancestor that doesn't Extend3DContext()). Otherwise returns
+   * the local transform.
+   */
+  gfx::Matrix4x4 ComputeTransformToPreserve3DRoot();
 
   /**
    * @param aTransformToSurface the composition of the transforms
@@ -2748,7 +2757,7 @@ public:
     // was drawn into a PaintedLayer (gfxContext would snap using the local
     // transform, then we'd snap again when compositing the PaintedLayer).
     mEffectiveTransform =
-        SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
+      SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.Width(), mBounds.Height()),
                       nullptr)*
         SnapTransformTranslation(aTransformToSurface, nullptr);
     ComputeEffectiveTransformForMaskLayers(aTransformToSurface);

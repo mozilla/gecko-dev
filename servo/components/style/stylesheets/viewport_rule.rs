@@ -11,16 +11,18 @@ use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::{CowRcStr, ToCss as ParserToCss};
-use error_reporting::ContextualParseError;
+use error_reporting::{ContextualParseError, ParseErrorReporter};
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
-use parser::{Parse, ParserContext, log_css_error};
+use parser::{ParserContext, ParserErrorContext};
 use properties::StyleBuilder;
+use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseError;
-use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
@@ -151,7 +153,7 @@ impl ToCss for ViewportLength {
     {
         match *self {
             ViewportLength::Specified(ref length) => length.to_css(dest),
-            ViewportLength::ExtendToZoom => write!(dest, "extend-to-zoom"),
+            ViewportLength::ExtendToZoom => dest.write_str("extend-to-zoom"),
         }
     }
 }
@@ -271,7 +273,8 @@ fn parse_shorthand<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
 }
 
 impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
-    type Prelude = ();
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
@@ -346,8 +349,14 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
     WHITESPACE.contains(c) || SEPARATOR.contains(c) || *c == '='
 }
 
-impl Parse for ViewportRule {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+impl ViewportRule {
+    /// Parse a single @viewport rule.
+    pub fn parse<'i, 't, R>(context: &ParserContext,
+                            error_context: &ParserErrorContext<R>,
+                            input: &mut Parser<'i, 't>)
+                            -> Result<Self, ParseError<'i>>
+        where R: ParseErrorReporter
+    {
         let parser = ViewportRuleParser { context: context };
 
         let mut cascade = Cascade::new();
@@ -360,10 +369,8 @@ impl Parse for ViewportRule {
                     }
                 }
                 Err(err) => {
-                    let pos = err.span.start;
-                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(
-                        parser.input.slice(err.span), err.error);
-                    log_css_error(parser.input, pos, error, &context);
+                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(err.slice, err.error);
+                    context.log_css_error(error_context, err.location, error);
                 }
             }
         }
@@ -564,16 +571,16 @@ impl Cascade {
 
     pub fn from_stylesheets<'a, I, S>(
         stylesheets: I,
-        guard: &SharedRwLockReadGuard,
+        guards: &StylesheetGuards,
         device: &Device
     ) -> Self
     where
-        I: Iterator<Item = &'a S>,
+        I: Iterator<Item = (&'a S, Origin)>,
         S: StylesheetInDocument + 'static,
     {
         let mut cascade = Self::new();
-        for stylesheet in stylesheets {
-            stylesheet.effective_viewport_rules(device, guard, |rule| {
+        for (stylesheet, origin) in stylesheets {
+            stylesheet.effective_viewport_rules(device, guards.for_origin(origin), |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }
@@ -696,16 +703,13 @@ impl MaybeNew for ViewportConstraints {
         //
         // Note: DEVICE-ADAPT § 5. states that relative length values are
         // resolved against initial values
-        //
-        // Note, we set used_viewport_size flag for Gecko in au_viewport_size.
-        // If we ever start supporting ViewportRule in Gecko, we probably want
-        // to avoid doing so at this place.
         let initial_viewport = device.au_viewport_size();
 
         let provider = get_metrics_provider_for_product();
 
         let default_values = device.default_computed_values();
 
+        let mut conditions = RuleCacheConditions::default();
         let context = Context {
             is_root_element: false,
             builder: StyleBuilder::for_derived_style(device, default_values, None, None),
@@ -714,6 +718,8 @@ impl MaybeNew for ViewportConstraints {
             in_media_query: false,
             quirks_mode: quirks_mode,
             for_smil_animation: false,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(&mut conditions),
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
@@ -734,7 +740,7 @@ impl MaybeNew for ViewportConstraints {
                     match *$value {
                         ViewportLength::Specified(ref length) => match *length {
                             LengthOrPercentageOrAuto::Length(ref value) =>
-                                Some(value.to_computed_value(&context)),
+                                Some(Au::from(value.to_computed_value(&context))),
                             LengthOrPercentageOrAuto::Percentage(value) =>
                                 Some(initial_viewport.$dimension.scale_by(value.0)),
                             LengthOrPercentageOrAuto::Auto => None,

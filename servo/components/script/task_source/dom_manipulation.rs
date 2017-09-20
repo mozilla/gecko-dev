@@ -4,17 +4,19 @@
 
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::event::{EventBubbles, EventCancelable, EventRunnable, SimpleEventRunnable};
+use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
-#[derive(JSTraceable, Clone)]
+#[derive(Clone, JSTraceable)]
 pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl fmt::Debug for DOMManipulationTaskSource {
@@ -24,13 +26,19 @@ impl fmt::Debug for DOMManipulationTaskSource {
 }
 
 impl TaskSource for DOMManipulationTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
-        let msg = DOMManipulationTask(wrapper.wrap_runnable(msg));
-        self.0.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
+    fn queue_with_canceller<T>(
+        &self,
+        msg: Box<T>,
+        canceller: &TaskCanceller,
+    ) -> Result<(), ()>
+    where
+        T: Task + Send + 'static,
+    {
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::ScriptEvent,
+            canceller.wrap_task(msg),
+        ));
+        self.0.send(msg).map_err(|_| ())
     }
 }
 
@@ -42,37 +50,17 @@ impl DOMManipulationTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let runnable = box EventRunnable {
+        let task = box EventTask {
             target: target,
             name: name,
             bubbles: bubbles,
             cancelable: cancelable,
         };
-        let _ = self.queue(runnable, window.upcast());
+        let _ = self.queue(task, window.upcast());
     }
 
     pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
         let target = Trusted::new(target);
-        let runnable = box SimpleEventRunnable {
-            target: target,
-            name: name,
-        };
-        let _ = self.queue(runnable, window.upcast());
-    }
-}
-
-pub struct DOMManipulationTask(pub Box<Runnable + Send>);
-
-impl fmt::Debug for DOMManipulationTask {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "DOMManipulationTask(...)")
-    }
-}
-
-impl DOMManipulationTask {
-    pub fn handle_task(self, script_thread: &ScriptThread) {
-        if !self.0.is_cancelled() {
-            self.0.main_thread_handler(script_thread);
-        }
+        let _ = self.queue(box SimpleEventTask { target, name }, window.upcast());
     }
 }

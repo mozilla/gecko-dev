@@ -15,8 +15,8 @@
 // are returned when 'privacy.resistFingerprinting' is true.
 #define SPOOFED_APPNAME    "Netscape"
 #define SPOOFED_APPVERSION "5.0 (Windows)"
-#define SPOOFED_OSCPU      "Windows NT 6.1"
-#define SPOOFED_PLATFORM   "Win32"
+#define SPOOFED_OSCPU      "Windows NT 6.1; Win64; x64"
+#define SPOOFED_PLATFORM   "Win64"
 
 #define LEGACY_BUILD_ID    "20100101"
 
@@ -38,6 +38,19 @@ public:
   static double ReduceTimePrecisionAsMSecs(double aTime);
   static double ReduceTimePrecisionAsUSecs(double aTime);
   static double ReduceTimePrecisionAsSecs(double aTime);
+
+  // This method calculates the video resolution (i.e. height x width) based
+  // on the video quality (480p, 720p, etc).
+  static uint32_t CalculateTargetVideoResolution(uint32_t aVideoQuality);
+
+  // Methods for getting spoofed media statistics and the return value will
+  // depend on the video resolution.
+  static uint32_t GetSpoofedTotalFrames(double aTime);
+  static uint32_t GetSpoofedDroppedFrames(double aTime, uint32_t aWidth, uint32_t aHeight);
+  static uint32_t GetSpoofedPresentedFrames(double aTime, uint32_t aWidth, uint32_t aHeight);
+
+  // This method generates the spoofed value of User Agent.
+  static nsresult GetSpoofedUserAgent(nsACString &userAgent);
 
 private:
   nsresult Init();

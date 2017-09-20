@@ -8,8 +8,10 @@
     'alghmac.c',
     'arcfive.c',
     'arcfour.c',
+    'blake2b.c',
     'camellia.c',
     'chacha20poly1305.c',
+    'crypto_primitives.c',
     'ctr.c',
     'cts.c',
     'des.c',
@@ -98,10 +100,6 @@
       ],
     }],
     [ 'OS=="win"', {
-      'sources': [
-        #TODO: building with mingw should not need this.
-        'ecl/uint128.c',
-      ],
       'libraries': [
         'advapi32.lib',
       ],
@@ -136,6 +134,7 @@
       'sources': [
         # All intel architectures get the 64 bit version
         'ecl/curve25519_64.c',
+        'verified/hacl_curve25519_64.c',
       ],
     }, {
       'sources': [
@@ -143,7 +142,6 @@
         'ecl/curve25519_32.c',
       ],
     }],
-    #TODO uint128.c
     [ 'disable_chachapoly==0', {
       'conditions': [
         [ 'OS!="win" and target_arch=="x64"', {

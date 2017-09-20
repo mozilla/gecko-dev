@@ -9,7 +9,7 @@ const Services = require("Services");
 const {Task} = require("devtools/shared/task");
 const nodeConstants = require("devtools/shared/dom-node-constants");
 const nodeFilterConstants = require("devtools/shared/dom-node-filter-constants");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const {PluralForm} = require("devtools/shared/plural-form");
 const AutocompletePopup = require("devtools/client/shared/autocomplete-popup");
@@ -184,7 +184,7 @@ MarkupView.prototype = {
   _onToolboxPickerHover: function (event, nodeFront) {
     this.showNode(nodeFront).then(() => {
       this._showContainerAsHovered(nodeFront);
-    }, e => console.error(e));
+    }, console.error);
   },
 
   /**
@@ -1155,7 +1155,7 @@ MarkupView.prototype = {
    */
   expandNode: function (node) {
     let container = this.getContainer(node);
-    this._expandContainer(container);
+    return this._expandContainer(container);
   },
 
   /**
@@ -1648,7 +1648,7 @@ MarkupView.prototype = {
         // If children are dirty, we got a change notification for this node
         // while the request was in progress, we need to do it again.
         if (container.childrenDirty) {
-          return this._updateChildren(container, {expand: centered});
+          return this._updateChildren(container, {expand: centered || expand});
         }
 
         let fragment = this.doc.createDocumentFragment();

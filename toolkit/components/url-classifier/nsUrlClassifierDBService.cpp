@@ -8,8 +8,6 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsArrayUtils.h"
 #include "nsCRT.h"
-#include "nsICryptoHash.h"
-#include "nsICryptoHMAC.h"
 #include "nsIDirectoryService.h"
 #include "nsIKeyModule.h"
 #include "nsIObserverService.h"
@@ -467,8 +465,6 @@ nsUrlClassifierDBServiceWorker::BeginStream(const nsACString &table)
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mProtocolParser->Init(mCryptoHash);
-
   if (!table.IsEmpty()) {
     mProtocolParser->SetCurrentTable(table);
   }
@@ -809,7 +805,6 @@ nsUrlClassifierDBServiceWorker::CloseDb()
     mClassifier = nullptr;
   }
 
-  mCryptoHash = nullptr;
   LOG(("urlclassifier db closed\n"));
 
   return NS_OK;
@@ -944,9 +939,6 @@ nsUrlClassifierDBServiceWorker::OpenDb()
   }
 
   nsresult rv;
-  mCryptoHash = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsAutoPtr<Classifier> classifier(new (fallible) Classifier());
   if (!classifier) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1564,6 +1556,9 @@ nsUrlClassifierDBService::ReadTablesFromPrefs()
   Preferences::GetCString(DOWNLOAD_ALLOW_TABLE_PREF, tables);
   AppendTables(tables, allTables);
 
+  Preferences::GetCString(PASSWORD_ALLOW_TABLE_PREF, tables);
+  AppendTables(tables, allTables);
+
   Preferences::GetCString(TRACKING_TABLE_PREF, tables);
   AppendTables(tables, allTables);
   AppendTables(tables, mTrackingProtectionTables);
@@ -1612,12 +1607,6 @@ nsUrlClassifierDBService::Init()
     GETHASH_NOISE_DEFAULT);
   ReadTablesFromPrefs();
   nsresult rv;
-
-  {
-    // Force PSM loading on main thread
-    nsCOMPtr<nsICryptoHash> dummy = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
   {
     // Force nsIUrlClassifierUtils loading on main thread.
@@ -1786,12 +1775,26 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithTables(nsIURI *aURI,
   MOZ_ASSERT(NS_IsMainThread(), "AsyncClassifyLocalWithTables must be called "
                                 "on main thread");
 
+  // We do this check no matter what process we are in to return
+  // error as early as possible.
+  nsCOMPtr<nsIURI> uri = NS_GetInnermostURI(aURI);
+  NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
+
+  nsAutoCString key;
+  // Canonicalize the url
+  nsCOMPtr<nsIUrlClassifierUtils> utilsService =
+    do_GetService(NS_URLCLASSIFIERUTILS_CONTRACTID);
+  nsresult rv = utilsService->GetKeyForURI(uri, key);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   if (XRE_IsContentProcess()) {
     using namespace mozilla::dom;
     using namespace mozilla::ipc;
 
     ContentChild* content = ContentChild::GetSingleton();
-    MOZ_ASSERT(content);
+    if (NS_WARN_IF(!content || content->IsShuttingDown())) {
+      return NS_ERROR_FAILURE;
+    }
 
     auto actor = new URLClassifierLocalChild();
 
@@ -1817,16 +1820,6 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithTables(nsIURI *aURI,
 
   using namespace mozilla::Telemetry;
   auto startTime = TimeStamp::Now(); // For telemetry.
-
-  nsCOMPtr<nsIURI> uri = NS_GetInnermostURI(aURI);
-  NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
-
-  nsAutoCString key;
-  // Canonicalize the url
-  nsCOMPtr<nsIUrlClassifierUtils> utilsService =
-    do_GetService(NS_URLCLASSIFIERUTILS_CONTRACTID);
-  nsresult rv = utilsService->GetKeyForURI(uri, key);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   auto worker = mWorker;
   nsCString tables(aTables);
@@ -2275,13 +2268,14 @@ nsUrlClassifierDBService::Shutdown()
   //    is to avoid racing for Classifier::mUpdateThread
   //    between main thread and the worker thread. (Both threads
   //    would access Classifier::mUpdateThread.)
-  using Worker = nsUrlClassifierDBServiceWorker;
-  RefPtr<nsIRunnable> r = NewRunnableMethod(
-    "nsUrlClassifierDBServiceWorker::FlushAndDisableAsyncUpdate",
-    mWorker,
-    &Worker::FlushAndDisableAsyncUpdate);
-  SyncRunnable::DispatchToThread(gDbBackgroundThread, r);
-
+  if (mWorker->IsDBOpened()) {
+    using Worker = nsUrlClassifierDBServiceWorker;
+    RefPtr<nsIRunnable> r = NewRunnableMethod(
+      "nsUrlClassifierDBServiceWorker::FlushAndDisableAsyncUpdate",
+      mWorker,
+      &Worker::FlushAndDisableAsyncUpdate);
+    SyncRunnable::DispatchToThread(gDbBackgroundThread, r);
+  }
   // At this point the update thread has been shut down and
   // the worker thread should only have at most one event,
   // which is the callback event.

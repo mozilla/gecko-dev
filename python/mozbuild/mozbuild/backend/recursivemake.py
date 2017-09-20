@@ -36,6 +36,7 @@ from ..frontend.data import (
     BaseLibrary,
     BaseProgram,
     ChromeManifestEntry,
+    ComputedFlags,
     ConfigFileSubstitution,
     ContextDerived,
     ContextWrapped,
@@ -571,7 +572,7 @@ class RecursiveMakeBackend(CommonBackend):
             self._compile_graph[build_target]
 
         elif isinstance(obj, Program):
-            self._process_program(obj.program, backend_file)
+            self._process_program(obj, backend_file)
             self._process_linked_libraries(obj, backend_file)
             self._no_skip['syms'].add(backend_file.relobjdir)
 
@@ -593,6 +594,9 @@ class RecursiveMakeBackend(CommonBackend):
 
         elif isinstance(obj, PerSourceFlag):
             self._process_per_source_flag(obj, backend_file)
+
+        elif isinstance(obj, ComputedFlags):
+            self._process_computed_flags(obj, backend_file)
 
         elif isinstance(obj, InstallationTarget):
             self._process_installation_target(obj, backend_file)
@@ -1093,8 +1097,10 @@ class RecursiveMakeBackend(CommonBackend):
             registered_xpt_files=' '.join(sorted(registered_xpt_files)),
         ))
 
-    def _process_program(self, program, backend_file):
-        backend_file.write('PROGRAM = %s\n' % program)
+    def _process_program(self, obj, backend_file):
+        backend_file.write('PROGRAM = %s\n' % obj.program)
+        if not obj.cxx_link and not self.environment.bin_suffix:
+            backend_file.write('PROG_IS_C_ONLY_%s := 1\n' % obj.program)
 
     def _process_host_program(self, program, backend_file):
         backend_file.write('HOST_PROGRAM = %s\n' % program)
@@ -1120,8 +1126,11 @@ class RecursiveMakeBackend(CommonBackend):
     def _process_simple_program(self, obj, backend_file):
         if obj.is_unit_test:
             backend_file.write('CPP_UNIT_TESTS += %s\n' % obj.program)
+            assert obj.cxx_link
         else:
             backend_file.write('SIMPLE_PROGRAMS += %s\n' % obj.program)
+            if not obj.cxx_link and not self.environment.bin_suffix:
+                backend_file.write('PROG_IS_C_ONLY_%s := 1\n' % obj.program)
 
     def _process_host_simple_program(self, program, backend_file):
         backend_file.write('HOST_SIMPLE_PROGRAMS += %s\n' % program)
@@ -1208,6 +1217,10 @@ class RecursiveMakeBackend(CommonBackend):
     def _process_per_source_flag(self, per_source_flag, backend_file):
         for flag in per_source_flag.flags:
             backend_file.write('%s_FLAGS += %s\n' % (mozpath.basename(per_source_flag.file_name), flag))
+
+    def _process_computed_flags(self, computed_flags, backend_file):
+        for var, flags in computed_flags.get_flags():
+            backend_file.write('COMPUTED_%s += %s\n' % (var, make_quote(' '.join(flags))))
 
     def _process_java_jar_data(self, jar, backend_file):
         target = jar.name

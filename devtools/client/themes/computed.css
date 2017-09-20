@@ -50,6 +50,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   flex: auto;
+  border-top: 1px solid var(--theme-splitter-color);
+  margin-top: -1px;
 }
 
 .row-striped {
@@ -207,7 +209,6 @@
 
 .computed-link,
 .computed-link:visited {
-  color: #0091ff;
   text-decoration: none;
 }
 

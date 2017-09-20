@@ -44,10 +44,9 @@ nsFirstLetterFrame::GetFrameName(nsAString& aResult) const
 
 void
 nsFirstLetterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                     const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
-  BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
+  BuildDisplayListForInline(aBuilder, aLists);
 }
 
 void
@@ -164,6 +163,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsFirstLetterFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aMetrics, aReflowStatus);
+  MOZ_ASSERT(aReflowStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   // Grab overflow list
   DrainOverflowFrames(aPresContext);

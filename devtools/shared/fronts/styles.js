@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-require("devtools/shared/fronts/stylesheets");
 const {
   Front,
   FrontClassWithSpec,
@@ -16,7 +15,9 @@ const {
 } = require("devtools/shared/specs/styles");
 const promise = require("promise");
 const { Task } = require("devtools/shared/task");
-const { RuleRewriter } = require("devtools/shared/css/parsing-utils");
+
+loader.lazyRequireGetter(this, "RuleRewriter",
+  "devtools/shared/css/parsing-utils", true);
 
 /**
  * PageStyleFront, the front object for the PageStyleActor

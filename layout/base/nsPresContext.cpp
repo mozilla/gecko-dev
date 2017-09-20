@@ -30,6 +30,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMHTMLDocument.h"
+#include "nsHTMLDocument.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsThreadUtils.h"
@@ -231,7 +232,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
     mFocusBackgroundColor(mBackgroundColor),
     mFocusTextColor(mDefaultColor),
     mBodyTextColor(mDefaultColor),
-    mViewportScrollbarOverrideNode(nullptr),
+    mViewportScrollbarOverrideElement(nullptr),
     mViewportStyleScrollbar(NS_STYLE_OVERFLOW_AUTO, NS_STYLE_OVERFLOW_AUTO),
     mFocusRingWidth(1),
     mExistThrottledUpdates(false),
@@ -278,6 +279,8 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
     mPendingViewportChange(false),
     mCounterStylesDirty(true),
     mPostedFlushCounterStyles(false),
+    mFontFeatureValuesDirty(true),
+    mPostedFlushFontFeatureValues(false),
     mSuppressResizeReflow(false),
     mIsVisual(false),
     mFireAfterPaintEvents(false),
@@ -397,7 +400,6 @@ nsPresContext::~nsPresContext()
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsPresContext)
    NS_INTERFACE_MAP_ENTRY(nsISupports)
-   NS_INTERFACE_MAP_ENTRY(nsIObserver)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsPresContext)
@@ -674,7 +676,7 @@ nsPresContext::GetUserPreferences()
   // We don't need to force reflow: either we are initializing a new
   // prescontext or we are being called from UpdateAfterPreferencesChanged()
   // which triggers a reflow anyway.
-  SetBidi(bidiOptions, false);
+  SetBidi(bidiOptions);
 }
 
 void
@@ -1015,7 +1017,6 @@ nsPresContext::AttachShell(nsIPresShell* aShell, StyleBackendType aBackendType)
         mImageAnimationMode = imgIContainer::kNormalAnimMode;
     }
 
-    doc->AddCharSetObserver(this);
     UpdateCharSet(doc->GetDocumentCharacterSet());
   }
 }
@@ -1023,13 +1024,6 @@ nsPresContext::AttachShell(nsIPresShell* aShell, StyleBackendType aBackendType)
 void
 nsPresContext::DetachShell()
 {
-  // Remove ourselves as the charset observer from the shell's doc, because
-  // this shell may be going away for good.
-  nsIDocument *doc = mShell ? mShell->GetDocument() : nullptr;
-  if (doc) {
-    doc->RemoveCharSetObserver(this);
-  }
-
   // The counter style manager's destructor needs to deallocate with the
   // presshell arena. Disconnect it before nulling out the shell.
   //
@@ -1081,7 +1075,12 @@ nsPresContext::DoChangeCharSet(NotNull<const Encoding*> aCharSet)
 {
   UpdateCharSet(aCharSet);
   mDeviceContext->FlushFontCache();
-  RebuildAllStyleData(NS_STYLE_HINT_REFLOW, nsRestyleHint(0));
+  // In Stylo, if a document contains one or more <script> elements, frame
+  // construction might happen earlier than the UpdateCharSet(), so we need to
+  // restyle descendants to make their style data up-to-date.
+  RebuildAllStyleData(NS_STYLE_HINT_REFLOW,
+                      mDocument->IsStyledByServo()
+                      ? eRestyle_ForceDescendants : nsRestyleHint(0));
 }
 
 void
@@ -1113,21 +1112,12 @@ nsPresContext::UpdateCharSet(NotNull<const Encoding*> aCharSet)
   }
 }
 
-NS_IMETHODIMP
-nsPresContext::Observe(nsISupports* aSubject,
-                        const char* aTopic,
-                        const char16_t* aData)
+void
+nsPresContext::DispatchCharSetChange(NotNull<const Encoding*> aEncoding)
 {
-  if (!nsCRT::strcmp(aTopic, "charset")) {
-    auto encoding = Encoding::ForName(NS_LossyConvertUTF16toASCII(aData));
-    RefPtr<CharSetChangingRunnable> runnable =
-      new CharSetChangingRunnable(this, encoding);
-    return Document()->Dispatch(TaskCategory::Other,
-                                runnable.forget());
-  }
-
-  NS_WARNING("unrecognized topic in nsPresContext::Observe");
-  return NS_ERROR_FAILURE;
+  RefPtr<CharSetChangingRunnable> runnable =
+    new CharSetChangingRunnable(this, aEncoding);
+  Document()->Dispatch(TaskCategory::Other, runnable.forget());
 }
 
 nsPresContext*
@@ -1305,7 +1295,7 @@ nsPresContext::SetSMILAnimations(nsIDocument *aDoc, uint16_t aNewMode,
 }
 
 void
-nsPresContext::SetImageAnimationModeInternal(uint16_t aMode)
+nsPresContext::SetImageAnimationMode(uint16_t aMode)
 {
   NS_ASSERTION(aMode == imgIContainer::kNormalAnimMode ||
                aMode == imgIContainer::kDontAnimMode ||
@@ -1331,12 +1321,6 @@ nsPresContext::SetImageAnimationModeInternal(uint16_t aMode)
   }
 
   mImageAnimationMode = aMode;
-}
-
-void
-nsPresContext::SetImageAnimationModeExternal(uint16_t aMode)
-{
-  SetImageAnimationModeInternal(aMode);
 }
 
 already_AddRefed<nsIAtom>
@@ -1474,7 +1458,7 @@ CheckOverflow(const nsStyleDisplay* aDisplay, ScrollbarStyles* aStyles)
   return true;
 }
 
-static nsIContent*
+static Element*
 GetPropagatedScrollbarStylesForViewport(nsPresContext* aPresContext,
                                         ScrollbarStyles *aStyles)
 {
@@ -1496,19 +1480,17 @@ GetPropagatedScrollbarStylesForViewport(nsPresContext* aPresContext,
   }
 
   // Don't look in the BODY for non-HTML documents or HTML documents
-  // with non-HTML roots
+  // with non-HTML roots.
   // XXX this should be earlier; we shouldn't even look at the document root
   // for non-HTML documents. Fix this once we support explicit CSS styling
   // of the viewport
   // XXX what about XHTML?
-  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc(do_QueryInterface(document));
+  nsHTMLDocument* htmlDoc = document->AsHTMLDocument();
   if (!htmlDoc || !docElement->IsHTMLElement()) {
     return nullptr;
   }
 
-  nsCOMPtr<nsIDOMHTMLElement> body;
-  htmlDoc->GetBody(getter_AddRefs(body));
-  nsCOMPtr<nsIContent> bodyElement = do_QueryInterface(body);
+  Element* bodyElement = htmlDoc->GetBody();
 
   if (!bodyElement ||
       !bodyElement->NodeInfo()->Equals(nsGkAtoms::body)) {
@@ -1517,7 +1499,7 @@ GetPropagatedScrollbarStylesForViewport(nsPresContext* aPresContext,
   }
 
   RefPtr<nsStyleContext> bodyStyle =
-    styleSet->ResolveStyleFor(bodyElement->AsElement(), rootStyle,
+    styleSet->ResolveStyleFor(bodyElement, rootStyle,
                               LazyComputeBehavior::Allow);
 
   if (CheckOverflow(bodyStyle->StyleDisplay(), aStyles)) {
@@ -1528,16 +1510,16 @@ GetPropagatedScrollbarStylesForViewport(nsPresContext* aPresContext,
   return nullptr;
 }
 
-nsIContent*
+Element*
 nsPresContext::UpdateViewportScrollbarStylesOverride()
 {
   // Start off with our default styles, and then update them as needed.
   mViewportStyleScrollbar = ScrollbarStyles(NS_STYLE_OVERFLOW_AUTO,
                                             NS_STYLE_OVERFLOW_AUTO);
-  mViewportScrollbarOverrideNode = nullptr;
+  mViewportScrollbarOverrideElement = nullptr;
   // Don't propagate the scrollbar state in printing or print preview.
   if (!IsPaginated()) {
-    mViewportScrollbarOverrideNode =
+    mViewportScrollbarOverrideElement =
       GetPropagatedScrollbarStylesForViewport(this, &mViewportStyleScrollbar);
   }
 
@@ -1549,12 +1531,12 @@ nsPresContext::UpdateViewportScrollbarStylesOverride()
     // the styles are from, so that the state of those elements is not
     // affected across fullscreen change.
     if (fullscreenElement != document->GetRootElement() &&
-        fullscreenElement != mViewportScrollbarOverrideNode) {
+        fullscreenElement != mViewportScrollbarOverrideElement) {
       mViewportStyleScrollbar = ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN,
                                                 NS_STYLE_OVERFLOW_HIDDEN);
     }
   }
-  return mViewportScrollbarOverrideNode;
+  return mViewportScrollbarOverrideElement;
 }
 
 bool
@@ -1599,15 +1581,9 @@ nsPresContext::SetContainer(nsIDocShell* aDocShell)
 }
 
 nsISupports*
-nsPresContext::GetContainerWeakInternal() const
+nsPresContext::GetContainerWeak() const
 {
   return static_cast<nsIDocShell*>(mContainer);
-}
-
-nsISupports*
-nsPresContext::GetContainerWeakExternal() const
-{
-  return GetContainerWeakInternal();
 }
 
 nsIDocShell*
@@ -1624,13 +1600,7 @@ nsPresContext::Detach()
 }
 
 bool
-nsPresContext::BidiEnabledExternal() const
-{
-  return BidiEnabledInternal();
-}
-
-bool
-nsPresContext::BidiEnabledInternal() const
+nsPresContext::BidiEnabled() const
 {
   return Document()->GetBidiEnabled();
 }
@@ -1647,15 +1617,12 @@ nsPresContext::SetBidiEnabled() const
 }
 
 void
-nsPresContext::SetBidi(uint32_t aSource, bool aForceRestyle)
+nsPresContext::SetBidi(uint32_t aSource)
 {
   // Don't do all this stuff unless the options have changed.
   if (aSource == GetBidi()) {
     return;
   }
-
-  NS_ASSERTION(!(aForceRestyle && (GetBidi() == 0)),
-               "ForceReflow on new prescontext");
 
   Document()->SetBidiOptions(aSource);
   if (IBMBIDI_TEXTDIRECTION_RTL == GET_BIDI_OPTION_DIRECTION(aSource)
@@ -1673,12 +1640,6 @@ nsPresContext::SetBidi(uint32_t aSource, bool aForceRestyle)
     if (doc) {
       SetVisualMode(IsVisualCharset(doc->GetDocumentCharacterSet()));
     }
-  }
-  if (aForceRestyle && mShell) {
-    // Reconstruct the root document element's frame and its children,
-    // because we need to trigger frame reconstruction for direction change.
-    mDocument->RebuildUserFontSet();
-    mShell->ReconstructFrames();
   }
 }
 
@@ -2064,6 +2025,7 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint,
   }
   mDocument->RebuildUserFontSet();
   RebuildCounterStyles();
+  RebuildFontFeatureValues();
 
   RestyleManager()->RebuildAllStyleData(aExtraHint, aRestyleHint);
 }
@@ -3121,6 +3083,42 @@ nsPresContext::GetBidiEngine()
   return *mBidiEngine;
 }
 
+void
+nsPresContext::FlushFontFeatureValues()
+{
+  if (!mShell) {
+    return; // we've been torn down
+  }
+
+  if (mFontFeatureValuesDirty) {
+    StyleSetHandle styleSet = mShell->StyleSet();
+    mFontFeatureValuesLookup = styleSet->BuildFontFeatureValueSet();
+    mFontFeatureValuesDirty = false;
+  }
+}
+
+void
+nsPresContext::RebuildFontFeatureValues()
+{
+  if (!mShell) {
+    return; // we've been torn down
+  }
+
+  mFontFeatureValuesDirty = true;
+  mShell->SetNeedStyleFlush();
+
+  if (!mPostedFlushFontFeatureValues) {
+    nsCOMPtr<nsIRunnable> ev =
+      NewRunnableMethod("nsPresContext::HandleRebuildFontFeatureValues",
+                        this, &nsPresContext::HandleRebuildFontFeatureValues);
+    nsresult rv =
+      Document()->Dispatch(TaskCategory::Other, ev.forget());
+    if (NS_SUCCEEDED(rv)) {
+      mPostedFlushFontFeatureValues = true;
+    }
+  }
+}
+
 nsRootPresContext::nsRootPresContext(nsIDocument* aDocument,
                                      nsPresContextType aType)
   : nsPresContext(aDocument, aType),
@@ -3186,8 +3184,7 @@ nsRootPresContext::ComputePluginGeometryUpdates(nsIFrame* aFrame,
     nsIFrame* rootFrame = FrameManager()->GetRootFrame();
 
     if (rootFrame && aBuilder->ContainsPluginItem()) {
-      aBuilder->SetForPluginGeometry();
-      aBuilder->SetAccurateVisibleRegions();
+      aBuilder->SetForPluginGeometry(true);
       // Merging and flattening has already been done and we should not do it
       // again. nsDisplayScroll(Info)Layer doesn't support trying to flatten
       // again.
@@ -3196,6 +3193,7 @@ nsRootPresContext::ComputePluginGeometryUpdates(nsIFrame* aFrame,
       // nsDisplayPlugin::ComputeVisibility will automatically set a non-hidden
       // widget configuration for the plugin, if it's visible.
       aList->ComputeVisibilityForRoot(aBuilder, &region);
+      aBuilder->SetForPluginGeometry(false);
     }
   }
 

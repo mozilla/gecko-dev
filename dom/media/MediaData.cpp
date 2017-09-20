@@ -31,6 +31,16 @@ using media::TimeUnit;
 const char* AudioData::sTypeName = "audio";
 const char* VideoData::sTypeName = "video";
 
+bool
+IsDataLoudnessHearable(const AudioDataValue aData)
+{
+  // We can transfer the digital value to dBFS via following formula. According
+  // to American SMPTE standard, 0 dBu equals -20 dBFS. In theory 0 dBu is still
+  // hearable, so we choose a smaller value as our threshold. If the loudness
+  // is under this threshold, it might not be hearable.
+  return 20.0f * std::log10(AudioSampleToFloat(aData)) > -100;
+}
+
 void
 AudioData::EnsureAudioBuffer()
 {
@@ -66,7 +76,7 @@ AudioData::IsAudible() const
 
   for (uint32_t frame = 0; frame < mFrames; ++frame) {
     for (uint32_t channel = 0; channel < mChannels; ++channel) {
-      if (mAudioData[frame * mChannels + channel] != 0) {
+      if (IsDataLoudnessHearable(mAudioData[frame * mChannels + channel])) {
         return true;
       }
     }
@@ -94,10 +104,10 @@ AudioData::TransferAndUpdateTimestampAndDuration(AudioData* aOther,
 static bool
 ValidatePlane(const VideoData::YCbCrBuffer::Plane& aPlane)
 {
-  return aPlane.mWidth <= PlanarYCbCrImage::MAX_DIMENSION
-         && aPlane.mHeight <= PlanarYCbCrImage::MAX_DIMENSION
-         && aPlane.mWidth * aPlane.mHeight < MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT
-         && aPlane.mStride > 0;
+  return aPlane.mWidth <= PlanarYCbCrImage::MAX_DIMENSION &&
+         aPlane.mHeight <= PlanarYCbCrImage::MAX_DIMENSION &&
+         aPlane.mWidth * aPlane.mHeight < MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT &&
+         aPlane.mStride > 0;
 }
 
 static bool ValidateBufferAndPicture(const VideoData::YCbCrBuffer& aBuffer,
@@ -105,8 +115,8 @@ static bool ValidateBufferAndPicture(const VideoData::YCbCrBuffer& aBuffer,
 {
   // The following situation should never happen unless there is a bug
   // in the decoder
-  if (aBuffer.mPlanes[1].mWidth != aBuffer.mPlanes[2].mWidth
-      || aBuffer.mPlanes[1].mHeight != aBuffer.mPlanes[2].mHeight) {
+  if (aBuffer.mPlanes[1].mWidth != aBuffer.mPlanes[2].mWidth ||
+      aBuffer.mPlanes[1].mHeight != aBuffer.mPlanes[2].mHeight) {
     NS_ERROR("C planes with different sizes");
     return false;
   }
@@ -117,9 +127,9 @@ static bool ValidateBufferAndPicture(const VideoData::YCbCrBuffer& aBuffer,
     MOZ_ASSERT(false, "Empty picture rect");
     return false;
   }
-  if (!ValidatePlane(aBuffer.mPlanes[0])
-      || !ValidatePlane(aBuffer.mPlanes[1])
-      || !ValidatePlane(aBuffer.mPlanes[2])) {
+  if (!ValidatePlane(aBuffer.mPlanes[0]) ||
+      !ValidatePlane(aBuffer.mPlanes[1]) ||
+      !ValidatePlane(aBuffer.mPlanes[2])) {
     NS_WARNING("Invalid plane size");
     return false;
   }
@@ -128,11 +138,8 @@ static bool ValidateBufferAndPicture(const VideoData::YCbCrBuffer& aBuffer,
   // the frame we've been supplied without indexing out of bounds.
   CheckedUint32 xLimit = aPicture.x + CheckedUint32(aPicture.width);
   CheckedUint32 yLimit = aPicture.y + CheckedUint32(aPicture.height);
-  if (!xLimit.isValid()
-      || xLimit.value() > aBuffer.mPlanes[0].mStride
-      || !yLimit.isValid()
-      || yLimit.value() > aBuffer.mPlanes[0].mHeight)
-  {
+  if (!xLimit.isValid() || xLimit.value() > aBuffer.mPlanes[0].mStride ||
+      !yLimit.isValid() || yLimit.value() > aBuffer.mPlanes[0].mHeight) {
     // The specified picture dimensions can't be contained inside the video
     // frame, we'll stomp memory if we try to copy it. Fail.
     NS_WARNING("Overflowing picture rect");

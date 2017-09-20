@@ -11,7 +11,7 @@
 /* global Service */
 
 Cu.import("resource://services-common/async.js");
-Cu.import("resource://testing-common/services/common/utils.js");
+Cu.import("resource://services-common/utils.js");
 Cu.import("resource://testing-common/PlacesTestUtils.jsm");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -29,20 +29,8 @@ add_task(async function head_setup() {
 // Load mocking/stubbing library, sinon
 // docs: http://sinonjs.org/releases/v2.3.2/
 Cu.import("resource://gre/modules/Timer.jsm");
-var {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
-var loader = new Loader.Loader({
-  paths: {
-    "": "resource://testing-common/",
-  },
-  globals: {
-    setTimeout,
-    setInterval,
-    clearTimeout,
-    clearInterval,
-  },
-});
-var require = Loader.Require(loader, {id: ""});
-var sinon = require("sinon-2.3.2");
+Services.scriptloader.loadSubScript("resource://testing-common/sinon-2.3.2.js", this);
+/* globals sinon */
 // ================================================
 
 XPCOMUtils.defineLazyGetter(this, "SyncPingSchema", function() {
@@ -250,14 +238,14 @@ function mockGetWindowEnumerator(url, numWindows, numTabs, indexes, moreURLs) {
     elements.push(win);
 
     for (let t = 0; t < numTabs; ++t) {
-      tabs.push(TestingUtils.deepCopy({
+      tabs.push(Cu.cloneInto({
         index: indexes ? indexes() : 1,
         entries: (moreURLs ? [url].concat(moreURLs()) : [url]).map(url2entry),
         attributes: {
           image: "image"
         },
         lastAccessed: 1499
-      }));
+      }, {}));
     }
   }
 
@@ -623,7 +611,7 @@ async function promiseVisit(expectedType, expectedURI) {
 
 async function addVisit(suffix, referrer = null, transition = PlacesUtils.history.TRANSITION_LINK) {
   let uriString = "http://getfirefox.com/" + suffix;
-  let uri = Utils.makeURI(uriString);
+  let uri = CommonUtils.makeURI(uriString);
   _("Adding visit for URI " + uriString);
 
   let visitAddedPromise = promiseVisit("added", uri);

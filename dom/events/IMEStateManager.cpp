@@ -157,6 +157,7 @@ StaticRefPtr<TabParent> IMEStateManager::sActiveTabParent;
 StaticRefPtr<IMEContentObserver> IMEStateManager::sActiveIMEContentObserver;
 TextCompositionArray* IMEStateManager::sTextCompositions = nullptr;
 InputContext::Origin IMEStateManager::sOrigin = InputContext::ORIGIN_MAIN;
+InputContext IMEStateManager::sActiveChildInputContext;
 bool IMEStateManager::sInstalledMenuKeyboardListener = false;
 bool IMEStateManager::sIsGettingNewIMEState = false;
 bool IMEStateManager::sCheckForIMEUnawareWebApps = false;
@@ -178,6 +179,7 @@ IMEStateManager::Init()
 
   sOrigin = XRE_IsParentProcess() ? InputContext::ORIGIN_MAIN :
                                     InputContext::ORIGIN_CONTENT;
+  ResetActiveChildInputContext();
 }
 
 // static
@@ -266,6 +268,17 @@ IMEStateManager::NotifyIMEOfBlurForChildProcess()
   }
 
   MOZ_ASSERT(sFocusedIMEWidget);
+
+  if (MOZ_LOG_TEST(sISMLog, LogLevel::Debug) && sTextCompositions) {
+    RefPtr<TextComposition> composition =
+      sTextCompositions->GetCompositionFor(sFocusedIMEWidget);
+    if (composition) {
+      MOZ_LOG(sISMLog, LogLevel::Debug,
+        ("  NotifyIMEOfBlurForChildProcess(), sFocusedIMEWidget still has "
+         "composition"));
+    }
+  }
+
   NotifyIME(NOTIFY_IME_OF_BLUR, sFocusedIMEWidget, sFocusedIMETabParent);
 
   MOZ_ASSERT(!sFocusedIMETabParent);
@@ -477,11 +490,27 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
     (sContent != aContent || sPresContext != aPresContext ||
      oldWidget != newWidget || sActiveTabParent != newTabParent);
 
-  if (oldWidget && focusActuallyChanging) {
-    // If we're deactivating, we shouldn't commit composition forcibly because
-    // the user may want to continue the composition.
-    if (aPresContext) {
-      NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, oldWidget, sFocusedIMETabParent);
+  // If old widget has composition, we may need to commit composition since
+  // a native IME context is shared on all editors on some widgets or all
+  // widgets (it depends on platforms).
+  if (oldWidget && focusActuallyChanging && sTextCompositions) {
+    RefPtr<TextComposition> composition =
+      sTextCompositions->GetCompositionFor(oldWidget);
+    if (composition) {
+      // However, don't commit the composition if we're being inactivated
+      // but the composition should be kept even during deactive.
+      // Note that oldWidget and sFocusedIMEWidget may be different here (in
+      // such case, sFocusedIMEWidget is perhaps nullptr).  For example, IME
+      // may receive only blur notification but still has composition.
+      // We need to clean up only the oldWidget's composition state here.
+      if (aPresContext ||
+          !oldWidget->IMENotificationRequestsRef().WantDuringDeactive()) {
+        MOZ_LOG(sISMLog, LogLevel::Info,
+          ("  OnChangeFocusInternal(), requesting to commit composition to "
+           "the (previous) focused widget"));
+        NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, oldWidget,
+                  composition->GetTabParent());
+      }
     }
   }
 
@@ -566,15 +595,21 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
 
   if (newTabParent) {
     MOZ_ASSERT(XRE_IsParentProcess());
-    if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS ||
-        aAction.mFocusChange == InputContextAction::MENU_LOST_PSEUDO_FOCUS) {
-      // XXX When menu keyboard listener is being uninstalled, IME state needs
-      //     to be restored by the child process asynchronously.  Therefore,
-      //     some key events which are fired immediately after closing menu
-      //     may not be handled by IME.
-      Unused << newTabParent->
-        SendMenuKeyboardListenerInstalled(sInstalledMenuKeyboardListener);
-      setIMEState = sInstalledMenuKeyboardListener;
+    if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS) {
+      // If menu keyboard listener is installed, we need to disable IME now.
+      setIMEState = true;
+    } else if (aAction.mFocusChange ==
+                 InputContextAction::MENU_LOST_PSEUDO_FOCUS) {
+      // If menu keyboard listener is uninstalled, we need to restore
+      // input context which was set by the remote process.  However, if
+      // the remote process hasn't been set input context yet, we need to
+      // wait next SetInputContextForChildProcess() call.
+      if (HasActiveChildSetInputContext()) {
+        setIMEState = true;
+        newState = sActiveChildInputContext.mIMEState;
+      } else {
+        setIMEState = false;
+      }
     } else if (focusActuallyChanging) {
       InputContext context = newWidget->GetInputContext();
       if (context.mIMEState.mEnabled == IMEState::DISABLED &&
@@ -585,6 +620,9 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
            "state because focused element (or document) is in a child process "
            "and the IME state is already disabled by a remote process"));
       } else {
+        // When new remote process gets focus, we should forget input context
+        // coming from old focused remote process.
+        ResetActiveChildInputContext();
         MOZ_LOG(sISMLog, LogLevel::Debug,
           ("  OnChangeFocusInternal(), will disable IME "
            "until new focused element (or document) in the child process "
@@ -603,6 +641,10 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
          "state because focused element (or document) is already in the child "
          "process"));
     }
+  } else {
+    // When this process gets focus, we should forget input context coming
+    // from remote process.
+    ResetActiveChildInputContext();
   }
 
   if (setIMEState) {
@@ -633,9 +675,17 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
                    InputContextAction::LOST_FOCUS;
     }
 
-    // Update IME state for new focus widget
-    SetIMEState(newState, aPresContext, aContent, newWidget, aAction,
-                newTabParent ? InputContext::ORIGIN_CONTENT : sOrigin);
+    if (newTabParent && HasActiveChildSetInputContext() &&
+        aAction.mFocusChange == InputContextAction::MENU_LOST_PSEUDO_FOCUS) {
+      // Restore the input context in the active remote process when
+      // menu keyboard listener is uninstalled and active remote tab has
+      // focus.
+      SetInputContext(newWidget, sActiveChildInputContext, aAction);
+    } else {
+      // Update IME state for new focus widget
+      SetIMEState(newState, aPresContext, aContent, newWidget, aAction,
+                  newTabParent ? InputContext::ORIGIN_CONTENT : sOrigin);
+    }
   }
 
   sActiveTabParent = newTabParent;
@@ -665,8 +715,19 @@ IMEStateManager::OnInstalledMenuKeyboardListener(bool aInstalling)
 {
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("OnInstalledMenuKeyboardListener(aInstalling=%s), "
-     "sInstalledMenuKeyboardListener=%s",
-     GetBoolName(aInstalling), GetBoolName(sInstalledMenuKeyboardListener)));
+     "sInstalledMenuKeyboardListener=%s, sActiveTabParent=0x%p, "
+     "sActiveChildInputContext={ mIMEState={ mEnabled=%s, mOpen=%s }, "
+     "mHTMLInputType=\"%s\", mHTMLInputInputmode=\"%s\", mActionHint=\"%s\", "
+     "mInPrivateBrowsing=%s }",
+     GetBoolName(aInstalling),
+     GetBoolName(sInstalledMenuKeyboardListener),
+     sActiveTabParent.get(),
+     GetIMEStateEnabledName(sActiveChildInputContext.mIMEState.mEnabled),
+     GetIMEStateSetOpenName(sActiveChildInputContext.mIMEState.mOpen),
+     NS_ConvertUTF16toUTF8(sActiveChildInputContext.mHTMLInputType).get(),
+     NS_ConvertUTF16toUTF8(sActiveChildInputContext.mHTMLInputInputmode).get(),
+     NS_ConvertUTF16toUTF8(sActiveChildInputContext.mActionHint).get(),
+     GetBoolName(sActiveChildInputContext.mInPrivateBrowsing)));
 
   sInstalledMenuKeyboardListener = aInstalling;
 
@@ -1105,6 +1166,20 @@ MayBeIMEUnawareWebApp(nsINode* aNode)
 
 // static
 void
+IMEStateManager::ResetActiveChildInputContext()
+{
+  sActiveChildInputContext.mIMEState.mEnabled = IMEState::UNKNOWN;
+}
+
+// static
+bool
+IMEStateManager::HasActiveChildSetInputContext()
+{
+  return sActiveChildInputContext.mIMEState.mEnabled != IMEState::UNKNOWN;
+}
+
+// static
+void
 IMEStateManager::SetInputContextForChildProcess(
                    TabParent* aTabParent,
                    const InputContext& aInputContext,
@@ -1116,7 +1191,7 @@ IMEStateManager::SetInputContextForChildProcess(
      "mHTMLInputType=\"%s\", mHTMLInputInputmode=\"%s\", mActionHint=\"%s\", "
      "mInPrivateBrowsing=%s }, aAction={ mCause=%s, mAction=%s }), "
      "sPresContext=0x%p (available: %s), sWidget=0x%p (available: %s), "
-     "sActiveTabParent=0x%p",
+     "sActiveTabParent=0x%p, sInstalledMenuKeyboardListener=%s",
      aTabParent, GetIMEStateEnabledName(aInputContext.mIMEState.mEnabled),
      GetIMEStateSetOpenName(aInputContext.mIMEState.mOpen),
      NS_ConvertUTF16toUTF8(aInputContext.mHTMLInputType).get(),
@@ -1127,7 +1202,7 @@ IMEStateManager::SetInputContextForChildProcess(
      GetActionFocusChangeName(aAction.mFocusChange),
      sPresContext.get(), GetBoolName(CanHandleWith(sPresContext)),
      sWidget, GetBoolName(sWidget && !sWidget->Destroyed()),
-     sActiveTabParent.get()));
+     sActiveTabParent.get(), GetBoolName(sInstalledMenuKeyboardListener)));
 
   if (aTabParent != sActiveTabParent) {
     MOZ_LOG(sISMLog, LogLevel::Error,
@@ -1155,6 +1230,20 @@ IMEStateManager::SetInputContextForChildProcess(
   MOZ_ASSERT(!sPresContext->GetRootWidget() ||
              sPresContext->GetRootWidget() == widget);
   MOZ_ASSERT(aInputContext.mOrigin == InputContext::ORIGIN_CONTENT);
+
+  sActiveChildInputContext = aInputContext;
+  MOZ_ASSERT(HasActiveChildSetInputContext());
+
+  // If input context is changed in remote process while menu keyboard listener
+  // is installed, this process shouldn't set input context now.  When it's
+  // uninstalled, input context should be restored from
+  // sActiveChildInputContext.
+  if (sInstalledMenuKeyboardListener) {
+    MOZ_LOG(sISMLog, LogLevel::Info,
+      ("  SetInputContextForChildProcess(), waiting to set input context "
+       "until menu keyboard listener is uninstalled"));
+    return;
+  }
 
   SetInputContext(widget, aInputContext, aAction);
 }

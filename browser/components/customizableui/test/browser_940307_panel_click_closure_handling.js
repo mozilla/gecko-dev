@@ -12,6 +12,9 @@ add_task(async function plain_button() {
   button.setAttribute("label", "Button");
   gNavToolbox.palette.appendChild(button);
   CustomizableUI.addWidgetToArea(button.id, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
+
+  await waitForOverflowButtonShown();
+
   await document.getElementById("nav-bar").overflowable.show();
   let hiddenAgain = promiseOverflowHidden(window);
   EventUtils.synthesizeMouseAtCenter(button, {});
@@ -39,6 +42,8 @@ add_task(async function menu_button_popup() {
   gNavToolbox.palette.appendChild(menuButton);
   CustomizableUI.addWidgetToArea(menuButton.id, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
 
+  await waitForOverflowButtonShown();
+
   await document.getElementById("nav-bar").overflowable.show();
   let hiddenAgain = promiseOverflowHidden(window);
   let innerButton = document.getAnonymousElementByAttribute(menuButton, "anonid", "button");
@@ -64,11 +69,14 @@ add_task(async function menu_button_popup() {
 });
 
 add_task(async function searchbar_in_panel() {
-  let searchbar = document.getElementById("searchbar");
-  gCustomizeMode.addToPanel(searchbar);
-  let placement = CustomizableUI.getPlacementOfWidget("search-container");
-  is(placement.area, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL, "Should be in panel");
+  CustomizableUI.addWidgetToArea("search-container",
+                                 CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
+
+  await waitForOverflowButtonShown();
+
   await document.getElementById("nav-bar").overflowable.show();
+
+  let searchbar = document.getElementById("searchbar");
   await waitForCondition(() => "value" in searchbar && searchbar.value === "");
 
   // Focusing a non-empty searchbox will cause us to open the
@@ -115,6 +123,9 @@ add_task(async function disabled_button_in_panel() {
   button.setAttribute("label", "Button");
   gNavToolbox.palette.appendChild(button);
   CustomizableUI.addWidgetToArea(button.id, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
+
+  await waitForOverflowButtonShown();
+
   await document.getElementById("nav-bar").overflowable.show();
   EventUtils.synthesizeMouseAtCenter(button, {});
   is(PanelUI.overflowPanel.state, "open", "Popup stays open");

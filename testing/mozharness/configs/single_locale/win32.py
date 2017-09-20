@@ -9,13 +9,13 @@ config = {
     "bootstrap_env": {
         "MOZ_OBJDIR": "obj-firefox",
         "EN_US_BINARY_URL": "%(en_us_binary_url)s",
-        "LOCALE_MERGEDIR": "%(abs_merge_dir)s",
         "MOZ_UPDATE_CHANNEL": "%(update_channel)s",
         "DIST": "%(abs_objdir)s",
         "L10NBASEDIR": "../../l10n",
         "MOZ_MAKE_COMPLETE_MAR": "1",
-        "PATH": 'C:\\mozilla-build\\nsis-3.01;'
-                '%s' % (os.environ.get('path')),
+        "PATH": '%(abs_objdir)s\\..\\xz-5.2.3\\bin_x86-64;'
+                'C:\\mozilla-build\\nsis-3.01;'
+                + '%s' % (os.environ.get('path')),
         'TOOLTOOL_CACHE': 'c:/builds/tooltool_cache',
         'TOOLTOOL_HOME': '/c/builds',
         'EN_US_PACKAGE_NAME': 'target.zip',
@@ -28,7 +28,7 @@ config = {
     "vcs_share_base": "c:/builds/hg-shared",
 
     # tooltool
-    'tooltool_url': 'https://api.pub.build.mozilla.org/tooltool/',
+    'tooltool_url': 'https://tooltool.mozilla-releng.net/',
     'tooltool_script': [sys.executable,
                         'C:/mozilla-build/tooltool.py'],
     'tooltool_manifest_src': 'browser/config/tooltool-manifests/win32/l10n.manifest',
@@ -41,7 +41,6 @@ config = {
     "locales_file": "%(branch)s/browser/locales/all-locales",
     "locales_dir": "browser/locales",
     "hg_l10n_tag": "default",
-    "merge_locales": True,
 
     # MAR
     "previous_mar_dir": "dist\\previous",

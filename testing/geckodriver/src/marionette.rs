@@ -45,8 +45,8 @@ use webdriver::command::{
     GetNamedCookieParameters, AddCookieParameters, TimeoutsParameters,
     ActionsParameters, TakeScreenshotParameters};
 use webdriver::response::{CloseWindowResponse, Cookie, CookieResponse, CookiesResponse,
-                          NewSessionResponse, RectResponse, TimeoutsResponse, ValueResponse,
-                          WebDriverResponse};
+                          ElementRectResponse, NewSessionResponse, TimeoutsResponse,
+                          ValueResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::common::{Date, ELEMENT_KEY, FrameId, Nullable, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::server::{WebDriverHandler, Session};
@@ -428,7 +428,7 @@ impl MarionetteHandler {
         }
 
         let mut connection = MarionetteConnection::new(port, session_id.clone());
-        try!(connection.connect());
+        try!(connection.connect(&mut self.browser));
         self.connection = Mutex::new(Some(connection));
 
         Ok(capabilities)
@@ -451,6 +451,11 @@ impl MarionetteHandler {
         // double-dashed flags are not accepted on Windows systems
         runner.args().push("-marionette".to_owned());
 
+        // https://developer.mozilla.org/docs/Environment_variables_affecting_crash_reporting
+        runner.envs().insert("MOZ_CRASHREPORTER".to_string(), "1".to_string());
+        runner.envs().insert("MOZ_CRASHREPORTER_NO_REPORT".to_string(), "1".to_string());
+        runner.envs().insert("MOZ_CRASHREPORTER_SHUTDOWN".to_string(), "1".to_string());
+
         if let Some(args) = options.args.take() {
             runner.args().extend(args);
         };
@@ -461,7 +466,6 @@ impl MarionetteHandler {
                                     format!("Failed to set preferences: {}", e))
             }));
 
-        info!("Starting browser {} with args {:?}", binary.display(), runner.args());
         try!(runner.start()
             .map_err(|e| {
                 WebDriverError::new(ErrorStatus::SessionNotCreated,
@@ -548,7 +552,16 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
         match self.connection.lock() {
             Ok(ref mut connection) => {
                 match connection.as_mut() {
-                    Some(conn) => conn.send_command(resolved_capabilities, &msg),
+                    Some(conn) => {
+                        conn.send_command(resolved_capabilities, &msg)
+                            .map_err(|mut err| {
+                                // Shutdown the browser if no session can
+                                // be established due to errors.
+                                if let NewSession(_) = msg.command {
+                                    err.delete_session=true;
+                                }
+                                err})
+                    },
                     None => panic!("Connection missing")
                 }
             },
@@ -757,39 +770,46 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret width as float");
 
-                WebDriverResponse::ElementRect(RectResponse::new(x, y, width, height))
+                let rect = ElementRectResponse { x, y, width, height };
+                WebDriverResponse::ElementRect(rect)
             },
             FullscreenWindow | MinimizeWindow | MaximizeWindow | GetWindowRect |
             SetWindowRect(_) => {
                 let width = try_opt!(
                     try_opt!(resp.result.find("width"),
                              ErrorStatus::UnknownError,
-                             "Failed to find width field").as_f64(),
+                             "Failed to find width field").as_u64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret width as float");
+                    "Failed to interpret width as positive integer");
 
                 let height = try_opt!(
                     try_opt!(resp.result.find("height"),
                              ErrorStatus::UnknownError,
-                             "Failed to find height field").as_f64(),
+                             "Failed to find heigenht field").as_u64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret height as float");
+                    "Failed to interpret height as positive integer");
 
                 let x = try_opt!(
                     try_opt!(resp.result.find("x"),
                              ErrorStatus::UnknownError,
-                             "Failed to find x field").as_f64(),
+                             "Failed to find x field").as_i64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret x as float");
+                    "Failed to interpret x as integer");
 
                 let y = try_opt!(
                     try_opt!(resp.result.find("y"),
                              ErrorStatus::UnknownError,
-                             "Failed to find y field").as_f64(),
+                             "Failed to find y field").as_i64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret y as float");
+                    "Failed to interpret y as integer");
 
-                WebDriverResponse::WindowRect(RectResponse::new(x, y, width, height))
+                let rect = WindowRectResponse {
+                    x: x as i32,
+                    y: y as i32,
+                    width: width as i32,
+                    height: height as i32,
+                };
+                WebDriverResponse::WindowRect(rect)
             },
             GetCookies => {
                 let cookies = try!(self.process_cookies(&resp.result));
@@ -1038,7 +1058,7 @@ impl MarionetteCommand {
             GetWindowRect => (Some("getWindowRect"), None),
             MinimizeWindow => (Some("WebDriver:MinimizeWindow"), None),
             MaximizeWindow => (Some("maximizeWindow"), None),
-            FullscreenWindow => (Some("fullscreenWindow"), None),
+            FullscreenWindow => (Some("fullscreen"), None),
             SwitchToWindow(ref x) => (Some("switchToWindow"), Some(x.to_marionette())),
             SwitchToFrame(ref x) => (Some("switchToFrame"), Some(x.to_marionette())),
             SwitchToParentFrame => (Some("switchToParentFrame"), None),
@@ -1308,13 +1328,28 @@ impl MarionetteConnection {
         }
     }
 
-    pub fn connect(&mut self) -> WebDriverResult<()> {
+    pub fn connect(&mut self, browser: &mut Option<FirefoxRunner>) -> WebDriverResult<()> {
         let timeout = 60 * 1000;  // ms
         let poll_interval = 100;  // ms
         let poll_attempts = timeout / poll_interval;
         let mut poll_attempt = 0;
 
         loop {
+            // If the process is gone, immediately abort the connection attempts
+            if let &mut Some(ref mut runner) = browser {
+                let status = runner.status();
+                if status.is_err() || status.as_ref().map(|x| *x).unwrap_or(None) != None {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        format!("Process unexpectedly closed with status: {}", status
+                            .ok()
+                            .and_then(|x| x)
+                            .and_then(|x| x.code())
+                            .map(|x| x.to_string())
+                            .unwrap_or("{unknown}".into()))));
+                }
+            }
+
             match TcpStream::connect(&(DEFAULT_HOST, self.port)) {
                 Ok(stream) => {
                     self.stream = Some(stream);

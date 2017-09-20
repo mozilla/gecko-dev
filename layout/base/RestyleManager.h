@@ -10,8 +10,8 @@
 #include "mozilla/OverflowChangedTracker.h"
 #include "nsChangeHint.h"
 #include "nsPresContext.h"
+#include "nsStringFwd.h"
 
-class nsCString;
 class nsCSSFrameConstructor;
 class nsStyleChangeList;
 
@@ -226,8 +226,7 @@ protected:
 
   void ContentStateChangedInternal(Element* aElement,
                                    EventStates aStateMask,
-                                   nsChangeHint* aOutChangeHint,
-                                   nsRestyleHint* aOutRestyleHint);
+                                   nsChangeHint* aOutChangeHint);
 
   bool IsDisconnected() { return mPresContext == nullptr; }
 

@@ -136,7 +136,7 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
                        a.thirdPartyFlags(), a.resumeAt(), a.startPos(),
                        a.entityID(), a.chooseApplicationCache(),
                        a.appCacheClientID(), a.allowSpdy(), a.allowAltSvc(), a.beConservative(),
-                       a.loadInfo(), a.synthesizedResponseHead(),
+                       a.tlsFlags(), a.loadInfo(), a.synthesizedResponseHead(),
                        a.synthesizedSecurityInfoSerialization(),
                        a.cacheKey(), a.requestContextID(), a.preflightArgs(),
                        a.initialRwin(), a.blockAuthPrompt(),
@@ -149,7 +149,8 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
                        a.dispatchFetchEventStart(),
                        a.dispatchFetchEventEnd(),
                        a.handleFetchEventStart(),
-                       a.handleFetchEventEnd());
+                       a.handleFetchEventEnd(),
+                       a.forceMainDocumentChannel());
   }
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
@@ -457,6 +458,7 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
                                  const bool&                allowSpdy,
                                  const bool&                allowAltSvc,
                                  const bool&                beConservative,
+                                 const uint32_t&            tlsFlags,
                                  const OptionalLoadInfoArgs& aLoadInfoArgs,
                                  const OptionalHttpResponseHead& aSynthesizedResponseHead,
                                  const nsCString&           aSecurityInfoSerialization,
@@ -477,7 +479,8 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
                                  const TimeStamp&           aDispatchFetchEventStart,
                                  const TimeStamp&           aDispatchFetchEventEnd,
                                  const TimeStamp&           aHandleFetchEventStart,
-                                 const TimeStamp&           aHandleFetchEventEnd)
+                                 const TimeStamp&           aHandleFetchEventEnd,
+                                 const bool&                aForceMainDocumentChannel)
 {
   nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
   if (!uri) {
@@ -491,8 +494,8 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
   nsCOMPtr<nsIURI> apiRedirectToUri = DeserializeURI(aAPIRedirectToURI);
   nsCOMPtr<nsIURI> topWindowUri = DeserializeURI(aTopWindowURI);
 
-  LOG(("HttpChannelParent RecvAsyncOpen [this=%p uri=%s]\n",
-       this, uri->GetSpecOrDefault().get()));
+  LOG(("HttpChannelParent RecvAsyncOpen [this=%p uri=%s, gid=%" PRIu64 " topwinid=%" PRIx64 "]\n",
+       this, uri->GetSpecOrDefault().get(), aChannelId, aTopLevelOuterContentWindowId));
 
   nsresult rv;
 
@@ -553,6 +556,10 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
   }
   if (aLoadFlags != nsIRequest::LOAD_NORMAL)
     httpChannel->SetLoadFlags(aLoadFlags);
+
+  if (aForceMainDocumentChannel) {
+    httpChannel->SetIsMainDocumentChannel(true);
+  }
 
   for (uint32_t i = 0; i < requestHeaders.Length(); i++) {
     if (requestHeaders[i].mEmpty) {
@@ -683,6 +690,7 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
   httpChannel->SetAllowSpdy(allowSpdy);
   httpChannel->SetAllowAltSvc(allowAltSvc);
   httpChannel->SetBeConservative(beConservative);
+  httpChannel->SetTlsFlags(tlsFlags);
   httpChannel->SetInitialRwin(aInitialRwin);
   httpChannel->SetBlockAuthPrompt(aBlockAuthPrompt);
 
@@ -810,6 +818,8 @@ HttpChannelParent::ConnectChannel(const uint32_t& registrarId, const bool& shoul
     Delete();
     return true;
   }
+
+  LOG(("  and it is nsHttpChannel %p", mChannel.get()));
 
   mChannel->SetWarningReporter(this);
 

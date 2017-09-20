@@ -108,6 +108,7 @@ public:
 
   bool CanCreateWebRenderCommands();
   void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                               mozilla::wr::IpcResourceUpdateQueue& aResources,
                                const mozilla::layers::StackingContextHelper& aSc);
 
   // utility function used for background painting as well as borders
@@ -146,14 +147,18 @@ private:
   Float mBorderWidths[4];
   RectCornerRadii mBorderRadii;
 
-  // colors
+  // the colors for 'border-top-color' et. al.
   nscolor mBorderColors[4];
+
+  // the lists of colors for '-moz-border-top-colors' et. al.
   nsBorderColors* mCompositeColors[4];
 
   // the background color
   nscolor mBackgroundColor;
 
   // calculated values
+  bool mAllBordersSameStyle;
+  bool mAllBordersSameWidth;
   bool mOneUnitBorder;
   bool mNoBorderRadius;
   bool mAvoidStroke;

@@ -16,7 +16,7 @@
 #include "nsISupportsPrimitives.h"
 #include "IEnumFE.h"
 #include "nsPrimitiveHelpers.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsImageClipboard.h"
 #include "nsCRT.h"
 #include "nsPrintfCString.h"
@@ -1341,7 +1341,8 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   mTransferable->GetTransferData(flavorStr, getter_AddRefs(genericDataWrapper), &len);
   if ( !len )
     return E_FAIL;
-  nsPrimitiveHelpers::CreateDataFromPrimitive ( flavorStr, genericDataWrapper, &data, len );
+  nsPrimitiveHelpers::CreateDataFromPrimitive(
+    nsDependentCString(flavorStr), genericDataWrapper, &data, len);
   if ( !data )
     return E_FAIL;
 

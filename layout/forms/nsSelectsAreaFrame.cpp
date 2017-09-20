@@ -106,7 +106,9 @@ public:
   }
 #endif
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override {
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
+                           bool* aSnap) const override
+  {
     *aSnap = false;
     // override bounds because the list item focus ring may extend outside
     // the nsSelectsAreaFrame
@@ -126,16 +128,15 @@ public:
 
 void
 nsSelectsAreaFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                     const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
   if (!aBuilder->IsForEventDelivery()) {
-    BuildDisplayListInternal(aBuilder, aDirtyRect, aLists);
+    BuildDisplayListInternal(aBuilder, aLists);
     return;
   }
 
   nsDisplayListCollection set;
-  BuildDisplayListInternal(aBuilder, aDirtyRect, set);
+  BuildDisplayListInternal(aBuilder, set);
 
   nsOptionEventGrabberWrapper wrapper;
   wrapper.WrapLists(aBuilder, this, set, aLists);
@@ -143,10 +144,9 @@ nsSelectsAreaFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 void
 nsSelectsAreaFrame::BuildDisplayListInternal(nsDisplayListBuilder*   aBuilder,
-                                             const nsRect&           aDirtyRect,
                                              const nsDisplayListSet& aLists)
 {
-  nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  nsBlockFrame::BuildDisplayList(aBuilder, aLists);
 
   nsListControlFrame* listFrame = GetEnclosingListFrame(this);
   if (listFrame && listFrame->IsFocused()) {
@@ -164,6 +164,8 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
                            const ReflowInput& aReflowInput,
                            nsReflowStatus&          aStatus)
 {
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
+
   nsListControlFrame* list = GetEnclosingListFrame(this);
   NS_ASSERTION(list,
                "Must have an nsListControlFrame!  Frame constructor is "

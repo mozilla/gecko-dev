@@ -796,7 +796,6 @@ var TelemetrySendImpl = {
     let setOSShutdown = () => {
       this._log.trace("setOSShutdown - in OS shutdown");
       this._isOSShutdown = true;
-      Telemetry.scalarSet("telemetry.os_shutting_down", true);
     };
 
     switch (topic) {
@@ -1199,7 +1198,7 @@ var TelemetrySendImpl = {
 
     const compressedPingSizeKB = Math.floor(payloadStream.data.length / 1024);
     Telemetry.getHistogramById("TELEMETRY_COMPRESS").add(Utils.monotonicNow() - startTime);
-    request.send(payloadStream);
+    request.sendInputStream(payloadStream);
 
     return deferred.promise;
   },

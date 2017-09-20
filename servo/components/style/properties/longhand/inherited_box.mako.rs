@@ -66,12 +66,12 @@ ${helpers.single_keyword("image-rendering",
     use style_traits::ToCss;
     use values::specified::Angle;
 
-    no_viewport_percentage!(SpecifiedValue);
 
     use std::f64::consts::PI;
     const TWO_PI: f64 = 2.0 * PI;
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub angle: Option<Angle>,
@@ -102,7 +102,8 @@ ${helpers.single_keyword("image-rendering",
         use style_traits::ToCss;
         use values::specified::Angle;
 
-        #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum Orientation {
             Angle0 = 0,
@@ -134,7 +135,8 @@ ${helpers.single_keyword("image-rendering",
             }
         }
 
-        #[derive(Clone, PartialEq, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             FromImage,
@@ -244,49 +246,6 @@ ${helpers.single_keyword("image-rendering",
 
             let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
             Ok(SpecifiedValue { angle: angle, flipped: flipped })
-        }
-    }
-</%helpers:longhand>
-
-// Used in the bottom-up flow construction traversal to avoid constructing flows for
-// descendants of nodes with `display: none`.
-<%helpers:longhand name="-servo-under-display-none"
-                   derived_from="display"
-                   products="servo"
-                   animation_value_type="none"
-                   spec="Nonstandard (internal layout use only)">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-    pub struct SpecifiedValue(pub bool);
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue(false)
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
-            Ok(()) // Internal property
-        }
-    }
-
-    #[inline]
-    pub fn derive_from_display(context: &mut Context) {
-        use super::display::computed_value::T as Display;
-
-        if context.style().get_box().clone_display() == Display::none {
-            context.builder
-                .set__servo_under_display_none(SpecifiedValue(true));
         }
     }
 </%helpers:longhand>

@@ -10,20 +10,24 @@ use style_traits::values::{SequenceWriter, ToCss};
 use values::specified::url::SpecifiedUrl;
 
 /// A generic value for a single `box-shadow`.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue)]
+#[derive(Animate, Clone, Debug, PartialEq)]
+#[derive(ToAnimatedValue, ToAnimatedZero)]
 pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     /// The base shadow.
     pub base: SimpleShadow<Color, SizeLength, BlurShapeLength>,
     /// The spread radius.
     pub spread: ShapeLength,
     /// Whether this is an inset box shadow.
+    #[animation(constant)]
     pub inset: bool,
 }
 
 /// A generic value for a single `filter`.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Filter<Angle, Factor, Length, DropShadow> {
     /// `blur(<length>)`
     #[css(function)]
@@ -64,8 +68,10 @@ pub enum Filter<Angle, Factor, Length, DropShadow> {
 ///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToCss)]
 pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     /// Color.
     pub color: Color,

@@ -5,7 +5,6 @@
 "use strict";
 
 const {Cc, Ci, Cu, CC} = require("chrome");
-const events = require("sdk/event/core");
 const protocol = require("devtools/shared/protocol");
 const {LongStringActor} = require("devtools/server/actors/string");
 const {DebuggerServer} = require("devtools/server/main");
@@ -192,8 +191,8 @@ StorageActors.defaults = function (typeName, observationTopics) {
       }
       this.onWindowReady = this.onWindowReady.bind(this);
       this.onWindowDestroyed = this.onWindowDestroyed.bind(this);
-      events.on(this.storageActor, "window-ready", this.onWindowReady);
-      events.on(this.storageActor, "window-destroyed", this.onWindowDestroyed);
+      this.storageActor.on("window-ready", this.onWindowReady);
+      this.storageActor.on("window-destroyed", this.onWindowDestroyed);
     },
 
     destroy() {
@@ -202,8 +201,8 @@ StorageActors.defaults = function (typeName, observationTopics) {
           Services.obs.removeObserver(this, observationTopic);
         });
       }
-      events.off(this.storageActor, "window-ready", this.onWindowReady);
-      events.off(this.storageActor, "window-destroyed", this.onWindowDestroyed);
+      this.storageActor.off("window-ready", this.onWindowReady);
+      this.storageActor.off("window-destroyed", this.onWindowDestroyed);
 
       this.hostVsStores.clear();
 
@@ -454,8 +453,8 @@ StorageActors.createActor({
 
     this.onWindowReady = this.onWindowReady.bind(this);
     this.onWindowDestroyed = this.onWindowDestroyed.bind(this);
-    events.on(this.storageActor, "window-ready", this.onWindowReady);
-    events.on(this.storageActor, "window-destroyed", this.onWindowDestroyed);
+    this.storageActor.on("window-ready", this.onWindowReady);
+    this.storageActor.on("window-destroyed", this.onWindowDestroyed);
   },
 
   destroy() {
@@ -468,8 +467,8 @@ StorageActors.createActor({
       this.removeCookieObservers();
     }
 
-    events.off(this.storageActor, "window-ready", this.onWindowReady);
-    events.off(this.storageActor, "window-destroyed", this.onWindowDestroyed);
+    this.storageActor.off("window-ready", this.onWindowReady);
+    this.storageActor.off("window-destroyed", this.onWindowDestroyed);
 
     this._pendingResponse = null;
 
@@ -691,6 +690,12 @@ StorageActors.createActor({
                                            .originAttributes);
   }),
 
+  removeAllSessionCookies: Task.async(function* (host, domain) {
+    let doc = this.storageActor.document;
+    this.removeAllSessionCookies(host, domain, doc.nodePrincipal
+        .originAttributes);
+  }),
+
   maybeSetupChildProcess() {
     cookieHelpers.onCookieChanged = this.onCookieChanged.bind(this);
 
@@ -707,6 +712,8 @@ StorageActors.createActor({
         cookieHelpers.removeCookie.bind(cookieHelpers);
       this.removeAllCookies =
         cookieHelpers.removeAllCookies.bind(cookieHelpers);
+      this.removeAllSessionCookies =
+        cookieHelpers.removeAllSessionCookies.bind(cookieHelpers);
       return;
     }
 
@@ -730,6 +737,8 @@ StorageActors.createActor({
       callParentProcess.bind(null, "removeCookie");
     this.removeAllCookies =
       callParentProcess.bind(null, "removeAllCookies");
+    this.removeAllSessionCookies =
+      callParentProcess.bind(null, "removeAllSessionCookies");
 
     addMessageListener("debug:storage-cookie-request-child",
                        cookieHelpers.handleParentRequest);
@@ -920,7 +929,8 @@ var cookieHelpers = {
       if (hostMatches(cookie.host, host) &&
           (!opts.name || cookie.name === opts.name) &&
           (!opts.domain || cookie.host === opts.domain) &&
-          (!opts.path || cookie.path === opts.path)) {
+          (!opts.path || cookie.path === opts.path) &&
+          (!opts.session || (!cookie.expires && !cookie.maxAge))) {
         Services.cookies.remove(
           cookie.host,
           cookie.name,
@@ -940,6 +950,10 @@ var cookieHelpers = {
 
   removeAllCookies(host, domain, originAttributes) {
     this._removeCookies(host, { domain, originAttributes });
+  },
+
+  removeAllSessionCookies(host, domain, originAttributes) {
+    this._removeCookies(host, { domain, originAttributes, session: true });
   },
 
   addCookieObservers() {
@@ -1023,6 +1037,12 @@ var cookieHelpers = {
         let domain = msg.data.args[1];
         let originAttributes = msg.data.args[2];
         return cookieHelpers.removeAllCookies(host, domain, originAttributes);
+      }
+      case "removeAllSessionCookies": {
+        let host = msg.data.args[0];
+        let domain = msg.data.args[1];
+        let originAttributes = msg.data.args[2];
+        return cookieHelpers.removeAllSessionCookies(host, domain, originAttributes);
       }
       default:
         console.error("ERR_DIRECTOR_PARENT_UNKNOWN_METHOD", msg.json.method);
@@ -1561,16 +1581,16 @@ StorageActors.createActor({
     this.onWindowReady = this.onWindowReady.bind(this);
     this.onWindowDestroyed = this.onWindowDestroyed.bind(this);
 
-    events.on(this.storageActor, "window-ready", this.onWindowReady);
-    events.on(this.storageActor, "window-destroyed", this.onWindowDestroyed);
+    this.storageActor.on("window-ready", this.onWindowReady);
+    this.storageActor.on("window-destroyed", this.onWindowDestroyed);
   },
 
   destroy() {
     this.hostVsStores.clear();
     this.objectsSize = null;
 
-    events.off(this.storageActor, "window-ready", this.onWindowReady);
-    events.off(this.storageActor, "window-destroyed", this.onWindowDestroyed);
+    this.storageActor.off("window-ready", this.onWindowReady);
+    this.storageActor.off("window-destroyed", this.onWindowDestroyed);
 
     protocol.Actor.prototype.destroy.call(this);
 
@@ -2614,12 +2634,12 @@ let StorageActor = protocol.ActorClassWithSpec(specs.storageSpec, {
     if (topic == "content-document-global-created" &&
         this.isIncludedInTopLevelWindow(subject)) {
       this.childWindowPool.add(subject);
-      events.emit(this, "window-ready", subject);
+      this.emit("window-ready", subject);
     } else if (topic == "inner-window-destroyed") {
       let window = this.getWindowFromInnerWindowID(subject);
       if (window) {
         this.childWindowPool.delete(window);
-        events.emit(this, "window-destroyed", window);
+        this.emit("window-destroyed", window);
       }
     }
     return null;
@@ -2645,12 +2665,12 @@ let StorageActor = protocol.ActorClassWithSpec(specs.storageSpec, {
     let window = target.defaultView;
 
     if (type == "pagehide" && this.childWindowPool.delete(window)) {
-      events.emit(this, "window-destroyed", window);
+      this.emit("window-destroyed", window);
     } else if (type == "pageshow" && persisted && window.location.href &&
                window.location.href != "about:blank" &&
                this.isIncludedInTopLevelWindow(window)) {
       this.childWindowPool.add(window);
-      events.emit(this, "window-ready", window);
+      this.emit("window-ready", window);
     }
   },
 
@@ -2699,7 +2719,7 @@ let StorageActor = protocol.ActorClassWithSpec(specs.storageSpec, {
    */
   update(action, storeType, data) {
     if (action == "cleared") {
-      events.emit(this, "stores-cleared", { [storeType]: data });
+      this.emit("stores-cleared", { [storeType]: data });
       return null;
     }
 
@@ -2755,7 +2775,7 @@ let StorageActor = protocol.ActorClassWithSpec(specs.storageSpec, {
 
     this.batchTimer = setTimeout(() => {
       clearTimeout(this.batchTimer);
-      events.emit(this, "stores-update", this.boundUpdate);
+      this.emit("stores-update", this.boundUpdate);
       this.boundUpdate = {};
     }, BATCH_DELAY);
 

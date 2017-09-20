@@ -57,12 +57,13 @@ public:
   // the table part frames, so allow this display element to blow out to our
   // overflow rect. This is also useful for row frames that have spanning
   // cells extending outside them.
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override;
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
+                           bool* aSnap) const override;
 
   virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override;
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion) override;
+                                         nsRegion *aInvalidRegion) const override;
 
   void UpdateForFrameBackground(nsIFrame* aFrame);
 
@@ -104,12 +105,6 @@ private:
 };
 
 /* ============================================================================ */
-
-enum nsTableColGroupType {
-  eColGroupContent            = 0, // there is real col group content associated
-  eColGroupAnonymousCol       = 1, // the result of a col
-  eColGroupAnonymousCell      = 2  // the result of a cell alone
-};
 
 enum nsTableColType {
   eColContent            = 0, // there is real col content associated
@@ -186,12 +181,12 @@ public:
                                             nsIFrame* aDestructRoot);
 
   nsPoint GetFirstSectionOrigin(const ReflowInput& aReflowInput) const;
+
   /*
-   * Notification that aAttribute has changed for content inside a table (cell, row, etc)
+   * Notification that rowspan or colspan has changed for content inside a
+   * table cell
    */
-  void AttributeChangedFor(nsIFrame*       aFrame,
-                           nsIContent*     aContent,
-                           nsIAtom*        aAttribute);
+  void RowOrColSpanChanged(nsTableCellFrame* aCellFrame);
 
   /** @see nsIFrame::DestroyFrom */
   virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
@@ -229,9 +224,9 @@ public:
 
   typedef void (* DisplayGenericTablePartTraversal)
       (nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
-       const nsRect& aDirtyRect, const nsDisplayListSet& aLists);
+       const nsDisplayListSet& aLists);
   static void GenericTraversal(nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
-                               const nsRect& aDirtyRect, const nsDisplayListSet& aLists);
+                               const nsDisplayListSet& aLists);
 
   /**
    * Helper method to handle display common to table frames, rowgroup frames
@@ -246,7 +241,6 @@ public:
    */
   static void DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
                                       nsFrame* aFrame,
-                                      const nsRect& aDirtyRect,
                                       const nsDisplayListSet& aLists,
                                       DisplayGenericTablePartTraversal aTraversal = GenericTraversal);
 
@@ -266,7 +260,6 @@ public:
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
 
   /** Get the outer half (i.e., the part outside the height and width of
@@ -506,13 +499,12 @@ public:
   void InsertCol(nsTableColFrame& aColFrame,
                  int32_t          aColIndex);
 
-  nsTableColGroupFrame* CreateAnonymousColGroupFrame(nsTableColGroupType aType);
+  nsTableColGroupFrame* CreateSyntheticColGroupFrame();
 
   int32_t DestroyAnonymousColFrames(int32_t aNumFrames);
 
   // Append aNumColsToAdd anonymous col frames of type eColAnonymousCell to our
-  // last eColGroupAnonymousCell colgroup.  If we have no such colgroup, then
-  // create one.
+  // last synthetic colgroup.  If we have no such colgroup, then create one.
   void AppendAnonymousColFrames(int32_t aNumColsToAdd);
 
   // Append aNumColsToAdd anonymous col frames of type aColType to
@@ -1037,8 +1029,8 @@ inline void nsTableFrame::SetHasBCBorders(bool aValue)
 inline nscoord
 nsTableFrame::GetContinuousIStartBCBorderWidth() const
 {
-  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  return BC_BORDER_END_HALF_COORD(aPixelsToTwips, mBits.mIStartContBCBorder);
+  int32_t d2a = PresContext()->AppUnitsPerDevPixel();
+  return BC_BORDER_END_HALF_COORD(d2a, mBits.mIStartContBCBorder);
 }
 
 inline void nsTableFrame::SetContinuousIStartBCBorderWidth(nscoord aValue)

@@ -7,6 +7,7 @@
 #include "HTMLBodyElement.h"
 #include "mozilla/dom/HTMLBodyElementBinding.h"
 #include "mozilla/GenericSpecifiedValuesInlines.h"
+#include "mozilla/HTMLEditor.h"
 #include "mozilla/TextEditor.h"
 #include "nsAttrValueInlines.h"
 #include "nsGkAtoms.h"
@@ -15,7 +16,6 @@
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
 #include "nsHTMLStyleSheet.h"
-#include "nsIEditor.h"
 #include "nsMappedAttributes.h"
 #include "nsIDocShell.h"
 #include "nsRuleWalker.h"
@@ -38,112 +38,9 @@ HTMLBodyElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
   return HTMLBodyElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLBodyElement, nsGenericHTMLElement,
-                            nsIDOMHTMLBodyElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLBodyElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLBodyElement)
-
-NS_IMETHODIMP
-HTMLBodyElement::SetBackground(const nsAString& aBackground)
-{
-  ErrorResult rv;
-  SetBackground(aBackground, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::GetBackground(nsAString& aBackground)
-{
-  DOMString background;
-  GetBackground(background);
-  background.ToString(aBackground);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::SetVLink(const nsAString& aVLink)
-{
-  ErrorResult rv;
-  SetVLink(aVLink, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::GetVLink(nsAString& aVLink)
-{
-  DOMString vLink;
-  GetVLink(vLink);
-  vLink.ToString(aVLink);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::SetALink(const nsAString& aALink)
-{
-  ErrorResult rv;
-  SetALink(aALink, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::GetALink(nsAString& aALink)
-{
-  DOMString aLink;
-  GetALink(aLink);
-  aLink.ToString(aALink);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::SetLink(const nsAString& aLink)
-{
-  ErrorResult rv;
-  SetLink(aLink, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::GetLink(nsAString& aLink)
-{
-  DOMString link;
-  GetLink(link);
-  link.ToString(aLink);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::SetText(const nsAString& aText)
-{
-  ErrorResult rv;
-  SetText(aText, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::GetText(nsAString& aText)
-{
-  DOMString text;
-  GetText(text);
-  text.ToString(aText);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::SetBgColor(const nsAString& aBgColor)
-{
-  ErrorResult rv;
-  SetBgColor(aBgColor, rv);
-  return rv.StealNSResult();
-}
-
-NS_IMETHODIMP
-HTMLBodyElement::GetBgColor(nsAString& aBgColor)
-{
-  DOMString bgColor;
-  GetBgColor(bgColor);
-  bgColor.ToString(aBgColor);
-  return NS_OK;
-}
 
 bool
 HTMLBodyElement::ParseAttribute(int32_t aNamespaceID,
@@ -392,7 +289,7 @@ HTMLBodyElement::IsAttributeMapped(const nsIAtom* aAttribute) const
   return FindAttributeDependence(aAttribute, map);
 }
 
-already_AddRefed<nsIEditor>
+already_AddRefed<TextEditor>
 HTMLBodyElement::GetAssociatedEditor()
 {
   RefPtr<TextEditor> textEditor = GetTextEditorInternal();
@@ -416,9 +313,8 @@ HTMLBodyElement::GetAssociatedEditor()
     return nullptr;
   }
 
-  nsCOMPtr<nsIEditor> editor;
-  docShell->GetEditor(getter_AddRefs(editor));
-  return editor.forget();
+  RefPtr<HTMLEditor> htmlEditor = docShell->GetHTMLEditor();
+  return htmlEditor.forget();
 }
 
 bool

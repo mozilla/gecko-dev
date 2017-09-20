@@ -8,7 +8,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["FormAutofillHeuristics"];
+this.EXPORTED_SYMBOLS = ["FormAutofillHeuristics", "LabelUtils"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -123,6 +123,10 @@ class FieldScanner {
       elementWeakRef: Cu.getWeakReference(element),
     };
 
+    if (info._reason) {
+      fieldInfo._reason = info._reason;
+    }
+
     // Store the association between the field metadata and the element.
     if (this.findSameField(info) != -1) {
       // A field with the same identifier already exists.
@@ -178,6 +182,106 @@ class FieldScanner {
   }
 }
 
+this.LabelUtils = {
+  // The tag name list is from Chromium except for "STYLE":
+  // eslint-disable-next-line max-len
+  // https://cs.chromium.org/chromium/src/components/autofill/content/renderer/form_autofill_util.cc?l=216&rcl=d33a171b7c308a64dc3372fac3da2179c63b419e
+  EXCLUDED_TAGS: ["SCRIPT", "NOSCRIPT", "OPTION", "STYLE"],
+
+  // A map object, whose keys are the id's of form fields and each value is an
+  // array consisting of label elements correponding to the id.
+  // @type {Map<string, array>}
+  _mappedLabels: null,
+
+  // An array consisting of label elements whose correponding form field doesn't
+  // have an id attribute.
+  // @type {Array.<HTMLLabelElement>}
+  _unmappedLabels: null,
+
+  /**
+   * Extract all strings of an element's children to an array.
+   * "element.textContent" is a string which is merged of all children nodes,
+   * and this function provides an array of the strings contains in an element.
+   *
+   * @param  {Object} element
+   *         A DOM element to be extracted.
+   * @returns {Array}
+   *          All strings in an element.
+   */
+  extractLabelStrings(element) {
+    let strings = [];
+    let _extractLabelStrings = (el) => {
+      if (this.EXCLUDED_TAGS.includes(el.tagName)) {
+        return;
+      }
+
+      if (el.nodeType == Ci.nsIDOMNode.TEXT_NODE || el.childNodes.length == 0) {
+        let trimmedText = el.textContent.trim();
+        if (trimmedText) {
+          strings.push(trimmedText);
+        }
+        return;
+      }
+
+      for (let node of el.childNodes) {
+        let nodeType = node.nodeType;
+        if (nodeType != Ci.nsIDOMNode.ELEMENT_NODE && nodeType != Ci.nsIDOMNode.TEXT_NODE) {
+          continue;
+        }
+        _extractLabelStrings(node);
+      }
+    };
+    _extractLabelStrings(element);
+    return strings;
+  },
+
+  generateLabelMap(doc) {
+    let mappedLabels = new Map();
+    let unmappedLabels = [];
+
+    for (let label of doc.querySelectorAll("label")) {
+      let id = label.htmlFor;
+      if (!id) {
+        let control = label.control;
+        if (!control) {
+          continue;
+        }
+        id = control.id;
+      }
+      if (id) {
+        let labels = mappedLabels.get(id);
+        if (labels) {
+          labels.push(label);
+        } else {
+          mappedLabels.set(id, [label]);
+        }
+      } else {
+        unmappedLabels.push(label);
+      }
+    }
+
+    this._mappedLabels = mappedLabels;
+    this._unmappedLabels = unmappedLabels;
+  },
+
+  clearLabelMap() {
+    this._mappedLabels = null;
+    this._unmappedLabels = null;
+  },
+
+  findLabelElements(element) {
+    if (!this._mappedLabels) {
+      this.generateLabelMap(element.ownerDocument);
+    }
+
+    let id = element.id;
+    if (!id) {
+      return this._unmappedLabels.filter(label => label.control == element);
+    }
+    return this._mappedLabels.get(id) || [];
+  },
+};
+
 /**
  * Returns the autocomplete information of fields according to heuristics.
  */
@@ -204,7 +308,7 @@ this.FormAutofillHeuristics = {
       let ruleStart = i;
       for (; i < GRAMMARS.length && GRAMMARS[i][0] && fieldScanner.elementExisting(detailStart); i++, detailStart++) {
         let detail = fieldScanner.getFieldDetailByIndex(detailStart);
-        if (!detail || GRAMMARS[i][0] != detail.fieldName) {
+        if (!detail || GRAMMARS[i][0] != detail.fieldName || detail._reason == "autocomplete") {
           break;
         }
         let element = detail.elementWeakRef.get();
@@ -288,8 +392,24 @@ this.FormAutofillHeuristics = {
     return parsedFields;
   },
 
-  getFormInfo(form) {
-    if (form.autocomplete == "off" || form.elements.length <= 0) {
+  /**
+   * This function should provide all field details of a form. The details
+   * contain the autocomplete info (e.g. fieldName, section, etc).
+   *
+   * `allowDuplicates` is used for the xpcshell-test purpose currently because
+   * the heuristics should be verified that some duplicated elements still can
+   * be predicted correctly.
+   *
+   * @param {HTMLFormElement} form
+   *        the elements in this form to be predicted the field info.
+   * @param {boolean} allowDuplicates
+   *        true to remain any duplicated field details otherwise to remove the
+   *        duplicated ones.
+   * @returns {Array<Object>}
+   *        all field details in the form.
+   */
+  getFormInfo(form, allowDuplicates = false) {
+    if (form.elements.length <= 0) {
       return [];
     }
 
@@ -304,6 +424,13 @@ this.FormAutofillHeuristics = {
         fieldScanner.parsingIndex++;
       }
     }
+
+    LabelUtils.clearLabelMap();
+
+    if (allowDuplicates) {
+      return fieldScanner.fieldDetails;
+    }
+
     return fieldScanner.trimmedFieldDetail;
   },
 
@@ -315,7 +442,8 @@ this.FormAutofillHeuristics = {
     let info = element.getAutocompleteInfo();
     // An input[autocomplete="on"] will not be early return here since it stll
     // needs to find the field name.
-    if (info && info.fieldName && info.fieldName != "on") {
+    if (info && info.fieldName && info.fieldName != "on" && info.fieldName != "off") {
+      info._reason = "autocomplete";
       return info;
     }
 
@@ -323,11 +451,14 @@ this.FormAutofillHeuristics = {
       return null;
     }
 
+    let isAutoCompleteOff = element.autocomplete == "off" ||
+      (element.form && element.form.autocomplete == "off");
+
     // "email" type of input is accurate for heuristics to determine its Email
     // field or not. However, "tel" type is used for ZIP code for some web site
     // (e.g. HomeDepot, BestBuy), so "tel" type should be not used for "tel"
     // prediction.
-    if (element.type == "email") {
+    if (element.type == "email" && !isAutoCompleteOff) {
       return {
         fieldName: "email",
         section: "",
@@ -336,7 +467,14 @@ this.FormAutofillHeuristics = {
       };
     }
 
-    let regexps = Object.keys(this.RULES);
+    const FIELDNAMES_IGNORING_AUTOCOMPLETE_OFF = [
+      "cc-name",
+      "cc-number",
+      "cc-exp-month",
+      "cc-exp-year",
+      "cc-exp",
+    ];
+    let regexps = isAutoCompleteOff ? FIELDNAMES_IGNORING_AUTOCOMPLETE_OFF : Object.keys(this.RULES);
 
     let labelStrings;
     let getElementStrings = {};
@@ -345,9 +483,9 @@ this.FormAutofillHeuristics = {
       yield element.name;
       if (!labelStrings) {
         labelStrings = [];
-        let labels = FormAutofillUtils.findLabelElements(element);
+        let labels = LabelUtils.findLabelElements(element);
         for (let label of labels) {
-          labelStrings.push(...FormAutofillUtils.extractLabelStrings(label));
+          labelStrings.push(...LabelUtils.extractLabelStrings(label));
         }
       }
       yield *labelStrings;

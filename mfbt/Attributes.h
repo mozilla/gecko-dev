@@ -66,6 +66,7 @@
 #elif defined(__GNUC__)
 #  define MOZ_HAVE_NEVER_INLINE          __attribute__((noinline))
 #  define MOZ_HAVE_NORETURN              __attribute__((noreturn))
+#  define MOZ_HAVE_NORETURN_PTR          __attribute__((noreturn))
 #endif
 
 /*
@@ -102,12 +103,20 @@
  * warnings about not initializing variables, or about any other seemingly-dodgy
  * operations performed after the function returns.
  *
+ * There are two variants. The GCC version of NORETURN may be applied to a
+ * function pointer, while for MSVC it may not.
+ *
  * This modifier does not affect the corresponding function's linking behavior.
  */
 #if defined(MOZ_HAVE_NORETURN)
 #  define MOZ_NORETURN          MOZ_HAVE_NORETURN
 #else
 #  define MOZ_NORETURN          /* no support */
+#endif
+#if defined(MOZ_HAVE_NORETURN_PTR)
+#  define MOZ_NORETURN_PTR      MOZ_HAVE_NORETURN_PTR
+#else
+#  define MOZ_NORETURN_PTR      /* no support */
 #endif
 
 /**
@@ -426,6 +435,9 @@
  *
  * The static analyses that are performed by the plugin are as follows:
  *
+ * MOZ_CAN_RUN_SCRIPT: Applies to functions which can run script. Callers of
+ *   this function must also be marked as MOZ_CAN_RUN_SCRIPT, and all refcounted
+ *   arguments must be strongly held in the caller.
  * MOZ_MUST_OVERRIDE: Applies to all C++ member functions. All immediate
  *   subclasses must provide an exact override of this method; if a subclass
  *   does not override this method, the compiler will emit an error. This
@@ -478,6 +490,14 @@
  *   are disallowed by default unless they are marked as MOZ_IMPLICIT. This
  *   attribute must be used for constructors which intend to provide implicit
  *   conversions.
+ * MOZ_IS_REFPTR: Applies to class declarations of ref pointer to mark them as
+ *   such for use with static-analysis.
+ *   A ref pointer is an object wrapping a pointer and automatically taking care
+ *   of its refcounting upon construction/destruction/transfer of ownership.
+ *   This annotation implies MOZ_IS_SMARTPTR_TO_REFCOUNTED.
+ * MOZ_IS_SMARTPTR_TO_REFCOUNTED: Applies to class declarations of smart
+ *   pointers to ref counted classes to mark them as such for use with
+ *   static-analysis.
  * MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT: Applies to functions. Makes it a compile
  *   time error to pass arithmetic expressions on variables to the function.
  * MOZ_OWNING_REF: Applies to declarations of pointers to reference counted
@@ -576,6 +596,7 @@
  *   MOZ_MUST_RETURN_FROM_CALLER function or method.
  */
 #ifdef MOZ_CLANG_PLUGIN
+#  define MOZ_CAN_RUN_SCRIPT __attribute__((annotate("moz_can_run_script")))
 #  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
 #  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
 #  define MOZ_NONHEAP_CLASS __attribute__((annotate("moz_nonheap_class")))
@@ -590,6 +611,9 @@
             MOZ_TRIVIAL_CTOR_DTOR
 #  endif
 #  define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
+#  define MOZ_IS_SMARTPTR_TO_REFCOUNTED __attribute__((annotate("moz_is_smartptr_to_refcounted")))
+#  define MOZ_IS_REFPTR __attribute__((annotate("moz_is_refptr"))) \
+                        MOZ_IS_SMARTPTR_TO_REFCOUNTED
 #  define MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT __attribute__((annotate("moz_no_arith_expr_in_arg")))
 #  define MOZ_OWNING_REF __attribute__((annotate("moz_strong_ref")))
 #  define MOZ_NON_OWNING_REF __attribute__((annotate("moz_weak_ref")))
@@ -627,6 +651,7 @@
     __attribute__((annotate("moz_heap_allocator"))) \
     _Pragma("clang diagnostic pop")
 #else
+#  define MOZ_CAN_RUN_SCRIPT /* nothing */
 #  define MOZ_MUST_OVERRIDE /* nothing */
 #  define MOZ_STACK_CLASS /* nothing */
 #  define MOZ_NONHEAP_CLASS /* nothing */
@@ -635,6 +660,8 @@
 #  define MOZ_TRIVIAL_CTOR_DTOR /* nothing */
 #  define MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS /* nothing */
 #  define MOZ_IMPLICIT /* nothing */
+#  define MOZ_IS_SMARTPTR_TO_REFCOUNTED /* nothing */
+#  define MOZ_IS_REFPTR /* nothing */
 #  define MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT /* nothing */
 #  define MOZ_HEAP_ALLOCATOR /* nothing */
 #  define MOZ_OWNING_REF /* nothing */
@@ -702,6 +729,19 @@
     __attribute__ ((format (printf, stringIndex, firstToCheck)))
 #else
 #define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck)
+#endif
+
+/**
+ * To manually declare an XPCOM ABI-compatible virtual function, the following
+ * macros can be used to handle the non-standard ABI used on Windows for COM
+ * compatibility. E.g.:
+ *
+ *   virtual ReturnType MOZ_XPCOM_ABI foo();
+ */
+#if defined(XP_WIN)
+#  define MOZ_XPCOM_ABI         __stdcall
+#else
+#  define MOZ_XPCOM_ABI
 #endif
 
 #endif /* mozilla_Attributes_h */

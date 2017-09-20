@@ -15,7 +15,6 @@
 #include "nsIDirectoryService.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsXPIDLString.h"
 #include "nsPrintfCString.h"
 #include "nsIStringBundle.h"
 #include "prefapi.h"
@@ -242,7 +241,7 @@ NS_IMETHODIMP nsPrefBranch::GetStringPref(const char *aPrefName,
                                           uint8_t _argc,
                                           nsACString& _retval)
 {
-  nsXPIDLCString utf8String;
+  nsCString utf8String;
   nsresult rv = GetCharPref(aPrefName, getter_Copies(utf8String));
   if (NS_SUCCEEDED(rv)) {
     _retval = utf8String;
@@ -300,8 +299,8 @@ NS_IMETHODIMP nsPrefBranch::GetComplexValue(const char *aPrefName, const nsIID &
 {
   NS_ENSURE_ARG(aPrefName);
 
-  nsresult       rv;
-  nsXPIDLCString utf8String;
+  nsresult rv;
+  nsCString utf8String;
 
   // we have to do this one first because it's different than all the rest
   if (aType.Equals(NS_GET_IID(nsIPrefLocalizedString))) {
@@ -841,7 +840,7 @@ nsPrefBranch::GetDefaultFromPropertiesFile(const char *aPrefName,
 
   // the default value contains a URL to a .properties file
 
-  nsXPIDLCString propertyFileURL;
+  nsCString propertyFileURL;
   rv = PREF_CopyCharPref(aPrefName, getter_Copies(propertyFileURL), true);
   if (NS_FAILED(rv))
     return rv;
@@ -852,7 +851,7 @@ nsPrefBranch::GetDefaultFromPropertiesFile(const char *aPrefName,
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIStringBundle> bundle;
-  rv = bundleService->CreateBundle(propertyFileURL,
+  rv = bundleService->CreateBundle(propertyFileURL.get(),
                                    getter_AddRefs(bundle));
   if (NS_FAILED(rv))
     return rv;

@@ -26,6 +26,8 @@ const TEST_ADDRESS_2 = {
 };
 
 const TEST_ADDRESS_3 = {
+  "given-name": "Timothy",
+  "family-name": "Berners-Lee",
   "street-address": "Other Address",
   "postal-code": "12345",
 };
@@ -35,6 +37,11 @@ const TEST_ADDRESS_4 = {
   "additional-name": "John",
   "family-name": "Berners-Lee",
   organization: "World Wide Web Consortium",
+};
+
+const TEST_ADDRESS_FOR_UPDATE = {
+  "name": "Tim Berners",
+  "street-address": "",
 };
 
 const TEST_ADDRESS_WITH_INVALID_FIELD = {
@@ -98,6 +105,101 @@ const MERGE_TESTCASES = [
     expectedAddress: {
       "given-name": "Timothy",
       "street-address": "331 E. Evelyn Avenue",
+      "tel": "+16509030800",
+      country: "US",
+    },
+  },
+  {
+    description: "Merge an address with multi-line street-address in storage and single-line incoming one",
+    addressInStorage: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2",
+      "tel": "+16509030800",
+    },
+    addressToMerge: {
+      "street-address": "331 E. Evelyn Avenue Line2",
+      "tel": "+16509030800",
+      country: "US",
+    },
+    expectedAddress: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2",
+      "tel": "+16509030800",
+      country: "US",
+    },
+  },
+  {
+    description: "Merge an address with 3-line street-address in storage and 2-line incoming one",
+    addressInStorage: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2\nLine3",
+      "tel": "+16509030800",
+    },
+    addressToMerge: {
+      "street-address": "331 E. Evelyn Avenue\nLine2 Line3",
+      "tel": "+16509030800",
+      country: "US",
+    },
+    expectedAddress: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2\nLine3",
+      "tel": "+16509030800",
+      country: "US",
+    },
+  },
+  {
+    description: "Merge an address with single-line street-address in storage and multi-line incoming one",
+    addressInStorage: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue Line2",
+      "tel": "+16509030800",
+    },
+    addressToMerge: {
+      "street-address": "331 E. Evelyn Avenue\nLine2",
+      "tel": "+16509030800",
+      country: "US",
+    },
+    expectedAddress: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2",
+      "tel": "+16509030800",
+      country: "US",
+    },
+  },
+  {
+    description: "Merge an address with 2-line street-address in storage and 3-line incoming one",
+    addressInStorage: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2 Line3",
+      "tel": "+16509030800",
+    },
+    addressToMerge: {
+      "street-address": "331 E. Evelyn Avenue\nLine2\nLine3",
+      "tel": "+16509030800",
+      country: "US",
+    },
+    expectedAddress: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2\nLine3",
+      "tel": "+16509030800",
+      country: "US",
+    },
+  },
+  {
+    description: "Merge an address with the same amount of lines",
+    addressInStorage: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2\nLine3",
+      "tel": "+16509030800",
+    },
+    addressToMerge: {
+      "street-address": "331 E. Evelyn\nAvenue Line2\nLine3",
+      "tel": "+16509030800",
+      country: "US",
+    },
+    expectedAddress: {
+      "given-name": "Timothy",
+      "street-address": "331 E. Evelyn Avenue\nLine2\nLine3",
       "tel": "+16509030800",
       country: "US",
     },
@@ -179,40 +281,6 @@ add_task(async function test_get() {
   do_check_eq(profileStorage.addresses.get("INVALID_GUID"), null);
 });
 
-add_task(async function test_getByFilter() {
-  let profileStorage = await initProfileStorage(TEST_STORE_FILE_NAME,
-                                                [TEST_ADDRESS_1, TEST_ADDRESS_2]);
-
-  let filter = {info: {fieldName: "street-address"}, searchString: "Some"};
-  let addresses = profileStorage.addresses.getByFilter(filter);
-  do_check_eq(addresses.length, 1);
-  do_check_record_matches(addresses[0], TEST_ADDRESS_2);
-
-  filter = {info: {fieldName: "country"}, searchString: "u"};
-  addresses = profileStorage.addresses.getByFilter(filter);
-  do_check_eq(addresses.length, 2);
-  do_check_record_matches(addresses[0], TEST_ADDRESS_1);
-  do_check_record_matches(addresses[1], TEST_ADDRESS_2);
-
-  filter = {info: {fieldName: "street-address"}, searchString: "test"};
-  addresses = profileStorage.addresses.getByFilter(filter);
-  do_check_eq(addresses.length, 0);
-
-  filter = {info: {fieldName: "street-address"}, searchString: ""};
-  addresses = profileStorage.addresses.getByFilter(filter);
-  do_check_eq(addresses.length, 2);
-
-  // Check if the filtering logic is free from searching special chars.
-  filter = {info: {fieldName: "street-address"}, searchString: ".*"};
-  addresses = profileStorage.addresses.getByFilter(filter);
-  do_check_eq(addresses.length, 0);
-
-  // Prevent broken while searching the property that does not exist.
-  filter = {info: {fieldName: "tel"}, searchString: "1"};
-  addresses = profileStorage.addresses.getByFilter(filter);
-  do_check_eq(addresses.length, 0);
-});
-
 add_task(async function test_add() {
   let profileStorage = await initProfileStorage(TEST_STORE_FILE_NAME,
                                                 [TEST_ADDRESS_1, TEST_ADDRESS_2]);
@@ -260,6 +328,22 @@ add_task(async function test_update() {
   do_check_neq(address.timeLastModified, timeLastModified);
   do_check_record_matches(address, TEST_ADDRESS_3);
   do_check_eq(getSyncChangeCounter(profileStorage.addresses, guid), 1);
+
+  // Test preserveOldProperties parameter and field with empty string.
+  profileStorage.addresses.update(guid, TEST_ADDRESS_FOR_UPDATE, true);
+  await onChanged;
+  await profileStorage._saveImmediately();
+
+  profileStorage.addresses.pullSyncChanges(); // force sync metadata, which we check below.
+
+  address = profileStorage.addresses.get(guid, {rawData: true});
+
+  do_check_eq(address["given-name"], "Tim");
+  do_check_eq(address["family-name"], "Berners");
+  do_check_eq(address["street-address"], undefined);
+  do_check_eq(address["postal-code"], "12345");
+  do_check_neq(address.timeLastModified, timeLastModified);
+  do_check_eq(getSyncChangeCounter(profileStorage.addresses, guid), 2);
 
   Assert.throws(
     () => profileStorage.addresses.update("INVALID_GUID", TEST_ADDRESS_3),

@@ -33,6 +33,7 @@ StackingContextHelper::StackingContextHelper(const StackingContextHelper& aParen
   mBuilder->PushStackingContext(scBounds, 0, &opacity,
                                 mTransform.IsIdentity() ? nullptr : &mTransform,
                                 wr::TransformStyle::Flat,
+                                nullptr,
                                 wr::ToMixBlendMode(layer->GetMixBlendMode()),
                                 aFilters);
   mOrigin = aLayer->Bounds().TopLeft();
@@ -57,6 +58,7 @@ StackingContextHelper::StackingContextHelper(const StackingContextHelper& aParen
                                 aOpacityPtr,
                                 aTransformPtr,
                                 wr::TransformStyle::Flat,
+                                nullptr,
                                 wr::ToMixBlendMode(aLayer->GetLayer()->GetMixBlendMode()),
                                 aFilters);
   mOrigin = aLayer->Bounds().TopLeft();
@@ -71,36 +73,24 @@ StackingContextHelper::StackingContextHelper(const StackingContextHelper& aParen
                                              uint64_t aAnimationsId,
                                              float* aOpacityPtr,
                                              gfx::Matrix4x4* aTransformPtr,
+                                             gfx::Matrix4x4* aPerspectivePtr,
                                              const nsTArray<wr::WrFilterOp>& aFilters,
                                              const gfx::CompositionOp& aMixBlendMode)
   : mBuilder(&aBuilder)
 {
-  nsRect itemBounds = aDisplayList->GetClippedBoundsWithRespectToASR(aDisplayListBuilder, aItem->GetActiveScrolledRoot());
-  nsRect childrenVisible = aItem->GetVisibleRectForChildren();
-  nsRect visibleRect = itemBounds.Intersect(childrenVisible);
-  float appUnitsPerDevPixel = aItem->Frame()->PresContext()->AppUnitsPerDevPixel();
-  LayerRect bounds = ViewAs<LayerPixel>(LayoutDeviceRect::FromAppUnits(visibleRect, appUnitsPerDevPixel),
-                                        PixelCastJustification::WebRenderHasUnitResolution);
-
-  // WR will only apply the 'translate' of the transform, so we need to do the scale/rotation manually.
-  if (aBoundTransform && !aBoundTransform->IsIdentity()) {
-    bounds.MoveTo(aBoundTransform->TransformPoint(bounds.TopLeft()));
-  }
-
-  wr::LayoutRect scBounds = aParentSC.ToRelativeLayoutRect(bounds);
+  bool is2d = !aTransformPtr || (aTransformPtr->Is2D() && !aPerspectivePtr);
   if (aTransformPtr) {
     mTransform = *aTransformPtr;
   }
 
-  mBuilder->PushStackingContext(scBounds,
+  mBuilder->PushStackingContext(wr::LayoutRect(),
                                 aAnimationsId,
                                 aOpacityPtr,
                                 aTransformPtr,
-                                wr::TransformStyle::Flat,
+                                is2d ? wr::TransformStyle::Flat : wr::TransformStyle::Preserve3D,
+                                aPerspectivePtr,
                                 wr::ToMixBlendMode(aMixBlendMode),
                                 aFilters);
-
-  mOrigin = bounds.TopLeft();
 }
 
 StackingContextHelper::~StackingContextHelper()
@@ -113,25 +103,20 @@ StackingContextHelper::~StackingContextHelper()
 wr::LayoutRect
 StackingContextHelper::ToRelativeLayoutRect(const LayerRect& aRect) const
 {
-  return wr::ToLayoutRect(aRect - mOrigin);
+  return wr::ToLayoutRect(RoundedToInt(aRect - mOrigin));
 }
 
 wr::LayoutRect
 StackingContextHelper::ToRelativeLayoutRect(const LayoutDeviceRect& aRect) const
 {
-  return wr::ToLayoutRect(ViewAs<LayerPixel>(aRect, PixelCastJustification::WebRenderHasUnitResolution) - mOrigin);
+  return wr::ToLayoutRect(RoundedToInt(ViewAs<LayerPixel>(aRect,
+                                                          PixelCastJustification::WebRenderHasUnitResolution) - mOrigin));
 }
 
 wr::LayoutPoint
 StackingContextHelper::ToRelativeLayoutPoint(const LayerPoint& aPoint) const
 {
   return wr::ToLayoutPoint(aPoint - mOrigin);
-}
-
-wr::LayoutRect
-StackingContextHelper::ToRelativeLayoutRectRounded(const LayoutDeviceRect& aRect) const
-{
-  return wr::ToLayoutRect(RoundedToInt(ViewAs<LayerPixel>(aRect, PixelCastJustification::WebRenderHasUnitResolution) - mOrigin));
 }
 
 } // namespace layers

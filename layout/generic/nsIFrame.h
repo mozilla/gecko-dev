@@ -44,6 +44,7 @@
 #include "nsChangeHint.h"
 #include "nsStyleContextInlines.h"
 #include "mozilla/gfx/MatrixFwd.h"
+#include "nsDisplayItemTypes.h"
 
 #ifdef ACCESSIBILITY
 #include "mozilla/a11y/AccTypes.h"
@@ -87,6 +88,7 @@ class nsIContent;
 class nsContainerFrame;
 class nsPlaceholderFrame;
 class nsStyleChangeList;
+class nsWindowSizes;
 
 struct nsPeekOffsetStruct;
 struct nsPoint;
@@ -618,6 +620,10 @@ public:
     , mMayHaveRoundedCorners(false)
     , mHasImageRequest(false)
     , mHasFirstLetterChild(false)
+    , mParentIsWrapperAnonBox(false)
+    , mIsWrapperBoxNeedingRestyle(false)
+    , mReflowRequestedForCharDataChange(false)
+    , mIsPrimaryFrame(false)
   {
     mozilla::PodZero(&mOverflow);
   }
@@ -708,6 +714,7 @@ protected:
   friend class nsLineBox;   // needed to pass aDestructRoot through to children
   friend class nsContainerFrame; // needed to pass aDestructRoot through to children
   friend class nsFrame; // need to assign mParent
+  template<class Source> friend class do_QueryFrameHelper; // to read mClass
 public:
 
   /**
@@ -755,9 +762,8 @@ public:
   void SetStyleContext(nsStyleContext* aContext)
   {
     if (aContext != mStyleContext) {
-      nsStyleContext* oldStyleContext = mStyleContext;
+      RefPtr<nsStyleContext> oldStyleContext = mStyleContext.forget();
       mStyleContext = aContext;
-      aContext->AddRef();
 #ifdef DEBUG
       aContext->FrameAddRef();
 #endif
@@ -765,7 +771,6 @@ public:
 #ifdef DEBUG
       oldStyleContext->FrameRelease();
 #endif
-      oldStyleContext->Release();
     }
   }
 
@@ -781,11 +786,9 @@ public:
 #ifdef DEBUG
       mStyleContext->FrameRelease();
 #endif
-      mStyleContext->Release();
       mStyleContext = aContext;
-      aContext->AddRef();
 #ifdef DEBUG
-      aContext->FrameAddRef();
+      mStyleContext->FrameAddRef();
 #endif
     }
   }
@@ -861,7 +864,7 @@ public:
    * Gets the primary frame of the Content's flattened tree
    * parent, if one exists.
    */
-  inline nsIFrame* GetFlattenedTreeParentPrimaryFrame() const;
+  nsIFrame* GetFlattenedTreeParentPrimaryFrame() const;
 
   /**
    * Return the placeholder for this frame (which must be out-of-flow).
@@ -1044,9 +1047,9 @@ public:
   {
     if ((!aWritingMode.IsVertical() && !aWritingMode.IsBidiLTR()) ||
         aWritingMode.IsVerticalRL()) {
-      nscoord oldWidth = mRect.width;
+      nscoord oldWidth = mRect.Width();
       SetSize(aSize.GetPhysicalSize(aWritingMode));
-      mRect.x -= mRect.width - oldWidth;
+      mRect.x -= mRect.Width() - oldWidth;
     } else {
       SetSize(aSize.GetPhysicalSize(aWritingMode));
     }
@@ -1320,7 +1323,7 @@ public:
    * (nsFieldSetFrame overrides this).
    */
   virtual nsRect VisualBorderRectRelativeToSelf() const {
-    return nsRect(0, 0, mRect.width, mRect.height);
+    return nsRect(0, 0, mRect.Width(), mRect.Height());
   }
 
   /**
@@ -1633,21 +1636,14 @@ public:
    * BuildDisplayListForChild.
    *
    * See nsDisplayList.h for more information about display lists.
-   *
-   * @param aDirtyRect content outside this rectangle can be ignored; the
-   * rectangle is in frame coordinates
    */
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) {}
   /**
    * Displays the caret onto the given display list builder. The caret is
    * painted on top of the rest of the display list items.
-   *
-   * @param aDirtyRect is the dirty rectangle that we're repainting.
    */
   void DisplayCaret(nsDisplayListBuilder* aBuilder,
-                    const nsRect&         aDirtyRect,
                     nsDisplayList*        aList);
 
   /**
@@ -1681,11 +1677,8 @@ public:
   /**
    * Builds a display list for the content represented by this frame,
    * treating this frame as the root of a stacking context.
-   * @param aDirtyRect content outside this rectangle can be ignored; the
-   * rectangle is in frame coordinates
    */
   void BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
-                                          const nsRect&         aDirtyRect,
                                           nsDisplayList*        aList);
 
   enum {
@@ -1704,7 +1697,6 @@ public:
    */
   void BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
                                 nsIFrame*               aChild,
-                                const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists,
                                 uint32_t                aFlags = 0);
 
@@ -2020,6 +2012,13 @@ public:
   {
     return mState & aBits;
   }
+
+  /**
+   * Return true if this frame is the primary frame for mContent.
+   */
+  bool IsPrimaryFrame() const { return mIsPrimaryFrame; }
+
+  void SetIsPrimaryFrame(bool aIsPrimary) { mIsPrimaryFrame = aIsPrimary; }
 
   /**
    * This call is invoked on the primary frame for a character data content
@@ -3041,7 +3040,7 @@ public:
   enum {
     UPDATE_IS_ASYNC = 1 << 0
   };
-  Layer* InvalidateLayer(uint32_t aDisplayItemKey,
+  Layer* InvalidateLayer(DisplayItemType aDisplayItemKey,
                          const nsIntRect* aDamageRect = nullptr,
                          const nsRect* aFrameDamageRect = nullptr,
                          uint32_t aFlags = 0);
@@ -3345,6 +3344,9 @@ protected:
   void UpdateStyleOfChildAnonBox(nsIFrame* aChildFrame,
                                  mozilla::ServoRestyleState& aRestyleState);
 
+  // Allow ServoRestyleState to call UpdateStyleOfChildAnonBox.
+  friend class mozilla::ServoRestyleState;
+
 public:
   // A helper both for UpdateStyleOfChildAnonBox, and to update frame-backed
   // pseudo-elements in ServoRestyleManager.
@@ -3546,8 +3548,10 @@ public:
     mProperties.DeleteAll(this);
   }
 
-  // Reports size of the FrameProperties for this frame and its descendants
-  size_t SizeOfFramePropertiesForTree(mozilla::MallocSizeOf aMallocSizeOf) const;
+  // nsIFrames themselves are in the nsPresArena, and so are not measured here.
+  // Instead, this measures heap-allocated things hanging off the nsIFrame, and
+  // likewise for its descendants.
+  void AddSizeOfExcludingThisForTree(nsWindowSizes& aWindowSizes) const;
 
   /**
    * Return true if and only if this frame obeys visibility:hidden.
@@ -3993,6 +3997,23 @@ public:
   bool HasFirstLetterChild() const { return mHasFirstLetterChild; }
 
   /**
+   * Whether this frame's parent is a wrapper anonymous box.  See documentation
+   * for mParentIsWrapperAnonBox.
+   */
+  bool ParentIsWrapperAnonBox() const { return mParentIsWrapperAnonBox; }
+  void SetParentIsWrapperAnonBox() { mParentIsWrapperAnonBox = true; }
+
+  /**
+   * Whether this is a wrapper anonymous box needing a restyle.
+   */
+  bool IsWrapperAnonBoxNeedingRestyle() const {
+    return mIsWrapperBoxNeedingRestyle;
+  }
+  void SetIsWrapperAnonBoxNeedingRestyle(bool aNeedsRestyle) {
+    mIsWrapperBoxNeedingRestyle = aNeedsRestyle;
+  }
+
+  /**
    * If this returns true, the frame it's called on should get the
    * NS_FRAME_HAS_DIRTY_CHILDREN bit set on it by the caller; either directly
    * if it's already in reflow, or via calling FrameNeedsReflow() to schedule a
@@ -4015,6 +4036,8 @@ public:
 
   DisplayItemArray& DisplayItemData() { return mDisplayItemData; }
 
+  void DestroyAnonymousContent(already_AddRefed<nsIContent> aContent);
+
 protected:
 
   /**
@@ -4032,16 +4055,16 @@ protected:
   virtual bool IsLeafDynamic() const { return false; }
 
   // Members
-  nsRect           mRect;
-  nsIContent*      mContent;
-  nsStyleContext*  mStyleContext;
+  nsRect                 mRect;
+  nsCOMPtr<nsIContent>   mContent;
+  RefPtr<nsStyleContext> mStyleContext;
 private:
   nsContainerFrame* mParent;
   nsIFrame*        mNextSibling;  // doubly-linked list of frames
   nsIFrame*        mPrevSibling;  // Do not touch outside SetNextSibling!
   DisplayItemArray mDisplayItemData;
 
-  void MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder, const nsRect& aDirtyRect);
+  void MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder);
 
   static void DestroyPaintedPresShellList(nsTArray<nsWeakPtr>* list) {
     list->Clear();
@@ -4138,7 +4161,52 @@ protected:
    */
   bool mHasFirstLetterChild : 1;
 
-  // There is a 13-bit gap left here.
+  /**
+   * True if this frame's parent is a wrapper anonymous box (e.g. a table
+   * anonymous box as specified at
+   * <https://www.w3.org/TR/CSS21/tables.html#anonymous-boxes>).
+   *
+   * We could compute this information directly when we need it, but it wouldn't
+   * be all that cheap, and since this information is immutable for the lifetime
+   * of the frame we might as well cache it.
+   *
+   * Note that our parent may itself have mParentIsWrapperAnonBox set to true.
+   */
+  bool mParentIsWrapperAnonBox : 1;
+
+  /**
+   * True if this is a wrapper anonymous box needing a restyle.  This is used to
+   * track, during stylo post-traversal, whether we've already recomputed the
+   * style of this anonymous box, if we end up seeing it twice.
+   */
+  bool mIsWrapperBoxNeedingRestyle : 1;
+
+  /**
+   * This bit is used in nsTextFrame::CharacterDataChanged() as an optimization
+   * to skip redundant reflow-requests when the character data changes multiple
+   * times between reflows. If this flag is set, then it implies that the
+   * NS_FRAME_IS_DIRTY state bit is also set (and that intrinsic sizes have
+   * been marked as dirty on our ancestor chain).
+   *
+   * XXXdholbert This bit is *only* used on nsTextFrame, but it lives here on
+   * nsIFrame simply because this is where we've got unused state bits
+   * available in a gap. If bits become more scarce, we should perhaps consider
+   * expanding the range of frame-specific state bits in nsFrameStateBits.h and
+   * moving this to be one of those (e.g. by swapping one of the adjacent
+   * general-purpose bits to take the place of this bool:1 here, so we can grow
+   * that range of frame-specific bits by 1).
+   */
+  bool mReflowRequestedForCharDataChange : 1;
+
+private:
+  /**
+   * True if this is the primary frame for mContent.
+   */
+  bool mIsPrimaryFrame : 1;
+
+protected:
+
+  // There is a 9-bit gap left here.
 
   // Helpers
   /**
@@ -4253,10 +4321,10 @@ private:
     // to cast away the unsigned-ness.
     return nsRect(-(int32_t)mOverflow.mVisualDeltas.mLeft,
                   -(int32_t)mOverflow.mVisualDeltas.mTop,
-                  mRect.width + mOverflow.mVisualDeltas.mRight +
-                                mOverflow.mVisualDeltas.mLeft,
-                  mRect.height + mOverflow.mVisualDeltas.mBottom +
-                                 mOverflow.mVisualDeltas.mTop);
+                  mRect.Width() + mOverflow.mVisualDeltas.mRight +
+                                  mOverflow.mVisualDeltas.mLeft,
+                  mRect.Height() + mOverflow.mVisualDeltas.mBottom +
+                                   mOverflow.mVisualDeltas.mTop);
   }
   /**
    * Returns true if any overflow changed.
@@ -4435,6 +4503,13 @@ private:
   nsIFrame*       mFrame;
 };
 
+// Use nsIFrame's fast-path to avoid QueryFrame:
+inline do_QueryFrameHelper<nsIFrame>
+do_QueryFrame(AutoWeakFrame& s)
+{
+  return do_QueryFrameHelper<nsIFrame>(s.GetFrame());
+}
+
 /**
  * @see AutoWeakFrame
  */
@@ -4491,6 +4566,13 @@ private:
 
   nsIFrame* mFrame;
 };
+
+// Use nsIFrame's fast-path to avoid QueryFrame:
+inline do_QueryFrameHelper<nsIFrame>
+do_QueryFrame(WeakFrame& s)
+{
+  return do_QueryFrameHelper<nsIFrame>(s.GetFrame());
+}
 
 inline bool
 nsFrameList::ContinueRemoveFrame(nsIFrame* aFrame)

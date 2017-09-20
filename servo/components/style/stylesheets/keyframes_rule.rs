@@ -6,9 +6,9 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
-use error_reporting::{NullReporter, ContextualParseError};
-use parser::{ParserContext, log_css_error};
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
+use parser::{ParserContext, ParserErrorContext};
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, PropertyParserContext};
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::animated_properties::AnimatableLonghand;
@@ -21,7 +21,7 @@ use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
-use values::KeyframesName;
+use values::{KeyframesName, serialize_percentage};
 
 /// A [`@keyframes`][keyframes] rule.
 ///
@@ -99,7 +99,8 @@ impl DeepCloneWithLock for KeyframesRule {
 
 /// A number from 0 to 1, indicating the percentage of the animation when this
 /// keyframe should run.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframePercentage(pub f32);
 
@@ -115,7 +116,7 @@ impl ::std::cmp::Eq for KeyframePercentage { }
 
 impl ToCss for KeyframePercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}%", self.0 * 100.0)
+        serialize_percentage(self.0, dest)
     }
 }
 
@@ -147,7 +148,7 @@ impl KeyframePercentage {
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct KeyframeSelector(Vec<KeyframePercentage>);
 
 impl ToCss for KeyframeSelector {
@@ -155,7 +156,7 @@ impl ToCss for KeyframeSelector {
         let mut iter = self.0.iter();
         iter.next().unwrap().to_css(dest)?;
         for percentage in iter {
-            write!(dest, ", ")?;
+            dest.write_str(", ")?;
             percentage.to_css(dest)?;
         }
         Ok(())
@@ -192,6 +193,9 @@ pub struct Keyframe {
     /// Note that `!important` rules in keyframes don't apply, but we keep this
     /// `Arc` just for convenience.
     pub block: Arc<Locked<PropertyDeclarationBlock>>,
+
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for Keyframe {
@@ -214,18 +218,23 @@ impl Keyframe {
     ) -> Result<Arc<Locked<Self>>, ParseError<'i>> {
         let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;
-        let context = ParserContext::new(parent_stylesheet_contents.origin,
-                                         &url_data,
-                                         &error_reporter,
-                                         Some(CssRuleType::Keyframe),
-                                         PARSING_MODE_DEFAULT,
-                                         parent_stylesheet_contents.quirks_mode);
+        let namespaces = parent_stylesheet_contents.namespaces.read();
+        let mut context = ParserContext::new(
+            parent_stylesheet_contents.origin,
+            &url_data,
+            Some(CssRuleType::Keyframe),
+            PARSING_MODE_DEFAULT,
+            parent_stylesheet_contents.quirks_mode
+        );
+        let error_context = ParserErrorContext { error_reporter: &error_reporter };
+        context.namespaces = Some(&*namespaces);
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
         let mut declarations = SourcePropertyDeclaration::new();
         let mut rule_parser = KeyframeListParser {
             context: &context,
+            error_context: &error_context,
             shared_lock: &lock,
             declarations: &mut declarations,
         };
@@ -244,6 +253,7 @@ impl DeepCloneWithLock for Keyframe {
         Keyframe {
             selector: self.selector.clone(),
             block: Arc::new(lock.wrap(self.block.read_with(guard).clone())),
+            source_location: self.source_location.clone(),
         }
     }
 }
@@ -254,11 +264,14 @@ impl DeepCloneWithLock for Keyframe {
 ///
 /// TODO: Find a better name for this?
 #[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
     /// A step formed by a declaration block specified by the CSS.
     Declarations {
         /// The declaration block per se.
+        #[cfg_attr(feature = "gecko",
+                   ignore_malloc_size_of = "XXX: Primary ref, measure if DMD says it's worthwhile")]
         #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
         block: Arc<Locked<PropertyDeclarationBlock>>
     },
@@ -269,6 +282,7 @@ pub enum KeyframesStepValue {
 
 /// A single step from a keyframe animation.
 #[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesStep {
     /// The percentage of the animation duration when this step starts.
@@ -290,7 +304,7 @@ impl KeyframesStep {
            guard: &SharedRwLockReadGuard) -> Self {
         let declared_timing_function = match value {
             KeyframesStepValue::Declarations { ref block } => {
-                block.read_with(guard).declarations().iter().any(|&(ref prop_decl, _)| {
+                block.read_with(guard).declarations().iter().any(|prop_decl| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -316,7 +330,7 @@ impl KeyframesStep {
         match self.value {
             KeyframesStepValue::Declarations { ref block } => {
                 let guard = block.read_with(guard);
-                let &(ref declaration, _) =
+                let (declaration, _) =
                     guard.get(PropertyDeclarationId::Longhand(LonghandId::AnimationTimingFunction)).unwrap();
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
@@ -340,6 +354,7 @@ impl KeyframesStep {
 ///
 /// It only takes into account animable properties.
 #[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesAnimation {
     /// The difference steps of the animation.
@@ -360,7 +375,7 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
     for keyframe in keyframes {
         let keyframe = keyframe.read_with(&guard);
         let block = keyframe.block.read_with(guard);
-        for &(ref declaration, importance) in block.declarations().iter() {
+        for (declaration, importance) in block.declaration_importance_iter() {
             assert!(!importance.important());
 
             if let Some(property) = AnimatableLonghand::from_declaration(declaration) {
@@ -443,42 +458,65 @@ impl KeyframesAnimation {
 /// 40%, 60%, 100% {
 ///     width: 100%;
 /// }
-struct KeyframeListParser<'a> {
+struct KeyframeListParser<'a, R: 'a> {
     context: &'a ParserContext<'a>,
+    error_context: &'a ParserErrorContext<'a, R>,
     shared_lock: &'a SharedRwLock,
     declarations: &'a mut SourcePropertyDeclaration,
 }
 
 /// Parses a keyframe list from CSS input.
-pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser, shared_lock: &SharedRwLock)
-                           -> Vec<Arc<Locked<Keyframe>>> {
+pub fn parse_keyframe_list<R>(
+    context: &ParserContext,
+    error_context: &ParserErrorContext<R>,
+    input: &mut Parser,
+    shared_lock: &SharedRwLock
+) -> Vec<Arc<Locked<Keyframe>>>
+    where R: ParseErrorReporter
+{
+    debug_assert!(context.namespaces.is_some(),
+                  "Parsing a keyframe list from a context without namespaces?");
+
     let mut declarations = SourcePropertyDeclaration::new();
     RuleListParser::new_for_nested_rule(input, KeyframeListParser {
         context: context,
+        error_context: error_context,
         shared_lock: shared_lock,
         declarations: &mut declarations,
     }).filter_map(Result::ok).collect()
 }
 
-enum Void {}
-impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
-    type Prelude = Void;
+impl<'a, 'i, R> AtRuleParser<'i> for KeyframeListParser<'a, R> {
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = Arc<Locked<Keyframe>>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
-    type Prelude = KeyframeSelector;
+/// A wrapper to wraps the KeyframeSelector with its source location
+struct KeyframeSelectorParserPrelude {
+    selector: KeyframeSelector,
+    source_location: SourceLocation,
+}
+
+impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListParser<'a, R> {
+    type Prelude = KeyframeSelectorParserPrelude;
     type QualifiedRule = Arc<Locked<Keyframe>>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
-        let start = input.position();
+        let start_position = input.position();
+        let start_location = input.current_source_location();
         match KeyframeSelector::parse(input) {
-            Ok(sel) => Ok(sel),
+            Ok(sel) => {
+                Ok(KeyframeSelectorParserPrelude {
+                    selector: sel,
+                    source_location: start_location,
+                })
+            },
             Err(e) => {
-                let error = ContextualParseError::InvalidKeyframeRule(input.slice_from(start), e.clone());
-                log_css_error(input, start, error, self.context);
+                let error = ContextualParseError::InvalidKeyframeRule(input.slice_from(start_position), e.clone());
+                self.context.log_css_error(self.error_context, start_location, error);
                 Err(e)
             }
         }
@@ -486,7 +524,13 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
 
     fn parse_block<'t>(&mut self, prelude: Self::Prelude, input: &mut Parser<'i, 't>)
                        -> Result<Self::QualifiedRule, ParseError<'i>> {
-        let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframe));
+        let context =
+            ParserContext::new_with_rule_type(
+                self.context,
+                CssRuleType::Keyframe,
+                self.context.namespaces.unwrap(),
+            );
+
         let parser = KeyframeDeclarationParser {
             context: &context,
             declarations: self.declarations,
@@ -500,17 +544,16 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
                 }
                 Err(err) => {
                     iter.parser.declarations.clear();
-                    let pos = err.span.start;
-                    let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
-                        iter.input.slice(err.span), err.error);
-                    log_css_error(iter.input, pos, error, &context);
+                    let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(err.slice, err.error);
+                    context.log_css_error(self.error_context, err.location, error);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
         }
         Ok(Arc::new(self.shared_lock.wrap(Keyframe {
-            selector: prelude,
+            selector: prelude.selector,
             block: Arc::new(self.shared_lock.wrap(block)),
+            source_location: prelude.source_location,
         })))
     }
 }
@@ -522,7 +565,8 @@ struct KeyframeDeclarationParser<'a, 'b: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
-    type Prelude = ();
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = ();
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
@@ -533,9 +577,11 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
-        let id = PropertyId::parse(&name)
-            .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name))?;
-        match PropertyDeclaration::parse_into(self.declarations, id, self.context, input) {
+        let property_context = PropertyParserContext::new(self.context);
+
+        let id = PropertyId::parse(&name, Some(&property_context))
+            .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name.clone()))?;
+        match PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input) {
             Ok(()) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
                 input.expect_exhausted().map_err(|e| e.into())

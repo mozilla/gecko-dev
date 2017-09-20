@@ -8,6 +8,7 @@
 #include "mozilla/extensions/WebExtensionPolicy.h"
 
 #include "mozilla/AddonManagerWebAPI.h"
+#include "mozilla/ResultExtensions.h"
 #include "nsEscape.h"
 #include "nsISubstitutingProtocolHandler.h"
 #include "nsNetUtil.h"
@@ -17,26 +18,6 @@ namespace mozilla {
 namespace extensions {
 
 using namespace dom;
-
-static inline Result<Ok, nsresult>
-WrapNSResult(PRStatus aRv)
-{
-  if (aRv != PR_SUCCESS) {
-    return Err(NS_ERROR_FAILURE);
-  }
-  return Ok();
-}
-
-static inline Result<Ok, nsresult>
-WrapNSResult(nsresult aRv)
-{
-  if (NS_FAILED(aRv)) {
-    return Err(aRv);
-  }
-  return Ok();
-}
-
-#define NS_TRY(expr) MOZ_TRY(WrapNSResult(expr))
 
 static const char kProto[] = "moz-extension";
 
@@ -89,6 +70,7 @@ WebExtensionPolicy::WebExtensionPolicy(GlobalObject& aGlobal,
                                        ErrorResult& aRv)
   : mId(NS_AtomizeMainThread(aInit.mId))
   , mHostname(aInit.mMozExtensionHostname)
+  , mName(aInit.mName)
   , mContentSecurityPolicy(aInit.mContentSecurityPolicy)
   , mLocalizeCallback(aInit.mLocalizeCallback)
   , mPermissions(new AtomSet(aInit.mPermissions))
@@ -223,11 +205,17 @@ WebExtensionPolicy::GetURL(const nsAString& aPath) const
   nsPrintfCString spec("%s://%s/", kProto, mHostname.get());
 
   nsCOMPtr<nsIURI> uri;
-  NS_TRY(NS_NewURI(getter_AddRefs(uri), spec));
+  MOZ_TRY(NS_NewURI(getter_AddRefs(uri), spec));
 
-  NS_TRY(uri->Resolve(NS_ConvertUTF16toUTF8(aPath), spec));
+  MOZ_TRY(uri->Resolve(NS_ConvertUTF16toUTF8(aPath), spec));
 
   return NS_ConvertUTF8toUTF16(spec);
+}
+
+/* static */ bool
+WebExtensionPolicy::UseRemoteWebExtensions(GlobalObject& aGlobal)
+{
+  return EPS().UseRemoteExtensions();
 }
 
 /* static */ bool
@@ -250,7 +238,7 @@ WebExtensionPolicy::BackgroundPageHTML() const
 
   for (auto& script : mBackgroundScripts.Value()) {
     nsCString escaped;
-    escaped.Adopt(nsEscapeHTML(NS_ConvertUTF16toUTF8(script).get()));
+    nsAppendEscapedHTML(NS_ConvertUTF16toUTF8(script), escaped);
 
     result.AppendPrintf(kBackgroundPageHTMLScript, escaped.get());
   }

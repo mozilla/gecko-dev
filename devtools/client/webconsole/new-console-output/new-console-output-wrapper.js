@@ -13,7 +13,7 @@ const { batchActions } = require("devtools/client/shared/redux/middleware/deboun
 const { createContextMenu } = require("devtools/client/webconsole/new-console-output/utils/context-menu");
 const { configureStore } = require("devtools/client/webconsole/new-console-output/store");
 
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const ConsoleOutput = React.createFactory(require("devtools/client/webconsole/new-console-output/components/console-output"));
 const FilterBar = React.createFactory(require("devtools/client/webconsole/new-console-output/components/filter-bar"));
 
@@ -47,12 +47,18 @@ NewConsoleOutputWrapper.prototype = {
       }
 
       // Do not focus if a link was clicked
-      if (event.originalTarget.closest("a")) {
+      let target = event.originalTarget || event.target;
+      if (target.closest("a")) {
+        return;
+      }
+
+      // Do not focus if an input field was clicked
+      if (target.closest("input")) {
         return;
       }
 
       // Do not focus if something other than the output region was clicked
-      if (!event.originalTarget.closest(".webconsole-output")) {
+      if (!target.closest(".webconsole-output")) {
         return;
       }
 
@@ -73,30 +79,36 @@ NewConsoleOutputWrapper.prototype = {
           messageId,
         }]));
       },
-      hudProxyClient: this.jsterm.hud.proxy.client,
-      openContextMenu: (e, message) => {
-        let { screenX, screenY, target } = e;
-
-        let messageEl = target.closest(".message");
-        let clipboardText = messageEl ? messageEl.textContent : null;
-
-        // Retrieve closes actor id from the DOM.
-        let actorEl = target.closest("[data-link-actor-id]");
-        let actor = actorEl ? actorEl.dataset.linkActorId : null;
-
-        let menu = createContextMenu(this.jsterm, this.parentNode,
-          { actor, clipboardText, message });
-
-        // Emit the "menu-open" event for testing.
-        menu.once("open", () => this.emit("menu-open"));
-        menu.popup(screenX, screenY, this.toolbox);
-
-        return menu;
+      hudProxy: this.jsterm.hud.proxy,
+      openLink: url => {
+        this.jsterm.hud.owner.openLink(url);
       },
-      openLink: url => this.jsterm.hud.owner.openLink(url),
       createElement: nodename => {
         return this.document.createElementNS("http://www.w3.org/1999/xhtml", nodename);
       },
+    };
+
+    // Set `openContextMenu` this way so, `serviceContainer` variable
+    // is available in the current scope and we can pass it into
+    // `createContextMenu` method.
+    serviceContainer.openContextMenu = (e, message) => {
+      let { screenX, screenY, target } = e;
+
+      let messageEl = target.closest(".message");
+      let clipboardText = messageEl ? messageEl.textContent : null;
+
+      // Retrieve closes actor id from the DOM.
+      let actorEl = target.closest("[data-link-actor-id]");
+      let actor = actorEl ? actorEl.dataset.linkActorId : null;
+
+      let menu = createContextMenu(this.jsterm, this.parentNode,
+        { actor, clipboardText, message, serviceContainer });
+
+      // Emit the "menu-open" event for testing.
+      menu.once("open", () => this.emit("menu-open"));
+      menu.popup(screenX, screenY, this.toolbox);
+
+      return menu;
     };
 
     if (this.toolbox) {
@@ -216,6 +228,19 @@ NewConsoleOutputWrapper.prototype = {
       batchedMessageAdd(actions.networkMessageUpdate(message));
       this.jsterm.hud.emit("network-message-updated", res);
     }
+  },
+
+  dispatchRequestUpdate: function (id, data) {
+    batchedMessageAdd(actions.networkUpdateRequest(id, data));
+
+    // Fire an event indicating that all data fetched from
+    // the backend has been received. This is based on
+    // 'FirefoxDataProvider.isQueuePayloadReady', see more
+    // comments in that method.
+    // (netmonitor/src/connector/firefox-data-provider).
+    // This event might be utilized in tests to find the right
+    // time when to finish.
+    this.jsterm.hud.emit("network-request-payload-ready", {id, data});
   },
 
   // Should be used for test purpose only.

@@ -27,6 +27,7 @@ add_task(async function test_detach_tab_marked() {
     // Check the page after the initial load
     await openPopupOn(browser, "#street-address");
     checkPopup(autoCompletePopup);
+    await closePopup(browser);
 
     // Detach the tab to a new window
     let newWin = gBrowser.replaceTabWithWindow(gBrowser.getTabForBrowser(browser));
@@ -43,12 +44,7 @@ add_task(async function test_detach_tab_marked() {
     await openPopupOn(newBrowser, "#street-address");
     checkPopup(newAutoCompletePopup);
 
-    // Ensure the popup is closed before entering the next test.
-    await ContentTask.spawn(newBrowser, {}, async function() {
-      content.document.getElementById("street-address").blur();
-    });
-    await BrowserTestUtils.waitForCondition(() => !newAutoCompletePopup.popupOpen,
-                                           "popup should have closed");
+    await closePopup(newBrowser);
     await BrowserTestUtils.closeWindow(newWin);
   });
 });

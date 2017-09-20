@@ -88,6 +88,8 @@ VRDisplayHost::RemoveLayer(VRLayerParent *aLayer)
 void
 VRDisplayHost::StartFrame()
 {
+  AutoProfilerTracing tracing("VR", "GetSensorState");
+
   mLastFrameStart = TimeStamp::Now();
   ++mDisplayInfo.mFrameId;
   mDisplayInfo.mLastSensorState[mDisplayInfo.mFrameId % kVRMaxLatencyFrames] = GetSensorState();
@@ -160,16 +162,19 @@ VRDisplayHost::NotifyVSync()
 
 void
 VRDisplayHost::SubmitFrame(VRLayerParent* aLayer, PTextureParent* aTexture,
+                           uint64_t aFrameId,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect)
 {
+  AutoProfilerTracing tracing("VR", "SubmitFrameAtVRDisplayHost");
+
   if ((mDisplayInfo.mGroupMask & aLayer->GetGroup()) == 0) {
     // Suppress layers hidden by the group mask
     return;
   }
 
   // Ensure that we only accept the first SubmitFrame call per RAF cycle.
-  if (!mFrameStarted) {
+  if (!mFrameStarted || aFrameId != mDisplayInfo.mFrameId) {
     return;
   }
   mFrameStarted = false;

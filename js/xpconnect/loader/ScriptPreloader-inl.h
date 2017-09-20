@@ -11,7 +11,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/Range.h"
-#include "mozilla/Result.h"
+#include "mozilla/ResultExtensions.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsString.h"
@@ -21,49 +21,23 @@
 
 namespace mozilla {
 
-// A specialization of GenericErrorResult which auto-converts to a nsresult.
-// This should be removed when bug 1366511 is fixed.
-template <>
-class MOZ_MUST_USE_TYPE GenericErrorResult<nsresult>
-{
-  nsresult mErrorValue;
-
-  template<typename V, typename E2> friend class Result;
-
-public:
-  explicit GenericErrorResult(nsresult aErrorValue) : mErrorValue(aErrorValue) {}
-
-  operator nsresult() { return mErrorValue; }
-};
-
 namespace loader {
 
 using mozilla::dom::AutoJSAPI;
 
-struct MOZ_RAII AutoSafeJSAPI : public AutoJSAPI
-{
-    AutoSafeJSAPI() { Init(); }
-};
-
 static inline Result<Ok, nsresult>
-WrapNSResult(PRStatus aRv)
+Write(PRFileDesc* fd, const void* data, int32_t len)
 {
-    if (aRv != PR_SUCCESS) {
+    if (PR_Write(fd, data, len) != len) {
         return Err(NS_ERROR_FAILURE);
     }
     return Ok();
 }
 
-static inline Result<Ok, nsresult>
-WrapNSResult(nsresult aRv)
+struct MOZ_RAII AutoSafeJSAPI : public AutoJSAPI
 {
-    if (NS_FAILED(aRv)) {
-        return Err(aRv);
-    }
-    return Ok();
-}
-
-#define NS_TRY(expr) MOZ_TRY(WrapNSResult(expr))
+    AutoSafeJSAPI() { Init(); }
+};
 
 
 class OutputBuffer
@@ -294,7 +268,14 @@ public:
           return iter().Data();
         }
 
+        const ElemType get() const
+        {
+          return const_cast<Elem*>(this)->get();
+        }
+
         ElemType operator->() { return get(); }
+
+        const ElemType operator->() const { return get(); }
 
         operator ElemType() { return get(); }
 

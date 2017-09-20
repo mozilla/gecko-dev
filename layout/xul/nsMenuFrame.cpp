@@ -25,7 +25,7 @@
 #include "nsIServiceManager.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsIDOMKeyEvent.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIStringBundle.h"
@@ -356,16 +356,15 @@ nsMenuFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
 void
 nsMenuFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                         const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists)
 {
   if (!aBuilder->IsForEventDelivery()) {
-    nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
+    nsBoxFrame::BuildDisplayListForChildren(aBuilder, aLists);
     return;
   }
 
   nsDisplayListCollection set;
-  nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, set);
+  nsBoxFrame::BuildDisplayListForChildren(aBuilder, set);
 
   WrapListsInRedirector(aBuilder, set, aLists);
 }
@@ -705,7 +704,7 @@ nsMenuFrame::GetAnchor()
   }
 
   // Always return the menu's content if the anchor wasn't set or wasn't found.
-  return anchor && anchor->GetPrimaryFrame() ? anchor : mContent;
+  return anchor && anchor->GetPrimaryFrame() ? anchor : GetContent();
 }
 
 void

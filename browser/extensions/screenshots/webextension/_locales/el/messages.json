@@ -67,31 +67,37 @@
   "emptySelectionErrorTitle": {
     "message": "Η επιλογή σας είναι πολύ μικρή"
   },
+  "privateWindowErrorTitle": {
+    "message": "Το Screenshots είναι απενεργοποιημένο στη λειτουργία ιδιωτικής περιήγησης"
+  },
+  "privateWindowErrorDetails": {
+    "message": "Λυπούμαστε για την ταλαιπωρία. Εργαζόμαστε πάνω σε αυτό το χαρακτηριστικό για μελλοντικές εκδόσεις."
+  },
   "genericErrorTitle": {
     "message": "Ωχ! Κάτι πήγε στραβά στην υπηρεσία Firefox Screenshots."
   },
   "genericErrorDetails": {
     "message": "Δεν είμαστε σίγουροι για το τι ακριβώς συνέβη. Προσπαθήστε ξανά ή κάντε λήψη σε μια άλλη σελίδα."
   },
-  "tourBodyOne": {
+  "tourBodyIntro": {
     "message": "Λήψη, αποθήκευση και διαμοιρασμός στιγμιοτύπων μέσα από το Firefox."
   },
-  "tourHeaderTwo": {
+  "tourHeaderClickAndDrag": {
     "message": "Καταγράψτε αυτό που εσείς επιθυμείτε"
   },
-  "tourBodyTwo": {
+  "tourBodyClickAndDrag": {
     "message": "Κάντε κλικ και σύρετε για την καταγραφή ενός τμήματος της σελίδας. Μπορείτε να επισημάνετε την επιλογή σας μετακινώντας τον ποντίκι σας επάνω της."
   },
-  "tourHeaderThree": {
+  "tourHeaderFullPage": {
     "message": "Λήψη παραθύρων ή ολόκληρων σελίδων"
   },
-  "tourBodyThree": {
+  "tourBodyFullPage": {
     "message": "Επιλέξτε τα κουμπιά επάνω δεξιά για να καταγράψετε την ορατή περιοχή του παραθύρου ή να καταγράψετε μια ολόκληρη σελίδα."
   },
-  "tourHeaderFour": {
+  "tourHeaderDownloadUpload": {
     "message": "Ακριβώς όπως το θέλετε"
   },
-  "tourBodyFour": {
+  "tourBodyDownloadUpload": {
     "message": "Αποθηκεύστε της λήψεις σας στο Διαδίκτυο για ευκολότερο διαμοιρασμό, η λήψη τους στον υπολογιστή σας. Μπορείτε να βρείτε όλες τις λήψεις σας πατώντας στο κουμπί «Οι λήψεις μου»."
   },
   "tourSkip": {
@@ -106,8 +112,8 @@
   "tourDone": {
     "message": "Τέλος"
   },
-  "termsAndPrivacyNoticeCloudServices": {
-    "message": "Χρησιμοποιώντας το Firefox Screenshots, συμφωνείτε με τους $TERMSANDPRIVACYNOTICETERMSLINK$ και την $TERMSANDPRIVACYNOTICEPRIVACYLINK$ των Υπηρεσιών Cloud του Firefox.",
+  "termsAndPrivacyNotice2": {
+    "message": "Χρησιμοποιώντας το Firefox Screenshots, συμφωνείτε με τους $TERMSANDPRIVACYNOTICETERMSLINK$ και την $TERMSANDPRIVACYNOTICEPRIVACYLINK$.",
     "placeholders": {
       "termsandprivacynoticetermslink": {
         "content": "$1"
@@ -122,5 +128,8 @@
   },
   "termsAndPrivacyNoticyPrivacyLink": {
     "message": "Σημείωση απορρήτου"
+  },
+  "libraryLabel": {
+    "message": "Στιγμιότυπα"
   }
 }

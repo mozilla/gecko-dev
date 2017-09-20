@@ -25043,8 +25043,6 @@ CreateIndexOp::DoDatabaseWork(DatabaseConnection* aConnection)
 static const JSClassOps sNormalJSContextGlobalClassOps = {
   /* addProperty */ nullptr,
   /* delProperty */ nullptr,
-  /* getProperty */ nullptr,
-  /* setProperty */ nullptr,
   /* enumerate */ nullptr,
   /* newEnumerate */ nullptr,
   /* resolve */ nullptr,
@@ -28460,9 +28458,11 @@ OpenOp::DoIndexDatabaseWork(DatabaseConnection* aConnection)
         openLimit;
       mCursor->mContinuePrimaryKeyQuery =
         queryStart +
-        NS_LITERAL_CSTRING(" AND sort_column >= :current_key "
-                            "AND index_table.object_data_key >= :object_key "
-                          ) +
+        NS_LITERAL_CSTRING(" AND ("
+          "(sort_column == :current_key AND "
+             "index_table.object_data_key >= :object_key) OR "
+          "sort_column > :current_key"
+        ")") +
         directionClause +
         openLimit;
       break;
@@ -28512,9 +28512,11 @@ OpenOp::DoIndexDatabaseWork(DatabaseConnection* aConnection)
         openLimit;
       mCursor->mContinuePrimaryKeyQuery =
         queryStart +
-        NS_LITERAL_CSTRING(" AND sort_column <= :current_key "
-                            "AND index_table.object_data_key <= :object_key "
-                          ) +
+        NS_LITERAL_CSTRING(" AND ("
+          "(sort_column == :current_key AND "
+             "index_table.object_data_key <= :object_key) OR "
+          "sort_column < :current_key"
+        ")") +
         directionClause +
         openLimit;
       break;
@@ -28694,9 +28696,11 @@ OpenOp::DoIndexKeyDatabaseWork(DatabaseConnection* aConnection)
         openLimit;
       mCursor->mContinuePrimaryKeyQuery =
         queryStart +
-        NS_LITERAL_CSTRING(" AND sort_column >= :current_key "
-                            "AND object_data_key >= :object_key "
-                          ) +
+        NS_LITERAL_CSTRING(" AND ("
+          "(sort_column == :current_key AND "
+             "object_data_key >= :object_key) OR "
+          "sort_column > :current_key"
+        ")") +
         directionClause +
         openLimit;
       break;
@@ -28746,9 +28750,11 @@ OpenOp::DoIndexKeyDatabaseWork(DatabaseConnection* aConnection)
         openLimit;
       mCursor->mContinuePrimaryKeyQuery =
         queryStart +
-        NS_LITERAL_CSTRING(" AND sort_column <= :current_key "
-                            "AND object_data_key <= :object_key "
-                          ) +
+        NS_LITERAL_CSTRING(" AND ("
+          "(sort_column == :current_key AND "
+             "object_data_key <= :object_key) OR "
+          "sort_column < :current_key"
+        ")") +
         directionClause +
         openLimit;
       break;

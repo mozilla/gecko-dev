@@ -46,6 +46,7 @@ MoveEmitterMIPS::breakCycle(const MoveOperand& from, const MoveOperand& to,
         break;
       case MoveOp::INT32:
         MOZ_ASSERT(sizeof(uintptr_t) == sizeof(int32_t));
+        MOZ_FALLTHROUGH;
       case MoveOp::GENERAL:
         if (to.isMemory()) {
             Register temp = tempReg();
@@ -96,6 +97,7 @@ MoveEmitterMIPS::completeCycle(const MoveOperand& from, const MoveOperand& to,
         break;
       case MoveOp::INT32:
         MOZ_ASSERT(sizeof(uintptr_t) == sizeof(int32_t));
+        MOZ_FALLTHROUGH;
       case MoveOp::GENERAL:
         MOZ_ASSERT(slotId == 0);
         if (to.isMemory()) {
@@ -116,10 +118,6 @@ MoveEmitterMIPS::completeCycle(const MoveOperand& from, const MoveOperand& to,
 void
 MoveEmitterMIPS::emitDoubleMove(const MoveOperand& from, const MoveOperand& to)
 {
-    // Ensure that we can use ScratchDoubleReg in memory move.
-    MOZ_ASSERT_IF(from.isFloatReg(), from.floatReg() != ScratchDoubleReg);
-    MOZ_ASSERT_IF(to.isFloatReg(), to.floatReg() != ScratchDoubleReg);
-
     if (from.isFloatReg()) {
         if (to.isFloatReg()) {
             masm.moveDouble(from.floatReg(), to.floatReg());

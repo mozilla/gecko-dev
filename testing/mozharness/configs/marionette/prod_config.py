@@ -10,8 +10,7 @@ config = {
 
     "vcs_share_base": HG_SHARE_BASE_DIR,
     "exes": {
-        'python': '/tools/buildbot/bin/python',
-        'virtualenv': ['/tools/buildbot/bin/python', '/tools/misc-python/virtualenv.py'],
+        'virtualenv': '/tools/virtualenv/bin/virtualenv',
         'tooltool.py': "/tools/tooltool.py",
     },
 
@@ -37,7 +36,7 @@ config = {
     "blob_uploader_auth_file" : os.path.join(os.getcwd(), "oauth.txt"),
     "download_symbols": "ondemand",
     "download_minidump_stackwalk": True,
-    "tooltool_cache": "/home/worker/tooltool-cache",
+    "tooltool_cache": "/builds/worker/tooltool-cache",
     "suite_definitions": {
         "marionette_desktop": {
             "options": [

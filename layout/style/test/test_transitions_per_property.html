@@ -61,35 +61,6 @@ var FUNC_OVERONE = "cubic-bezier(0.25, 0, 0.75, 3)";
 // After resolving Bug 1387080, we can remove this variable.
 const isServo = SpecialPowers.DOMWindowUtils.isStyledByServo;
 
-// The following properties will be skipped while using Servo backend.
-var skippedProperties = {
-    "background-position": true,    // Bug 1387946
-    "background-position-x": true,  // Bug 1387946
-    "background-position-y": true,  // Bug 1387946
-    "background-size": true,        // Bug 1387946
-    "mask-position": true,          // Bug 1387946
-    "mask-position-x": true,        // Bug 1387946
-    "mask-position-y": true,        // Bug 1387946
-    "mask-size": true,              // Bug 1387946
-    "box-shadow": true,             // Bug 1387973
-    "caret-color": true,            // Bug 1387951
-    "clip": true,                   // Bug 1387951
-    "clip-path": true,              // Bug 1387952
-    "column-count": true,           // Bug 1387939
-    "-moz-image-region": true,      // Bug 1387951
-    "order": true,                  // Bug 1387939
-    "stroke-dasharray": true,       // Bug 1387986
-    "stroke-dashoffset": true,      // Bug 1369614
-    "stroke-width": true,           // Bug 1369614
-    "text-shadow": true,            // Bug 1387973
-    "vertical-align": true,         // Bug 1387949
-    "z-index": true,                // Bug 1387939
-    // Bug 1387941: Spec drops these properties, so we might also need to update
-    // this for Gecko.
-    "scroll-snap-coordinate": true,
-    "scroll-snap-destination": true,
-};
-
 var supported_properties = {
     "border-bottom-left-radius": [ test_radius_transition ],
     "border-bottom-right-radius": [ test_radius_transition ],
@@ -165,7 +136,7 @@ var supported_properties = {
                      test_true_currentcolor_transition,
                      test_auto_color_transition ],
     "clip": [ test_rect_transition ],
-    "clip-path": [ test_clip_path_transition ],
+    "clip-path": [ test_basic_shape_or_url_transition ],
     "color": [ test_color_transition,
                test_currentcolor_transition ],
     "fill": [ test_color_transition,
@@ -315,6 +286,13 @@ var supported_properties = {
                                    test_true_currentcolor_transition ]
 };
 
+// Bug 1289049: After making shape-outside animatable on Gecko, we can remove
+// |isServo| flag from this if-condition.
+if (SpecialPowers.getBoolPref("layout.css.shape-outside.enabled") && isServo) {
+  supported_properties["shape-outside"] =
+    [ test_basic_shape_or_url_transition ];
+}
+
 if (SupportsMaskShorthand()) {
   supported_properties["mask-position"] = [ test_background_position_transition,
                                      // FIXME: We don't currently test clamping,
@@ -403,15 +381,13 @@ var transformTests = [
     expected: computeMatrix('rotatey(15deg)') },
   { start: 'none', end: 'rotatey(720deg)',
     expected_uncomputed: 'rotatey(180deg)',
-    expected: computeMatrix('rotatey(180deg)'),
-    skipped: isServo },
+    expected: computeMatrix('rotatey(180deg)') },
   { start: 'none', end: 'rotatex(60deg)',
     expected_uncomputed: 'rotatex(15deg)',
     expected: computeMatrix('rotatex(15deg)') },
   { start: 'none', end: 'rotatex(720deg)',
     expected_uncomputed: 'rotatex(180deg)',
-    expected: computeMatrix('rotatex(180deg)'),
-    skipped: isServo },
+    expected: computeMatrix('rotatex(180deg)') },
 
   // translate
   { start: 'translate(20px)', end: 'none',
@@ -472,12 +448,10 @@ var transformTests = [
   { start: 'translateX(20%)', /* 60px */
     end: 'translateX(calc(10% + 1em))', /* 30px + 20px = 50px */
     expected_uncomputed: 'translateX(calc(17.5% + 0.25em))',
-    expected: 'matrix(1, 0, 0, 1, 57.5, 0)',
-    skipped: isServo },
+    expected: 'matrix(1, 0, 0, 1, 57.5, 0)' },
   { start: 'translate(calc(0.75 * 3em + 1.5 * 10%), calc(0.5 * 5em + 0.5 * 8%))', /* 90px, 52px */
     end: 'rotate(90deg) translateY(20%) rotate(90deg) translateY(calc(10% + 0.5em)) rotate(180deg)', /* -10px, -15px */
-    expected: 'matrix(1, 0, 0, 1, 65, 35.25)',
-    skipped: isServo },
+    expected: 'matrix(1, 0, 0, 1, 65, 35.25)' },
 
   // scale
   { start: 'scale(2)', end: 'none',
@@ -529,12 +503,10 @@ var transformTests = [
   // matrix : skewX
   { start: 'matrix(1, 0, 3, 1, 0, 0)', end: 'none',
     expected: 'matrix(1, 0, ' + 3 * 0.75 + ', 1, 0, 0)',
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   { start: 'skewX(0)', end: 'skewX(-45deg) translate(0)',
     expected: 'matrix(1, 0, -0.25, 1, 0, 0)',
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   // matrix : rotate
   { start: 'rotate(-30deg)', end: 'matrix(0, 1, -1, 0, 0, 0)',
     expected: 'matrix(1, 0, 0, 1, 0, 0)',
@@ -547,8 +519,7 @@ var transformTests = [
   { start: 'skewY(60deg)', end: 'skewY(-60deg) translateX(0)',
     /* rotate(30deg) skewX(60deg)/2 scale(2, 0.5) */
     expected: computeMatrix('rotate(30deg) skewX(' + Math.atan(Math.tan(Math.PI * 60/180) / 2) + 'rad) scale(2, 0.5)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
 
 
   // matrix decomposition
@@ -556,8 +527,7 @@ var transformTests = [
   // Four pairs of the same matrix expressed different ways.
   { start: 'matrix(-1, 0, 0, -1, 0, 0)', /* rotate(180deg) */
     end: 'matrix(1, 0, 0, 1, 0, 0)',
-    expected: computeMatrix('rotate(135deg)'),
-    skipped: isServo },
+    expected: computeMatrix('rotate(135deg)') },
   { start: 'scale(-1)', end: 'none',
     expected_uncomputed: 'scale(-0.5)',
     expected: 'matrix(-0.5, 0, 0, -0.5, 0, 0)' },
@@ -570,26 +540,22 @@ var transformTests = [
   // matrix followed by scale
   { start: 'matrix(2, 0, 0, 2, 10, 20) scale(2)',
     end: 'none',
-    expected: 'matrix(3.0625, 0, 0, 3.0625, 7.5, 15)',
-    skipped: isServo },
+    expected: 'matrix(3.0625, 0, 0, 3.0625, 7.5, 15)' },
 
   // ... and a bunch of similar possibilities.  The spec isn't settled
   // here; there are multiple options.  See:
   // http://lists.w3.org/Archives/Public/www-style/2010Jun/0602.html
   { start: 'matrix(-1, 0, 0, 1, 0, 0)', /* scaleX(-1) */
     end: 'matrix(1, 0, 0, 1, 0, 0)',
-    expected: computeMatrix('scaleX(-0.5)'),
-    skipped: isServo },
+    expected: computeMatrix('scaleX(-0.5)') },
 
   { start: 'matrix(1, 0, 0, -1, 0, 0)', /* rotate(-180deg) scaleX(-1) */
     end: 'matrix(1, 0, 0, 1, 0, 0)',
-    expected: computeMatrix('rotate(-135deg) scaleX(-0.5)'),
-    skipped: isServo },
+    expected: computeMatrix('rotate(-135deg) scaleX(-0.5)') },
 
   { start: 'matrix(0, 1, 1, 0, 0, 0)', /* rotate(-90deg) scaleX(-1) */
     end: 'matrix(1, 0, 0, 1, 0, 0)',
-    expected: computeMatrix('rotate(-67.5deg) scaleX(-0.5)'),
-    skipped: isServo },
+    expected: computeMatrix('rotate(-67.5deg) scaleX(-0.5)') },
 
   { start: 'matrix(0, -1, 1, 0, 0, 0)', /* rotate(-90deg) */
     end: 'matrix(1, 0, 0, 1, 0, 0)',
@@ -601,8 +567,7 @@ var transformTests = [
 
   { start: 'matrix(0, -1, -1, 0, 0, 0)', /* rotate(90deg) scaleX(-1) */
     end: 'matrix(1, 0, 0, 1, 0, 0)',
-    expected: computeMatrix('rotate(67.5deg) scaleX(-0.5)'),
-    skipped: isServo },
+    expected: computeMatrix('rotate(67.5deg) scaleX(-0.5)') },
 
   // Similar decomposition tests, but with skewX.  I checked visually
   // that the sign of the skew was correct by checking visually that
@@ -615,50 +580,42 @@ var transformTests = [
     end: 'matrix(1, 0, 1.5, 1, 0, 0)',
     /* skewX(atan(1.5)) */
     expected: 'matrix(1, 0, ' + 1.5 * 0.25 + ', 1, 0, 0)',
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   { start: 'none',
     end: 'matrix(-1, 0, 2, -1, 0, 0)',
             /* rotate(180deg) skewX(atan(-2)) */
     expected: computeMatrix('rotate(45deg) matrix(1, 0, ' + -2 * 0.25 + ', 1, 0, 0)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   { start: 'none',
     end: 'matrix(0, -1, 1, -3, 0, 0)',
             /* rotate(-90deg) skewX(atan(3)) */
     expected: computeMatrix('rotate(-22.5deg) matrix(1, 0, ' + 3 * 0.25 + ', 1, 0, 0)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   { start: 'none',
     end: 'matrix(0, 1, -1, 4, 0, 0)',
             /* rotate(90deg) skewX(atan(4)) */
     expected: computeMatrix('rotate(22.5deg) matrix(1, 0, ' + 4 * 0.25 + ', 1, 0, 0)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   // and then four with negative determinants
   { start: 'none',
     end: 'matrix(1, 0, 1, -1, 0, 0)',
             /* rotate(-180deg) skewX(atan(-1)) scaleX(-1) */
     expected: computeMatrix('rotate(-45deg) matrix(1, 0, ' + -1 * 0.25 + ', 1, 0, 0) scaleX(0.5)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   { start: 'none',
     end: 'matrix(-1, 0, -1, 1, 0, 0)',
             /* skewX(atan(-1)) scaleX(-1) */
-    expected: computeMatrix('matrix(1, 0, ' + -1 * 0.25 + ', 1, 0, 0) scaleX(0.5)'),
-    skipped: isServo },
+    expected: computeMatrix('matrix(1, 0, ' + -1 * 0.25 + ', 1, 0, 0) scaleX(0.5)') },
   { start: 'none',
     end: 'matrix(0, 1, 1, -2, 0, 0)',
             /* rotate(-90deg) skewX(atan(2)) scaleX(-1) */
     expected: computeMatrix('rotate(-22.5deg) matrix(1, 0, ' + 2 * 0.25 + ', 1, 0, 0) scaleX(0.5)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
   { start: 'none',
     end: 'matrix(0, -1, -1, 0.5, 0, 0)',
             /* rotate(90deg) skewX(atan(0.5)) scaleX(-1) */
     expected: computeMatrix('rotate(22.5deg) matrix(1, 0, ' + 0.5 * 0.25 + ', 1, 0, 0) scaleX(0.5)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
 
   // lists vs. matrix decomposition
   { start: 'translate(10px) skewY(45deg)',
@@ -677,21 +634,30 @@ var transformTests = [
   { start: 'skewX(-60deg) rotate(90deg) translate(0)',
     end: 'skewX(60deg) rotate(90deg)',
     expected: computeMatrix('rotate(120deg) skewX(' + Math.atan(Math.tan(Math.PI * 60/180) / 2) + 'rad) scale(2, 0.5)'),
-    round_error_ok: true,
-    skipped: isServo },
+    round_error_ok: true },
 ];
 
-var clipPathTests = [
+// Even if the default reference-box of shape-outside is margin-box, which is
+// different from the default reference-box of clip-path, we still can reuse
+// these tests for both properties because we always explicitly assign a
+// reference-box (i.e. border-box or content-box) if needed.
+// Bug 1313619: Add some tests for two basic shapes with an explicit
+// reference-box and a default one.
+var clipPathAndShapeOutsideTests = [
   { start: "none", end: "none",
     expected: ["none"] },
   // none to shape
   { start: "none",
     end: "circle(500px at 500px 500px) border-box",
-    expected: ["circle", ["500px at calc(500px + 0%) calc(500px + 0%)"], "border-box"]
+    expected:
+      isServo ? ["circle", ["500px at 500px 500px"], "border-box"]
+              : ["circle", ["500px at calc(500px + 0%) calc(500px + 0%)"], "border-box"]
   },
   { start: "none",
     end: "ellipse(500px 500px at 500px 500px) border-box",
-    expected: ["ellipse", ["500px 500px at calc(500px + 0%) calc(500px + 0%)"], "border-box"]
+    expected:
+      isServo ? ["ellipse", ["500px 500px at 500px 500px"], "border-box"]
+              : ["ellipse", ["500px 500px at calc(500px + 0%) calc(500px + 0%)"], "border-box"]
   },
   { start: "none",
     end: "polygon(evenodd, 500px 500px, 500px 500px) border-box",
@@ -708,11 +674,15 @@ var clipPathTests = [
     expected: ["ellipse", ["200px 200px at 50% 50%"]] },
   { start: "circle(100px at 100px 100px) border-box",
     end: "circle(500px at 500px 500px) border-box",
-    expected: ["circle", ["200px at calc(200px + 0%) calc(200px + 0%)"], "border-box"]
+    expected:
+      isServo ? ["circle", ["200px at 200px 200px"], "border-box"]
+              : ["circle", ["200px at calc(200px + 0%) calc(200px + 0%)"], "border-box"]
   },
   { start: "ellipse(100px 100px at 100px 100px) border-box",
     end: "ellipse(500px 500px at 500px 500px) border-box",
-    expected: ["ellipse", ["200px 200px at calc(200px + 0%) calc(200px + 0%)"], "border-box"]
+    expected:
+      isServo ? ["ellipse", ["200px 200px at 200px 200px"], "border-box"]
+              : ["ellipse", ["200px 200px at calc(200px + 0%) calc(200px + 0%)"], "border-box"]
   },
   { start: "polygon(evenodd, 100px 100px, 100px 100px) border-box",
     end: "polygon(evenodd, 500px 500px, 500px 500px) border-box",
@@ -783,11 +753,15 @@ var clipPathTests = [
   // mismatching boxes
   { start: "circle(100px at 100px 100px) border-box",
     end: "circle(500px at 500px 500px) content-box",
-    expected: ["circle", ["500px at calc(500px + 0%) calc(500px + 0%)"], "content-box"]
+    expected:
+      isServo ? ["circle", ["500px at 500px 500px"], "content-box"]
+              : ["circle", ["500px at calc(500px + 0%) calc(500px + 0%)"], "content-box"]
   },
   { start: "ellipse(100px 100px at 100px 100px) border-box",
     end: "ellipse(500px 500px at 500px 500px) content-box",
-    expected: ["ellipse", ["500px 500px at calc(500px + 0%) calc(500px + 0%)"], "content-box"]
+    expected:
+      isServo ? ["ellipse", ["500px 500px at 500px 500px"], "content-box"]
+              : ["ellipse", ["500px 500px at calc(500px + 0%) calc(500px + 0%)"], "content-box"]
   },
   { start: "polygon(evenodd, 100px 100px, 100px 100px) border-box",
     end: "polygon(evenodd, 500px 500px, 500px 500px) content-box",
@@ -800,7 +774,9 @@ var clipPathTests = [
   // mismatching functions
   { start: "circle(100px at 100px 100px) border-box",
     end: "ellipse(500px 500px at 500px 500px) border-box",
-    expected: ["ellipse", ["500px 500px at calc(500px + 0%) calc(500px + 0%)"], "border-box"]
+    expected:
+      isServo ? ["ellipse", ["500px 500px at 500px 500px"], "border-box"]
+              : ["ellipse", ["500px 500px at calc(500px + 0%) calc(500px + 0%)"], "border-box"]
   },
   { start: "inset(0px round 20px)", end: "ellipse(500px 500px)",
     expected: ["ellipse", ["500px 500px at 50% 50%"]]
@@ -958,12 +934,10 @@ var filterTests = [
     expected: ["drop-shadow", "rgb(66, 96, 0) 5px 5px 2px"] },
   { start: "blur(25px) drop-shadow(8px 8px)",
     end: "blur(75px)",
-    expected: ["blur", 37.5, "drop-shadow", "rgb(0, 0, 0) 6px 6px 0px"],
-    skipped: isServo }, // Bug 1387982
+    expected: ["blur", 37.5, "drop-shadow", "rgb(0, 0, 0) 6px 6px 0px"] },
   { start: "blur(75px)",
     end: "blur(25px) drop-shadow(8px 8px)",
-    expected: ["blur", 62.5, "drop-shadow", "rgb(0, 0, 0) 2px 2px 0px"],
-    skipped: isServo }, // Bug 1387982
+    expected: ["blur", 62.5, "drop-shadow", "rgb(0, 0, 0) 2px 2px 0px"] },
   { start: "drop-shadow(2px 2px blue)",
     end: "none",
     expected: ["drop-shadow", "rgba(0, 0, 255, 0.75) 1.5px 1.5px 0px"] },
@@ -1000,11 +974,6 @@ function sample_array(array, count) {
 // the properties not in our test list above (and not transition
 // properties themselves).
 for (prop in gCSSProperties) {
-  // Bug 1387080, we should remove this after passing all tests.
-  if (isServo && (prop in skippedProperties)) {
-    continue;
-  }
-
   var info = gCSSProperties[prop];
   if (!(prop in supported_properties) &&
       info.type != CSS_TYPE_TRUE_SHORTHAND &&
@@ -1083,11 +1052,6 @@ div.style.setProperty("transition-duration", "4s", "");
 div.style.setProperty("transition-delay", "-1s", "");
 div.style.setProperty("transition-timing-function", "linear", "");
 for (prop in supported_properties) {
-  // Bug 1387080, we should remove this after passing all tests.
-  if (isServo && (prop in skippedProperties)) {
-    continue;
-  }
-
   var tinfo = supported_properties[prop];
   var info = gCSSProperties[prop];
 
@@ -1482,12 +1446,16 @@ function test_true_currentcolor_shorthand_transition(prop) {
   test_true_currentcolor_transition(prop, get_color_from_shorthand_value, true);
 }
 
-function test_clip_path_equals(computedValStr, expectedList)
+function test_shape_or_url_equals(computedValStr, expected)
 {
   // Check simple case "none"
-  if (computedValStr == "none" && computedValStr == expectedList[0]) {
+  if (computedValStr == "none" && computedValStr == expected[0]) {
     return true;
   }
+  // We will update the expected list in this function for checking the result,
+  // so we clone it first to avoid affecting the input parameter.
+  var expectedList = expected.slice();
+
   var start = String(computedValStr);
 
   var regBox = /\s*(content\-box|padding\-box|border\-box|margin\-box|view\-box|stroke\-box|fill\-box)/
@@ -1523,7 +1491,7 @@ function test_clip_path_equals(computedValStr, expectedList)
     if (computedValStr == "") {
       return true;
     } else {
-      ok(false, "expected clip-path shape");
+      ok(false, "expected basic shape");
       return false;
     }
   }
@@ -1611,20 +1579,17 @@ function filter_function_list_equals(computedValStr, expectedList)
   return true;
 }
 
-function test_clip_path_transition(prop) {
-  if (!SpecialPowers.getBoolPref("layout.css.clip-path-shapes.enabled")) {
-    return;
-  }
-  for (var i in clipPathTests) {
-    var test = clipPathTests[i];
+function test_basic_shape_or_url_transition(prop) {
+  for (var i in clipPathAndShapeOutsideTests) {
+    var test = clipPathAndShapeOutsideTests[i];
     div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, test.start, "");
     cs.getPropertyValue(prop);
     div.style.setProperty("transition-property", prop, "");
     div.style.setProperty(prop, test.end, "");
     var actual = cs.getPropertyValue(prop);
-    ok(test_clip_path_equals(actual, test.expected),
-       "Clip-path property is " + actual + " expected values of " +
+    ok(test_shape_or_url_equals(actual, test.expected),
+       prop + " property is " + actual + " expected values of " +
        test.expected);
   }
 }
@@ -1635,10 +1600,6 @@ function test_filter_transition(prop) {
   }
   for (var i in filterTests) {
     var test = filterTests[i];
-    // Bug 1387982: remove this after we pass all filter tests.
-    if (!!test.skipped) {
-      continue;
-    }
     div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, test.start, "");
     cs.getPropertyValue(prop);
@@ -1694,10 +1655,28 @@ function test_shadow_transition(prop) {
                          "8px 8px 8px 8px red inset");
   }
 
+  // Transition beween values with color and without color.
+  div.style.setProperty("transition-property", "none", "");
+  div.style.setProperty("color", "rgb(3, 0, 0)", "");
+  div.style.setProperty(prop, "2px 2px 2px", "");
+  is(cs.getPropertyValue(prop), "rgb(3, 0, 0) 2px 2px 2px" + spreadStr,
+     "shadow-valued property " + prop + ": computed value before transition");
+  div.style.setProperty("transition-property", prop, "");
+  div.style.setProperty(prop, "8px 8px 8px red", "");
+  // Bug 726550 for gecko (can't transition), bug 1390697 for servo (doesn't
+  // work currentColor animation for {text,box}-shadow).
+  todo_is(cs.getPropertyValue(prop),
+          "rgb(66, 0, 0) 3.5px 3.5px 3.5px" + spreadStr,
+          "shadow-valued property " + prop +
+          ": interpolation values with/without color");
+
+  // Transition beween values without color.
   var defaultColor = cs.getPropertyValue("color") + " ";
+  div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "2px 2px 2px", "");
   is(cs.getPropertyValue(prop), defaultColor + "2px 2px 2px" + spreadStr,
-     "shadow-valued property " + prop + ": non-interpolable cases");
+     "shadow-valued property " + prop + ": computed value before transition");
+  div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "6px 14px 10px", "");
   is(cs.getPropertyValue(prop), defaultColor + "3px 5px 4px" + spreadStr,
      "shadow-valued property " + prop + ": interpolation without color");
@@ -2133,12 +2112,18 @@ function test_rect_transition(prop) {
   check_distance(prop, "rect(4px, 16px, 12px, 6px)",
                        "rect(3px, 13px, 10px, 5px)",
                        "rect(0px, 4px, 4px, 2px)");
+  div.style.setProperty(prop, "rect(0px, 6px, 4px, auto)", "");
   if (prop == "clip") {
-    div.style.setProperty(prop, "rect(0px, 6px, 4px, auto)", "");
     is(cs.getPropertyValue(prop), "rect(0px, 6px, 4px, auto)",
        "rect-valued property " + prop + ": can't interpolate auto components");
-    div.style.setProperty(prop, "rect(0px, 6px, 4px, 2px)", "");
+  } else {
+    is(prop, "-moz-image-region");
+    // Bug 1390067: -moz-image-region should behave just like clip does.
+    todo_is(cs.getPropertyValue(prop), "rect(0px, 6px, 4px, auto)",
+            "rect-valued property " + prop +
+            ": can't interpolate auto components");
   }
+  div.style.setProperty(prop, "rect(0px, 6px, 4px, 2px)", "");
   div.style.setProperty(prop, "auto", "");
   is(cs.getPropertyValue(prop), "auto",
      "rect-valued property " + prop + ": can't interpolate auto components");
@@ -2330,36 +2315,47 @@ function test_background_position_coord_transition(prop) {
                        "calc(-5px + 80%)",
                        "calc(40px + 20%)");
 
+  div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "10px, 50px, 30px", "");
   is(cs.getPropertyValue(prop), "10px, 50px, 30px",
      "property " + prop + ": computed value before transition");
+  div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "50px, 70px, 30px", "");
   is(cs.getPropertyValue(prop), "20px, 55px, 30px",
      "property " + prop + ": interpolation of lists of lengths");
   check_distance(prop, "10px, 50px, 30px",
                        "20px, 55px, 30px",
                        "50px, 70px, 30px");
+
+  div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "10px, 50%, 30%, 5px", "");
   is(cs.getPropertyValue(prop), "10px, 50%, 30%, 5px",
      "property " + prop + ": computed value before transition");
+  div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "50px, 70%, 30%, 25px", "");
   is(cs.getPropertyValue(prop), "20px, 55%, 30%, 10px",
      "property " + prop + ": interpolation of lists of lengths and percents");
   check_distance(prop, "10px, 50%, 30%, 5px",
                        "20px, 55%, 30%, 10px",
                        "50px, 70%, 30%, 25px");
+
+  div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "20%, 8px", "");
   is(cs.getPropertyValue(prop), "20%, 8px",
      "property " + prop + ": computed value before transition");
+  div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "12px, 40%", "");
   is(cs.getPropertyValue(prop), "calc(3px + 15%), calc(6px + 10%)",
      "property " + prop + ": interpolation that computes to calc()");
   check_distance(prop, "20%, 8px",
                        "calc(3px + 15%), calc(6px + 10%)",
                        "12px, 40%");
+
+  div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "calc(20% + 40px), 8px, calc(20px + 12%)", "");
   is(cs.getPropertyValue(prop), "calc(40px + 20%), 8px, calc(20px + 12%)",
      "property " + prop + ": computed value before transition");
+  div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "12px, calc(20%), calc(8px + 20%)", "");
   is(cs.getPropertyValue(prop), "calc(33px + 15%), calc(6px + 5%), calc(17px + 14%)",
      "property " + prop + ": interpolation that computes to calc()");
@@ -2464,9 +2460,11 @@ function test_background_position_size_common(prop, doesPropTakeListValues,
 
   // Test list values, if appropriate
   if (doesPropTakeListValues) {
+    div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, "10px 40px, 50px 50px, 30px 20px", "");
     is(cs.getPropertyValue(prop), "10px 40px, 50px 50px, 30px 20px",
        "property " + prop + ": computed value before transition");
+    div.style.setProperty("transition-property", prop, "");
     div.style.setProperty(prop, "50px 20px, 70px 50px, 30px 40px", "");
     is(cs.getPropertyValue(prop), "20px 35px, 55px 50px, 30px 25px",
        "property " + prop + ": interpolation of lists of lengths");
@@ -2475,9 +2473,11 @@ function test_background_position_size_common(prop, doesPropTakeListValues,
                            "20px 35px, 55px 50px, 30px 25px",
                            "50px 20px, 70px 50px, 30px 40px");
     }
+    div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, "10px 40%, 50% 50px, 30% 20%, 5px 10px", "");
     is(cs.getPropertyValue(prop), "10px 40%, 50% 50px, 30% 20%, 5px 10px",
        "property " + prop + ": computed value before transition");
+    div.style.setProperty("transition-property", prop, "");
     div.style.setProperty(prop, "50px 20%, 70% 50px, 30% 40%, 25px 50px", "");
     is(cs.getPropertyValue(prop), "20px 35%, 55% 50px, 30% 25%, 10px 20px",
        "property " + prop + ": interpolation of lists of lengths and percents");
@@ -2486,9 +2486,11 @@ function test_background_position_size_common(prop, doesPropTakeListValues,
                            "20px 35%, 55% 50px, 30% 25%, 10px 20px",
                            "50px 20%, 70% 50px, 30% 40%, 25px 50px");
     }
+    div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, "20% 40%, 8px 12px", "");
     is(cs.getPropertyValue(prop), "20% 40%, 8px 12px",
        "property " + prop + ": computed value before transition");
+    div.style.setProperty("transition-property", prop, "");
     div.style.setProperty(prop, "12px 20px, 40% 16%", "");
     is(cs.getPropertyValue(prop), "calc(3px + 15%) calc(5px + 30%), calc(6px + 10%) calc(9px + 4%)",
        "property " + prop + ": interpolation that computes to calc()");
@@ -2497,9 +2499,11 @@ function test_background_position_size_common(prop, doesPropTakeListValues,
                            "calc(3px + 15%) calc(5px + 30%), calc(6px + 10%) calc(9px + 4%)",
                            "12px 20px, 40% 16%");
     }
+    div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, "calc(20% + 40px) calc(40px + 40%), 8px 12%, calc(20px + 12%) calc(24px + 8%)", "");
     is(cs.getPropertyValue(prop), "calc(40px + 20%) calc(40px + 40%), 8px 12%, calc(20px + 12%) calc(24px + 8%)",
        "property " + prop + ": computed value before transition");
+    div.style.setProperty("transition-property", prop, "");
     div.style.setProperty(prop, "12px 20%, calc(20%) calc(16px + 60%), calc(8px + 20%) calc(40px + 16%)", "");
     is(cs.getPropertyValue(prop), "calc(33px + 15%) calc(30px + 35%), calc(6px + 5%) calc(4px + 24%), calc(17px + 14%) calc(28px + 10%)",
        "property " + prop + ": interpolation that computes to calc()");
@@ -2528,10 +2532,6 @@ function test_transform_transition(prop) {
 
   for (var i in transformTests) {
     var test = transformTests[i];
-    // Bug 1387990: remove this after passing all transform tests on
-    if (!!test.skipped) {
-      continue;
-    }
     div.style.setProperty("transition-property", "none", "");
     div.style.setProperty(prop, test.start, "");
     cs.getPropertyValue(prop);
@@ -2613,10 +2613,7 @@ function runAsyncTests() {
 
 function addAsyncTransformTests() {
   transformTests.forEach(function(test) {
-    // Bug 1387990: remove this if-check after passing all transform tests on
-    if (!test.skipped) {
-      addAsyncAnimTest(function () { return runTransformTest(test); } );
-    }
+    addAsyncAnimTest(function () { return runTransformTest(test); } );
   });
 }
 

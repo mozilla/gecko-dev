@@ -3,6 +3,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+XPCOMUtils.defineLazyModuleGetter(this, "Prompt",
+                                  "resource://gre/modules/Prompt.jsm");
+
 var InputWidgetHelper = {
   _uiBusy: false,
 
@@ -86,12 +89,9 @@ var InputWidgetHelper = {
 
   fireOnChange: function(aElement) {
     let win = aElement.ownerGlobal;
-    let evt = aElement.ownerDocument.createEvent("Events");
-    evt.initEvent("change", true, true, aElement.defaultView, 0,
-                  false, false,
-                  false, false, null);
     win.setTimeout(function() {
-      aElement.dispatchEvent(evt);
+      aElement.dispatchEvent(new win.Event("input", { bubbles: true }));
+      aElement.dispatchEvent(new win.Event("change", { bubbles: true }));
     }, 0);
   },
 

@@ -14,7 +14,6 @@
 #![deny(unsafe_code)]
 
 use ServoArc;
-use app_units::Au;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutData};
@@ -616,14 +615,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         flow.finish();
 
         // Set up the absolute descendants.
-        let contains_positioned_fragments = flow.contains_positioned_fragments();
-        let is_absolutely_positioned = flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
-        if contains_positioned_fragments {
+        if flow.is_absolute_containing_block() {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
-            if is_absolutely_positioned {
+            if flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its CB.
                 abs_descendants.push(flow.clone());
@@ -1060,16 +1057,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         // The flow is done.
         flow.finish();
-        let contains_positioned_fragments = flow.contains_positioned_fragments();
-        if contains_positioned_fragments {
+        if flow.is_absolute_containing_block() {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
 
-            let is_absolutely_positioned =
-                flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
-            if is_absolutely_positioned {
+            if flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its containing block.
                 abs_descendants.push(flow.clone());
@@ -1134,16 +1128,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         legalizer.finish(&mut wrapper_flow);
         wrapper_flow.finish();
 
-        let contains_positioned_fragments = wrapper_flow.contains_positioned_fragments();
-        if contains_positioned_fragments {
+        if wrapper_flow.is_absolute_containing_block() {
             // This is the containing block for all the absolute descendants.
             wrapper_flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
 
-            let is_absolutely_positioned =
-                flow::base(&*wrapper_flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
-            if is_absolutely_positioned {
+            if flow::base(&*wrapper_flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its containing block.
                 abs_descendants.push(wrapper_flow.clone());
@@ -1460,7 +1451,7 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
         node.insert_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
 
         // Bail out if this node has an ancestor with display: none.
-        if node.style(self.style_context()).get_inheritedbox()._servo_under_display_none.0 {
+        if node.style(self.style_context()).is_in_display_none_subtree() {
             self.set_flow_construction_result(node, ConstructionResult::None);
             return;
         }
@@ -1860,10 +1851,10 @@ impl ComputedValueUtils for ComputedValues {
            !padding.padding_right.is_definitely_zero() ||
            !padding.padding_bottom.is_definitely_zero() ||
            !padding.padding_left.is_definitely_zero() ||
-           border.border_top_width.0 != Au(0) ||
-           border.border_right_width.0 != Au(0) ||
-           border.border_bottom_width.0 != Au(0) ||
-           border.border_left_width.0 != Au(0)
+           border.border_top_width.px() != 0. ||
+           border.border_right_width.px() != 0. ||
+           border.border_bottom_width.px() != 0. ||
+           border.border_left_width.px() != 0.
     }
 }
 
@@ -1921,7 +1912,7 @@ impl Legalizer {
     /// true for anonymous block children of flex flows.
     fn try_to_add_child(&mut self, context: &SharedStyleContext, parent: &mut FlowRef, child: &mut FlowRef)
                         -> bool {
-        let mut parent = self.stack.last_mut().unwrap_or(parent);
+        let parent = self.stack.last_mut().unwrap_or(parent);
         let (parent_class, child_class) = (parent.class(), child.class());
         match (parent_class, child_class) {
             (FlowClass::TableWrapper, FlowClass::Table) |
@@ -1962,7 +1953,7 @@ impl Legalizer {
                     } else {
                         IS_BLOCK_FLEX_ITEM
                     };
-                    let mut block = FlowRef::deref_mut(&mut block_wrapper).as_mut_block();
+                    let block = FlowRef::deref_mut(&mut block_wrapper).as_mut_block();
                     block.base.flags.insert(MARGINS_CANNOT_COLLAPSE);
                     block.fragment.flags.insert(flag);
                 }
@@ -1979,7 +1970,7 @@ impl Legalizer {
                     } else {
                         IS_BLOCK_FLEX_ITEM
                     };
-                    let mut block = FlowRef::deref_mut(child).as_mut_block();
+                    let block = FlowRef::deref_mut(child).as_mut_block();
                     block.base.flags.insert(MARGINS_CANNOT_COLLAPSE);
                     block.fragment.flags.insert(flag);
                 }

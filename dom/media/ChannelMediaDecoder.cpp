@@ -45,6 +45,12 @@ ChannelMediaDecoder::ResourceCallback::Disconnect()
   }
 }
 
+AbstractThread*
+ChannelMediaDecoder::ResourceCallback::AbstractMainThread() const
+{
+  return mAbstractMainThread;
+}
+
 MediaDecoderOwner*
 ChannelMediaDecoder::ResourceCallback::GetMediaOwner() const
 {
@@ -114,7 +120,7 @@ ChannelMediaDecoder::ResourceCallback::NotifyDataEnded(nsresult aStatus)
       // NotifySuspendedStatusChanged will tell the element that download
       // has been suspended "by the cache", which is true since we never
       // download anything. The element can then transition to HAVE_ENOUGH_DATA.
-      self->mDecoder->NotifySuspendedStatusChanged();
+      owner->NotifySuspendedByCache(true);
     }
   });
   mAbstractMainThread->Dispatch(r.forget());
@@ -130,11 +136,14 @@ ChannelMediaDecoder::ResourceCallback::NotifyPrincipalChanged()
 }
 
 void
-ChannelMediaDecoder::ResourceCallback::NotifySuspendedStatusChanged()
+ChannelMediaDecoder::ResourceCallback::NotifySuspendedStatusChanged(
+  bool aSuspendedByCache)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder->NotifySuspendedStatusChanged();
+  MediaDecoderOwner* owner = GetMediaOwner();
+  if (owner) {
+    AbstractThread::AutoEnter context(owner->AbstractMainThread());
+    owner->NotifySuspendedByCache(aSuspendedByCache);
   }
 }
 
@@ -174,10 +183,10 @@ ChannelMediaDecoder::CanClone()
 already_AddRefed<ChannelMediaDecoder>
 ChannelMediaDecoder::Clone(MediaDecoderInit& aInit)
 {
-  if (!mResource) {
+  if (!mResource || !DecoderTraits::IsSupportedType(aInit.mContainerType)) {
     return nullptr;
   }
-  RefPtr<ChannelMediaDecoder> decoder = CloneImpl(aInit);
+  RefPtr<ChannelMediaDecoder> decoder = new ChannelMediaDecoder(aInit);
   if (!decoder) {
     return nullptr;
   }
@@ -189,12 +198,6 @@ ChannelMediaDecoder::Clone(MediaDecoderInit& aInit)
   return decoder.forget();
 }
 
-MediaResource*
-ChannelMediaDecoder::GetResource() const
-{
-  return mResource;
-}
-
 MediaDecoderStateMachine* ChannelMediaDecoder::CreateStateMachine()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -204,6 +207,7 @@ MediaDecoderStateMachine* ChannelMediaDecoder::CreateStateMachine()
   init.mCrashHelper = GetOwner()->CreateGMPCrashHelper();
   init.mFrameStats = mFrameStats;
   init.mResource = mResource;
+  init.mMediaDecoderOwnerID = mOwner;
   mReader = DecoderTraits::CreateReader(ContainerType(), init);
   return new MediaDecoderStateMachine(this, mReader);
 }
@@ -223,22 +227,13 @@ ChannelMediaDecoder::Shutdown()
 }
 
 nsresult
-ChannelMediaDecoder::OpenResource(nsIStreamListener** aStreamListener)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (aStreamListener) {
-    *aStreamListener = nullptr;
-  }
-  return mResource->Open(aStreamListener);
-}
-
-nsresult
 ChannelMediaDecoder::Load(nsIChannel* aChannel,
                           bool aIsPrivateBrowsing,
                           nsIStreamListener** aStreamListener)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mResource);
+  MOZ_ASSERT(aStreamListener);
 
   mResource =
     BaseMediaResource::Create(mResourceCallback, aChannel, aIsPrivateBrowsing);
@@ -251,8 +246,11 @@ ChannelMediaDecoder::Load(nsIChannel* aChannel,
     return rv;
   }
 
-  rv = OpenResource(aStreamListener);
+  rv = mResource->Open(aStreamListener);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // Set mode to METADATA since we are about to read metadata.
+  mResource->SetReadMode(MediaCacheStream::MODE_METADATA);
 
   SetStateMachine(CreateStateMachine());
   NS_ENSURE_TRUE(GetStateMachine(), NS_ERROR_FAILURE);
@@ -275,9 +273,6 @@ ChannelMediaDecoder::Load(BaseMediaResource* aOriginal)
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-
-  rv = OpenResource(nullptr);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   SetStateMachine(CreateStateMachine());
   NS_ENSURE_TRUE(GetStateMachine(), NS_ERROR_FAILURE);
@@ -345,6 +340,13 @@ ChannelMediaDecoder::CanPlayThroughImpl()
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_TRUE(GetStateMachine(), false);
   return GetStatistics().CanPlayThrough();
+}
+
+bool
+ChannelMediaDecoder::IsLiveStream()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  return mResource->IsLiveStream();
 }
 
 void
@@ -475,6 +477,29 @@ ChannelMediaDecoder::ShouldThrottleDownload()
 }
 
 void
+ChannelMediaDecoder::AddSizeOfResources(ResourceSizes* aSizes)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mResource) {
+    aSizes->mByteSize += mResource->SizeOfIncludingThis(aSizes->mMallocSizeOf);
+  }
+}
+
+already_AddRefed<nsIPrincipal>
+ChannelMediaDecoder::GetCurrentPrincipal()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  return mResource ? mResource->GetCurrentPrincipal() : nullptr;
+}
+
+bool
+ChannelMediaDecoder::IsTransportSeekable()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  return mResource->IsTransportSeekable();
+}
+
+void
 ChannelMediaDecoder::SetLoadInBackground(bool aLoadInBackground)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -499,6 +524,40 @@ ChannelMediaDecoder::Resume()
   if (mResource) {
     mResource->Resume();
   }
+}
+
+void
+ChannelMediaDecoder::PinForSeek()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!mResource || mPinnedForSeek) {
+    return;
+  }
+  mPinnedForSeek = true;
+  mResource->Pin();
+}
+
+void
+ChannelMediaDecoder::UnpinForSeek()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_DIAGNOSTIC_ASSERT(!IsShutdown());
+  if (!mResource || !mPinnedForSeek) {
+    return;
+  }
+  mPinnedForSeek = false;
+  mResource->Unpin();
+}
+
+void
+ChannelMediaDecoder::MetadataLoaded(
+  UniquePtr<MediaInfo> aInfo,
+  UniquePtr<MetadataTags> aTags,
+  MediaDecoderEventVisibility aEventVisibility)
+{
+  MediaDecoder::MetadataLoaded(Move(aInfo), Move(aTags), aEventVisibility);
+  // Set mode to PLAYBACK after reading metadata.
+  mResource->SetReadMode(MediaCacheStream::MODE_PLAYBACK);
 }
 
 } // namespace mozilla

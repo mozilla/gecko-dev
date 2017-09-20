@@ -151,7 +151,7 @@ nsXBLResourceLoader::LoadResources(nsIContent* aBoundElement)
       }
       else
       {
-        rv = cssLoader->LoadSheet(url, false, docPrincipal, EmptyCString(), this);
+        rv = cssLoader->LoadSheet(url, false, docPrincipal, nullptr, this);
         if (NS_SUCCEEDED(rv))
           ++mPendingSheets;
       }
@@ -258,10 +258,9 @@ nsXBLResourceLoader::NotifyBoundElements()
         if (shell) {
           nsIFrame* childFrame = content->GetPrimaryFrame();
           if (!childFrame) {
-            // Check to see if it's in the undisplayed content map, or the
-            // display: contents map.
+            // Check if it's in the display:none or display:contents maps.
             nsStyleContext* sc =
-              shell->FrameManager()->GetUndisplayedContent(content);
+              shell->FrameManager()->GetDisplayNoneStyleFor(content);
 
             if (!sc) {
               sc = shell->FrameManager()->GetDisplayContentsStyleFor(content);

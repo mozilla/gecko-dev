@@ -23,9 +23,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
 var gTestTargetFile = FileUtils.getFile("TmpD", ["dm-ui-test.file"]);
 gTestTargetFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 
-registerCleanupFunction(function() {
-  gTestTargetFile.remove(false);
-});
+// The file may have been already deleted when removing a paused download.
+registerCleanupFunction(() => OS.File.remove(gTestTargetFile.path,
+                                             { ignoreAbsent: true }));
 
 // Asynchronous support subroutines
 
@@ -197,4 +197,16 @@ function promiseAlertDialogOpen(buttonAction) {
       }
     });
   });
+}
+
+/**
+ * Waits for a given button to become visible.
+ */
+function promiseButtonShown(id) {
+  let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+  return BrowserTestUtils.waitForCondition(() => {
+    let target = document.getElementById(id);
+    let bounds = dwu.getBoundsWithoutFlushing(target);
+    return bounds.width > 0 && bounds.height > 0;
+  }, `Waiting for button ${id} to have non-0 size`);
 }

@@ -6,10 +6,6 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");
-@namespace svg url("http://www.w3.org/2000/svg");
-
-%include ../shared/browser.inc
-%define toolbarShadowColor hsla(209,67%,12%,0.35)
 
 %include ../shared/browser.inc.css
 
@@ -26,15 +22,7 @@
 
   --toolbarbutton-vertical-text-padding: calc(var(--toolbarbutton-inner-padding) - 1px);
   --toolbarbutton-border-radius: 2px;
-
-  --urlbar-dropmarker-url: url("chrome://browser/skin/urlbar-history-dropmarker.png");
-  --urlbar-dropmarker-region: rect(0px, 11px, 14px, 0px);
-  --urlbar-dropmarker-hover-region: rect(0px, 22px, 14px, 11px);
-  --urlbar-dropmarker-active-region: rect(0px, 33px, 14px, 22px);
-  --urlbar-dropmarker-2x-url: url("chrome://browser/skin/urlbar-history-dropmarker@2x.png");
-  --urlbar-dropmarker-2x-region: rect(0, 22px, 28px, 0);
-  --urlbar-dropmarker-hover-2x-region: rect(0, 44px, 28px, 22px);
-  --urlbar-dropmarker-active-2x-region: rect(0, 66px, 28px, 44px);
+  --toolbarbutton-icon-fill-opacity: 1;
 
   --panel-separator-color: ThreeDLightShadow;
   --arrowpanel-dimmed: hsla(0,0%,80%,.3);
@@ -42,6 +30,8 @@
   --arrowpanel-dimmed-even-further: hsla(0,0%,80%,.8);
 
   --urlbar-separator-color: ThreeDLightShadow;
+
+  --toolbox-border-bottom-color: ThreeDShadow;
 }
 
 @media (-moz-windows-default-theme) {
@@ -52,7 +42,11 @@
     --toolbar-non-lwt-textcolor: #0c0c0d;
     --toolbar-non-lwt-bgimage: none;
 
+    --toolbarbutton-icon-fill-opacity: .7;
+
     --panel-separator-color: hsla(210,4%,10%,.14);
+
+    --toolbox-border-bottom-color: #e1e1e2;
   }
 }
 
@@ -61,6 +55,8 @@
 
   --toolbar-bgcolor: rgba(255,255,255,.4);
   --toolbar-bgimage: none;
+
+  --toolbox-border-bottom-color: rgba(0,0,0,.3);
 }
 
 #menubar-items {
@@ -77,52 +73,29 @@
   display: none;
 }
 
-#navigator-toolbox,
-#navigator-toolbox > toolbar {
-  -moz-appearance: none;
+:root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar,
+:root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
+  margin-top: var(--space-above-tabbar);
 }
 
-#navigator-toolbox::after {
-  content: "";
-  display: -moz-box;
-  -moz-box-ordinal-group: 101; /* tabs toolbar is 100 */
-  border-bottom: 1px solid ThreeDShadow;
-}
-
-@media (-moz-windows-default-theme) {
-  @media (-moz-os-version: windows-win8),
-         (-moz-os-version: windows-win10) {
-    #navigator-toolbox::after {
-      border-bottom-color: #c2c2c2;
-    }
+/* Add 4px extra margin on top of the tabs toolbar on Windows 7. */
+@media (-moz-os-version: windows-win7) {
+  :root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar,
+  :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
+    margin-top: calc(var(--space-above-tabbar) + 4px);
   }
 }
 
-#navigator-toolbox:-moz-lwtheme::after {
-  border-bottom-color: rgba(0,0,0,.3);
-}
-
-:root[customizing] #navigator-toolbox::after {
-  display: none;
+#navigator-toolbox,
+#navigator-toolbox > toolbar {
+  -moz-appearance: none;
 }
 
 #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar) {
   background-color: var(--toolbar-bgcolor);
   background-image: var(--toolbar-bgimage);
   background-clip: padding-box;
-}
-
-#navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(#nav-bar):not(#addon-bar) {
-  overflow: -moz-hidden-unscrollable;
-  max-height: 4em;
-  transition: min-height 170ms ease-out, max-height 170ms ease-out;
-  padding: 0 5px;
-}
-
-#navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(#nav-bar):not(#addon-bar)[collapsed=true] {
-  min-height: 0.1px;
-  max-height: 0;
-  transition: min-height 170ms ease-out, max-height 170ms ease-out, visibility 170ms linear;
+  color: var(--toolbar-color, inherit);
 }
 
 #toolbar-menubar,
@@ -244,10 +217,6 @@
   }
 }
 
-#personal-bookmarks {
-  min-height: 24px;
-}
-
 #print-preview-toolbar:not(:-moz-lwtheme) {
   -moz-appearance: toolbox;
 }
@@ -308,17 +277,6 @@
   #titlebar-min {
     margin-inline-end: 2px;
   }
-}
-
-/* ::::: bookmark buttons ::::: */
-
-#bookmarks-toolbar-placeholder {
-  list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;
-}
-
-toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-placeholder,
-#personal-bookmarks[cui-areatype="menu-panel"] > #bookmarks-toolbar-placeholder {
-  list-style-image: url("chrome://browser/skin/places/bookmarksToolbar-menuPanel.png") !important;
 }
 
 /* ::::: bookmark menus ::::: */
@@ -585,15 +543,6 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 .urlbar-input-box {
   margin: 0;
 }
-#urlbar-icons {
-  -moz-box-align: center;
-}
-.urlbar-icon {
-  padding: 0 3px;
-  /* 16x16 icon with border-box sizing */
-  width: 22px;
-  height: 16px;
-}
 
 /* ::::: URL Bar Zoom Reset Button ::::: */
 @keyframes urlbar-zoom-reset-pulse {
@@ -611,10 +560,6 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 #urlbar-zoom-button {
   -moz-appearance: none;
   color: inherit;
-}
-
-.search-go-container {
-  padding: 2px 2px;
 }
 
 #urlbar-search-footer {
@@ -660,82 +605,15 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
   outline-offset: -3px;
 }
 
-/* Location bar dropmarker */
-
-.urlbar-history-dropmarker {
-  -moz-appearance: none;
-  padding: 0 3px;
-  background-color: transparent;
-  border: none;
-  width: auto;
-  list-style-image: var(--urlbar-dropmarker-url);
-  -moz-image-region: var(--urlbar-dropmarker-region);
-  transition: opacity 0.15s ease;
-}
-
-#urlbar-wrapper[switchingtabs] > #urlbar > .urlbar-textbox-container > .urlbar-history-dropmarker {
-  transition: none;
-}
-
-#navigator-toolbox:not(:hover) #nav-bar:not([customizing="true"]) #urlbar:not([focused]) > .urlbar-textbox-container > .urlbar-history-dropmarker {
-  opacity: 0;
-}
-
-.urlbar-history-dropmarker:hover {
-  -moz-image-region: var(--urlbar-dropmarker-hover-region);
-}
-
-.urlbar-history-dropmarker:hover:active,
-.urlbar-history-dropmarker[open="true"] {
-  -moz-image-region: var(--urlbar-dropmarker-active-region);
-}
-
-@media (min-resolution: 1.1dppx) {
-  .urlbar-history-dropmarker {
-    list-style-image: var(--urlbar-dropmarker-2x-url);
-    -moz-image-region: var(--urlbar-dropmarker-2x-region);
-  }
-
-  .urlbar-history-dropmarker:hover {
-    -moz-image-region: var(--urlbar-dropmarker-hover-2x-region);
-  }
-
-  .urlbar-history-dropmarker[open="true"],
-  .urlbar-history-dropmarker:hover:active {
-    -moz-image-region: var(--urlbar-dropmarker-active-2x-region);
-  }
-
-  .urlbar-history-dropmarker > .dropmarker-icon {
-    width: 11px;
-  }
-}
-
-/* page proxy icon */
-
 %include ../shared/identity-block/identity-block.inc.css
 
 /* autocomplete */
 
 %include ../shared/autocomplete.inc.css
+%include ../shared/urlbar-autocomplete.inc.css
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype~="datalist-first"] {
   border-top: 1px solid ThreeDShadow;
-}
-
-#treecolAutoCompleteImage {
-  max-width: 36px;
-}
-
-.autocomplete-richlistbox {
-  padding: 4px;
-}
-
-.autocomplete-richlistitem {
-  height: 30px;
-  min-height: 30px;
-  font: message-box;
-  border-radius: 2px;
-  border: 1px solid transparent;
 }
 
 .ac-title {
@@ -810,18 +688,6 @@ html|span.ac-emphasize-text-url {
   }
 }
 
-.autocomplete-richlistitem:hover,
-treechildren.searchbar-treebody::-moz-tree-row(hover) {
-  background-color: var(--arrowpanel-dimmed);
-  border-color: hsla(0, 0%, 0%, 0.1);
-}
-
-.autocomplete-richlistitem[selected],
-treechildren.searchbar-treebody::-moz-tree-row(selected) {
-  background-color: Highlight;
-  color: HighlightText;
-}
-
 .ac-type-icon[type=bookmark] {
   list-style-image: url("chrome://browser/skin/bookmark.svg");
   -moz-context-properties: fill;
@@ -871,124 +737,12 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
   border-top: 1px solid GrayText;
 }
 
-/* popup blocker button */
-
-#page-report-button {
-  list-style-image: url("chrome://browser/skin/urlbar-popup-blocked.png");
-  -moz-image-region: rect(0, 16px, 16px, 0);
-}
-
-#page-report-button:hover {
-  -moz-image-region: rect(0, 32px, 16px, 16px);
-}
-
-#page-report-button:hover:active,
-#page-report-button[open="true"] {
-  -moz-image-region: rect(0, 48px, 16px, 32px);
-}
-
-/* Reader mode button */
-
-#reader-mode-button {
-  list-style-image: url("chrome://browser/skin/readerMode.svg");
-  -moz-image-region: rect(0, 16px, 16px, 0);
-}
-
-#reader-mode-button:hover,
-#reader-mode-button[readeractive]:hover {
-  -moz-image-region: rect(0, 32px, 16px, 16px);
-}
-
-#reader-mode-button:hover:active,
-#reader-mode-button[readeractive] {
-  -moz-image-region: rect(0, 48px, 16px, 32px);
-}
-
-/* social share panel */
-%include ../shared/social/social.inc.css
-
-.social-panel-frame {
-  border-radius: inherit;
-}
-
-.social-share-frame {
-  min-width: 756px;
-  height: 150px;
-}
-#share-container {
-  min-width: 756px;
-  background-color: white;
-  background-repeat: no-repeat;
-  background-position: center center;
-}
-#share-container[loading] {
-  background-image: url(chrome://browser/skin/tabbrowser/pendingpaint.png);
-}
-#share-container > browser {
-  transition: opacity 150ms ease-in-out;
-  opacity: 1;
-}
-#share-container[loading] > browser {
-  opacity: 0;
-}
-
-.social-share-toolbar {
-  border-bottom: 1px solid #e2e5e8;
-  padding: 2px;
-}
-
-#social-share-provider-buttons {
-  padding: 0;
-  margin: 0;
-}
-
-.share-provider-button {
-  padding: 5px;
-  margin: 2px;
-}
-
-.share-provider-button > .toolbarbutton-text {
-  display: none;
-}
-.share-provider-button > .toolbarbutton-icon {
-  width: 16px;
-  min-height: 16px;
-  max-height: 16px;
-}
-
-#social-share-panel {
-  min-height: 100px;
-  min-width: 766px;
-}
-
-#share-container,
-.social-share-frame {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: inherit;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: inherit;
-}
-
-#social-share-panel > .social-share-toolbar {
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
-}
-
-#social-share-provider-buttons {
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
-}
-
 /* bookmarking panel */
 
 #editBookmarkPanelStarIcon {
   list-style-image: url("chrome://browser/skin/places/starred48.png");
   width: 48px;
   height: 48px;
-}
-
-#editBookmarkPanelStarIcon[unstarred] {
-  list-style-image: url("chrome://browser/skin/places/unstarred48.png");
 }
 
 #editBookmarkPanelTitle {
@@ -1009,8 +763,9 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
 
 %include ../shared/sidebar.inc.css
 
-#sidebar {
-  background-color: Window;
+#sidebar-box {
+  background-color: -moz-Field;
+  color: -moz-FieldText;
 }
 
 #sidebar-header {
@@ -1060,28 +815,6 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
 
 .alltabs-item[selected="true"] {
   font-weight: bold;
-}
-
-
-toolbarbutton.chevron {
-  list-style-image: url("chrome://global/skin/toolbar/chevron.gif") !important;
-}
-
-toolbar[brighttext] toolbarbutton.chevron {
-  list-style-image: url("chrome://global/skin/toolbar/chevron-inverted.png") !important;
-}
-
-toolbarbutton.chevron:-moz-locale-dir(rtl) > .toolbarbutton-icon {
-  transform: scaleX(-1);
-}
-
-toolbarbutton.chevron > .toolbarbutton-text,
-toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
-  display: none;
-}
-
-toolbarbutton.chevron > .toolbarbutton-icon {
-  margin: 0;
 }
 
 /* Bookmarks toolbar */
@@ -1169,7 +902,7 @@ html|*.addon-webext-perm-list {
 }
 
 .addon-addon-icon {
-  list-style-image: url("chrome://browser/skin/addons.svg");
+  list-style-image: url("chrome://mozapps/skin/extensions/extensionGeneric-16.svg");
 }
 
 .addon-toolbar-icon {
@@ -1324,8 +1057,6 @@ notification[value="translation"] {
 %include ../shared/ctrlTab.inc.css
 %include ../shared/plugin-doorhanger.inc.css
 
-%include downloads/indicator.css
-
 /* Error counter */
 
 #developer-toolbar-toolbox-button[error-count]:before {
@@ -1379,6 +1110,9 @@ notification[value="translation"] {
 #private-browsing-indicator-titlebar {
   display: block;
   position: absolute;
+  /* Need to ensure this gets positioned on top of the position:relative #navigator-toolbox
+   * in case the dark/light themes give that item a background. */
+  z-index: 1;
 }
 
 #main-window[privatebrowsingmode=temporary][tabsintitlebar] #private-browsing-indicator-titlebar > .private-browsing-indicator {

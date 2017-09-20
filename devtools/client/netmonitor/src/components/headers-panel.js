@@ -54,7 +54,8 @@ const HeadersPanel = createClass({
   propTypes: {
     cloneSelectedRequest: PropTypes.func.isRequired,
     request: PropTypes.object.isRequired,
-    renderValue: PropTypes.func
+    renderValue: PropTypes.func,
+    openLink: PropTypes.func,
   },
 
   getInitialState() {
@@ -125,6 +126,7 @@ const HeadersPanel = createClass({
 
   render() {
     const {
+      openLink,
       cloneSelectedRequest,
       request: {
         fromCache,
@@ -180,6 +182,10 @@ const HeadersPanel = createClass({
 
       let statusCodeDocURL = getHTTPStatusCodeURL(status.toString());
       let inputWidth = status.toString().length + statusText.length + 1;
+      let toggleRawHeadersClassList = ["devtools-button"];
+      if (this.state.rawHeadersOpened) {
+        toggleRawHeadersClassList.push("checked");
+      }
 
       summaryStatus = (
         div({ className: "tabpanel-summary-container headers-summary" },
@@ -203,11 +209,12 @@ const HeadersPanel = createClass({
             className: "headers-summary learn-more-link",
           }),
           button({
-            className: "devtools-button",
+            className: "devtools-button edit-and-resend-button",
             onClick: cloneSelectedRequest,
           }, EDIT_AND_RESEND),
           button({
-            className: "devtools-button",
+            "aria-pressed": this.state.rawHeadersOpened,
+            className: toggleRawHeadersClassList.join(" "),
             onClick: this.toggleRawHeaders,
           }, RAW_HEADERS),
         )
@@ -256,6 +263,7 @@ const HeadersPanel = createClass({
           filterPlaceHolder: HEADERS_FILTER_TEXT,
           sectionNames: Object.keys(object),
           renderValue: this.renderValue,
+          openLink,
         }),
       )
     );

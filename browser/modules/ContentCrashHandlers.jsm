@@ -150,6 +150,8 @@ this.TabCrashHandler = {
         let shutdown = env.exists("MOZ_CRASHREPORTER_SHUTDOWN");
 
         if (shutdown) {
+          dump("A content process crashed and MOZ_CRASHREPORTER_SHUTDOWN is " +
+               "set, shutting down\n");
           Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
         }
 
@@ -658,6 +660,10 @@ this.UnsubmittedCrashHandler = {
    *          If a notification cannot be shown, will resolve with null.
    */
   async checkForUnsubmittedCrashReports() {
+    if (!this.enabled || this.suppressed) {
+      return null;
+    }
+
     let dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - PENDING_CRASH_REPORT_DAYS);
 

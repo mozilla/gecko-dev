@@ -1,9 +1,12 @@
 // Some unittests (e.g., paste into JS shell)
 var jslib = Cc["@mozilla.org/url-classifier/jslib;1"].
             getService().wrappedJSObject;
-var _Datenow = jslib.Date.now;
+
+var jslibDate = Cu.getGlobalForObject(jslib).Date;
+
+var _Datenow = jslibDate.now;
 function setNow(time) {
-  jslib.Date.now = function() {
+  jslibDate.now = function() {
     return time;
   }
 }
@@ -11,7 +14,7 @@ function setNow(time) {
 function run_test() {
   // 3 errors, 1ms retry period, max 3 requests per ten milliseconds,
   // 5ms backoff interval, 19ms max delay
-  var rb = new jslib.RequestBackoff(3, 1, 3, 10, 5, 19);
+  var rb = new jslib.RequestBackoff(3, 1, 3, 10, 5, 19, 0);
   setNow(1);
   rb.noteServerResponse(200);
   do_check_true(rb.canMakeRequest());
@@ -85,5 +88,5 @@ function run_test() {
   setNow(211);
   do_check_true(rb.canMakeRequest());
 
-  jslib.Date.now = _Datenow;
+  jslibDate.now = _Datenow;
 }

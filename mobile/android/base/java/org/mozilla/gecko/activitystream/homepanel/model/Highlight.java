@@ -6,19 +6,19 @@
 package org.mozilla.gecko.activitystream.homepanel.model;
 
 import android.database.Cursor;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
-import android.text.format.DateUtils;
 import org.mozilla.gecko.activitystream.Utils;
+import org.mozilla.gecko.activitystream.homepanel.StreamRecyclerAdapter;
 import org.mozilla.gecko.activitystream.ranking.HighlightCandidateCursorIndices;
 import org.mozilla.gecko.activitystream.ranking.HighlightsRanking;
-import org.mozilla.gecko.db.BrowserContract;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Highlight implements Item {
+public class Highlight implements WebpageRowModel {
 
     /**
      * A pattern matching a json object containing the key "image_url" and extracting the value. afaik, these urls
@@ -88,6 +88,11 @@ public class Highlight implements Item {
         return matcher.find() ? matcher.group(1) : null;
     }
 
+    @Override
+    public StreamRecyclerAdapter.RowItemType getRowItemType() {
+        return StreamRecyclerAdapter.RowItemType.HIGHLIGHT_ITEM;
+    }
+
     private void updateState() {
         // We can only be certain of bookmark state if an item is a bookmark item.
         // Otherwise, due to the underlying highlights query, we have to look up states when
@@ -129,11 +134,27 @@ public class Highlight implements Item {
      * - {@link #getFastImageURLForComparison()}
      * - {@link #hasFastImageURL()}
      */
+    @NonNull
     public Metadata getMetadataSlow() {
         if (metadata == null) {
             metadata = new Metadata(metadataJSON);
         }
         return metadata;
+    }
+
+    /**
+     * Returns the image URL associated with this Highlight.
+     *
+     * This implementation may be slow: see {@link #getMetadataSlow()}.
+     *
+     * @return the image URL, or the empty String if there is none.
+     */
+    @NonNull
+    @Override
+    public String getImageUrl() {
+        final Metadata metadata = getMetadataSlow();
+        final String imageUrl = metadata.getImageUrl();
+        return imageUrl != null ? imageUrl : "";
     }
 
     /**
@@ -193,11 +214,16 @@ public class Highlight implements Item {
         this.isPinned = pinned;
     }
 
+    @Override
     public Utils.HighlightSource getSource() {
         return source;
     }
 
-    public long getHistoryId() {
+    @Override
+    public long getUniqueId() {
         return historyId;
     }
-}
+
+    // The Highlights cursor automatically notifies of data changes, so nothing needs to be done here.
+    @Override
+    public void onStateCommitted() {}}

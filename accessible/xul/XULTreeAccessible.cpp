@@ -74,7 +74,7 @@ XULTreeAccessible::~XULTreeAccessible()
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeAccessible, Accessible,
                                    mTree, mAccessibleCache)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULTreeAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULTreeAccessible)
 NS_INTERFACE_MAP_END_INHERITING(Accessible)
 
 NS_IMPL_ADDREF_INHERITED(XULTreeAccessible, Accessible)
@@ -144,7 +144,7 @@ XULTreeAccessible::Value(nsString& aValue)
 void
 XULTreeAccessible::Shutdown()
 {
-  if (!mDoc->IsDefunct()) {
+  if (mDoc && !mDoc->IsDefunct()) {
     UnbindCacheEntriesFromDocument(mAccessibleCache);
   }
 
@@ -710,12 +710,9 @@ XULTreeItemAccessibleBase::~XULTreeItemAccessibleBase()
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessibleBase, Accessible,
                                    mTree)
 
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessibleBase)
-  NS_INTERFACE_TABLE_INHERITED(XULTreeItemAccessibleBase,
-                               XULTreeItemAccessibleBase)
-NS_INTERFACE_TABLE_TAIL_INHERITING(Accessible)
-NS_IMPL_ADDREF_INHERITED(XULTreeItemAccessibleBase, Accessible)
-NS_IMPL_RELEASE_INHERITED(XULTreeItemAccessibleBase, Accessible)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessibleBase,
+                                             Accessible,
+                                             XULTreeItemAccessibleBase)
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTreeItemAccessibleBase: Accessible
@@ -1086,7 +1083,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessible,
                                    XULTreeItemAccessibleBase,
                                    mColumn)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XULTreeItemAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULTreeItemAccessible)
 NS_INTERFACE_MAP_END_INHERITING(XULTreeItemAccessibleBase)
 NS_IMPL_ADDREF_INHERITED(XULTreeItemAccessible, XULTreeItemAccessibleBase)
 NS_IMPL_RELEASE_INHERITED(XULTreeItemAccessible, XULTreeItemAccessibleBase)

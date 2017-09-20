@@ -79,7 +79,8 @@ public:
   NS_DISPLAY_DECL_NAME("nsDisplayCanvas", TYPE_CANVAS)
 
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                   bool* aSnap) override {
+                                   bool* aSnap) const override
+  {
     *aSnap = false;
     nsHTMLCanvasFrame* f = static_cast<nsHTMLCanvasFrame*>(Frame());
     HTMLCanvasElement* canvas =
@@ -108,7 +109,8 @@ public:
   }
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) override {
+                           bool* aSnap) const override
+  {
     *aSnap = true;
     nsHTMLCanvasFrame* f = static_cast<nsHTMLCanvasFrame*>(Frame());
     return f->GetInnerArea() + ToReferenceFrame();
@@ -123,6 +125,7 @@ public:
   }
 
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
@@ -140,8 +143,11 @@ public:
         WebRenderCanvasRendererAsync* data =
           static_cast<WebRenderCanvasRendererAsync*>(canvasData->GetCanvasRenderer());
 
-        if (isRecycled) {
-          static_cast<nsHTMLCanvasFrame*>(mFrame)->InitializeCanvasRenderer(aDisplayListBuilder, data);
+        if (!isRecycled) {
+          nsHTMLCanvasFrame* canvasFrame = static_cast<nsHTMLCanvasFrame*>(mFrame);
+          if (!canvasFrame->InitializeCanvasRenderer(aDisplayListBuilder, data)) {
+            return true;
+          }
         }
 
         data->UpdateCompositableClient();
@@ -177,11 +183,14 @@ public:
           scTransform = scTransform.PreTranslate(0, data->GetSize().height, 0).PreScale(1, -1, 1);
         }
 
+        gfxRect destGFXRect = mFrame->PresContext()->AppUnitsToGfxUnits(dest);
+        scTransform.PreScale(destGFXRect.Width() / canvasSizeInPx.width,
+                             destGFXRect.Height() / canvasSizeInPx.height, 1.0f);
+
         MaybeIntSize scaleToSize;
         LayerRect scBounds(0, 0, bounds.width, bounds.height);
         wr::ImageRendering filter = wr::ToImageRendering(nsLayoutUtils::GetSamplingFilterForFrame(mFrame));
         wr::MixBlendMode mixBlendMode = wr::MixBlendMode::Normal;
-
         aManager->WrBridge()->AddWebRenderParentCommand(OpUpdateAsyncImagePipeline(data->GetPipelineId().value(),
                                                                                    scBounds,
                                                                                    scTransform,
@@ -335,13 +344,12 @@ nsHTMLCanvasFrame::Reflow(nsPresContext*           aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsHTMLCanvasFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aMetrics, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                   ("enter nsHTMLCanvasFrame::Reflow: availSize=%d,%d",
                   aReflowInput.AvailableWidth(), aReflowInput.AvailableHeight()));
 
   NS_PRECONDITION(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
-
-  aStatus.Reset();
 
   WritingMode wm = aReflowInput.GetWritingMode();
   LogicalSize finalSize(wm,
@@ -452,17 +460,16 @@ nsHTMLCanvasFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   return layer.forget();
 }
 
-void
+bool
 nsHTMLCanvasFrame::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
                                             CanvasRenderer* aRenderer)
 {
   HTMLCanvasElement* element = static_cast<HTMLCanvasElement*>(GetContent());
-  element->InitializeCanvasRenderer(aBuilder, aRenderer);
+  return element->InitializeCanvasRenderer(aBuilder, aRenderer);
 }
 
 void
 nsHTMLCanvasFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                    const nsRect&           aDirtyRect,
                                     const nsDisplayListSet& aLists)
 {
   if (!IsVisibleForPainting(aBuilder))

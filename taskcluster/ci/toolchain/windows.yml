@@ -8,7 +8,7 @@ win32-clang-cl:
         kind: build
         platform: toolchains/opt
         symbol: TW32(clang-cl)
-        tier: 2
+        tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
     worker:
         max-run-time: 36000
@@ -29,7 +29,7 @@ win64-clang-cl:
         kind: build
         platform: toolchains/opt
         symbol: TW64(clang-cl)
-        tier: 2
+        tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
     worker:
         max-run-time: 36000
@@ -112,3 +112,23 @@ win64-sccache:
         resources:
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/sccache2.tar.bz2
+
+win32-gn:
+    description: "gn toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TW32(gn)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
+    worker:
+        max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win32/gn-build.manifest"
+    run:
+        using: toolchain-script
+        script: build-gn-win32.sh
+        resources:
+            - 'taskcluster/scripts/misc/tooltool-download.sh'
+            - 'taskcluster/scripts/misc/build-gn-common.sh'
+        toolchain-artifact: public/build/gn.tar.bz2

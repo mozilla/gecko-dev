@@ -7,18 +7,21 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
-use values::computed::{Context, NonNegativeAu, ToComputedValue};
+use values::computed::{self, Context, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderRadius as GenericBorderRadius;
+use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
+use values::generics::size::Size;
 use values::specified::{AllowQuirks, Number, NumberOrPercentage};
-use values::specified::length::{Length, LengthOrPercentage};
+use values::specified::length::{Length, LengthOrPercentage, NonNegativeLength};
 
 /// A specified value for a single side of the `border-width` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum BorderSideWidth {
     /// `thin`
     Thin,
@@ -44,6 +47,9 @@ pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A specified value for the `border-*-radius` longhand properties.
 pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
+
+/// A specified value for the `border-spacing` longhand properties.
+pub type BorderSpacing = GenericBorderSpacing<NonNegativeLength>;
 
 impl BorderSideWidth {
     /// Parses, with quirks.
@@ -71,7 +77,7 @@ impl Parse for BorderSideWidth {
 }
 
 impl ToComputedValue for BorderSideWidth {
-    type ComputedValue = NonNegativeAu;
+    type ComputedValue = computed::NonNegativeLength;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -82,7 +88,7 @@ impl ToComputedValue for BorderSideWidth {
             BorderSideWidth::Thin => Length::from_px(1.).to_computed_value(context),
             BorderSideWidth::Medium => Length::from_px(3.).to_computed_value(context),
             BorderSideWidth::Thick => Length::from_px(5.).to_computed_value(context),
-            BorderSideWidth::Length(ref length) => length.to_computed_value(context)
+            BorderSideWidth::Length(ref length) => length.to_computed_value(context),
         }.into()
     }
 
@@ -148,11 +154,22 @@ impl Parse for BorderRadius {
 }
 
 impl Parse for BorderCornerRadius {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let first = LengthOrPercentage::parse_non_negative(context, input)?;
-        let second = input
-            .try(|i| LengthOrPercentage::parse_non_negative(context, i))
-            .unwrap_or_else(|_| first.clone());
-        Ok(Self::new(first, second))
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Size::parse_with(context, input, LengthOrPercentage::parse_non_negative)
+            .map(GenericBorderCornerRadius)
+    }
+}
+
+impl Parse for BorderSpacing {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Size::parse_with(context, input, |context, input| {
+            Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes).map(From::from)
+        }).map(GenericBorderSpacing)
     }
 }

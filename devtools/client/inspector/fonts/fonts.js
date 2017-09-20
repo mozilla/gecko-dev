@@ -47,7 +47,6 @@ FontInspector.prototype = {
     let app = App({
       onPreviewFonts: this.onPreviewFonts,
       onShowAllFont: this.onShowAllFont,
-      onTextBoxContextMenu: this.inspector.onTextBoxContextMenu
     });
 
     let provider = createElement(Provider, {
@@ -137,16 +136,20 @@ FontInspector.prototype = {
 
   update: Task.async(function* () {
     let node = this.inspector.selection.nodeFront;
-
-    if (!node ||
-        !this.isPanelVisible() ||
-        !this.inspector.selection.isConnected() ||
-        !this.inspector.selection.isElementNode()) {
-      return;
-    }
-
+    let fonts = [];
     let { fontOptions } = this.store.getState();
     let { showAllFonts, previewText } = fontOptions;
+
+    // Clear the list of fonts if the currently selected node is not connected or an
+    // element node unless all fonts are supposed to be shown.
+    if (!showAllFonts &&
+        (!node ||
+         !this.isPanelVisible() ||
+         !this.inspector.selection.isConnected() ||
+         !this.inspector.selection.isElementNode())) {
+      this.store.dispatch(updateFonts(fonts));
+      return;
+    }
 
     let options = {
       includePreviews: true,
@@ -154,7 +157,6 @@ FontInspector.prototype = {
       previewFillStyle: getColor("body-color")
     };
 
-    let fonts = [];
     if (showAllFonts) {
       fonts = yield this.pageStyle.getAllUsedFontFaces(options)
                       .catch(console.error);

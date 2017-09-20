@@ -5,7 +5,7 @@
 /*    Support for the FT_Outline type used to store glyph shapes of        */
 /*    most scalable font formats (specification).                          */
 /*                                                                         */
-/*  Copyright 1996-2016 by                                                 */
+/*  Copyright 1996-2017 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -384,6 +384,9 @@ FT_BEGIN_HEADER
   /*    wider and `ystrength' pixels higher.  Otherwise, it is similar to  */
   /*    @FT_Outline_Embolden, which uses the same strength in both         */
   /*    directions.                                                        */
+  /*                                                                       */
+  /* <Since>                                                               */
+  /*    2.4.10                                                             */
   /*                                                                       */
   FT_EXPORT( FT_Error )
   FT_Outline_EmboldenXY( FT_Outline*  outline,

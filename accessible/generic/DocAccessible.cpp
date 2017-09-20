@@ -46,6 +46,8 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/EventStates.h"
+#include "mozilla/HTMLEditor.h"
+#include "mozilla/TextEditor.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
@@ -161,7 +163,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DocAccessible, Accessible)
   tmp->mARIAOwnsHash.Clear();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DocAccessible)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DocAccessible)
   NS_INTERFACE_MAP_ENTRY(nsIDocumentObserver)
   NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
@@ -266,8 +268,8 @@ DocAccessible::NativeState()
     state |= states::INVISIBLE | states::OFFSCREEN;
   }
 
-  nsCOMPtr<nsIEditor> editor = GetEditor();
-  state |= editor ? states::EDITABLE : states::READONLY;
+  RefPtr<TextEditor> textEditor = GetEditor();
+  state |= textEditor ? states::EDITABLE : states::READONLY;
 
   return state;
 }
@@ -337,7 +339,7 @@ DocAccessible::TakeFocus()
 }
 
 // HyperTextAccessible method
-already_AddRefed<nsIEditor>
+already_AddRefed<TextEditor>
 DocAccessible::GetEditor() const
 {
   // Check if document is editable (designMode="on" case). Otherwise check if
@@ -356,15 +358,17 @@ DocAccessible::GetEditor() const
   if (!editingSession)
     return nullptr; // No editing session interface
 
-  nsCOMPtr<nsIEditor> editor;
-  editingSession->GetEditorForWindow(mDocumentNode->GetWindow(), getter_AddRefs(editor));
-  if (!editor)
+  RefPtr<HTMLEditor> htmlEditor =
+    editingSession->GetHTMLEditorForWindow(mDocumentNode->GetWindow());
+  if (!htmlEditor) {
     return nullptr;
+  }
 
   bool isEditable = false;
-  editor->GetIsDocumentEditable(&isEditable);
-  if (isEditable)
-    return editor.forget();
+  htmlEditor->GetIsDocumentEditable(&isEditable);
+  if (isEditable) {
+    return htmlEditor.forget();
+  }
 
   return nullptr;
 }
@@ -526,7 +530,7 @@ DocAccessible::RelativeBounds(nsIFrame** aRelativeFrame) const
       return nsRect();
 
     nsRect scrollPort;
-    nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
+    nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollable();
     if (sf) {
       scrollPort = sf->GetScrollPortRect();
     } else {
@@ -1307,9 +1311,9 @@ DocAccessible::BindToDocument(Accessible* aAccessible,
 
   aAccessible->SetRoleMapEntry(aRoleMapEntry);
 
-  AddDependentIDsFor(aAccessible);
-
   if (aAccessible->HasOwnContent()) {
+    AddDependentIDsFor(aAccessible);
+
     nsIContent* el = aAccessible->GetContent();
     if (el->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_owns)) {
       mNotificationController->ScheduleRelocation(aAccessible);
@@ -1499,6 +1503,7 @@ DocAccessible::DoInitialUpdate()
 
 #if defined(XP_WIN)
         IAccessibleHolder holder(CreateHolderFromAccessible(this));
+        MOZ_DIAGNOSTIC_ASSERT(!holder.IsNull());
         int32_t childID = AccessibleWrap::GetChildIDFor(this);
 #else
         int32_t holder = 0, childID = 0;
@@ -1602,6 +1607,11 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsIAtom* aRelAttr)
       if (id.IsEmpty())
         break;
 
+      nsIContent* dependentContent = iter.GetElem(id);
+      if (relAttr == nsGkAtoms::aria_owns && dependentContent &&
+          !aRelProvider->IsAcceptableChild(dependentContent))
+        continue;
+
       AttrRelProviderArray* providers = mDependentIDsHash.Get(id);
       if (!providers) {
         providers = new AttrRelProviderArray();
@@ -1620,7 +1630,6 @@ DocAccessible::AddDependentIDsFor(Accessible* aRelProvider, nsIAtom* aRelAttr)
           // content is not accessible then store it to pend its container
           // children invalidation (this happens immediately after the caching
           // is finished).
-          nsIContent* dependentContent = iter.GetElem(id);
           if (dependentContent) {
             if (!HasAccessible(dependentContent)) {
               mInvalidationList.AppendElement(dependentContent);
@@ -2108,6 +2117,10 @@ DocAccessible::DoARIAOwnsRelocation(Accessible* aOwner)
                     "candidate", child, nullptr);
 #endif
 
+    if (owned->IndexOf(child) < idx) {
+      continue; // ignore second entry of same ID
+    }
+
     // Same child on same position, no change.
     if (child->Parent() == aOwner) {
       int32_t indexInParent = child->IndexInParent();
@@ -2138,10 +2151,6 @@ DocAccessible::DoARIAOwnsRelocation(Accessible* aOwner)
 
     MOZ_ASSERT(owned->SafeElementAt(idx) != child, "Already in place!");
 
-    if (owned->IndexOf(child) < idx) {
-      continue; // ignore second entry of same ID
-    }
-
     // A new child is found, check for loops.
     if (child->Parent() != aOwner) {
       // Child is aria-owned by another container, skip.
@@ -2160,10 +2169,10 @@ DocAccessible::DoARIAOwnsRelocation(Accessible* aOwner)
     }
 
     if (MoveChild(child, aOwner, insertIdx)) {
-      nsTArray<RefPtr<Accessible> >* relocated = mARIAOwnsHash.LookupOrAdd(aOwner);
-      MOZ_ASSERT(relocated == owned);
       child->SetRelocated(true);
-      relocated->InsertElementAt(idx, child);
+      MOZ_ASSERT(owned == mARIAOwnsHash.Get(aOwner));
+      owned = mARIAOwnsHash.LookupOrAdd(aOwner);
+      owned->InsertElementAt(idx, child);
       idx++;
     }
   }

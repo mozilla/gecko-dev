@@ -22,7 +22,6 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/StateMirroring.h"
 #include "mozilla/StateWatching.h"
-#include "mozilla/dom/AudioChannelBinding.h"
 #include "necko-config.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -52,7 +51,6 @@ enum class Visibility : uint8_t;
 struct MOZ_STACK_CLASS MediaDecoderInit
 {
   MediaDecoderOwner* const mOwner;
-  const dom::AudioChannel mAudioChannel;
   const double mVolume;
   const bool mPreservesPitch;
   const double mPlaybackRate;
@@ -62,7 +60,6 @@ struct MOZ_STACK_CLASS MediaDecoderInit
   const MediaContainerType mContainerType;
 
   MediaDecoderInit(MediaDecoderOwner* aOwner,
-                   dom::AudioChannel aAudioChannel,
                    double aVolume,
                    bool aPreservesPitch,
                    double aPlaybackRate,
@@ -71,7 +68,6 @@ struct MOZ_STACK_CLASS MediaDecoderInit
                    bool aLooping,
                    const MediaContainerType& aContainerType)
     : mOwner(aOwner)
-    , mAudioChannel(aAudioChannel)
     , mVolume(aVolume)
     , mPreservesPitch(aPreservesPitch)
     , mPlaybackRate(aPlaybackRate)
@@ -112,10 +108,6 @@ public:
   // Safe to call from any thread.
   const MediaContainerType& ContainerType() const { return mContainerType; }
 
-  // Create a new state machine to run this decoder.
-  // Subclasses must implement this.
-  virtual MediaDecoderStateMachine* CreateStateMachine() = 0;
-
   // Cleanup internal data structures. Must be called on the main
   // thread by the owning object before that object disposes of this object.
   virtual void Shutdown();
@@ -128,17 +120,8 @@ public:
   // Called if the media file encounters a network error.
   void NetworkError();
 
-  // Get the current MediaResource being used.
-  // Note: The MediaResource is refcounted, but it outlives the MediaDecoder,
-  // so it's OK to use the reference returned by this function without
-  // refcounting, *unless* you need to store and use the reference after the
-  // MediaDecoder has been destroyed. You might need to do this if you're
-  // wrapping the MediaResource in some kind of byte stream interface to be
-  // passed to a platform decoder.
-  virtual MediaResource* GetResource() const = 0;
-
   // Return the principal of the current URI being played or downloaded.
-  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
+  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
 
   // Return the time position in the video stream being
   // played measured in seconds.
@@ -211,13 +194,12 @@ public:
   // Must be called before Shutdown().
   bool OwnerHasError() const;
 
-public:
   // Returns true if this media supports random seeking. False for example with
   // chained ogg files.
   bool IsMediaSeekable();
   // Returns true if seeking is supported on a transport level (e.g. the server
   // supports range requests, we are playing a file, etc.).
-  bool IsTransportSeekable();
+  virtual bool IsTransportSeekable() = 0;
 
   // Return the time ranges that can be seeked into.
   virtual media::TimeIntervals GetSeekable();
@@ -293,7 +275,7 @@ private:
     MozPromiseHolder<SizeOfPromise> mCallback;
   };
 
-  virtual void AddSizeOfResources(ResourceSizes* aSizes);
+  virtual void AddSizeOfResources(ResourceSizes* aSizes) = 0;
 
   VideoFrameContainer* GetVideoFrameContainer()
   {
@@ -309,8 +291,6 @@ private:
   // Returns true if we can play the entire media through without stopping
   // to buffer, given the current download and playback rates.
   bool CanPlayThrough();
-
-  dom::AudioChannel GetAudioChannel() { return mAudioChannel; }
 
   // Called from HTMLMediaElement when owner document activity changes
   virtual void SetElementVisibility(bool aIsDocumentVisible,
@@ -378,14 +358,6 @@ private:
     return mAbstractMainThread;
   }
 
-  typedef MozPromise<RefPtr<CDMProxy>, bool /* aIgnored */,
-                     /* IsExclusive = */ true>
-    CDMProxyPromise;
-
-  // Resolved when a CDMProxy is available and the capabilities are known or
-  // rejected when this decoder is about to shut down.
-  RefPtr<CDMProxyPromise> RequestCDMProxy() const;
-
   void SetCDMProxy(CDMProxy* aProxy);
 
   void EnsureTelemetryReported();
@@ -411,13 +383,14 @@ private:
 
   virtual MediaDecoderOwner::NextFrameStatus NextFrameStatus()
   {
-    return mNextFrameStatus;
+    return !IsEnded() ? mNextFrameStatus : MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
   }
+
   virtual MediaDecoderOwner::NextFrameStatus NextFrameBufferedStatus();
 
   // Returns a string describing the state of the media player internal
   // data. Used for debugging purposes.
-  virtual void GetMozDebugReaderData(nsACString& aString) { }
+  virtual void GetMozDebugReaderData(nsACString& aString);
 
   virtual void DumpDebugInfo();
 
@@ -455,6 +428,12 @@ protected:
   }
 
   virtual void OnPlaybackEvent(MediaEventType aEvent);
+
+  // Called when the metadata from the media file has been loaded by the
+  // state machine. Call on the main thread only.
+  virtual void MetadataLoaded(UniquePtr<MediaInfo> aInfo,
+                              UniquePtr<MetadataTags> aTags,
+                              MediaDecoderEventVisibility aEventVisibility);
 
   /******
    * The following members should be accessed with the decoder lock held.
@@ -494,13 +473,13 @@ protected:
     media::TimeUnit::FromMicroseconds(250000);
 
 private:
-  nsCString GetDebugInfo();
+  // Ensures our media resource has been pinned.
+  virtual void PinForSeek() = 0;
 
-  // Called when the metadata from the media file has been loaded by the
-  // state machine. Call on the main thread only.
-  void MetadataLoaded(UniquePtr<MediaInfo> aInfo,
-                      UniquePtr<MetadataTags> aTags,
-                      MediaDecoderEventVisibility aEventVisibility);
+  // Ensures our media resource has been unpinned.
+  virtual void UnpinForSeek() = 0;
+
+  nsCString GetDebugInfo();
 
   // Called when the owner's activity changed.
   void NotifyCompositor();
@@ -520,6 +499,7 @@ private:
   void DisconnectMirrors();
 
   virtual bool CanPlayThroughImpl() = 0;
+  virtual bool IsLiveStream() = 0;
 
   // The state machine object for handling the decoding. It is safe to
   // call methods of this object from other threads. Its internal data
@@ -530,9 +510,6 @@ private:
   // Explicitly prievate to force access via accessors.
   RefPtr<MediaDecoderStateMachine> mDecoderStateMachine;
 
-  MozPromiseHolder<CDMProxyPromise> mCDMProxyPromiseHolder;
-  RefPtr<CDMProxyPromise> mCDMProxyPromise;
-
 protected:
   void NotifyDataArrivedInternal();
   void DiscardOngoingSeekIfExists();
@@ -542,23 +519,11 @@ protected:
   // Called on the main thread only.
   virtual void DownloadProgressed();
 
-  // Called by MediaResource when the "cache suspended" status changes.
-  // If MediaResource::IsSuspendedByCache returns true, then the decoder
-  // should stop buffering or otherwise waiting for download progress and
-  // start consuming data, if possible, because the cache is full.
-  void NotifySuspendedStatusChanged();
-
   // Called by MediaResource when the principal of the resource has
   // changed. Called on main thread only.
   void NotifyPrincipalChanged();
 
   MozPromiseRequestHolder<SeekPromise> mSeekRequest;
-
-  // Ensures our media stream has been pinned.
-  void PinForSeek();
-
-  // Ensures our media stream has been unpinned.
-  void UnpinForSeek();
 
   const char* PlayStateStr();
 
@@ -576,14 +541,6 @@ protected:
   const RefPtr<FrameStatistics> mFrameStats;
 
   RefPtr<VideoFrameContainer> mVideoFrameContainer;
-
-  // True when our media stream has been pinned. We pin the stream
-  // while seeking.
-  bool mPinnedForSeek;
-
-  // Be assigned from media element during the initialization and pass to
-  // AudioStream Class.
-  const dom::AudioChannel mAudioChannel;
 
   // True if the decoder has been directed to minimize its preroll before
   // playback starts. After the first time playback starts, we don't attempt

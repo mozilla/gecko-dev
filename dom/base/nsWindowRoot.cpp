@@ -94,17 +94,6 @@ nsWindowRoot::DispatchEvent(nsIDOMEvent* aEvt, bool *aRetVal)
   return rv;
 }
 
-nsresult
-nsWindowRoot::DispatchDOMEvent(WidgetEvent* aEvent,
-                               nsIDOMEvent* aDOMEvent,
-                               nsPresContext* aPresContext,
-                               nsEventStatus* aEventStatus)
-{
-  return EventDispatcher::DispatchDOMEvent(static_cast<EventTarget*>(this),
-                                           aEvent, aDOMEvent,
-                                           aPresContext, aEventStatus);
-}
-
 NS_IMETHODIMP
 nsWindowRoot::AddEventListener(const nsAString& aType,
                                nsIDOMEventListener *aListener,
@@ -218,7 +207,8 @@ nsWindowRoot::GetWindow()
 }
 
 nsresult
-nsWindowRoot::GetControllers(nsIControllers** aResult)
+nsWindowRoot::GetControllers(bool aForVisibleWindow,
+                             nsIControllers** aResult)
 {
   *aResult = nullptr;
 
@@ -226,9 +216,13 @@ nsWindowRoot::GetControllers(nsIControllers** aResult)
   // describes controllers, so this code would have no special
   // knowledge of what object might have controllers.
 
+  nsFocusManager::SearchRange searchRange =
+    aForVisibleWindow ? nsFocusManager::eIncludeVisibleDescendants :
+                        nsFocusManager::eIncludeAllDescendants;
   nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
   nsIContent* focusedContent =
-    nsFocusManager::GetFocusedDescendant(mWindow, true, getter_AddRefs(focusedWindow));
+    nsFocusManager::GetFocusedDescendant(mWindow, searchRange,
+                                         getter_AddRefs(focusedWindow));
   if (focusedContent) {
 #ifdef MOZ_XUL
     RefPtr<nsXULElement> xulElement = nsXULElement::FromContent(focusedContent);
@@ -261,7 +255,8 @@ nsWindowRoot::GetControllers(nsIControllers** aResult)
 }
 
 nsresult
-nsWindowRoot::GetControllerForCommand(const char * aCommand,
+nsWindowRoot::GetControllerForCommand(const char* aCommand,
+                                      bool aForVisibleWindow,
                                       nsIController** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
@@ -269,7 +264,7 @@ nsWindowRoot::GetControllerForCommand(const char * aCommand,
 
   {
     nsCOMPtr<nsIControllers> controllers;
-    GetControllers(getter_AddRefs(controllers));
+    GetControllers(aForVisibleWindow, getter_AddRefs(controllers));
     if (controllers) {
       nsCOMPtr<nsIController> controller;
       controllers->GetControllerForCommand(aCommand, getter_AddRefs(controller));
@@ -280,8 +275,12 @@ nsWindowRoot::GetControllerForCommand(const char * aCommand,
     }
   }
 
+  nsFocusManager::SearchRange searchRange =
+    aForVisibleWindow ? nsFocusManager::eIncludeVisibleDescendants :
+                        nsFocusManager::eIncludeAllDescendants;
   nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
-  nsFocusManager::GetFocusedDescendant(mWindow, true, getter_AddRefs(focusedWindow));
+  nsFocusManager::GetFocusedDescendant(mWindow, searchRange,
+                                       getter_AddRefs(focusedWindow));
   while (focusedWindow) {
     nsCOMPtr<nsIControllers> controllers;
     focusedWindow->GetControllers(getter_AddRefs(controllers));
@@ -351,14 +350,16 @@ nsWindowRoot::GetEnabledDisabledCommands(nsTArray<nsCString>& aEnabledCommands,
   nsTHashtable<nsCharPtrHashKey> commandsHandled;
 
   nsCOMPtr<nsIControllers> controllers;
-  GetControllers(getter_AddRefs(controllers));
+  GetControllers(false, getter_AddRefs(controllers));
   if (controllers) {
     GetEnabledDisabledCommandsForControllers(controllers, commandsHandled,
                                              aEnabledCommands, aDisabledCommands);
   }
 
   nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
-  nsFocusManager::GetFocusedDescendant(mWindow, true, getter_AddRefs(focusedWindow));
+  nsFocusManager::GetFocusedDescendant(mWindow,
+                                       nsFocusManager::eIncludeAllDescendants,
+                                       getter_AddRefs(focusedWindow));
   while (focusedWindow) {
     focusedWindow->GetControllers(getter_AddRefs(controllers));
     if (controllers) {

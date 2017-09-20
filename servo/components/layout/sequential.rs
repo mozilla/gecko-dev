@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
 use flow::{self, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
@@ -17,8 +17,6 @@ use servo_config::opts;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
-
-pub use style::sequential::traverse_dom;
 
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
@@ -71,9 +69,10 @@ pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: Re
 pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
                                           layout_context: &'a LayoutContext)
                                           -> DisplayListBuildState<'a> {
-    let mut state = DisplayListBuildState::new(layout_context);
+    let mut state = StackingContextCollectionState::new(layout_context.id);
     flow_root.collect_stacking_contexts(&mut state);
 
+    let state = DisplayListBuildState::new(layout_context, state);
     let mut build_display_list = BuildDisplayList {
         state: state,
     };
@@ -95,7 +94,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
                                             flow::base(kid).stacking_relative_position +
                                             stacking_context_position.to_vector();
                 let relative_position = kid.as_block()
-                    .stacking_relative_position(CoordinateSystem::Own);
+                    .stacking_relative_border_box(CoordinateSystem::Own);
                 if let Some(matrix) = kid.as_block()
                        .fragment
                        .transform_matrix(&relative_position) {
@@ -117,7 +116,7 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
         return;
     }
 
-    for mut kid in flow::mut_base(flow).child_iter_mut() {
+    for kid in flow::mut_base(flow).child_iter_mut() {
         store_overflow(layout_context, kid);
     }
 

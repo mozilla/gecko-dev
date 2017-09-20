@@ -113,10 +113,10 @@ DispatcherDelegate.prototype = {
    *
    * @param msg Message to send; must be an object with a "type" property
    */
-  sendRequest: function(msg) {
+  sendRequest: function(msg, callback) {
     let type = msg.type;
     msg.type = undefined;
-    this.dispatch(type, msg);
+    this.dispatch(type, msg, callback);
   },
 
   /**
@@ -196,32 +196,42 @@ DispatcherDelegate.prototype = {
   _requestHandler: {
     listeners: {},
 
-    onEvent: Task.async(function* (event, data, callback) {
-      try {
-        let response = yield this.listeners[event](data.data);
+    onEvent: function(event, data, callback) {
+      let self = this;
+      Task.spawn(function* () {
+        return yield self.listeners[event](data.data);
+      }).then(response => {
         callback.onSuccess(response);
-
-      } catch (e) {
+      }, error => {
         Cu.reportError("Error in Messaging handler for " + event + ": " + e);
-
         callback.onError({
           message: e.message || (e && e.toString()),
           stack: e.stack || Components.stack.formattedStack,
         });
-      }
-    }),
+      });
+    },
   },
 };
 
 var EventDispatcher = {
   instance: new DispatcherDelegate(IS_PARENT_PROCESS ? Services.androidBridge : undefined),
 
+  /**
+   * Return an EventDispatcher instance for a chrome DOM window. In a content
+   * process, return a proxy through the message manager that automatically
+   * forwards events to the main process.
+   *
+   * To force using a message manager proxy (for example in a frame script
+   * environment), call forMessageManager.
+   *
+   * @param aWindow a chrome DOM window.
+   */
   for: function(aWindow) {
     let view = aWindow && aWindow.arguments && aWindow.arguments[0] &&
                aWindow.arguments[0].QueryInterface(Ci.nsIAndroidView);
 
     if (!view) {
-      let mm = aWindow && aWindow.messageManager;
+      let mm = !IS_PARENT_PROCESS && aWindow && aWindow.messageManager;
       if (!mm) {
         throw new Error("window is not a GeckoView-connected window and does" +
                         " not have a message manager");
@@ -232,6 +242,12 @@ var EventDispatcher = {
     return new DispatcherDelegate(view);
   },
 
+  /**
+   * Return an EventDispatcher instance for a message manager associated with a
+   * window.
+   *
+   * @param aWindow a message manager.
+   */
   forMessageManager: function(aMessageManager) {
     return new DispatcherDelegate(null, aMessageManager);
   },

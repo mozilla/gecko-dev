@@ -4,9 +4,15 @@
 
 "use strict";
 
-const Cu = Components.utils;
-const Ci = Components.interfaces;
+const {utils: Cu, classes: Cc, interfaces: Ci} = Components;
 const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
+
+const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
+XPCOMUtils.defineLazyGetter(this, "DevtoolsStartup", () => {
+  return Cc["@mozilla.org/devtools/startup-clh;1"]
+            .getService(Ci.nsICommandLineHandler)
+            .wrappedJSObject;
+});
 
 this.EXPORTED_SYMBOLS = [
   "DevToolsShim",
@@ -189,27 +195,26 @@ this.DevToolsShim = {
   /**
    * Called from SessionStore.jsm in mozilla-central when saving the current state.
    *
-   * @return {Array} array of currently opened scratchpad windows. Empty array if devtools
-   *         are not installed
+   * @param {Object} state
+   *                 A SessionStore state object that gets modified by reference
    */
-  getOpenedScratchpads: function () {
+  saveDevToolsSession: function (state) {
     if (!this.isInitialized()) {
-      return [];
+      return;
     }
-
-    return this._gDevTools.getOpenedScratchpads();
+    this._gDevTools.saveDevToolsSession(state);
   },
 
   /**
    * Called from SessionStore.jsm in mozilla-central when restoring a state that contained
-   * opened scratchpad windows.
+   * opened scratchpad windows and browser console.
    */
-  restoreScratchpadSession: function (scratchpads) {
+  restoreDevToolsSession: function (session) {
     if (!this.isInstalled()) {
       return;
     }
 
-    this.gDevTools.restoreScratchpadSession(scratchpads);
+    this.gDevTools.restoreDevToolsSession(session);
   },
 
   /**
@@ -230,12 +235,24 @@ this.DevToolsShim = {
       return Promise.resolve();
     }
 
+    // Initialize DevTools explicitly to pass the "ContextMenu" reason to telemetry.
+    if (!this.isInitialized()) {
+      this._initDevTools("ContextMenu");
+    }
+
     return this.gDevTools.inspectNode(tab, selectors);
   },
 
-  _initDevTools: function () {
-    let { loader } = Cu.import("resource://devtools/shared/Loader.jsm", {});
-    loader.require("devtools/client/framework/devtools-browser");
+  /**
+   * Initialize DevTools via the devtools-startup command line handler component.
+   * Overridden in tests.
+   *
+   * @param {String} reason
+   *        optional, if provided should be a valid entry point for DEVTOOLS_ENTRY_POINT
+   *        in toolkit/components/telemetry/Histograms.json
+   */
+  _initDevTools: function (reason) {
+    DevtoolsStartup.initDevTools(reason);
   },
 
   _onDevToolsRegistered: function () {
@@ -269,7 +286,6 @@ let addonSdkMethods = [
   "closeToolbox",
   "connectDebuggerServer",
   "createDebuggerClient",
-  "getTargetForTab",
   "getToolbox",
   "initBrowserToolboxProcessForAddon",
   "showToolbox",
@@ -282,7 +298,11 @@ let addonSdkMethods = [
  * therefore DevTools should always be available when they are called.
  */
 let webExtensionsMethods = [
+  "createTargetForTab",
+  "createWebExtensionInspectedWindowFront",
+  "getTargetForTab",
   "getTheme",
+  "openBrowserConsole",
 ];
 
 for (let method of [...addonSdkMethods, ...webExtensionsMethods]) {

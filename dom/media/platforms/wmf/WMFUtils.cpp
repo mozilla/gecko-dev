@@ -13,8 +13,13 @@
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsWindowsHelpers.h"
+#include "prenv.h"
+#include <Shlobj.h>
+#include <Shlwapi.h>
 #include <initguid.h>
 #include <stdint.h>
+#include "mozilla/mscom/EnsureMTA.h"
+#include "mozilla/WindowsVersion.h"
 
 #ifdef WMF_MUST_DEFINE_AAC_MFT_CLSID
 // Some SDK versions don't define the AAC decoder CLSID.
@@ -89,7 +94,7 @@ GetSampleTime(IMFSample* aSample)
 // Gets the sub-region of the video frame that should be displayed.
 // See: http://msdn.microsoft.com/en-us/library/windows/desktop/bb530115(v=vs.85).aspx
 HRESULT
-GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion)
+GetPictureRegion(IMFMediaType* aMediaType, gfx::IntRect& aOutPictureRegion)
 {
   // Determine if "pan and scan" is enabled for this media. If it is, we
   // only display a region of the video frame, not the entire frame.
@@ -127,10 +132,10 @@ GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion)
 
   if (SUCCEEDED(hr)) {
     // The media specified a picture region, return it.
-    aOutPictureRegion = nsIntRect(MFOffsetToInt32(videoArea.OffsetX),
-                                  MFOffsetToInt32(videoArea.OffsetY),
-                                  videoArea.Area.cx,
-                                  videoArea.Area.cy);
+    aOutPictureRegion = gfx::IntRect(MFOffsetToInt32(videoArea.OffsetX),
+                                     MFOffsetToInt32(videoArea.OffsetY),
+                                     videoArea.Area.cx,
+                                     videoArea.Area.cy);
     return S_OK;
   }
 
@@ -141,8 +146,22 @@ GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion)
   NS_ENSURE_TRUE(width <= MAX_VIDEO_WIDTH, E_FAIL);
   NS_ENSURE_TRUE(height <= MAX_VIDEO_HEIGHT, E_FAIL);
 
-  aOutPictureRegion = nsIntRect(0, 0, width, height);
+  aOutPictureRegion = gfx::IntRect(0, 0, width, height);
   return S_OK;
+}
+
+nsString
+GetProgramW6432Path()
+{
+  char* programPath = PR_GetEnvSecure("ProgramW6432");
+  if (!programPath) {
+    programPath = PR_GetEnvSecure("ProgramFiles");
+  }
+
+  if (!programPath) {
+    return NS_LITERAL_STRING("C:\\Program Files");
+  }
+  return NS_ConvertUTF8toUTF16(programPath);
 }
 
 namespace wmf {
@@ -210,6 +229,16 @@ LoadDLLs()
 HRESULT
 MFStartup()
 {
+  if (IsWin7AndPre2000Compatible()) {
+    /*
+     * Specific exclude the usage of WMF on Win 7 with compatibility mode
+     * prior to Win 2000 as we may crash while trying to startup WMF.
+     * Using GetVersionEx API which takes compatibility mode into account.
+     * See Bug 1279171.
+     */
+    return E_FAIL;
+  }
+
   HRESULT hr = LoadDLLs();
   if (FAILED(hr)) {
     return hr;
@@ -220,14 +249,20 @@ MFStartup()
   // decltype is unusable for functions having default parameters
   DECL_FUNCTION_PTR(MFStartup, ULONG, DWORD);
   ENSURE_FUNCTION_PTR_(MFStartup, Mfplat.dll)
-  return MFStartupPtr(MF_WIN7_VERSION, MFSTARTUP_FULL);
+
+  hr = E_FAIL;
+  mozilla::mscom::EnsureMTA(
+    [&]() -> void { hr = MFStartupPtr(MF_WIN7_VERSION, MFSTARTUP_FULL); });
+  return hr;
 }
 
 HRESULT
 MFShutdown()
 {
   ENSURE_FUNCTION_PTR(MFShutdown, Mfplat.dll)
-  return (MFShutdownPtr)();
+  HRESULT hr = E_FAIL;
+  mozilla::mscom::EnsureMTA([&]() -> void { hr = (MFShutdownPtr)(); });
+  return hr;
 }
 
 HRESULT

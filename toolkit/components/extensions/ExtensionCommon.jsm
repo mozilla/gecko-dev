@@ -20,18 +20,18 @@ Cu.importGlobalProperties(["fetch"]);
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
-                                  "resource://gre/modules/MessageChannel.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
-                                  "resource://gre/modules/Preferences.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
-                                  "resource://gre/modules/Schemas.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  ConsoleAPI: "resource://gre/modules/Console.jsm",
+  MessageChannel: "resource://gre/modules/MessageChannel.jsm",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
+  Schemas: "resource://gre/modules/Schemas.jsm",
+});
 
 XPCOMUtils.defineLazyServiceGetter(this, "styleSheetService",
                                    "@mozilla.org/content/style-sheet-service;1",
                                    "nsIStyleSheetService");
+
+const global = Cu.getGlobalForObject(this);
 
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 
@@ -41,12 +41,11 @@ var {
   EventEmitter,
   ExtensionError,
   defineLazyGetter,
+  filterStack,
   getConsole,
   getInnerWindowID,
   getUniqueId,
-  runSafeSync,
-  runSafeSyncWithoutClone,
-  instanceOf,
+  getWinUtils,
 } = ExtensionUtils;
 
 XPCOMUtils.defineLazyGetter(this, "console", getConsole);
@@ -84,6 +83,98 @@ class NoCloneSpreadArgs {
   }
 }
 
+class ExtensionAPI extends ExtensionUtils.EventEmitter {
+  constructor(extension) {
+    super();
+
+    this.extension = extension;
+
+    extension.once("shutdown", () => {
+      if (this.onShutdown) {
+        this.onShutdown(extension.shutdownReason);
+      }
+      this.extension = null;
+    });
+  }
+
+  destroy() {
+  }
+
+  onManifestEntry(entry) {
+  }
+
+  getAPI(context) {
+    throw new Error("Not Implemented");
+  }
+}
+
+var ExtensionAPIs = {
+  apis: new Map(),
+
+  load(apiName) {
+    let api = this.apis.get(apiName);
+
+    if (api.loadPromise) {
+      return api.loadPromise;
+    }
+
+    let {script, schema} = api;
+
+    let addonId = `${apiName}@experiments.addons.mozilla.org`;
+    api.sandbox = Cu.Sandbox(global, {
+      wantXrays: false,
+      sandboxName: script,
+      addonId,
+      metadata: {addonID: addonId},
+    });
+
+    api.sandbox.ExtensionAPI = ExtensionAPI;
+
+    // Create a console getter which lazily provide a ConsoleAPI instance.
+    XPCOMUtils.defineLazyGetter(api.sandbox, "console", () => {
+      return new ConsoleAPI({prefix: addonId});
+    });
+
+    Services.scriptloader.loadSubScript(script, api.sandbox, "UTF-8");
+
+    api.loadPromise = Schemas.load(schema).then(() => {
+      let API = Cu.evalInSandbox("API", api.sandbox);
+      API.prototype.namespace = apiName;
+      return API;
+    });
+
+    return api.loadPromise;
+  },
+
+  unload(apiName) {
+    let api = this.apis.get(apiName);
+
+    let {schema} = api;
+
+    Schemas.unload(schema);
+    Cu.nukeSandbox(api.sandbox);
+
+    api.sandbox = null;
+    api.loadPromise = null;
+  },
+
+  register(namespace, schema, script) {
+    if (this.apis.has(namespace)) {
+      throw new Error(`API namespace already exists: ${namespace}`);
+    }
+
+    this.apis.set(namespace, {schema, script});
+  },
+
+  unregister(namespace) {
+    if (!this.apis.has(namespace)) {
+      throw new Error(`API namespace does not exist: ${namespace}`);
+    }
+
+    this.apis.delete(namespace);
+  },
+};
+
 class BaseContext {
   constructor(envType, extension) {
     this.envType = envType;
@@ -104,8 +195,7 @@ class BaseContext {
 
   setContentWindow(contentWindow) {
     let {document} = contentWindow;
-    let docShell = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDocShell);
+    let {docShell} = document;
 
     this.innerWindowID = getInnerWindowID(contentWindow);
     this.messageManager = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -157,46 +247,55 @@ class BaseContext {
     throw new Error("Not implemented");
   }
 
-  runSafe(...args) {
+  runSafe(callback, ...args) {
+    return this.applySafe(callback, args);
+  }
+
+  runSafeWithoutClone(callback, ...args) {
+    return this.applySafeWithoutClone(callback, args);
+  }
+
+  applySafe(callback, args) {
     if (this.unloaded) {
       Cu.reportError("context.runSafe called after context unloaded");
     } else if (!this.active) {
       Cu.reportError("context.runSafe called while context is inactive");
     } else {
-      return runSafeSync(this, ...args);
+      try {
+        let {cloneScope} = this;
+        args = args.map(arg => Cu.cloneInto(arg, cloneScope));
+      } catch (e) {
+        Cu.reportError(e);
+        dump(`runSafe failure: cloning into ${this.cloneScope}: ${e}\n\n${filterStack(Error())}`);
+      }
+
+      return this.applySafeWithoutClone(callback, args);
     }
   }
 
-  runSafeWithoutClone(...args) {
+  applySafeWithoutClone(callback, args) {
     if (this.unloaded) {
       Cu.reportError("context.runSafeWithoutClone called after context unloaded");
     } else if (!this.active) {
       Cu.reportError("context.runSafeWithoutClone called while context is inactive");
     } else {
-      return runSafeSyncWithoutClone(...args);
+      try {
+        return Reflect.apply(callback, null, args);
+      } catch (e) {
+        dump(`Extension error: ${e} ${e.fileName} ${e.lineNumber}\n[[Exception stack\n${filterStack(e)}Current stack\n${filterStack(Error())}]]\n`);
+        Cu.reportError(e);
+      }
     }
   }
 
   checkLoadURL(url, options = {}) {
-    let ssm = Services.scriptSecurityManager;
-
-    let flags = ssm.STANDARD;
-    if (!options.allowScript) {
-      flags |= ssm.DISALLOW_SCRIPT;
-    }
-    if (!options.allowInheritsPrincipal) {
-      flags |= ssm.DISALLOW_INHERIT_PRINCIPAL;
-    }
-    if (options.dontReportErrors) {
-      flags |= ssm.DONT_REPORT_ERRORS;
+    // As an optimization, f the URL starts with the extension's base URL,
+    // don't do any further checks. It's always allowed to load it.
+    if (url.startsWith(this.extension.baseURL)) {
+      return true;
     }
 
-    try {
-      ssm.checkLoadURIStrWithPrincipal(this.principal, url, flags);
-    } catch (e) {
-      return false;
-    }
-    return true;
+    return ExtensionUtils.checkLoadURL(url, this.principal, options);
   }
 
   /**
@@ -276,8 +375,10 @@ class BaseContext {
       return error;
     }
     let message, fileName;
-    if (instanceOf(error, "Object") || error instanceof ExtensionError ||
-        (typeof error == "object" && this.principal.subsumes(Cu.getObjectPrincipal(error)))) {
+    if (error && typeof error === "object" &&
+        (ChromeUtils.getClassName(error) === "Object" ||
+         error instanceof ExtensionError ||
+         this.principal.subsumes(Cu.getObjectPrincipal(error)))) {
       message = error.message;
       fileName = error.fileName;
     } else {
@@ -335,9 +436,9 @@ class BaseContext {
    *     belonging to the target scope. Otherwise, undefined.
    */
   wrapPromise(promise, callback = null) {
-    let runSafe = this.runSafe.bind(this);
-    if (promise instanceof this.cloneScope.Promise) {
-      runSafe = this.runSafeWithoutClone.bind(this);
+    let applySafe = this.applySafe.bind(this);
+    if (Cu.getGlobalForObject(promise) === this.cloneScope) {
+      applySafe = this.applySafeWithoutClone.bind(this);
     }
 
     if (callback) {
@@ -348,11 +449,11 @@ class BaseContext {
           } else if (!this.active) {
             dump(`Promise resolved while context is inactive\n`);
           } else if (args instanceof NoCloneSpreadArgs) {
-            this.runSafeWithoutClone(callback, ...args.unwrappedValues);
+            this.applySafeWithoutClone(callback, args.unwrappedValues);
           } else if (args instanceof SpreadArgs) {
-            runSafe(callback, ...args);
+            applySafe(callback, args);
           } else {
-            runSafe(callback, args);
+            applySafe(callback, [args]);
           }
         },
         error => {
@@ -362,7 +463,7 @@ class BaseContext {
             } else if (!this.active) {
               dump(`Promise rejected while context is inactive\n`);
             } else {
-              this.runSafeWithoutClone(callback);
+              this.applySafeWithoutClone(callback, []);
             }
           });
         });
@@ -376,11 +477,11 @@ class BaseContext {
               dump(`Promise resolved while context is inactive\n`);
             } else if (value instanceof NoCloneSpreadArgs) {
               let values = value.unwrappedValues;
-              this.runSafeWithoutClone(resolve, values.length == 1 ? values[0] : values);
+              this.applySafeWithoutClone(resolve, values.length == 1 ? [values[0]] : [values]);
             } else if (value instanceof SpreadArgs) {
-              runSafe(resolve, value.length == 1 ? value[0] : value);
+              applySafe(resolve, value.length == 1 ? value : [value]);
             } else {
-              runSafe(resolve, value);
+              applySafe(resolve, [value]);
             }
           },
           value => {
@@ -389,7 +490,7 @@ class BaseContext {
             } else if (!this.active) {
               dump(`Promise rejected while context is inactive: ${value && value.message}\n`);
             } else {
-              this.runSafeWithoutClone(reject, this.normalizeError(value));
+              this.applySafeWithoutClone(reject, [this.normalizeError(value)]);
             }
           });
       });
@@ -567,9 +668,7 @@ class LocalAPIImplementation extends SchemaAPIInterface {
     let promise;
     try {
       if (requireUserInput) {
-        let winUtils = this.context.contentWindow
-                           .getInterface(Ci.nsIDOMWindowUtils);
-        if (!winUtils.isHandlingUserInput) {
+        if (!getWinUtils(this.context.contentWindow).isHandlingUserInput) {
           throw new ExtensionError(`${this.name} may only be called from a user input handler`);
         }
       }
@@ -816,6 +915,10 @@ class CanOfAPIs {
  *       its appropriate event handler method to be called. Currently
  *       only accepts "startup".
  *
+ * @property {Array<string>} permissions
+ *       An optional list of permissions, any of which must be present
+ *       in order for the module to load.
+ *
  * @property {Array<Array<string>>} paths
  *       A list of paths from the root API object which, when accessed,
  *       will cause the API module to be instantiated and injected.
@@ -848,7 +951,7 @@ class SchemaAPIManager extends EventEmitter {
 
     this._modulesJSONLoaded = false;
 
-    this.schemaURLs = new Set();
+    this.schemaURLs = new Map();
 
     this.apis = new DefaultWeakMap(() => new Map());
 
@@ -909,7 +1012,10 @@ class SchemaAPIManager extends EventEmitter {
       this.modules.set(name, details);
 
       if (details.schema) {
-        this.schemaURLs.add(details.schema);
+        let content = (details.scopes &&
+                       (details.scopes.includes("content_parent") ||
+                        details.scopes.includes("content_child")));
+        this.schemaURLs.set(details.schema, {content});
       }
 
       for (let event of details.events || []) {
@@ -1115,6 +1221,10 @@ class SchemaAPIManager extends EventEmitter {
   _checkGetAPI(name, extension, scope = null) {
     let module = this.modules.get(name);
 
+    if (module.permissions && !module.permissions.some(perm => extension.hasPermission(perm))) {
+      return false;
+    }
+
     if (!scope) {
       return true;
     }
@@ -1152,22 +1262,19 @@ class SchemaAPIManager extends EventEmitter {
   _createExtGlobal() {
     let global = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
       wantXrays: false,
-      sandboxName: `Namespace of ext-*.js scripts for ${this.processType}`,
+      sandboxName: `Namespace of ext-*.js scripts for ${this.processType} (from: resource://gre/modules/ExtensionCommon.jsm)`,
     });
 
-    Object.assign(global, {global, Cc, Ci, Cu, Cr, XPCOMUtils, ChromeWorker, ExtensionCommon, MatchPattern, MatchPatternSet, StructuredCloneHolder, extensions: this});
+    Object.assign(global, {global, Cc, Ci, Cu, Cr, XPCOMUtils, ChromeUtils, ChromeWorker, ExtensionAPI, ExtensionCommon, MatchPattern, MatchPatternSet, StructuredCloneHolder, extensions: this});
 
     Cu.import("resource://gre/modules/AppConstants.jsm", global);
-    Cu.import("resource://gre/modules/ExtensionAPI.jsm", global);
 
     XPCOMUtils.defineLazyGetter(global, "console", getConsole);
 
-    XPCOMUtils.defineLazyModuleGetter(global, "ExtensionUtils",
-                                      "resource://gre/modules/ExtensionUtils.jsm");
-    XPCOMUtils.defineLazyModuleGetter(global, "XPCOMUtils",
-                                      "resource://gre/modules/XPCOMUtils.jsm");
-    XPCOMUtils.defineLazyModuleGetter(global, "require",
-                                      "resource://devtools/shared/Loader.jsm");
+    XPCOMUtils.defineLazyModuleGetters(global, {
+      ExtensionUtils: "resource://gre/modules/ExtensionUtils.jsm",
+      XPCOMUtils: "resource://gre/modules/XPCOMUtils.jsm",
+    });
 
     return global;
   }
@@ -1341,6 +1448,9 @@ LocaleData.prototype = {
   addLocale(locale, messages, extension) {
     let result = new Map();
 
+    let isPlainObject = obj => (obj && typeof obj === "object" &&
+                                ChromeUtils.getClassName(obj) === "Object");
+
     // Chrome does not document the semantics of its localization
     // system very well. It handles replacements by pre-processing
     // messages, replacing |$[a-zA-Z0-9@_]+$| tokens with the value of their
@@ -1352,7 +1462,7 @@ LocaleData.prototype = {
     // 1. It also accepts |$| followed by any number of sequential
     // digits, but refuses to process a localized string which
     // provides more than 9 substitutions.
-    if (!instanceOf(messages, "Object")) {
+    if (!isPlainObject(messages)) {
       extension.packagingError(`Invalid locale data for ${locale}`);
       return result;
     }
@@ -1360,7 +1470,7 @@ LocaleData.prototype = {
     for (let key of Object.keys(messages)) {
       let msg = messages[key];
 
-      if (!instanceOf(msg, "Object") || typeof(msg.message) != "string") {
+      if (!isPlainObject(msg) || typeof(msg.message) != "string") {
         extension.packagingError(`Invalid locale message data for ${locale}, message ${JSON.stringify(key)}`);
         continue;
       }
@@ -1368,7 +1478,7 @@ LocaleData.prototype = {
       // Substitutions are case-insensitive, so normalize all of their names
       // to lower-case.
       let placeholders = new Map();
-      if (instanceOf(msg.placeholders, "Object")) {
+      if (isPlainObject(msg.placeholders)) {
         for (let key of Object.keys(msg.placeholders)) {
           placeholders.set(key.toLowerCase(), msg.placeholders[key]);
         }
@@ -1376,7 +1486,7 @@ LocaleData.prototype = {
 
       let replacer = (match, name) => {
         let replacement = placeholders.get(name.toLowerCase());
-        if (instanceOf(replacement, "Object") && "content" in replacement) {
+        if (isPlainObject(replacement) && "content" in replacement) {
           return replacement.content;
         }
         return "";
@@ -1393,15 +1503,13 @@ LocaleData.prototype = {
   },
 
   get acceptLanguages() {
-    let result = Preferences.get("intl.accept_languages", "", Ci.nsIPrefLocalizedString);
+    let result = Services.prefs.getComplexValue("intl.accept_languages", Ci.nsIPrefLocalizedString).data;
     return result.split(/\s*,\s*/g);
   },
 
 
   get uiLocale() {
-    // Return the browser locale, but convert it to a Chrome-style
-    // locale code.
-    return Services.locale.getAppLocaleAsBCP47().replace(/-/g, "_");
+    return Services.locale.getAppLocaleAsBCP47();
   },
 };
 
@@ -1459,13 +1567,13 @@ EventManager.prototype = {
     let fire = {
       sync: (...args) => {
         if (shouldFire()) {
-          return this.context.runSafe(callback, ...args);
+          return this.context.applySafe(callback, args);
         }
       },
       async: (...args) => {
         return Promise.resolve().then(() => {
           if (shouldFire()) {
-            return this.context.runSafe(callback, ...args);
+            return this.context.applySafe(callback, args);
           }
         });
       },
@@ -1473,12 +1581,12 @@ EventManager.prototype = {
         if (!shouldFire()) {
           throw new Error("Called raw() on unloaded/inactive context");
         }
-        return callback(...args);
+        return Reflect.apply(callback, null, args);
       },
       asyncWithoutClone: (...args) => {
         return Promise.resolve().then(() => {
           if (shouldFire()) {
-            return this.context.runSafeWithoutClone(callback, ...args);
+            return this.context.applySafeWithoutClone(callback, args);
           }
         });
       },
@@ -1564,6 +1672,8 @@ ExtensionCommon = {
   BaseContext,
   CanOfAPIs,
   EventManager,
+  ExtensionAPI,
+  ExtensionAPIs,
   LocalAPIImplementation,
   LocaleData,
   NoCloneSpreadArgs,

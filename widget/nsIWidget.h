@@ -76,6 +76,7 @@ class CompositorWidgetInitData;
 } // namespace widget
 namespace wr {
 class DisplayListBuilder;
+class IpcResourceUpdateQueue;
 } // namespace wr
 } // namespace mozilla
 
@@ -210,8 +211,12 @@ enum nsCursor {   ///(normal cursor,       usually rendered as an arrow)
                 eCursor_ns_resize,
                 eCursor_ew_resize,
                 eCursor_none,
-                // This one better be the last one in this list.
-                eCursorCount
+                // This one is used for array sizing, and so better be the last
+                // one in this list...
+                eCursorCount,
+
+                // ...except for this one.
+                eCursorInvalid = eCursorCount + 1
                 };
 
 enum nsTopLevelWidgetZPlacement { // for PlaceBehind()
@@ -1294,13 +1299,15 @@ class nsIWidget : public nsISupports
      * Called on the main thread at the end of WebRender display list building.
      */
     virtual void AddWindowOverlayWebRenderCommands(mozilla::layers::WebRenderBridgeChild* aWrBridge,
-                                                   mozilla::wr::DisplayListBuilder& aBuilder) {}
+                                                   mozilla::wr::DisplayListBuilder& aBuilder,
+                                                   mozilla::wr::IpcResourceUpdateQueue& aResources) {}
 
     /**
      * Called on the main thread when WebRender resources used for
      * AddWindowOverlayWebRenderCommands need to be destroyed.
      */
-    virtual void CleanupWebRenderWindowOverlay(mozilla::layers::WebRenderBridgeChild* aWrBridge) {}
+    virtual void CleanupWebRenderWindowOverlay(mozilla::layers::WebRenderBridgeChild* aWrBridge,
+                                               mozilla::wr::IpcResourceUpdateQueue& aResources) {}
 
     /**
      * Called when Gecko knows which themed widgets exist in this window.
@@ -1415,6 +1422,7 @@ class nsIWidget : public nsISupports
      * Enables the dropping of files to a widget.
      */
     virtual void EnableDragDrop(bool aEnable) = 0;
+    virtual nsresult AsyncEnableDragDrop(bool aEnable) = 0;
 
     /**
      * Enables/Disables system mouse capture.

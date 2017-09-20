@@ -107,8 +107,6 @@ using namespace dom;
 
 //#define DEBUG_DOCSHELL_FOCUS
 
-#define NS_USER_INTERACTION_INTERVAL 5000 // ms
-
 static const LayoutDeviceIntPoint kInvalidRefPoint = LayoutDeviceIntPoint(-1,-1);
 
 static uint32_t gMouseOrKeyboardEventCounter = 0;
@@ -1774,6 +1772,11 @@ EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
 
       RefPtr<DataTransfer> dataTransfer =
         new DataTransfer(window, eDragStart, false, -1);
+      auto protectDataTransfer = MakeScopeExit([&] {
+        if (dataTransfer) {
+          dataTransfer->Disconnect();
+        }
+      });
 
       nsCOMPtr<nsISelection> selection;
       nsCOMPtr<nsIContent> eventContent, targetContent;
@@ -1840,11 +1843,6 @@ EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
                                          "on-datatransfer-available",
                                          nullptr);
       }
-
-      // now that the dataTransfer has been updated in the dragstart and
-      // draggesture events, make it read only so that the data doesn't
-      // change during the drag.
-      dataTransfer->SetReadOnly();
 
       if (status != nsEventStatus_eConsumeNoDefault) {
         bool dragStarted = DoDefaultDragStart(aPresContext, event, dataTransfer,
@@ -2008,6 +2006,18 @@ EventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   if (!transArray)
     return false;
 
+  // After this function returns, the DataTransfer will be cleared so it appears
+  // empty to content. We need to pass a DataTransfer into the Drag Session, so
+  // we need to make a copy.
+  RefPtr<DataTransfer> dataTransfer;
+  aDataTransfer->Clone(aDragTarget, eDrop, aDataTransfer->MozUserCancelled(),
+                       false, getter_AddRefs(dataTransfer));
+
+  // Copy over the drop effect, as Clone doesn't copy it for us.
+  uint32_t dropEffect;
+  aDataTransfer->GetDropEffectInt(&dropEffect);
+  dataTransfer->SetDropEffectInt(dropEffect);
+
   // XXXndeakin don't really want to create a new drag DOM event
   // here, but we need something to pass to the InvokeDragSession
   // methods.
@@ -2020,7 +2030,7 @@ EventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   // other than a selection is being dragged.
   if (!dragImage && aSelection) {
     dragService->InvokeDragSessionWithSelection(aSelection, transArray,
-                                                action, event, aDataTransfer);
+                                                action, event, dataTransfer);
   }
   else {
     // if dragging within a XUL tree and no custom drag image was
@@ -2047,7 +2057,7 @@ EventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
                                             dragImage ? dragImage->AsDOMNode() :
                                                         nullptr,
                                             imageX, imageY, event,
-                                            aDataTransfer);
+                                            dataTransfer);
   }
 
   return true;
@@ -2866,6 +2876,7 @@ NodeAllowsClickThrough(nsINode* aNode)
 
 void
 EventStateManager::PostHandleKeyboardEvent(WidgetKeyboardEvent* aKeyboardEvent,
+                                           nsIFrame* aTargetFrame,
                                            nsEventStatus& aStatus)
 {
   if (aStatus == nsEventStatus_eConsumeNoDefault) {
@@ -2873,11 +2884,31 @@ EventStateManager::PostHandleKeyboardEvent(WidgetKeyboardEvent* aKeyboardEvent,
   }
 
   if (!aKeyboardEvent->HasBeenPostedToRemoteProcess()) {
+    if (aKeyboardEvent->IsWaitingReplyFromRemoteProcess()) {
+      RefPtr<TabParent> remote = aTargetFrame ?
+        TabParent::GetFrom(aTargetFrame->GetContent()) : nullptr;
+      if (remote && !remote->IsReadyToHandleInputEvents()) {
+        // We need to dispatch the event to the browser element again if we were
+        // waiting for the key reply but the event wasn't sent to the content
+        // process due to the remote browser wasn't ready.
+        WidgetKeyboardEvent keyEvent(*aKeyboardEvent);
+        aKeyboardEvent->MarkAsHandledInRemoteProcess();
+        EventDispatcher::Dispatch(remote->GetOwnerElement(), mPresContext,
+                                  &keyEvent);
+        if (keyEvent.DefaultPrevented()) {
+          aKeyboardEvent->PreventDefault(!keyEvent.DefaultPreventedByContent());
+          aStatus = nsEventStatus_eConsumeNoDefault;
+          return;
+        }
+      }
+    }
     // The widget expects a reply for every keyboard event. If the event wasn't
     // dispatched to a content process (non-e10s or no content process
     // running), we need to short-circuit here. Otherwise, we need to wait for
     // the content process to handle the event.
-    aKeyboardEvent->mWidget->PostHandleKeyEvent(aKeyboardEvent);
+    if (aKeyboardEvent->mWidget) {
+      aKeyboardEvent->mWidget->PostHandleKeyEvent(aKeyboardEvent);
+    }
     if (aKeyboardEvent->DefaultPrevented()) {
       aStatus = nsEventStatus_eConsumeNoDefault;
       return;
@@ -3524,7 +3555,7 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
   case eKeyPress:
     {
       WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
-      PostHandleKeyboardEvent(keyEvent, *aStatus);
+      PostHandleKeyboardEvent(keyEvent, mCurrentTarget, *aStatus);
     }
     break;
 
@@ -5153,8 +5184,10 @@ EventStateManager::GetFocusedContent()
     return nullptr;
 
   nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
-  return nsFocusManager::GetFocusedDescendant(mDocument->GetWindow(), false,
-                                              getter_AddRefs(focusedWindow));
+  return nsFocusManager::GetFocusedDescendant(
+                           mDocument->GetWindow(),
+                           nsFocusManager::eOnlyCurrentWindow,
+                           getter_AddRefs(focusedWindow));
 }
 
 //-------------------------------------------------------
@@ -5217,8 +5250,11 @@ EventStateManager::DoContentCommandEvent(WidgetContentCommandEvent* aEvent)
     default:
       return NS_ERROR_NOT_IMPLEMENTED;
   }
+  // If user tries to do something, user must try to do it in visible window.
+  // So, let's retrieve controller of visible window.
   nsCOMPtr<nsIController> controller;
-  nsresult rv = root->GetControllerForCommand(cmd, getter_AddRefs(controller));
+  nsresult rv = root->GetControllerForCommand(cmd, true,
+                                              getter_AddRefs(controller));
   NS_ENSURE_SUCCESS(rv, rv);
   if (!controller) {
     // When GetControllerForCommand succeeded but there is no controller, the

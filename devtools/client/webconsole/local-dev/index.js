@@ -21,11 +21,17 @@ try {
 
 EventEmitter.decorate(window);
 
-require("../../themes/new-webconsole.css");
+require("../../themes/widgets.css");
+require("../../themes/webconsole.css");
+require("../../themes/components-frame.css");
+require("../../themes/light-theme.css");
 require("../../shared/components/reps/reps.css");
+require("../../shared/components/tabs/tabs.css");
+require("../../shared/components/tabs/tabbar.css");
+require("../../netmonitor/src/assets/styles/netmonitor.css");
 
 pref("devtools.debugger.remote-timeout", 10000);
-pref("devtools.hud.loglimit", 1000);
+pref("devtools.hud.loglimit", 10000);
 pref("devtools.webconsole.filter.error", true);
 pref("devtools.webconsole.filter.warn", true);
 pref("devtools.webconsole.filter.info", true);

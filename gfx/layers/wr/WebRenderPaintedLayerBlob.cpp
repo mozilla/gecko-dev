@@ -13,6 +13,7 @@
 #include "mozilla/layers/ScrollingLayersHelper.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
+#include "mozilla/layers/IpcResourceUpdateQueue.h"
 #include "mozilla/layers/UpdateImageHelper.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 
@@ -23,6 +24,7 @@ using namespace mozilla::gfx;
 
 void
 WebRenderPaintedLayerBlob::RenderLayer(wr::DisplayListBuilder& aBuilder,
+                                       wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc)
 {
   LayerIntRegion visibleRegion = GetVisibleRegion();
@@ -73,13 +75,14 @@ WebRenderPaintedLayerBlob::RenderLayer(wr::DisplayListBuilder& aBuilder,
 
     wr::ByteBuffer bytes(recorder->mOutputStream.mLength, (uint8_t*)recorder->mOutputStream.mData);
 
-    //XXX: We should switch to updating the blob image instead of adding a new one
-    //     That will get rid of this discard bit
     if (mImageKey.isSome()) {
-      WrManager()->AddImageKeyForDiscard(mImageKey.value());
+      //XXX: We should switch to updating the blob image instead of adding a new one
+      aResources.DeleteImage(mImageKey.value());
     }
     mImageKey = Some(GenerateImageKey());
-    WrBridge()->SendAddBlobImage(mImageKey.value(), imageSize, size.width * 4, dt->GetFormat(), bytes);
+
+    wr::ImageDescriptor descriptor(imageSize, 0, dt->GetFormat());
+    aResources.AddBlobImage(mImageKey.value(), descriptor, bytes.AsSlice());
     mImageBounds = visibleRegion.GetBounds();
   }
 

@@ -43,7 +43,7 @@
 #include "mozilla/css/StyleRule.h"
 #include "nsCSSRendering.h"
 #include "nsIXULTemplateBuilder.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsContainerFrame.h"
 #include "nsView.h"
 #include "nsViewManager.h"
@@ -2774,9 +2774,9 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
 
 class nsDisplayTreeBody final : public nsDisplayItem {
 public:
-  nsDisplayTreeBody(nsDisplayListBuilder* aBuilder, nsFrame* aFrame) :
-    nsDisplayItem(aBuilder, aFrame),
-    mDisableSubpixelAA(false) {
+  nsDisplayTreeBody(nsDisplayListBuilder* aBuilder, nsFrame* aFrame)
+    : nsDisplayItem(aBuilder, aFrame)
+  {
     MOZ_COUNT_CTOR(nsDisplayTreeBody);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -2792,7 +2792,7 @@ public:
 
   void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                  const nsDisplayItemGeometry* aGeometry,
-                                 nsRegion *aInvalidRegion) override
+                                 nsRegion *aInvalidRegion) const override
   {
     auto geometry =
       static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
@@ -2821,22 +2821,16 @@ public:
 
   NS_DISPLAY_DECL_NAME("XULTreeBody", TYPE_XUL_TREE_BODY)
 
-  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) override
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) const override
   {
     bool snap;
     return GetBounds(aBuilder, &snap);
   }
-  virtual void DisableComponentAlpha() override {
-    mDisableSubpixelAA = true;
-  }
-
-  bool mDisableSubpixelAA;
 };
 
 // Painting routines
 void
 nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                  const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
   // REVIEW: why did we paint if we were collapsed? that makes no sense!
@@ -2844,7 +2838,7 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     return; // We're invisible.  Don't paint.
 
   // Handles painting our background, border, and outline.
-  nsLeafBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  nsLeafBoxFrame::BuildDisplayList(aBuilder, aLists);
 
   // Bail out now if there's no view or we can't run script because the
   // document is a zombie
@@ -3065,13 +3059,9 @@ nsTreeBodyFrame::PaintRow(int32_t               aRowIndex,
 
   // Save the current font smoothing background color in case we change it.
   Color originalColor(aRenderingContext.GetFontSmoothingBackgroundColor());
+  aRenderingContext.SetFontSmoothingBackgroundColor(
+    ToDeviceColor(rowContext->StyleUserInterface()->mFontSmoothingBackgroundColor));
   if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, appearance)) {
-    nscolor color;
-    if (theme->WidgetProvidesFontSmoothingBackgroundColor(this, appearance,
-                                                          &color)) {
-      // Set the font smoothing background color provided by the widget.
-      aRenderingContext.SetFontSmoothingBackgroundColor(ToDeviceColor(color));
-    }
     nsRect dirty;
     dirty.IntersectRect(rowRect, aDirtyRect);
     theme->DrawWidgetBackground(&aRenderingContext, this, appearance, rowRect,

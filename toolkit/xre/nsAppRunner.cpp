@@ -133,7 +133,7 @@
 #include "nsReadableUtils.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMCIDInternal.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsPrintfCString.h"
 #include "nsVersionComparator.h"
 
@@ -573,6 +573,50 @@ CheckArg(const char* aArg, bool aCheckOSInt = false, const char **aParam = nullp
   return ar;
 }
 
+/**
+ * Check for a commandline flag. Ignore data that's passed in with the flag.
+ * Flags may be in the form -arg or --arg (or /arg on win32).
+ * Will not remove flag if found.
+ *
+ * @param aArg the parameter to check. Must be lowercase.
+ */
+static ArgResult
+CheckArgExists(const char* aArg)
+{
+  char **curarg = gArgv + 1; // skip argv[0]
+  while (*curarg) {
+    char *arg = curarg[0];
+
+    if (arg[0] == '-'
+#if defined(XP_WIN)
+        || *arg == '/'
+#endif
+        ) {
+      ++arg;
+      if (*arg == '-')
+        ++arg;
+
+      char delimiter = '=';
+#if defined(XP_WIN)
+      delimiter = ':';
+#endif
+      int i;
+      for (i = 0; arg[i] && arg[i] != delimiter; i++) {}
+      char tmp = arg[i];
+      arg[i] = '\0';
+      bool found = strimatch(aArg, arg);
+      arg[i] = tmp;
+      if (found) {
+        return ARG_FOUND;
+      }
+    }
+
+    ++curarg;
+  }
+
+  return ARG_NONE;
+}
+
 #if defined(XP_WIN)
 /**
  * Check for a commandline flag from the windows shell and remove it from the
@@ -632,7 +676,6 @@ ProcessDDE(nsINativeAppSupport* aNative, bool aWait)
   if (ar == ARG_FOUND) {
     aNative->Enable(); // enable win32 DDE responses
     if (aWait) {
-      nsIThread *thread = NS_GetCurrentThread();
       // This is just a guesstimate based on testing different values.
       // If count is 8 or less windows will display an error dialog.
       int32_t count = 20;
@@ -982,6 +1025,36 @@ nsXULAppInfo::GetAccessibleHandlerUsed(bool* aResult)
 }
 
 NS_IMETHODIMP
+nsXULAppInfo::GetAccessibilityInstantiator(nsAString &aInstantiator)
+{
+#if defined(ACCESSIBILITY) && defined(XP_WIN)
+  if (!GetAccService()) {
+    aInstantiator = NS_LITERAL_STRING("");
+    return NS_OK;
+  }
+  nsAutoString oopClientInfo, ipClientInfo;
+  a11y::Compatibility::GetHumanReadableConsumersStr(ipClientInfo);
+  aInstantiator.Append(ipClientInfo);
+  aInstantiator.AppendLiteral("|");
+  a11y::GetInstantiator(oopClientInfo);
+  aInstantiator.Append(oopClientInfo);
+#else
+  aInstantiator = NS_LITERAL_STRING("");
+#endif
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::GetShouldBlockIncompatJaws(bool* aResult)
+{
+  *aResult = false;
+#if defined(ACCESSIBILITY) && defined(XP_WIN)
+  *aResult = mozilla::a11y::Compatibility::IsOldJAWS();
+#endif
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsXULAppInfo::GetIs64Bit(bool* aResult)
 {
 #ifdef HAVE_64BIT_BUILD
@@ -998,7 +1071,8 @@ nsXULAppInfo::EnsureContentProcess()
   if (!XRE_IsParentProcess())
     return NS_ERROR_NOT_AVAILABLE;
 
-  RefPtr<ContentParent> unused = ContentParent::GetNewOrUsedBrowserProcess();
+  RefPtr<ContentParent> unused = ContentParent::GetNewOrUsedBrowserProcess(
+    NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE));
   return NS_OK;
 }
 
@@ -1093,17 +1167,6 @@ NS_IMETHODIMP
 nsXULAppInfo::GetDistributionID(nsACString& aResult)
 {
   aResult.AssignLiteral(MOZ_DISTRIBUTION_ID);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::GetIsOfficial(bool* aResult)
-{
-#ifdef MOZILLA_OFFICIAL
-  *aResult = true;
-#else
-  *aResult = false;
-#endif
   return NS_OK;
 }
 
@@ -1787,7 +1850,7 @@ StartRemoteClient(const char* aDesktopStartupID,
   if (NS_FAILED(rv))
     return REMOTE_NOT_FOUND;
 
-  nsXPIDLCString response;
+  nsCString response;
   bool success = false;
   rv = client.SendCommandLine(program.get(), username, profile,
                               gArgc, gArgv, aDesktopStartupID,
@@ -3161,7 +3224,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
     printf_stderr("*** You are running in chaos test mode. See ChaosMode.h. ***\n");
   }
 
-  if (CheckArg("headless")) {
+  if (CheckArg("headless") || CheckArgExists("screenshot")) {
     PR_SetEnv("MOZ_HEADLESS=1");
   }
 
@@ -4324,7 +4387,7 @@ XREMain::XRE_mainRun()
     rv = prefs->GetDefaultBranch(nullptr, getter_AddRefs(defaultPrefBranch));
 
     if (NS_SUCCEEDED(rv)) {
-      nsXPIDLCString sval;
+      nsCString sval;
       rv = defaultPrefBranch->GetCharPref("app.update.channel", getter_Copies(sval));
       if (NS_SUCCEEDED(rv)) {
         CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ReleaseChannel"),
@@ -4361,24 +4424,13 @@ XREMain::XRE_mainRun()
     io->SetOffline(true);
   }
 
-  {
-    nsCOMPtr<nsIObserver> startupNotifier
-      (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID, &rv));
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
-
-    startupNotifier->Observe(nullptr, APPSTARTUP_TOPIC, nullptr);
-  }
-
-  nsCOMPtr<nsIAppStartup> appStartup
-    (do_GetService(NS_APPSTARTUP_CONTRACTID));
-  NS_ENSURE_TRUE(appStartup, NS_ERROR_FAILURE);
-
 
 #ifdef XP_WIN
   if (!PR_GetEnv("XRE_NO_DLL_READAHEAD"))
   {
-    PR_CreateThread(PR_USER_THREAD, ReadAheadDlls_ThreadStart, 0, PR_PRIORITY_LOW,
-                    PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
+    PR_CreateThread(PR_USER_THREAD, ReadAheadDlls_ThreadStart, 0,
+                    PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
+                    PR_UNJOINABLE_THREAD, 0);
   }
 #endif
 
@@ -4455,6 +4507,7 @@ XREMain::XRE_mainRun()
       rv = GetCurrentProfile(mProfileSvc, mProfD, getter_AddRefs(newProfile));
       if (NS_SUCCEEDED(rv)) {
         newProfile->SetName(gResetOldProfileName);
+        mProfileName.Assign(gResetOldProfileName);
         // Set the new profile as the default after we're done cleaning up the old profile,
         // iff that profile was already the default
         if (profileWasSelected) {
@@ -4470,6 +4523,22 @@ XREMain::XRE_mainRun()
       mProfileSvc->Flush();
     }
   }
+
+  // Initialize user preferences before notifying startup observers so they're
+  // ready in time for early consumers, such as the component loader.
+  mDirProvider.InitializeUserPrefs();
+
+  {
+    nsCOMPtr<nsIObserver> startupNotifier
+      (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID, &rv));
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+
+    startupNotifier->Observe(nullptr, APPSTARTUP_TOPIC, nullptr);
+  }
+
+  nsCOMPtr<nsIAppStartup> appStartup
+    (do_GetService(NS_APPSTARTUP_CONTRACTID));
+  NS_ENSURE_TRUE(appStartup, NS_ERROR_FAILURE);
 
   mDirProvider.DoStartup();
 
@@ -5025,13 +5094,31 @@ XRE_IsContentProcess()
   return XRE_GetProcessType() == GeckoProcessType_Content;
 }
 
+bool
+XRE_UseNativeEventProcessing()
+{
+  if (XRE_IsContentProcess()) {
+    static bool sInited = false;
+    static bool sUseNativeEventProcessing = false;
+    if (!sInited) {
+      Preferences::AddBoolVarCache(&sUseNativeEventProcessing,
+                                   "dom.ipc.useNativeEventProcessing.content");
+      sInited = true;
+    }
+
+    return sUseNativeEventProcessing;
+  }
+
+  return true;
+}
+
 // If you add anything to this enum, please update about:support to reflect it
 enum {
   kE10sEnabledByUser = 0,
   kE10sEnabledByDefault = 1,
   kE10sDisabledByUser = 2,
   // kE10sDisabledInSafeMode = 3, was removed in bug 1172491.
-  kE10sDisabledForAccessibility = 4,
+  // kE10sDisabledForAccessibility = 4,
   // kE10sDisabledForMacGfx = 5, was removed in bug 1068674.
   // kE10sDisabledForBidi = 6, removed in bug 1309599
   kE10sDisabledForAddons = 7,
@@ -5039,18 +5126,6 @@ enum {
   // kE10sDisabledForXPAcceleration = 9, removed in bug 1296353
   // kE10sDisabledForOperatingSystem = 10, removed due to xp-eol
 };
-
-const char* kAccessibilityLastRunDatePref = "accessibility.lastLoadDate";
-const char* kAccessibilityLoadedLastSessionPref = "accessibility.loadedInLastSession";
-
-#if defined(XP_WIN)
-static inline uint32_t
-PRTimeToSeconds(PRTime t_usec)
-{
-  PRTime usec_per_sec = PR_USEC_PER_SEC;
-  return uint32_t(t_usec /= usec_per_sec);
-}
-#endif
 
 const char* kForceEnableE10sPref = "browser.tabs.remote.force-enable";
 const char* kForceDisableE10sPref = "browser.tabs.remote.force-disable";
@@ -5078,40 +5153,6 @@ MultiprocessBlockPolicy()
   if (addonsCanDisable && disabledByAddons) {
     return kE10sDisabledForAddons;
   }
-
-#if defined(XP_WIN) && defined(RELEASE_OR_BETA)
-  bool disabledForA11y = false;
-  /**
-    * Avoids enabling e10s if accessibility has recently loaded. Performs the
-    * following checks:
-    * 1) Checks a pref indicating if a11y loaded in the last session. This pref
-    * is set in nsBrowserGlue.js. If a11y was loaded in the last session we
-    * do not enable e10s in this session.
-    * 2) Accessibility stores a last run date (PR_IntervalNow) when it is
-    * initialized (see nsBaseWidget.cpp). We check if this pref exists and
-    * compare it to now. If a11y hasn't run in an extended period of time or
-    * if the date pref does not exist we load e10s.
-    */
-  disabledForA11y = Preferences::GetBool(kAccessibilityLoadedLastSessionPref, false);
-  if (!disabledForA11y  &&
-      Preferences::HasUserValue(kAccessibilityLastRunDatePref)) {
-    const uint32_t oneWeekInSeconds = 60 * 60 * 24 * 7;
-    uint32_t a11yRunDate = Preferences::GetInt(kAccessibilityLastRunDatePref, 0);
-    MOZ_ASSERT(0 != a11yRunDate);
-    // If a11y hasn't run for a period of time, clear the pref and load e10s
-    uint32_t now = PRTimeToSeconds(PR_Now());
-    uint32_t difference = now - a11yRunDate;
-    if (difference > oneWeekInSeconds || !a11yRunDate) {
-      Preferences::ClearUser(kAccessibilityLastRunDatePref);
-    } else {
-      disabledForA11y = true;
-    }
-  }
-
-  if (disabledForA11y) {
-    return kE10sDisabledForAccessibility;
-  }
-#endif
 
   /*
    * None of the blocking policies matched, so e10s is allowed to run. Return

@@ -2,25 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use fnv::FnvHasher;
-use std::collections::HashMap;
-use std::hash::BuildHasherDefault;
 use api::{BuiltDisplayList, ColorF, DynamicProperties, Epoch, LayerSize, LayoutSize};
 use api::{LayoutTransform, PipelineId, PropertyBinding, PropertyBindingId};
+use internal_types::FastHashMap;
 
 /// Stores a map of the animated property bindings for the current display list. These
 /// can be used to animate the transform and/or opacity of a display list without
 /// re-submitting the display list itself.
 pub struct SceneProperties {
-    transform_properties: HashMap<PropertyBindingId, LayoutTransform>,
-    float_properties: HashMap<PropertyBindingId, f32>,
+    transform_properties: FastHashMap<PropertyBindingId, LayoutTransform>,
+    float_properties: FastHashMap<PropertyBindingId, f32>,
 }
 
 impl SceneProperties {
     pub fn new() -> SceneProperties {
         SceneProperties {
-            transform_properties: HashMap::default(),
-            float_properties: HashMap::default(),
+            transform_properties: FastHashMap::default(),
+            float_properties: FastHashMap::default(),
         }
     }
 
@@ -30,18 +28,21 @@ impl SceneProperties {
         self.float_properties.clear();
 
         for property in properties.transforms {
-            self.transform_properties.insert(property.key.id, property.value);
+            self.transform_properties
+                .insert(property.key.id, property.value);
         }
 
         for property in properties.floats {
-            self.float_properties.insert(property.key.id, property.value);
+            self.float_properties
+                .insert(property.key.id, property.value);
         }
     }
 
     /// Get the current value for a transform property.
-    pub fn resolve_layout_transform(&self,
-                                    property: Option<&PropertyBinding<LayoutTransform>>)
-                                    -> LayoutTransform {
+    pub fn resolve_layout_transform(
+        &self,
+        property: Option<&PropertyBinding<LayoutTransform>>,
+    ) -> LayoutTransform {
         let property = match property {
             Some(property) => property,
             None => return LayoutTransform::identity(),
@@ -49,15 +50,13 @@ impl SceneProperties {
 
         match *property {
             PropertyBinding::Value(matrix) => matrix,
-            PropertyBinding::Binding(ref key) => {
-                self.transform_properties
-                    .get(&key.id)
-                    .cloned()
-                    .unwrap_or_else(|| {
-                        warn!("Property binding {:?} has an invalid value.", key);
-                        LayoutTransform::identity()
-                    })
-            }
+            PropertyBinding::Binding(ref key) => self.transform_properties
+                .get(&key.id)
+                .cloned()
+                .unwrap_or_else(|| {
+                    warn!("Property binding {:?} has an invalid value.", key);
+                    LayoutTransform::identity()
+                }),
         }
     }
 
@@ -65,15 +64,13 @@ impl SceneProperties {
     pub fn resolve_float(&self, property: &PropertyBinding<f32>, default_value: f32) -> f32 {
         match *property {
             PropertyBinding::Value(value) => value,
-            PropertyBinding::Binding(ref key) => {
-                self.float_properties
-                    .get(&key.id)
-                    .cloned()
-                    .unwrap_or_else(|| {
-                        warn!("Property binding {:?} has an invalid value.", key);
-                        default_value
-                    })
-            }
+            PropertyBinding::Binding(ref key) => self.float_properties
+                .get(&key.id)
+                .cloned()
+                .unwrap_or_else(|| {
+                    warn!("Property binding {:?} has an invalid value.", key);
+                    default_value
+                }),
         }
     }
 }
@@ -91,8 +88,8 @@ pub struct ScenePipeline {
 /// A complete representation of the layout bundling visible pipelines together.
 pub struct Scene {
     pub root_pipeline_id: Option<PipelineId>,
-    pub pipeline_map: HashMap<PipelineId, ScenePipeline, BuildHasherDefault<FnvHasher>>,
-    pub display_lists: HashMap<PipelineId, BuiltDisplayList, BuildHasherDefault<FnvHasher>>,
+    pub pipeline_map: FastHashMap<PipelineId, ScenePipeline>,
+    pub display_lists: FastHashMap<PipelineId, BuiltDisplayList>,
     pub properties: SceneProperties,
 }
 
@@ -100,8 +97,8 @@ impl Scene {
     pub fn new() -> Scene {
         Scene {
             root_pipeline_id: None,
-            pipeline_map: HashMap::default(),
-            display_lists: HashMap::default(),
+            pipeline_map: FastHashMap::default(),
+            display_lists: FastHashMap::default(),
             properties: SceneProperties::new(),
         }
     }
@@ -110,13 +107,15 @@ impl Scene {
         self.root_pipeline_id = Some(pipeline_id);
     }
 
-    pub fn set_display_list(&mut self,
-                            pipeline_id: PipelineId,
-                            epoch: Epoch,
-                            built_display_list: BuiltDisplayList,
-                            background_color: Option<ColorF>,
-                            viewport_size: LayerSize,
-                            content_size: LayoutSize) {
+    pub fn set_display_list(
+        &mut self,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+        built_display_list: BuiltDisplayList,
+        background_color: Option<ColorF>,
+        viewport_size: LayerSize,
+        content_size: LayoutSize,
+    ) {
         self.display_lists.insert(pipeline_id, built_display_list);
 
         let new_pipeline = ScenePipeline {
@@ -128,5 +127,13 @@ impl Scene {
         };
 
         self.pipeline_map.insert(pipeline_id, new_pipeline);
+    }
+
+    pub fn remove_pipeline(&mut self, pipeline_id: PipelineId) {
+        if self.root_pipeline_id == Some(pipeline_id) {
+            self.root_pipeline_id = None;
+        }
+        self.display_lists.remove(&pipeline_id);
+        self.pipeline_map.remove(&pipeline_id);
     }
 }

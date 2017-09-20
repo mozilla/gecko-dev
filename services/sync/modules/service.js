@@ -22,6 +22,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/async.js");
+Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/engines/clients.js");
@@ -343,7 +344,7 @@ Sync11Service.prototype = {
     // Send an event now that Weave service is ready.  We don't do this
     // synchronously so that observers can import this module before
     // registering an observer.
-    Utils.nextTick(() => {
+    CommonUtils.nextTick(() => {
       this.status.ready = true;
 
       // UI code uses the flag on the XPCOM service so it doesn't have
@@ -1048,7 +1049,10 @@ Sync11Service.prototype = {
    */
   _checkSync: function _checkSync(ignore) {
     let reason = "";
-    if (!this.enabled)
+    // Ideally we'd call _checkSetup() here but that has too many side-effects.
+    if (Status.service == CLIENT_NOT_CONFIGURED)
+      reason = kSyncNotConfigured;
+    else if (Status.service == STATUS_DISABLED || !this.enabled)
       reason = kSyncWeaveDisabled;
     else if (Services.io.offline)
       reason = kSyncNetworkOffline;

@@ -229,7 +229,7 @@ impl<'a> StylesheetLoader<'a> {
         let listener = NetworkListener {
             context: context,
             task_source: document.window().networking_task_source(),
-            wrapper: Some(document.window().get_runnable_wrapper())
+            canceller: Some(document.window().task_canceller())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -289,9 +289,10 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
                 rules: CssRules::new(Vec::new(), lock),
                 origin: context.stylesheet_origin,
                 url_data: RwLock::new(context.url_data.clone()),
-                dirty_on_viewport_size_change: AtomicBool::new(false),
                 quirks_mode: context.quirks_mode,
                 namespaces: RwLock::new(Namespaces::default()),
+                source_map_url: RwLock::new(None),
+                source_url: RwLock::new(None),
             },
             media: media,
             shared_lock: lock.clone(),

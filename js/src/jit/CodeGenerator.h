@@ -8,7 +8,6 @@
 #define jit_CodeGenerator_h
 
 #include "jit/CacheIR.h"
-#include "jit/IonCaches.h"
 #if defined(JS_ION_PERF)
 # include "jit/PerfSpewer.h"
 #endif
@@ -386,7 +385,8 @@ class CodeGenerator final : public CodeGeneratorSpecific
     };
     template <CallableOrConstructor mode>
     void emitIsCallableOrConstructor(Register object, Register output, Label* failure);
-    void visitIsCallable(LIsCallable* lir);
+    void visitIsCallableO(LIsCallableO* lir);
+    void visitIsCallableV(LIsCallableV* lir);
     void visitOutOfLineIsCallable(OutOfLineIsCallable* ool);
     void visitIsConstructor(LIsConstructor* lir);
     void visitOutOfLineIsConstructor(OutOfLineIsConstructor* ool);
@@ -458,7 +458,7 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitRotate(LRotate* ins);
 
     void visitRandom(LRandom* ins);
-    void visitSignExtend(LSignExtend* ins);
+    void visitSignExtendInt32(LSignExtendInt32* ins);
 
 #ifdef DEBUG
     void emitDebugForceBailing(LInstruction* lir);

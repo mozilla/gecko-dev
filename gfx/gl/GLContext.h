@@ -417,6 +417,7 @@ public:
         EXT_texture3D,
         EXT_texture_compression_dxt1,
         EXT_texture_compression_s3tc,
+        EXT_texture_compression_s3tc_srgb,
         EXT_texture_filter_anisotropic,
         EXT_texture_format_BGRA8888,
         EXT_texture_sRGB,
@@ -1414,6 +1415,22 @@ public:
         realGLboolean retval = mSymbols.fIsEnabled(capability);
         AFTER_GL_CALL;
         return retval;
+    }
+
+    void SetEnabled(const GLenum cap, const bool val) {
+        if (val) {
+            fEnable(cap);
+        } else {
+            fDisable(cap);
+        }
+    }
+
+    bool PushEnabled(const GLenum cap, const bool newVal) {
+        const bool oldVal = fIsEnabled(cap);
+        if (oldVal != newVal) {
+            SetEnabled(cap, newVal);
+        }
+        return oldVal;
     }
 
     realGLboolean fIsProgram(GLuint program) {

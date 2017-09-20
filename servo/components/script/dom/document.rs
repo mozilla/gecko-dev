@@ -15,8 +15,6 @@ use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -36,6 +34,7 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::customelementregistry::CustomElementDefinition;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -63,6 +62,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
@@ -88,6 +88,7 @@ use dom::touchevent::TouchEvent;
 use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
+use dom::virtualmethods::vtable_for;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use dom::windowproxy::WindowProxy;
@@ -95,7 +96,7 @@ use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::{Point2D, Vector2D};
-use html5ever::{LocalName, QualName};
+use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -112,10 +113,10 @@ use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
+use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
+use script_traits::{MsDuration, ScriptMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
@@ -135,10 +136,12 @@ use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
+use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
-use style::stylesheets::Stylesheet;
+use style::stylesheet_set::StylesheetSet;
+use style::stylesheets::{Stylesheet, StylesheetContents, Origin, OriginSet};
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
@@ -166,14 +169,6 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[must_root]
-pub struct StylesheetInDocument {
-    pub node: JS<Node>,
-    #[ignore_heap_size_of = "Arc"]
-    pub stylesheet: Arc<Stylesheet>,
-}
-
 #[derive(Debug, HeapSizeOf)]
 pub struct PendingRestyle {
     /// If this element had a state or attribute change since the last restyle, track
@@ -194,6 +189,34 @@ impl PendingRestyle {
             hint: RestyleHint::empty(),
             damage: RestyleDamage::empty(),
         }
+    }
+}
+
+#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[must_root]
+struct StyleSheetInDocument {
+    #[ignore_heap_size_of = "Arc"]
+    sheet: Arc<Stylesheet>,
+    owner: JS<Element>,
+}
+
+impl PartialEq for StyleSheetInDocument {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.sheet, &other.sheet)
+    }
+}
+
+impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+        self.sheet.contents(guard)
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.sheet.media(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.sheet.enabled()
     }
 }
 
@@ -229,9 +252,7 @@ pub struct Document {
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
-    /// Whether the list of stylesheets has changed since the last reflow was triggered.
-    stylesheets_changed_since_reflow: Cell<bool>,
+    stylesheets: DOMRefCell<StylesheetSet<StyleSheetInDocument>>,
     stylesheet_list: MutNullableJS<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
@@ -331,7 +352,7 @@ pub struct Document {
     form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -339,7 +360,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -347,7 +368,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -356,7 +377,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -364,7 +385,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -372,7 +393,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -380,7 +401,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -495,15 +516,12 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.stylesheets_changed_since_reflow.get() ||
-        match self.GetDocumentElement() {
-            Some(root) => {
-                root.upcast::<Node>().has_dirty_descendants() ||
-                !self.pending_restyles.borrow().is_empty() ||
-                self.needs_paint()
-            }
-            None => false,
-        }
+        self.stylesheets.borrow().has_changed() ||
+        self.GetDocumentElement().map_or(false, |root| {
+            root.upcast::<Node>().has_dirty_descendants() ||
+            !self.pending_restyles.borrow().is_empty() ||
+            self.needs_paint()
+        })
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -633,7 +651,7 @@ impl Document {
         // reset_form_owner_for_listeners -> reset_form_owner -> GetElementById
         {
             let mut id_map = self.id_map.borrow_mut();
-            let mut elements = id_map.entry(id.clone()).or_insert(Vec::new());
+            let elements = id_map.entry(id.clone()).or_insert(Vec::new());
             elements.insert_pre_order(element, root.r().upcast::<Node>());
         }
         self.reset_form_owner_for_listeners(&id);
@@ -642,7 +660,7 @@ impl Document {
     pub fn register_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
         let mut map = self.form_id_listener_map.borrow_mut();
         let listener = listener.to_element();
-        let mut set = map.entry(Atom::from(id)).or_insert(HashSet::new());
+        let set = map.entry(Atom::from(id)).or_insert(HashSet::new());
         set.insert(JS::from_ref(listener));
     }
 
@@ -795,9 +813,7 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let global_scope = self.window.upcast::<GlobalScope>();
-                let event = ConstellationMsg::Focus(global_scope.pipeline_id());
-                global_scope.constellation_chan().send(event).unwrap();
+                self.send_to_constellation(ScriptMsg::Focus);
             }
         }
     }
@@ -808,19 +824,14 @@ impl Document {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
             self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(String::from(self.Title())));
 
-            self.send_title_to_compositor();
+            self.send_title_to_constellation();
         }
     }
 
-    /// Sends this document's title to the compositor.
-    pub fn send_title_to_compositor(&self) {
-        let window = self.window();
-        let global_scope = window.upcast::<GlobalScope>();
-        global_scope
-              .constellation_chan()
-              .send(ConstellationMsg::SetTitle(global_scope.pipeline_id(),
-                                               Some(String::from(self.Title()))))
-              .unwrap();
+    /// Sends this document's title to the constellation.
+    pub fn send_title_to_constellation(&self) {
+        let title = Some(String::from(self.Title()));
+        self.send_to_constellation(ScriptMsg::SetTitle(title));
     }
 
     pub fn dirty_all_nodes(&self) {
@@ -872,8 +883,8 @@ impl Document {
                 let child_point = client_point - child_origin;
 
                 let event = CompositorEvent::MouseButtonEvent(mouse_event_type, button, child_point);
-                let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
-                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let event = ScriptMsg::ForwardEvent(pipeline_id, event);
+                self.send_to_constellation(event);
             }
             return;
         }
@@ -1029,8 +1040,8 @@ impl Document {
                 let event = CompositorEvent::TouchpadPressureEvent(child_point,
                                                                    pressure,
                                                                    phase_now);
-                let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
-                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let event = ScriptMsg::ForwardEvent(pipeline_id, event);
+                self.send_to_constellation(event);
             }
             return;
         }
@@ -1131,8 +1142,8 @@ impl Document {
                     let child_point = client_point - child_origin;
 
                     let event = CompositorEvent::MouseMoveEvent(Some(child_point));
-                    let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
-                    self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                    let event = ScriptMsg::ForwardEvent(pipeline_id, event);
+                    self.send_to_constellation(event);
                 }
                 return;
             }
@@ -1238,8 +1249,8 @@ impl Document {
                 let child_point = point - child_origin;
 
                 let event = CompositorEvent::TouchEvent(event_type, touch_id, child_point);
-                let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
-                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let event = ScriptMsg::ForwardEvent(pipeline_id, event);
+                self.send_to_constellation(event);
             }
             return TouchEventResult::Forwarded;
         }
@@ -1330,8 +1341,7 @@ impl Document {
                               ch: Option<char>,
                               key: Key,
                               state: KeyState,
-                              modifiers: KeyModifiers,
-                              constellation: &IpcSender<ConstellationMsg>) {
+                              modifiers: KeyModifiers) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
@@ -1407,7 +1417,8 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            constellation.send(ConstellationMsg::SendKeyEvent(ch, key, state, modifiers)).unwrap();
+            let msg = ScriptMsg::SendKeyEvent(ch, key, state, modifiers);
+            self.send_to_constellation(msg);
 
             // This behavior is unspecced
             // We are supposed to dispatch synthetic click activation for Space and/or Return,
@@ -1508,28 +1519,21 @@ impl Document {
     }
 
     pub fn invalidate_stylesheets(&self) {
-        self.stylesheets_changed_since_reflow.set(true);
-        *self.stylesheets.borrow_mut() = None;
+        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
+
         // Mark the document element dirty so a reflow will be performed.
+        //
+        // FIXME(emilio): Use the StylesheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
             element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         }
     }
 
-    pub fn get_and_reset_stylesheets_changed_since_reflow(&self) -> bool {
-        let changed = self.stylesheets_changed_since_reflow.get();
-        self.stylesheets_changed_since_reflow.set(false);
-        changed
-    }
-
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
-                let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
-                let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              top_level_browsing_context_id,
-                                                              event);
-                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let event = ScriptMsg::MozBrowserEvent(parent_pipeline_id, event);
+                self.send_to_constellation(event);
             }
         }
     }
@@ -1559,11 +1563,8 @@ impl Document {
             // This reduces CPU usage by avoiding needless thread wakeups in the common case of
             // repeated rAF.
 
-            let global_scope = self.window.upcast::<GlobalScope>();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(
-                global_scope.pipeline_id(),
-                AnimationState::AnimationCallbacksPresent);
-            global_scope.constellation_chan().send(event).unwrap();
+            let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::AnimationCallbacksPresent);
+            self.send_to_constellation(event);
         }
 
         ident
@@ -1572,7 +1573,7 @@ impl Document {
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     pub fn cancel_animation_frame(&self, ident: u32) {
         let mut list = self.animation_frame_list.borrow_mut();
-        if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == ident) {
+        if let Some(pair) = list.iter_mut().find(|pair| pair.0 == ident) {
             pair.1 = None;
         }
     }
@@ -1586,7 +1587,7 @@ impl Document {
 
         self.running_animation_callbacks.set(true);
         let was_faking_animation_frames = self.is_faking_animation_frames();
-        let timing = self.window.Performance().Now();
+        let timing = self.global().performance().Now();
 
         for (_, callback) in animation_frame_list.drain(..) {
             if let Some(callback) = callback {
@@ -1629,11 +1630,8 @@ impl Document {
                 (!was_faking_animation_frames && self.is_faking_animation_frames()) {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut *animation_frame_list);
-            let global_scope = self.window.upcast::<GlobalScope>();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(
-                global_scope.pipeline_id(),
-                AnimationState::NoAnimationCallbacksPresent);
-            global_scope.constellation_chan().send(event).unwrap();
+            let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::NoAnimationCallbacksPresent);
+            self.send_to_constellation(event);
         }
 
         // Update the counter of spurious animation frames.
@@ -1716,8 +1714,57 @@ impl Document {
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
-        let handler = box DocumentProgressHandler::new(Trusted::new(self));
-        self.window.dom_manipulation_task_source().queue(handler, self.window.upcast()).unwrap();
+        let document = Trusted::new(self);
+        self.window.dom_manipulation_task_source().queue(
+            box task!(fire_load_event: move || {
+                let document = document.root();
+                let window = document.window();
+                if !window.is_alive() {
+                    return;
+                }
+
+                // Step 7.1.
+                document.set_ready_state(DocumentReadyState::Complete);
+
+                // Step 7.2.
+                if document.browsing_context().is_none() {
+                    return;
+                }
+                let event = Event::new(
+                    window.upcast(),
+                    atom!("load"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                );
+                event.set_trusted(true);
+
+                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+                update_with_current_time_ms(&document.load_event_start);
+
+                debug!("About to dispatch load for {:?}", document.url());
+                // FIXME(nox): Why are errors silenced here?
+                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                    document.upcast(),
+                    &event,
+                );
+
+                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                update_with_current_time_ms(&document.load_event_end);
+
+                window.reflow(
+                    ReflowGoal::ForDisplay,
+                    ReflowQueryType::NoQuery,
+                    ReflowReason::DocumentLoaded,
+                );
+
+                document.notify_constellation_load();
+
+                if let Some(fragment) = document.url().fragment() {
+                    document.check_and_scroll_fragment(fragment);
+                }
+            }),
+            self.window.upcast(),
+        ).unwrap();
 
         // Step 8.
         // TODO: pageshow event.
@@ -1896,10 +1943,7 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        let global_scope = self.window.upcast::<GlobalScope>();
-        let pipeline_id = global_scope.pipeline_id();
-        let load_event = ConstellationMsg::LoadComplete(pipeline_id);
-        global_scope.constellation_chan().send(load_event).unwrap();
+        self.send_to_constellation(ScriptMsg::LoadComplete);
     }
 
     pub fn set_current_parser(&self, script: Option<&ServoParser>) {
@@ -2001,10 +2045,16 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
     pub fn lookup_custom_element_definition(&self,
-                                            local_name: LocalName,
-                                            is: Option<LocalName>)
+                                            namespace: &Namespace,
+                                            local_name: &LocalName,
+                                            is: Option<&LocalName>)
                                             -> Option<Rc<CustomElementDefinition>> {
         if !PREFS.get("dom.customelements.enabled").as_boolean().unwrap_or(false) {
+            return None;
+        }
+
+        // Step 1
+        if *namespace != ns!(html) {
             return None;
         }
 
@@ -2018,9 +2068,14 @@ impl Document {
 
         registry.lookup_definition(local_name, is)
     }
+
+    fn send_to_constellation(&self, msg: ScriptMsg) {
+        let global_scope = self.window.upcast::<GlobalScope>();
+        global_scope.script_to_constellation_chan().send(msg).unwrap();
+    }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(HeapSizeOf, PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -2134,7 +2189,7 @@ fn url_has_network_scheme(url: &ServoUrl) -> bool {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf, JSTraceable, PartialEq, Eq)]
+#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum HasBrowsingContext {
     No,
     Yes,
@@ -2211,8 +2266,7 @@ impl Document {
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },
-            stylesheets: DOMRefCell::new(None),
-            stylesheets_changed_since_reflow: Cell::new(false),
+            stylesheets: DOMRefCell::new(StylesheetSet::new()),
             stylesheet_list: MutNullableJS::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
@@ -2323,40 +2377,120 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
-    // Ensure that the stylesheets vector is populated
-    fn ensure_stylesheets(&self) {
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        if stylesheets.is_none() {
-            *stylesheets = Some(self.upcast::<Node>()
-                .traverse_preorder()
-                .filter_map(|node| {
-                    node.get_stylesheet()
-                        .map(|stylesheet| StylesheetInDocument {
-                        node: JS::from_ref(&*node),
-                        stylesheet: stylesheet,
-                    })
-                })
-                .collect());
-        };
-    }
-
     /// Return a reference to the per-document shared lock used in stylesheets.
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         &self.style_shared_lock
     }
 
-    /// Returns the list of stylesheets associated with nodes in the document.
-    pub fn stylesheets(&self) -> Vec<Arc<Stylesheet>> {
-        self.ensure_stylesheets();
-        self.stylesheets.borrow().as_ref().unwrap().iter()
-                        .map(|s| s.stylesheet.clone())
-                        .collect()
+    /// Flushes the stylesheet list, and returns whether any stylesheet changed.
+    pub fn flush_stylesheets_for_reflow(&self) -> bool {
+        // NOTE(emilio): The invalidation machinery is used on the replicated
+        // list on the layout thread.
+        //
+        // FIXME(emilio): This really should differentiate between CSSOM changes
+        // and normal stylesheets additions / removals, because in the last case
+        // the layout thread already has that information and we could avoid
+        // dirtying the whole thing.
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        let have_changed = stylesheets.has_changed();
+        stylesheets.flush_without_invalidation();
+        have_changed
     }
 
-    pub fn with_style_sheets_in_document<F, T>(&self, mut f: F) -> T
-            where F: FnMut(&[StylesheetInDocument]) -> T {
-        self.ensure_stylesheets();
-        f(&self.stylesheets.borrow().as_ref().unwrap())
+    /// Returns a `Device` suitable for media query evaluation.
+    ///
+    /// FIXME(emilio): This really needs to be somehow more in sync with layout.
+    /// Feels like a hack.
+    ///
+    /// Also, shouldn't return an option, I'm quite sure.
+    pub fn device(&self) -> Option<Device> {
+        let window_size = match self.window().window_size() {
+            Some(ws) => ws,
+            None => return None,
+        };
+
+        let viewport_size = window_size.initial_viewport;
+        let device_pixel_ratio = window_size.device_pixel_ratio;
+        Some(Device::new(MediaType::screen(), viewport_size, device_pixel_ratio))
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.window()
+            .layout_chan()
+            .send(Msg::RemoveStylesheet(s.clone()))
+            .unwrap();
+
+        let guard = s.shared_lock.read();
+
+        // FIXME(emilio): Would be nice to remove the clone, etc.
+        self.stylesheets.borrow_mut().remove_stylesheet(
+            None,
+            StyleSheetInDocument {
+                sheet: s.clone(),
+                owner: JS::from_ref(owner),
+            },
+            &guard,
+        );
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        // FIXME(emilio): It'd be nice to unify more code between the elements
+        // that own stylesheets, but StylesheetOwner is more about loading
+        // them...
+        debug_assert!(owner.as_stylesheet_owner().is_some() ||
+                      owner.is::<HTMLMetaElement>(), "Wat");
+
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        let insertion_point =
+            stylesheets
+                .iter()
+                .map(|(sheet, _origin)| sheet)
+                .find(|sheet_in_doc| {
+                    owner.upcast::<Node>().is_before(sheet_in_doc.owner.upcast())
+                }).cloned();
+
+        self.window()
+            .layout_chan()
+            .send(Msg::AddStylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone())
+            ))
+            .unwrap();
+
+        let sheet = StyleSheetInDocument {
+            sheet,
+            owner: JS::from_ref(owner),
+        };
+
+        let lock = self.style_shared_lock();
+        let guard = lock.read();
+
+        match insertion_point {
+            Some(ip) => {
+                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
+            }
+            None => {
+                stylesheets.append_stylesheet(None, sheet, &guard);
+            }
+        }
+    }
+
+    /// Returns the number of document stylesheets.
+    pub fn stylesheet_count(&self) -> usize {
+        self.stylesheets.borrow().len()
+    }
+
+    pub fn stylesheet_at(&self, index: usize) -> Option<Root<CSSStyleSheet>> {
+        let stylesheets = self.stylesheets.borrow();
+
+        stylesheets.get(Origin::Author, index).and_then(|s| {
+            s.owner.upcast::<Node>().get_cssom_stylesheet()
+        })
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
@@ -2399,7 +2533,7 @@ impl Document {
         if entry.snapshot.is_none() {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
         }
-        let mut snapshot = entry.snapshot.as_mut().unwrap();
+        let snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.state.is_none() {
             snapshot.state = Some(el.state());
         }
@@ -2419,14 +2553,11 @@ impl Document {
             entry.hint.insert(RESTYLE_STYLE_ATTRIBUTE);
         }
 
-        // FIXME(emilio): This should become something like
-        // element.is_attribute_mapped(attr.local_name()).
-        if attr.local_name() == &local_name!("width") ||
-           attr.local_name() == &local_name!("height") {
+        if vtable_for(el.upcast()).attribute_affects_presentational_hints(attr) {
             entry.hint.insert(RESTYLE_SELF);
         }
 
-        let mut snapshot = entry.snapshot.as_mut().unwrap();
+        let snapshot = entry.snapshot.as_mut().unwrap();
         if attr.local_name() == &local_name!("id") {
             snapshot.id_changed = true;
         } else if attr.local_name() == &local_name!("class") {
@@ -2519,15 +2650,15 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let event = ConstellationMsg::SetFullscreenState(true);
-            window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+            let event = ScriptMsg::SetFullscreenState(true);
+            self.send_to_constellation(event);
         }
 
         // Step 7
         let trusted_pending = Trusted::new(pending);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_promise, error);
-        let script_msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::EnterFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2552,14 +2683,14 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = ConstellationMsg::SetFullscreenState(false);
-        window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+        let event = ScriptMsg::SetFullscreenState(false);
+        self.send_to_constellation(event);
 
         // Step 9
         let trusted_element = Trusted::new(element.r());
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let script_msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::ExitFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -3431,7 +3562,7 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
-        #[derive(JSTraceable, HeapSizeOf)]
+        #[derive(HeapSizeOf, JSTraceable)]
         struct NamedElementFilter {
             name: Atom,
         }
@@ -3692,8 +3823,7 @@ impl DocumentMethods for Document {
         self.scripts.set(None);
         self.anchors.set(None);
         self.applets.set(None);
-        *self.stylesheets.borrow_mut() = None;
-        self.stylesheets_changed_since_reflow.set(true);
+        *self.stylesheets.borrow_mut() = StylesheetSet::new();
         self.animation_frame_ident.set(0);
         self.animation_frame_list.borrow_mut().clear();
         self.pending_restyles.borrow_mut().clear();
@@ -3889,70 +4019,8 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     }
 }
 
-pub struct DocumentProgressHandler {
-    addr: Trusted<Document>
-}
-
-impl DocumentProgressHandler {
-     pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
-        DocumentProgressHandler {
-            addr: addr
-        }
-    }
-
-    fn set_ready_state_complete(&self) {
-        let document = self.addr.root();
-        document.set_ready_state(DocumentReadyState::Complete);
-    }
-
-    fn dispatch_load(&self) {
-        let document = self.addr.root();
-        if document.browsing_context().is_none() {
-            return;
-        }
-        let window = document.window();
-        let event = Event::new(window.upcast(),
-                               atom!("load"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let wintarget = window.upcast::<EventTarget>();
-        event.set_trusted(true);
-
-        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-        update_with_current_time_ms(&document.load_event_start);
-
-        debug!("About to dispatch load for {:?}", document.url());
-        let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
-
-        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-        update_with_current_time_ms(&document.load_event_end);
-
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::DocumentLoaded);
-
-        document.notify_constellation_load();
-    }
-}
-
-impl Runnable for DocumentProgressHandler {
-    fn name(&self) -> &'static str { "DocumentProgressHandler" }
-
-    fn handler(self: Box<DocumentProgressHandler>) {
-        let document = self.addr.root();
-        let window = document.window();
-        if window.is_alive() {
-            self.set_ready_state_complete();
-            self.dispatch_load();
-            if let Some(fragment) = document.url().fragment() {
-                document.check_and_scroll_fragment(fragment);
-            }
-        }
-    }
-}
-
 /// Specifies the type of focus event that is sent to a pipeline
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum FocusType {
     Element,    // The first focus message - focus the element itself
     Parent,     // Focusing a parent element (an iframe)
@@ -3970,7 +4038,7 @@ pub enum FocusEventType {
 /// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
 /// without mutating the DOM), then we fall back to simple timeouts to save energy over video
 /// refresh.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct FakeRequestAnimationFrameCallback {
     /// The document.
     #[ignore_heap_size_of = "non-owning"]
@@ -4027,7 +4095,7 @@ impl PendingInOrderScriptVec {
 
     fn loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         let mut scripts = self.scripts.borrow_mut();
-        let mut entry = scripts.iter_mut().find(|entry| &*entry.element == element).unwrap();
+        let entry = scripts.iter_mut().find(|entry| &*entry.element == element).unwrap();
         entry.loaded(result);
     }
 

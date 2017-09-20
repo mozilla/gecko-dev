@@ -24,7 +24,6 @@ extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
-extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate rustc_serialize;
 #[macro_use] extern crate serde;
@@ -39,12 +38,14 @@ mod script_msg;
 pub mod webdriver_msg;
 
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, Length, Point2D, Vector2D, Rect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
 use heapsize::HeapSizeOf;
 use hyper::header::Headers;
 use hyper::method::Method;
+use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
@@ -76,7 +77,7 @@ pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSende
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UntrustedNodeAddress(pub *const c_void);
 
 impl HeapSizeOf for UntrustedNodeAddress {
@@ -123,6 +124,8 @@ pub enum LayoutControlMsg {
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
+    /// Send the paint time for a specific epoch to the layout thread.
+    PaintMetric(Epoch, f64),
 }
 
 /// can be passed to `LoadUrl` to load a page with GET/POST
@@ -143,10 +146,22 @@ pub struct LoadData {
     pub headers: Headers,
     /// The data.
     pub data: Option<Vec<u8>>,
+    /// The result of evaluating a javascript scheme url.
+    pub js_eval_result: Option<JsEvalResult>,
     /// The referrer policy.
     pub referrer_policy: Option<ReferrerPolicy>,
     /// The referrer URL.
     pub referrer_url: Option<ServoUrl>,
+}
+
+/// The result of evaluating a javascript scheme url.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum JsEvalResult {
+    /// The js evaluation had a non-string result, 204 status code.
+    /// https://html.spec.whatwg.org/multipage/#navigate 12.11
+    NoContent,
+    /// The js evaluation had a string result.
+    Ok(Vec<u8>)
 }
 
 impl LoadData {
@@ -162,6 +177,7 @@ impl LoadData {
             method: Method::Get,
             headers: Headers::new(),
             data: None,
+            js_eval_result: None,
             referrer_policy: referrer_policy,
             referrer_url: referrer_url,
         }
@@ -193,7 +209,7 @@ pub struct NewLayoutInfo {
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum DiscardBrowsingContext {
     /// Discard the browsing context
     Yes,
@@ -207,7 +223,7 @@ pub enum DiscardBrowsingContext {
 /// and it is inactive otherwise.
 /// https://html.spec.whatwg.org/multipage/#active-document
 /// https://html.spec.whatwg.org/multipage/#fully-active
-#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub enum DocumentActivity {
     /// An inactive document
     Inactive,
@@ -217,8 +233,17 @@ pub enum DocumentActivity {
     FullyActive,
 }
 
+/// The type of recorded paint metric.
+#[derive(Deserialize, Serialize)]
+pub enum PaintMetricType {
+    /// Time to First Paint type.
+    FirstPaint,
+    /// Time to First Contentful Paint type.
+    FirstContentfulPaint,
+}
+
 /// The reason why the pipeline id of an iframe is being updated.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub enum UpdatePipelineIdReason {
     /// The pipeline id is being updated due to a navigation.
     Navigation,
@@ -297,7 +322,9 @@ pub enum ConstellationControlMsg {
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread of WebVR events.
-    WebVREvents(PipelineId, Vec<WebVREvent>)
+    WebVREvents(PipelineId, Vec<WebVREvent>),
+    /// Notifies the script thread about a new recorded paint metric.
+    PaintMetric(PipelineId, PaintMetricType, f64),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -331,13 +358,14 @@ impl fmt::Debug for ConstellationControlMsg {
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
+            PaintMetric(..) => "PaintMetric",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
-#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum DocumentState {
     /// The document has been loaded and is idle.
     Idle,
@@ -347,7 +375,7 @@ pub enum DocumentState {
 
 /// For a given pipeline, whether any animations are currently running
 /// and any animation callbacks are queued
-#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum AnimationState {
     /// Animations are active but no callbacks are queued
     AnimationsPresent,
@@ -375,7 +403,7 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// http://w3c.github.io/touch-events/#widl-Touch-identifier
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
 /// The mouse button involved in the event.
@@ -418,7 +446,7 @@ pub enum CompositorEvent {
 }
 
 /// Touchpad pressure phase for `TouchpadPressureEvent`.
-#[derive(Copy, Clone, HeapSizeOf, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum TouchpadPressurePhase {
     /// Pressure before a regular click.
     BeforeClick,
@@ -448,7 +476,7 @@ pub enum TimerSchedulerMsg {
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
 /// Describes the thread that requested the TimerEvent.
-#[derive(Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum TimerSource {
     /// The event was requested from a window (ScriptThread).
     FromWindow(PipelineId),
@@ -457,7 +485,7 @@ pub enum TimerSource {
 }
 
 /// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
-#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
 pub struct TimerEventId(pub u32);
 
 /// Unit of measurement.
@@ -500,7 +528,7 @@ pub struct InitialScriptState {
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub constellation_chan: IpcSender<ScriptMsg>,
+    pub script_to_constellation_chan: ScriptToConstellationChan,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
@@ -523,8 +551,10 @@ pub struct InitialScriptState {
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
     pub content_process_shutdown_chan: IpcSender<()>,
+    /// A channel to the webgl thread used in this pipeline.
+    pub webgl_chan: WebGLPipeline,
     /// A channel to the webvr thread, if available.
-    pub webvr_thread: Option<IpcSender<WebVRMsg>>
+    pub webvr_chan: Option<IpcSender<WebVRMsg>>
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
@@ -538,7 +568,7 @@ pub trait ScriptThreadFactory {
 }
 
 /// Whether the sandbox attribute is present for an iframe element
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum IFrameSandboxState {
     /// Sandbox attribute is present
     IFrameSandboxed,
@@ -678,7 +708,7 @@ pub enum AnimationTickType {
 }
 
 /// The scroll state of a stacking context.
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct ScrollState {
     /// The ID of the scroll root.
     pub scroll_root_id: ClipId,
@@ -687,7 +717,7 @@ pub struct ScrollState {
 }
 
 /// Data about the window size.
-#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
@@ -698,7 +728,7 @@ pub struct WindowSizeData {
 }
 
 /// The type of window size change.
-#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
 pub enum WindowSizeType {
     /// Initial load.
     Initial,
@@ -740,14 +770,12 @@ pub enum ConstellationMsg {
     /// Request that the constellation send the current focused top-level browsing context id,
     /// over a provided channel.
     GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
-    /// Request to load the initial page.
-    InitLoadUrl(ServoUrl),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Request to load a page.
-    LoadUrl(PipelineId, LoadData),
+    LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
@@ -760,14 +788,18 @@ pub enum ConstellationMsg {
     Reload(TopLevelBrowsingContextId),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
-    /// Set the WebVR thread channel.
-    SetWebVRThread(IpcSender<WebVRMsg>),
     /// Dispatch WebVR events to the subscribed script threads.
     WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
+    /// Create a new top level browsing context.
+    NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    /// Close a top level browsing context.
+    CloseBrowser(TopLevelBrowsingContextId),
+    /// Make browser visible.
+    SelectBrowser(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WorkerGlobalScopeInit {
     /// Chan to a resource thread
     pub resource_threads: ResourceThreads,
@@ -780,7 +812,7 @@ pub struct WorkerGlobalScopeInit {
     /// From devtools sender
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
-    pub constellation_chan: IpcSender<ScriptMsg>,
+    pub script_to_constellation_chan: ScriptToConstellationChan,
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
@@ -792,7 +824,7 @@ pub struct WorkerGlobalScopeInit {
 }
 
 /// Common entities representing a network load origin
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WorkerScriptLoadOrigin {
     /// referrer url
     pub referrer_url: Option<ServoUrl>,
@@ -803,7 +835,7 @@ pub struct WorkerScriptLoadOrigin {
 }
 
 /// Errors from executing a paint worklet
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PaintWorkletError {
     /// Execution timed out.
     Timeout,
@@ -828,9 +860,15 @@ pub trait Painter: SpeculativePainter {
                           -> DrawAPaintImageResult;
 }
 
+impl fmt::Debug for Painter {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_tuple("Painter").field(&format_args!("..")).finish()
+    }
+}
+
 /// The result of executing paint code: the image together with any image URLs that need to be loaded.
 /// TODO: this should return a WR display list. https://github.com/servo/servo/issues/17497
-#[derive(Debug, Deserialize, Serialize, Clone, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub struct DrawAPaintImageResult {
     /// The image height
     pub width: u32,
@@ -842,4 +880,20 @@ pub struct DrawAPaintImageResult {
     pub image_key: Option<ImageKey>,
     /// Drawing the image might have requested loading some image URLs.
     pub missing_image_urls: Vec<ServoUrl>,
+}
+
+/// A Script to Constellation channel.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ScriptToConstellationChan {
+    /// Sender for communicating with constellation thread.
+    pub sender: IpcSender<(PipelineId, ScriptMsg)>,
+    /// Used to identify the origin of the message.
+    pub pipeline_id: PipelineId,
+}
+
+impl ScriptToConstellationChan {
+    /// Send ScriptMsg and attach the pipeline_id to the message.
+    pub fn send(&self, msg: ScriptMsg) -> Result<(), IpcError> {
+        self.sender.send((self.pipeline_id, msg))
+    }
 }

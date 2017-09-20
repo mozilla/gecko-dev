@@ -448,27 +448,29 @@ pub fn multiprocess() -> bool {
 enum UserAgent {
     Desktop,
     Android,
+    #[allow(non_camel_case_types)]
+    iOS
 }
 
 fn default_user_agent_string(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Servo/1.0 Firefox/37.0";
+        "Mozilla/5.0 (X11; Linux x86_64; rv:55.0) Servo/1.0 Firefox/55.0";
     #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux i686; rv:37.0) Servo/1.0 Firefox/37.0";
+        "Mozilla/5.0 (X11; Linux i686; rv:55.0) Servo/1.0 Firefox/55.0";
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:37.0) Servo/1.0 Firefox/37.0";
+        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:55.0) Servo/1.0 Firefox/55.0";
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 6.1; rv:37.0) Servo/1.0 Firefox/37.0";
+        "Mozilla/5.0 (Windows NT 6.1; rv:55.0) Servo/1.0 Firefox/55.0";
 
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0";
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:55.0) Servo/1.0 Firefox/55.0";
 
 
     match agent {
@@ -476,7 +478,10 @@ fn default_user_agent_string(agent: UserAgent) -> &'static str {
             DESKTOP_UA_STRING
         }
         UserAgent::Android => {
-            "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
+            "Mozilla/5.0 (Android; Mobile; rv:55.0) Servo/1.0 Firefox/55.0"
+        }
+        UserAgent::iOS => {
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X; rv:55.0) Servo/1.0 Firefox/55.0"
         }
     }
 }
@@ -484,7 +489,10 @@ fn default_user_agent_string(agent: UserAgent) -> &'static str {
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
-#[cfg(not(target_os = "android"))]
+#[cfg(target_os = "ios")]
+const DEFAULT_USER_AGENT: UserAgent = UserAgent::iOS;
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
@@ -508,9 +516,9 @@ pub fn default_opts() -> Opts {
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
         show_debug_parallel_layout: false,
-        enable_text_antialiasing: false,
-        enable_subpixel_text_antialiasing: false,
-        enable_canvas_antialiasing: false,
+        enable_text_antialiasing: true,
+        enable_subpixel_text_antialiasing: true,
+        enable_canvas_antialiasing: true,
         trace_layout: false,
         debugger_port: None,
         devtools_port: None,
@@ -584,7 +592,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "resolution", "Set window resolution.", "1024x740");
     opts.optopt("u",
                 "user-agent",
-                "Set custom user agent string (or android / desktop for platform default)",
+                "Set custom user agent string (or ios / android / desktop for platform default)",
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
@@ -766,6 +774,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let user_agent = match opt_match.opt_str("u") {
+        Some(ref ua) if ua == "ios" => default_user_agent_string(UserAgent::iOS).into(),
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android).into(),
         Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop).into(),
         Some(ua) => ua.into(),

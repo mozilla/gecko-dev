@@ -6,10 +6,9 @@
 
 const { Cc, Ci, Cu } = require("chrome");
 const { reportException } = require("devtools/shared/DevToolsUtils");
-const { Class } = require("sdk/core/heritage");
 const { expectState } = require("devtools/server/actors/common");
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
-loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
+
+loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/event-emitter");
 loader.lazyRequireGetter(this, "DeferredTask",
   "resource://gre/modules/DeferredTask.jsm", true);
 loader.lazyRequireGetter(this, "StackFrameCache",
@@ -32,29 +31,26 @@ loader.lazyRequireGetter(this, "ChildProcessActor",
  * send information over RDP, and TimelineActor for using more light-weight
  * utilities like GC events and measuring memory consumption.
  */
-exports.Memory = Class({
-  extends: EventTarget,
+function Memory(parent, frameCache = new StackFrameCache()) {
+  EventEmitter.decorate(this);
 
-  /**
-   * Requires a root actor and a StackFrameCache.
-   */
-  initialize: function (parent, frameCache = new StackFrameCache()) {
-    this.parent = parent;
-    this._mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
-                  .getService(Ci.nsIMemoryReporterManager);
-    this.state = "detached";
-    this._dbg = null;
-    this._frameCache = frameCache;
+  this.parent = parent;
+  this._mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
+                .getService(Ci.nsIMemoryReporterManager);
+  this.state = "detached";
+  this._dbg = null;
+  this._frameCache = frameCache;
 
-    this._onGarbageCollection = this._onGarbageCollection.bind(this);
-    this._emitAllocations = this._emitAllocations.bind(this);
-    this._onWindowReady = this._onWindowReady.bind(this);
+  this._onGarbageCollection = this._onGarbageCollection.bind(this);
+  this._emitAllocations = this._emitAllocations.bind(this);
+  this._onWindowReady = this._onWindowReady.bind(this);
 
-    events.on(this.parent, "window-ready", this._onWindowReady);
-  },
+  EventEmitter.on(this.parent, "window-ready", this._onWindowReady);
+}
 
+Memory.prototype = {
   destroy: function () {
-    events.off(this.parent, "window-ready", this._onWindowReady);
+    EventEmitter.off(this.parent, "window-ready", this._onWindowReady);
 
     this._mgr = null;
     if (this.state === "attached") {
@@ -199,7 +195,7 @@ exports.Memory = Class({
         this._poller.disarm();
       }
       this._poller = new DeferredTask(this._emitAllocations,
-                                      this.drainAllocationsTimeoutTimer);
+                                      this.drainAllocationsTimeoutTimer, 0);
       this._poller.arm();
     }
 
@@ -399,7 +395,7 @@ exports.Memory = Class({
    * Handler for GC events on the Debugger.Memory instance.
    */
   _onGarbageCollection: function (data) {
-    events.emit(this, "garbage-collection", data);
+    this.emit("garbage-collection", data);
 
     // If `drainAllocationsTimeout` set, fire an allocations event with the drained log,
     // which will restart the timer.
@@ -416,7 +412,7 @@ exports.Memory = Class({
    * Drains allocation log and emits as an event and restarts the timer.
    */
   _emitAllocations: function () {
-    events.emit(this, "allocations", this.getAllocations());
+    this.emit("allocations", this.getAllocations());
     this._poller.arm();
   },
 
@@ -427,5 +423,6 @@ exports.Memory = Class({
     return (this.parent.isRootActor ? this.parent.docShell :
                                       this.parent.originalDocShell).now();
   },
+};
 
-});
+exports.Memory = Memory;

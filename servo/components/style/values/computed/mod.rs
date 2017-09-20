@@ -4,34 +4,40 @@
 
 //! Computed values.
 
-use Atom;
+use {Atom, Namespace};
 use context::QuirksMode;
 use euclid::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
-use properties::{ComputedValues, StyleBuilder};
-use std::f32;
-use std::f64;
-use std::f64::consts::PI;
-use std::fmt;
+use properties::{ComputedValues, LonghandId, StyleBuilder};
+use rule_cache::RuleCacheConditions;
+#[cfg(feature = "servo")]
+use servo_url::ServoUrl;
+use std::{f32, fmt};
+use std::cell::RefCell;
+#[cfg(feature = "servo")]
+use std::sync::Arc;
 use style_traits::ToCss;
+use style_traits::cursor::Cursor;
 use super::{CSSFloat, CSSInteger};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
-use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
+use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
-use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
 
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::angle::Angle;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
-pub use self::border::{BorderRadius, BorderCornerRadius};
-pub use self::color::{Color, RGBAColor};
+pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
+pub use self::box_::VerticalAlign;
+pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
@@ -39,22 +45,25 @@ pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
-pub use super::specified::{BorderStyle, UrlOrNone};
-pub use super::generics::grid::GridLine;
-pub use super::specified::url::SpecifiedUrl;
+pub use super::specified::BorderStyle;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
-pub use self::length::NonNegativeLengthOrPercentage;
+pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
+pub use self::percentage::Percentage;
 pub use self::position::Position;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
+pub use self::time::Time;
 pub use self::transform::{TimingFunction, TransformOrigin};
 
 #[cfg(feature = "gecko")]
 pub mod align;
+pub mod angle;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+#[path = "box.rs"]
+pub mod box_;
 pub mod color;
 pub mod effects;
 pub mod flex;
@@ -62,10 +71,12 @@ pub mod image;
 #[cfg(feature = "gecko")]
 pub mod gecko;
 pub mod length;
+pub mod percentage;
 pub mod position;
 pub mod rect;
 pub mod svg;
 pub mod text;
+pub mod time;
 pub mod transform;
 
 /// A `Context` is all the data a specified value could ever need to compute
@@ -107,6 +118,17 @@ pub struct Context<'a> {
     /// This is used to allow certain properties to generate out-of-range
     /// values, which SMIL allows.
     pub for_smil_animation: bool,
+
+    /// The property we are computing a value for, if it is a non-inherited
+    /// property.  None if we are computed a value for an inherited property
+    /// or not computing for a property at all (e.g. in a media query
+    /// evaluation).
+    pub for_non_inherited_property: Option<LonghandId>,
+
+    /// The conditions to cache a rule node on the rule cache.
+    ///
+    /// FIXME(emilio): Drop the refcell.
+    pub rule_cache_conditions: RefCell<&'a mut RuleCacheConditions>,
 }
 
 impl<'a> Context<'a> {
@@ -120,9 +142,9 @@ impl<'a> Context<'a> {
         self.builder.device
     }
 
-    /// The current viewport size.
-    pub fn viewport_size(&self) -> Size2D<Au> {
-        self.builder.device.au_viewport_size()
+    /// The current viewport size, used to resolve viewport units.
+    pub fn viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
+        self.builder.device.au_viewport_size_for_viewport_unit_resolution()
     }
 
     /// The default computed style we're getting our reset style from.
@@ -135,15 +157,14 @@ impl<'a> Context<'a> {
         &self.builder
     }
 
-
-    /// Apply text-zoom if enabled
+    /// Apply text-zoom if enabled.
     #[cfg(feature = "gecko")]
-    pub fn maybe_zoom_text(&self, size: NonNegativeAu) -> NonNegativeAu {
+    pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
         // We disable zoom for <svg:text> by unsetting the
         // -x-text-zoom property, which leads to a false value
         // in mAllowZoom
         if self.style().get_font().gecko.mAllowZoom {
-            self.device().zoom_text(size.0).into()
+            self.device().zoom_text(Au::from(size)).into()
         } else {
             size
         }
@@ -151,7 +172,7 @@ impl<'a> Context<'a> {
 
     /// (Servo doesn't do text-zoom)
     #[cfg(feature = "servo")]
-    pub fn maybe_zoom_text(&self, size: NonNegativeAu) -> NonNegativeAu {
+    pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
         size
     }
 }
@@ -190,9 +211,18 @@ impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> Iterator for ComputedVecIter<
             None
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.values.len(), Some(self.values.len()))
+    }
 }
 
 /// A trait to represent the conversion between computed and specified values.
+///
+/// This trait is derivable with `#[derive(ToComputedValue)]`. The derived
+/// implementation just calls `ToComputedValue::to_computed_value` on each field
+/// of the passed value, or `Clone::clone` if the field is annotated with
+/// `#[compute(clone)]`.
 pub trait ToComputedValue {
     /// The computed value type we're going to be converted to.
     type ComputedValue;
@@ -283,6 +313,22 @@ impl<T> ToComputedValue for Vec<T>
     }
 }
 
+impl<T> ToComputedValue for Box<T>
+    where T: ToComputedValue
+{
+    type ComputedValue = Box<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        Box::new(T::to_computed_value(self, context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Box::new(T::from_computed_value(computed))
+    }
+}
+
 impl<T> ToComputedValue for Box<[T]>
     where T: ToComputedValue
 {
@@ -299,130 +345,18 @@ impl<T> ToComputedValue for Box<[T]>
     }
 }
 
-/// A marker trait to represent that the specified value is also the computed
-/// value.
-pub trait ComputedValueAsSpecified {}
-
-impl<T> ToComputedValue for T
-    where T: ComputedValueAsSpecified + Clone,
-{
-    type ComputedValue = T;
-
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> T {
-        self.clone()
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &T) -> Self {
-        computed.clone()
-    }
-}
-
-impl ComputedValueAsSpecified for Atom {}
-impl ComputedValueAsSpecified for bool {}
-
-/// A computed `<angle>` value.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-pub enum Angle {
-    /// An angle with degree unit
-    Degree(CSSFloat),
-    /// An angle with gradian unit
-    Gradian(CSSFloat),
-    /// An angle with radian unit
-    Radian(CSSFloat),
-    /// An angle with turn unit
-    Turn(CSSFloat),
-}
-
-impl Angle {
-    /// Construct a computed `Angle` value from a radian amount.
-    pub fn from_radians(radians: CSSFloat) -> Self {
-        Angle::Radian(radians)
-    }
-
-    /// Return the amount of radians this angle represents.
-    #[inline]
-    pub fn radians(&self) -> CSSFloat {
-        self.radians64().min(f32::MAX as f64).max(f32::MIN as f64) as f32
-    }
-
-    /// Return the amount of radians this angle represents as a 64-bit float.
-    /// Gecko stores angles as singles, but does this computation using doubles.
-    /// See nsCSSValue::GetAngleValueInRadians.
-    /// This is significant enough to mess up rounding to the nearest
-    /// quarter-turn for 225 degrees, for example.
-    #[inline]
-    pub fn radians64(&self) -> f64 {
-        const RAD_PER_DEG: f64 = PI / 180.0;
-        const RAD_PER_GRAD: f64 = PI / 200.0;
-        const RAD_PER_TURN: f64 = PI * 2.0;
-
-        let radians = match *self {
-            Angle::Degree(val) => val as f64 * RAD_PER_DEG,
-            Angle::Gradian(val) => val as f64 * RAD_PER_GRAD,
-            Angle::Turn(val) => val as f64 * RAD_PER_TURN,
-            Angle::Radian(val) => val as f64,
-        };
-        radians.min(f64::MAX).max(f64::MIN)
-    }
-
-    /// Returns an angle that represents a rotation of zero radians.
-    pub fn zero() -> Self {
-        Angle::Radian(0.0)
-    }
-}
-
-impl ToCss for Angle {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            Angle::Degree(val) => write!(dest, "{}deg", val),
-            Angle::Gradian(val) => write!(dest, "{}grad", val),
-            Angle::Radian(val) => write!(dest, "{}rad", val),
-            Angle::Turn(val) => write!(dest, "{}turn", val),
-        }
-    }
-}
-
-/// A computed `<time>` value.
-#[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-pub struct Time {
-    seconds: CSSFloat,
-}
-
-impl Time {
-    /// Construct a computed `Time` value from a seconds amount.
-    pub fn from_seconds(seconds: CSSFloat) -> Self {
-        Time {
-            seconds: seconds,
-        }
-    }
-
-    /// Construct a computed `Time` value that represents zero seconds.
-    pub fn zero() -> Self {
-        Self::from_seconds(0.0)
-    }
-
-    /// Return the amount of seconds this time represents.
-    #[inline]
-    pub fn seconds(&self) -> CSSFloat {
-        self.seconds
-    }
-}
-
-impl ToCss for Time {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        write!(dest, "{}s", self.seconds())
-    }
-}
-
-impl ComputedValueAsSpecified for specified::BorderStyle {}
+trivial_to_computed_value!(());
+trivial_to_computed_value!(bool);
+trivial_to_computed_value!(f32);
+trivial_to_computed_value!(i32);
+trivial_to_computed_value!(u8);
+trivial_to_computed_value!(u16);
+trivial_to_computed_value!(u32);
+trivial_to_computed_value!(Atom);
+trivial_to_computed_value!(BorderStyle);
+trivial_to_computed_value!(Cursor);
+trivial_to_computed_value!(Namespace);
+trivial_to_computed_value!(String);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
@@ -462,8 +396,9 @@ impl From<GreaterThanOrEqualToOneNumber> for CSSFloat {
 }
 
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),
@@ -531,15 +466,15 @@ pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 /// NonNegativeLengthOrPercentage | NonNegativeNumber
 pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
 /// A computed cliprect for clip and image-region
 pub struct ClipRect {
-    pub top: Option<Au>,
-    pub right: Option<Au>,
-    pub bottom: Option<Au>,
-    pub left: Option<Au>,
+    pub top: Option<Length>,
+    pub right: Option<Length>,
+    pub bottom: Option<Length>,
+    pub left: Option<Length>,
 }
 
 impl ToCss for ClipRect {
@@ -586,10 +521,13 @@ pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 /// The computed value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<LengthOrPercentage>;
+pub type TrackList = GenericTrackList<LengthOrPercentage, Integer>;
+
+/// The computed value of a `<grid-line>`.
+pub type GridLine = GenericGridLine<Integer>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage, Integer>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value
@@ -609,78 +547,44 @@ impl ClipRectOrAuto {
 /// <color> | auto
 pub type ColorOrAuto = Either<Color, Auto>;
 
-/// A wrapper of Au, but the value >= 0.
-pub type NonNegativeAu = NonNegative<Au>;
+/// The computed value of a CSS `url()`, resolved relative to the stylesheet URL.
+#[cfg(feature = "servo")]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+pub enum ComputedUrl {
+    /// The `url()` was invalid or it wasn't specified by the user.
+    Invalid(Arc<String>),
+    /// The resolved `url()` relative to the stylesheet URL.
+    Valid(ServoUrl),
+}
 
-impl NonNegativeAu {
-    /// Return a zero value.
-    #[inline]
-    pub fn zero() -> Self {
-        NonNegative::<Au>(Au(0))
-    }
+/// TODO: Properly build ComputedUrl for gecko
+#[cfg(feature = "gecko")]
+pub type ComputedUrl = specified::url::SpecifiedUrl;
 
-    /// Return a NonNegativeAu from pixel.
-    #[inline]
-    pub fn from_px(px: i32) -> Self {
-        NonNegative::<Au>(Au::from_px(::std::cmp::max(px, 0)))
-    }
-
-    /// Get the inner value of |NonNegativeAu.0|.
-    #[inline]
-    pub fn value(self) -> i32 {
-        (self.0).0
-    }
-
-    /// Scale this NonNegativeAu.
-    #[inline]
-    pub fn scale_by(self, factor: f32) -> Self {
-        // scale this by zero if factor is negative.
-        NonNegative::<Au>(self.0.scale_by(factor.max(0.)))
+#[cfg(feature = "servo")]
+impl ComputedUrl {
+    /// Returns the resolved url if it was valid.
+    pub fn url(&self) -> Option<&ServoUrl> {
+        match *self {
+            ComputedUrl::Valid(ref url) => Some(url),
+            _ => None,
+        }
     }
 }
 
-impl From<Au> for NonNegativeAu {
-    #[inline]
-    fn from(au: Au) -> NonNegativeAu {
-        NonNegative::<Au>(au)
-    }
-}
-
-/// A computed `<percentage>` value.
-#[derive(Clone, Copy, Debug, Default, PartialEq, HasViewportPercentage)]
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-pub struct Percentage(pub CSSFloat);
-
-impl Percentage {
-    /// 0%
-    #[inline]
-    pub fn zero() -> Self {
-        Percentage(0.)
-    }
-
-    /// 100%
-    #[inline]
-    pub fn hundred() -> Self {
-        Percentage(1.)
-    }
-}
-
-impl ToCss for Percentage {
+#[cfg(feature = "servo")]
+impl ToCss for ComputedUrl {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}%", self.0 * 100.)
+        let string = match *self {
+            ComputedUrl::Valid(ref url) => url.as_str(),
+            ComputedUrl::Invalid(ref invalid_string) => invalid_string,
+        };
+
+        dest.write_str("url(")?;
+        string.to_css(dest)?;
+        dest.write_str(")")
     }
 }
 
-impl ToComputedValue for specified::Percentage {
-    type ComputedValue = Percentage;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> Percentage {
-        Percentage(self.get())
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Percentage) -> Self {
-        specified::Percentage::new(computed.0)
-    }
-}
+/// <url> | <none>
+pub type UrlOrNone = Either<ComputedUrl, None_>;

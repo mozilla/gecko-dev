@@ -171,7 +171,7 @@ gfxUserFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeeds
     return nullptr;
 }
 
-class gfxOTSContext : public ots::OTSContext {
+class MOZ_STACK_CLASS gfxOTSContext : public ots::OTSContext {
 public:
     explicit gfxOTSContext(gfxUserFontEntry* aUserFontEntry)
         : mUserFontEntry(aUserFontEntry)
@@ -197,11 +197,6 @@ public:
               aTag == TRUETYPE_TAG('H', 'V', 'A', 'R') ||
               aTag == TRUETYPE_TAG('M', 'V', 'A', 'R') ||
               aTag == TRUETYPE_TAG('V', 'V', 'A', 'R'))) ||
-            aTag == TRUETYPE_TAG('S', 'i', 'l', 'f') ||
-            aTag == TRUETYPE_TAG('S', 'i', 'l', 'l') ||
-            aTag == TRUETYPE_TAG('G', 'l', 'o', 'c') ||
-            aTag == TRUETYPE_TAG('G', 'l', 'a', 't') ||
-            aTag == TRUETYPE_TAG('F', 'e', 'a', 't') ||
             aTag == TRUETYPE_TAG('S', 'V', 'G', ' ') ||
             aTag == TRUETYPE_TAG('C', 'O', 'L', 'R') ||
             aTag == TRUETYPE_TAG('C', 'P', 'A', 'L')) {
@@ -1307,15 +1302,18 @@ gfxUserFontSet::UserFontCache::GetFont(gfxFontSrcURI* aSrcURI,
     bool allowed = false;
     if (ServoStyleSet::IsInServoTraversal()) {
         // Use the cached IsFontLoadAllowed results in mAllowedFontSets.
-        allowed = entry->IsFontSetAllowed(aUserFontEntry->mFontSet);
+        allowed = entry->CheckIsFontSetAllowedAndDispatchViolations(
+            aUserFontEntry->mFontSet);
     } else {
         // Call IsFontLoadAllowed directly, since we are on the main thread.
         MOZ_ASSERT(NS_IsMainThread());
-	nsIPrincipal* principal = aPrincipal ? aPrincipal->get() : nullptr;
-        allowed = aUserFontEntry->mFontSet->IsFontLoadAllowed(aSrcURI->get(),
-                                                              principal);
+        nsIPrincipal* principal = aPrincipal ? aPrincipal->get() : nullptr;
+        allowed = aUserFontEntry->mFontSet->IsFontLoadAllowed(
+            aSrcURI->get(),
+            principal,
+            /* aViolations */ nullptr);
         MOZ_ASSERT(!entry->IsFontSetAllowedKnown(aUserFontEntry->mFontSet) ||
-                   entry->IsFontSetAllowed(aUserFontEntry->mFontSet) == allowed,
+                   entry->CheckIsFontSetAllowed(aUserFontEntry->mFontSet) == allowed,
                    "why does IsFontLoadAllowed return a different value from "
                    "the cached value in mAllowedFontSets?");
     }
@@ -1348,10 +1346,12 @@ gfxUserFontSet::UserFontCache::UpdateAllowedFontSets(
                 // instead just process the data: URI load async.)
                 principal = aUserFontSet->GetStandardFontLoadPrincipal();
             }
+            nsTArray<nsCOMPtr<nsIRunnable>> violations;
             bool allowed =
                 aUserFontSet->IsFontLoadAllowed(entry->GetURI()->get(),
-                principal->get());
-            entry->SetIsFontSetAllowed(aUserFontSet, allowed);
+                                                principal->get(),
+                                                &violations);
+            entry->SetIsFontSetAllowed(aUserFontSet, allowed, Move(violations));
         }
     }
 }
@@ -1384,14 +1384,26 @@ gfxUserFontSet::UserFontCache::Shutdown()
 MOZ_DEFINE_MALLOC_SIZE_OF(UserFontsMallocSizeOf)
 
 bool
-gfxUserFontSet::UserFontCache::Entry::IsFontSetAllowed(
+gfxUserFontSet::UserFontCache::Entry::CheckIsFontSetAllowed(
     gfxUserFontSet* aUserFontSet) const
 {
-    bool allowed = false;
-    DebugOnly<bool> found = mAllowedFontSets.Get(aUserFontSet, &allowed);
-    MOZ_ASSERT(found, "UpdateAllowedFontSets should have been called and "
+    LoadResultEntry* entry = mAllowedFontSets.GetEntry(aUserFontSet);
+    MOZ_ASSERT(entry, "UpdateAllowedFontSets should have been called and "
                       "added an entry to mAllowedFontSets");
-    return allowed;
+    return entry->mAllowed;
+}
+
+bool
+gfxUserFontSet::UserFontCache::Entry::CheckIsFontSetAllowedAndDispatchViolations(
+    gfxUserFontSet* aUserFontSet) const
+{
+    LoadResultEntry* entry = mAllowedFontSets.GetEntry(aUserFontSet);
+    MOZ_ASSERT(entry, "UpdateAllowedFontSets should have been called and "
+                      "added an entry to mAllowedFontSets");
+    if (!entry->mViolations.IsEmpty()) {
+        aUserFontSet->DispatchFontLoadViolations(entry->mViolations);
+    }
+    return entry->mAllowed;
 }
 
 bool
@@ -1404,17 +1416,20 @@ gfxUserFontSet::UserFontCache::Entry::IsFontSetAllowedKnown(
 void
 gfxUserFontSet::UserFontCache::Entry::SetIsFontSetAllowed(
     gfxUserFontSet* aUserFontSet,
-    bool aAllowed)
+    bool aAllowed,
+    nsTArray<nsCOMPtr<nsIRunnable>>&& aViolations)
 {
     MOZ_ASSERT(!IsFontSetAllowedKnown(aUserFontSet));
-    mAllowedFontSets.Put(aUserFontSet, aAllowed);
+    LoadResultEntry* entry = mAllowedFontSets.PutEntry(aUserFontSet);
+    entry->mAllowed = aAllowed;
+    entry->mViolations.SwapElements(aViolations);
 }
 
 void
 gfxUserFontSet::UserFontCache::Entry::ClearIsFontSetAllowed(
     gfxUserFontSet* aUserFontSet)
 {
-    mAllowedFontSets.Remove(aUserFontSet);
+    mAllowedFontSets.RemoveEntry(aUserFontSet);
 }
 
 void

@@ -716,7 +716,7 @@ public:
     return sWindowsById;
   }
 
-  void AddSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const;
+  void AddSizeOfIncludingThis(nsWindowSizes& aWindowSizes) const;
 
   // Inner windows only.
   void AddEventTargetObject(mozilla::DOMEventTargetHelper* aObject);
@@ -737,9 +737,10 @@ public:
     ContinueSlowScript = 0,
     ContinueSlowScriptAndKeepNotifying,
     AlwaysContinueSlowScript,
-    KillSlowScript
+    KillSlowScript,
+    KillScriptGlobal
   };
-  SlowScriptResponse ShowSlowScriptDialog();
+  SlowScriptResponse ShowSlowScriptDialog(const nsString& aAddonId);
 
   // Inner windows only.
   void AddGamepad(uint32_t aIndex, mozilla::dom::Gamepad* aGamepad);
@@ -1233,17 +1234,6 @@ public:
     return win.forget();
   }
 
-  void Get_content(JSContext* aCx,
-                   JS::MutableHandle<JSObject*> aRetval,
-                   mozilla::dom::SystemCallerGuarantee aCallerType,
-                   mozilla::ErrorResult& aError)
-  {
-    if (mDoc) {
-      mDoc->WarnOnceAbout(nsIDocument::eWindow_Content);
-    }
-    GetContent(aCx, aRetval, aCallerType, aError);
-  }
-
   already_AddRefed<mozilla::dom::Promise>
   CreateImageBitmap(JSContext* aCx,
                     const mozilla::dom::ImageBitmapSource& aImage,
@@ -1317,6 +1307,8 @@ public:
   already_AddRefed<nsWindowRoot> GetWindowRoot(mozilla::ErrorResult& aError);
 
   mozilla::dom::Performance* GetPerformance();
+
+  void UpdateTopInnerWindow();
 
 protected:
   // Web IDL helpers
@@ -1721,7 +1713,6 @@ protected:
 public:
   // Outer windows only.
   nsDOMWindowList* GetWindowList();
-
 protected:
   // Helper for getComputedStyle and getDefaultComputedStyle
   already_AddRefed<nsICSSDeclaration>

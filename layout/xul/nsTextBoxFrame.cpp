@@ -20,7 +20,7 @@
 #include "nsNameSpaceManager.h"
 #include "nsBoxLayoutState.h"
 #include "nsMenuBarListener.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsIServiceManager.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMXULLabelElement.h"
@@ -285,10 +285,8 @@ nsTextBoxFrame::UpdateAttributes(nsIAtom*         aAttribute,
 class nsDisplayXULTextBox final : public nsDisplayItem
 {
 public:
-  nsDisplayXULTextBox(nsDisplayListBuilder* aBuilder,
-                      nsTextBoxFrame* aFrame) :
-    nsDisplayItem(aBuilder, aFrame),
-    mDisableSubpixelAA(false)
+  nsDisplayXULTextBox(nsDisplayListBuilder* aBuilder, nsTextBoxFrame* aFrame)
+    : nsDisplayItem(aBuilder, aFrame)
   {
     MOZ_COUNT_CTOR(nsDisplayXULTextBox);
   }
@@ -301,20 +299,14 @@ public:
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      gfxContext* aCtx) override;
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) override;
+                           bool* aSnap) const override;
   NS_DISPLAY_DECL_NAME("XULTextBox", TYPE_XUL_TEXT_BOX)
 
-  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) override;
-
-  virtual void DisableComponentAlpha() override {
-    mDisableSubpixelAA = true;
-  }
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) const override;
 
   void PaintTextToContext(gfxContext* aCtx,
                           nsPoint aOffset,
                           const nscolor* aColor);
-
-  bool mDisableSubpixelAA;
 };
 
 static void
@@ -356,13 +348,15 @@ nsDisplayXULTextBox::PaintTextToContext(gfxContext* aCtx,
 }
 
 nsRect
-nsDisplayXULTextBox::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
+nsDisplayXULTextBox::GetBounds(nsDisplayListBuilder* aBuilder,
+                               bool* aSnap) const
+{
   *aSnap = false;
   return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
 }
 
 nsRect
-nsDisplayXULTextBox::GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
+nsDisplayXULTextBox::GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) const
 {
   return static_cast<nsTextBoxFrame*>(mFrame)->GetComponentAlphaBounds() +
       ToReferenceFrame();
@@ -370,13 +364,12 @@ nsDisplayXULTextBox::GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
 
 void
 nsTextBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                 const nsRect&           aDirtyRect,
                                  const nsDisplayListSet& aLists)
 {
     if (!IsVisibleForPainting(aBuilder))
         return;
 
-    nsLeafBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+    nsLeafBoxFrame::BuildDisplayList(aBuilder, aLists);
 
     aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayXULTextBox(aBuilder, this));
@@ -533,6 +526,8 @@ nsTextBoxFrame::DrawText(gfxContext&         aRenderingContext,
     nscolor c = aOverrideColor ? *aOverrideColor : StyleColor()->mColor;
     ColorPattern color(ToDeviceColor(c));
     aRenderingContext.SetColor(Color::FromABGR(c));
+    aRenderingContext.SetFontSmoothingBackgroundColor(
+        Color::FromABGR(StyleUserInterface()->mFontSmoothingBackgroundColor));
 
     nsresult rv = NS_ERROR_FAILURE;
 
@@ -604,6 +599,8 @@ nsTextBoxFrame::DrawText(gfxContext&         aRenderingContext,
       params.style = strikeStyle;
       nsCSSRendering::PaintDecorationLine(this, *drawTarget, params);
     }
+
+    aRenderingContext.SetFontSmoothingBackgroundColor(Color());
 }
 
 void
@@ -1034,7 +1031,7 @@ nsTextBoxFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState)
 }
 
 nsRect
-nsTextBoxFrame::GetComponentAlphaBounds()
+nsTextBoxFrame::GetComponentAlphaBounds() const
 {
   if (StyleText()->mTextShadow) {
     return GetVisualOverflowRectRelativeToSelf();

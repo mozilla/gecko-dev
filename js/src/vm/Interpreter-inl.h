@@ -351,7 +351,7 @@ SetNameOperation(JSContext* cx, JSScript* script, jsbytecode* pc, HandleObject e
         else
             varobj = &env->as<NativeObject>();
         MOZ_ASSERT(!varobj->getOpsSetProperty());
-        ok = NativeSetProperty(cx, varobj, id, val, receiver, Unqualified, result);
+        ok = NativeSetProperty<Unqualified>(cx, varobj, id, val, receiver, result);
     } else {
         ok = SetProperty(cx, env, id, val, receiver, result);
     }
@@ -366,7 +366,7 @@ DefLexicalOperation(JSContext* cx, Handle<LexicalEnvironmentObject*> lexicalEnv,
     MOZ_ASSERT(CheckLexicalNameConflict(cx, lexicalEnv, varObj, name));
     RootedId id(cx, NameToId(name));
     RootedValue uninitialized(cx, MagicValue(JS_UNINITIALIZED_LEXICAL));
-    return NativeDefineProperty(cx, lexicalEnv, id, uninitialized, nullptr, nullptr, attrs);
+    return NativeDefineDataProperty(cx, lexicalEnv, id, uninitialized, attrs);
 }
 
 inline bool
@@ -406,8 +406,7 @@ InitPropertyOperation(JSContext* cx, JSOp op, HandleObject obj, HandleId id, Han
 {
     if (obj->is<PlainObject>() || obj->is<JSFunction>()) {
         unsigned propAttrs = GetInitDataPropAttrs(op);
-        return NativeDefineProperty(cx, obj.as<NativeObject>(), id, rhs, nullptr, nullptr,
-                                    propAttrs);
+        return NativeDefineDataProperty(cx, obj.as<NativeObject>(), id, rhs, propAttrs);
     }
 
     MOZ_ASSERT(obj->as<UnboxedPlainObject>().layout().lookup(id));
@@ -436,7 +435,7 @@ DefVarOperation(JSContext* cx, HandleObject varobj, HandlePropertyName dn, unsig
 
     /* Steps 8c, 8d. */
     if (!prop || (obj2 != varobj && varobj->is<GlobalObject>())) {
-        if (!DefineProperty(cx, varobj, dn, UndefinedHandleValue, nullptr, nullptr, attrs))
+        if (!DefineDataProperty(cx, varobj, dn, UndefinedHandleValue, attrs))
             return false;
     }
 
@@ -642,15 +641,13 @@ static MOZ_ALWAYS_INLINE bool
 InitElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, HandleValue idval, HandleValue val)
 {
     MOZ_ASSERT(!val.isMagic(JS_ELEMENTS_HOLE));
-    MOZ_ASSERT(!obj->getClass()->getGetProperty());
-    MOZ_ASSERT(!obj->getClass()->getSetProperty());
 
     RootedId id(cx);
     if (!ToPropertyKey(cx, idval, &id))
         return false;
 
     unsigned flags = GetInitDataPropAttrs(JSOp(*pc));
-    return DefineProperty(cx, obj, id, val, nullptr, nullptr, flags);
+    return DefineDataProperty(cx, obj, id, val, flags);
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -684,7 +681,7 @@ InitArrayElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, uint32_t
                 return false;
         }
     } else {
-        if (!DefineElement(cx, obj, index, val, nullptr, nullptr, JSPROP_ENUMERATE))
+        if (!DefineDataElement(cx, obj, index, val, JSPROP_ENUMERATE))
             return false;
     }
 

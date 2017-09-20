@@ -8,9 +8,7 @@
 #define DecoderTraits_h_
 
 #include "nsCOMPtr.h"
-
-class nsAString;
-class nsACString;
+#include "nsStringFwd.h"
 
 namespace mozilla {
 
@@ -65,6 +63,8 @@ public:
 
   // Returns true if aType is MIME type of hls.
   static bool IsHttpLiveStreamingType(const MediaContainerType& aType);
+
+  static bool IsSupportedType(const MediaContainerType& aType);
 };
 
 } // namespace mozilla

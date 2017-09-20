@@ -65,7 +65,6 @@
 #include "mozilla/ReflowInput.h"
 #include "nsIImageLoadingContent.h"
 #include "nsCopySupport.h"
-#include "nsIDOMHTMLFrameSetElement.h"
 #include "nsIDOMHTMLImageElement.h"
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
@@ -2320,7 +2319,7 @@ nsDocumentViewer::CreateStyleSet(nsIDocument* aDocument)
   if (backendType == StyleBackendType::Gecko) {
     styleSet = new nsStyleSet();
   } else {
-    styleSet = new ServoStyleSet();
+    styleSet = new ServoStyleSet(ServoStyleSet::Kind::Master);
   }
 
   styleSet->BeginUpdate();
@@ -3390,15 +3389,10 @@ SetChildForceCharacterSet(nsIContentViewer* aChild, void* aClosure)
 NS_IMETHODIMP
 nsDocumentViewer::SetForceCharacterSet(const nsACString& aForceCharacterSet)
 {
-  // This method is scriptable, so add-ons could pass in something other
-  // than a canonical name. However, in case where the input is a canonical
-  // name, "replacement" doesn't survive label resolution. Additionally, the
-  // empty string means no hint.
+  // The empty string means no hint.
   const Encoding* encoding = nullptr;
   if (!aForceCharacterSet.IsEmpty()) {
-    if (aForceCharacterSet.EqualsLiteral("replacement")) {
-      encoding = REPLACEMENT_ENCODING;
-    } else if (!(encoding = Encoding::ForLabel(aForceCharacterSet))) {
+    if (!(encoding = Encoding::ForLabel(aForceCharacterSet))) {
       // Reject unknown labels
       return NS_ERROR_INVALID_ARG;
     }
@@ -3473,15 +3467,10 @@ SetChildHintCharacterSet(nsIContentViewer* aChild, void* aClosure)
 NS_IMETHODIMP
 nsDocumentViewer::SetHintCharacterSet(const nsACString& aHintCharacterSet)
 {
-  // This method is scriptable, so add-ons could pass in something other
-  // than a canonical name. However, in case where the input is a canonical
-  // name, "replacement" doesn't survive label resolution. Additionally, the
-  // empty string means no hint.
+  // The empty string means no hint.
   const Encoding* encoding = nullptr;
   if (!aHintCharacterSet.IsEmpty()) {
-    if (aHintCharacterSet.EqualsLiteral("replacement")) {
-      encoding = REPLACEMENT_ENCODING;
-    } else if (!(encoding = Encoding::ForLabel(aHintCharacterSet))) {
+    if (!(encoding = Encoding::ForLabel(aHintCharacterSet))) {
       // Reject unknown labels
       return NS_ERROR_INVALID_ARG;
     }
@@ -3568,6 +3557,13 @@ nsDocumentViewer::GetContentSizeInternal(int32_t* aWidth, int32_t* aHeight,
     prefWidth = aMaxWidth;
   }
 
+  nsAutoPtr<nsPresState> frameState;
+  nsIScrollableFrame *scrollFrame = presShell->GetRootScrollFrameAsScrollable();
+  nsIStatefulFrame *statefulFrame = do_QueryFrame(scrollFrame);
+  if (statefulFrame) {
+    statefulFrame->SaveState(getter_Transfers(frameState));
+  }
+
   nsresult rv = presShell->ResizeReflow(prefWidth, NS_UNCONSTRAINEDSIZE);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3583,6 +3579,12 @@ nsDocumentViewer::GetContentSizeInternal(int32_t* aWidth, int32_t* aHeight,
     NS_ENSURE_SUCCESS(rv, rv);
 
     shellArea = presContext->GetVisibleArea();
+
+    // the first reflow reset our scroll, now set it back
+    if (frameState && presShell->GetRootScrollFrameAsScrollable() == scrollFrame) {
+      statefulFrame->RestoreState(frameState);
+      scrollFrame->ScrollToRestoredPosition();
+    }
   }
 
   // Protect against bogus returns here

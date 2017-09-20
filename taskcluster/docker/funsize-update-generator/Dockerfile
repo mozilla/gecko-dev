@@ -25,8 +25,10 @@ RUN pip install -r /tmp/requirements.txt
 # scripts
 RUN mkdir /home/worker/bin
 COPY scripts/* /home/worker/bin/
+
 COPY runme.sh /runme.sh
-RUN chmod 755 /home/worker/bin/* /runme.sh
+COPY recompress.sh /recompress.sh
+RUN chmod 755 /home/worker/bin/* /*.sh
 RUN mkdir /home/worker/keys
 COPY *.pubkey /home/worker/keys/
 
@@ -34,3 +36,5 @@ ENV           HOME          /home/worker
 ENV           SHELL         /bin/bash
 ENV           USER          worker
 ENV           LOGNAME       worker
+
+CMD ["/runme.sh"]

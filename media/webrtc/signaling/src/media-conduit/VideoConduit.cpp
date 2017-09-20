@@ -620,8 +620,22 @@ WebrtcVideoConduit::VideoStreamFactory::CreateEncoderStreams(int width, int heig
     simulcastEncoding = mConduit->mCurSendCodecConfig->mSimulcastEncodings[idx];
     MOZ_ASSERT(simulcastEncoding.constraints.scaleDownBy >= 1.0);
 
-    // leave vector temporal_layer_thresholds_bps empty
-    video_stream.temporal_layer_thresholds_bps.clear();
+    // leave vector temporal_layer_thresholds_bps empty for non-simulcast
+    if (config.number_of_streams > 1) {
+      // Oddly, though this is a 'bps' array, nothing really looks at the
+      // values, just the size of the array to know the number of temporal
+      // layers.
+      video_stream.temporal_layer_thresholds_bps.resize(2);
+      // XXX Note: in simulcast.cc in upstream code, the array value is
+      // 3(-1) for all streams, though it's in an array, except for screencasts,
+      // which use 1 (i.e 2 layers).
+
+      // XXX Bug 1390215 investigate using more of
+      // simulcast.cc:GetSimulcastConfig() or our own algorithm to replace it
+    } else {
+      video_stream.temporal_layer_thresholds_bps.clear();
+    }
+
     // Calculate these first
     video_stream.max_bitrate_bps = MinIgnoreZero(simulcastEncoding.constraints.maxBr,
                                                  kDefaultMaxBitrate_bps);
@@ -997,8 +1011,8 @@ bool WebrtcVideoConduit::GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
       return false;
     }
     const webrtc::VideoSendStream::Stats& sendStats = mSendStream->GetStats();
-    if (sendStats.substreams.size() == 0
-        || mSendStreamConfig.rtp.ssrcs.size() == 0) {
+    if (sendStats.substreams.empty()
+        || mSendStreamConfig.rtp.ssrcs.empty()) {
       return false;
     }
     uint32_t ssrc = mSendStreamConfig.rtp.ssrcs.front();
@@ -1677,49 +1691,17 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
       ConstrainPreservingAspectRatio(max_width, max_height, &width, &height);
     }
 
-    // Limit resolution to max-fs while keeping same aspect ratio as the
-    // incoming image.
+    // Limit resolution to max-fs
     if (mCurSendCodecConfig->mEncodingConstraints.maxFs) {
-      uint32_t max_fs = mCurSendCodecConfig->mEncodingConstraints.maxFs;
-      unsigned int cur_fs, mb_width, mb_height, mb_max;
-
-      // Could we make this simpler by picking the larger of width and height,
-      // calculating a max for just that value based on the scale parameter,
-      // and then let ConstrainPreservingAspectRatio do the rest?
-      mb_width = (width + 15) >> 4;
-      mb_height = (height + 15) >> 4;
-
-      cur_fs = mb_width * mb_height;
-
-      // Limit resolution to max_fs, but don't scale up.
-      if (cur_fs > max_fs) {
-        double scale_ratio;
-
-        scale_ratio = sqrt((double)max_fs / (double)cur_fs);
-
-        mb_width = mb_width * scale_ratio;
-        mb_height = mb_height * scale_ratio;
-
-        // Adjust mb_width and mb_height if they were truncated to zero.
-        if (mb_width == 0) {
-          mb_width = 1;
-          mb_height = std::min(mb_height, max_fs);
-        }
-        if (mb_height == 0) {
-          mb_height = 1;
-          mb_width = std::min(mb_width, max_fs);
-        }
+      // max-fs is in macroblocks, convert to pixels
+      int max_fs(mCurSendCodecConfig->mEncodingConstraints.maxFs*(16*16));
+      if (max_fs > mLastSinkWanted.max_pixel_count.value_or(max_fs)) {
+        max_fs = mLastSinkWanted.max_pixel_count.value_or(max_fs);
       }
-
-      // Limit width/height seperately to limit effect of extreme aspect ratios.
-      mb_max = (unsigned)sqrt(8 * (double)max_fs);
-
-      max_width = 16 * std::min(mb_width, mb_max);
-      max_height = 16 * std::min(mb_height, mb_max);
-      ConstrainPreservingAspectRatio(max_width, max_height, &width, &height);
+      mVideoAdapter.OnResolutionRequest(rtc::Optional<int>(max_fs),
+                                        rtc::Optional<int>());
     }
   }
-
 
   // Adapt to getUserMedia resolution changes
   // check if we need to reconfigure the sending resolution.
@@ -1920,8 +1902,23 @@ WebrtcVideoConduit::OnSinkWantsChanged(
   const rtc::VideoSinkWants& wants) {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   if (!mLockScaling) {
-    mVideoAdapter.OnResolutionRequest(wants.max_pixel_count,
-                                      wants.max_pixel_count_step_up);
+    mLastSinkWanted = wants;
+
+    // limit sink wants based upon max-fs constraint
+    int max_fs = mCurSendCodecConfig->mEncodingConstraints.maxFs*(16*16);
+    rtc::Optional<int> max_pixel_count = wants.max_pixel_count;
+    rtc::Optional<int> max_pixel_count_step_up = wants.max_pixel_count_step_up;
+
+    if (max_pixel_count.value_or(max_fs) > max_fs) {
+      max_pixel_count = rtc::Optional<int>(max_fs);
+    }
+
+    if (max_pixel_count_step_up.value_or(max_fs) > max_fs) {
+      max_pixel_count_step_up = rtc::Optional<int>(max_fs);
+    }
+
+    mVideoAdapter.OnResolutionRequest(max_pixel_count,
+                                      max_pixel_count_step_up);
   }
 }
 
@@ -2401,20 +2398,6 @@ WebrtcVideoConduit::CodecPluginID()
   }
 
   return 0;
-}
-
-void
-WebrtcVideoConduit::SetSendingWidthAndHeight(unsigned short frame_width,
-                                             unsigned short frame_height,
-                                             unsigned short &result_width,
-                                             unsigned short &result_height)
-{
-  MutexAutoLock lock(mCodecMutex);
-  result_width = 0;
-  result_height = 0;
-  (void)SelectSendResolution(frame_width, frame_height, nullptr);
-  result_width = mSendingWidth;
-  result_height = mSendingHeight;
 }
 
 bool

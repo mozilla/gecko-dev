@@ -7,9 +7,10 @@
 #![deny(unsafe_code)]
 
 use app_units::{Au, MAX_AU};
-use block::{BlockFlow, MarginsMayCollapseFlag};
+use block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
+use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow;
@@ -17,17 +18,18 @@ use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
+use model::{AdjoiningMargins, CollapsibleMargins};
 use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
-use style::computed_values::border_collapse;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::computed::flex::FlexBasis;
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
+use traversal::PreorderFlowTraversal;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -44,7 +46,7 @@ impl AxisSize {
     pub fn new(size: LengthOrPercentageOrAuto, content_size: Option<Au>, min: LengthOrPercentage,
                max: LengthOrPercentageOrNone) -> AxisSize {
         match size {
-            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(length),
+            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(Au::from(length)),
             LengthOrPercentageOrAuto::Percentage(percent) => {
                 match content_size {
                     Some(size) => AxisSize::Definite(size.scale_by(percent.0)),
@@ -75,7 +77,7 @@ fn from_flex_basis(
 ) -> MaybeAuto {
     match (flex_basis, containing_length) {
         (GenericFlexBasis::Length(LengthOrPercentage::Length(length)), _) =>
-            MaybeAuto::Specified(length),
+            MaybeAuto::Specified(Au::from(length)),
         (GenericFlexBasis::Length(LengthOrPercentage::Percentage(percent)), Some(size)) =>
             MaybeAuto::Specified(size.scale_by(percent.0)),
         (GenericFlexBasis::Length(LengthOrPercentage::Percentage(_)), None) =>
@@ -88,7 +90,7 @@ fn from_flex_basis(
             MaybeAuto::from_style(main_length, size),
         (GenericFlexBasis::Auto, None) => {
             if let LengthOrPercentageOrAuto::Length(length) = main_length {
-                MaybeAuto::Specified(length)
+                MaybeAuto::Specified(Au::from(length))
             } else {
                 MaybeAuto::Auto
             }
@@ -160,8 +162,7 @@ impl FlexItem {
                                             Some(containing_length));
 
                 // These methods compute auto margins to zero length, which is exactly what we want.
-                block.fragment.compute_border_and_padding(containing_length,
-                                                          border_collapse::T::separate);
+                block.fragment.compute_border_and_padding(containing_length);
                 block.fragment.compute_inline_direction_margins(containing_length);
                 block.fragment.compute_block_direction_margins(containing_length);
 
@@ -415,7 +416,7 @@ impl FlexFlow {
 
         let items = &mut self.items[start..];
         let mut children = self.block_flow.base.children.random_access_mut();
-        for mut item in items {
+        for item in items {
             let kid = children.get(item.index);
             item.init_sizes(kid, container_size, self.main_mode);
             let outer_main_size = item.outer_main_size(kid, self.main_mode);
@@ -607,7 +608,7 @@ impl FlexFlow {
 
             let mut children = self.block_flow.base.children.random_access_mut();
             for item in items.iter_mut() {
-                let mut block = children.get(item.index).as_mut_block();
+                let block = children.get(item.index).as_mut_block();
 
                 block.base.block_container_writing_mode = container_mode;
                 block.base.block_container_inline_size = inline_size;
@@ -659,7 +660,7 @@ impl FlexFlow {
 
         let mut children = self.block_flow.base.children.random_access_mut();
         for item in &mut self.items {
-            let mut base = flow::mut_base(children.get(item.index));
+            let base = flow::mut_base(children.get(item.index));
             if !self.main_reverse {
                 base.position.start.b = cur_b;
                 cur_b = cur_b + base.position.size.block;
@@ -713,14 +714,18 @@ impl FlexFlow {
 
             line_interval = match line_align {
                 align_content::T::space_between => {
-                    if line_count == 1 {
+                    if line_count <= 1 {
                         Au(0)
                     } else {
                         free_space / (line_count - 1)
                     }
                 }
                 align_content::T::space_around => {
-                    free_space / line_count
+                    if line_count == 0 {
+                        Au(0)
+                    } else {
+                        free_space / line_count
+                    }
                 }
                 _ => Au(0),
             };
@@ -802,7 +807,6 @@ impl FlexFlow {
         let total_block_size = total_cross_size + self.block_flow.fragment.border_padding.block_start_end();
         self.block_flow.fragment.border_box.size.block = total_block_size;
         self.block_flow.base.position.size.block = total_block_size;
-
     }
 }
 
@@ -939,13 +943,29 @@ impl Flow for FlexFlow {
     }
 
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        self.block_flow
-            .assign_block_size_block_base(layout_context,
-                                          None,
-                                          MarginsMayCollapseFlag::MarginsMayNotCollapse);
         match self.main_mode {
-            Direction::Inline => self.inline_mode_assign_block_size(layout_context),
-            Direction::Block => self.block_mode_assign_block_size(),
+            Direction::Inline => {
+                self.inline_mode_assign_block_size(layout_context);
+                let block_start = AdjoiningMargins::from_margin(self.block_flow.fragment.margin.block_start);
+                let block_end = AdjoiningMargins::from_margin(self.block_flow.fragment.margin.block_end);
+                self.block_flow.base.collapsible_margins = CollapsibleMargins::Collapse(block_start, block_end);
+
+                // TODO(stshine): assign proper static position for absolute descendants.
+                if (&*self as &Flow).contains_roots_of_absolute_flow_tree() {
+                    // Assign block-sizes for all flows in this absolute flow tree.
+                    // This is preorder because the block-size of an absolute flow may depend on
+                    // the block-size of its containing block, which may also be an absolute flow.
+                    let assign_abs_b_sizes = AbsoluteAssignBSizesTraversal(layout_context.shared_context());
+                    assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
+                }
+            }
+            Direction::Block =>{
+                self.block_flow
+                    .assign_block_size_block_base(layout_context,
+                                                  None,
+                                                  MarginsMayCollapseFlag::MarginsMayNotCollapse);
+                self.block_mode_assign_block_size();
+            }
         }
     }
 
@@ -969,7 +989,7 @@ impl Flow for FlexFlow {
         self.build_display_list_for_flex(state);
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.block_flow.collect_stacking_contexts(state);
     }
 
@@ -979,6 +999,14 @@ impl Flow for FlexFlow {
 
     fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
+    }
+
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
+    fn is_absolute_containing_block(&self) -> bool {
+        self.block_flow.is_absolute_containing_block()
     }
 
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {

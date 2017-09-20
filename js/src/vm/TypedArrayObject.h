@@ -183,6 +183,12 @@ class TypedArrayObject : public NativeObject
     Value getElement(uint32_t index);
     static void setElement(TypedArrayObject& obj, uint32_t index, double d);
 
+    /*
+     * Copy all elements from this typed array to vp. vp must point to rooted
+     * memory.
+     */
+    void getElements(Value* vp);
+
     void notifyBufferDetached(JSContext* cx, void* newData);
 
     static bool
@@ -267,9 +273,7 @@ class TypedArrayObject : public NativeObject
   public:
     static void trace(JSTracer* trc, JSObject* obj);
     static void finalize(FreeOp* fop, JSObject* obj);
-    static void objectMoved(JSObject* obj, const JSObject* old);
-    static size_t objectMovedDuringMinorGC(JSTracer* trc, JSObject* obj, const JSObject* old,
-                                           gc::AllocKind allocKind);
+    static size_t objectMoved(JSObject* obj, JSObject* old);
 
     /* Initialization bits */
 

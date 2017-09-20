@@ -119,11 +119,6 @@ class GlobalPCList {
     }
   }
 
-  hasActivePeerConnection(winID) {
-    this.removeNullRefs(winID);
-    return !!this._list[winID];
-  }
-
   handleGMPCrash(data) {
     let broadcastPluginCrash = function(list, winID, pluginID, pluginName) {
       if (list.hasOwnProperty(winID)) {
@@ -214,8 +209,7 @@ class GlobalPCList {
 setupPrototype(GlobalPCList, {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsIMessageListener,
-                                         Ci.nsISupportsWeakReference,
-                                         Ci.IPeerConnectionManager]),
+                                         Ci.nsISupportsWeakReference]),
   classID: PC_MANAGER_CID,
   _xpcom_factory: {
     createInstance(outer, iid) {
@@ -333,6 +327,10 @@ class RTCStatsReport {
   }
 
   get mozPcid() { return this._pcid; }
+
+  __onget(key, value) {
+    /* Do whatever here */
+  }
 }
 setupPrototype(RTCStatsReport, {
   classID: PC_STATS_CID,
@@ -642,6 +640,11 @@ class RTCPeerConnection {
             throw new this._win.DOMException(msg + " - missing username: " + spec,
                                              "InvalidAccessError");
           }
+          if (username.length > 512) {
+            throw new this._win.DOMException(msg +
+                                             " - username longer then 512 bytes: "
+                                             + username, "InvalidAccessError");
+          }
           if (credential == undefined) {
             throw new this._win.DOMException(msg + " - missing credential: " + spec,
                                              "InvalidAccessError");
@@ -849,16 +852,7 @@ class RTCPeerConnection {
     return this._havePermission;
   }
 
-  setLocalDescription(desc, onSucc, onErr) {
-    return this._auto(onSucc, onErr, () => this._setLocalDescription(desc));
-  }
-
-  async _setLocalDescription({ type, sdp }) {
-    this._checkClosed();
-
-    this._localType = type;
-
-    let action = this._actions[type];
+  _sanityCheckSdp(action, type, sdp) {
     if (action === undefined) {
       throw new this._win.DOMException(
           "Invalid type " + type + " provided to setLocalDescription",
@@ -874,6 +868,29 @@ class RTCPeerConnection {
           "Empty or null SDP provided to setLocalDescription",
           "InvalidParameterError");
     }
+
+    // The fippo butter finger filter AKA non-ASCII chars
+    // Note: SDP allows non-ASCII character in the subject (who cares?)
+    let pos = sdp.search(/[^\u0000-\u007f]/);
+    if (pos != -1) {
+      throw new this._win.DOMException(
+          "SDP contains non ASCII characters at position " + pos,
+          "InvalidParameterError");
+    }
+  }
+
+  setLocalDescription(desc, onSucc, onErr) {
+    return this._auto(onSucc, onErr, () => this._setLocalDescription(desc));
+  }
+
+  async _setLocalDescription({ type, sdp }) {
+    this._checkClosed();
+
+    this._localType = type;
+
+    let action = this._actions[type];
+
+    this._sanityCheckSdp(action, type, sdp);
 
     return this._chain(async () => {
       await this._getPermission();
@@ -939,21 +956,8 @@ class RTCPeerConnection {
     this._remoteType = type;
 
     let action = this._actions[type];
-    if (action === undefined) {
-      throw new this._win.DOMException(
-          "Invalid type " + type + " provided to setRemoteDescription",
-          "InvalidParameterError");
-    }
-    if (action == Ci.IPeerConnection.kActionPRAnswer) {
-      throw new this._win.DOMException("pranswer not yet implemented",
-                                       "NotSupportedError");
-    }
 
-    if (!sdp && type != "rollback") {
-      throw new this._win.DOMException(
-          "Empty or null SDP provided to setRemoteDescription",
-          "InvalidParameterError");
-    }
+    this._sanityCheckSdp(action, type, sdp);
 
     // Get caller's origin before hitting the promise chain
     let origin = Cu.getWebIDLCallerPrincipal().origin;

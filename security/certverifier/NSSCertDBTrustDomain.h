@@ -37,7 +37,8 @@ enum class NetscapeStepUpPolicy : uint32_t {
   NeverMatch = 3,
 };
 
-SECStatus InitializeNSS(const char* dir, bool readOnly, bool loadPKCS11Modules);
+SECStatus InitializeNSS(const nsACString& dir, bool readOnly,
+                        bool loadPKCS11Modules);
 
 void DisableMD5();
 
@@ -88,7 +89,6 @@ public:
                        NetscapeStepUpPolicy netscapeStepUpPolicy,
                        const OriginAttributes& originAttributes,
                        UniqueCERTCertList& builtChain,
-          /*optional*/ UniqueCERTCertList* peerCertChain = nullptr,
           /*optional*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
           /*optional*/ const char* hostname = nullptr);
 
@@ -198,7 +198,6 @@ private:
   NetscapeStepUpPolicy mNetscapeStepUpPolicy;
   const OriginAttributes& mOriginAttributes;
   UniqueCERTCertList& mBuiltChain; // non-owning
-  UniqueCERTCertList* mPeerCertChain; // non-owning
   PinningTelemetryInfo* mPinningTelemetryInfo;
   const char* mHostname; // non-owning - only used for pinning checks
   nsCOMPtr<nsICertBlocklist> mCertBlocklist;

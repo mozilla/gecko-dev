@@ -206,7 +206,6 @@
     macro(isPrototypeOf, isPrototypeOf, "isPrototypeOf") \
     macro(IterableToList, IterableToList, "IterableToList") \
     macro(iterate, iterate, "iterate") \
-    macro(iteratorIntrinsic, iteratorIntrinsic, "__iterator__") \
     macro(join, join, "join") \
     macro(js, js, "js") \
     macro(keys, keys, "keys") \
@@ -238,8 +237,8 @@
     macro(mode, mode, "mode") \
     macro(module, module, "module") \
     macro(Module, Module, "Module") \
-    macro(ModuleDeclarationInstantiation, ModuleDeclarationInstantiation, "ModuleDeclarationInstantiation") \
-    macro(ModuleEvaluation, ModuleEvaluation, "ModuleEvaluation") \
+    macro(ModuleInstantiate, ModuleInstantiate, "ModuleInstantiate") \
+    macro(ModuleEvaluate, ModuleEvaluate, "ModuleEvaluate") \
     macro(month, month, "month") \
     macro(multiline, multiline, "multiline") \
     macro(name, name, "name") \

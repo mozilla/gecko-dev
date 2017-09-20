@@ -4,23 +4,30 @@
 
 "use strict";
 
-const {Cc, Ci} = require("chrome");
+const {Ci} = require("chrome");
 const promise = require("promise");
 const protocol = require("devtools/shared/protocol");
 const {LongStringActor} = require("devtools/server/actors/string");
-const {getDefinedGeometryProperties} = require("devtools/server/actors/highlighters/geometry-editor");
-const {parseNamedDeclarations} = require("devtools/shared/css/parsing-utils");
-const {isCssPropertyKnown} = require("devtools/server/actors/css-properties");
 const {Task} = require("devtools/shared/task");
-const events = require("sdk/event/core");
 
 // This will also add the "stylesheet" actor type for protocol.js to recognize
-const {UPDATE_PRESERVING_RULES, UPDATE_GENERAL} = require("devtools/server/actors/stylesheets");
+
 const {pageStyleSpec, styleRuleSpec, ELEMENT_STYLE} = require("devtools/shared/specs/styles");
 
-loader.lazyGetter(this, "CssLogic", () => require("devtools/server/css-logic").CssLogic);
-loader.lazyGetter(this, "SharedCssLogic", () => require("devtools/shared/inspector/css-logic"));
-loader.lazyGetter(this, "DOMUtils", () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));
+loader.lazyRequireGetter(this, "CssLogic", "devtools/server/css-logic", true);
+loader.lazyRequireGetter(this, "SharedCssLogic", "devtools/shared/inspector/css-logic");
+loader.lazyRequireGetter(this, "getDefinedGeometryProperties",
+  "devtools/server/actors/highlighters/geometry-editor", true);
+loader.lazyRequireGetter(this, "isCssPropertyKnown",
+  "devtools/server/actors/css-properties", true);
+loader.lazyRequireGetter(this, "parseNamedDeclarations",
+  "devtools/shared/css/parsing-utils", true);
+loader.lazyRequireGetter(this, "UPDATE_PRESERVING_RULES",
+  "devtools/server/actors/stylesheets", true);
+loader.lazyRequireGetter(this, "UPDATE_GENERAL",
+  "devtools/server/actors/stylesheets", true);
+
+loader.lazyServiceGetter(this, "DOMUtils", "@mozilla.org/inspector/dom-utils;1", "inIDOMUtils");
 
 loader.lazyGetter(this, "PSEUDO_ELEMENTS", () => {
   return DOMUtils.getCSSPseudoElementNames();
@@ -67,8 +74,8 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     this.onFrameUnload = this.onFrameUnload.bind(this);
     this.onStyleSheetAdded = this.onStyleSheetAdded.bind(this);
 
-    events.on(this.inspector.tabActor, "will-navigate", this.onFrameUnload);
-    events.on(this.inspector.tabActor, "stylesheet-added", this.onStyleSheetAdded);
+    this.inspector.tabActor.on("will-navigate", this.onFrameUnload);
+    this.inspector.tabActor.on("stylesheet-added", this.onStyleSheetAdded);
 
     this._styleApplied = this._styleApplied.bind(this);
     this._watchedSheets = new Set();
@@ -79,8 +86,8 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
       return;
     }
     protocol.Actor.prototype.destroy.call(this);
-    events.off(this.inspector.tabActor, "will-navigate", this.onFrameUnload);
-    events.off(this.inspector.tabActor, "stylesheet-added", this.onStyleSheetAdded);
+    this.inspector.tabActor.off("will-navigate", this.onFrameUnload);
+    this.inspector.tabActor.off("stylesheet-added", this.onStyleSheetAdded);
     this.inspector = null;
     this.walker = null;
     this.refMap = null;
@@ -124,7 +131,7 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     // the keyframe cache.
     this.cssLogic.reset();
     if (kind === UPDATE_GENERAL) {
-      events.emit(this, "stylesheet-updated", styleSheet);
+      this.emit("stylesheet-updated", styleSheet);
     }
   },
 
@@ -1121,7 +1128,7 @@ var StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
    * @param {Number} column the new column number
    */
   _notifyLocationChanged: function (line, column) {
-    events.emit(this, "location-changed", line, column);
+    this.emit("location-changed", line, column);
   },
 
   /**

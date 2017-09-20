@@ -36,7 +36,7 @@ function waitForPort(url, createTab = true) {
   });
 }
 
-function waitForPage(pages) {
+function waitForPage(pages, url = TEST_URL) {
   return new Promise((resolve) => {
     function listener({ target }) {
       pages.removeMessageListener("RemotePage:Init", listener);
@@ -45,7 +45,7 @@ function waitForPage(pages) {
     }
 
     pages.addMessageListener("RemotePage:Init", listener);
-    gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, TEST_URL);
+    gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, url);
   });
 }
 
@@ -58,6 +58,20 @@ function swapDocShells(browser1, browser2) {
   browser1.permanentKey = browser2.permanentKey;
   browser2.permanentKey = tmp;
 }
+
+add_task(async function initialProcessData() {
+  const includesTest = () => Services.cpmm.
+    initialProcessData["RemotePageManager:urls"].includes(TEST_URL);
+  is(includesTest(), false, "Shouldn't have test url in initial process data yet");
+
+  const loadedPort = waitForPort(TEST_URL);
+  is(includesTest(), true, "Should have test url when waiting for it to load");
+
+  await loadedPort;
+  is(includesTest(), false, "Should have test url removed when done listening");
+
+  gBrowser.removeCurrentTab();
+});
 
 // Test that opening a page creates a port, sends the load event and then
 // navigating to a new page sends the unload event. Going back should create a
@@ -316,7 +330,8 @@ add_task(async function check_port_properties() {
     "loaded",
     "portID",
     "removeMessageListener",
-    "sendAsyncMessage"
+    "sendAsyncMessage",
+    "url"
   ];
   function checkProperties(port, description) {
     const expected = [];
@@ -342,24 +357,31 @@ add_task(async function check_port_properties() {
   let portFromInit = await portFrom("RemotePage:Init", () =>
     (gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, TEST_URL)));
   checkProperties(portFromInit, "inited port");
+  ok(["about:blank", TEST_URL].includes(portFromInit.browser.currentURI.spec),
+    `inited port browser is either still blank or already at the target url - got ${portFromInit.browser.currentURI.spec}`);
   is(portFromInit.loaded, false, "inited port has not been loaded yet");
+  is(portFromInit.url, TEST_URL, "got expected url");
 
   let portFromLoad = await portFrom("RemotePage:Load");
   is(portFromLoad, portFromInit, "got the same port from init and load");
   checkProperties(portFromLoad, "loaded port");
+  is(portFromInit.browser.currentURI.spec, TEST_URL, "loaded port has browser with actual url");
   is(portFromInit.loaded, true, "loaded port is now loaded");
+  is(portFromInit.url, TEST_URL, "still got expected url");
 
   let portFromUnload = await portFrom("RemotePage:Unload", () =>
     BrowserTestUtils.removeTab(gBrowser.selectedTab));
   is(portFromUnload, portFromInit, "got the same port from init and unload");
   checkProperties(portFromUnload, "unloaded port");
+  is(portFromInit.browser, null, "unloaded port has no browser");
   is(portFromInit.loaded, false, "unloaded port is now not loaded");
+  is(portFromInit.url, TEST_URL, "still got expected url");
 
   pages.destroy();
 });
 
 // Test sending messages to all remote pages works
-add_task(async function remote_pages_multiple() {
+add_task(async function remote_pages_multiple_pages() {
   let pages = new RemotePages(TEST_URL);
   let port1 = await waitForPage(pages);
   let port2 = await waitForPage(pages);
@@ -391,6 +413,45 @@ add_task(async function remote_pages_multiple() {
 
   gBrowser.removeTab(gBrowser.getTabForBrowser(port1.browser));
   gBrowser.removeTab(gBrowser.getTabForBrowser(port2.browser));
+});
+
+// Test that RemotePages with multiple urls works
+add_task(async function remote_pages_multiple_urls() {
+  const TEST_URLS = [TEST_URL, TEST_URL.replace(".html", "2.html")];
+  const pages = new RemotePages(TEST_URLS);
+
+  const ports = [];
+  // Load two pages for each url
+  for (const [i, url] of TEST_URLS.entries()) {
+    const port = await waitForPage(pages, url);
+    is(port.browser, gBrowser.selectedBrowser, `port${i} is for the correct browser`);
+    ports.push(port);
+    ports.push(await waitForPage(pages, url));
+  }
+
+  let unloadPromise = waitForMessage(pages, "RemotePage:Unload", ports.pop());
+  gBrowser.removeCurrentTab();
+  await unloadPromise;
+
+  const pongPorts = new Set();
+  await new Promise(resolve => {
+    function listener({ name, target, data }) {
+      is(name, "Pong", "Should have seen the right response.");
+      is(data.str, "FAKE_DATA", "String should pass through");
+      is(data.counter, 1235, "Counter should be incremented");
+      pongPorts.add(target);
+      if (pongPorts.size === ports.length)
+        resolve();
+    }
+
+    pages.addMessageListener("Pong", listener);
+    pages.sendAsyncMessage("Ping", {str: "FAKE_DATA", counter: 1234});
+  });
+
+  ports.forEach(port => ok(pongPorts.has(port)));
+
+  pages.destroy();
+  ports.forEach(port => gBrowser.removeTab(gBrowser.getTabForBrowser(port.browser)));
 });
 
 // Test sending various types of data across the boundary

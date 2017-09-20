@@ -669,7 +669,7 @@ NotificationPermissionRequest::GetTypes(nsIArray** aTypes)
                                                          aTypes);
 }
 
-NS_IMPL_ISUPPORTS(NotificationTelemetryService, nsISupports)
+NS_IMPL_ISUPPORTS(NotificationTelemetryService, nsIObserver)
 
 NotificationTelemetryService::NotificationTelemetryService()
   : mDNDRecorded(false)
@@ -797,6 +797,14 @@ NotificationTelemetryService::RecordDNDSupported()
 
   Telemetry::Accumulate(
     Telemetry::ALERTS_SERVICE_DND_SUPPORTED_FLAG, true);
+}
+
+NS_IMETHODIMP
+NotificationTelemetryService::Observe(nsISupports* aSubject,
+                                      const char* aTopic,
+                                      const char16_t* aData)
+{
+  return NS_OK;
 }
 
 // Observer that the alert service calls to do common tasks and/or dispatch to the
@@ -1181,7 +1189,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 NS_IMPL_ADDREF_INHERITED(Notification, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(Notification, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(Notification)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Notification)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
@@ -1302,7 +1310,8 @@ Notification::DispatchNotificationClickEvent()
 
   event->SetTrusted(true);
   WantsPopupControlCheck popupControlCheck(event);
-  target->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+  bool dummy;
+  target->DispatchEvent(event, &dummy);
   // We always return false since in case of dispatching on the serviceworker,
   // there is no well defined window to focus. The script may use the
   // Client.focus() API if it wishes.
@@ -2316,7 +2325,10 @@ Notification::InitFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aData,
     return;
   }
 
-  dataObjectContainer->GetDataAsBase64(mDataAsBase64);
+  aRv = dataObjectContainer->GetDataAsBase64(mDataAsBase64);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
 }
 
 void Notification::InitFromBase64(const nsAString& aData, ErrorResult& aRv)
@@ -2333,7 +2345,10 @@ void Notification::InitFromBase64(const nsAString& aData, ErrorResult& aRv)
     return;
   }
 
-  container->GetDataAsBase64(mDataAsBase64);
+  aRv = container->GetDataAsBase64(mDataAsBase64);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
 }
 
 bool

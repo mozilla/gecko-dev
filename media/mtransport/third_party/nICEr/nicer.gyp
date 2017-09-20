@@ -7,7 +7,6 @@
 #
 {
   'variables' : {
-    'build_with_gonk%': 0,
     'have_ethtool_cmd_speed_hi%': 1
   },
   'targets' : [
@@ -120,8 +119,6 @@
                 "./src/util/cb_args.h",
                 "./src/util/ice_util.c",
                 "./src/util/ice_util.h",
-                "./src/util/mbslen.c",
-                "./src/util/mbslen.h",
 
 
           ],
@@ -164,6 +161,7 @@
                     '-Wno-strict-prototypes',
                     '-Wmissing-prototypes',
                     '-Wno-format',
+                    '-Wno-format-security',
                  ],
                  'defines' : [
                      'HAVE_LIBM=1',
@@ -212,6 +210,7 @@
                     '-Wno-strict-prototypes',
                     '-Wmissing-prototypes',
                     '-Wno-format',
+                    '-Wno-format-security',
                  ],
                  'defines' : [
                      'LINUX',
@@ -232,18 +231,6 @@
 
 		 'sources': [
 		 ],
-              }],
-              ['moz_widget_toolkit_gonk==1', {
-                'defines' : [
-                  'WEBRTC_GONK',
-                  'NO_REG_RPC',
-                ],
-             }],
-             # Gonk has its own nr_stun_get_addrs implementation.
-             ['build_with_gonk==1', {
-               'defines': [
-                  "USE_PLATFORM_NR_STUN_GET_ADDRS",
-               ]
              }],
              ['have_ethtool_cmd_speed_hi==0', {
                'defines': [

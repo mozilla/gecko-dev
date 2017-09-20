@@ -102,7 +102,7 @@ using namespace mozilla::widget;
 
 /* For SetIcon */
 #include "nsAppDirectoryServiceDefs.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsIFile.h"
 
 /* SetCursor(imgIContainer*) */
@@ -122,6 +122,7 @@ using namespace mozilla::widget;
 #include "GLContextProvider.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/HelpersCairo.h"
+#include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
 
@@ -233,8 +234,10 @@ static void     theme_changed_cb          (GtkSettings *settings,
                                            nsWindow *data);
 static void     check_resize_cb           (GtkContainer* container,
                                            gpointer user_data);
-static void     composited_changed_cb     (GtkWidget* widget,
-                                           gpointer user_data);
+static void     screen_composited_changed_cb     (GdkScreen* screen,
+                                                  gpointer user_data);
+static void     widget_composited_changed_cb     (GtkWidget* widget,
+                                                  gpointer user_data);
 
 #if (MOZ_WIDGET_GTK == 3)
 static void     scale_changed_cb          (GtkWidget* widget,
@@ -1643,7 +1646,7 @@ nsWindow::SetCursor(imgIContainer* aCursor,
         return window->SetCursor(aCursor, aHotspotX, aHotspotY);
     }
 
-    mCursor = nsCursor(-1);
+    mCursor = eCursorInvalid;
 
     // Get the image's current frame
     GdkPixbuf* pixbuf = nsImageToPixbuf::ImageToPixbuf(aCursor);
@@ -3439,7 +3442,6 @@ nsWindow::OnCompositedChanged()
       presShell->ThemeChanged();
     }
   }
-  CleanLayerManagerRecursive();
 }
 
 void
@@ -3929,8 +3931,18 @@ nsWindow::Create(nsIWidget* aParent,
                          G_CALLBACK(window_state_event_cb), nullptr);
         g_signal_connect(mShell, "check-resize",
                          G_CALLBACK(check_resize_cb), nullptr);
+
+        GdkScreen *screen = gtk_widget_get_screen(mShell);
+
         g_signal_connect(mShell, "composited-changed",
-                         G_CALLBACK(composited_changed_cb), nullptr);
+                         G_CALLBACK(widget_composited_changed_cb), nullptr);
+
+        if (!g_signal_handler_find(screen, G_SIGNAL_MATCH_FUNC,
+                                   0, 0, nullptr,
+                                   FuncToGpointer(screen_composited_changed_cb), 0)) {
+            g_signal_connect(screen, "composited-changed",
+                             G_CALLBACK(screen_composited_changed_cb), nullptr);
+        }
 
         GtkSettings* default_settings = gtk_settings_get_default();
         g_signal_connect_after(default_settings,
@@ -5992,7 +6004,13 @@ check_resize_cb (GtkContainer* container, gpointer user_data)
 }
 
 static void
-composited_changed_cb (GtkWidget* widget, gpointer user_data)
+screen_composited_changed_cb (GdkScreen* screen, gpointer user_data)
+{
+    GPUProcessManager::Get()->ResetCompositors();
+}
+
+static void
+widget_composited_changed_cb (GtkWidget* widget, gpointer user_data)
 {
     RefPtr<nsWindow> window = get_window_for_gtk_widget(widget);
     if (!window) {

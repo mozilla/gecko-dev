@@ -109,7 +109,6 @@ body {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  color: var(--theme-content-color3);
 }
 
 /* The top toolbar, containing the toggle-all button. And the timeline toolbar,
@@ -157,8 +156,6 @@ body {
 /* The error message, shown when an invalid/unanimated element is selected */
 
 #error-message {
-  padding-top: 10%;
-  text-align: center;
   flex: 1;
   overflow: auto;
 
@@ -339,6 +336,7 @@ body {
 
 .animation-timeline .time-body {
   top: var(--toolbar-height);
+  z-index: 3;
 }
 
 .progress-tick-container .progress-tick,
@@ -379,7 +377,7 @@ body {
 }
 
 .animation-timeline .animation.selected {
-  background-color: var(--theme-selection-background-semitransparent);
+  background-color: var(--theme-selection-background-hover);
 }
 
 .animation-timeline .animation:last-child {
@@ -538,12 +536,12 @@ body {
 }
 
 .animation-target .node-highlighter:hover {
-  filter: url(images/filters.svg#checked-icon-state);
+  filter: var(--theme-icon-checked-filter);
 }
 
 .animation-target .node-highlighter:active,
 .animation-target .node-highlighter.selected {
-  filter: url(images/filters.svg#checked-icon-state) brightness(0.9);
+  filter: var(--theme-icon-checked-filter) brightness(0.9);
 }
 
 /* Inline keyframes info in the timeline */

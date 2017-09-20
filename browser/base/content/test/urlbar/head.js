@@ -8,6 +8,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
   "resource://testing-common/PlacesTestUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
   "resource://gre/modules/Preferences.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
+  "resource://testing-common/httpd.js");
 
 /**
  * Waits for the next top-level document load in the current browser.  The URI
@@ -129,6 +131,19 @@ function is_element_hidden(element, msg) {
   ok(is_hidden(element), msg || "Element should be hidden");
 }
 
+function runHttpServer(scheme, host, port = -1) {
+  let httpserver = new HttpServer();
+  try {
+    httpserver.start(port);
+    port = httpserver.identity.primaryPort;
+    httpserver.identity.setPrimary(scheme, host, port);
+  } catch (ex) {
+    info("We can't launch our http server successfully.")
+  }
+  is(httpserver.identity.has(scheme, host, port), true, `${scheme}://${host}:${port} is listening.`);
+  return httpserver;
+}
+
 function promisePopupEvent(popup, eventSuffix) {
   let endState = {shown: "open", hidden: "closed"}[eventSuffix];
 
@@ -152,11 +167,16 @@ function promisePopupHidden(popup) {
   return promisePopupEvent(popup, "hidden");
 }
 
-function promiseSearchComplete(win = window) {
+function promiseSearchComplete(win = window, dontAnimate = false) {
   return promisePopupShown(win.gURLBar.popup).then(() => {
     function searchIsComplete() {
-      return win.gURLBar.controller.searchStatus >=
-        Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH;
+      let isComplete = win.gURLBar.controller.searchStatus >=
+                       Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH;
+      if (isComplete) {
+        info(`Restore popup dontAnimate value to ${dontAnimate}`);
+        win.gURLBar.popup.setAttribute("dontanimate", dontAnimate);
+      }
+      return isComplete;
     }
 
     // Wait until there are at least two matches.
@@ -167,7 +187,10 @@ function promiseSearchComplete(win = window) {
 function promiseAutocompleteResultPopup(inputText,
                                         win = window,
                                         fireInputEvent = false) {
+  let dontAnimate = !!win.gURLBar.popup.getAttribute("dontanimate");
   waitForFocus(() => {
+    info(`Disable popup animation. Change dontAnimate value from ${dontAnimate} to true.`);
+    win.gURLBar.popup.setAttribute("dontanimate", "true");
     win.gURLBar.focus();
     win.gURLBar.value = inputText;
     if (fireInputEvent) {
@@ -179,7 +202,7 @@ function promiseAutocompleteResultPopup(inputText,
     win.gURLBar.controller.startSearch(inputText);
   }, win);
 
-  return promiseSearchComplete(win);
+  return promiseSearchComplete(win, dontAnimate);
 }
 
 function promiseNewSearchEngine(basename) {
@@ -204,9 +227,19 @@ function promisePageActionPanelOpen() {
   if (BrowserPageActions.panelNode.state == "open") {
     return Promise.resolve();
   }
-  let shownPromise = promisePageActionPanelShown();
-  EventUtils.synthesizeMouseAtCenter(BrowserPageActions.mainButtonNode, {});
-  return shownPromise;
+  // The main page action button is hidden for some URIs, so make sure it's
+  // visible before trying to click it.
+  let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIDOMWindowUtils);
+  return BrowserTestUtils.waitForCondition(() => {
+    info("Waiting for main page action button to have non-0 size");
+    let bounds = dwu.getBoundsWithoutFlushing(BrowserPageActions.mainButtonNode);
+    return bounds.width > 0 && bounds.height > 0;
+  }).then(() => {
+    let shownPromise = promisePageActionPanelShown();
+    EventUtils.synthesizeMouseAtCenter(BrowserPageActions.mainButtonNode, {});
+    return shownPromise;
+  });
 }
 
 function promisePageActionPanelShown() {
@@ -242,21 +275,31 @@ function promisePanelEvent(panelIDOrNode, eventType) {
 }
 
 function promisePageActionViewShown() {
-  return new Promise(resolve => {
-    BrowserPageActions.panelNode.addEventListener("ViewShown", (event) => {
-      let target = event.originalTarget;
-      window.setTimeout(() => {
-        resolve(target);
-      }, 5000);
-    }, { once: true });
+  let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIDOMWindowUtils);
+  info("promisePageActionViewShown waiting for ViewShown");
+  return BrowserTestUtils.waitForEvent(BrowserPageActions.panelNode, "ViewShown").then(async event => {
+    let panelViewNode = event.originalTarget;
+    // Wait for the subview to be really truly shown by making sure there's at
+    // least one child with non-zero bounds.
+    info("promisePageActionViewShown waiting for a child node to be visible");
+    await BrowserTestUtils.waitForCondition(() => {
+      let bodyNode = panelViewNode.firstChild;
+      for (let childNode of bodyNode.childNodes) {
+        let bounds = dwu.getBoundsWithoutFlushing(childNode);
+        if (bounds.width > 0 && bounds.height > 0) {
+          return true;
+        }
+      }
+      return false;
+    });
+    return panelViewNode;
   });
 }
 
 function promiseSpeculativeConnection(httpserver) {
   return BrowserTestUtils.waitForCondition(() => {
     if (httpserver) {
-      is(httpserver.connectionNumber, 1,
-         `${httpserver.connectionNumber} speculative connection has been setup.`)
       return httpserver.connectionNumber == 1;
     }
     return false;

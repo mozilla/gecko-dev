@@ -17,38 +17,12 @@
  *  - intermittentShown: An array of platforms where this image is
  *                       intermittently shown, contrary to what our
  *                       whitelist says.
- *  - photon: If true, this entry only applies for builds with the Photon theme.
- *            If false, this entry only applies for builds without the Photon theme.
- *            If undefined, this entry applies for both Photon and non-Photon builds.
  *
  * Please don't add items to this list. Please remove items from this list.
  */
 const whitelist = [
-  // Photon-only entries
-  {
-    file: "chrome://browser/skin/stop.svg",
-    platforms: ["linux", "win", "macosx"],
-  },
-  {
-    file: "chrome://browser/skin/bookmark-hollow.svg",
-    platforms: ["linux", "win", "macosx"],
-  },
-  {
-    file: "chrome://browser/skin/page-action.svg",
-    platforms: ["linux", "win", "macosx"],
-  },
-
-  // Shared entries
   {
     file: "chrome://browser/skin/arrow-left.svg",
-    platforms: ["linux", "win", "macosx"],
-  },
-  {
-    file: "chrome://browser/skin/arrow-dropdown-16.svg",
-    platforms: ["linux", "win", "macosx"],
-  },
-  {
-    file: "chrome://browser/skin/fxa/sync-illustration.svg",
     platforms: ["linux", "win", "macosx"],
   },
   {
@@ -64,15 +38,17 @@ const whitelist = [
     file: "chrome://browser/skin/tracking-protection-16.svg#enabled",
     platforms: ["linux", "win", "macosx"],
   },
-  {
-    file: "chrome://global/skin/icons/autoscroll.png",
-    platforms: ["linux", "win", "macosx"],
-  },
 
   {
     file: "chrome://browser/skin/tabbrowser/tabDragIndicator.png",
     hidpi: "chrome://browser/skin/tabbrowser/tabDragIndicator@2x.png",
-    platforms: ["linux", "win", "macosx"],
+    platforms: ["macosx"],
+  },
+
+  {
+    file: "chrome://browser/skin/tabbrowser/tabDragIndicator.png",
+    hidpi: "<not loaded>",
+    platforms: ["linux", "win"],
   },
 
   {
@@ -87,14 +63,8 @@ const whitelist = [
   },
 
   {
-    file: "chrome://global/skin/icons/chevron.png",
-    hidpi: "chrome://global/skin/icons/chevron@2x.png",
-    platforms: ["macosx"],
-  },
-
-  {
-    file: "chrome://global/skin/toolbar/chevron.gif",
-    platforms: ["win", "linux"],
+    file: "chrome://browser/skin/chevron.svg",
+    platforms: ["win", "linux", "macosx"],
   },
 
   {
@@ -104,6 +74,10 @@ const whitelist = [
 ];
 
 add_task(async function() {
+  if (!AppConstants.DEBUG) {
+    ok(false, "You need to run this test on a debug build.");
+  }
+
   let startupRecorder = Cc["@mozilla.org/test/startuprecorder;1"].getService().wrappedJSObject;
   await startupRecorder.done;
 

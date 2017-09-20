@@ -29,12 +29,16 @@ const TEL_CAPTURE_DONE_TIMEOUT = 1;
 // 2 and 3 were used when we had special handling for private-browsing.
 const TEL_CAPTURE_DONE_CRASHED = 4;
 const TEL_CAPTURE_DONE_BAD_URI = 5;
+const TEL_CAPTURE_DONE_LOAD_FAILED = 6;
+const TEL_CAPTURE_DONE_IMAGE_ZERO_DIMENSION = 7;
 
 // These are looked up on the global as properties below.
 XPCOMUtils.defineConstant(this, "TEL_CAPTURE_DONE_OK", TEL_CAPTURE_DONE_OK);
 XPCOMUtils.defineConstant(this, "TEL_CAPTURE_DONE_TIMEOUT", TEL_CAPTURE_DONE_TIMEOUT);
 XPCOMUtils.defineConstant(this, "TEL_CAPTURE_DONE_CRASHED", TEL_CAPTURE_DONE_CRASHED);
 XPCOMUtils.defineConstant(this, "TEL_CAPTURE_DONE_BAD_URI", TEL_CAPTURE_DONE_BAD_URI);
+XPCOMUtils.defineConstant(this, "TEL_CAPTURE_DONE_LOAD_FAILED", TEL_CAPTURE_DONE_LOAD_FAILED);
+XPCOMUtils.defineConstant(this, "TEL_CAPTURE_DONE_IMAGE_ZERO_DIMENSION", TEL_CAPTURE_DONE_IMAGE_ZERO_DIMENSION);
 
 XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
                                   "resource://gre/modules/ContextualIdentityService.jsm");
@@ -57,6 +61,11 @@ const BackgroundPageThumbs = {
    * @opt timeout    The capture will time out after this many milliseconds have
    *                 elapsed after the capture has progressed to the head of
    *                 the queue and started.  Defaults to 30000 (30 seconds).
+   * @opt isImage    If true, backgroundPageThumbsContent will attempt to render
+   *                 the url directly to canvas. Note that images will mostly get
+   *                 detected and rendered as such anyway, but this will ensure it.
+   * @opt targetWidth The target width when capturing an image.
+   * @opt backgroundColor The background colour when capturing an image.
    */
   capture(url, options = {}) {
     if (!PageThumbs._prefEnabled()) {
@@ -203,6 +212,16 @@ const BackgroundPageThumbs = {
     return false;
   },
 
+  _init() {
+    Services.obs.addObserver(this, "profile-before-change");
+  },
+
+  observe(subject, topic, data) {
+    if (topic == "profile-before-change") {
+      this._destroy();
+    }
+  },
+
   /**
    * Destroys the service.  Queued and pending captures will never complete, and
    * their consumer callbacks will never be called.
@@ -287,6 +306,7 @@ const BackgroundPageThumbs = {
     });
 
     browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
+    browser.docShellIsActive = false;
     this._thumbBrowser = browser;
   },
 
@@ -402,8 +422,13 @@ Capture.prototype = {
 
     // didCapture registration
     this._msgMan = messageManager;
-    this._msgMan.sendAsyncMessage("BackgroundPageThumbs:capture",
-                                  { id: this.id, url: this.url });
+    this._msgMan.sendAsyncMessage("BackgroundPageThumbs:capture", {
+      id: this.id,
+      url: this.url,
+      isImage: this.options.isImage,
+      targetWidth: this.options.targetWidth,
+      backgroundColor: this.options.backgroundColor
+    });
     this._msgMan.addMessageListener("BackgroundPageThumbs:didCapture", this);
   },
 
@@ -476,7 +501,7 @@ Capture.prototype = {
       captureCallback(this);
       for (let callback of doneCallbacks) {
         try {
-          callback.call(options, this.url);
+          callback.call(options, this.url, this.doneReason);
         } catch (err) {
           Cu.reportError(err);
         }

@@ -230,8 +230,12 @@ nsTableCellFrame::AttributeChanged(int32_t         aNameSpaceID,
     PresContext()->PresShell()->
       FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
   }
-  // let the table frame decide what to do
-  GetTableFrame()->AttributeChangedFor(this, mContent, aAttribute);
+
+  if (aAttribute == nsGkAtoms::rowspan || aAttribute == nsGkAtoms::colspan) {
+    nsLayoutUtils::PostRestyleEvent(mContent->AsElement(),
+                                    nsRestyleHint(0),
+                                    nsChangeHint_UpdateTableCellSpans);
+  }
   return NS_OK;
 }
 
@@ -424,7 +428,7 @@ public:
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      gfxContext* aCtx) override;
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) override;
+                           bool* aSnap) const override;
   NS_DISPLAY_DECL_NAME("TableCellBackground", TYPE_TABLE_CELL_BACKGROUND)
 };
 
@@ -440,7 +444,7 @@ void nsDisplayTableCellBackground::Paint(nsDisplayListBuilder* aBuilder,
 
 nsRect
 nsDisplayTableCellBackground::GetBounds(nsDisplayListBuilder* aBuilder,
-                                        bool* aSnap)
+                                        bool* aSnap) const
 {
   // revert from nsDisplayTableItem's implementation ... cell backgrounds
   // don't overflow the cell
@@ -470,19 +474,39 @@ PaintTableCellSelection(nsIFrame* aFrame, DrawTarget* aDrawTarget,
                                                                aPt);
 }
 
+bool
+nsTableCellFrame::ShouldPaintBordersAndBackgrounds() const
+{
+  // If we're not visible, we don't paint.
+  if (!StyleVisibility()->IsVisible()) {
+    return false;
+  }
+
+  // Consider 'empty-cells', but only in separated borders mode.
+  if (!GetContentEmpty()) {
+    return true;
+  }
+
+  nsTableFrame* tableFrame = GetTableFrame();
+  if (tableFrame->IsBorderCollapse()) {
+    return true;
+  }
+
+  return StyleTableBorder()->mEmptyCells == NS_STYLE_TABLE_EMPTY_CELLS_SHOW;
+}
+
+bool
+nsTableCellFrame::ShouldPaintBackground(nsDisplayListBuilder* aBuilder)
+{
+  return ShouldPaintBordersAndBackgrounds() && IsVisibleInSelection(aBuilder);
+}
+
 void
 nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                   const nsRect&           aDirtyRect,
                                    const nsDisplayListSet& aLists)
 {
   DO_GLOBAL_REFLOW_COUNT_DSP("nsTableCellFrame");
-  nsTableFrame* tableFrame = GetTableFrame();
-  int32_t emptyCellStyle = GetContentEmpty() && !tableFrame->IsBorderCollapse() ?
-                              StyleTableBorder()->mEmptyCells
-                              : NS_STYLE_TABLE_EMPTY_CELLS_SHOW;
-  // take account of 'empty-cells'
-  if (StyleVisibility()->IsVisible() &&
-      (NS_STYLE_TABLE_EMPTY_CELLS_HIDE != emptyCellStyle)) {
+  if (ShouldPaintBordersAndBackgrounds()) {
     // display outset box-shadows if we need to.
     bool hasBoxShadow = !!StyleEffects()->mBoxShadow;
     if (hasBoxShadow) {
@@ -507,14 +531,14 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
 
     // display borders if we need to
-    ProcessBorders(tableFrame, aBuilder, aLists);
+    ProcessBorders(GetTableFrame(), aBuilder, aLists);
 
     // and display the selection border if we need to
     if (IsSelected()) {
       aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayGeneric(aBuilder, this, ::PaintTableCellSelection,
                          "TableCellSelection",
-                         nsDisplayItem::TYPE_TABLE_CELL_SELECTION));
+                         DisplayItemType::TYPE_TABLE_CELL_SELECTION));
     }
   }
 
@@ -534,7 +558,7 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // because that/ would put the child's background in the Content() list
   // which isn't right (e.g., would end up on top of our child floats for
   // event handling).
-  BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+  BuildDisplayListForChild(aBuilder, kid, aLists);
 }
 
 nsIFrame::LogicalSides
@@ -846,6 +870,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsTableCellFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   if (aReflowInput.mFlags.mSpecialBSizeReflow) {
     FirstInFlow()->AddStateBits(NS_TABLE_CELL_HAD_SPECIAL_REFLOW);
@@ -854,7 +879,6 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   // see if a special bsize reflow needs to occur due to having a pct height
   nsTableFrame::CheckRequestSpecialBSizeReflow(aReflowInput);
 
-  aStatus.Reset();
   WritingMode wm = aReflowInput.GetWritingMode();
   LogicalSize availSize(wm, aReflowInput.AvailableISize(),
                             aReflowInput.AvailableBSize());
@@ -1118,12 +1142,12 @@ nsBCTableCellFrame::GetFrameName(nsAString& aResult) const
 LogicalMargin
 nsBCTableCellFrame::GetBorderWidth(WritingMode aWM) const
 {
-  int32_t pixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  int32_t d2a = PresContext()->AppUnitsPerDevPixel();
   return LogicalMargin(aWM,
-                       BC_BORDER_END_HALF_COORD(pixelsToTwips, mBStartBorder),
-                       BC_BORDER_START_HALF_COORD(pixelsToTwips, mIEndBorder),
-                       BC_BORDER_START_HALF_COORD(pixelsToTwips, mBEndBorder),
-                       BC_BORDER_END_HALF_COORD(pixelsToTwips, mIStartBorder));
+                       BC_BORDER_END_HALF_COORD(d2a, mBStartBorder),
+                       BC_BORDER_START_HALF_COORD(d2a, mIEndBorder),
+                       BC_BORDER_START_HALF_COORD(d2a, mBEndBorder),
+                       BC_BORDER_END_HALF_COORD(d2a, mIStartBorder));
 }
 
 BCPixelSize
@@ -1163,12 +1187,12 @@ nsBCTableCellFrame::SetBorderWidth(LogicalSide aSide, BCPixelSize aValue)
 nsBCTableCellFrame::GetBorderOverflow()
 {
   WritingMode wm = GetWritingMode();
-  int32_t p2t = nsPresContext::AppUnitsPerCSSPixel();
+  int32_t d2a = PresContext()->AppUnitsPerDevPixel();
   LogicalMargin halfBorder(wm,
-                           BC_BORDER_START_HALF_COORD(p2t, mBStartBorder),
-                           BC_BORDER_END_HALF_COORD(p2t, mIEndBorder),
-                           BC_BORDER_END_HALF_COORD(p2t, mBEndBorder),
-                           BC_BORDER_START_HALF_COORD(p2t, mIStartBorder));
+                           BC_BORDER_START_HALF_COORD(d2a, mBStartBorder),
+                           BC_BORDER_END_HALF_COORD(d2a, mIEndBorder),
+                           BC_BORDER_END_HALF_COORD(d2a, mBEndBorder),
+                           BC_BORDER_START_HALF_COORD(d2a, mIStartBorder));
   return halfBorder.GetPhysicalMargin(wm);
 }
 

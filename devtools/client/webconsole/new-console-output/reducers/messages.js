@@ -6,37 +6,38 @@
 "use strict";
 
 const Immutable = require("devtools/client/shared/vendor/immutable");
-const { l10n } = require("devtools/client/webconsole/new-console-output/utils/messages");
+
+const {
+  isGroupType,
+  l10n,
+} = require("devtools/client/webconsole/new-console-output/utils/messages");
 
 const constants = require("devtools/client/webconsole/new-console-output/constants");
-const {isGroupType} = require("devtools/client/webconsole/new-console-output/utils/messages");
 const {
+  DEFAULT_FILTERS,
+  FILTERS,
   MESSAGE_TYPE,
-  MESSAGE_SOURCE
-} = require("devtools/client/webconsole/new-console-output/constants");
+  MESSAGE_SOURCE,
+} = constants;
 const { getGripPreviewItems } = require("devtools/client/shared/components/reps/reps");
 const { getSourceNames } = require("devtools/client/shared/source-utils");
+
+const {
+  UPDATE_PROPS
+} = require("devtools/client/netmonitor/src/constants");
 
 const MessageState = Immutable.Record({
   // List of all the messages added to the console.
   messagesById: Immutable.OrderedMap(),
   // Array of the visible messages.
   visibleMessages: [],
+  // Object for the filtered messages.
+  filteredMessagesCount: getDefaultFiltersCounter(),
   // List of the message ids which are opened.
   messagesUiById: Immutable.List(),
   // Map of the form {messageId : tableData}, which represent the data passed
   // as an argument in console.table calls.
   messagesTableDataById: Immutable.Map(),
-  // Map of the form {messageId : {[actor]: properties}}, where `properties` is
-  // a RDP packet containing the properties of the ${actor} grip.
-  // This map is consumed by the ObjectInspector so we only load properties once,
-  // when needed (when an ObjectInspector node is expanded), and then caches them.
-  messagesObjectPropertiesById: Immutable.Map(),
-  // Map of the form {messageId : {[actor]: entries}}, where `entries` is
-  // a RDP packet containing the entries of the ${actor} grip.
-  // This map is consumed by the ObjectInspector so we only load entries once,
-  // when needed (when an ObjectInspector node is expanded), and then caches them.
-  messagesObjectEntriesById: Immutable.Map(),
   // Map of the form {groupMessageId : groupArray},
   // where groupArray is the list of of all the parent groups' ids of the groupMessageId.
   groupsById: Immutable.Map(),
@@ -58,13 +59,12 @@ function messages(state = new MessageState(), action, filtersState, prefsState) 
     messagesById,
     messagesUiById,
     messagesTableDataById,
-    messagesObjectPropertiesById,
-    messagesObjectEntriesById,
     networkMessagesUpdateById,
     groupsById,
     currentGroup,
     repeatById,
     visibleMessages,
+    filteredMessagesCount,
   } = state;
 
   const {logLimit} = prefsState;
@@ -123,8 +123,18 @@ function messages(state = new MessageState(), action, filtersState, prefsState) 
           }
         }
 
-        if (shouldMessageBeVisible(addedMessage, record, filtersState)) {
+        const {
+          visible,
+          cause
+        } = getMessageVisibility(addedMessage, record, filtersState);
+
+        if (visible) {
           record.set("visibleMessages", [...visibleMessages, newMessage.id]);
+        } else if (DEFAULT_FILTERS.includes(cause)) {
+          record.set("filteredMessagesCount", Object.assign({}, filteredMessagesCount, {
+            global: filteredMessagesCount.global + 1,
+            [cause]: filteredMessagesCount[cause] + 1
+          }));
         }
 
         // Remove top level message if the total count of top level messages
@@ -148,21 +158,23 @@ function messages(state = new MessageState(), action, filtersState, prefsState) 
       return state.withMutations(function (record) {
         record.set("messagesUiById", messagesUiById.push(action.id));
 
+        let currMessage = messagesById.get(action.id);
+
         // If the message is a group
-        if (isGroupType(messagesById.get(action.id).type)) {
+        if (isGroupType(currMessage.type)) {
           // We want to make its children visible
           const messagesToShow = [...messagesById].reduce((res, [id, message]) => {
             if (
               !visibleMessages.includes(message.id)
               && getParentGroups(message.groupId, groupsById).includes(action.id)
-              && shouldMessageBeVisible(
+              && getMessageVisibility(
                 message,
                 record,
                 filtersState,
                 // We want to check if the message is in an open group
                 // only if it is not a direct child of the group we're opening.
                 message.groupId !== action.id
-              )
+              ).visible
             ) {
               res.push(id);
             }
@@ -176,6 +188,21 @@ function messages(state = new MessageState(), action, filtersState, prefsState) 
             ...messagesToShow,
             ...visibleMessages.slice(insertIndex),
           ]);
+        }
+
+        // If the current message is a network event, mark it as opened-once,
+        // so HTTP details are not fetched again the next time the user
+        // opens the log.
+        if (currMessage.source == "network") {
+          record.set("messagesById",
+            messagesById.set(
+              action.id, Object.assign({},
+                currMessage, {
+                  openedOnce: true
+                }
+              )
+            )
+          );
         }
       });
 
@@ -203,27 +230,6 @@ function messages(state = new MessageState(), action, filtersState, prefsState) 
       const {id, data} = action;
       return state.set("messagesTableDataById", messagesTableDataById.set(id, data));
 
-    case constants.MESSAGE_OBJECT_PROPERTIES_RECEIVE:
-      return state.set(
-        "messagesObjectPropertiesById",
-        messagesObjectPropertiesById.set(
-          action.id,
-          Object.assign({
-            [action.actor]: action.properties
-          }, messagesObjectPropertiesById.get(action.id))
-        )
-      );
-    case constants.MESSAGE_OBJECT_ENTRIES_RECEIVE:
-      return state.set(
-        "messagesObjectEntriesById",
-        messagesObjectEntriesById.set(
-          action.id,
-          Object.assign({
-            [action.actor]: action.entries
-          }, messagesObjectEntriesById.get(action.id))
-        )
-      );
-
     case constants.NETWORK_MESSAGE_UPDATE:
       return state.set(
         "networkMessagesUpdateById",
@@ -232,20 +238,70 @@ function messages(state = new MessageState(), action, filtersState, prefsState) 
         })
       );
 
+    case constants.NETWORK_UPDATE_REQUEST: {
+      let request = networkMessagesUpdateById[action.id];
+      if (!request) {
+        return state;
+      }
+
+      let values = {};
+      for (let [key, value] of Object.entries(action.data)) {
+        if (UPDATE_PROPS.includes(key)) {
+          values[key] = value;
+
+          switch (key) {
+            case "securityInfo":
+              values.securityState = value.state;
+              break;
+            case "totalTime":
+              values.totalTime = request.totalTime;
+              break;
+            case "requestPostData":
+              values.requestHeadersFromUploadStream = {
+                headers: [],
+                headersSize: 0,
+              };
+              break;
+          }
+        }
+      }
+
+      let newState = state.set(
+        "networkMessagesUpdateById",
+        Object.assign({}, networkMessagesUpdateById, {
+          [action.id]: Object.assign({}, request, values)
+        })
+      );
+
+      return newState;
+    }
+
     case constants.REMOVED_ACTORS_CLEAR:
       return state.set("removedActors", []);
 
     case constants.FILTER_TOGGLE:
     case constants.FILTER_TEXT_SET:
-      return state.set(
-        "visibleMessages",
-        [...messagesById].reduce((res, [messageId, message]) => {
-          if (shouldMessageBeVisible(message, state, filtersState)) {
-            res.push(messageId);
+    case constants.FILTERS_CLEAR:
+    case constants.DEFAULT_FILTERS_RESET:
+      return state.withMutations(function (record) {
+        const messagesToShow = [];
+        const filtered = getDefaultFiltersCounter();
+        messagesById.forEach((message, messageId) => {
+          const {
+            visible,
+            cause
+          } = getMessageVisibility(message, state, filtersState);
+          if (visible) {
+            messagesToShow.push(messageId);
+          } else if (DEFAULT_FILTERS.includes(cause)) {
+            filtered.global = filtered.global + 1;
+            filtered[cause] = filtered[cause] + 1;
           }
-          return res;
-        }, [])
-      );
+        });
+
+        record.set("visibleMessages", messagesToShow);
+        record.set("filteredMessagesCount", filtered);
+      });
   }
 
   return state;
@@ -368,14 +424,6 @@ function limitTopLevelMessageCount(state, record, logLimit) {
   if (mapHasRemovedIdKey(record.groupsById)) {
     record.set("groupsById", record.groupsById.withMutations(cleanUpCollection));
   }
-  if (mapHasRemovedIdKey(record.messagesObjectPropertiesById)) {
-    record.set("messagesObjectPropertiesById",
-      record.messagesObjectPropertiesById.withMutations(cleanUpCollection));
-  }
-  if (mapHasRemovedIdKey(record.messagesObjectEntriesById)) {
-    record.set("messagesObjectEntriesById",
-      record.messagesObjectEntriesById.withMutations(cleanUpCollection));
-  }
   if (objectHasRemovedIdKey(record.repeatById)) {
     record.set("repeatById", cleanUpObject(record.repeatById));
   }
@@ -390,8 +438,6 @@ function limitTopLevelMessageCount(state, record, logLimit) {
 
 /**
  * Get an array of all the actors logged in a specific message.
- * This could be directly the actors representing the arguments of a console.log call
- * as well as all the properties that where expanded using the object inspector.
  *
  * @param {Message} message: The message to get actors from.
  * @param {Record} state: The redux state.
@@ -410,16 +456,6 @@ function getAllActorsInMessage(message, state) {
     return res;
   }, [])];
 
-  const loadedProperties = state.messagesObjectPropertiesById.get(message.id);
-  if (loadedProperties) {
-    actors.push(...Object.keys(loadedProperties));
-  }
-
-  const loadedEntries = state.messagesObjectEntriesById.get(message.id);
-  if (loadedEntries) {
-    actors.push(...Object.keys(loadedEntries));
-  }
-
   return actors;
 }
 
@@ -431,22 +467,74 @@ function getToplevelMessageCount(record) {
   return record.messagesById.count(message => !message.groupId);
 }
 
-function shouldMessageBeVisible(message, messagesState, filtersState, checkGroup = true) {
-  return (
-    (
-      checkGroup === false
-      || isInOpenedGroup(message, messagesState.groupsById, messagesState.messagesUiById)
-    )
-    && (
-      isUnfilterable(message)
-      || (
-        matchLevelFilters(message, filtersState)
-        && matchCssFilters(message, filtersState)
-        && matchNetworkFilters(message, filtersState)
-        && matchSearchFilters(message, filtersState)
-      )
-    )
-  );
+/**
+ * Check if a message should be visible in the console output, and if not, what
+ * causes it to be hidden.
+ *
+ * @return {Object} An object of the following form:
+ *         - visible {Boolean}: true if the message should be visible
+ *         - cause {String}: if visible is false, what causes the message to be hidden.
+ */
+function getMessageVisibility(message, messagesState, filtersState, checkGroup = true) {
+  // Do not display the message if it's in closed group.
+  if (
+    checkGroup
+    && !isInOpenedGroup(message, messagesState.groupsById, messagesState.messagesUiById)
+  ) {
+    return {
+      visible: false,
+      cause: "closedGroup"
+    };
+  }
+
+  // Some messages can't be filtered out (e.g. groups).
+  // So, always return visible: true for those.
+  if (isUnfilterable(message)) {
+    return {
+      visible: true
+    };
+  }
+
+  if (!passSearchFilters(message, filtersState)) {
+    return {
+      visible: false,
+      cause: FILTERS.TEXT
+    };
+  }
+
+  // Let's check all level filters (error, warn, log, …) and return visible: false
+  // and the message level as a cause if the function returns false.
+  if (!passLevelFilters(message, filtersState)) {
+    return {
+      visible: false,
+      cause: message.level
+    };
+  }
+
+  if (!passCssFilters(message, filtersState)) {
+    return {
+      visible: false,
+      cause: FILTERS.CSS
+    };
+  }
+
+  if (!passNetworkFilter(message, filtersState)) {
+    return {
+      visible: false,
+      cause: FILTERS.NET
+    };
+  }
+
+  if (!passXhrFilter(message, filtersState)) {
+    return {
+      visible: false,
+      cause: FILTERS.NETXHR
+    };
+  }
+
+  return {
+    visible: true
+  };
 }
 
 function isUnfilterable(message) {
@@ -474,31 +562,93 @@ function isGroupClosed(groupId, messagesUI) {
   return messagesUI.includes(groupId) === false;
 }
 
-function matchLevelFilters(message, filters) {
-  return filters.get(message.level) === true;
-}
-
-function matchNetworkFilters(message, filters) {
+/**
+ * Returns true if the message shouldn't be hidden because of the network filter state.
+ *
+ * @param {Object} message - The message to check the filter against.
+ * @param {FilterState} filters - redux "filters" state.
+ * @returns {Boolean}
+ */
+function passNetworkFilter(message, filters) {
+  // The message passes the filter if it is not a network message,
+  // or if it is an xhr one,
+  // or if the network filter is on.
   return (
-    message.source !== MESSAGE_SOURCE.NETWORK
-    || (filters.get("net") === true && message.isXHR === false)
-    || (filters.get("netxhr") === true && message.isXHR === true)
+    message.source !== MESSAGE_SOURCE.NETWORK ||
+    message.isXHR === true ||
+    filters.get(FILTERS.NET) === true
   );
 }
 
-function matchCssFilters(message, filters) {
+/**
+ * Returns true if the message shouldn't be hidden because of the xhr filter state.
+ *
+ * @param {Object} message - The message to check the filter against.
+ * @param {FilterState} filters - redux "filters" state.
+ * @returns {Boolean}
+ */
+function passXhrFilter(message, filters) {
+  // The message passes the filter if it is not a network message,
+  // or if it is a non-xhr one,
+  // or if the xhr filter is on.
   return (
-    message.source != MESSAGE_SOURCE.CSS
-    || filters.get("css") === true
+    message.source !== MESSAGE_SOURCE.NETWORK ||
+    message.isXHR === false ||
+    filters.get(FILTERS.NETXHR) === true
   );
 }
 
-function matchSearchFilters(message, filters) {
-  let text = (filters.text || "").trim();
+/**
+ * Returns true if the message shouldn't be hidden because of levels filter state.
+ *
+ * @param {Object} message - The message to check the filter against.
+ * @param {FilterState} filters - redux "filters" state.
+ * @returns {Boolean}
+ */
+function passLevelFilters(message, filters) {
+  // The message passes the filter if it is not a console call,
+  // or if its level matches the state of the corresponding filter.
   return (
-    text === ""
+    (message.source !== MESSAGE_SOURCE.CONSOLE_API &&
+    message.source !== MESSAGE_SOURCE.JAVASCRIPT) ||
+    filters.get(message.level) === true
+  );
+}
+
+/**
+ * Returns true if the message shouldn't be hidden because of the CSS filter state.
+ *
+ * @param {Object} message - The message to check the filter against.
+ * @param {FilterState} filters - redux "filters" state.
+ * @returns {Boolean}
+ */
+function passCssFilters(message, filters) {
+  // The message passes the filter if it is not a CSS message,
+  // or if the CSS filter is on.
+  return (
+    message.source !== MESSAGE_SOURCE.CSS ||
+    filters.get("css") === true
+  );
+}
+
+/**
+ * Returns true if the message shouldn't be hidden because of search filter state.
+ *
+ * @param {Object} message - The message to check the filter against.
+ * @param {FilterState} filters - redux "filters" state.
+ * @returns {Boolean}
+ */
+function passSearchFilters(message, filters) {
+  let text = (filters.get("text") || "").trim();
+
+  // If there is no search, the message passes the filter.
+  if (!text) {
+    return true;
+  }
+
+  return (
     // Look for a match in parameters.
-    || isTextInParameters(text, message.parameters)
+    isTextInParameters(text, message.parameters)
     // Look for a match in location.
     || isTextInFrame(text, message.frame)
     // Look for a match in net events.
@@ -631,6 +781,15 @@ function getAllProps(grips) {
   );
 
   return [...new Set(result)];
+}
+
+function getDefaultFiltersCounter() {
+  const count = DEFAULT_FILTERS.reduce((res, filter) => {
+    res[filter] = 0;
+    return res;
+  }, {});
+  count.global = 0;
+  return count;
 }
 
 exports.messages = messages;

@@ -126,8 +126,22 @@ MacroAssembler::passABIArg(FloatRegister reg, MoveOp::Type type)
     passABIArg(MoveOperand(reg), type);
 }
 
-template <typename T> void
-MacroAssembler::callWithABI(const T& fun, MoveOp::Type result)
+void
+MacroAssembler::callWithABI(void* fun, MoveOp::Type result, CheckUnsafeCallWithABI check)
+{
+    AutoProfilerCallInstrumentation profiler(*this);
+    callWithABINoProfiler(fun, result, check);
+}
+
+void
+MacroAssembler::callWithABI(Register fun, MoveOp::Type result)
+{
+    AutoProfilerCallInstrumentation profiler(*this);
+    callWithABINoProfiler(fun, result);
+}
+
+void
+MacroAssembler::callWithABI(const Address& fun, MoveOp::Type result)
 {
     AutoProfilerCallInstrumentation profiler(*this);
     callWithABINoProfiler(fun, result);
@@ -301,18 +315,18 @@ MacroAssembler::enterExitFrame(Register cxreg, Register scratch, const VMFunctio
 }
 
 void
-MacroAssembler::enterFakeExitFrame(Register cxreg, Register scratch, enum ExitFrameTokenValues token)
+MacroAssembler::enterFakeExitFrame(Register cxreg, Register scratch, ExitFrameToken token)
 {
     linkExitFrame(cxreg, scratch);
-    Push(Imm32(token));
+    Push(Imm32(int32_t(token)));
     Push(ImmPtr(nullptr));
 }
 
 void
 MacroAssembler::enterFakeExitFrameForNative(Register cxreg, Register scratch, bool isConstructing)
 {
-    enterFakeExitFrame(cxreg, scratch, isConstructing ? ConstructNativeExitFrameLayoutToken
-                                                      : CallNativeExitFrameLayoutToken);
+    enterFakeExitFrame(cxreg, scratch, isConstructing ? ExitFrameToken::ConstructNative
+                                                      : ExitFrameToken::CallNative);
 }
 
 void

@@ -11,7 +11,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Monitor.h"
 #include "AutoTaskQueue.h"
-#include "mozilla/dom/SourceBufferBinding.h"
 
 #include "MediaContainerType.h"
 #include "MediaData.h"
@@ -21,7 +20,6 @@
 #include "SourceBufferTask.h"
 #include "TimeUnits.h"
 #include "nsAutoPtr.h"
-#include "nsProxyRelease.h"
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -213,7 +211,7 @@ private:
   // Set to true once a new segment is started.
   bool mNewMediaSegmentStarted;
   bool mActiveTrack;
-  MediaContainerType mType;
+  const MediaContainerType mType;
 
   // ContainerParser objects and methods.
   // Those are used to parse the incoming input buffer.

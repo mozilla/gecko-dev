@@ -299,13 +299,7 @@ add_task(async function test_update_account_data() {
   do_check_eq((await account.getSignedInUser()).assertion, "new_assertion",
               "new field value was saved");
 
-  // but we should fail attempting to change email or uid.
-  newCreds = {
-    email: "someoneelse@example.com",
-    uid: credentials.uid,
-    assertion: "new_assertion",
-  }
-  await Assert.rejects(account.updateUserAccountData(newCreds));
+  // but we should fail attempting to change the uid.
   newCreds = {
     email: credentials.email,
     uid: "another_uid",
@@ -313,7 +307,7 @@ add_task(async function test_update_account_data() {
   }
   await Assert.rejects(account.updateUserAccountData(newCreds));
 
-  // should fail without email or uid.
+  // should fail without the uid.
   newCreds = {
     assertion: "new_assertion",
   }
@@ -813,6 +807,9 @@ add_task(async function test_getAssertion_invalid_token() {
     email: "sonia@example.com",
   };
   await fxa.setSignedInUser(creds);
+  // we have what we still believe to be a valid session token, so we should
+  // consider that we have a local session.
+  do_check_true(await fxa.hasLocalSession());
 
   try {
     let promiseAssertion = fxa.getAssertion("audience.example.com");
@@ -830,6 +827,7 @@ add_task(async function test_getAssertion_invalid_token() {
   let user = await fxa.internal.getUserAccountData();
   do_check_eq(user.email, creds.email);
   do_check_eq(user.sessionToken, null);
+  do_check_false(await fxa.hasLocalSession());
 });
 
 add_task(async function test_getAssertion() {

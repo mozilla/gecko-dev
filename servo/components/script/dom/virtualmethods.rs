@@ -70,6 +70,15 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Returns `true` if given attribute `attr` affects style of the
+    /// given element.
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        match self.super_type() {
+            Some(s) => s.attribute_affects_presentational_hints(attr),
+            None => false
+        }
+    }
+
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

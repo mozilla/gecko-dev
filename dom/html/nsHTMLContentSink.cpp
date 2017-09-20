@@ -14,6 +14,7 @@
 
 #include "nsContentSink.h"
 #include "nsCOMPtr.h"
+#include "nsHTMLTags.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIHTMLContentSink.h"
@@ -49,7 +50,6 @@
 #include "nsIDocument.h"
 #include "nsStubDocumentObserver.h"
 #include "nsIHTMLDocument.h"
-#include "nsIDOMHTMLMapElement.h"
 #include "nsICookieService.h"
 #include "nsTArray.h"
 #include "nsIScriptSecurityManager.h"
@@ -57,8 +57,6 @@
 #include "nsTextFragment.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsNameSpaceManager.h"
-
-#include "nsIParserService.h"
 
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsITimer.h"
@@ -83,10 +81,6 @@ using namespace mozilla::dom;
 
 //----------------------------------------------------------------------
 
-typedef nsGenericHTMLElement*
-  (*contentCreatorCallback)(already_AddRefed<mozilla::dom::NodeInfo>&&,
-                            FromParser aFromParser);
-
 nsGenericHTMLElement*
 NS_NewHTMLNOTUSEDElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                          FromParser aFromParser)
@@ -97,7 +91,7 @@ NS_NewHTMLNOTUSEDElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
 
 #define HTML_TAG(_tag, _classname, _interfacename) NS_NewHTML##_classname##Element,
 #define HTML_OTHER(_tag) NS_NewHTMLNOTUSEDElement,
-static const contentCreatorCallback sContentCreatorCallbacks[] = {
+static const HTMLContentCreatorFunction sHTMLContentCreatorFunctions[] = {
   NS_NewHTMLUnknownElement,
 #include "nsHTMLTagList.h"
 #undef HTML_TAG
@@ -237,16 +231,12 @@ NS_NewHTMLElement(Element** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& 
 
   RefPtr<mozilla::dom::NodeInfo> nodeInfo = aNodeInfo;
 
-  nsIParserService* parserService = nsContentUtils::GetParserService();
-  if (!parserService)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   nsIAtom *name = nodeInfo->NameAtom();
 
   NS_ASSERTION(nodeInfo->NamespaceEquals(kNameSpaceID_XHTML),
                "Trying to HTML elements that don't have the XHTML namespace");
 
-  int32_t tag = parserService->HTMLCaseSensitiveAtomTagToId(name);
+  int32_t tag = nsHTMLTags::CaseSensitiveAtomTagToId(name);
 
   // Per the Custom Element specification, unknown tags that are valid custom
   // element names should be HTMLElement instead of HTMLUnknownElement.
@@ -279,7 +269,7 @@ CreateHTMLElement(uint32_t aNodeType,
                aNodeType == eHTMLTag_userdefined,
                "aNodeType is out of bounds");
 
-  contentCreatorCallback cb = sContentCreatorCallbacks[aNodeType];
+  HTMLContentCreatorFunction cb = sHTMLContentCreatorFunctions[aNodeType];
 
   NS_ASSERTION(cb != NS_NewHTMLNOTUSEDElement,
                "Don't know how to construct tag element!");
@@ -690,15 +680,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLContentSink,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHead)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLContentSink)
-  NS_INTERFACE_TABLE_BEGIN
-    NS_INTERFACE_TABLE_ENTRY(HTMLContentSink, nsIContentSink)
-    NS_INTERFACE_TABLE_ENTRY(HTMLContentSink, nsIHTMLContentSink)
-  NS_INTERFACE_TABLE_END
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsContentSink)
-
-NS_IMPL_ADDREF_INHERITED(HTMLContentSink, nsContentSink)
-NS_IMPL_RELEASE_INHERITED(HTMLContentSink, nsContentSink)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLContentSink,
+                                             nsContentSink,
+                                             nsIContentSink,
+                                             nsIHTMLContentSink)
 
 nsresult
 HTMLContentSink::Init(nsIDocument* aDoc,

@@ -42,7 +42,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "CustomizableWidgets",
                                   "resource:///modules/CustomizableWidgets.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "Bundle", function () {
-  const kUrl = "chrome://devtools/locale/key-shortcuts.properties";
+  const kUrl = "chrome://devtools-shim/locale/key-shortcuts.properties";
   return Services.strings.createBundle(kUrl);
 });
 
@@ -238,6 +238,9 @@ DevToolsStartup.prototype = {
     // Key Shortcuts need to be added on all the created windows.
     this.hookKeyShortcuts(window);
 
+    // In some situations (e.g. starting Firefox with --jsconsole) DevTools will be
+    // initialized before the first browser-delayed-startup-finished event is received.
+    // We use a dedicated flag because we still need to hook the developer toggle.
     if (!this.developerToggleCreated) {
       this.hookDeveloperToggle();
       this.developerToggleCreated = true;
@@ -396,6 +399,9 @@ DevToolsStartup.prototype = {
       }
       this.recorded = true;
     }
+    if (!this.initialized) {
+      Services.prefs.setBoolPref("devtools.enabled", true);
+    }
     this.initialized = true;
     let { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
     // Ensure loading main devtools module that hooks up into browser UI
@@ -410,9 +416,9 @@ DevToolsStartup.prototype = {
       this.initDevTools("CommandLine");
 
       let { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
-      let hudservice = require("devtools/client/webconsole/hudservice");
+      let { HUDService } = require("devtools/client/webconsole/hudservice");
       let { console } = Cu.import("resource://gre/modules/Console.jsm", {});
-      hudservice.toggleBrowserConsole().catch(console.error);
+      HUDService.toggleBrowserConsole().catch(console.error);
     } else {
       // the Browser Console was already open
       window.focus();
@@ -624,8 +630,7 @@ const JsonView = {
       // The following code emulates saveBrowser, but:
       // - Uses the given blob URL containing the custom contents to save.
       // - Obtains the file name from the URL of the document, not the blob.
-      let persistable = browser.QueryInterface(Ci.nsIFrameLoaderOwner)
-        .frameLoader.QueryInterface(Ci.nsIWebBrowserPersistable);
+      let persistable = browser.frameLoader;
       persistable.startPersistence(message.data.windowID, {
         onDocumentReady(doc) {
           let uri = chrome.makeURI(doc.documentURI, doc.characterSet);

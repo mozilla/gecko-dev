@@ -20,15 +20,17 @@
         side_name = side[0]
         is_logical = side[1]
     %>
-    ${helpers.predefined_type("border-%s-color" % side_name, "Color",
-                              "computed_value::T::currentcolor()",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
-                              spec=maybe_logical_spec(side, "color"),
-                              animation_value_type="IntermediateColor",
-                              logical=is_logical,
-                              allow_quirks=not is_logical,
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              ignored_when_colors_disabled=True)}
+    ${helpers.predefined_type(
+        "border-%s-color" % side_name, "Color",
+        "computed_value::T::currentcolor()",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
+        spec=maybe_logical_spec(side, "color"),
+        animation_value_type="AnimatedColor",
+        logical=is_logical,
+        allow_quirks=not is_logical,
+        flags="APPLIES_TO_FIRST_LETTER",
+        ignored_when_colors_disabled=True,
+    )}
 
     ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
                               "specified::BorderStyle::none",
@@ -40,11 +42,11 @@
 
     ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
-                              "::values::computed::NonNegativeAu::from_px(3)",
-                              computed_type="::values::computed::NonNegativeAu",
+                              "::values::computed::NonNegativeLength::new(3.)",
+                              computed_type="::values::computed::NonNegativeLength",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
-                              animation_value_type="NonNegativeAu",
+                              animation_value_type="NonNegativeLength",
                               logical=is_logical,
                               flags="APPLIES_TO_FIRST_LETTER",
                               allow_quirks=not is_logical)}
@@ -57,7 +59,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
     ${helpers.predefined_type("border-" + corner + "-radius", "BorderCornerRadius",
-                              "computed::LengthOrPercentage::zero().into()",
+                              "computed::BorderCornerRadius::zero()",
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
@@ -76,16 +78,17 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
         use std::fmt;
         use style_traits::ToCss;
         use values::specified::RGBAColor;
-        no_viewport_percentage!(SpecifiedValue);
 
         pub mod computed_value {
             use cssparser::RGBA;
-            #[derive(Debug, Clone, PartialEq)]
+            #[derive(Clone, Debug, PartialEq)]
+            #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct T(pub Option<Vec<RGBA>>);
         }
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum SpecifiedValue {
             None,
@@ -192,14 +195,12 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
-                         gecko_inexhaustive=True,
                          spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
                          products="gecko", animation_value_type="discrete")}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_ffi_name="mFloatEdge",
                          gecko_enum_prefix="StyleFloatEdge",
-                         gecko_inexhaustive=True,
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animation_value_type="discrete")}
@@ -210,14 +211,13 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",
-    has_uncacheable_values=False,
     flags="APPLIES_TO_FIRST_LETTER",
     boxed="True")}
 
 ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     parse_method="parse_non_negative",
-    initial_value="computed::LengthOrNumber::zero().into()",
-    initial_specified_value="specified::LengthOrNumber::zero().into()",
+    initial_value="computed::LengthOrNumberRect::all(computed::LengthOrNumber::zero())",
+    initial_specified_value="specified::LengthOrNumberRect::all(specified::LengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
@@ -228,18 +228,19 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use style_traits::ToCss;
 
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::RepeatKeyword;
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Debug, Clone, PartialEq, ToCss)]
+        #[derive(Clone, Debug, PartialEq, ToCss)]
         pub struct T(pub RepeatKeyword, pub RepeatKeyword);
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Debug, Clone, PartialEq, ToCss)]
+    #[derive(Clone, Debug, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub RepeatKeyword,
                               pub Option<RepeatKeyword>);
 
@@ -282,8 +283,8 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
 </%helpers:longhand>
 
 ${helpers.predefined_type("border-image-width", "BorderImageWidth",
-    initial_value="computed::BorderImageSideWidth::one().into()",
-    initial_specified_value="specified::BorderImageSideWidth::one().into()",
+    initial_value="computed::BorderImageWidth::all(computed::BorderImageSideWidth::one())",
+    initial_specified_value="specified::BorderImageWidth::all(specified::BorderImageSideWidth::one())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",

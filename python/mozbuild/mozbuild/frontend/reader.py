@@ -117,9 +117,6 @@ class EmptyConfig(object):
         # changing all the instances.
         b'MOZ_APP_NAME': b'empty',
         b'MOZ_CHILD_PROCESS_NAME': b'empty',
-        # Set manipulations are performed within the moz.build files. But
-        # set() is not an exposed symbol, so we can't create an empty set.
-        b'NECKO_PROTOCOLS': set(),
         # Needed to prevent js/src's config.status from loading.
         b'JS_STANDALONE': b'1',
     }
@@ -853,7 +850,19 @@ class BuildReader(object):
         self._log = logging.getLogger(__name__)
         self._read_files = set()
         self._execution_stack = []
-        self._finder = finder
+        self.finder = finder
+
+        # Finder patterns to ignore when searching for moz.build files.
+        ignores = {
+            # Ignore fake moz.build files used for testing moz.build.
+            'python/mozbuild/mozbuild/test',
+
+            # Ignore object directories.
+            'obj*',
+        }
+
+        self._relevant_mozbuild_finder = FileFinder(self.config.topsrcdir,
+                                                    ignore=ignores)
 
         max_workers = cpu_count()
         self._gyp_worker_pool = ProcessPoolExecutor(max_workers=max_workers)
@@ -907,20 +916,10 @@ class BuildReader(object):
         # In the future, we may traverse moz.build files by looking
         # for DIRS references in the AST, even if a directory is added behind
         # a conditional. For now, just walk the filesystem.
-        ignore = {
-            # Ignore fake moz.build files used for testing moz.build.
-            'python/mozbuild/mozbuild/test',
-
-            # Ignore object directories.
-            'obj*',
-        }
-
-        finder = FileFinder(self.config.topsrcdir, ignore=ignore)
-
         # The root doesn't get picked up by FileFinder.
         yield 'moz.build'
 
-        for path, f in finder.find('**/moz.build'):
+        for path, f in self._relevant_mozbuild_finder.find('**/moz.build'):
             yield path
 
     def find_sphinx_variables(self):
@@ -1115,9 +1114,9 @@ class BuildReader(object):
             config.topobjdir = topobjdir
             config.external_source_dir = None
 
-        context = Context(VARIABLES, config, self._finder)
+        context = Context(VARIABLES, config, self.finder)
         sandbox = MozbuildSandbox(context, metadata=metadata,
-                                  finder=self._finder)
+                                  finder=self.finder)
         sandbox.exec_file(path)
         self._execution_time += time.time() - time_start
         self._file_count += len(context.all_paths)
@@ -1148,7 +1147,7 @@ class BuildReader(object):
             non_unified_sources = set()
             for s in gyp_dir.non_unified_sources:
                 source = SourcePath(context, s)
-                if not self._finder.get(source.full_path):
+                if not self.finder.get(source.full_path):
                     raise SandboxValidationError('Cannot find %s.' % source,
                         context)
                 non_unified_sources.add(source)
@@ -1236,7 +1235,7 @@ class BuildReader(object):
 
         @memoize
         def exists(path):
-            return self._finder.get(path) is not None
+            return self._relevant_mozbuild_finder.get(path) is not None
 
         def itermozbuild(path):
             subpath = ''
@@ -1252,8 +1251,7 @@ class BuildReader(object):
                     raise Exception('Path outside topsrcdir: %s' % path)
                 path = mozpath.relpath(path, root)
 
-            result[path] = [p for p in itermozbuild(path)
-                              if exists(mozpath.join(root, p))]
+            result[path] = [p for p in itermozbuild(path) if exists(p)]
 
         return result
 

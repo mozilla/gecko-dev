@@ -23,6 +23,8 @@
 #include "js/GCAPI.h"
 #include "js/RootingAPI.h"
 
+#include "vm/Printer.h"
+
 class JSDependentString;
 class JSExtensibleString;
 class JSExternalString;
@@ -526,15 +528,14 @@ class JSString : public js::gc::TenuredCell
     static const JS::TraceKind TraceKind = JS::TraceKind::String;
 
 #ifdef DEBUG
-    void dump(FILE* fp);
-    void dumpCharsNoNewline(FILE* fp);
-    void dump();
-    void dumpCharsNoNewline();
-    void dumpRepresentation(FILE* fp, int indent) const;
-    void dumpRepresentationHeader(FILE* fp, int indent, const char* subclass) const;
+    void dump(); // Debugger-friendly stderr dump.
+    void dump(js::GenericPrinter& out);
+    void dumpCharsNoNewline(js::GenericPrinter& out);
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
+    void dumpRepresentationHeader(js::GenericPrinter& out, int indent, const char* subclass) const;
 
     template <typename CharT>
-    static void dumpChars(const CharT* s, size_t len, FILE* fp=stderr);
+    static void dumpChars(const CharT* s, size_t len, js::GenericPrinter& out);
 
     bool equals(const char* s);
 #endif
@@ -618,7 +619,7 @@ class JSRope : public JSString
     }
 
 #ifdef DEBUG
-    void dumpRepresentation(FILE* fp, int indent) const;
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -652,17 +653,17 @@ class JSLinearString : public JSString
   public:
     template<typename CharT>
     MOZ_ALWAYS_INLINE
-    const CharT* nonInlineChars(const JS::AutoCheckCannotGC& nogc) const;
+    const CharT* nonInlineChars(const JS::AutoRequireNoGC& nogc) const;
 
     MOZ_ALWAYS_INLINE
-    const JS::Latin1Char* nonInlineLatin1Chars(const JS::AutoCheckCannotGC& nogc) const {
+    const JS::Latin1Char* nonInlineLatin1Chars(const JS::AutoRequireNoGC& nogc) const {
         MOZ_ASSERT(!isInline());
         MOZ_ASSERT(hasLatin1Chars());
         return d.s.u2.nonInlineCharsLatin1;
     }
 
     MOZ_ALWAYS_INLINE
-    const char16_t* nonInlineTwoByteChars(const JS::AutoCheckCannotGC& nogc) const {
+    const char16_t* nonInlineTwoByteChars(const JS::AutoRequireNoGC& nogc) const {
         MOZ_ASSERT(!isInline());
         MOZ_ASSERT(hasTwoByteChars());
         return d.s.u2.nonInlineCharsTwoByte;
@@ -670,24 +671,24 @@ class JSLinearString : public JSString
 
     template<typename CharT>
     MOZ_ALWAYS_INLINE
-    const CharT* chars(const JS::AutoCheckCannotGC& nogc) const;
+    const CharT* chars(const JS::AutoRequireNoGC& nogc) const;
 
     MOZ_ALWAYS_INLINE
-    const JS::Latin1Char* latin1Chars(const JS::AutoCheckCannotGC& nogc) const {
+    const JS::Latin1Char* latin1Chars(const JS::AutoRequireNoGC& nogc) const {
         return rawLatin1Chars();
     }
 
     MOZ_ALWAYS_INLINE
-    const char16_t* twoByteChars(const JS::AutoCheckCannotGC& nogc) const {
+    const char16_t* twoByteChars(const JS::AutoRequireNoGC& nogc) const {
         return rawTwoByteChars();
     }
 
-    mozilla::Range<const JS::Latin1Char> latin1Range(const JS::AutoCheckCannotGC& nogc) const {
+    mozilla::Range<const JS::Latin1Char> latin1Range(const JS::AutoRequireNoGC& nogc) const {
         MOZ_ASSERT(JSString::isLinear());
         return mozilla::Range<const JS::Latin1Char>(latin1Chars(nogc), length());
     }
 
-    mozilla::Range<const char16_t> twoByteRange(const JS::AutoCheckCannotGC& nogc) const {
+    mozilla::Range<const char16_t> twoByteRange(const JS::AutoRequireNoGC& nogc) const {
         MOZ_ASSERT(JSString::isLinear());
         return mozilla::Range<const char16_t>(twoByteChars(nogc), length());
     }
@@ -701,7 +702,7 @@ class JSLinearString : public JSString
     }
 
 #ifdef DEBUG
-    void dumpRepresentationChars(FILE* fp, int indent) const;
+    void dumpRepresentationChars(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -747,7 +748,7 @@ class JSDependentString : public JSLinearString
     }
 
 #ifdef DEBUG
-    void dumpRepresentation(FILE* fp, int indent) const;
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -832,7 +833,7 @@ class JSFlatString : public JSLinearString
     inline void finalize(js::FreeOp* fop);
 
 #ifdef DEBUG
-    void dumpRepresentation(FILE* fp, int indent) const;
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -853,7 +854,7 @@ class JSExtensibleString : public JSFlatString
     }
 
 #ifdef DEBUG
-    void dumpRepresentation(FILE* fp, int indent) const;
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -864,14 +865,14 @@ class JSInlineString : public JSFlatString
 {
   public:
     MOZ_ALWAYS_INLINE
-    const JS::Latin1Char* latin1Chars(const JS::AutoCheckCannotGC& nogc) const {
+    const JS::Latin1Char* latin1Chars(const JS::AutoRequireNoGC& nogc) const {
         MOZ_ASSERT(JSString::isInline());
         MOZ_ASSERT(hasLatin1Chars());
         return d.inlineStorageLatin1;
     }
 
     MOZ_ALWAYS_INLINE
-    const char16_t* twoByteChars(const JS::AutoCheckCannotGC& nogc) const {
+    const char16_t* twoByteChars(const JS::AutoRequireNoGC& nogc) const {
         MOZ_ASSERT(JSString::isInline());
         MOZ_ASSERT(hasTwoByteChars());
         return d.inlineStorageTwoByte;
@@ -885,7 +886,7 @@ class JSInlineString : public JSFlatString
     }
 
 #ifdef DEBUG
-    void dumpRepresentation(FILE* fp, int indent) const;
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -999,7 +1000,7 @@ class JSExternalString : public JSLinearString
     JSFlatString* ensureFlat(JSContext* cx);
 
 #ifdef DEBUG
-    void dumpRepresentation(FILE* fp, int indent) const;
+    void dumpRepresentation(js::GenericPrinter& out, int indent) const;
 #endif
 };
 
@@ -1045,7 +1046,7 @@ class JSAtom : public JSFlatString
     inline void initHash(js::HashNumber hash);
 
 #ifdef DEBUG
-    void dump(FILE* fp);
+    void dump(js::GenericPrinter& out);
     void dump();
 #endif
 };
@@ -1424,28 +1425,28 @@ JSString::base() const
 
 template<>
 MOZ_ALWAYS_INLINE const char16_t*
-JSLinearString::nonInlineChars(const JS::AutoCheckCannotGC& nogc) const
+JSLinearString::nonInlineChars(const JS::AutoRequireNoGC& nogc) const
 {
     return nonInlineTwoByteChars(nogc);
 }
 
 template<>
 MOZ_ALWAYS_INLINE const JS::Latin1Char*
-JSLinearString::nonInlineChars(const JS::AutoCheckCannotGC& nogc) const
+JSLinearString::nonInlineChars(const JS::AutoRequireNoGC& nogc) const
 {
     return nonInlineLatin1Chars(nogc);
 }
 
 template<>
 MOZ_ALWAYS_INLINE const char16_t*
-JSLinearString::chars(const JS::AutoCheckCannotGC& nogc) const
+JSLinearString::chars(const JS::AutoRequireNoGC& nogc) const
 {
     return rawTwoByteChars();
 }
 
 template<>
 MOZ_ALWAYS_INLINE const JS::Latin1Char*
-JSLinearString::chars(const JS::AutoCheckCannotGC& nogc) const
+JSLinearString::chars(const JS::AutoRequireNoGC& nogc) const
 {
     return rawLatin1Chars();
 }

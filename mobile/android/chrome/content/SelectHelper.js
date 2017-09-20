@@ -3,6 +3,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+XPCOMUtils.defineLazyModuleGetter(this, "Prompt",
+                                  "resource://gre/modules/Prompt.jsm");
+
 var SelectHelper = {
   _uiBusy: false,
 
@@ -142,11 +145,9 @@ var SelectHelper = {
 
   fireOnChange: function(element) {
     let win = element.ownerGlobal;
-    let event = element.ownerDocument.createEvent("Events");
-    event.initEvent("change", true, true, element.defaultView, 0,
-        false, false, false, false, null);
     win.setTimeout(function() {
-      element.dispatchEvent(event);
+      element.dispatchEvent(new win.Event("input", { bubbles: true }));
+      element.dispatchEvent(new win.Event("change", { bubbles: true }));
     }, 0);
   },
 

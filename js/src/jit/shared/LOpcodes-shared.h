@@ -112,7 +112,8 @@
     _(BitOpV)                       \
     _(ShiftI)                       \
     _(ShiftI64)                     \
-    _(SignExtend)                   \
+    _(SignExtendInt32)              \
+    _(SignExtendInt64)              \
     _(UrshD)                        \
     _(Return)                       \
     _(Throw)                        \
@@ -390,7 +391,8 @@
     _(GetDOMMemberT)                \
     _(SetDOMProperty)               \
     _(CallDOMNative)                \
-    _(IsCallable)                   \
+    _(IsCallableO)                  \
+    _(IsCallableV)                  \
     _(IsConstructor)                \
     _(IsArrayO)                     \
     _(IsArrayV)                     \

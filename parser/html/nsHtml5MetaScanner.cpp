@@ -42,6 +42,7 @@
 #include "nsHtml5Macros.h"
 #include "nsIContentHandle.h"
 #include "nsHtml5Portability.h"
+#include "nsHtml5ContentCreatorFunction.h"
 
 #include "nsHtml5AttributeName.h"
 #include "nsHtml5ElementName.h"
@@ -754,11 +755,13 @@ nsHtml5MetaScanner::handleAttributeValue()
     return;
   }
   if (contentIndex == CONTENT.length && !content) {
-    content = nsHtml5Portability::newStringFromBuffer(strBuf, 0, strBufLen, treeBuilder);
+    content = nsHtml5Portability::newStringFromBuffer(
+      strBuf, 0, strBufLen, treeBuilder, false);
     return;
   }
   if (charsetIndex == CHARSET.length && !charset) {
-    charset = nsHtml5Portability::newStringFromBuffer(strBuf, 0, strBufLen, treeBuilder);
+    charset = nsHtml5Portability::newStringFromBuffer(
+      strBuf, 0, strBufLen, treeBuilder, false);
     return;
   }
   if (httpEquivIndex == HTTP_EQUIV.length &&

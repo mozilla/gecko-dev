@@ -29,6 +29,16 @@ using namespace mozilla::dom;
 namespace mozilla {
 namespace net {
 
+static uint64_t
+FindTopOuterWindowID(nsPIDOMWindowOuter* aOuter)
+{
+  nsCOMPtr<nsPIDOMWindowOuter> outer = aOuter;
+  while (nsCOMPtr<nsPIDOMWindowOuter> parent = outer->GetScriptableParentOrNull()) {
+    outer = parent;
+  }
+  return outer->WindowID();
+}
+
 LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
                    nsIPrincipal* aTriggeringPrincipal,
                    nsINode* aLoadingContext,
@@ -40,6 +50,7 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
                            aTriggeringPrincipal : mLoadingPrincipal.get())
   , mPrincipalToInherit(nullptr)
   , mLoadingContext(do_GetWeakReference(aLoadingContext))
+  , mContextForTopLevelLoad(nullptr)
   , mSecurityFlags(aSecurityFlags)
   , mInternalContentPolicyType(aContentPolicyType)
   , mTainting(LoadTainting::Basic)
@@ -50,6 +61,7 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
   , mInnerWindowID(0)
   , mOuterWindowID(0)
   , mParentOuterWindowID(0)
+  , mTopOuterWindowID(0)
   , mFrameOuterWindowID(0)
   , mEnforceSecurity(false)
   , mInitialSecurityCheckDone(false)
@@ -102,6 +114,7 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
       mOuterWindowID = contextOuter->WindowID();
       nsCOMPtr<nsPIDOMWindowOuter> parent = contextOuter->GetScriptableParent();
       mParentOuterWindowID = parent ? parent->WindowID() : mOuterWindowID;
+      mTopOuterWindowID = FindTopOuterWindowID(contextOuter);
     }
 
     mInnerWindowID = aLoadingContext->OwnerDoc()->InnerWindowID();
@@ -211,10 +224,12 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
 */
 LoadInfo::LoadInfo(nsPIDOMWindowOuter* aOuterWindow,
                    nsIPrincipal* aTriggeringPrincipal,
+                   nsISupports* aContextForTopLevelLoad,
                    nsSecurityFlags aSecurityFlags)
   : mLoadingPrincipal(nullptr)
   , mTriggeringPrincipal(aTriggeringPrincipal)
   , mPrincipalToInherit(nullptr)
+  , mContextForTopLevelLoad(do_GetWeakReference(aContextForTopLevelLoad))
   , mSecurityFlags(aSecurityFlags)
   , mInternalContentPolicyType(nsIContentPolicy::TYPE_DOCUMENT)
   , mTainting(LoadTainting::Basic)
@@ -225,6 +240,7 @@ LoadInfo::LoadInfo(nsPIDOMWindowOuter* aOuterWindow,
   , mInnerWindowID(0)
   , mOuterWindowID(0)
   , mParentOuterWindowID(0)
+  , mTopOuterWindowID(0)
   , mFrameOuterWindowID(0)
   , mEnforceSecurity(false)
   , mInitialSecurityCheckDone(false)
@@ -255,6 +271,7 @@ LoadInfo::LoadInfo(nsPIDOMWindowOuter* aOuterWindow,
   // with the hidden window.
   nsCOMPtr<nsPIDOMWindowOuter> parent = aOuterWindow->GetScriptableParent();
   mParentOuterWindowID = parent ? parent->WindowID() : 0;
+  mTopOuterWindowID = FindTopOuterWindowID(aOuterWindow);
 
   // get the docshell from the outerwindow, and then get the originattributes
   nsCOMPtr<nsIDocShell> docShell = aOuterWindow->GetDocShell();
@@ -276,6 +293,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
   , mSandboxedLoadingPrincipal(rhs.mSandboxedLoadingPrincipal)
   , mResultPrincipalURI(rhs.mResultPrincipalURI)
   , mLoadingContext(rhs.mLoadingContext)
+  , mContextForTopLevelLoad(rhs.mContextForTopLevelLoad)
   , mSecurityFlags(rhs.mSecurityFlags)
   , mInternalContentPolicyType(rhs.mInternalContentPolicyType)
   , mTainting(rhs.mTainting)
@@ -286,6 +304,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
   , mInnerWindowID(rhs.mInnerWindowID)
   , mOuterWindowID(rhs.mOuterWindowID)
   , mParentOuterWindowID(rhs.mParentOuterWindowID)
+  , mTopOuterWindowID(rhs.mTopOuterWindowID)
   , mFrameOuterWindowID(rhs.mFrameOuterWindowID)
   , mEnforceSecurity(rhs.mEnforceSecurity)
   , mInitialSecurityCheckDone(rhs.mInitialSecurityCheckDone)
@@ -319,6 +338,7 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
                    uint64_t aInnerWindowID,
                    uint64_t aOuterWindowID,
                    uint64_t aParentOuterWindowID,
+                   uint64_t aTopOuterWindowID,
                    uint64_t aFrameOuterWindowID,
                    bool aEnforceSecurity,
                    bool aInitialSecurityCheckDone,
@@ -347,6 +367,7 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
   , mInnerWindowID(aInnerWindowID)
   , mOuterWindowID(aOuterWindowID)
   , mParentOuterWindowID(aParentOuterWindowID)
+  , mTopOuterWindowID(aTopOuterWindowID)
   , mFrameOuterWindowID(aFrameOuterWindowID)
   , mEnforceSecurity(aEnforceSecurity)
   , mInitialSecurityCheckDone(aInitialSecurityCheckDone)
@@ -509,6 +530,17 @@ LoadInfo::LoadingNode()
 {
   nsCOMPtr<nsINode> node = do_QueryReferent(mLoadingContext);
   return node;
+}
+
+nsISupports*
+LoadInfo::ContextForTopLevelLoad()
+{
+  // Most likely you want to query LoadingNode() instead of
+  // ContextForTopLevelLoad() if this assertion fires.
+  MOZ_ASSERT(mInternalContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT,
+            "should only query this context for top level document loads");
+  nsCOMPtr<nsISupports> context = do_QueryReferent(mContextForTopLevelLoad);
+  return context;
 }
 
 NS_IMETHODIMP
@@ -706,6 +738,13 @@ NS_IMETHODIMP
 LoadInfo::GetParentOuterWindowID(uint64_t* aResult)
 {
   *aResult = mParentOuterWindowID;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetTopOuterWindowID(uint64_t* aResult)
+{
+  *aResult = mTopOuterWindowID;
   return NS_OK;
 }
 

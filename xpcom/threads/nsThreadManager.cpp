@@ -10,19 +10,35 @@
 #include "nsIClassInfoImpl.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
+#include "nsXULAppAPI.h"
+#include "LabeledEventQueue.h"
+#include "MainThreadQueue.h"
 #include "mozilla/AbstractThread.h"
+#include "mozilla/EventQueue.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/Scheduler.h"
 #include "mozilla/SystemGroup.h"
+#include "mozilla/ThreadEventQueue.h"
 #include "mozilla/ThreadLocal.h"
+#include "PrioritizedEventQueue.h"
 #ifdef MOZ_CANARY
 #include <fcntl.h>
 #include <unistd.h>
 #endif
 
 #include "MainThreadIdlePeriod.h"
+#include "InputEventStatistics.h"
 
 using namespace mozilla;
 
 static MOZ_THREAD_LOCAL(bool) sTLSIsMainThread;
+static MOZ_THREAD_LOCAL(PRThread*) gTlsCurrentVirtualThread;
+
+bool
+NS_IsMainThreadTLSInitialized()
+{
+  return sTLSIsMainThread.initialized();
+}
 
 bool
 NS_IsMainThread()
@@ -38,6 +54,26 @@ NS_SetMainThread()
   }
   sTLSIsMainThread.set(true);
   MOZ_ASSERT(NS_IsMainThread());
+}
+
+void
+NS_SetMainThread(PRThread* aVirtualThread)
+{
+  MOZ_ASSERT(Scheduler::IsCooperativeThread());
+
+  MOZ_ASSERT(!gTlsCurrentVirtualThread.get());
+  gTlsCurrentVirtualThread.set(aVirtualThread);
+  NS_SetMainThread();
+}
+
+void
+NS_UnsetMainThread()
+{
+  MOZ_ASSERT(Scheduler::IsCooperativeThread());
+
+  sTLSIsMainThread.set(false);
+  MOZ_ASSERT(!NS_IsMainThread());
+  gTlsCurrentVirtualThread.set(nullptr);
 }
 
 typedef nsTArray<NotNull<RefPtr<nsThread>>> nsThreadArray;
@@ -79,6 +115,12 @@ nsThreadManager::Init()
     return NS_OK;
   }
 
+  if (!gTlsCurrentVirtualThread.init()) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  Scheduler::EventLoopActivation::Init();
+
   if (PR_NewThreadPrivateIndex(&mCurThreadIndex, ReleaseObject) == PR_FAILURE) {
     return NS_ERROR_FAILURE;
   }
@@ -94,18 +136,24 @@ nsThreadManager::Init()
                    0;
 #endif
 
-  // Setup "main" thread
-  mMainThread = new nsThread(nsThread::MAIN_THREAD, 0);
+  nsCOMPtr<nsIIdlePeriod> idlePeriod = new MainThreadIdlePeriod();
+
+  bool startScheduler = false;
+  if (XRE_IsContentProcess() && Scheduler::IsSchedulerEnabled()) {
+    mMainThread = Scheduler::Init(idlePeriod);
+    startScheduler = true;
+  } else {
+    if (XRE_IsContentProcess() && Scheduler::UseMultipleQueues()) {
+      mMainThread = CreateMainThread<ThreadEventQueue<PrioritizedEventQueue<LabeledEventQueue>>, LabeledEventQueue>(idlePeriod);
+    } else {
+      mMainThread = CreateMainThread<ThreadEventQueue<PrioritizedEventQueue<EventQueue>>, EventQueue>(idlePeriod);
+    }
+  }
 
   nsresult rv = mMainThread->InitCurrentThread();
   if (NS_FAILED(rv)) {
     mMainThread = nullptr;
     return rv;
-  }
-
-  {
-    nsCOMPtr<nsIIdlePeriod> idlePeriod = new MainThreadIdlePeriod();
-    mMainThread->RegisterIdlePeriod(idlePeriod.forget());
   }
 
   // We need to keep a pointer to the current thread, so we can satisfy
@@ -117,6 +165,10 @@ nsThreadManager::Init()
   AbstractThread::InitMainThread();
 
   mInitialized = true;
+
+  if (startScheduler) {
+    Scheduler::Start();
+  }
   return NS_OK;
 }
 
@@ -229,6 +281,26 @@ nsThreadManager::UnregisterCurrentThread(nsThread& aThread)
 }
 
 nsThread*
+nsThreadManager::CreateCurrentThread(SynchronizedEventQueue* aQueue,
+                                     nsThread::MainThreadFlag aMainThread)
+{
+  // Make sure we don't have an nsThread yet.
+  MOZ_ASSERT(!PR_GetThreadPrivate(mCurThreadIndex));
+
+  if (!mInitialized) {
+    return nullptr;
+  }
+
+  // OK, that's fine.  We'll dynamically create one :-)
+  RefPtr<nsThread> thread = new nsThread(WrapNotNull(aQueue), aMainThread, 0);
+  if (!thread || NS_FAILED(thread->InitCurrentThread())) {
+    return nullptr;
+  }
+
+  return thread.get();  // reference held in TLS
+}
+
+nsThread*
 nsThreadManager::GetCurrentThread()
 {
   // read thread local storage
@@ -242,7 +314,9 @@ nsThreadManager::GetCurrentThread()
   }
 
   // OK, that's fine.  We'll dynamically create one :-)
-  RefPtr<nsThread> thread = new nsThread(nsThread::NOT_MAIN_THREAD, 0);
+  RefPtr<ThreadEventQueue<EventQueue>> queue =
+    new ThreadEventQueue<EventQueue>(MakeUnique<EventQueue>());
+  RefPtr<nsThread> thread = new nsThread(WrapNotNull(queue), nsThread::NOT_MAIN_THREAD, 0);
   if (!thread || NS_FAILED(thread->InitCurrentThread())) {
     return nullptr;
   }
@@ -270,7 +344,9 @@ nsThreadManager::NewNamedThread(const nsACString& aName,
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  RefPtr<nsThread> thr = new nsThread(nsThread::NOT_MAIN_THREAD, aStackSize);
+  RefPtr<ThreadEventQueue<EventQueue>> queue =
+    new ThreadEventQueue<EventQueue>(MakeUnique<EventQueue>());
+  RefPtr<nsThread> thr = new nsThread(WrapNotNull(queue), nsThread::NOT_MAIN_THREAD, aStackSize);
   nsresult rv = thr->Init(aName);  // Note: blocks until the new thread has been set up
   if (NS_FAILED(rv)) {
     return rv;
@@ -393,7 +469,7 @@ nsThreadManager::GetHighestNumberOfThreads()
 }
 
 NS_IMETHODIMP
-nsThreadManager::DispatchToMainThread(nsIRunnable *aEvent)
+nsThreadManager::DispatchToMainThread(nsIRunnable *aEvent, uint32_t aPriority)
 {
   // Note: C++ callers should instead use NS_DispatchToMainThread.
   MOZ_ASSERT(NS_IsMainThread());
@@ -402,8 +478,41 @@ nsThreadManager::DispatchToMainThread(nsIRunnable *aEvent)
   if (NS_WARN_IF(!mMainThread)) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-
+  if (aPriority != nsIRunnablePriority::PRIORITY_NORMAL) {
+    nsCOMPtr<nsIRunnable> event(aEvent);
+    return mMainThread->DispatchFromScript(
+             new PrioritizableRunnable(event.forget(), aPriority), 0);
+  }
   return mMainThread->DispatchFromScript(aEvent, 0);
+}
+
+void
+nsThreadManager::EnableMainThreadEventPrioritization()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  InputEventStatistics::Get().SetEnable(true);
+  mMainThread->EnableInputEventPrioritization();
+}
+
+void
+nsThreadManager::FlushInputEventPrioritization()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mMainThread->FlushInputEventPrioritization();
+}
+
+void
+nsThreadManager::SuspendInputEventPrioritization()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mMainThread->SuspendInputEventPrioritization();
+}
+
+void
+nsThreadManager::ResumeInputEventPrioritization()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mMainThread->ResumeInputEventPrioritization();
 }
 
 NS_IMETHODIMP
@@ -420,3 +529,26 @@ nsThreadManager::IdleDispatchToMainThread(nsIRunnable *aEvent, uint32_t aTimeout
 
   return NS_IdleDispatchToThread(event.forget(), mMainThread);
 }
+
+namespace mozilla {
+
+PRThread*
+GetCurrentVirtualThread()
+{
+  // We call GetCurrentVirtualThread very early in startup, before the TLS is
+  // initialized. Make sure we don't assert in that case.
+  if (gTlsCurrentVirtualThread.initialized()) {
+    if (gTlsCurrentVirtualThread.get()) {
+      return gTlsCurrentVirtualThread.get();
+    }
+  }
+  return PR_GetCurrentThread();
+}
+
+PRThread*
+GetCurrentPhysicalThread()
+{
+  return PR_GetCurrentThread();
+}
+
+} // namespace mozilla

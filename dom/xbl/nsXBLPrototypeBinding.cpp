@@ -13,7 +13,7 @@
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "nsIChannel.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsNetUtil.h"
 #include "plstr.h"
@@ -567,6 +567,14 @@ nsXBLPrototypeBinding::GetRuleProcessor()
   }
 
   return nullptr;
+}
+
+void
+nsXBLPrototypeBinding::ComputeServoStyleSet(nsPresContext* aPresContext)
+{
+  if (mResources) {
+    mResources->ComputeServoStyleSet(aPresContext);
+  }
 }
 
 ServoStyleSet*

@@ -3,6 +3,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 this.EXPORTED_SYMBOLS = ["OnRefTestLoad", "OnRefTestUnload"];
 
@@ -38,6 +39,20 @@ CU.import("chrome://reftest/content/httpd.jsm", this);
 CU.import("chrome://reftest/content/StructuredLog.jsm", this);
 CU.import("resource://gre/modules/Services.jsm");
 CU.import("resource://gre/modules/NetUtil.jsm");
+CU.import('resource://gre/modules/XPCOMUtils.jsm');
+
+XPCOMUtils.defineLazyGetter(this, "OS", function() {
+    const { OS } = CU.import("resource://gre/modules/osfile.jsm");
+    return OS;
+});
+
+XPCOMUtils.defineLazyGetter(this, "PDFJS", function() {
+    const { require } = CU.import("resource://gre/modules/commonjs/toolkit/require.js", {});
+    return {
+        main: require('resource://pdf.js/build/pdf.js'),
+        worker: require('resource://pdf.js/build/pdf.worker.js')
+    };
+});
 
 var gLoadTimeout = 0;
 var gTimeoutHook = null;
@@ -135,6 +150,8 @@ const TYPE_REFTEST_NOTEQUAL = '!=';
 const TYPE_LOAD = 'load';     // test without a reference (just test that it does
                               // not assert, crash, hang, or leak)
 const TYPE_SCRIPT = 'script'; // test contains individual test results
+const TYPE_PRINT = 'print'; // test and reference will be printed to PDF's and
+                            // compared structurally
 
 // The order of these constants matters, since when we have a status
 // listed for a *manifest*, we combine the status with the status for
@@ -171,6 +188,8 @@ var gRecycledCanvases = new Array();
 // Only dump the sandbox once, because it doesn't depend on the
 // manifest URL (yet!).
 var gDumpedConditionSandbox = false;
+
+var gTestPrintOutput = null;
 
 function HasUnexpectedResult()
 {
@@ -336,8 +355,7 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
       logger.warning("Could not get test plugin tags.");
     }
 
-    gBrowserMessageManager = gBrowser.QueryInterface(CI.nsIFrameLoaderOwner)
-                                     .frameLoader.messageManager;
+    gBrowserMessageManager = gBrowser.frameLoader.messageManager;
     // The content script waits for the initial onload, then notifies
     // us.
     RegisterMessageListenersAndLoadContentScript();
@@ -401,6 +419,19 @@ function InitAndStartRefTests()
     try {
         gCompareStyloToGecko = prefs.getBoolPref("reftest.compareStyloToGecko");
     } catch(e) {}
+#endif
+
+#ifdef MOZ_ENABLE_SKIA_PDF
+    try {
+        // We have to disable printing via parent or else silent print operations
+        // (the type that we use here) would be treated as non-silent -- in other
+        // words, a print dialog would appear for each print operation, which
+        // would interrupt the test run.
+        // See http://searchfox.org/mozilla-central/rev/bd39b6170f04afeefc751a23bb04e18bbd10352b/layout/printing/nsPrintEngine.cpp#617
+        prefs.setBoolPref("print.print_via_parent", false);
+    } catch (e) {
+        /* uh oh, print reftests may not work... */
+    }
 #endif
 
     gWindowUtils = gContainingWindow.QueryInterface(CI.nsIInterfaceRequestor).getInterface(CI.nsIDOMWindowUtils);
@@ -552,10 +583,11 @@ function StartTests()
             // gURLs array which prevents skipped tests from showing up in the log
             start = gThisChunk == 1 ? 0 : gURLs.indexOf(tURLs[start]);
             end = gThisChunk == gTotalChunks ? gURLs.length : gURLs.indexOf(tURLs[end + 1]) - 1;
-            gURLs = gURLs.slice(start, end);
 
             logger.info("Running chunk " + gThisChunk + " out of " + gTotalChunks + " chunks.  " +
                 "tests " + (start+1) + "-" + end + "/" + gURLs.length);
+
+            gURLs = gURLs.slice(start, end);
         }
 
         if (gShuffle) {
@@ -726,13 +758,28 @@ function BuildConditionSandbox(aURL) {
 #endif
 
 #ifdef MOZ_STYLO
-    sandbox.stylo =
-       (!!env.get("STYLO_FORCE_ENABLED") || prefs.getBoolPref("layout.css.servo.enabled", false)) &&
-        !gCompareStyloToGecko;
+    let styloEnabled = false;
+    // Perhaps a bit redundant in places, but this is easier to compare with the
+    // the real check in `nsLayoutUtils.cpp` to ensure they test the same way.
+    if (env.get("STYLO_FORCE_ENABLED")) {
+        styloEnabled = true;
+    } else if (env.get("STYLO_FORCE_DISABLED")) {
+        styloEnabled = false;
+    } else {
+        styloEnabled = prefs.getBoolPref("layout.css.servo.enabled", false);
+    }
+    sandbox.stylo = styloEnabled && !gCompareStyloToGecko;
     sandbox.styloVsGecko = gCompareStyloToGecko;
 #else
     sandbox.stylo = false;
     sandbox.styloVsGecko = false;
+#endif
+
+// Printing via Skia PDF is only supported on Mac for now.
+#ifdef XP_MACOSX && MOZ_ENABLE_SKIA_PDF
+    sandbox.skiaPdf = true;
+#else
+    sandbox.skiaPdf = false;
 #endif
 
 #ifdef RELEASE_OR_BETA
@@ -845,9 +892,9 @@ function AddTestItem(aTest, aFilter)
     if (!aFilter)
         aFilter = [null, [], false];
 
-    globalFilter = aFilter[0];
-    manifestFilter = aFilter[1];
-    invertManifest = aFilter[2];
+    var globalFilter = aFilter[0];
+    var manifestFilter = aFilter[1];
+    var invertManifest = aFilter[2];
     if ((globalFilter && !globalFilter.test(aTest.url1.spec)) ||
         (manifestFilter &&
          !(invertManifest ^ manifestFilter.test(aTest.url1.spec))))
@@ -1182,7 +1229,7 @@ function ReadManifest(aURL, inherited_status, aFilter)
                           url1: testURI,
                           url2: null,
                           chaosMode: chaosMode }, aFilter);
-        } else if (items[0] == TYPE_REFTEST_EQUAL || items[0] == TYPE_REFTEST_NOTEQUAL) {
+        } else if (items[0] == TYPE_REFTEST_EQUAL || items[0] == TYPE_REFTEST_NOTEQUAL || items[0] == TYPE_PRINT) {
             if (items.length != 3)
                 throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect number of arguments to " + items[0];
 
@@ -1208,7 +1255,23 @@ function ReadManifest(aURL, inherited_status, aFilter)
             if (gCompareStyloToGecko) {
                 type = TYPE_REFTEST_EQUAL;
                 refURI = testURI;
+
+                // We expect twice as many assertion failures when running in
+                // styloVsGecko mode because we run each test twice: once in
+                // Stylo mode and once in Gecko mode.
+                minAsserts *= 2;
+                maxAsserts *= 2;
+
+                // Skip the test if it is expected to fail in both Stylo and
+                // Gecko modes. It would unexpectedly "pass" in styloVsGecko
+                // mode when comparing the two failures, which is not a useful
+                // result.
+                if (expected_status === EXPECTED_FAIL ||
+                    expected_status === EXPECTED_RANDOM) {
+                    expected_status = EXPECTED_DEATH;
+                }
             }
+
             AddTestItem({ type: type,
                           expected: expected_status,
                           allowSilentFail: allow_silent_fail,
@@ -1480,6 +1543,8 @@ function StartCurrentURI(aState)
         var type = gURLs[0].type
         if (TYPE_SCRIPT == type) {
             SendLoadScriptTest(gCurrentURL, gLoadTimeout);
+        } else if (TYPE_PRINT == type) {
+            SendLoadPrintTest(gCurrentURL, gLoadTimeout);
         } else {
             SendLoadTest(type, gCurrentURL, gLoadTimeout);
         }
@@ -1488,7 +1553,7 @@ function StartCurrentURI(aState)
 
 function DoneTests()
 {
-    logger.suiteEnd(extra={'results': gTestResults});
+    logger.suiteEnd({'results': gTestResults});
     logger.info("Slowest test took " + gSlowestTestTime + "ms (" + gSlowestTestURL + ")");
     logger.info("Total canvas count = " + gRecycledCanvases.length);
     if (gFailedUseWidgetLayers) {
@@ -1572,7 +1637,7 @@ function InitCurrentCanvasWithSnapshot()
 {
     TestBuffer("Initializing canvas snapshot");
 
-    if (gURLs[0].type == TYPE_LOAD || gURLs[0].type == TYPE_SCRIPT) {
+    if (gURLs[0].type == TYPE_LOAD || gURLs[0].type == TYPE_SCRIPT || gURLs[0].type == TYPE_PRINT) {
         // We don't want to snapshot this kind of test
         return false;
     }
@@ -1628,7 +1693,7 @@ function UpdateWholeCurrentCanvasForInvalidation()
     DoDrawWindow(ctx, 0, 0, gCurrentCanvas.width, gCurrentCanvas.height);
 }
 
-function RecordResult(testRunTime, errorMsg, scriptResults)
+function RecordResult(testRunTime, errorMsg, typeSpecificResults)
 {
     TestBuffer("RecordResult fired");
 
@@ -1665,13 +1730,65 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
         FinishTestItem();
         return;
     }
+    if (gURLs[0].type == TYPE_PRINT) {
+        switch (gState) {
+        case 1:
+            // First document has been loaded.
+            gTestPrintOutput = typeSpecificResults;
+            // Proceed to load the second document.
+            CleanUpCrashDumpFiles();
+            StartCurrentURI(2);
+            break;
+        case 2:
+            var pathToTestPdf = gTestPrintOutput;
+            var pathToRefPdf = typeSpecificResults;
+            comparePdfs(pathToTestPdf, pathToRefPdf, function(error, results) {
+                var expected = gURLs[0].expected;
+                // TODO: We should complain here if results is empty!
+                // (If it's empty, we'll spuriously succeed, regardless of
+                // our expectations)
+                if (error) {
+                    output = outputs[expected][false];
+                    extra = { status_msg: output.n };
+                    ++gTestResults[output.n];
+                    logger.testEnd(gURLs[0].identifier, output.s[0], output.s[1],
+                                   error.message, null, extra);
+                } else {
+                    var outputPair = outputs[expected];
+                    if (expected === EXPECTED_FAIL) {
+                       var failureResults = results.filter(function (result) { return !result.passed });
+                       if (failureResults.length > 0) {
+                         // We got an expected failure. Let's get rid of the
+                         // passes from the results so we don't trigger
+                         // TEST_UNEXPECTED_PASS logging for those.
+                         results = failureResults;
+                       }
+                       // (else, we expected a failure but got none!
+                       // Leave results untouched so we can log them.)
+                    }
+                    results.forEach(function(result) {
+                        output = outputPair[result.passed];
+                        var extra = { status_msg: output.n };
+                        ++gTestResults[output.n];
+                        logger.testEnd(gURLs[0].identifier, output.s[0], output.s[1],
+                                       result.description, null, extra);
+                    });
+                }
+                FinishTestItem();
+            });
+            break;
+        default:
+            throw "Unexpected state.";
+        }
+        return;
+    }
     if (gURLs[0].type == TYPE_SCRIPT) {
         var expected = gURLs[0].expected;
 
         if (errorMsg) {
             // Force an unexpected failure to alert the test author to fix the test.
             expected = EXPECTED_PASS;
-        } else if (scriptResults.length == 0) {
+        } else if (typeSpecificResults.length == 0) {
              // This failure may be due to a JavaScript Engine bug causing
              // early termination of the test. If we do not allow silent
              // failure, report an error.
@@ -1690,7 +1807,7 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
             return;
         }
 
-        var anyFailed = scriptResults.some(function(result) { return !result.passed; });
+        var anyFailed = typeSpecificResults.some(function(result) { return !result.passed; });
         var outputPair;
         if (anyFailed && expected == EXPECTED_FAIL) {
             // If we're marked as expected to fail, and some (but not all) tests
@@ -1703,7 +1820,7 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
             outputPair = outputs[expected];
         }
         var index = 0;
-        scriptResults.forEach(function(result) {
+        typeSpecificResults.forEach(function(result) {
                 var output = outputPair[result.passed];
                 var extra = { status_msg: output.n };
 
@@ -2082,6 +2199,10 @@ function RegisterMessageListenersAndLoadContentScript()
         function (m) { RecvScriptResults(m.json.runtimeMs, m.json.error, m.json.results); }
     );
     gBrowserMessageManager.addMessageListener(
+        "reftest:PrintResult",
+        function (m) { RecvPrintResult(m.json.runtimeMs, m.json.status, m.json.fileName); }
+    );
+    gBrowserMessageManager.addMessageListener(
         "reftest:TestDone",
         function (m) { RecvTestDone(m.json.runtimeMs); }
     );
@@ -2163,6 +2284,15 @@ function RecvScriptResults(runtimeMs, error, results)
     RecordResult(runtimeMs, error, results);
 }
 
+function RecvPrintResult(runtimeMs, status, fileName)
+{
+    if (!Components.isSuccessCode(status)) {
+      logger.error("REFTEST TEST-UNEXPECTED-FAIL | " + gCurrentURL + " | error during printing\n");
+      ++gTestResults.Exception;
+    }
+    RecordResult(runtimeMs, '', fileName);
+}
+
 function RecvTestDone(runtimeMs)
 {
     RecordResult(runtimeMs, '', [ ]);
@@ -2217,6 +2347,12 @@ function SendLoadScriptTest(uri, timeout)
                                             { uri: uri, timeout: timeout });
 }
 
+function SendLoadPrintTest(uri, timeout)
+{
+    gBrowserMessageManager.sendAsyncMessage("reftest:LoadPrintTest",
+                                            { uri: uri, timeout: timeout });
+}
+
 function SendLoadTest(type, uri, timeout)
 {
     gBrowserMessageManager.sendAsyncMessage("reftest:LoadTest",
@@ -2227,4 +2363,110 @@ function SendLoadTest(type, uri, timeout)
 function SendResetRenderingState()
 {
     gBrowserMessageManager.sendAsyncMessage("reftest:ResetRenderingState");
+}
+
+function readPdf(path, callback) {
+    OS.File.open(path, { read: true }).then(function (file) {
+        file.flush().then(function() {
+            file.read().then(function (data) {
+                var fakePort = new PDFJS.main.LoopbackPort(true);
+                PDFJS.worker.WorkerMessageHandler.initializeFromPort(fakePort);
+                var myWorker = new PDFJS.main.PDFWorker("worker", fakePort);
+                PDFJS.main.PDFJS.getDocument({
+                    worker: myWorker,
+                    data: data
+                }).then(function (pdf) {
+                    callback(null, pdf);
+                }, function () {
+                    callback(new Error("Couldn't parse " + path));
+                });
+                return;
+            }, function () {
+                callback(new Error("Couldn't read PDF"));
+            });
+        });
+    });
+}
+
+function comparePdfs(pathToTestPdf, pathToRefPdf, callback) {
+    Promise.all([pathToTestPdf, pathToRefPdf].map(function(path) {
+        return new Promise(function(resolve, reject) {
+            readPdf(path, function(error, pdf) {
+                // Resolve or reject outer promise. reject and resolve are
+                // passed to the callback function given as first arguments
+                // to the Promise constructor.
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(pdf);
+                }
+            });
+        });
+    })).then(function(pdfs) {
+        var numberOfPages = pdfs[1].numPages;
+        var sameNumberOfPages = numberOfPages === pdfs[0].numPages;
+
+        var resultPromises = [Promise.resolve({
+            passed: sameNumberOfPages,
+            description: "Expected number of pages: " + numberOfPages +
+                                             ", got " + pdfs[0].numPages
+        })];
+
+        if (sameNumberOfPages) {
+            for (var i = 0; i < numberOfPages; i++) {
+                var pageNum = i + 1;
+                var testPagePromise = pdfs[0].getPage(pageNum);
+                var refPagePromise = pdfs[1].getPage(pageNum);
+                resultPromises.push(new Promise(function(resolve, reject) {
+                    Promise.all([testPagePromise, refPagePromise]).then(function(pages) {
+                        var testTextPromise = pages[0].getTextContent();
+                        var refTextPromise = pages[1].getTextContent();
+                        Promise.all([testTextPromise, refTextPromise]).then(function(texts) {
+                            var testTextItems = texts[0].items;
+                            var refTextItems = texts[1].items;
+                            var testText;
+                            var refText;
+                            var passed = refTextItems.every(function(o, i) {
+                                refText = o.str;
+                                if (!testTextItems[i]) {
+                                    return false;
+                                }
+                                testText = testTextItems[i].str;
+                                return testText === refText;
+                            });
+                            var description;
+                            if (passed) {
+                                if (testTextItems.length > refTextItems.length) {
+                                    passed = false;
+                                    description = "Page " + pages[0].pageNumber +
+                                        " contains unexpected text like '" +
+                                        testTextItems[refTextItems.length].str + "'";
+                                } else {
+                                    description = "Page " + pages[0].pageNumber +
+                                        " contains same text"
+                                }
+                            } else {
+                                description = "Expected page " + pages[0].pageNumber +
+                                    " to contain text '" + refText;
+                                if (testText) {
+                                    description += "' but found '" + testText +
+                                        "' instead";
+                                }
+                            }
+                            resolve({
+                                passed: passed,
+                                description: description
+                            });
+                        }, reject);
+                    }, reject);
+                }));
+            }
+        }
+
+        Promise.all(resultPromises).then(function (results) {
+            callback(null, results);
+        });
+    }, function(error) {
+        callback(error);
+    });
 }

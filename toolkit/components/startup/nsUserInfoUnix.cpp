@@ -12,7 +12,6 @@
 #include <sys/utsname.h>
 
 #include "nsString.h"
-#include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsNativeCharsetUtils.h"
 
@@ -142,8 +141,8 @@ nsUserInfo::GetEmailAddress(char * *aEmailAddress)
     nsresult rv;
 
     nsAutoCString emailAddress;
-    nsXPIDLCString username;
-    nsXPIDLCString domain;
+    nsCString username;
+    nsCString domain;
 
     rv = GetUsername(getter_Copies(username));
     if (NS_FAILED(rv)) return rv;
@@ -152,9 +151,9 @@ nsUserInfo::GetEmailAddress(char * *aEmailAddress)
     if (NS_FAILED(rv)) return rv;
 
     if (!username.IsEmpty() && !domain.IsEmpty()) {
-        emailAddress = (const char *)username;
+        emailAddress = username.get();
         emailAddress += "@";
-        emailAddress += (const char *)domain;
+        emailAddress += domain.get();
     }
     else {
         return NS_ERROR_FAILURE;

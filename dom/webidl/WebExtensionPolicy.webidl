@@ -35,6 +35,12 @@ interface WebExtensionPolicy {
   readonly attribute ByteString baseURL;
 
   /**
+   * The extension's user-visible name.
+   */
+  [Constant]
+  readonly attribute DOMString name;
+
+  /**
    * The content security policy string to apply to all pages loaded from the
    * extension's moz-extension: protocol.
    */
@@ -76,9 +82,17 @@ interface WebExtensionPolicy {
   [Affects=Everything, SetterThrows]
   attribute boolean active;
 
+  /**
+   * True if both e10s and webextensions.remote are enabled.  This must be
+   * used instead of checking the remote pref directly since remote extensions
+   * require both to be enabled.
+   */
+  static readonly attribute boolean useRemoteWebExtensions;
 
+  /**
+   * True if the calling process is an extension process.
+   */
   static readonly attribute boolean isExtensionProcess;
-
 
   /**
    * Returns true if the extension has cross-origin access to the given URI.
@@ -141,6 +155,8 @@ dictionary WebExtensionInit {
   required ByteString mozExtensionHostname;
 
   required DOMString baseURL;
+
+  DOMString name = "";
 
   required WebExtensionLocalizeCallback localizeCallback;
 

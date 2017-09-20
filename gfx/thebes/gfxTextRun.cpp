@@ -561,7 +561,7 @@ HasNonOpaqueNonTransparentColor(gfxContext *aContext, Color& aCurrentColorOut)
 }
 
 // helper class for double-buffering drawing with non-opaque color
-struct BufferAlphaColor {
+struct MOZ_STACK_CLASS BufferAlphaColor {
     explicit BufferAlphaColor(gfxContext *aContext)
         : mContext(aContext)
     {
@@ -607,7 +607,7 @@ gfxTextRun::Draw(Range aRange, gfxPoint aPt, const DrawParams& aParams) const
     if (aParams.drawMode & DrawMode::GLYPH_FILL) {
         Color currentColor;
         if (aParams.context->GetDeviceColor(currentColor) &&
-            currentColor.a == 0) {
+            currentColor.a == 0 && !aParams.textDrawer) {
             skipDrawing = true;
         }
     }
@@ -724,7 +724,9 @@ gfxTextRun::Draw(Range aRange, gfxPoint aPt, const DrawParams& aParams) const
 
 // This method is mostly parallel to Draw().
 void
-gfxTextRun::DrawEmphasisMarks(gfxContext *aContext, gfxTextRun* aMark,
+gfxTextRun::DrawEmphasisMarks(gfxContext *aContext,
+                              mozilla::layout::TextDrawTarget* aTextDrawer,
+                              gfxTextRun* aMark,
                               gfxFloat aMarkAdvance, gfxPoint aPt,
                               Range aRange, PropertyProvider* aProvider) const
 {
@@ -732,6 +734,7 @@ gfxTextRun::DrawEmphasisMarks(gfxContext *aContext, gfxTextRun* aMark,
 
     EmphasisMarkDrawParams params;
     params.context = aContext;
+    params.textDrawer = aTextDrawer;
     params.mark = aMark;
     params.advance = aMarkAdvance;
     params.direction = GetDirection();
@@ -1873,7 +1876,9 @@ gfxFontGroup::AddPlatformFont(const nsAString& aName,
 
     // Not known in the user font set ==> check system fonts
     gfxPlatformFontList::PlatformFontList()
-        ->FindAndAddFamilies(aName, &aFamilyList, true, &mStyle, mDevToCssSize);
+        ->FindAndAddFamilies(aName, &aFamilyList,
+                             gfxPlatformFontList::FindFamiliesFlags(0),
+                             &mStyle, mDevToCssSize);
 }
 
 void

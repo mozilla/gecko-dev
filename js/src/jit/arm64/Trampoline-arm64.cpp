@@ -190,7 +190,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
         masm.asVIXL().Push(x19, xzr); // Push xzr for a fake return address.
         // No GC things to mark: push a bare token.
         masm.loadJSContext(r19);
-        masm.enterFakeExitFrame(r19, r19, ExitFrameLayoutBareToken);
+        masm.enterFakeExitFrame(r19, r19, ExitFrameToken::Bare);
 
         masm.push(BaselineFrameReg, reg_code);
 
@@ -677,7 +677,7 @@ JitRuntime::generateVMWrapper(JSContext* cx, const VMFunction& f)
     if (outReg != InvalidReg)
         masm.passABIArg(outReg);
 
-    masm.callWithABI(f.wrapped);
+    masm.callWithABI(f.wrapped, MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
     if (!generateTLExitVM(cx, masm, f))
         return nullptr;

@@ -35,18 +35,20 @@ struct ScriptedCaller
 
 // Describes all the parameters that control wasm compilation.
 
-struct CompileArgs
+struct CompileArgs : ShareableBase<CompileArgs>
 {
     Assumptions assumptions;
     ScriptedCaller scriptedCaller;
-    bool alwaysBaseline;
+    bool baselineEnabled;
     bool debugEnabled;
+    bool ionEnabled;
 
     CompileArgs(Assumptions&& assumptions, ScriptedCaller&& scriptedCaller)
       : assumptions(Move(assumptions)),
         scriptedCaller(Move(scriptedCaller)),
-        alwaysBaseline(false),
-        debugEnabled(false)
+        baselineEnabled(false),
+        debugEnabled(false),
+        ionEnabled(false)
     {}
 
     // If CompileArgs is constructed without arguments, initFromContext() must
@@ -55,6 +57,9 @@ struct CompileArgs
     bool initFromContext(JSContext* cx, ScriptedCaller&& scriptedCaller);
 };
 
+typedef RefPtr<CompileArgs> MutableCompileArgs;
+typedef RefPtr<const CompileArgs> SharedCompileArgs;
+
 // Compile the given WebAssembly bytecode with the given arguments into a
 // wasm::Module. On success, the Module is returned. On failure, the returned
 // SharedModule pointer is null and either:
@@ -62,7 +67,13 @@ struct CompileArgs
 //  - *error is null and the caller should report out-of-memory.
 
 SharedModule
-Compile(const ShareableBytes& bytecode, const CompileArgs& args, UniqueChars* error);
+CompileInitialTier(const ShareableBytes& bytecode, const CompileArgs& args, UniqueChars* error);
+
+// Attempt to compile the second tier of the given wasm::Module, returning whether
+// tier-2 compilation succeeded and Module::finishTier2 was called.
+
+bool
+CompileTier2(Module& module, const CompileArgs& args, Atomic<bool>* cancelled);
 
 }  // namespace wasm
 }  // namespace js

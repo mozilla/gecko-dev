@@ -300,7 +300,7 @@ public:
                           const nsAString& aType,
                           const nsAString& aCrossOrigin,
                           const nsAString& aIntegrity,
-                          bool aScriptFromHead,
+                          bool aScriptFromHead, bool aAsync, bool aDefer,
                           const mozilla::net::ReferrerPolicy aReferrerPolicy);
 
   /**
@@ -325,6 +325,16 @@ public:
    * pipeline.
    */
   void LoadEventFired();
+
+  /**
+   * Destroy and prevent the ScriptLoader or the ScriptLoadRequests from owning
+   * any references to the JSScript or to the Request which might be used for
+   * caching the encoded bytecode.
+   */
+  void Destroy()
+  {
+    GiveUpBytecodeEncoding();
+  }
 
 private:
   virtual ~ScriptLoader();
@@ -475,6 +485,7 @@ private:
 
   nsresult CreateModuleScript(ModuleLoadRequest* aRequest);
   nsresult ProcessFetchedModuleSource(ModuleLoadRequest* aRequest);
+  void CheckModuleDependenciesLoaded(ModuleLoadRequest* aRequest);
   void ProcessLoadedModuleTree(ModuleLoadRequest* aRequest);
   bool InstantiateModuleTree(ModuleLoadRequest* aRequest);
   void StartFetchingModuleDependencies(ModuleLoadRequest* aRequest);
@@ -535,6 +546,7 @@ private:
   bool mDocumentParsingDone;
   bool mBlockingDOMContentLoaded;
   bool mLoadEventFired;
+  bool mGiveUpEncoding;
 
   // Module map
   nsRefPtrHashtable<nsURIHashKey, mozilla::GenericPromise::Private> mFetchingModules;

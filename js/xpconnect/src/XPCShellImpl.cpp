@@ -658,156 +658,28 @@ RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp)
 #endif
 
 static const JSFunctionSpec glob_functions[] = {
-    JS_FS("print",           Print,          0,0),
-    JS_FS("readline",        ReadLine,       1,0),
-    JS_FS("load",            Load,           1,0),
-    JS_FS("quit",            Quit,           0,0),
-    JS_FS("version",         Version,        1,0),
-    JS_FS("dumpXPC",         DumpXPC,        1,0),
-    JS_FS("dump",            Dump,           1,0),
-    JS_FS("gc",              GC,             0,0),
+    JS_FN("print",           Print,          0,0),
+    JS_FN("readline",        ReadLine,       1,0),
+    JS_FN("load",            Load,           1,0),
+    JS_FN("quit",            Quit,           0,0),
+    JS_FN("version",         Version,        1,0),
+    JS_FN("dumpXPC",         DumpXPC,        1,0),
+    JS_FN("dump",            Dump,           1,0),
+    JS_FN("gc",              GC,             0,0),
 #ifdef JS_GC_ZEAL
-    JS_FS("gczeal",          GCZeal,         1,0),
+    JS_FN("gczeal",          GCZeal,         1,0),
 #endif
-    JS_FS("options",         Options,        0,0),
-    JS_FS("sendCommand",     SendCommand,    1,0),
-    JS_FS("atob",            xpc::Atob,      1,0),
-    JS_FS("btoa",            xpc::Btoa,      1,0),
-    JS_FS("setInterruptCallback", SetInterruptCallback, 1,0),
-    JS_FS("simulateActivityCallback", SimulateActivityCallback, 1,0),
-    JS_FS("registerAppManifest", RegisterAppManifest, 1, 0),
+    JS_FN("options",         Options,        0,0),
+    JS_FN("sendCommand",     SendCommand,    1,0),
+    JS_FN("atob",            xpc::Atob,      1,0),
+    JS_FN("btoa",            xpc::Btoa,      1,0),
+    JS_FN("setInterruptCallback", SetInterruptCallback, 1,0),
+    JS_FN("simulateActivityCallback", SimulateActivityCallback, 1,0),
+    JS_FN("registerAppManifest", RegisterAppManifest, 1, 0),
 #ifdef ENABLE_TESTS
-    JS_FS("registerXPCTestComponents", RegisterXPCTestComponents, 0, 0),
+    JS_FN("registerXPCTestComponents", RegisterXPCTestComponents, 0, 0),
 #endif
     JS_FS_END
-};
-
-static bool
-env_setProperty(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp,
-                ObjectOpResult& result)
-{
-/* XXX porting may be easy, but these don't seem to supply setenv by default */
-#if !defined SOLARIS
-    RootedString valstr(cx);
-    RootedString idstr(cx);
-    int rv;
-
-    RootedValue idval(cx);
-    if (!JS_IdToValue(cx, id, &idval))
-        return false;
-
-    idstr = ToString(cx, idval);
-    valstr = ToString(cx, vp);
-    if (!idstr || !valstr)
-        return false;
-    JSAutoByteString name(cx, idstr);
-    if (!name)
-        return false;
-    JSAutoByteString value(cx, valstr);
-    if (!value)
-        return false;
-#if defined XP_WIN || defined HPUX || defined OSF1 || defined SCO
-    {
-        char* waste = JS_smprintf("%s=%s", name.ptr(), value.ptr()).release();
-        if (!waste) {
-            JS_ReportOutOfMemory(cx);
-            return false;
-        }
-        rv = putenv(waste);
-#ifdef XP_WIN
-        /*
-         * HPUX9 at least still has the bad old non-copying putenv.
-         *
-         * Per mail from <s.shanmuganathan@digital.com>, OSF1 also has a putenv
-         * that will crash if you pass it an auto char array (so it must place
-         * its argument directly in the char* environ[] array).
-         */
-        free(waste);
-#endif
-    }
-#else
-    rv = setenv(name.ptr(), value.ptr(), 1);
-#endif
-    if (rv < 0) {
-        name.clear();
-        value.clear();
-        if (!name.encodeUtf8(cx, idstr))
-            return false;
-        if (!value.encodeUtf8(cx, valstr))
-            return false;
-        JS_ReportErrorUTF8(cx, "can't set envariable %s to %s", name.ptr(), value.ptr());
-        return false;
-    }
-    vp.setString(valstr);
-#endif /* !defined SOLARIS */
-    return result.succeed();
-}
-
-static bool
-env_enumerate(JSContext* cx, HandleObject obj)
-{
-    static bool reflected;
-    char** evp;
-    char* name;
-    char* value;
-    RootedString valstr(cx);
-    bool ok;
-
-    if (reflected)
-        return true;
-
-    for (evp = (char**)JS_GetPrivate(obj); (name = *evp) != nullptr; evp++) {
-        value = strchr(name, '=');
-        if (!value)
-            continue;
-        *value++ = '\0';
-        valstr = JS_NewStringCopyZ(cx, value);
-        ok = valstr ? JS_DefineProperty(cx, obj, name, valstr, JSPROP_ENUMERATE) : false;
-        value[-1] = '=';
-        if (!ok)
-            return false;
-    }
-
-    reflected = true;
-    return true;
-}
-
-static bool
-env_resolve(JSContext* cx, HandleObject obj, HandleId id, bool* resolvedp)
-{
-    JSString* idstr;
-
-    RootedValue idval(cx);
-    if (!JS_IdToValue(cx, id, &idval))
-        return false;
-
-    idstr = ToString(cx, idval);
-    if (!idstr)
-        return false;
-    JSAutoByteString name(cx, idstr);
-    if (!name)
-        return false;
-    const char* value = getenv(name.ptr());
-    if (value) {
-        RootedString valstr(cx, JS_NewStringCopyZ(cx, value));
-        if (!valstr)
-            return false;
-        if (!JS_DefinePropertyById(cx, obj, id, valstr, JSPROP_ENUMERATE)) {
-            return false;
-        }
-        *resolvedp = true;
-    }
-    return true;
-}
-
-static const JSClassOps env_classOps = {
-    nullptr, nullptr, nullptr, env_setProperty,
-    env_enumerate, nullptr, env_resolve
-};
-
-static const JSClass env_class = {
-    "environment", JSCLASS_HAS_PRIVATE,
-    &env_classOps
 };
 
 /***************************************************************************/
@@ -1433,7 +1305,7 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
         options.creationOptions().setNewZoneInSystemZoneGroup();
         if (xpc::SharedMemoryEnabled())
             options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);
-        options.behaviors().setVersion(JSVERSION_LATEST);
+        options.behaviors().setVersion(JSVERSION_DEFAULT);
         nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
         rv = nsXPConnect::XPConnect()->
             InitClassesWithNewWrappedGlobal(cx,
@@ -1494,22 +1366,13 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
                 return 1;
             }
 
-            JS::Rooted<JSObject*> envobj(cx);
-            envobj = JS_DefineObject(cx, glob, "environment", &env_class);
-            if (!envobj) {
-                return 1;
-            }
-
-            JS_SetPrivate(envobj, envp);
-
             nsAutoString workingDirectory;
             if (GetCurrentWorkingDirectory(workingDirectory))
                 gWorkingDirectory = &workingDirectory;
 
-            JS_DefineProperty(cx, glob, "__LOCATION__", JS::UndefinedHandleValue,
-                              JSPROP_SHARED,
-                              GetLocationProperty,
-                              nullptr);
+            JS_DefineProperty(cx, glob, "__LOCATION__",
+                              GetLocationProperty, nullptr,
+                              JSPROP_SHARED);
 
             {
                 // We are almost certainly going to run script here, so we need an

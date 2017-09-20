@@ -721,8 +721,7 @@ interface nsIDOMWindowUtils : nsISupports {
    * drag - msg1-n:TOUCH_CONTACT (moving), msgn+1:TOUCH_REMOVE
    * hover drag - msg1-n:TOUCH_HOVER (moving), msgn+1:TOUCH_REMOVE
    *
-   * Widget support: Windows 8.0+, Winrt/Win32. Gonk supports CONTACT, REMOVE,
-   * and CANCEL but no HOVER. Other widgets will throw.
+   * Widget support: Windows 8.0+, Winrt/Win32. Other widgets will throw.
    *
    * NOTE: The synthesized native event will be fired asynchronously, and upon
    * completion the observer, if provided, will be notified with a "touchpoint"
@@ -1422,14 +1421,6 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute boolean usingAdvancedLayers;
 
   /**
-   * Returns a Promise that will be resolved with a string once the capabilities
-   * of the h264 decoder have been determined.
-   * Success does not mean that all h264 video decoding will be done
-   * in hardware.
-   */
-  readonly attribute jsval supportsHardwareH264Decoding;
-
-  /**
    * Returns the current audio backend as a free-form string.
    */
   readonly attribute AString currentAudioBackend;
@@ -1486,12 +1477,6 @@ interface nsIDOMWindowUtils : nsISupports {
    * The DPI of the display
    */
   readonly attribute float displayDPI;
-
-  /**
-   * Return the outer window with the given ID, if any.  Can return null.
-   * @deprecated Use nsIWindowMediator.getOuterWindowWithId.  See bug 865664.
-   */
-  nsIDOMWindow getOuterWindowWithId(in unsigned long long aOuterWindowID);
 
   /**
    * Return this window's frame element.

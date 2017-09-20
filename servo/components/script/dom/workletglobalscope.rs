@@ -17,21 +17,15 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use microtask::Microtask;
-use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
-use script_layout_interface::message::Msg;
-use script_runtime::CommonScriptMsg;
-use script_runtime::ScriptThreadEventCategory;
 use script_thread::MainThreadScriptMsg;
-use script_thread::Runnable;
-use script_thread::ScriptThread;
-use script_traits::ScriptMsg;
-use script_traits::TimerSchedulerMsg;
+use script_traits::{Painter, ScriptMsg};
+use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
+use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
@@ -45,38 +39,43 @@ pub struct WorkletGlobalScope {
     globalscope: GlobalScope,
     /// The base URL for this worklet.
     base_url: ServoUrl,
-    /// The microtask queue for this worklet
-    microtask_queue: MicrotaskQueue,
     /// Sender back to the script thread
     #[ignore_heap_size_of = "channels are hard"]
-    script_sender: Sender<MainThreadScriptMsg>,
+    to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Worklet task executor
     executor: WorkletExecutor,
 }
 
 impl WorkletGlobalScope {
     /// Create a new stack-allocated `WorkletGlobalScope`.
-    pub fn new_inherited(pipeline_id: PipelineId,
-                         base_url: ServoUrl,
-                         executor: WorkletExecutor,
-                         init: &WorkletGlobalScopeInit)
-                         -> WorkletGlobalScope {
+    pub fn new_inherited(
+        pipeline_id: PipelineId,
+        base_url: ServoUrl,
+        executor: WorkletExecutor,
+        init: &WorkletGlobalScopeInit,
+    ) -> Self {
         // Any timer events fired on this global are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
-        WorkletGlobalScope {
-            globalscope: GlobalScope::new_inherited(pipeline_id,
-                                                    init.devtools_chan.clone(),
-                                                    init.mem_profiler_chan.clone(),
-                                                    init.time_profiler_chan.clone(),
-                                                    init.constellation_chan.clone(),
-                                                    init.scheduler_chan.clone(),
-                                                    init.resource_threads.clone(),
-                                                    timer_event_chan,
-                                                    MutableOrigin::new(ImmutableOrigin::new_opaque())),
-            base_url: base_url,
-            microtask_queue: MicrotaskQueue::default(),
-            script_sender: init.script_sender.clone(),
-            executor: executor,
+        let script_to_constellation_chan = ScriptToConstellationChan {
+            sender: init.to_constellation_sender.clone(),
+            pipeline_id,
+        };
+        Self {
+            globalscope: GlobalScope::new_inherited(
+                pipeline_id,
+                init.devtools_chan.clone(),
+                init.mem_profiler_chan.clone(),
+                init.time_profiler_chan.clone(),
+                script_to_constellation_chan,
+                init.scheduler_chan.clone(),
+                init.resource_threads.clone(),
+                timer_event_chan,
+                MutableOrigin::new(ImmutableOrigin::new_opaque()),
+                Default::default(),
+            ),
+            base_url,
+            to_script_thread_sender: init.to_script_thread_sender.clone(),
+            executor,
         }
     }
 
@@ -92,25 +91,21 @@ impl WorkletGlobalScope {
         self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
 
-    /// Run a runnable in the main script thread.
-    pub fn run_in_script_thread<R>(&self, runnable: R) where
-        R: 'static + Send + Runnable,
-    {
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
-        let msg = MainThreadScriptMsg::Common(msg);
-        self.script_sender.send(msg).expect("Worklet thread outlived script thread.");
-    }
-
-    /// Send a message to layout.
-    pub fn send_to_layout(&self, msg: Msg) {
-        struct RunnableMsg(PipelineId, Msg);
-        impl Runnable for RunnableMsg {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
-                script_thread.send_to_layout(self.0, self.1);
-            }
-        }
-        let pipeline_id = self.globalscope.pipeline_id();
-        self.run_in_script_thread(RunnableMsg(pipeline_id, msg));
+    /// Register a paint worklet to the script thread.
+    pub fn register_paint_worklet(
+        &self,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>,
+    ) {
+        self.to_script_thread_sender
+            .send(MainThreadScriptMsg::RegisterPaintWorklet {
+                pipeline_id: self.globalscope.pipeline_id(),
+                name,
+                properties,
+                painter,
+            })
+            .expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.
@@ -121,20 +116,6 @@ impl WorkletGlobalScope {
     /// The worklet executor.
     pub fn executor(&self) -> WorkletExecutor {
         self.executor.clone()
-    }
-
-    /// Queue up a microtask to be executed in this global.
-    pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
-    }
-
-    /// Perform any queued microtasks.
-    pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| {
-            let global = self.upcast::<GlobalScope>();
-            assert_eq!(global.pipeline_id(), id);
-            Some(Root::from_ref(global))
-        });
     }
 
     /// Perform a worklet task
@@ -156,7 +137,7 @@ impl WorkletGlobalScope {
 #[derive(Clone)]
 pub struct WorkletGlobalScopeInit {
     /// Channel to the main script thread
-    pub script_sender: Sender<MainThreadScriptMsg>,
+    pub to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Channel to a resource thread
     pub resource_threads: ResourceThreads,
     /// Channel to the memory profiler
@@ -166,7 +147,7 @@ pub struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub constellation_chan: IpcSender<ScriptMsg>,
+    pub to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache

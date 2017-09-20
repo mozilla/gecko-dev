@@ -11,8 +11,10 @@ use style_traits::{ToCss, ParseError};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, ToComputedValue)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {
@@ -25,6 +27,11 @@ impl<T> Rect<T> {
 impl<T> Rect<T>
     where T: Clone
 {
+    /// Returns a rect with all the values equal to `v`.
+    pub fn all(v: T) -> Self {
+        Rect::new(v.clone(), v.clone(), v.clone(), v)
+    }
+
     /// Parses a new `Rect<T>` value with the given parse function.
     pub fn parse_with<'i, 't, Parse>(
         context: &ParserContext,
@@ -48,15 +55,6 @@ impl<T> Rect<T>
         };
         // <first> <second> <third> <fourth>
         Ok(Self::new(first, second, third, fourth))
-    }
-}
-
-impl<T> From<T> for Rect<T>
-    where T: Clone
-{
-    #[inline]
-    fn from(value: T) -> Self {
-        Self::new(value.clone(), value.clone(), value.clone(), value)
     }
 }
 

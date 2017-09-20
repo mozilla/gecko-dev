@@ -196,8 +196,8 @@ WebMDemuxer::Init()
                                         __func__);
   }
 
-  if (!GetNumberTracks(TrackInfo::kAudioTrack)
-      && !GetNumberTracks(TrackInfo::kVideoTrack)) {
+  if (!GetNumberTracks(TrackInfo::kAudioTrack) &&
+      !GetNumberTracks(TrackInfo::kVideoTrack)) {
     return InitPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_METADATA_ERR,
                                         __func__);
   }
@@ -297,8 +297,8 @@ WebMDemuxer::ReadMetadata()
     MOZ_ASSERT(mBufferedState->GetInitEndOffset() <= resource.Tell());
   }
   mInitData = resource.MediaReadAt(0, mBufferedState->GetInitEndOffset());
-  if (!mInitData
-      || mInitData->Length() != size_t(mBufferedState->GetInitEndOffset())) {
+  if (!mInitData ||
+      mInitData->Length() != size_t(mBufferedState->GetInitEndOffset())) {
     return NS_ERROR_FAILURE;
   }
 
@@ -323,13 +323,13 @@ WebMDemuxer::ReadMetadata()
       mVideoCodec = nestegg_track_codec_id(context, track);
       switch(mVideoCodec) {
         case NESTEGG_CODEC_VP8:
-          mInfo.mVideo.mMimeType = "video/webm; codecs=vp8";
+          mInfo.mVideo.mMimeType = "video/vp8";
           break;
         case NESTEGG_CODEC_VP9:
-          mInfo.mVideo.mMimeType = "video/webm; codecs=vp9";
+          mInfo.mVideo.mMimeType = "video/vp9";
           break;
         case NESTEGG_CODEC_AV1:
-          mInfo.mVideo.mMimeType = "video/webm; codecs=av1";
+          mInfo.mVideo.mMimeType = "video/av1";
           break;
         default:
           NS_WARNING("Unknown WebM video codec");
@@ -339,16 +339,16 @@ WebMDemuxer::ReadMetadata()
       // to the display size.
       unsigned int cropH = params.crop_right + params.crop_left;
       unsigned int cropV = params.crop_bottom + params.crop_top;
-      nsIntRect pictureRect(params.crop_left,
-                            params.crop_top,
-                            params.width - cropH,
-                            params.height - cropV);
+      gfx::IntRect pictureRect(params.crop_left,
+                               params.crop_top,
+                               params.width - cropH,
+                               params.height - cropV);
 
       // If the cropping data appears invalid then use the frame data
-      if (pictureRect.width <= 0
-          || pictureRect.height <= 0
-          || pictureRect.x < 0
-          || pictureRect.y < 0) {
+      if (pictureRect.width <= 0 ||
+          pictureRect.height <= 0 ||
+          pictureRect.x < 0 ||
+          pictureRect.y < 0) {
         pictureRect.x = 0;
         pictureRect.y = 0;
         pictureRect.width = params.width;
@@ -357,8 +357,8 @@ WebMDemuxer::ReadMetadata()
 
       // Validate the container-reported frame and pictureRect sizes. This
       // ensures that our video frame creation code doesn't overflow.
-      nsIntSize displaySize(params.display_width, params.display_height);
-      nsIntSize frameSize(params.width, params.height);
+      gfx::IntSize displaySize(params.display_width, params.display_height);
+      gfx::IntSize frameSize(params.width, params.height);
       if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
         // Video track's frame sizes will overflow. Ignore the video track.
         continue;
@@ -473,15 +473,15 @@ WebMDemuxer::ReadMetadata()
 bool
 WebMDemuxer::IsSeekable() const
 {
-  return Context(TrackInfo::kVideoTrack)
-         && nestegg_has_cues(Context(TrackInfo::kVideoTrack));
+  return Context(TrackInfo::kVideoTrack) &&
+         nestegg_has_cues(Context(TrackInfo::kVideoTrack));
 }
 
 bool
 WebMDemuxer::IsSeekableOnlyInBufferedRanges() const
 {
-  return Context(TrackInfo::kVideoTrack)
-         && !nestegg_has_cues(Context(TrackInfo::kVideoTrack));
+  return Context(TrackInfo::kVideoTrack) &&
+         !nestegg_has_cues(Context(TrackInfo::kVideoTrack));
 }
 
 void
@@ -606,8 +606,8 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
       PushAudioPacket(next_holder);
     } else if (duration >= 0) {
       next_tstamp = tstamp + duration;
-    } else if (!mIsMediaSource
-               || (mIsMediaSource && mLastAudioFrameTime.isSome())) {
+    } else if (!mIsMediaSource ||
+               (mIsMediaSource && mLastAudioFrameTime.isSome())) {
       next_tstamp = tstamp;
       next_tstamp += tstamp - mLastAudioFrameTime.refOr(0);
     } else {
@@ -625,8 +625,8 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
       PushVideoPacket(next_holder);
     } else if (duration >= 0) {
       next_tstamp = tstamp + duration;
-    } else if (!mIsMediaSource
-               || (mIsMediaSource && mLastVideoFrameTime.isSome())) {
+    } else if (!mIsMediaSource ||
+               (mIsMediaSource && mLastVideoFrameTime.isSome())) {
       next_tstamp = tstamp;
       next_tstamp += tstamp - mLastVideoFrameTime.refOr(0);
     } else {
@@ -698,7 +698,7 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
         if (isKeyframe) {
           // For both VP8 and VP9, we only look for resolution changes
           // on keyframes. Other resolution changes are invalid.
-          auto dimensions = nsIntSize(0, 0);
+          auto dimensions = gfx::IntSize(0, 0);
           switch (mVideoCodec) {
           case NESTEGG_CODEC_VP8:
             dimensions = VPXDecoder::GetFrameSize(sample, VPXDecoder::Codec::VP8);
@@ -712,8 +712,8 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
             break;
 #endif
           }
-          if (mLastSeenFrameSize.isSome()
-              && (dimensions != mLastSeenFrameSize.value())) {
+          if (mLastSeenFrameSize.isSome() &&
+              (dimensions != mLastSeenFrameSize.value())) {
             mInfo.mVideo.mDisplay = dimensions;
             mSharedVideoTrackInfo =
               new TrackInfoSharedPtr(mInfo.mVideo, ++sStreamSourceID);
@@ -761,9 +761,9 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
       }
     }
 
-    if (packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_UNENCRYPTED
-        || packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_ENCRYPTED
-        || packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_PARTITIONED) {
+    if (packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_UNENCRYPTED ||
+        packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_ENCRYPTED ||
+        packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_PARTITIONED) {
       nsAutoPtr<MediaRawDataWriter> writer(sample->CreateWriter());
       unsigned char const* iv;
       size_t ivLength;
@@ -1188,8 +1188,8 @@ WebMTrackDemuxer::SetNextKeyFrameTime()
     skipSamplesQueue.Push(sample.forget());
     if (!startTime) {
       startTime.emplace(sampleTimecode);
-    } else if (!foundKeyframe
-               && sampleTimecode > startTime.ref() + MAX_LOOK_AHEAD) {
+    } else if (!foundKeyframe &&
+               sampleTimecode > startTime.ref() + MAX_LOOK_AHEAD) {
       WEBM_DEBUG("Couldn't find keyframe in a reasonable time, aborting");
       break;
     }
@@ -1236,8 +1236,8 @@ WebMTrackDemuxer::UpdateSamples(nsTArray<RefPtr<MediaRawData>>& aSamples)
       writer->mCrypto.mKeyId.AppendElements(mInfo->mCrypto.mKeyId);
     }
   }
-  if (mNextKeyframeTime.isNothing()
-      || aSamples.LastElement()->mTime >= mNextKeyframeTime.value()) {
+  if (mNextKeyframeTime.isNothing() ||
+      aSamples.LastElement()->mTime >= mNextKeyframeTime.value()) {
     SetNextKeyFrameTime();
   }
 }

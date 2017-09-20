@@ -168,7 +168,13 @@ function addA11yLoadEvent(aFunc, aWindow) {
     );
   }
 
-  SimpleTest.waitForFocus(waitForDocLoad, aWindow);
+  if (aWindow &&
+      aWindow.document.activeElement &&
+      aWindow.document.activeElement.localName == "browser") {
+    waitForDocLoad();
+  } else {
+    SimpleTest.waitForFocus(waitForDocLoad, aWindow);
+  }
 }
 
 /**
@@ -183,6 +189,18 @@ function isObject(aObj, aExpectedObj, aMsg) {
   ok(false,
      aMsg + " - got '" + prettyName(aObj) +
             "', expected '" + prettyName(aExpectedObj) + "'");
+}
+
+/**
+ * is() function checking the expected value is within the range.
+ */
+function isWithin(aExpected, aGot, aWithin, aMsg) {
+  if (Math.abs(aGot - aExpected) <= aWithin) {
+    ok(true, `${aMsg} - Got ${aGot}`);
+  } else {
+    ok(false,
+       `${aMsg} - Got ${aGot}, expected ${aExpected} with error of ${aWithin}`);
+  }
 }
 
 // //////////////////////////////////////////////////////////////////////////////

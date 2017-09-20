@@ -20,6 +20,7 @@
 #include "nsIDOMDocument.h"
 #include "nsIDocument.h"
 #include "nsILoadInfo.h"
+#include "nsIXULRuntime.h"
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "nsXULAppAPI.h"
@@ -81,15 +82,22 @@ ExtensionPolicyService::ExtensionPolicyService()
   RegisterObservers();
 }
 
+bool
+ExtensionPolicyService::UseRemoteExtensions() const
+{
+  return sRemoteExtensions && BrowserTabsRemoteAutostart();
+}
 
 bool
 ExtensionPolicyService::IsExtensionProcess() const
 {
-  if (sRemoteExtensions && XRE_IsContentProcess()) {
+  bool isRemote = UseRemoteExtensions();
+
+  if (isRemote && XRE_IsContentProcess()) {
     auto& remoteType = dom::ContentChild::GetSingleton()->GetRemoteType();
     return remoteType.EqualsLiteral(EXTENSION_REMOTE_TYPE);
   }
-  return XRE_IsParentProcess();
+  return !isRemote && XRE_IsParentProcess();
 }
 
 
@@ -250,10 +258,7 @@ ExtensionPolicyService::CheckDocument(nsIDocument* aDocument)
 
     nsIPrincipal* principal = aDocument->NodePrincipal();
 
-    nsAutoString addonId;
-    Unused << principal->GetAddonId(addonId);
-
-    RefPtr<WebExtensionPolicy> policy = GetByID(addonId);
+    RefPtr<WebExtensionPolicy> policy = BasePrincipal::Cast(principal)->AddonPolicy();
     if (policy) {
       nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aDocument);
       ProcessScript().InitExtensionDocument(policy, doc);
@@ -372,6 +377,17 @@ ExtensionPolicyService::AddonMayLoadURI(const nsAString& aAddonId,
 {
   if (WebExtensionPolicy* policy = GetByID(aAddonId)) {
     *aResult = policy->CanAccessURI(aURI, aExplicit);
+    return NS_OK;
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+nsresult
+ExtensionPolicyService::GetExtensionName(const nsAString& aAddonId,
+                                         nsAString& aName)
+{
+  if (WebExtensionPolicy* policy = GetByID(aAddonId)) {
+    aName.Assign(policy->Name());
     return NS_OK;
   }
   return NS_ERROR_INVALID_ARG;

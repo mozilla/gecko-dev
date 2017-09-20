@@ -33,7 +33,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 // Places query used to retrieve all history downloads for the related list.
 const HISTORY_PLACES_QUERY =
       "place:transition=" + Ci.nsINavHistoryService.TRANSITION_DOWNLOAD +
-      "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_ASCENDING;
+      "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING;
 
 const DESTINATIONFILEURI_ANNO = "downloads/destinationFileURI";
 const METADATA_ANNO = "downloads/metaData";
@@ -51,24 +51,42 @@ const METADATA_STATE_DIRTY = 8;
  */
 this.DownloadHistory = {
   /**
-   * Retrieves the main DownloadHistoryList object which provides a view on
-   * downloads from previous browsing sessions, as well as downloads from this
-   * session that were not started from a private browsing window.
+   * Retrieves the main DownloadHistoryList object which provides a unified view
+   * on downloads from both previous browsing sessions and this session.
+   *
+   * @param type
+   *        Determines which type of downloads from this session should be
+   *        included in the list. This is Downloads.PUBLIC by default, but can
+   *        also be Downloads.PRIVATE or Downloads.ALL.
+   * @param maxHistoryResults
+   *        Optional number that limits the amount of results the history query
+   *        may return.
    *
    * @return {Promise}
    * @resolves The requested DownloadHistoryList object.
    * @rejects JavaScript exception.
    */
-  getList() {
-    if (!this._promiseList) {
-      this._promiseList = Downloads.getList(Downloads.PUBLIC).then(list => {
-        return new DownloadHistoryList(list, HISTORY_PLACES_QUERY);
+  getList({type = Downloads.PUBLIC, maxHistoryResults} = {}) {
+    let key = `${type}|${maxHistoryResults ? maxHistoryResults : -1}`;
+    if (!this._listPromises[key]) {
+      this._listPromises[key] = Downloads.getList(type).then(list => {
+        // When the amount of history downloads is capped, we request the list in
+        // descending order, to make sure that the list can apply the limit.
+        let query = HISTORY_PLACES_QUERY +
+          (maxHistoryResults ? "&maxResults=" + maxHistoryResults : "");
+        return new DownloadHistoryList(list, query);
       });
     }
 
-    return this._promiseList;
+    return this._listPromises[key];
   },
-  _promiseList: null,
+
+  /**
+   * This object is populated with one key for each type of download list that
+   * can be returned by the getList method. The values are promises that resolve
+   * to DownloadHistoryList objects.
+   */
+  _listPromises: {},
 
   /**
    * Stores new detailed metadata for the given download in history. This is
@@ -548,7 +566,7 @@ this.DownloadHistoryList.prototype = {
     }
 
     // Add new slots or reuse existing ones for history downloads.
-    for (let index = 0; index < container.childCount; index++) {
+    for (let index = container.childCount - 1; index >= 0; --index) {
       try {
         this._insertPlacesNode(container.getChild(index));
       } catch (ex) {

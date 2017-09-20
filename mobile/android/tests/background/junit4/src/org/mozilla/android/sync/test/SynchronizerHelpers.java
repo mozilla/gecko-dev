@@ -62,9 +62,8 @@ public class SynchronizerHelpers {
                               Context context) {
       delegate.deferredCreationDelegate().onSessionCreated(new WBORepositorySession(this) {
         @Override
-        public void fetchSince(long timestamp,
-                               final RepositorySessionFetchRecordsDelegate delegate) {
-          super.fetchSince(timestamp, new RepositorySessionFetchRecordsDelegate() {
+        public void fetchModified(final RepositorySessionFetchRecordsDelegate delegate) {
+          super.fetchModified(new RepositorySessionFetchRecordsDelegate() {
             @Override
             public void onFetchedRecord(Record record) {
               if (record.guid.contains(FAIL_SENTINEL)) {
@@ -80,8 +79,8 @@ public class SynchronizerHelpers {
             }
 
             @Override
-            public void onFetchCompleted(long fetchEnd) {
-              delegate.onFetchCompleted(fetchEnd);
+            public void onFetchCompleted() {
+              delegate.onFetchCompleted();
             }
 
             @Override
@@ -203,7 +202,8 @@ public class SynchronizerHelpers {
             public void run() {
               synchronized (batch) {
                 Logger.trace("XXX", "Calling storeDone.");
-                storeDelegate.onStoreCompleted(now());
+                setLastStoreTimestamp(now());
+                storeDelegate.onStoreCompleted();
               }
             }
           };

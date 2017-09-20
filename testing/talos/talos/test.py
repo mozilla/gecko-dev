@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import os
+
 from talos import filter
 
 """
@@ -275,6 +278,7 @@ class tpaint(PageloaderTest):
     tpmozafterpaint = True
     filters = filter.ignore_first.prepare(5) + filter.median.prepare()
     unit = 'ms'
+    preferences = {'security.data_uri.block_toplevel_data_uri_navigations': False}
 
 
 @register_test()
@@ -819,13 +823,14 @@ class bloom_basic(PageloaderTest):
 
 
 @register_test()
-class bloom_basic_singleton(PageloaderTest):
+class perf_reftest_singletons(PageloaderTest):
     """
-    Stylo bloom_basic: runs bloom_basic and bloom_basic_ref and reports difference
+    Style perf-reftests run as individual tests
     """
-    tpmanifest = '${talos}/tests/perf-reftest-singletons/bloom_basic_singleton.manifest'
+    tpmanifest = '${talos}/tests/perf-reftest-singletons/perf_reftest_singletons.manifest'
     tpcycles = 1
-    tppagecycles = 25
+    tppagecycles = 15
+    tptimeout = 30000
     gecko_profile_interval = 1
     gecko_profile_entries = 2000000
     filters = filter.ignore_first.prepare(5) + filter.median.prepare()

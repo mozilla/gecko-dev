@@ -334,8 +334,6 @@ async function loadManifestFromWebManifest(aUri) {
     throw new Error("Extension is invalid");
   }
 
-  let theme = Boolean(manifest.theme);
-
   let bss = (manifest.browser_specific_settings && manifest.browser_specific_settings.gecko)
       || (manifest.applications && manifest.applications.gecko) || {};
   if (manifest.browser_specific_settings && manifest.applications) {
@@ -350,7 +348,8 @@ async function loadManifestFromWebManifest(aUri) {
   let addon = new AddonInternal();
   addon.id = bss.id;
   addon.version = manifest.version;
-  addon.type = "webextension" + (theme ? "-theme" : "");
+  addon.type = extension.type === "extension" ?
+               "webextension" : `webextension-${extension.type}`;
   addon.unpack = false;
   addon.strictCompatibility = true;
   addon.bootstrap = true;
@@ -435,7 +434,7 @@ async function loadManifestFromWebManifest(aUri) {
 
   addon.targetPlatforms = [];
   // Themes are disabled by default, except when they're installed from a web page.
-  addon.userDisabled = theme;
+  addon.userDisabled = (extension.type === "theme");
   addon.softDisabled = addon.blocklistState == nsIBlocklistService.STATE_SOFTBLOCKED;
 
   return addon;
@@ -1026,37 +1025,6 @@ function getTemporaryFile() {
 }
 
 /**
- * Verifies that a zip file's contents are all signed by the same principal.
- * Directory entries and anything in the META-INF directory are not checked.
- *
- * @param  aZip
- *         A nsIZipReader to check
- * @param  aCertificate
- *         The nsIX509Cert to compare against
- * @return true if all the contents that should be signed were signed by the
- *         principal
- */
-function verifyZipSigning(aZip, aCertificate) {
-  var count = 0;
-  var entries = aZip.findEntries(null);
-  while (entries.hasMore()) {
-    var entry = entries.getNext();
-    // Nothing in META-INF is in the manifest.
-    if (entry.substr(0, 9) == "META-INF/")
-      continue;
-    // Directory entries aren't in the manifest.
-    if (entry.substr(-1) == "/")
-      continue;
-    count++;
-    var entryCertificate = aZip.getSigningCert(entry);
-    if (!entryCertificate || !aCertificate.equals(entryCertificate)) {
-      return false;
-    }
-  }
-  return aZip.manifestEntriesCount == count;
-}
-
-/**
  * Returns the signedState for a given return code and certificate by verifying
  * it against the expected ID.
  */
@@ -1454,8 +1422,6 @@ class AddonInstall {
 
     this.file = null;
     this.ownsTempFile = null;
-    this.certificate = null;
-    this.certName = null;
 
     this.addon = null;
     this.state = null;
@@ -1669,25 +1635,6 @@ class AddonInstall {
 
         return Promise.reject([AddonManager.ERROR_CORRUPT_FILE,
                                "signature verification failed"])
-      }
-    } else if (this.addon.signedState == AddonManager.SIGNEDSTATE_UNKNOWN ||
-             this.addon.signedState == AddonManager.SIGNEDSTATE_NOT_REQUIRED) {
-      // Check object signing certificate, if any
-      let x509 = zipreader.getSigningCert(null);
-      if (x509) {
-        logger.debug("Verifying XPI signature");
-        if (verifyZipSigning(zipreader, x509)) {
-          this.certificate = x509;
-          if (this.certificate.commonName.length > 0) {
-            this.certName = this.certificate.commonName;
-          } else {
-            this.certName = this.certificate.organization;
-          }
-        } else {
-          zipreader.close();
-          return Promise.reject([AddonManager.ERROR_CORRUPT_FILE,
-                                 "XPI is incorrectly signed"]);
-        }
       }
     }
 
@@ -2711,7 +2658,7 @@ AddonInstallWrapper.prototype = {
 };
 
 ["name", "version", "icons", "releaseNotesURI", "file", "state", "error",
- "progress", "maxProgress", "certificate", "certName"].forEach(function(aProp) {
+ "progress", "maxProgress"].forEach(function(aProp) {
   Object.defineProperty(AddonInstallWrapper.prototype, aProp, {
     get() {
       return installFor(this)[aProp];

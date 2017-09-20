@@ -37,14 +37,9 @@
 
 using namespace mozilla;
 
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHtml5TreeOpExecutor)
-  NS_INTERFACE_TABLE_INHERITED(nsHtml5TreeOpExecutor,
-                               nsIContentSink)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsHtml5DocumentBuilder)
-
-NS_IMPL_ADDREF_INHERITED(nsHtml5TreeOpExecutor, nsContentSink)
-
-NS_IMPL_RELEASE_INHERITED(nsHtml5TreeOpExecutor, nsContentSink)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(nsHtml5TreeOpExecutor,
+                                             nsHtml5DocumentBuilder,
+                                             nsIContentSink)
 
 class nsHtml5ExecutorReflusher : public Runnable
 {
@@ -291,6 +286,7 @@ nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
     // Now we set up a repetitive idle scheduler for flushing background list.
     gBackgroundFlushRunner =
       IdleTaskRunner::Create(&BackgroundFlushCallback,
+                             "nsHtml5TreeOpExecutor::BackgroundFlushCallback",
                              250, // The hard deadline: 250ms.
                              nsContentSink::sInteractiveParseTime / 1000, // Required budget.
                              true, // repeating
@@ -951,14 +947,16 @@ nsHtml5TreeOpExecutor::PreloadScript(const nsAString& aURL,
                                      const nsAString& aType,
                                      const nsAString& aCrossOrigin,
                                      const nsAString& aIntegrity,
-                                     bool aScriptFromHead)
+                                     bool aScriptFromHead,
+                                     bool aAsync,
+                                     bool aDefer)
 {
   nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
   if (!uri) {
     return;
   }
   mDocument->ScriptLoader()->PreloadURI(uri, aCharset, aType, aCrossOrigin,
-                                           aIntegrity, aScriptFromHead,
+                                           aIntegrity, aScriptFromHead, aAsync, aDefer,
                                            mSpeculationReferrerPolicy);
 }
 
@@ -966,14 +964,26 @@ void
 nsHtml5TreeOpExecutor::PreloadStyle(const nsAString& aURL,
                                     const nsAString& aCharset,
                                     const nsAString& aCrossOrigin,
+                                    const nsAString& aReferrerPolicy,
                                     const nsAString& aIntegrity)
 {
   nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
   if (!uri) {
     return;
   }
-  mDocument->PreloadStyle(uri, aCharset, aCrossOrigin,
-                          mSpeculationReferrerPolicy, aIntegrity);
+
+  mozilla::net::ReferrerPolicy referrerPolicy = mSpeculationReferrerPolicy;
+  mozilla::net::ReferrerPolicy styleReferrerPolicy =
+    mozilla::net::AttributeReferrerPolicyFromString(aReferrerPolicy);
+  if (styleReferrerPolicy != mozilla::net::RP_Unset) {
+    referrerPolicy = styleReferrerPolicy;
+  }
+
+  mDocument->PreloadStyle(uri,
+                          Encoding::ForLabel(aCharset),
+                          aCrossOrigin,
+                          referrerPolicy,
+                          aIntegrity);
 }
 
 void
@@ -984,8 +994,9 @@ nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL,
                                     const nsAString& aImageReferrerPolicy)
 {
   nsCOMPtr<nsIURI> baseURI = BaseURIForPreload();
+  bool isImgSet = false;
   nsCOMPtr<nsIURI> uri = mDocument->ResolvePreloadImage(baseURI, aURL, aSrcset,
-                                                        aSizes);
+                                                        aSizes, &isImgSet);
   if (uri && ShouldPreloadURI(uri)) {
     // use document wide referrer policy
     mozilla::net::ReferrerPolicy referrerPolicy = mSpeculationReferrerPolicy;
@@ -995,7 +1006,7 @@ nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL,
       referrerPolicy = imageReferrerPolicy;
     }
 
-    mDocument->MaybePreLoadImage(uri, aCrossOrigin, referrerPolicy);
+    mDocument->MaybePreLoadImage(uri, aCrossOrigin, referrerPolicy, isImgSet);
   }
 }
 

@@ -41,6 +41,7 @@ const tablePreferences = [
   "urlclassifier.malwareTable",
   "urlclassifier.downloadBlockTable",
   "urlclassifier.downloadAllowTable",
+  "urlclassifier.passwordAllowTable",
   "urlclassifier.trackingTable",
   "urlclassifier.trackingWhitelistTable",
   "urlclassifier.blockedTable",
@@ -109,6 +110,9 @@ this.SafeBrowsing = {
     for (let i = 0; i < this.downloadAllowLists.length; ++i) {
       this.registerTableWithURLs(this.downloadAllowLists[i]);
     }
+    for (let i = 0; i < this.passwordAllowLists.length; ++i) {
+      this.registerTableWithURLs(this.passwordAllowLists[i]);
+    }
     for (let i = 0; i < this.trackingProtectionLists.length; ++i) {
       this.registerTableWithURLs(this.trackingProtectionLists[i]);
     }
@@ -126,10 +130,23 @@ this.SafeBrowsing = {
     }
   },
 
+  unregisterTables(obsoleteLists) {
+    let listManager = Cc["@mozilla.org/url-classifier/listmanager;1"].
+      getService(Ci.nsIUrlListManager);
+
+    for (let i = 0; i < obsoleteLists.length; ++i) {
+      for (let j = 0; j < obsoleteLists[i].length; ++j) {
+        listManager.unregisterTable(obsoleteLists[i][j]);
+      }
+    }
+  },
+
 
   initialized:          false,
   phishingEnabled:      false,
   malwareEnabled:       false,
+  downloadsEnabled:     false,
+  passwordsEnabled:     false,
   trackingEnabled:      false,
   blockedEnabled:       false,
   trackingAnnotations:  false,
@@ -140,6 +157,7 @@ this.SafeBrowsing = {
   malwareLists:                 [],
   downloadBlockLists:           [],
   downloadAllowLists:           [],
+  passwordAllowLists:           [],
   trackingProtectionLists:      [],
   trackingProtectionWhitelists: [],
   blockedLists:                 [],
@@ -207,6 +225,8 @@ this.SafeBrowsing = {
 
     this.phishingEnabled = Services.prefs.getBoolPref("browser.safebrowsing.phishing.enabled");
     this.malwareEnabled = Services.prefs.getBoolPref("browser.safebrowsing.malware.enabled");
+    this.downloadsEnabled = Services.prefs.getBoolPref("browser.safebrowsing.downloads.enabled");
+    this.passwordsEnabled = Services.prefs.getBoolPref("browser.safebrowsing.passwords.enabled");
     this.trackingEnabled = Services.prefs.getBoolPref("privacy.trackingprotection.enabled") || Services.prefs.getBoolPref("privacy.trackingprotection.pbmode.enabled");
     this.blockedEnabled = Services.prefs.getBoolPref("browser.safebrowsing.blockedURIs.enabled");
     this.trackingAnnotations = Services.prefs.getBoolPref("privacy.trackingprotection.annotate_channels");
@@ -216,10 +236,26 @@ this.SafeBrowsing = {
         flashExceptTable, flashSubDocTable,
         flashSubDocExceptTable;
 
+    let obsoleteLists;
+    // Make a copy of the original lists before we re-read the prefs.
+    if (this.initialized) {
+      obsoleteLists = [this.phishingLists,
+                       this.malwareLists,
+                       this.downloadBlockLists,
+                       this.downloadAllowLists,
+                       this.passwordAllowLists,
+                       this.trackingProtectionLists,
+                       this.trackingProtectionWhitelists,
+                       this.blockedLists,
+                       this.flashLists,
+                       this.flashInfobarLists];
+    }
+
     [this.phishingLists,
      this.malwareLists,
      this.downloadBlockLists,
      this.downloadAllowLists,
+     this.passwordAllowLists,
      this.trackingProtectionLists,
      this.trackingProtectionWhitelists,
      this.blockedLists,
@@ -237,8 +273,29 @@ this.SafeBrowsing = {
                                              flashSubDocTable,
                                              flashSubDocExceptTable)
 
+    if (obsoleteLists) {
+      let newLists = [this.phishingLists,
+                      this.malwareLists,
+                      this.downloadBlockLists,
+                      this.downloadAllowLists,
+                      this.passwordAllowLists,
+                      this.trackingProtectionLists,
+                      this.trackingProtectionWhitelists,
+                      this.blockedLists,
+                      this.flashLists,
+                      this.flashInfobarLists];
+
+      for (let i = 0; i < obsoleteLists.length; ++i) {
+        obsoleteLists[i] = obsoleteLists[i]
+          .filter(list => newLists[i].indexOf(list) == -1);
+      }
+    }
+
     this.updateProviderURLs();
     this.registerTables();
+    if (obsoleteLists) {
+      this.unregisterTables(obsoleteLists);
+    }
 
     // XXX The listManager backend gets confused if this is called before the
     // lists are registered. So only call it here when a pref changes, and not
@@ -295,6 +352,7 @@ this.SafeBrowsing = {
       let googleKey = Services.urlFormatter.formatURL("%GOOGLE_API_KEY%").trim();
       if ((provider == "google" || provider == "google4") &&
           (!googleKey || googleKey == "no-google-api-key")) {
+        log("Missing Google API key, clearing updateURL and gethashURL.");
         updateURL = "";
         gethashURL = "";
       }
@@ -319,10 +377,14 @@ this.SafeBrowsing = {
   },
 
   controlUpdateChecking() {
-    log("phishingEnabled:", this.phishingEnabled, "malwareEnabled:",
-        this.malwareEnabled, "trackingEnabled:", this.trackingEnabled,
-        "blockedEnabled:", this.blockedEnabled, "trackingAnnotations",
-        this.trackingAnnotations, "flashBlockEnabled", this.flashBlockEnabled,
+    log("phishingEnabled:", this.phishingEnabled,
+        "malwareEnabled:", this.malwareEnabled,
+        "downloadsEnabled:", this.downloadsEnabled,
+        "passwordsEnabled:", this.passwordsEnabled,
+        "trackingEnabled:", this.trackingEnabled,
+        "blockedEnabled:", this.blockedEnabled,
+        "trackingAnnotations", this.trackingAnnotations,
+        "flashBlockEnabled", this.flashBlockEnabled,
         "flashInfobarListEnabled:", this.flashInfobarListEnabled);
 
     let listManager = Cc["@mozilla.org/url-classifier/listmanager;1"].
@@ -343,17 +405,24 @@ this.SafeBrowsing = {
       }
     }
     for (let i = 0; i < this.downloadBlockLists.length; ++i) {
-      if (this.malwareEnabled) {
+      if (this.downloadsEnabled) {
         listManager.enableUpdate(this.downloadBlockLists[i]);
       } else {
         listManager.disableUpdate(this.downloadBlockLists[i]);
       }
     }
     for (let i = 0; i < this.downloadAllowLists.length; ++i) {
-      if (this.malwareEnabled) {
+      if (this.downloadsEnabled) {
         listManager.enableUpdate(this.downloadAllowLists[i]);
       } else {
         listManager.disableUpdate(this.downloadAllowLists[i]);
+      }
+    }
+    for (let i = 0; i < this.passwordAllowLists.length; ++i) {
+      if (this.passwordsEnabled) {
+        listManager.enableUpdate(this.passwordAllowLists[i]);
+      } else {
+        listManager.disableUpdate(this.passwordAllowLists[i]);
       }
     }
     for (let i = 0; i < this.trackingProtectionLists.length; ++i) {

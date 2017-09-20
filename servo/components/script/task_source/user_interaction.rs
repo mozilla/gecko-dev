@@ -4,17 +4,19 @@
 
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::event::{EventBubbles, EventCancelable, EventRunnable};
+use dom::event::{EventBubbles, EventCancelable, EventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
-#[derive(JSTraceable, Clone)]
+#[derive(Clone, JSTraceable)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl fmt::Debug for UserInteractionTaskSource {
@@ -24,13 +26,19 @@ impl fmt::Debug for UserInteractionTaskSource {
 }
 
 impl TaskSource for UserInteractionTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
-        let msg = UserInteractionTask(wrapper.wrap_runnable(msg));
-        self.0.send(MainThreadScriptMsg::UserInteraction(msg)).map_err(|_| ())
+    fn queue_with_canceller<T>(
+        &self,
+        msg: Box<T>,
+        canceller: &TaskCanceller,
+    ) -> Result<(), ()>
+    where
+        T: Task + Send + 'static,
+    {
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::InputEvent,
+            canceller.wrap_task(msg),
+        ));
+        self.0.send(msg).map_err(|_| ())
     }
 }
 
@@ -42,28 +50,7 @@ impl UserInteractionTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let runnable = box EventRunnable {
-            target: target,
-            name: name,
-            bubbles: bubbles,
-            cancelable: cancelable,
-        };
-        let _ = self.queue(runnable, window.upcast());
-    }
-}
-
-pub struct UserInteractionTask(pub Box<Runnable + Send>);
-
-impl fmt::Debug for UserInteractionTask {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "UserInteractionTask(...)")
-    }
-}
-
-impl UserInteractionTask {
-    pub fn handle_task(self, script_thread: &ScriptThread) {
-        if !self.0.is_cancelled() {
-            self.0.main_thread_handler(script_thread);
-        }
+        let task = box EventTask { target, name, bubbles, cancelable };
+        let _ = self.queue(task, window.upcast());
     }
 }

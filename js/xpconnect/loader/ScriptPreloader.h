@@ -269,8 +269,12 @@ private:
                 return size;
             }
 
-            size += (mURL.SizeOfExcludingThisEvenIfShared(mallocSizeOf) +
+            // Note: mURL and mCachePath use the same string for scripts loaded
+            // by the message manager. The following statement avoids
+            // double-measuring in that case.
+            size += (mURL.SizeOfExcludingThisIfUnshared(mallocSizeOf) +
                      mCachePath.SizeOfExcludingThisEvenIfShared(mallocSizeOf));
+
             return size;
         }
 
@@ -389,6 +393,11 @@ private:
     static void OffThreadDecodeCallback(void* token, void* context);
     void MaybeFinishOffThreadDecode();
     void DoFinishOffThreadDecode();
+
+    // Returns the global scope object for off-thread compilation. When global
+    // sharing is enabled in the component loader, this should be the shared
+    // module global. Otherwise, it should be the XPConnect compilation scope.
+    JSObject* CompilationScope(JSContext* cx);
 
     size_t ShallowHeapSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
     {

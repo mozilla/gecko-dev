@@ -109,6 +109,24 @@ PROT_ListManager.prototype.registerTable = function(tableName,
 }
 
 /**
+ * Unregister a table table from list
+ */
+PROT_ListManager.prototype.unregisterTable = function(tableName) {
+  log("unregistering " + tableName);
+  var table = this.tablesData[tableName];
+  if (table) {
+    if (!this.updatesNeeded_(table.updateUrl) &&
+        this.updateCheckers_[table.updateUrl]) {
+      this.updateCheckers_[table.updateUrl].cancel();
+      this.updateCheckers_[table.updateUrl] = null;
+    }
+    delete this.needsUpdate_[table.updateUrl][tableName];
+  }
+  delete this.tablesData[tableName];
+
+}
+
+/**
  * Delete all of our data tables which seem to leak otherwise.
  * Remove observers
  */
@@ -218,7 +236,10 @@ PROT_ListManager.prototype.setUpdateCheckTimer = function(updateUrl,
                                     .createInstance(Ci.nsITimer);
   this.updateCheckers_[updateUrl].initWithCallback(() => {
     this.updateCheckers_[updateUrl] = null;
-    this.checkForUpdates(updateUrl);
+    if (updateUrl && !this.checkForUpdates(updateUrl)) {
+      // Make another attempt later.
+      this.setUpdateCheckTimer(updateUrl, this.updateInterval);
+    }
   }, delay, Ci.nsITimer.TYPE_ONE_SHOT);
 }
 /**

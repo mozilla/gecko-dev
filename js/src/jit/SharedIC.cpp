@@ -664,8 +664,8 @@ HandleScript
 SharedStubInfo::outerScript(JSContext* cx)
 {
     if (!outerScript_) {
-        js::jit::JitActivationIterator iter(cx);
-        JitFrameIterator it(iter);
+        js::jit::JitActivationIterator actIter(cx);
+        JSJitFrameIter it(actIter->asJit());
         MOZ_ASSERT(it.isExitFrame());
         ++it;
         MOZ_ASSERT(it.isIonJS());
@@ -1205,7 +1205,8 @@ ICBinaryArith_DoubleWithInt32::Compiler::generateStubCode(MacroAssembler& masm)
         masm.push(intReg);
         masm.setupUnalignedABICall(scratchReg);
         masm.passABIArg(FloatReg0, MoveOp::DOUBLE);
-        masm.callWithABI(mozilla::BitwiseCast<void*, int32_t(*)(double)>(JS::ToInt32));
+        masm.callWithABI(mozilla::BitwiseCast<void*, int32_t(*)(double)>(JS::ToInt32),
+                         MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
         masm.storeCallWordResult(scratchReg);
         masm.pop(intReg);
 
@@ -1358,7 +1359,8 @@ ICUnaryArith_Double::Compiler::generateStubCode(MacroAssembler& masm)
         masm.bind(&truncateABICall);
         masm.setupUnalignedABICall(scratchReg);
         masm.passABIArg(FloatReg0, MoveOp::DOUBLE);
-        masm.callWithABI(BitwiseCast<void*, int32_t(*)(double)>(JS::ToInt32));
+        masm.callWithABI(BitwiseCast<void*, int32_t(*)(double)>(JS::ToInt32),
+                         MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
         masm.storeCallWordResult(scratchReg);
 
         masm.bind(&doneTruncate);
@@ -1956,8 +1958,6 @@ CheckHasNoSuchOwnProperty(JSContext* cx, JSObject* obj, jsid id)
         if (ClassMayResolveId(cx->names(), obj->getClass(), id, obj))
             return false;
         if (obj->as<NativeObject>().contains(cx, id))
-            return false;
-        if (obj->getClass()->getGetProperty())
             return false;
     } else if (obj->is<UnboxedPlainObject>()) {
         if (obj->as<UnboxedPlainObject>().containsUnboxedOrExpandoProperty(cx, id))

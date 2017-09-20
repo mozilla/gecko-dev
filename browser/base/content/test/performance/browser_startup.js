@@ -16,6 +16,9 @@
 
 "use strict";
 
+/* Set this to true only for debugging purpose; it makes the output noisy. */
+const kDumpAllStacks = false;
+
 const startupPhases = {
   // For app-startup, we have a whitelist of acceptable JS files.
   // Anything loaded during app-startup must have a compelling reason
@@ -46,9 +49,6 @@ const startupPhases = {
 
   // We are at this phase after creating the first browser window (ie. after final-ui-startup).
   "before opening first browser window": {blacklist: {
-    components: new Set([
-      "nsAsyncShutdown.js",
-    ]),
     modules: new Set([
       "resource://gre/modules/PlacesBackups.jsm",
       "resource://gre/modules/PlacesUtils.jsm",
@@ -64,8 +64,9 @@ const startupPhases = {
       "nsSearchService.js",
     ]),
     modules: new Set([
-      "chrome://webcompat-reporter/content/TabListener.jsm",
       "chrome://webcompat-reporter/content/WebCompatReporter.jsm",
+      "chrome://webcompat/content/data/ua_overrides.jsm",
+      "chrome://webcompat/content/lib/ua_overrider.jsm",
       "resource:///modules/AboutNewTab.jsm",
       "resource:///modules/BrowserUITelemetry.jsm",
       "resource:///modules/BrowserUsageTelemetry.jsm",
@@ -91,7 +92,8 @@ const startupPhases = {
       "nsPlacesExpiration.js",
     ]),
     modules: new Set([
-      "resource:///modules/RecentWindow.jsm",
+      // Bug 1391495 - RecentWindow.jsm is intermittently used.
+      // "resource:///modules/RecentWindow.jsm",
       "resource://gre/modules/BookmarkHTMLUtils.jsm",
       "resource://gre/modules/Bookmarks.jsm",
       "resource://gre/modules/ContextualIdentityService.jsm",
@@ -150,13 +152,25 @@ add_task(async function() {
   let startupRecorder = Cc["@mozilla.org/test/startuprecorder;1"].getService().wrappedJSObject;
   await startupRecorder.done;
 
+  let loader = Cc["@mozilla.org/moz/jsloader;1"].getService(Ci.xpcIJSModuleLoader);
+  let componentStacks = new Map();
   let data = startupRecorder.data.code;
   // Keep only the file name for components, as the path is an absolute file
   // URL rather than a resource:// URL like for modules.
   for (let phase in data) {
     data[phase].components =
-      data[phase].components.map(f => f.replace(/.*\//, ""))
-                            .filter(c => c != "startupRecorder.js");
+      data[phase].components.map(uri => {
+        let fileName = uri.replace(/.*\//, "");
+        componentStacks.set(fileName, loader.getComponentLoadStack(uri));
+        return fileName;
+      }).filter(c => c != "startupRecorder.js");
+  }
+
+  function printStack(scriptType, name) {
+    if (scriptType == "modules")
+      info(loader.getModuleImportStack(name));
+    else if (scriptType == "components")
+      info(componentStacks.get(name));
   }
 
   // This block only adds debug output to help find the next bugs to file,
@@ -169,8 +183,11 @@ add_task(async function() {
         // phases are ordered, so if a script wasn't loaded yet at the immediate
         // previous phase, it wasn't loaded during any of the previous phases
         // either, and is new in the current phase.
-        if (!previous || !data[previous][scriptType].includes(f))
+        if (!previous || !data[previous][scriptType].includes(f)) {
           info(`${scriptType} loaded ${phase}: ${f}`);
+          if (kDumpAllStacks)
+            printStack(scriptType, f);
+        }
       }
     }
     previous = phase;
@@ -191,6 +208,7 @@ add_task(async function() {
            `should have no unexpected ${scriptType} loaded ${phase}`);
         for (let script of loadedList[scriptType]) {
           ok(false, `unexpected ${scriptType}: ${script}`);
+          printStack(scriptType, script);
         }
         is(whitelist[scriptType].size, 0,
            `all ${scriptType} whitelist entries should have been used`);
@@ -203,7 +221,10 @@ add_task(async function() {
     if (blacklist) {
       for (let scriptType in blacklist) {
         for (let file of blacklist[scriptType]) {
-          ok(!loadedList[scriptType].includes(file), `${file} is not allowed ${phase}`);
+          let loaded = loadedList[scriptType].includes(file);
+          ok(!loaded, `${file} is not allowed ${phase}`);
+          if (loaded)
+            printStack(scriptType, file);
         }
       }
     }

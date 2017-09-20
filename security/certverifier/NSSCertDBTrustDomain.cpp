@@ -19,11 +19,13 @@
 #include "mozilla/Casting.h"
 #include "mozilla/Move.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
 #include "nsCRTGlue.h"
 #include "nsNSSCertificate.h"
 #include "nsServiceManagerUtils.h"
+#include "nsThreadUtils.h"
 #include "nss.h"
 #include "pk11pub.h"
 #include "pkix/Result.h"
@@ -58,7 +60,6 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
                                            NetscapeStepUpPolicy netscapeStepUpPolicy,
                                            const OriginAttributes& originAttributes,
                                            UniqueCERTCertList& builtChain,
-                              /*optional*/ UniqueCERTCertList* peerCertChain,
                               /*optional*/ PinningTelemetryInfo* pinningTelemetryInfo,
                               /*optional*/ const char* hostname)
   : mCertDBTrustType(certDBTrustType)
@@ -76,7 +77,6 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
   , mNetscapeStepUpPolicy(netscapeStepUpPolicy)
   , mOriginAttributes(originAttributes)
   , mBuiltChain(builtChain)
-  , mPeerCertChain(peerCertChain)
   , mPinningTelemetryInfo(pinningTelemetryInfo)
   , mHostname(hostname)
   , mCertBlocklist(do_GetService(NS_CERTBLOCKLIST_CONTRACTID))
@@ -141,93 +141,10 @@ FindIssuerInner(const UniqueCERTCertList& candidates, bool useRoots,
   return Success;
 }
 
-// Remove from newCandidates any CERTCertificates in alreadyTried.
-// alreadyTried is likely to be small or empty.
-static void
-RemoveCandidatesAlreadyTried(UniqueCERTCertList& newCandidates,
-                             const UniqueCERTCertList& alreadyTried)
-{
-  for (const CERTCertListNode* triedNode = CERT_LIST_HEAD(alreadyTried);
-       !CERT_LIST_END(triedNode, alreadyTried);
-       triedNode = CERT_LIST_NEXT(triedNode)) {
-    CERTCertListNode* newNode = CERT_LIST_HEAD(newCandidates);
-    while (!CERT_LIST_END(newNode, newCandidates)) {
-      CERTCertListNode* savedNode = CERT_LIST_NEXT(newNode);
-      if (CERT_CompareCerts(triedNode->cert, newNode->cert)) {
-        CERT_RemoveCertListNode(newNode);
-      }
-      newNode = savedNode;
-    }
-  }
-}
-
-// Add to matchingCandidates any CERTCertificates from candidatesIn that have a
-// DER-encoded subject name equal to the given subject name.
-static Result
-AddMatchingCandidates(UniqueCERTCertList& matchingCandidates,
-                      const UniqueCERTCertList& candidatesIn,
-                      Input subjectName)
-{
-  for (const CERTCertListNode* node = CERT_LIST_HEAD(candidatesIn);
-       !CERT_LIST_END(node, candidatesIn); node = CERT_LIST_NEXT(node)) {
-    Input candidateSubjectName;
-    Result rv = candidateSubjectName.Init(node->cert->derSubject.data,
-                                          node->cert->derSubject.len);
-    if (rv != Success) {
-      continue; // probably just too big - continue processing other candidates
-    }
-    if (InputsAreEqual(candidateSubjectName, subjectName)) {
-      UniqueCERTCertificate certDuplicate(CERT_DupCertificate(node->cert));
-      if (!certDuplicate) {
-        return Result::FATAL_ERROR_NO_MEMORY;
-      }
-      SECStatus srv = CERT_AddCertToListTail(matchingCandidates.get(),
-                                             certDuplicate.get());
-      if (srv != SECSuccess) {
-        return MapPRErrorCodeToResult(PR_GetError());
-      }
-      // matchingCandidates now owns certDuplicate
-      Unused << certDuplicate.release();
-    }
-  }
-  return Success;
-}
-
 Result
 NSSCertDBTrustDomain::FindIssuer(Input encodedIssuerName,
                                  IssuerChecker& checker, Time)
 {
-  // If the peer certificate chain was specified, try to use it before falling
-  // back to CERT_CreateSubjectCertList.
-  bool keepGoing;
-  UniqueCERTCertList peerCertChainCandidates(CERT_NewCertList());
-  if (!peerCertChainCandidates) {
-    return Result::FATAL_ERROR_NO_MEMORY;
-  }
-  if (mPeerCertChain) {
-    // Build a candidate list that consists only of certificates with a subject
-    // matching the issuer we're looking for.
-    Result rv = AddMatchingCandidates(peerCertChainCandidates, *mPeerCertChain,
-                                      encodedIssuerName);
-    if (rv != Success) {
-      return rv;
-    }
-    rv = FindIssuerInner(peerCertChainCandidates, true, encodedIssuerName,
-                         checker, keepGoing);
-    if (rv != Success) {
-      return rv;
-    }
-    if (keepGoing) {
-      rv = FindIssuerInner(peerCertChainCandidates, false, encodedIssuerName,
-                           checker, keepGoing);
-      if (rv != Success) {
-        return rv;
-      }
-    }
-    if (!keepGoing) {
-      return Success;
-    }
-  }
   // TODO: NSS seems to be ambiguous between "no potential issuers found" and
   // "there was an error trying to retrieve the potential issuers."
   SECItem encodedIssuerNameItem = UnsafeMapInputToSECItem(encodedIssuerName);
@@ -236,8 +153,8 @@ NSSCertDBTrustDomain::FindIssuer(Input encodedIssuerName,
                                           &encodedIssuerNameItem, 0,
                                           false));
   if (candidates) {
-    RemoveCandidatesAlreadyTried(candidates, peerCertChainCandidates);
     // First, try all the root certs; then try all the non-root certs.
+    bool keepGoing;
     Result rv = FindIssuerInner(candidates, true, encodedIssuerName, checker,
                                 keepGoing);
     if (rv != Success) {
@@ -1228,8 +1145,10 @@ NSSCertDBTrustDomain::NoteAuxiliaryExtension(AuxiliaryExtension extension,
 }
 
 SECStatus
-InitializeNSS(const char* dir, bool readOnly, bool loadPKCS11Modules)
+InitializeNSS(const nsACString& dir, bool readOnly, bool loadPKCS11Modules)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   // The NSS_INIT_NOROOTINIT flag turns off the loading of the root certs
   // module by NSS_Initialize because we will load it in InstallLoadableRoots
   // later.  It also allows us to work around a bug in the system NSS in
@@ -1242,9 +1161,40 @@ InitializeNSS(const char* dir, bool readOnly, bool loadPKCS11Modules)
   if (!loadPKCS11Modules) {
     flags |= NSS_INIT_NOMODDB;
   }
+  bool useSQLDB = Preferences::GetBool("security.use_sqldb", false);
+  nsAutoCString dbTypeAndDirectory;
+  // Don't change any behavior if the user has specified an alternative database
+  // location with MOZPSM_NSSDBDIR_OVERRIDE.
+  const char* dbDirOverride = getenv("MOZPSM_NSSDBDIR_OVERRIDE");
+  if (useSQLDB && (!dbDirOverride || strlen(dbDirOverride) == 0)) {
+    dbTypeAndDirectory.Append("sql:");
+  }
+  dbTypeAndDirectory.Append(dir);
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-          ("InitializeNSS(%s, %d, %d)", dir, readOnly, loadPKCS11Modules));
-  return ::NSS_Initialize(dir, "", "", SECMOD_DB, flags);
+          ("InitializeNSS(%s, %d, %d)", dbTypeAndDirectory.get(), readOnly,
+           loadPKCS11Modules));
+  SECStatus srv = NSS_Initialize(dbTypeAndDirectory.get(), "", "",
+                                 SECMOD_DB, flags);
+  if (srv != SECSuccess) {
+    return srv;
+  }
+
+  if (!readOnly) {
+    UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
+    if (!slot) {
+      return SECFailure;
+    }
+    // If the key DB doesn't have a password set, PK11_NeedUserInit will return
+    // true. For the SQL DB, we need to set a password or we won't be able to
+    // import any certificates or change trust settings.
+    if (PK11_NeedUserInit(slot.get())) {
+      srv = PK11_InitPin(slot.get(), nullptr, nullptr);
+      MOZ_ASSERT(srv == SECSuccess);
+      Unused << srv;
+    }
+  }
+
+  return SECSuccess;
 }
 
 void

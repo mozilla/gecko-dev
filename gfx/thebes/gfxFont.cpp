@@ -173,8 +173,7 @@ gfxFontCache::Shutdown()
 }
 
 gfxFontCache::gfxFontCache(nsIEventTarget* aEventTarget)
-    : nsExpirationTracker<gfxFont,3>(FONT_TIMEOUT_SECONDS * 1000,
-                                     "gfxFontCache", aEventTarget)
+    : gfxFontCacheExpirationTracker(aEventTarget)
 {
     nsCOMPtr<nsIObserverService> obs = GetObserverService();
     if (obs) {
@@ -286,7 +285,7 @@ gfxFontCache::NotifyReleased(gfxFont *aFont)
 }
 
 void
-gfxFontCache::NotifyExpired(gfxFont *aFont)
+gfxFontCache::NotifyExpired(gfxFont* aFont)
 {
     aFont->ClearCachedWords();
     RemoveObject(aFont);
@@ -842,11 +841,8 @@ gfxFont::GetRoundOffsetsToPixels(DrawTarget* aDrawTarget)
   }
 
   // Sometimes hint metrics gets set for us, most notably for printing.
-  cairo_font_options_t *font_options = cairo_font_options_create();
-  cairo_scaled_font_get_font_options(scaled_font, font_options);
   cairo_hint_metrics_t hint_metrics =
-    cairo_font_options_get_hint_metrics(font_options);
-  cairo_font_options_destroy(font_options);
+    cairo_scaled_font_get_hint_metrics(scaled_font);
 
   switch (hint_metrics) {
   case CAIRO_HINT_METRICS_OFF:
@@ -2010,6 +2006,7 @@ gfxFont::DrawEmphasisMarks(const gfxTextRun* aShapedText, gfxPoint* aPt,
     gfxFloat& inlineCoord = aParams.isVertical ? aPt->y : aPt->x;
     gfxTextRun::Range markRange(aParams.mark);
     gfxTextRun::DrawParams params(aParams.context);
+    params.textDrawer = aParams.textDrawer;
 
     gfxFloat clusterStart = -std::numeric_limits<gfxFloat>::infinity();
     bool shouldDrawEmphasisMark = false;
@@ -2638,6 +2635,18 @@ gfxFont::GetShapedWord(DrawTarget *aDrawTarget,
 
     return sw;
 }
+
+template gfxShapedWord*
+gfxFont::GetShapedWord(DrawTarget *aDrawTarget,
+                       const uint8_t *aText,
+                       uint32_t    aLength,
+                       uint32_t    aHash,
+                       Script      aRunScript,
+                       bool        aVertical,
+                       int32_t     aAppUnitsPerDevUnit,
+                       gfx::ShapedTextFlags aFlags,
+                       RoundingFlags aRounding,
+                       gfxTextPerfMetrics *aTextPerf);
 
 bool
 gfxFont::CacheHashEntry::KeyEquals(const KeyTypePointer aKey) const

@@ -2,7 +2,7 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-/* exported createHttpServer, promiseConsoleOutput, cleanupDir */
+/* exported createHttpServer, promiseConsoleOutput, cleanupDir, testEnv */
 
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
@@ -10,24 +10,29 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Timer.jsm");
 Components.utils.import("resource://testing-common/AddonTestUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ContentTask",
-                                  "resource://testing-common/ContentTask.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Extension",
-                                  "resource://gre/modules/Extension.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionData",
-                                  "resource://gre/modules/Extension.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionTestUtils",
-                                  "resource://testing-common/ExtensionXPCShellUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
-                                  "resource://testing-common/httpd.js");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
-                                  "resource://gre/modules/Schemas.jsm");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  ContentTask: "resource://testing-common/ContentTask.jsm",
+  Extension: "resource://gre/modules/Extension.jsm",
+  ExtensionData: "resource://gre/modules/Extension.jsm",
+  ExtensionParent: "resource://gre/modules/ExtensionParent.jsm",
+  ExtensionTestUtils: "resource://testing-common/ExtensionXPCShellUtils.jsm",
+  FileUtils: "resource://gre/modules/FileUtils.jsm",
+  HttpServer: "resource://testing-common/httpd.js",
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
+  Schemas: "resource://gre/modules/Schemas.jsm",
+});
 
+// These values may be changed in later head files and tested in check_remote
+// below.
 Services.prefs.setBoolPref("extensions.webextensions.remote", false);
+const testEnv = {
+  expectRemote: false,
+};
+
+add_task(function check_remote() {
+  Assert.equal(WebExtensionPolicy.useRemoteWebExtensions, testEnv.expectRemote, "useRemoteWebExtensions matches");
+  Assert.equal(WebExtensionPolicy.isExtensionProcess, !testEnv.expectRemote, "testing from extension process");
+});
 
 ExtensionTestUtils.init(this);
 

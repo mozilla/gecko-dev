@@ -215,6 +215,7 @@ HelperAppLauncherDialog.prototype = {
     let newButtonOrder = this._useNewButtonOrder();
 
     HelperApps.prompt(apps, {
+      window: aContext,
       title: bundle.GetStringFromName("helperapps.pick"),
       buttons: [
         newButtonOrder ? alwaysUse : justOnce,
@@ -240,7 +241,7 @@ HelperAppLauncherDialog.prototype = {
    * around starting from Lollipop.
    */
   _useNewButtonOrder: function() {
-    let _useNewButtonOrder = true;
+    let useNewButtonOrder = true;
     let jenv = null;
 
     try {
@@ -266,7 +267,7 @@ HelperAppLauncherDialog.prototype = {
 
     Services.console.logStringMessage("Refusing download of non-downloadable file.");
 
-    let bundle = Services.strings.createBundle("chrome://browser/locale/handling.properties");
+    let bundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
     let failedText = bundle.GetStringFromName("download.blocked");
 
     Snackbars.show(failedText, Snackbars.LENGTH_LONG);

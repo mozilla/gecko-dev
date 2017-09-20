@@ -12,17 +12,17 @@
     <dimen name="autocomplete_row_height">32dp</dimen>
 
     <dimen name="browser_toolbar_height">56dp</dimen>
-    <dimen name="browser_toolbar_image_button_width">48dp</dimen>
+    <dimen name="browser_toolbar_image_button_width">42dp</dimen>
     <!-- ToolbarImageButton's pressed-highlight region is different from clickable region.
          Our design is to make pressed-highlight region to be square. this vertical spacing value
-         helps drawable xml to set padding: (56 - 48) / 2 -->
-    <dimen name="browser_toolbar_image_button_v_spacing">4dp</dimen>
+         helps drawable xml to set padding: (56 - 42) / 2 -->
+    <dimen name="browser_toolbar_image_button_v_spacing">7dp</dimen>
     <dimen name="browser_toolbar_image_button_h_spacing">0dp</dimen>
 
     <!-- This value is the height of the Tabs Panel header view
          (browser_toolbar_height) minus the height of the indicator
-         (6dp). This value should change when the height of the view changes. -->
-    <dimen name="tabs_panel_indicator_selected_padding_top">50dp</dimen>
+         (4dp). This value should change when the height of the view changes. -->
+    <dimen name="tabs_panel_indicator_selected_padding_top">52dp</dimen>
 
     <!-- We use two different values for browser_toolbar_height on tablet
          which is inconsistent. Temporary value until bug 1150730 is fixed. -->
@@ -31,6 +31,8 @@
     <dimen name="browser_toolbar_icon_width">48dp</dimen>
     <dimen name="browser_toolbar_menu_icon_height">16dp</dimen>
     <dimen name="browser_toolbar_menu_radius">2dp</dimen>
+
+    <dimen name="browser_toolbar_url_height">32dp</dimen>
 
     <!-- favicon_size includes 4dp of right padding. We can't use margin (which would allow us to
          specify the actual size) because that would decrease the size of our hit target. -->
@@ -45,10 +47,6 @@
     <dimen name="tablet_fwd_button_padding_start">4dp</dimen>
     <dimen name="tablet_fwd_button_padding_end">4dp</dimen>
 
-    <!-- This is the system default for the vertical padding for the divider of the TabWidget.
-         Used to mimic the divider padding on the tablet tabs panel back button. -->
-    <dimen name="tab_panel_divider_vertical_padding">12dp</dimen>
-
     <dimen name="tablet_tab_strip_height">48dp</dimen>
     <dimen name="tablet_tab_strip_item_width">178dp</dimen>
     <dimen name="tablet_tab_strip_item_height">40dp</dimen>
@@ -56,12 +54,10 @@
     <dimen name="tablet_tab_strip_item_margin">0dp</dimen>
     <dimen name="tablet_tab_strip_divider_width">1dp</dimen>
     <dimen name="tablet_tab_strip_divider_height">30dp</dimen>
-    <dimen name="tablet_tab_strip_divider_padding_bottom">6dp</dimen>
+    <dimen name="tablet_tab_strip_divider_padding_bottom">4dp</dimen>
     <dimen name="tablet_browser_toolbar_menu_item_width">56dp</dimen>
     <!-- Padding combines with an 18dp image to form the menu item width and height. -->
     <dimen name="tablet_browser_toolbar_menu_item_padding_horizontal">19dp</dimen>
-    <dimen name="tablet_browser_toolbar_menu_item_inset_vertical">5dp</dimen>
-    <dimen name="tablet_browser_toolbar_menu_item_inset_horizontal">3dp</dimen>
     <dimen name="tablet_tab_strip_button_inset">5dp</dimen>
 
     <!-- Dimensions used by Favicons and FaviconView -->
@@ -86,14 +82,10 @@
     <dimen name="overlay_prompt_container_width">@dimen/match_parent</dimen>
 
     <!-- Site security icon -->
-    <dimen name="browser_toolbar_site_security_height">32dp</dimen>
     <dimen name="browser_toolbar_site_security_width">32dp</dimen>
     <dimen name="browser_toolbar_site_security_margin_end">0dp</dimen>
-    <dimen name="browser_toolbar_site_security_padding_vertical">7dp</dimen>
-    <dimen name="browser_toolbar_site_security_padding_horizontal">7dp</dimen>
 
     <!-- If one of these values changes, they all should. -->
-    <dimen name="browser_toolbar_site_security_margin_bottom">.5dp</dimen>
     <dimen name="site_security_unknown_inset_top">1dp</dimen>
     <dimen name="site_security_unknown_inset_bottom">-1dp</dimen>
 
@@ -189,7 +181,7 @@
     <dimen name="tab_highlight_stroke_width">5dp</dimen>
 
     <!-- PageActionButtons dimensions -->
-    <dimen name="page_action_button_width">48dp</dimen>
+    <dimen name="page_action_button_width">@dimen/browser_toolbar_image_button_width</dimen>
 
     <!-- Banner -->
     <dimen name="home_banner_height">72dp</dimen>
@@ -251,7 +243,6 @@
 
     <item name="activity_stream_base_margin" type="dimen">10dp</item>
     <item name="activity_stream_desired_tile_width" type="dimen">90dp</item>
-    <item name="activity_stream_desired_tile_height" type="dimen">70dp</item>
 
     <!-- Default touch target size for buttons/imageviews that might be of small size -->
     <item name="touch_target_size" type="dimen">48dp</item>
@@ -263,4 +254,10 @@
     <!-- Full bookmark management -->
     <dimen name="bookmark_folder_first_child_padding">40dp</dimen>
     <dimen name="bookmark_folder_child_padding">16dp</dimen>
+
+    <!-- Dialogs -->
+    <dimen name="dialog_switchpreferenceview_padding">24dp</dimen>
+
+    <!-- Preferences -->
+    <dimen name="preference_panel_text_size">15dp</dimen>
 </resources>

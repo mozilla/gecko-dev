@@ -57,6 +57,7 @@
 #include "mozilla/BinarySearch.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Move.h"
+#include "mozilla/net/PartiallySeekableInputStream.h"
 #include "nsIHttpHeaderVisitor.h"
 #include "nsIMIMEInputStream.h"
 #include "nsIXULRuntime.h"
@@ -183,6 +184,8 @@ HttpBaseChannel::HttpBaseChannel()
   , mResponseCouldBeSynthesized(false)
   , mBlockAuthPrompt(false)
   , mAllowStaleCacheContent(false)
+  , mAddedAsNonTailRequest(false)
+  , mTlsFlags(0)
   , mSuspendCount(0)
   , mInitialRwin(0)
   , mProxyResolveFlags(0)
@@ -210,6 +213,8 @@ HttpBaseChannel::HttpBaseChannel()
   , mForceMainDocumentChannel(false)
   , mIsTrackingResource(false)
   , mLastRedirectFlags(0)
+  , mReqContentLength(0U)
+  , mReqContentLengthDetermined(false)
 {
   LOG(("Creating HttpBaseChannel @%p\n", this));
 
@@ -234,12 +239,38 @@ HttpBaseChannel::~HttpBaseChannel()
   ReleaseMainThreadOnlyReferences();
 }
 
+namespace { // anon
+
+class NonTailRemover : public nsISupports
+{
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  explicit NonTailRemover(nsIRequestContext* rc)
+    : mRequestContext(rc)
+  {
+  }
+
+private:
+  virtual ~NonTailRemover()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    mRequestContext->RemoveNonTailRequest();
+  }
+
+  nsCOMPtr<nsIRequestContext> mRequestContext;
+};
+
+NS_IMPL_ISUPPORTS0(NonTailRemover)
+
+} // anon
+
 void
 HttpBaseChannel::ReleaseMainThreadOnlyReferences()
 {
   if (NS_IsMainThread()) {
     // Already on main thread, let dtor to
     // take care of releasing references
+    RemoveAsNonTailRequest();
     return;
   }
 
@@ -261,7 +292,22 @@ HttpBaseChannel::ReleaseMainThreadOnlyReferences()
   arrayToRelease.AppendElement(mListenerContext.forget());
   arrayToRelease.AppendElement(mCompressListener.forget());
 
+  if (mAddedAsNonTailRequest) {
+    // RemoveNonTailRequest() on our request context must be called on the main thread
+    MOZ_RELEASE_ASSERT(mRequestContext, "Someone released rc or set flags w/o having it?");
+
+    nsCOMPtr<nsISupports> nonTailRemover(new NonTailRemover(mRequestContext));
+    arrayToRelease.AppendElement(nonTailRemover.forget());
+  }
+
   NS_DispatchToMainThread(new ProxyReleaseRunnable(Move(arrayToRelease)));
+}
+
+void
+HttpBaseChannel::SetIsTrackingResource()
+{
+  LOG(("HttpBaseChannel::SetIsTrackingResource %p", this));
+  mIsTrackingResource = true;
 }
 
 nsresult
@@ -437,7 +483,6 @@ HttpBaseChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
   }
 
   mLoadFlags = aLoadFlags;
-  mForceMainDocumentChannel = (aLoadFlags & LOAD_DOCUMENT_URI);
   return NS_OK;
 }
 
@@ -970,10 +1015,10 @@ HttpBaseChannel::CloneUploadStream(nsIInputStream** aClonedStream)
 
 NS_IMETHODIMP
 HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
-                                       const nsACString &aContentType,
-                                       int64_t aContentLength,
-                                       const nsACString &aMethod,
-                                       bool aStreamHasHeaders)
+                                         const nsACString &aContentType,
+                                         int64_t aContentLength,
+                                         const nsACString &aMethod,
+                                         bool aStreamHasHeaders)
 {
   // Ensure stream is set and method is valid
   NS_ENSURE_TRUE(aStream, NS_ERROR_FAILURE);
@@ -1013,6 +1058,18 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
   }
 
   mUploadStreamHasHeaders = aStreamHasHeaders;
+
+  // We already have the content length. We don't need to determinate it.
+  if (aContentLength > 0) {
+    mReqContentLength = aContentLength;
+    mReqContentLengthDetermined = true;
+  }
+
+  nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(aStream);
+  if (!seekable) {
+    aStream = new PartiallySeekableInputStream(aStream);
+  }
+
   mUploadStream = aStream;
   return NS_OK;
 }
@@ -2170,7 +2227,7 @@ NS_IMETHODIMP
 HttpBaseChannel::GetIsMainDocumentChannel(bool* aValue)
 {
   NS_ENSURE_ARG_POINTER(aValue);
-  *aValue = mForceMainDocumentChannel || (mLoadFlags & LOAD_DOCUMENT_URI);
+  *aValue = IsNavigation();
   return NS_OK;
 }
 
@@ -2614,6 +2671,22 @@ HttpBaseChannel::SetBeConservative(bool aBeConservative)
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetTlsFlags(uint32_t *aTlsFlags)
+{
+  NS_ENSURE_ARG_POINTER(aTlsFlags);
+
+  *aTlsFlags = mTlsFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetTlsFlags(uint32_t aTlsFlags)
+{
+  mTlsFlags = aTlsFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetApiRedirectToURI(nsIURI ** aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
@@ -2946,7 +3019,7 @@ HttpBaseChannel::GetURIPrincipal()
 bool
 HttpBaseChannel::IsNavigation()
 {
-  return mForceMainDocumentChannel;
+  return mForceMainDocumentChannel || (mLoadFlags & LOAD_DOCUMENT_URI);
 }
 
 bool
@@ -2989,6 +3062,38 @@ HttpBaseChannel::ShouldIntercept(nsIURI* aURI)
     }
   }
   return shouldIntercept;
+}
+
+void
+HttpBaseChannel::AddAsNonTailRequest()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (EnsureRequestContext()) {
+    LOG(("HttpBaseChannel::AddAsNonTailRequest this=%p, rc=%p, already added=%d",
+         this, mRequestContext.get(), (bool)mAddedAsNonTailRequest));
+
+    if (!mAddedAsNonTailRequest) {
+      mRequestContext->AddNonTailRequest();
+      mAddedAsNonTailRequest = true;
+    }
+  }
+}
+
+void
+HttpBaseChannel::RemoveAsNonTailRequest()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mRequestContext) {
+    LOG(("HttpBaseChannel::RemoveAsNonTailRequest this=%p, rc=%p, already added=%d",
+         this, mRequestContext.get(), (bool)mAddedAsNonTailRequest));
+
+    if (mAddedAsNonTailRequest) {
+      mRequestContext->RemoveNonTailRequest();
+      mAddedAsNonTailRequest = false;
+    }
+  }
 }
 
 #ifdef DEBUG
@@ -3152,8 +3257,15 @@ HttpBaseChannel::DoNotifyListener()
     mOnStopRequestCalled = true;
   }
 
+  // notify "http-on-stop-connect" observers
+  gHttpHandler->OnStopRequest(this);
+
+  // This channel has finished its job, potentially release any tail-blocked
+  // requests with this.
+  RemoveAsNonTailRequest();
+
   // We have to make sure to drop the references to listeners and callbacks
-  // no longer  needed
+  // no longer needed.
   ReleaseListeners();
 
   DoNotifyListenerCleanup();
@@ -3184,7 +3296,7 @@ HttpBaseChannel::AddCookiesToRequest()
 
   bool useCookieService =
     (XRE_IsParentProcess());
-  nsXPIDLCString cookie;
+  nsCString cookie;
   if (useCookieService) {
     nsICookieService *cs = gHttpHandler->GetCookieService();
     if (cs) {
@@ -3314,8 +3426,9 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     if (mUploadStream && (uploadChannel2 || uploadChannel)) {
       // rewind upload stream
       nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
-      if (seekable)
-        seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+      MOZ_ASSERT(seekable);
+
+      seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
 
       // replicate original call to SetUploadStream...
       if (uploadChannel2) {
@@ -3419,6 +3532,8 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     rv = httpInternal->SetAllowAltSvc(mAllowAltSvc);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     rv = httpInternal->SetBeConservative(mBeConservative);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    rv = httpInternal->SetTlsFlags(mTlsFlags);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     RefPtr<nsHttpChannel> realChannel;
@@ -3721,17 +3836,28 @@ HttpBaseChannel::TimingAllowCheck(nsIPrincipal *aOrigin, bool *_retval)
     return NS_OK;
   }
 
-  if (headerValue == "*") {
-    *_retval = true;
-    return NS_OK;
-  }
-
   nsAutoCString origin;
   nsContentUtils::GetASCIIOrigin(aOrigin, origin);
 
-  if (headerValue == origin) {
-    *_retval = true;
-    return NS_OK;
+  Tokenizer p(headerValue);
+  Tokenizer::Token t;
+
+  p.Record();
+  nsAutoCString headerItem;
+  while (p.Next(t)) {
+    if (t.Type() == Tokenizer::TOKEN_EOF ||
+        t.Equals(Tokenizer::Token::Char(','))) {
+      p.Claim(headerItem);
+      headerItem.StripWhitespace();
+      // If the list item contains a case-sensitive match for the value of the
+      // origin, or a wildcard, return pass
+      if (headerItem == origin || headerItem == "*") {
+        *_retval = true;
+        return NS_OK;
+      }
+      // We start recording again for the following items in the list
+      p.Record();
+    }
   }
 
   *_retval = false;
@@ -4039,6 +4165,8 @@ HttpBaseChannel::EnsureRequestContextID()
 {
     if (mRequestContextID) {
         // Already have a request context ID, no need to do the rest of this work
+        LOG(("HttpBaseChannel::EnsureRequestContextID this=%p id=%" PRIx64,
+             this, mRequestContextID));
         return true;
     }
 
@@ -4056,8 +4184,37 @@ HttpBaseChannel::EnsureRequestContextID()
         return false;
     }
 
-    // Set the load group connection scope on the transaction
+    // Set the load group connection scope on this channel and its transaction
     rootLoadGroup->GetRequestContextID(&mRequestContextID);
+
+    LOG(("HttpBaseChannel::EnsureRequestContextID this=%p id=%" PRIx64,
+         this, mRequestContextID));
+
+    return true;
+}
+
+bool
+HttpBaseChannel::EnsureRequestContext()
+{
+    if (mRequestContext) {
+        // Already have a request context, no need to do the rest of this work
+        return true;
+    }
+
+    if (!EnsureRequestContextID()) {
+        return false;
+    }
+
+    nsIRequestContextService* rcsvc = gHttpHandler->GetRequestContextService();
+    if (!rcsvc) {
+        return false;
+    }
+
+    rcsvc->GetRequestContext(mRequestContextID, getter_AddRefs(mRequestContext));
+    if (!mRequestContext) {
+        return false;
+    }
+
     return true;
 }
 

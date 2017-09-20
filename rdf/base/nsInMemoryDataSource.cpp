@@ -2,21 +2,7 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
 
@@ -58,7 +44,7 @@
 #include "nsRDFBaseDataSources.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "rdfutil.h"
 #include "PLDHashTable.h"
 #include "plstr.h"
@@ -804,19 +790,19 @@ InMemoryDataSource::LogOperation(const char* aOperation,
     if (! MOZ_LOG_TEST(gLog, LogLevel::Debug))
         return;
 
-    nsXPIDLCString uri;
+    nsCString uri;
     aSource->GetValue(getter_Copies(uri));
     MOZ_LOG(gLog, LogLevel::Debug,
            ("InMemoryDataSource(%p): %s", this, aOperation));
 
     MOZ_LOG(gLog, LogLevel::Debug,
-           ("  [(%p)%s]--", aSource, (const char*) uri));
+           ("  [(%p)%s]--", aSource, uri.get()));
 
     aProperty->GetValue(getter_Copies(uri));
 
     char tv = (aTruthValue ? '-' : '!');
     MOZ_LOG(gLog, LogLevel::Debug,
-           ("  --%c[(%p)%s]--", tv, aProperty, (const char*) uri));
+           ("  --%c[(%p)%s]--", tv, aProperty, uri.get()));
 
     nsCOMPtr<nsIRDFResource> resource;
     nsCOMPtr<nsIRDFLiteral> literal;
@@ -824,7 +810,7 @@ InMemoryDataSource::LogOperation(const char* aOperation,
     if ((resource = do_QueryInterface(aTarget)) != nullptr) {
         resource->GetValue(getter_Copies(uri));
         MOZ_LOG(gLog, LogLevel::Debug,
-           ("  -->[(%p)%s]", aTarget, (const char*) uri));
+           ("  -->[(%p)%s]", aTarget, uri.get()));
     }
     else if ((literal = do_QueryInterface(aTarget)) != nullptr) {
         nsString value;

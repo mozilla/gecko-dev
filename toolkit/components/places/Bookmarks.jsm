@@ -95,6 +95,7 @@ async function promiseTagsFolderId() {
 
 const MATCH_ANYWHERE_UNMODIFIED = Ci.mozIPlacesAutoComplete.MATCH_ANYWHERE_UNMODIFIED;
 const BEHAVIOR_BOOKMARK = Ci.mozIPlacesAutoComplete.BEHAVIOR_BOOKMARK;
+const SQLITE_MAX_VARIABLE_NUMBER = 999;
 
 var Bookmarks = Object.freeze({
   /**
@@ -1086,6 +1087,8 @@ var Bookmarks = Object.freeze({
    * This is intended as an interim API for the web-extensions implementation.
    * It will be removed as soon as we have a new querying API.
    *
+   * Note also that this used to exclude separators but no longer does so.
+   *
    * If you just want to search bookmarks by URL, use .fetch() instead.
    *
    * @param query
@@ -1154,7 +1157,8 @@ function notify(observers, notification, args = [], information = {}) {
       continue;
     }
 
-    if (information.isDescendantRemoval && observer.skipDescendantsOnItemRemoval) {
+    if (information.isDescendantRemoval && observer.skipDescendantsOnItemRemoval &&
+        !(PlacesUtils.bookmarks.userContentRoots.includes(information.parentGuid))) {
       continue;
     }
 
@@ -1328,7 +1332,7 @@ function insertBookmark(item, parent) {
     // bookmark just after having created it.
     let hasExistingGuid = item.hasOwnProperty("guid");
     if (!hasExistingGuid)
-      item.guid = (await db.executeCached("SELECT GENERATE_GUID() AS guid"))[0].getResultByName("guid");
+      item.guid = PlacesUtils.history.makeGuid();
 
     let isTagging = parent._parentId == PlacesUtils.tagsFolderId;
 
@@ -1434,6 +1438,15 @@ function insertBookmarkTree(items, source, parent, urls, lastAddedForParent) {
          IFNULL(:index, (SELECT count(*) FROM moz_bookmarks WHERE parent = :rootId)),
          NULLIF(:title, ""), :date_added, :last_modified, :guid,
          :syncChangeCounter, :syncStatus)`, items);
+
+      // Remove stale tombstones for new items.
+      for (let chunk of chunkArray(items, SQLITE_MAX_VARIABLE_NUMBER)) {
+        await db.executeCached(
+          `DELETE FROM moz_bookmarks_deleted WHERE guid IN (${
+            new Array(chunk.length).fill("?").join(",")})`,
+          chunk.map(item => item.guid)
+        );
+      }
 
       await setAncestorsLastModified(db, parent.guid, lastAddedForParent,
                                      syncChangeDelta);
@@ -1547,11 +1560,9 @@ async function handleBookmarkItemSpecialData(itemId, item) {
 async function queryBookmarks(info) {
   let queryParams = {
     tags_folder: await promiseTagsFolderId(),
-    type: Bookmarks.TYPE_SEPARATOR,
   };
-  // We're searching for bookmarks, so exclude tags and separators.
-  let queryString = "WHERE b.type <> :type";
-  queryString += " AND b.parent <> :tags_folder";
+  // We're searching for bookmarks, so exclude tags.
+  let queryString = "WHERE b.parent <> :tags_folder";
   queryString += " AND p.parent <> :tags_folder";
 
   if (info.title) {
@@ -1710,25 +1721,21 @@ function fetchRecentBookmarks(numberOfItems) {
   );
 }
 
-function fetchBookmarksByParent(info) {
-  return PlacesUtils.withConnectionWrapper("Bookmarks.jsm: fetchBookmarksByParent",
-    async function(db) {
+async function fetchBookmarksByParent(db, info) {
+  let rows = await db.executeCached(
+    `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
+            b.dateAdded, b.lastModified, b.type, IFNULL(b.title, "") AS title,
+            h.url AS url, b.id AS _id, b.parent AS _parentId,
+            (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
+            p.parent AS _grandParentId, b.syncStatus AS _syncStatus
+     FROM moz_bookmarks b
+     LEFT JOIN moz_bookmarks p ON p.id = b.parent
+     LEFT JOIN moz_places h ON h.id = b.fk
+     WHERE p.guid = :parentGuid
+     ORDER BY b.position ASC
+    `, { parentGuid: info.parentGuid });
 
-    let rows = await db.executeCached(
-      `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
-              b.dateAdded, b.lastModified, b.type, IFNULL(b.title, "") AS title,
-              h.url AS url, b.id AS _id, b.parent AS _parentId,
-              (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
-              p.parent AS _grandParentId, b.syncStatus AS _syncStatus
-       FROM moz_bookmarks b
-       LEFT JOIN moz_bookmarks p ON p.id = b.parent
-       LEFT JOIN moz_places h ON h.id = b.fk
-       WHERE p.guid = :parentGuid
-       ORDER BY b.position ASC
-      `, { parentGuid: info.parentGuid });
-
-    return rowsToItemsArray(rows);
-  });
+  return rowsToItemsArray(rows);
 }
 
 // Remove implementation.
@@ -1803,10 +1810,10 @@ function removeBookmark(item, options) {
 // Reorder implementation.
 
 function reorderChildren(parent, orderedChildrenGuids, options) {
-  return PlacesUtils.withConnectionWrapper("Bookmarks.jsm: updateBookmark",
+  return PlacesUtils.withConnectionWrapper("Bookmarks.jsm: reorderChildren",
     db => db.executeTransaction(async function() {
       // Select all of the direct children for the given parent.
-      let children = await fetchBookmarksByParent({ parentGuid: parent.guid });
+      let children = await fetchBookmarksByParent(db, { parentGuid: parent.guid });
       if (!children.length) {
         return [];
       }
@@ -2238,7 +2245,10 @@ async function(db, folderGuids, options) {
                                          source ],
                                        // Notify observers that this item is being
                                        // removed as a descendent.
-                                       { isDescendantRemoval: true });
+                                       {
+                                         isDescendantRemoval: true,
+                                         parentGuid: item.parentGuid
+                                       });
 
     let isUntagging = item._grandParentId == PlacesUtils.tagsFolderId;
     if (isUntagging) {
@@ -2383,4 +2393,15 @@ function adjustSeparatorsSyncCounter(db, parentId, startIndex, syncChangeDelta) 
       start_index: startIndex,
       item_type: Bookmarks.TYPE_SEPARATOR
     });
+}
+
+function* chunkArray(array, chunkLength) {
+  if (array.length <= chunkLength) {
+    yield array;
+    return;
+  }
+  let startIndex = 0;
+  while (startIndex < array.length) {
+    yield array.slice(startIndex, startIndex += chunkLength);
+  }
 }

@@ -10,6 +10,7 @@ from collections import Iterable
 
 import argparse
 import codecs
+import errno
 import imp
 import logging
 import os
@@ -20,6 +21,7 @@ import uuid
 from .base import (
     CommandContext,
     MachError,
+    MissingFileError,
     NoCommandError,
     UnknownCommandError,
     UnrecognizedArgumentError,
@@ -27,16 +29,13 @@ from .base import (
 )
 
 from .decorators import (
-    CommandArgument,
     CommandProvider,
-    Command,
 )
 
 from .config import ConfigSettings
 from .dispatcher import CommandAction
 from .logging import LoggingManager
 from .registrar import Registrar
-
 
 
 MACH_ERROR = r'''
@@ -102,6 +101,7 @@ You are seeing this because there is an error in an external module attempting
 to implement a mach command. Please fix the error, or uninstall the module from
 your system.
 '''.lstrip()
+
 
 class ArgumentParser(argparse.ArgumentParser):
     """Custom implementation argument parser to make things look pretty."""
@@ -263,7 +263,13 @@ To see more help for a specific command, run:
 
             module_name = 'mach.commands.%s' % uuid.uuid1().get_hex()
 
-        imp.load_source(module_name, path)
+        try:
+            imp.load_source(module_name, path)
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
+
+            raise MissingFileError('%s does not exist' % path)
 
     def load_commands_from_entry_point(self, group='mach.providers'):
         """Scan installed packages for mach command provider entry points. An
@@ -355,7 +361,7 @@ To see more help for a specific command, run:
             print('mach interrupted by signal or user action. Stopping.')
             return 1
 
-        except Exception as e:
+        except Exception:
             # _run swallows exceptions in invoked handlers and converts them to
             # a proper exit code. So, the only scenario where we should get an
             # exception here is if _run itself raises. If _run raises, that's a
@@ -387,8 +393,8 @@ To see more help for a specific command, run:
         self.load_settings(self.settings_paths)
 
         context = CommandContext(cwd=self.cwd,
-            settings=self.settings, log_manager=self.log_manager,
-            commands=Registrar)
+                                 settings=self.settings, log_manager=self.log_manager,
+                                 commands=Registrar)
 
         if self.populate_context_handler:
             self.populate_context_handler(context)
@@ -410,12 +416,14 @@ To see more help for a specific command, run:
             print(NO_COMMAND_ERROR)
             return 1
         except UnknownCommandError as e:
-            suggestion_message = SUGGESTED_COMMANDS_MESSAGE % (e.verb, ', '.join(e.suggested_commands)) if e.suggested_commands else ''
-            print(UNKNOWN_COMMAND_ERROR % (e.verb, e.command, suggestion_message))
+            suggestion_message = SUGGESTED_COMMANDS_MESSAGE % (
+                e.verb, ', '.join(e.suggested_commands)) if e.suggested_commands else ''
+            print(UNKNOWN_COMMAND_ERROR %
+                  (e.verb, e.command, suggestion_message))
             return 1
         except UnrecognizedArgumentError as e:
             print(UNRECOGNIZED_ARGUMENT_ERROR % (e.command,
-                ' '.join(e.arguments)))
+                                                 ' '.join(e.arguments)))
             return 1
 
         # Add JSON logging to a file if requested.
@@ -436,7 +444,8 @@ To see more help for a specific command, run:
         # Always enable terminal logging. The log manager figures out if we are
         # actually in a TTY or are a pipe and does the right thing.
         self.log_manager.add_terminal_logging(level=log_level,
-            write_interval=args.log_interval, write_times=write_times)
+                                              write_interval=args.log_interval,
+                                              write_times=write_times)
 
         if args.settings_file:
             # Argument parsing has already happened, so settings that apply
@@ -450,7 +459,8 @@ To see more help for a specific command, run:
 
         try:
             return Registrar._run_command_handler(handler, context=context,
-                debug_command=args.debug_command, **vars(args.command_args))
+                                                  debug_command=args.debug_command,
+                                                  **vars(args.command_args))
         except KeyboardInterrupt as ki:
             raise ki
         except FailedCommandError as e:
@@ -471,7 +481,7 @@ To see more help for a specific command, run:
             if not len(stack):
                 print(COMMAND_ERROR)
                 self._print_exception(sys.stdout, exc_type, exc_value,
-                    traceback.extract_tb(exc_tb))
+                                      traceback.extract_tb(exc_tb))
                 return 1
 
             # Split the frames into those from the module containing the
@@ -505,7 +515,7 @@ To see more help for a specific command, run:
     def log(self, level, action, params, format_str):
         """Helper method to record a structured log event."""
         self.logger.log(level, format_str,
-            extra={'action': action, 'params': params})
+                        extra={'action': action, 'params': params})
 
     def _print_error_header(self, argv, fh):
         fh.write('Error running mach:\n\n')
@@ -536,6 +546,7 @@ To see more help for a specific command, run:
             paths = [paths]
 
         valid_names = ('machrc', '.machrc')
+
         def find_in_dir(base):
             if os.path.isfile(base):
                 return base
@@ -554,38 +565,40 @@ To see more help for a specific command, run:
         """Returns an argument parser for the command-line interface."""
 
         parser = ArgumentParser(add_help=False,
-            usage='%(prog)s [global arguments] command [command arguments]')
+                                usage='%(prog)s [global arguments] '
+                                'command [command arguments]')
 
         # Order is important here as it dictates the order the auto-generated
         # help messages are printed.
         global_group = parser.add_argument_group('Global Arguments')
 
         global_group.add_argument('-v', '--verbose', dest='verbose',
-            action='store_true', default=False,
-            help='Print verbose output.')
+                                  action='store_true', default=False,
+                                  help='Print verbose output.')
         global_group.add_argument('-l', '--log-file', dest='logfile',
-            metavar='FILENAME', type=argparse.FileType('ab'),
-            help='Filename to write log data to.')
+                                  metavar='FILENAME', type=argparse.FileType('ab'),
+                                  help='Filename to write log data to.')
         global_group.add_argument('--log-interval', dest='log_interval',
-            action='store_true', default=False,
-            help='Prefix log line with interval from last message rather '
-                'than relative time. Note that this is NOT execution time '
-                'if there are parallel operations.')
+                                  action='store_true', default=False,
+                                  help='Prefix log line with interval from last message rather '
+                                  'than relative time. Note that this is NOT execution time '
+                                  'if there are parallel operations.')
         suppress_log_by_default = False
         if 'INSIDE_EMACS' in os.environ:
             suppress_log_by_default = True
         global_group.add_argument('--log-no-times', dest='log_no_times',
-            action='store_true', default=suppress_log_by_default,
-            help='Do not prefix log lines with times. By default, mach will '
-                'prefix each output line with the time since command start.')
+                                  action='store_true', default=suppress_log_by_default,
+                                  help='Do not prefix log lines with times. By default, '
+                                  'mach will prefix each output line with the time since '
+                                  'command start.')
         global_group.add_argument('-h', '--help', dest='help',
-            action='store_true', default=False,
-            help='Show this help message.')
+                                  action='store_true', default=False,
+                                  help='Show this help message.')
         global_group.add_argument('--debug-command', action='store_true',
-            help='Start a Python debugger when command is dispatched.')
+                                  help='Start a Python debugger when command is dispatched.')
         global_group.add_argument('--settings', dest='settings_file',
-            metavar='FILENAME', default=None,
-            help='Path to settings file.')
+                                  metavar='FILENAME', default=None,
+                                  help='Path to settings file.')
 
         for args, kwargs in self.global_arguments:
             global_group.add_argument(*args, **kwargs)
@@ -593,6 +606,6 @@ To see more help for a specific command, run:
         # We need to be last because CommandAction swallows all remaining
         # arguments and argparse parses arguments in the order they were added.
         parser.add_argument('command', action=CommandAction,
-            registrar=Registrar, context=context)
+                            registrar=Registrar, context=context)
 
         return parser

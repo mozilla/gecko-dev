@@ -2,40 +2,21 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this file,
    - You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%include ../../../shared/incontentprefs-old/preferences.inc.css
+%include ../../../shared/incontentprefs/preferences.inc.css
 
-@media (-moz-windows-default-theme: 0) {
-  #category-general > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#general-native");
-  }
+html *,
+page *,
+window * {
+  font-size: 1.25rem;
+}
 
-  #category-search > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#search-native");
-  }
+caption > label:not(.dialogTitle) {
+  font-size: 1.42rem;
+}
 
-  #category-content > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#content-native");
-  }
-
-  #category-application > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#applications-native");
-  }
-
-  #category-privacy > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#privacy-native");
-  }
-
-  #category-security > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#security-native");
-  }
-
-  #category-sync > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#sync-native");
-  }
-
-  #category-advanced > .category-icon {
-    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#advanced-native");
-  }
+.tip-caption,
+.help-button {
+  font-size: 1.08rem;
 }
 
 .actionsMenu > .menulist-label-box > .menulist-icon {
@@ -45,20 +26,6 @@
 textbox + button,
 filefield + button {
   margin-inline-start: -4px;
-}
-
-#advancedPrefs {
-  padding-bottom: 0; /* override padding from normal preferences.css */
-}
-
-#fxaProfileImage {
-  -moz-user-focus: normal;
-}
-
-/**
- * Dialog
- */
-
-#dialogTitle {
-  font-size: 1em;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }

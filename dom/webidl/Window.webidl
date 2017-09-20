@@ -336,9 +336,12 @@ partial interface Window {
                                                                    optional DOMString options = "",
                                                                    any... extraArguments);
 
-  [Replaceable, Throws, NeedsCallerType] readonly attribute object? content;
-
-  [ChromeOnly, Throws, NeedsCallerType] readonly attribute object? __content;
+  [
+#ifdef NIGHTLY_BUILD
+   ChromeOnly,
+#endif
+   NonEnumerable, Replaceable, Throws, NeedsCallerType]
+  readonly attribute object? content;
 
   [Throws, ChromeOnly] any getInterface(IID iid);
 
@@ -353,7 +356,7 @@ Window implements TouchEventHandlers;
 
 Window implements OnErrorEventHandlerForWindow;
 
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_ANDROID)
 // https://compat.spec.whatwg.org/#windoworientation-interface
 partial interface Window {
   [NeedsCallerType]
@@ -372,6 +375,7 @@ partial interface Window {
 
 [Func="IsChromeOrXBL"]
 interface ChromeWindow {
+  // The STATE_* constants need to match the corresponding enum in nsGlobalWindow.cpp.
   [Func="nsGlobalWindow::IsPrivilegedChromeWindow"]
   const unsigned short STATE_MAXIMIZED = 1;
   [Func="nsGlobalWindow::IsPrivilegedChromeWindow"]

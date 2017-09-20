@@ -646,7 +646,7 @@ nsImageFrame::InvalidateSelf(const nsIntRect* aLayerInvalidRect,
     nsIFrame::WebRenderUserDataTable* userDataTable =
       GetProperty(nsIFrame::WebRenderUserDataProperty());
     RefPtr<WebRenderUserData> data;
-    userDataTable->Get(nsDisplayItem::TYPE_IMAGE, getter_AddRefs(data));
+    userDataTable->Get(static_cast<uint32_t>(DisplayItemType::TYPE_IMAGE), getter_AddRefs(data));
     if (data && data->AsFallbackData()) {
       data->AsFallbackData()->SetInvalid(true);
     }
@@ -654,12 +654,12 @@ nsImageFrame::InvalidateSelf(const nsIntRect* aLayerInvalidRect,
     return;
   }
 
-  InvalidateLayer(nsDisplayItem::TYPE_IMAGE,
+  InvalidateLayer(DisplayItemType::TYPE_IMAGE,
                   aLayerInvalidRect,
                   aFrameInvalidRect);
 
   if (!mFirstFrameComplete) {
-    InvalidateLayer(nsDisplayItem::TYPE_ALT_FEEDBACK,
+    InvalidateLayer(DisplayItemType::TYPE_ALT_FEEDBACK,
                     aLayerInvalidRect,
                     aFrameInvalidRect);
   }
@@ -982,13 +982,12 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsImageFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aMetrics, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                   ("enter nsImageFrame::Reflow: availSize=%d,%d",
                   aReflowInput.AvailableWidth(), aReflowInput.AvailableHeight()));
 
   NS_PRECONDITION(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
-
-  aStatus.Reset();
 
   // see if we have a frozen size (i.e. a fixed width and height)
   if (HaveFixedSize(aReflowInput)) {
@@ -1041,7 +1040,6 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
     // our desired height was greater than 0, so to avoid infinite
     // splitting, use 1 pixel as the min
     aMetrics.Height() = std::max(nsPresContext::CSSPixelsToAppUnits(1), aReflowInput.AvailableHeight());
-    aStatus.Reset();
     aStatus.SetIncomplete();
   }
 
@@ -1314,7 +1312,7 @@ public:
 
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion* aInvalidRegion) override
+                                         nsRegion* aInvalidRegion) const override
   {
     auto geometry =
       static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
@@ -1329,7 +1327,7 @@ public:
   }
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) override
+                           bool* aSnap) const override
   {
     *aSnap = false;
     return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
@@ -1566,7 +1564,7 @@ nsDisplayImage::AllocateGeometry(nsDisplayListBuilder* aBuilder)
 void
 nsDisplayImage::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                           const nsDisplayItemGeometry* aGeometry,
-                                          nsRegion* aInvalidRegion)
+                                          nsRegion* aInvalidRegion) const
 {
   auto geometry =
     static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
@@ -1588,7 +1586,7 @@ nsDisplayImage::GetImage()
 }
 
 nsRect
-nsDisplayImage::GetDestRect()
+nsDisplayImage::GetDestRect() const
 {
   bool snap = true;
   const nsRect frameContentBox = GetBounds(&snap);
@@ -1661,7 +1659,7 @@ nsDisplayImage::GetLayerState(nsDisplayListBuilder* aBuilder,
 
 /* virtual */ nsRegion
 nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                bool* aSnap)
+                                bool* aSnap) const
 {
   *aSnap = false;
   if (mImage && mImage->WillDrawOpaqueNow()) {
@@ -1701,6 +1699,7 @@ nsDisplayImage::BuildLayer(nsDisplayListBuilder* aBuilder,
 
 bool
 nsDisplayImage::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                        mozilla::wr::IpcResourceUpdateQueue& aResources,
                                         const StackingContextHelper& aSc,
                                         nsTArray<WebRenderParentCommand>& aParentCommands,
                                         WebRenderLayerManager* aManager,
@@ -1798,7 +1797,6 @@ nsImageFrame::PaintImage(gfxContext& aRenderingContext, nsPoint aPt,
 
 void
 nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                               const nsRect&           aDirtyRect,
                                const nsDisplayListSet& aLists)
 {
   if (!IsVisibleForPainting(aBuilder))
@@ -1863,7 +1861,7 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       if (GetShowFrameBorders() && GetImageMap()) {
         aLists.Outlines()->AppendNewToTop(new (aBuilder)
           nsDisplayGeneric(aBuilder, this, PaintDebugImageMap, "DebugImageMap",
-                           nsDisplayItem::TYPE_DEBUG_IMAGE_MAP));
+                           DisplayItemType::TYPE_DEBUG_IMAGE_MAP));
       }
 #endif
     }

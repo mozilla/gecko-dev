@@ -423,8 +423,10 @@ private:
     Optional<RequestOrUSVString> request;
     CacheQueryOptions options;
     ErrorResult error;
-    RefPtr<Promise> promise = mOldCache->Keys(request, options, error);
+    RefPtr<Promise> promise = mOldCache->Keys(aCx, request, options, error);
     if (NS_WARN_IF(error.Failed())) {
+      // No exception here because there are no ReadableStreams involved here.
+      MOZ_ASSERT(!error.IsJSException());
       rv = error.StealNSResult();
       return;
     }
@@ -521,7 +523,7 @@ private:
     MOZ_ASSERT(mPendingCount == 0);
     for (uint32_t i = 0; i < mCNList.Length(); ++i) {
       // We bail out immediately when something goes wrong.
-      rv = WriteToCache(cache, mCNList[i]);
+      rv = WriteToCache(aCx, cache, mCNList[i]);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return;
       }
@@ -559,7 +561,7 @@ private:
   }
 
   nsresult
-  WriteToCache(Cache* aCache, CompareNetwork* aCN)
+  WriteToCache(JSContext* aCx, Cache* aCache, CompareNetwork* aCN)
   {
     AssertIsOnMainThread();
     MOZ_ASSERT(aCache);
@@ -594,7 +596,8 @@ private:
     RefPtr<InternalHeaders> internalHeaders = aCN->GetInternalHeaders();
     ir->Headers()->Fill(*(internalHeaders.get()), ignored);
 
-    RefPtr<Response> response = new Response(aCache->GetGlobalObject(), ir);
+    RefPtr<Response> response =
+      new Response(aCache->GetGlobalObject(), ir, nullptr);
 
     RequestOrUSVString request;
     request.SetAsUSVString().Rebind(aCN->URL().Data(), aCN->URL().Length());
@@ -602,8 +605,10 @@ private:
     // For now we have to wait until the Put Promise is fulfilled before we can
     // continue since Cache does not yet support starting a read that is being
     // written to.
-    RefPtr<Promise> cachePromise = aCache->Put(request, *response, result);
+    RefPtr<Promise> cachePromise = aCache->Put(aCx, request, *response, result);
     if (NS_WARN_IF(result.Failed())) {
+      // No exception here because there are no ReadableStreams involved here.
+      MOZ_ASSERT(!result.IsJSException());
       MOZ_ASSERT(!result.IsErrorWithMessage());
       return result.StealNSResult();
     }
@@ -673,7 +678,14 @@ CompareNetwork::Initialize(nsIPrincipal* aPrincipal,
   }
 
   // Update LoadFlags for propagating to ServiceWorkerInfo.
-  mLoadFlags |= mRegistration->GetLoadFlags();
+  mLoadFlags = nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
+
+  ServiceWorkerUpdateViaCache uvc = mRegistration->GetUpdateViaCache();
+  if (uvc == ServiceWorkerUpdateViaCache::None ||
+      (uvc == ServiceWorkerUpdateViaCache::Imports && mIsMainScript)) {
+    mLoadFlags |= nsIRequest::VALIDATE_ALWAYS;
+  }
+
   if (mRegistration->IsLastUpdateCheckTimeOverOneDay()) {
     mLoadFlags |= nsIRequest::LOAD_BYPASS_CACHE;
   }
@@ -700,9 +712,11 @@ CompareNetwork::Initialize(nsIPrincipal* aPrincipal,
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
   if (httpChannel) {
-    // Spec says no redirects allowed for SW scripts.
-    rv = httpChannel->SetRedirectionLimit(0);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    // Spec says no redirects allowed for top-level SW scripts.
+    if (mIsMainScript) {
+      rv = httpChannel->SetRedirectionLimit(0);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+    }
 
     rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Service-Worker"),
                                        NS_LITERAL_CSTRING("script"),
@@ -836,10 +850,9 @@ CompareNetwork::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     return NS_OK;
   }
 
-#ifdef DEBUG
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-  MOZ_ASSERT(channel == mChannel);
-#endif
+  MOZ_ASSERT_IF(mIsMainScript, channel == mChannel);
+  mChannel = channel;
 
   MOZ_ASSERT(!mChannelInfo.IsInitialized());
   mChannelInfo.InitFromChannel(mChannel);
@@ -1003,12 +1016,19 @@ CompareCache::Initialize(Cache* const aCache, const nsAString& aURL)
   MOZ_ASSERT(aCache);
   MOZ_DIAGNOSTIC_ASSERT(mState == WaitingForInitialization);
 
+  // This JSContext will not end up executing JS code because here there are
+  // no ReadableStreams involved.
+  AutoJSAPI jsapi;
+  jsapi.Init();
+
   RequestOrUSVString request;
   request.SetAsUSVString().Rebind(aURL.Data(), aURL.Length());
   ErrorResult error;
   CacheQueryOptions params;
-  RefPtr<Promise> promise = aCache->Match(request, params, error);
+  RefPtr<Promise> promise = aCache->Match(jsapi.cx(), request, params, error);
   if (NS_WARN_IF(error.Failed())) {
+    // No exception here because there are no ReadableStreams involved here.
+    MOZ_ASSERT(!error.IsJSException());
     mState = Finished;
     return error.StealNSResult();
   }

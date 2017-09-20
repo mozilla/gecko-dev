@@ -18,6 +18,8 @@ function test() {
 var tests = [
   function test_untrusted_host(done) {
     loadUITourTestPage(function() {
+      CustomizableUI.addWidgetToArea("bookmarks-menu-button", CustomizableUI.AREA_NAVBAR, 0);
+      registerCleanupFunction(() => CustomizableUI.removeWidgetFromArea("bookmarks-menu-button"));
       let bookmarksMenu = document.getElementById("bookmarks-menu-button");
       is(bookmarksMenu.open, false, "Bookmark menu should initially be closed");
 
@@ -104,19 +106,18 @@ var tests = [
     gContentAPI.showHighlight("urlbar");
     waitForElementToBeVisible(highlight, test_highlight_2, "Highlight should be shown after showHighlight()");
   },
-  function test_highlight_circle(done) {
+  function test_highlight_toolbar_button(done) {
     function check_highlight_size() {
       let panel = highlight.parentElement;
       let anchor = panel.anchorNode;
       let anchorRect = anchor.getBoundingClientRect();
       info("addons target: width: " + anchorRect.width + " height: " + anchorRect.height);
-      let maxDimension = Math.round(Math.max(anchorRect.width, anchorRect.height));
+      let dimension = anchorRect.width;
       let highlightRect = highlight.getBoundingClientRect();
       info("highlight: width: " + highlightRect.width + " height: " + highlightRect.height);
-      is(Math.round(highlightRect.width), maxDimension, "The width of the highlight should be equal to the largest dimension of the target");
-      is(Math.round(highlightRect.height), maxDimension, "The height of the highlight should be equal to the largest dimension of the target");
-      is(Math.round(highlightRect.height), Math.round(highlightRect.width), "The height and width of the highlight should be the same to create a circle");
-      is(highlight.style.borderRadius, "100%", "The border-radius should be 100% to create a circle");
+      is(Math.round(highlightRect.width), dimension, "The width of the highlight should be equal to the width of the target");
+      is(Math.round(highlightRect.height), dimension, "The height of the highlight should be equal to the width of the target");
+      is(highlight.classList.contains("rounded-highlight"), true, "Highlight should be rounded-rectangle styled");
       done();
     }
     let highlight = document.getElementById("UITourHighlight");
@@ -130,14 +131,18 @@ var tests = [
     gContentAPI.showHighlight("customize");
     waitForElementToBeVisible(highlight, function checkPanelIsOpen() {
       isnot(PanelUI.panel.state, "closed", "Panel should have opened");
+      isnot(highlight.classList.contains("rounded-highlight"), true, "Highlight should not be round-rectangle styled.");
 
+      let hiddenPromise = promisePanelElementHidden(window, PanelUI.panel);
       // Move the highlight outside which should close the app menu.
       gContentAPI.showHighlight("appMenu");
-      waitForElementToBeVisible(highlight, function checkPanelIsClosed() {
-        isnot(PanelUI.panel.state, "open",
-              "Panel should have closed after the highlight moved elsewhere.");
-        done();
-      }, "Highlight should move to the appMenu button");
+      hiddenPromise.then(() => {
+        waitForElementToBeVisible(highlight, function checkPanelIsClosed() {
+          isnot(PanelUI.panel.state, "open",
+                "Panel should have closed after the highlight moved elsewhere.");
+          done();
+        }, "Highlight should move to the appMenu button");
+      });
     }, "Highlight should be shown after showHighlight() for fixed panel items");
   },
   function test_highlight_customize_manual_open_close(done) {
@@ -271,11 +276,18 @@ var tests = [
     is(icon.src, "", "Popup should have no icon");
     is(buttons.hasChildNodes(), false, "Popup should have no buttons");
 
+    // Place the search bar in the navigation toolbar temporarily.
+    await SpecialPowers.pushPrefEnv({ set: [
+      ["browser.search.widget.inNavBar", true],
+    ]});
+
     await showInfoPromise("search", "search title", "search text");
 
     is(popup.popupBoxObject.anchorNode, document.getElementById("searchbar"), "Popup should be anchored to the searchbar");
     is(title.textContent, "search title", "Popup should have correct title");
     is(desc.textContent, "search text", "Popup should have correct description text");
+
+    await SpecialPowers.popPrefEnv();
   }),
   function test_getConfigurationVersion(done) {
     function callback(result) {
