@@ -15,7 +15,6 @@
 #include "nsSupportsPrimitives.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsXPIDLString.h"
 #include "nsPrimitiveHelpers.h"
 #include "nsIServiceManager.h"
 #include "nsImageToPixbuf.h"
