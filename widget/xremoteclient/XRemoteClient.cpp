@@ -73,8 +73,10 @@ XRemoteClient::XRemoteClient()
   mMozProfileAtom = 0;
   mMozProgramAtom = 0;
   mLockData = 0;
+#ifdef ENABLE_REMOTE_DBUS
   mIsX11Display = true;
   mConnection = nullptr;
+#endif
 
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("XRemoteClient::XRemoteClient"));
 }
@@ -107,9 +109,8 @@ XRemoteClient::Init()
   if (mInitialized)
     return NS_OK;
 
-  mIsX11Display = GDK_IS_X11_DISPLAY(gdk_display_get_default());
-
 #ifdef ENABLE_REMOTE_DBUS
+  mIsX11Display = GDK_IS_X11_DISPLAY(gdk_display_get_default());
   if (!mIsX11Display) {
     mConnection = already_AddRefed<DBusConnection>(
       dbus_bus_get(DBUS_BUS_SESSION, nullptr));
@@ -851,6 +852,7 @@ XRemoteClient::WaitForResponse(Window aWindow, char **aResponse,
   return accepted;
 }
 
+#ifdef ENABLE_REMOTE_DBUS
 nsresult
 XRemoteClient::DoSendDBusCommandLine(const char *aProgram, const char *aProfile,
                                      unsigned char* aBuffer, int aLength)
@@ -888,3 +890,5 @@ XRemoteClient::DoSendDBusCommandLine(const char *aProgram, const char *aProfile,
     return NS_OK;
   }
 }
+#endif
+

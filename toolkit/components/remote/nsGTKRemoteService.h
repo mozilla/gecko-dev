@@ -39,8 +39,10 @@ public:
 #endif    
     { }
 
+#ifdef ENABLE_REMOTE_DBUS
     DBusHandlerResult HandleDBusMessage(DBusConnection *aConnection, DBusMessage *msg);
     void UnregisterDBusInterface(DBusConnection *aConnection);
+#endif
 
 private:
   ~nsGTKRemoteService() { }
