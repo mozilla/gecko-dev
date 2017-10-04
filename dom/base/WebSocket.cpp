@@ -1645,20 +1645,17 @@ WebSocketImpl::Init(JSContext* aCx,
       nsCOMPtr<nsPIDOMWindowInner> innerWindow;
 
       while (true) {
-        bool isNullPrincipal = true;
-        if (principal) {
-          isNullPrincipal = principal->GetIsNullPrincipal();
-        }
-
-        if (!isNullPrincipal) {
+        if (principal && !principal->GetIsNullPrincipal()) {
           break;
         }
 
         if (!innerWindow) {
           innerWindow = do_QueryInterface(globalObject);
-          if (NS_WARN_IF(!innerWindow)) {
-            aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-            return;
+          if (!innerWindow) {
+            // If we are in a XPConnect sandbox or in a JS component,
+            // innerWindow will be null. There is nothing on top of this to be
+            // considered.
+            break;
           }
         }
 
