@@ -111,9 +111,9 @@ static void PrintUniformityInfo(Layer* aLayer)
 /* all of the per-layer prepared data we need to maintain */
 struct PreparedLayer
 {
-  PreparedLayer(LayerComposite *aLayer, RenderTargetIntRect aClipRect) :
+  PreparedLayer(Layer *aLayer, RenderTargetIntRect aClipRect) :
     mLayer(aLayer), mClipRect(aClipRect) {}
-  LayerComposite* mLayer;
+  RefPtr<Layer> mLayer;
   RenderTargetIntRect mClipRect;
 };
 
@@ -168,7 +168,8 @@ ContainerPrepare(ContainerT* aContainer,
     CULLING_LOG("Preparing sublayer %p\n", layerToRender->GetLayer());
 
     layerToRender->Prepare(clipRect);
-    aContainer->mPrepared->mLayers.AppendElement(PreparedLayer(layerToRender, clipRect));
+    aContainer->mPrepared->mLayers.AppendElement(PreparedLayer(layerToRender->GetLayer(),
+                                                               clipRect));
   }
 
   CULLING_LOG("Preparing container layer %p\n", aContainer->GetLayer());
@@ -344,7 +345,7 @@ RenderLayers(ContainerT* aContainer,
 
   for (size_t i = 0u; i < aContainer->mPrepared->mLayers.Length(); i++) {
     PreparedLayer& preparedData = aContainer->mPrepared->mLayers[i];
-    LayerComposite* layerToRender = preparedData.mLayer;
+    LayerComposite* layerToRender = static_cast<LayerComposite*>(preparedData.mLayer->ImplData());
     const RenderTargetIntRect& clipRect = preparedData.mClipRect;
     Layer* layer = layerToRender->GetLayer();
 
