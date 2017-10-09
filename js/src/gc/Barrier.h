@@ -332,8 +332,11 @@ template <typename T>
 class BarrieredBaseMixins {};
 
 // Base class of all barrier types.
+//
+// This is marked non-memmovable since post barriers added by derived classes
+// can add pointers to class instances to the store buffer.
 template <typename T>
-class BarrieredBase : public BarrieredBaseMixins<T>
+class MOZ_NON_MEMMOVABLE BarrieredBase : public BarrieredBaseMixins<T>
 {
   protected:
     // BarrieredBase is not directly instantiable.
