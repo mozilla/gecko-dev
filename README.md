@@ -4,5 +4,5 @@ Build with "--enable-default-toolkit=cairo-gtk3-wayland" and run as $GDK_BACKEND
 
 There's also compiled version available as flatpak [2] at Fedora hosted site.
 
-[1] https://bugzilla.mozilla.org/show_bug.cgi?id=6351342
+[1] https://bugzilla.mozilla.org/show_bug.cgi?id=6351342<BR>
 [2] https://firefox-flatpak.mojefedora.cz/
