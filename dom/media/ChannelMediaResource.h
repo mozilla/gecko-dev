@@ -6,9 +6,58 @@
 #ifndef mozilla_dom_media_ChannelMediaResource_h
 #define mozilla_dom_media_ChannelMediaResource_h
 
-#include "MediaResource.h"
+#include "BaseMediaResource.h"
+#include "MediaCache.h"
+#include "MediaChannelStatistics.h"
+#include "mozilla/Mutex.h"
+#include "nsIChannelEventSink.h"
+#include "nsIHttpChannel.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIThreadRetargetableStreamListener.h"
 
 namespace mozilla {
+
+/**
+ * This class is responsible for managing the suspend count and report suspend
+ * status of channel.
+ **/
+class ChannelSuspendAgent
+{
+public:
+  explicit ChannelSuspendAgent(nsIChannel* aChannel)
+    : mChannel(aChannel)
+    , mIsChannelSuspended(false)
+  {
+  }
+
+  // True when the channel has been suspended or needs to be suspended.
+  bool IsSuspended();
+
+  // Return true when the channel is logically suspended, i.e. the suspend
+  // count goes from 0 to 1.
+  bool Suspend();
+
+  // Return true only when the suspend count is equal to zero.
+  bool Resume();
+
+  // Call after opening channel, set channel and check whether the channel
+  // needs to be suspended.
+  void NotifyChannelOpened(nsIChannel* aChannel);
+
+  // Call before closing channel, reset the channel internal status if needed.
+  void NotifyChannelClosing();
+
+  // Check whether we need to suspend the channel.
+  void UpdateSuspendedStatusIfNeeded();
+
+private:
+  // Only suspends channel but not changes the suspend count.
+  void SuspendInternal();
+
+  nsIChannel* mChannel;
+  uint32_t mSuspendCount = 0;
+  bool mIsChannelSuspended;
+};
 
 /**
  * This is the MediaResource implementation that wraps Necko channels.
@@ -115,23 +164,30 @@ public:
   {
     ~Listener() {}
   public:
-    Listener(ChannelMediaResource* aResource, int64_t aOffset)
-      : mResource(aResource)
+    Listener(ChannelMediaResource* aResource, int64_t aOffset, uint32_t aLoadID)
+      : mMutex("Listener.mMutex")
+      , mResource(aResource)
       , mOffset(aOffset)
+      , mLoadID(aLoadID)
     {}
 
-    NS_DECL_ISUPPORTS
+    NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSICHANNELEVENTSINK
     NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
-    void Revoke() { mResource = nullptr; }
+    void Revoke();
 
   private:
+    Mutex mMutex;
+    // mResource should only be modified on the main thread with the lock.
+    // So it can be read without lock on the main thread or on other threads
+    // with the lock.
     RefPtr<ChannelMediaResource> mResource;
     const int64_t mOffset;
+    const uint32_t mLoadID;
   };
   friend class Listener;
 
@@ -142,7 +198,7 @@ protected:
   // These are called on the main thread by Listener.
   nsresult OnStartRequest(nsIRequest* aRequest, int64_t aRequestOffset);
   nsresult OnStopRequest(nsIRequest* aRequest, nsresult aStatus);
-  nsresult OnDataAvailable(nsIRequest* aRequest,
+  nsresult OnDataAvailable(uint32_t aLoadID,
                            nsIInputStream* aStream,
                            uint32_t aCount);
   nsresult OnChannelRedirect(nsIChannel* aOld,
@@ -171,19 +227,23 @@ protected:
                                    int64_t& aRangeEnd,
                                    int64_t& aRangeTotal);
 
+  struct Closure
+  {
+    uint32_t mLoadID;
+    ChannelMediaResource* mResource;
+  };
+
   static nsresult CopySegmentToCache(nsIInputStream* aInStream,
-                                     void* aResource,
+                                     void* aClosure,
                                      const char* aFromSegment,
                                      uint32_t aToOffset,
                                      uint32_t aCount,
                                      uint32_t* aWriteCount);
 
-  nsresult CopySegmentToCache(const char* aFromSegment,
-                              uint32_t aCount,
-                              uint32_t* aWriteCount);
-
   // Main thread access only
   RefPtr<Listener> mListener;
+  // A mono-increasing integer to uniquely identify the channel we are loading.
+  uint32_t mLoadID = 0;
   // When this flag is set, if we get a network error we should silently
   // reopen the stream.
   bool               mReopenOnError;

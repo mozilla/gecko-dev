@@ -14,10 +14,7 @@
 #![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(proc_macro)]
-#![feature(stmt_expr_attributes)]
 #![feature(try_from)]
-#![feature(unboxed_closures)]
-#![feature(untagged_unions)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -70,6 +67,7 @@ extern crate metrics;
 #[macro_use]
 extern crate mime;
 extern crate mime_guess;
+extern crate mitochondria;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
@@ -143,7 +141,7 @@ mod webdriver_handlers;
 pub mod layout_exports {
     pub use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
     pub use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-    pub use dom::bindings::js::LayoutJS;
+    pub use dom::bindings::root::LayoutDom;
     pub use dom::characterdata::LayoutCharacterDataHelpers;
     pub use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
     pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};

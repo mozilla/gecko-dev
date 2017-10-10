@@ -201,6 +201,7 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["browser.shell.checkDefaultBrowser", {what: RECORD_PREF_VALUE}],
   ["browser.search.ignoredJAREngines", {what: RECORD_DEFAULTPREF_VALUE}],
   ["browser.search.suggest.enabled", {what: RECORD_PREF_VALUE}],
+  ["browser.search.widget.inNavBar", {what: RECORD_DEFAULTPREF_VALUE}],
   ["browser.startup.homepage", {what: RECORD_PREF_STATE}],
   ["browser.startup.page", {what: RECORD_PREF_VALUE}],
   ["toolkit.cosmeticAnimations.enabled", {what: RECORD_PREF_VALUE}],
@@ -226,7 +227,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["extensions.update.url", {what: RECORD_PREF_VALUE}],
   ["extensions.update.background.url", {what: RECORD_PREF_VALUE}],
   ["extensions.screenshots.disabled", {what: RECORD_PREF_VALUE}],
-  ["extensions.screenshots.system-disabled", {what: RECORD_PREF_VALUE}],
   ["general.smoothScroll", {what: RECORD_PREF_VALUE}],
   ["gfx.direct2d.disabled", {what: RECORD_PREF_VALUE}],
   ["gfx.direct2d.force-enabled", {what: RECORD_PREF_VALUE}],
@@ -1363,7 +1363,13 @@ EnvironmentCache.prototype = {
       updateChannel = UpdateUtils.getUpdateChannel(false);
     } catch (e) {}
 
+    // Make sure to retain the attribution code across environment changes.
+    const attributionCode =
+      (this._currentEnvironment.settings &&
+       this._currentEnvironment.settings.attribution) || {};
+
     this._currentEnvironment.settings = {
+      attribution: attributionCode,
       blocklistEnabled: Services.prefs.getBoolPref(PREF_BLOCKLIST_ENABLED, true),
       e10sEnabled: Services.appinfo.browserTabsRemoteAutostart,
       e10sMultiProcesses: Services.appinfo.maxWebProcessCount,

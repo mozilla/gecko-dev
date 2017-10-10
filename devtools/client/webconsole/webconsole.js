@@ -26,8 +26,8 @@ loader.lazyServiceGetter(this, "clipboardHelper",
 loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/old-event-emitter");
 loader.lazyRequireGetter(this, "ConsoleOutput", "devtools/client/webconsole/console-output", true);
 loader.lazyRequireGetter(this, "Messages", "devtools/client/webconsole/console-output", true);
-loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/main", true);
+loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/environment-client");
+loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/object-client");
 loader.lazyRequireGetter(this, "system", "devtools/shared/system");
 loader.lazyRequireGetter(this, "JSTerm", "devtools/client/webconsole/jsterm", true);
 loader.lazyRequireGetter(this, "gSequenceId", "devtools/client/webconsole/jsterm", true);
@@ -234,8 +234,8 @@ function WebConsoleFrame(webConsoleOwner) {
 
   this.React = require("devtools/client/shared/vendor/react");
   this.ReactDOM = require("devtools/client/shared/vendor/react-dom");
-  this.FrameView = this.React.createFactory(require("devtools/client/shared/components/frame"));
-  this.StackTraceView = this.React.createFactory(require("devtools/client/shared/components/stack-trace"));
+  this.FrameView = this.React.createFactory(require("devtools/client/shared/components/Frame"));
+  this.StackTraceView = this.React.createFactory(require("devtools/client/shared/components/StackTrace"));
 
   this._telemetry = new Telemetry();
 

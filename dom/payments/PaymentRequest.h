@@ -36,6 +36,12 @@ public:
 
   static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
 
+  static nsresult IsValidStandardizedPMI(const nsAString& aIdentifier,
+                                         nsAString& aErrorMsg);
+
+  static nsresult IsValidPaymentMethodIdentifier(const nsAString& aIdentifier,
+                                                 nsAString& aErrorMsg);
+
   static nsresult IsValidMethodData(JSContext* aCx,
                                     const Sequence<PaymentMethodData>& aMethodData,
                                     nsAString& aErrorMsg);
@@ -62,13 +68,16 @@ public:
 
   static nsresult
   IsValidDetailsInit(const PaymentDetailsInit& aDetails,
+                     const bool aRequestShipping,
                      nsAString& aErrorMsg);
 
   static nsresult
-  IsValidDetailsUpdate(const PaymentDetailsUpdate& aDetails);
+  IsValidDetailsUpdate(const PaymentDetailsUpdate& aDetails,
+                       const bool aRequestShipping);
 
   static nsresult
   IsValidDetailsBase(const PaymentDetailsBase& aDetails,
+                     const bool aRequestShipping,
                      nsAString& aErrorMsg);
 
   static already_AddRefed<PaymentRequest>

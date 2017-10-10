@@ -21,13 +21,16 @@ XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
   "@mozilla.org/uuid-generator;1",
   "nsIUUIDGenerator");
 
+const ACTIVITY_STREAM_ID = "activity-stream";
 const ACTIVITY_STREAM_ENDPOINT_PREF = "browser.newtabpage.activity-stream.telemetry.ping.endpoint";
 
 // This is a mapping table between the user preferences and its encoding code
 const USER_PREFS_ENCODING = {
   "showSearch": 1 << 0,
   "showTopSites": 1 << 1,
-  "feeds.section.topstories": 1 << 2
+  "feeds.section.topstories": 1 << 2,
+  "feeds.section.highlights": 1 << 3,
+  "feeds.snippets": 1 << 4
 };
 
 const IMPRESSION_STATS_RESET_TIME = 60 * 60 * 1000; // 60 minutes
@@ -104,6 +107,7 @@ this.TelemetryFeed = class TelemetryFeed {
     };
 
     this.telemetryEnabled = this._prefs.get(TELEMETRY_PREF);
+    this._aboutHomeSeen = false;
     this._onTelemetryPrefChange = this._onTelemetryPrefChange.bind(this);
     this._prefs.observe(TELEMETRY_PREF, this._onTelemetryPrefChange);
   }
@@ -159,12 +163,10 @@ this.TelemetryFeed = class TelemetryFeed {
    * Lazily initialize PingCentre to send pings
    */
   get pingCentre() {
-    const ACTIVITY_STREAM_ID = "activity-stream";
     Object.defineProperty(this, "pingCentre",
       {
         value: new PingCentre({
           topic: ACTIVITY_STREAM_ID,
-          filter: ACTIVITY_STREAM_ID,
           overrideEndpointPref: ACTIVITY_STREAM_ENDPOINT_PREF
         })
       });
@@ -193,13 +195,58 @@ this.TelemetryFeed = class TelemetryFeed {
    * @return {obj}    Session object
    */
   addSession(id, url) {
+    // XXX refactor to use setLoadTriggerInfo or saveSessionPerfData
+
+    // "unexpected" will be overwritten when appropriate
+    let load_trigger_type = "unexpected";
+    let load_trigger_ts;
+
+    if (!this._aboutHomeSeen && url === "about:home") {
+      this._aboutHomeSeen = true;
+
+      // XXX note that this will be incorrectly set in the following cases:
+      // session_restore following by clicking on the toolbar button,
+      // or someone who has changed their default home page preference to
+      // something else and later clicks the toolbar.  It will also be
+      // incorrectly unset if someone changes their "Home Page" preference to
+      // about:newtab.
+      //
+      // That said, the ratio of these mistakes to correct cases should
+      // be very small, and these issues should follow away as we implement
+      // the remaining load_trigger_type values for about:home in issue 3556.
+      //
+      // XXX file a bug to implement remaining about:home cases so this
+      // problem will go away and link to it here.
+      load_trigger_type = "first_window_opened";
+
+      // The real perceived trigger of first_window_opened is the OS-level
+      // clicking of the icon.  We use perfService.timeOrigin because it's the
+      // earliest number on this time scale that's easy to get.; We could
+      // actually use 0, but maybe that could be before the browser started?
+      // [bug 1401406](https://bugzilla.mozilla.org/show_bug.cgi?id=1401406)
+      // getting sorted out may help clarify. Even better, presumably, would be
+      // to use the process creation time for the main process, which is
+      // available, but somewhat harder to get. However, these are all more or
+      // less proxies for the same thing, so it's not clear how much the better
+      // numbers really matter, since we (activity stream) only control a
+      // relatively small amount of the code that's executing between the
+      // OS-click and when the first <browser> element starts loading.  That
+      // said, it's conceivable that it could help us catch regressions in the
+      // number of cycles early chrome code takes to execute, but it's likely
+      // that there are more direct ways to measure that.
+      load_trigger_ts = perfService.timeOrigin;
+    }
+
     const session = {
       session_id: String(gUUIDGenerator.generateUUID()),
       // "unknown" will be overwritten when appropriate
       page: url ? url : "unknown",
-      // "unexpected" will be overwritten when appropriate
-      perf: {load_trigger_type: "unexpected"}
+      perf: {load_trigger_type}
     };
+
+    if (load_trigger_ts) {
+      session.perf.load_trigger_ts = load_trigger_ts;
+    }
 
     this.sessions.set(id, session);
     return session;
@@ -317,7 +364,8 @@ this.TelemetryFeed = class TelemetryFeed {
 
   async sendEvent(event_object) {
     if (this.telemetryEnabled) {
-      this.pingCentre.sendPing(event_object);
+      this.pingCentre.sendPing(event_object,
+      {filter: ACTIVITY_STREAM_ID});
     }
   }
 
@@ -342,6 +390,14 @@ this.TelemetryFeed = class TelemetryFeed {
     if (!guidSet || guidSet.save(payload.tiles[index].id)) {
       this.sendEvent(this.createImpressionStats(action));
     }
+  }
+
+  handleUserEvent(action) {
+    this.sendEvent(this.createUserEvent(action));
+  }
+
+  handleUndesiredEvent(action) {
+    this.sendEvent(this.createUndesiredEvent(action));
   }
 
   resetImpressionStats() {
@@ -374,10 +430,10 @@ this.TelemetryFeed = class TelemetryFeed {
         this.handleImpressionStats(action);
         break;
       case at.TELEMETRY_UNDESIRED_EVENT:
-        this.sendEvent(this.createUndesiredEvent(action));
+        this.handleUndesiredEvent(action);
         break;
       case at.TELEMETRY_USER_EVENT:
-        this.sendEvent(this.createUserEvent(action));
+        this.handleUserEvent(action);
         break;
       case at.TELEMETRY_PERFORMANCE_EVENT:
         this.sendEvent(this.createPerformanceEvent(action));
@@ -406,12 +462,18 @@ this.TelemetryFeed = class TelemetryFeed {
     // get blows up.
     let session = this.sessions.get(port);
 
-    // Partial workaround for #3118; avoids the worst incorrect associations of
-    // times with browsers, by associating the load trigger with the visibility
-    // event as the user is most likely associating the trigger to the tab just
-    // shown. This helps avoid associateing with a preloaded browser as those
-    // don't get the event until shown. Better fix for more cases forthcoming.
-    if (data.visibility_event_rcvd_ts) {
+    // XXX Partial workaround for #3118; avoids the worst incorrect associations
+    // of times with browsers, by associating the load trigger with the
+    // visibility event as the user is most likely associating the trigger to
+    // the tab just shown. This helps avoid associating with a preloaded
+    // browser as those don't get the event until shown. Better fix for more
+    // cases forthcoming.
+    //
+    // XXX the about:home check (and the corresponding test) should go away
+    // once the load_trigger stuff in addSession is refactored into
+    // setLoadTriggerInfo.
+    //
+    if (data.visibility_event_rcvd_ts && session.page !== "about:home") {
       this.setLoadTriggerInfo(port);
     }
 

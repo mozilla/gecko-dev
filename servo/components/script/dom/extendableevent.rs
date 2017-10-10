@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::EventBinding::{self, EventMethods};
 use dom::bindings::codegen::Bindings::ExtendableEventBinding;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
@@ -33,7 +33,7 @@ impl ExtendableEvent {
                type_: Atom,
                bubbles: bool,
                cancelable: bool)
-               -> Root<ExtendableEvent> {
+               -> DomRoot<ExtendableEvent> {
         let ev = reflect_dom_object(box ExtendableEvent::new_inherited(), worker, ExtendableEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
@@ -44,7 +44,7 @@ impl ExtendableEvent {
 
     pub fn Constructor(worker: &ServiceWorkerGlobalScope,
                        type_: DOMString,
-                       init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
+                       init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<DomRoot<ExtendableEvent>> {
         Ok(ExtendableEvent::new(worker,
                                 Atom::from(type_),
                                 init.parent.bubbles,
@@ -65,5 +65,13 @@ impl ExtendableEvent {
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     pub fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
+    }
+}
+
+impl Default for ExtendableEventBinding::ExtendableEventInit {
+    fn default() -> ExtendableEventBinding::ExtendableEventInit {
+        ExtendableEventBinding::ExtendableEventInit {
+            parent: EventBinding::EventInit::default(),
+        }
     }
 }

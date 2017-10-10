@@ -52,6 +52,8 @@ def CppUnitTests(names, ext='.cpp'):
 
     Those have a single source with the same base name as the executable.
     '''
+    COMPILE_FLAGS['EXTRA_INCLUDES'] = ['-I%s/dist/include' % TOPOBJDIR,
+                                       '-I%s/dist/include/testing' % TOPOBJDIR]
     CPP_UNIT_TESTS += names
     SOURCES += ['%s%s' % (name, ext) for name in names]
 
@@ -154,6 +156,13 @@ def DisableStlWrapping():
 def NoVisibilityFlags():
     COMPILE_FLAGS['VISIBILITY'] = []
 
+
+@template
+def RustTest(name, features=None):
+    RUST_TEST = name
+
+    if features:
+        RUST_TEST_FEATURES = features
 
 include('gecko_templates.mozbuild')
 include('test_templates.mozbuild')

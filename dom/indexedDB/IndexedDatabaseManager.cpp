@@ -23,7 +23,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ErrorEventBinding.h"
 #include "mozilla/dom/quota/QuotaManager.h"
@@ -45,6 +45,8 @@
 #include "ScriptErrorHelper.h"
 #include "WorkerScope.h"
 #include "WorkerPrivate.h"
+#include "nsCharSeparatedTokenizer.h"
+#include "unicode/locid.h"
 
 // Bindings for ResolveConstructors
 #include "mozilla/dom/IDBCursorBinding.h"
@@ -58,11 +60,6 @@
 #include "mozilla/dom/IDBRequestBinding.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
 #include "mozilla/dom/IDBVersionChangeEventBinding.h"
-
-#ifdef ENABLE_INTL_API
-#include "nsCharSeparatedTokenizer.h"
-#include "unicode/locid.h"
-#endif
 
 #define IDB_STR "indexedDB"
 
@@ -149,6 +146,7 @@ const char kPrefExperimental[] = IDB_PREF_BRANCH_ROOT "experimental";
 const char kPrefFileHandle[] = "dom.fileHandle.enabled";
 const char kDataThresholdPref[] = IDB_PREF_BRANCH_ROOT "dataThreshold";
 const char kPrefMaxSerilizedMsgSize[] = IDB_PREF_BRANCH_ROOT "maxSerializedMsgSize";
+const char kPrefErrorEventToSelfError[] = IDB_PREF_BRANCH_ROOT "errorEventToSelfError";
 
 #define IDB_PREF_LOGGING_BRANCH_ROOT IDB_PREF_BRANCH_ROOT "logging."
 
@@ -170,6 +168,7 @@ Atomic<bool> gClosed(false);
 Atomic<bool> gTestingMode(false);
 Atomic<bool> gExperimentalFeaturesEnabled(false);
 Atomic<bool> gFileHandleEnabled(false);
+Atomic<bool> gPrefErrorEventToSelfError(false);
 Atomic<int32_t> gDataThresholdBytes(0);
 Atomic<int32_t> gMaxSerializedMsgSize(0);
 
@@ -406,6 +405,9 @@ IndexedDatabaseManager::Init()
   Preferences::RegisterCallbackAndCall(AtomicBoolPrefChangedCallback,
                                        kPrefFileHandle,
                                        &gFileHandleEnabled);
+  Preferences::RegisterCallbackAndCall(AtomicBoolPrefChangedCallback,
+                                       kPrefErrorEventToSelfError,
+                                       &gPrefErrorEventToSelfError);
 
   // By default IndexedDB uses SQLite with PRAGMA synchronous = NORMAL. This
   // guarantees (unlike synchronous = OFF) atomicity and consistency, but not
@@ -430,7 +432,6 @@ IndexedDatabaseManager::Init()
   Preferences::RegisterCallbackAndCall(MaxSerializedMsgSizePrefChangeCallback,
                                        kPrefMaxSerilizedMsgSize);
 
-#ifdef ENABLE_INTL_API
   nsAutoCString acceptLang;
   Preferences::GetLocalizedCString("intl.accept_languages", acceptLang);
 
@@ -449,7 +450,6 @@ IndexedDatabaseManager::Init()
   if (mLocale.IsEmpty()) {
     mLocale.AssignLiteral("en_US");
   }
-#endif
 
   return NS_OK;
 }
@@ -480,6 +480,9 @@ IndexedDatabaseManager::Destroy()
   Preferences::UnregisterCallback(AtomicBoolPrefChangedCallback,
                                   kPrefFileHandle,
                                   &gFileHandleEnabled);
+  Preferences::UnregisterCallback(AtomicBoolPrefChangedCallback,
+                                  kPrefErrorEventToSelfError,
+                                  &gPrefErrorEventToSelfError);
 
   Preferences::UnregisterCallback(LoggingModePrefChangedCallback,
                                   kPrefLoggingDetails);
@@ -506,6 +509,10 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
 {
   MOZ_ASSERT(aVisitor.mDOMEvent);
   MOZ_ASSERT(aFactory);
+
+  if (!gPrefErrorEventToSelfError) {
+    return NS_OK;
+  }
 
   if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault) {
     return NS_OK;
@@ -537,7 +544,7 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
     return NS_OK;
   }
 
-  RefPtr<DOMError> error = request->GetErrorAfterResult();
+  RefPtr<DOMException> error = request->GetErrorAfterResult();
 
   nsString errorName;
   if (error) {
@@ -1093,7 +1100,6 @@ IndexedDatabaseManager::LoggingModePrefChangedCallback(
   }
 }
 
-#ifdef ENABLE_INTL_API
 // static
 const nsCString&
 IndexedDatabaseManager::GetLocale()
@@ -1103,7 +1109,6 @@ IndexedDatabaseManager::GetLocale()
 
   return idbManager->mLocale;
 }
-#endif
 
 NS_IMPL_ADDREF(IndexedDatabaseManager)
 NS_IMPL_RELEASE_WITH_DESTROY(IndexedDatabaseManager, Destroy())

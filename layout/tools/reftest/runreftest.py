@@ -308,18 +308,7 @@ class RefTest(object):
            '5.1' in platform.version() and options.e10s:
             prefs['layers.acceleration.disabled'] = True
 
-        sandbox_whitelist_paths = [SCRIPT_DIRECTORY]
-        try:
-            if options.workPath:
-                sandbox_whitelist_paths.append(options.workPath)
-        except AttributeError:
-            pass
-        if platform.system() == "Linux":
-            try:
-                if options.objPath:
-                    sandbox_whitelist_paths.append(options.objPath)
-            except AttributeError:
-                pass
+        sandbox_whitelist_paths = [SCRIPT_DIRECTORY] + options.sandboxReadWhitelist
         if (platform.system() == "Linux" or
             platform.system() in ("Windows", "Microsoft")):
             # Trailing slashes are needed to indicate directories on Linux and Windows
@@ -429,9 +418,9 @@ class RefTest(object):
         self._populate_logger(options)
 
         # Number of times to repeat test(s) when running with --repeat
-        VERIFY_REPEAT = 20
+        VERIFY_REPEAT = 10
         # Number of times to repeat test(s) when running test in separate browser
-        VERIFY_REPEAT_SINGLE_BROWSER = 10
+        VERIFY_REPEAT_SINGLE_BROWSER = 5
 
         def step1():
             stepOptions = copy.deepcopy(options)
@@ -448,12 +437,34 @@ class RefTest(object):
                     break
             return result
 
+        def step3():
+            stepOptions = copy.deepcopy(options)
+            stepOptions.repeat = VERIFY_REPEAT
+            stepOptions.runUntilFailure = True
+            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            result = self.runTests(tests, stepOptions)
+            return result
+
+        def step4():
+            stepOptions = copy.deepcopy(options)
+            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
+                result = self.runTests(tests, stepOptions)
+                if result != 0:
+                    break
+            return result
+
         steps = [
             ("1. Run each test %d times in one browser." % VERIFY_REPEAT,
              step1),
             ("2. Run each test %d times in a new browser each time." %
              VERIFY_REPEAT_SINGLE_BROWSER,
              step2),
+            ("3. Run each test %d times in one browser, in chaos mode." % VERIFY_REPEAT,
+             step3),
+            ("4. Run each test %d times in a new browser each time, in chaos mode." %
+             VERIFY_REPEAT_SINGLE_BROWSER,
+             step4),
         ]
 
         stepResults = {}
@@ -668,6 +679,11 @@ class RefTest(object):
             'processOutputLine': [outputHandler],
         }
 
+        if mozinfo.isWin:
+            # Prevents log interleaving on Windows at the expense of losing
+            # true log order. See bug 798300 and bug 1324961 for more details.
+            kp_kwargs['processStderrLine'] = [outputHandler]
+
         if interactive:
             # If an interactive debugger is attached,
             # don't use timeouts, and don't capture ctrl-c.
@@ -687,6 +703,9 @@ class RefTest(object):
                      outputTimeout=timeout)
         proc = runner.process_handler
 
+        # Used to defer a possible IOError exception from Marionette
+        marionette_exception = None
+
         if self.use_marionette:
             marionette_args = {
                 'socket_timeout': options.marionette_socket_timeout,
@@ -698,16 +717,24 @@ class RefTest(object):
                 marionette_args['host'] = host
                 marionette_args['port'] = int(port)
 
-            marionette = Marionette(**marionette_args)
-            marionette.start_session()
+            try:
+                marionette = Marionette(**marionette_args)
+                marionette.start_session()
 
-            addons = Addons(marionette)
-            if options.specialPowersExtensionPath:
-                addons.install(options.specialPowersExtensionPath, temp=True)
+                addons = Addons(marionette)
+                if options.specialPowersExtensionPath:
+                    addons.install(options.specialPowersExtensionPath, temp=True)
 
-            addons.install(options.reftestExtensionPath, temp=True)
+                addons.install(options.reftestExtensionPath, temp=True)
 
-            marionette.delete_session()
+                marionette.delete_session()
+            except IOError:
+                # Any IOError as thrown by Marionette means that something is
+                # wrong with the process, like a crash or the socket is no
+                # longer open. We defer raising this specific error so that
+                # post-test checks for leaks and crashes are performed and
+                # reported first.
+                marionette_exception = sys.exc_info()
 
         status = runner.wait()
         runner.process_handler = None
@@ -722,10 +749,15 @@ class RefTest(object):
 
         crashed = mozcrash.log_crashes(self.log, os.path.join(profile.profile, 'minidumps'),
                                        symbolsPath, test=self.lastTestSeen)
-
-        runner.cleanup()
         if not status and crashed:
             status = 1
+
+        runner.cleanup()
+
+        if marionette_exception is not None:
+            exc, value, tb = marionette_exception
+            raise exc, value, tb
+
         return status, self.lastTestSeen
 
     def runSerialTests(self, manifests, options, cmdargs=None):

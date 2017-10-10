@@ -546,7 +546,7 @@ InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal, uint32_t 
     // Stuff coming through this path always ends up as a DOM global.
     MOZ_ASSERT(js::GetObjectClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL);
 
-    if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
+    if (!(aFlags & xpc::OMIT_COMPONENTS_OBJECT)) {
         // XPCCallContext gives us an active request needed to save/restore.
         if (!RealmPrivate::Get(aGlobal)->scope->AttachComponentsObject(aJSContext) ||
             !XPCNativeWrapper::AttachNewConstructorObject(aJSContext, aGlobal)) {
@@ -554,25 +554,22 @@ InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal, uint32_t 
         }
     }
 
-    if (!(aFlags & nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK))
+    if (!(aFlags & xpc::DONT_FIRE_ONNEWGLOBALHOOK))
         JS_FireOnNewGlobalObject(aJSContext, aGlobal);
 
     return true;
 }
 
-} // namespace xpc
-
-NS_IMETHODIMP
-nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
-                                             nsISupports* aCOMObj,
-                                             nsIPrincipal * aPrincipal,
-                                             uint32_t aFlags,
-                                             JS::CompartmentOptions& aOptions,
-                                             nsIXPConnectJSObjectHolder** _retval)
+nsresult
+InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
+                                nsISupports* aCOMObj,
+                                nsIPrincipal* aPrincipal,
+                                uint32_t aFlags,
+                                JS::CompartmentOptions& aOptions,
+                                MutableHandleObject aNewGlobal)
 {
     MOZ_ASSERT(aJSContext, "bad param");
     MOZ_ASSERT(aCOMObj, "bad param");
-    MOZ_ASSERT(_retval, "bad param");
 
     // We pass null for the 'extra' pointer during global object creation, so
     // we need to have a principal.
@@ -587,7 +584,7 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     RefPtr<XPCWrappedNative> wrappedGlobal;
     nsresult rv =
         XPCWrappedNative::WrapNewGlobal(helper, aPrincipal,
-                                        aFlags & nsIXPConnect::INIT_JS_STANDARD_CLASSES,
+                                        aFlags & xpc::INIT_JS_STANDARD_CLASSES,
                                         aOptions, getter_AddRefs(wrappedGlobal));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -598,9 +595,11 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     if (!InitGlobalObject(aJSContext, global, aFlags))
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
-    wrappedGlobal.forget(_retval);
+    aNewGlobal.set(global);
     return NS_OK;
 }
+
+} // namespace xpc
 
 static nsresult
 NativeInterface2JSObject(HandleObject aScope,
@@ -608,16 +607,14 @@ NativeInterface2JSObject(HandleObject aScope,
                          nsWrapperCache* aCache,
                          const nsIID * aIID,
                          bool aAllowWrapping,
-                         MutableHandleValue aVal,
-                         nsIXPConnectJSObjectHolder** aHolder)
+                         MutableHandleValue aVal)
 {
     AutoJSContext cx;
     JSAutoCompartment ac(cx, aScope);
 
     nsresult rv;
     xpcObjectHelper helper(aCOMObj, aCache);
-    if (!XPCConvert::NativeInterface2JSObject(aVal, aHolder, helper, aIID,
-                                              aAllowWrapping, &rv))
+    if (!XPCConvert::NativeInterface2JSObject(aVal, helper, aIID, aAllowWrapping, &rv))
         return rv;
 
     MOZ_ASSERT(aAllowWrapping || !xpc::WrapperFactory::IsXrayWrapper(&aVal.toObject()),
@@ -640,7 +637,7 @@ nsXPConnect::WrapNative(JSContext * aJSContext,
     RootedObject aScope(aJSContext, aScopeArg);
     RootedValue v(aJSContext);
     nsresult rv = NativeInterface2JSObject(aScope, aCOMObj, nullptr, &aIID,
-                                           true, &v, nullptr);
+                                           true, &v);
     if (NS_FAILED(rv))
         return rv;
 
@@ -649,24 +646,6 @@ nsXPConnect::WrapNative(JSContext * aJSContext,
 
     *aRetVal = v.toObjectOrNull();
     return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXPConnect::WrapNativeHolder(JSContext * aJSContext,
-                              JSObject * aScopeArg,
-                              nsISupports* aCOMObj,
-                              const nsIID & aIID,
-                              nsIXPConnectJSObjectHolder **aHolder)
-{
-    MOZ_ASSERT(aHolder, "bad param");
-    MOZ_ASSERT(aJSContext, "bad param");
-    MOZ_ASSERT(aScopeArg, "bad param");
-    MOZ_ASSERT(aCOMObj, "bad param");
-
-    RootedObject aScope(aJSContext, aScopeArg);
-    RootedValue v(aJSContext);
-    return NativeInterface2JSObject(aScope, aCOMObj, nullptr, &aIID,
-                                    true, &v, aHolder);
 }
 
 NS_IMETHODIMP
@@ -684,7 +663,7 @@ nsXPConnect::WrapNativeToJSVal(JSContext* aJSContext,
 
     RootedObject aScope(aJSContext, aScopeArg);
     return NativeInterface2JSObject(aScope, aCOMObj, aCache, aIID,
-                                    aAllowWrapping, aVal, nullptr);
+                                    aAllowWrapping, aVal);
 }
 
 NS_IMETHODIMP

@@ -19,7 +19,7 @@
 #include "gfxRect.h"
 #include "nsExpirationTracker.h"
 #include "gfxPlatform.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "mozilla/HashFunctions.h"
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
@@ -75,15 +75,12 @@ class SVGContextPaint;
 namespace gfx {
 class GlyphRenderingOptions;
 } // namespace gfx
-namespace layout {
-class TextDrawTarget;
-} // namespace layout
 } // namespace mozilla
 
 struct gfxFontStyle {
     gfxFontStyle();
     gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
-                 gfxFloat aSize, nsIAtom *aLanguage, bool aExplicitLanguage,
+                 gfxFloat aSize, nsAtom *aLanguage, bool aExplicitLanguage,
                  float aSizeAdjust, bool aSystemFont,
                  bool aPrinterFont,
                  bool aWeightSynthesis, bool aStyleSynthesis,
@@ -92,7 +89,7 @@ struct gfxFontStyle {
     // the language (may be an internal langGroup code rather than an actual
     // language code) specified in the document or element's lang property,
     // or inferred from the charset
-    RefPtr<nsIAtom> language;
+    RefPtr<nsAtom> language;
 
     // Features are composed of (1) features from style rules (2) features
     // from feature settings rules and (3) family-specific features.  (1) and
@@ -188,7 +185,7 @@ struct gfxFontStyle {
     PLDHashNumber Hash() const {
         return ((style + (systemFont << 7) +
             (weight << 8)) + uint32_t(size*1000) + uint32_t(sizeAdjust*1000)) ^
-            nsISupportsHashKey::HashKey(language);
+            nsRefPtrHashKey<nsAtom>::HashKey(language);
     }
 
     int8_t ComputeWeight() const;
@@ -2313,7 +2310,6 @@ struct MOZ_STACK_CLASS FontDrawParams {
 
 struct MOZ_STACK_CLASS EmphasisMarkDrawParams {
     gfxContext* context;
-    mozilla::layout::TextDrawTarget* textDrawer = nullptr;
     gfxFont::Spacing* spacing;
     gfxTextRun* mark;
     gfxFloat advance;

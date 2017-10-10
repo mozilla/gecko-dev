@@ -23,6 +23,12 @@ args = ["-DOS_LINUX=1"]
 "arch=x86" = ["-m32"]
 "arch=x86_64" = ["-m64"]
 
+[build."os=android"]
+args = ["-DOS_ANDROID=1"]
+"arch=aarch64" = ["--target=aarch64-linux-android"]
+"arch=arm" = ["--target=armv7-linux-androideabi"]
+"arch=x86" = ["--target=i686-linux-android"]
+
 [build."os=windows"."env=msvc"]
 args = [
     "-DOS_WIN=1", "-DWIN32=1",
@@ -171,7 +177,6 @@ whitelist-types = [
     "DOMIntersectionObserverEntry",
     "Element",
     "FontFamilyList",
-    "FontFamilyListRefCnt",
     "FontFamilyName",
     "FontFamilyType",
     "FontSizePrefs",
@@ -190,7 +195,6 @@ whitelist-types = [
     "Keyframe",
     "nsAttrName",
     "nsAttrValue",
-    "nsBorderColors",
     "nscolor",
     "nsChangeHint",
     "nsCSSCounterDesc",
@@ -216,7 +220,7 @@ whitelist-types = [
     "nsCSSValueTriplet_heap",
     "nsCursorImage",
     "nsFont",
-    "nsIAtom",
+    "nsAtom",
     "nsMainThreadPtrHandle",
     "nsMainThreadPtrHolder",
     "nsMargin",
@@ -282,7 +286,6 @@ whitelist-types = [
     "SheetParsingMode",
     "StaticRefPtr",
     "StyleAnimation",
-    "StyleBasicShape",
     "StyleBasicShapeType",
     "StyleGeometryBox",
     "StyleShapeSource",
@@ -341,13 +344,13 @@ opaque-types = [
     "StyleAnimationValue", # pulls in a whole bunch of stuff we don't need in the bindings
     "mozilla::dom::.*Callback", # Pulls in ErrorResult and other things that
                                 # don't align properly on Linux 32-bit
+    "mozilla::SchedulerGroup", # Non-standard-layout packing of field into superclass
 ]
 mapped-generic-types = [
     { generic = true, gecko = "mozilla::ServoUnsafeCell", servo = "::std::cell::UnsafeCell" },
     { generic = true, gecko = "mozilla::ServoCell", servo = "::std::cell::Cell" },
     { generic = false, gecko = "ServoNodeData", servo = "AtomicRefCell<ElementData>" },
     { generic = false, gecko = "mozilla::ServoWritingMode", servo = "::logical_geometry::WritingMode" },
-    { generic = false, gecko = "mozilla::ServoFontComputationData", servo = "::properties::FontComputationData" },
     { generic = false, gecko = "mozilla::ServoCustomPropertiesMap", servo = "Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>" },
     { generic = false, gecko = "mozilla::ServoRuleNode", servo = "Option<::rule_tree::StrongRuleNode>" },
     { generic = false, gecko = "mozilla::ServoVisitedStyle", servo = "Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>" },
@@ -389,7 +392,6 @@ structs-types = [
     "mozilla::AnonymousCounterStyle",
     "mozilla::MallocSizeOf",
     "mozilla::OriginFlags",
-    "mozilla::Side",
     "mozilla::UniquePtr",
     "ServoRawOffsetArc",
     "nsIContent",
@@ -418,6 +420,7 @@ structs-types = [
     "RawGeckoServoStyleRuleList",
     "RawGeckoURLExtraData",
     "RawGeckoXBLBinding",
+    "RawServoSelectorList",
     "RefPtr",
     "RustString",
     "CSSPseudoClassType",
@@ -425,7 +428,6 @@ structs-types = [
     "ServoTraversalFlags",
     "ComputedTimingFunction_BeforeFlag",
     "CounterStylePtr",
-    "FontFamilyList",
     "FontFamilyType",
     "FontSizePrefs",
     "GeckoFontMetrics",
@@ -438,12 +440,10 @@ structs-types = [
     "ServoElementSnapshotTable",
     "ServoStyleSetSizes",
     "SheetParsingMode",
-    "StyleBasicShape",
     "StyleBasicShapeType",
     "StyleShapeSource",
     "StyleTransition",
     "gfxFontFeatureValueSet",
-    "nsBorderColors",
     "nsCSSCounterStyleRule",
     "nsCSSFontFaceRule",
     "nsCSSKeyword",
@@ -456,7 +456,7 @@ structs-types = [
     "nsChangeHint",
     "nsCursorImage",
     "nsFont",
-    "nsIAtom",
+    "nsAtom",
     "nsIURI",
     "nsCompatibility",
     "nsRestyleHint",
@@ -523,12 +523,15 @@ structs-types = [
     "StyleRuleInclusion",
     "nsStyleTransformMatrix::MatrixTransformOperator",
     "RawGeckoGfxMatrix4x4",
+    "FontFamilyName",
+    "mozilla::SharedFontList",
 ]
 array-types = [
     { cpp-type = "uintptr_t", rust-type = "usize" },
 ]
 servo-owned-types = [
     { name = "RawServoStyleSet", opaque = true },
+    { name = "RawServoSelectorList", opaque = false },
     { name = "ServoElementSnapshot", opaque = false },
     { name = "RawServoAnimationValueMap", opaque = true },
 ]

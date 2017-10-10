@@ -45,6 +45,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/WindowBinding.h"
+#include "mozilla/extensions/WebExtensionPolicy.h"
 #include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -298,6 +299,14 @@ class WatchdogManager : public nsIObserver
 
         // aContext must be in one of our two lists, simply remove it.
         aContext->LinkedListElement<XPCJSContext>::remove();
+
+#ifdef DEBUG
+        // If this was the last context, we should have already shut down
+        // the watchdog.
+        if (mActiveContexts.isEmpty() && mInactiveContexts.isEmpty()) {
+            MOZ_ASSERT(!mWatchdog);
+        }
+#endif
     }
 
     // Context statistics. These live on the watchdog manager, are written
@@ -463,7 +472,7 @@ AutoLockWatchdog::~AutoLockWatchdog()
 static void
 WatchdogMain(void* arg)
 {
-    mozilla::AutoProfilerRegisterThread registerThread("JS Watchdog");
+    AUTO_PROFILER_REGISTER_THREAD("JS Watchdog");
     NS_SetCurrentThreadName("JS Watchdog");
 
     Watchdog* self = static_cast<Watchdog*>(arg);
@@ -473,7 +482,6 @@ WatchdogMain(void* arg)
     AutoLockWatchdog lock(self);
 
     MOZ_ASSERT(self->Initialized());
-    MOZ_ASSERT(!self->ShuttingDown());
     while (!self->ShuttingDown()) {
         // Sleep only 1 second if recently (or currently) active; otherwise, hibernate
         if (manager->IsAnyContextActive() ||
@@ -503,7 +511,7 @@ WatchdogMain(void* arg)
         // dialog. If the computer is put to sleep during one of the (timeout/2)
         // periods, the script still has the other (timeout/2) seconds to
         // finish.
-        if (manager->IsAnyContextActive()) {
+        if (!self->ShuttingDown() && manager->IsAnyContextActive()) {
             bool debuggerAttached = false;
             nsCOMPtr<nsIDebug2> dbg = do_GetService("@mozilla.org/xpcom/debug;1");
             if (dbg)
@@ -559,7 +567,11 @@ XPCJSContext::ActivityCallback(void* arg, bool active)
 static inline bool
 IsWebExtensionPrincipal(nsIPrincipal* principal, nsAString& addonId)
 {
-    return BasePrincipal::Cast(principal)->AddonPolicy();
+    if (auto policy = BasePrincipal::Cast(principal)->AddonPolicy()) {
+        policy->GetId(addonId);
+        return true;
+    }
+    return false;
 }
 
 static bool
@@ -589,7 +601,7 @@ XPCJSContext::InterruptCallback(JSContext* cx)
     XPCJSContext* self = XPCJSContext::Get();
 
     // Now is a good time to turn on profiling if it's pending.
-    profiler_js_interrupt_callback();
+    PROFILER_JS_INTERRUPT_CALLBACK();
 
     // Normally we record mSlowScriptCheckpoint when we start to process an
     // event. However, we can run JS outside of event handlers. This code takes
@@ -759,21 +771,15 @@ ReloadPrefsCallback(const char* pref, void* data)
     XPCJSContext* xpccx = static_cast<XPCJSContext*>(data);
     JSContext* cx = xpccx->Context();
 
-    bool safeMode = false;
-    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
-    if (xr) {
-        xr->GetInSafeMode(&safeMode);
-    }
-
-    bool useBaseline = Preferences::GetBool(JS_OPTIONS_DOT_STR "baselinejit") && !safeMode;
-    bool useIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "ion") && !safeMode;
-    bool useAsmJS = Preferences::GetBool(JS_OPTIONS_DOT_STR "asmjs") && !safeMode;
-    bool useWasm = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm") && !safeMode;
-    bool useWasmIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_ionjit") && !safeMode;
-    bool useWasmBaseline = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_baselinejit") && !safeMode;
+    bool useBaseline = Preferences::GetBool(JS_OPTIONS_DOT_STR "baselinejit");
+    bool useIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "ion");
+    bool useAsmJS = Preferences::GetBool(JS_OPTIONS_DOT_STR "asmjs");
+    bool useWasm = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm");
+    bool useWasmIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_ionjit");
+    bool useWasmBaseline = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_baselinejit");
     bool throwOnAsmJSValidationFailure = Preferences::GetBool(JS_OPTIONS_DOT_STR
                                                               "throw_on_asmjs_validation_failure");
-    bool useNativeRegExp = Preferences::GetBool(JS_OPTIONS_DOT_STR "native_regexp") && !safeMode;
+    bool useNativeRegExp = Preferences::GetBool(JS_OPTIONS_DOT_STR "native_regexp");
 
     bool parallelParsing = Preferences::GetBool(JS_OPTIONS_DOT_STR "parallel_parsing");
     bool offthreadIonCompilation = Preferences::GetBool(JS_OPTIONS_DOT_STR
@@ -842,6 +848,15 @@ ReloadPrefsCallback(const char* pref, void* data)
                              .setStreams(streams)
                              .setExtraWarnings(extraWarnings);
 
+    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+    if (xr) {
+        bool safeMode = false;
+        xr->GetInSafeMode(&safeMode);
+        if (safeMode) {
+            JS::ContextOptionsRef(cx).disableOptionsForSafeMode();
+        }
+    }
+
     JS_SetParallelParsingEnabled(cx, parallelParsing);
     JS_SetOffthreadIonCompilationEnabled(cx, offthreadIonCompilation);
     JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
@@ -874,16 +889,18 @@ XPCJSContext::~XPCJSContext()
     // to destroy it later we will crash.
     SetPendingException(nullptr);
 
-    xpc_DelocalizeContext(Context());
-
     // If we're the last XPCJSContext around, clean up the watchdog manager.
-    mWatchdogManager->UnregisterContext(this);
     if (--sInstanceCount == 0) {
         if (mWatchdogManager->GetWatchdog()) {
             mWatchdogManager->StopWatchdog();
         }
+
+        mWatchdogManager->UnregisterContext(this);
         mWatchdogManager->Shutdown();
         sWatchdogInstance = nullptr;
+    } else {
+        // Otherwise, simply remove ourselves from the list.
+        mWatchdogManager->UnregisterContext(this);
     }
 
     if (mCallContext)
@@ -893,7 +910,7 @@ XPCJSContext::~XPCJSContext()
     delete rtPrivate;
     JS_SetContextPrivate(Context(), nullptr);
 
-    profiler_clear_js_context();
+    PROFILER_CLEAR_JS_CONTEXT();
 
     gTlsContext.set(nullptr);
 }
@@ -1076,16 +1093,10 @@ XPCJSContext::Initialize(XPCJSContext* aPrimaryContext)
                            kStackQuota - kSystemCodeBuffer,
                            kStackQuota - kSystemCodeBuffer - kTrustedScriptBuffer);
 
-    profiler_set_js_context(cx);
+    PROFILER_SET_JS_CONTEXT(cx);
 
     js::SetActivityCallback(cx, ActivityCallback, this);
     JS_AddInterruptCallback(cx, InterruptCallback);
-
-    // Set up locale information and callbacks for the newly-created context so
-    // that the various toLocaleString() methods, localeCompare(), and other
-    // internationalization APIs work as desired.
-    if (!xpc_LocalizeContext(cx))
-        NS_RUNTIMEABORT("xpc_LocalizeContext failed.");
 
     if (!aPrimaryContext) {
         Runtime()->Initialize(cx);

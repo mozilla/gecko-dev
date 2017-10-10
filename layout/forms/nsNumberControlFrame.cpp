@@ -11,7 +11,7 @@
 #include "nsIPresShell.h"
 #include "nsFocusManager.h"
 #include "nsFontMetrics.h"
-#include "nsFormControlFrame.h"
+#include "nsCheckboxRadioFrame.h"
 #include "nsGkAtoms.h"
 #include "nsNameSpaceManager.h"
 #include "nsThemeConstants.h"
@@ -60,7 +60,7 @@ nsNumberControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   NS_ASSERTION(!GetPrevContinuation() && !GetNextContinuation(),
                "nsNumberControlFrame should not have continuations; if it does we "
                "need to call RegUnregAccessKey only for the first");
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsCheckboxRadioFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
   DestroyAnonymousContent(mOuterWrapper.forget());
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
@@ -123,7 +123,7 @@ nsNumberControlFrame::Reflow(nsPresContext* aPresContext,
                "We expect at most one direct child frame");
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    nsFormControlFrame::RegUnRegAccessKey(this, true);
+    nsCheckboxRadioFrame::RegUnRegAccessKey(this, true);
   }
 
   const WritingMode myWM = aReflowInput.GetWritingMode();
@@ -261,7 +261,7 @@ nsNumberControlFrame::SyncDisabledState()
 
 nsresult
 nsNumberControlFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                       nsIAtom* aAttribute,
+                                       nsAtom* aAttribute,
                                        int32_t  aModType)
 {
   // nsGkAtoms::disabled is handled by SyncDisabledState
@@ -326,7 +326,7 @@ private:
 nsresult
 nsNumberControlFrame::MakeAnonymousElement(Element** aResult,
                                            nsTArray<ContentInfo>& aElements,
-                                           nsIAtom* aTagName,
+                                           nsAtom* aTagName,
                                            CSSPseudoElementType aPseudoType)
 {
   // Get the NodeInfoManager and tag necessary to create the anonymous divs.
@@ -457,7 +457,7 @@ nsNumberControlFrame::SetFocus(bool aOn, bool aRepaint)
 }
 
 nsresult
-nsNumberControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aValue)
+nsNumberControlFrame::SetFormProperty(nsAtom* aName, const nsAString& aValue)
 {
   return GetTextFieldFrame()->SetFormProperty(aName, aValue);
 }
@@ -657,14 +657,12 @@ nsNumberControlFrame::SetValueOfAnonTextControl(const nsAString& aValue)
   // state will be set to invalid) or if aValue can't be localized:
   nsAutoString localizedValue(aValue);
 
-#ifdef ENABLE_INTL_API
   // Try and localize the value we will set:
   Decimal val = HTMLInputElement::StringToDecimal(aValue);
   if (val.isFinite()) {
     ICUUtils::LanguageTagIterForContent langTagIter(mContent);
     ICUUtils::LocalizeNumber(val.toDouble(), langTagIter, localizedValue);
   }
-#endif
 
   // We need to update the value of our anonymous text control here. Note that
   // this must be its value, and not its 'value' attribute (the default value),
@@ -690,7 +688,6 @@ nsNumberControlFrame::GetValueOfAnonTextControl(nsAString& aValue)
 
   HTMLInputElement::FromContent(mTextField)->GetValue(aValue, CallerType::System);
 
-#ifdef ENABLE_INTL_API
   // Here we need to de-localize any number typed in by the user. That is, we
   // need to convert it from the number format of the user's language, region,
   // etc. to the format that the HTML 5 spec defines to be a "valid
@@ -731,7 +728,6 @@ nsNumberControlFrame::GetValueOfAnonTextControl(nsAString& aValue)
   // as 12.345, but HTMLInputElement::StringToDecimal would parse it to NaN.
   aValue.Truncate();
   aValue.AppendFloat(value);
-#endif
 }
 
 bool

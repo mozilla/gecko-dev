@@ -118,7 +118,17 @@ this.browserAction = class extends ExtensionAPI {
     this.tabContext = new TabContext(tab => Object.create(this.defaults),
                                      extension);
 
+    // eslint-disable-next-line mozilla/balanced-listeners
+    this.tabContext.on("location-change", this.handleLocationChange.bind(this));
+
     this.build();
+  }
+
+  handleLocationChange(eventType, tab, fromBrowse) {
+    if (fromBrowse) {
+      this.tabContext.clear(tab);
+      this.updateOnChange(tab);
+    }
   }
 
   onShutdown(reason) {
@@ -150,7 +160,7 @@ this.browserAction = class extends ExtensionAPI {
         view.setAttribute("flex", "1");
         view.setAttribute("extension", true);
 
-        document.getElementById("PanelUI-multiView").appendChild(view);
+        document.getElementById("appMenu-viewCache").appendChild(view);
 
         if (this.extension.hasPermission("menus") ||
             this.extension.hasPermission("contextMenus")) {
@@ -195,12 +205,6 @@ this.browserAction = class extends ExtensionAPI {
         // Google Chrome onClicked extension API.
         if (popupURL) {
           try {
-            if (event.target.closest("panelmultiview")) {
-              // FIXME: The line below needs to change eventually, but for now:
-              // ensure the view is _always_ visible _before_ `popup.attach()` is
-              // called. PanelMultiView.jsm dictates different behavior.
-              event.target.setAttribute("current", true);
-            }
             let popup = this.getPopup(document.defaultView, popupURL);
             let attachPromise = popup.attach(event.target);
             event.detail.addBlocker(attachPromise);
@@ -448,14 +452,12 @@ this.browserAction = class extends ExtensionAPI {
         node.setAttribute("disabled", "true");
       }
 
-      let badgeNode = node.ownerDocument.getAnonymousElementByAttribute(node,
-                                          "class", "toolbarbutton-badge");
-      if (badgeNode) {
-        let color = tabData.badgeBackgroundColor;
-        if (color) {
-          color = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})`;
-        }
-        badgeNode.style.backgroundColor = color || "";
+      let color = tabData.badgeBackgroundColor;
+      if (color) {
+        color = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})`;
+        node.setAttribute("badgeStyle", `background-color: ${color};`);
+      } else {
+        node.removeAttribute("badgeStyle");
       }
 
       let {style, legacy} = this.iconData.get(tabData.icon);

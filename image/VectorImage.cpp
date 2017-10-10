@@ -24,7 +24,7 @@
 #include "nsRect.h"
 #include "nsString.h"
 #include "nsStubDocumentObserver.h"
-#include "nsSVGEffects.h" // for nsSVGRenderingObserver
+#include "SVGObserverUtils.h" // for nsSVGRenderingObserver
 #include "nsWindowSizes.h"
 #include "ImageRegion.h"
 #include "ISurfaceProvider.h"
@@ -62,11 +62,11 @@ public:
     MOZ_ASSERT(mDocWrapper, "Need a non-null SVG document wrapper");
     MOZ_ASSERT(mVectorImage, "Need a non-null VectorImage");
 
-    StartListening();
+    StartObserving();
     Element* elem = GetTarget();
     MOZ_ASSERT(elem, "no root SVG node for us to observe");
 
-    nsSVGEffects::AddRenderingObserver(elem, this);
+    SVGObserverUtils::AddRenderingObserver(elem, this);
     mInObserverList = true;
   }
 
@@ -79,7 +79,7 @@ public:
 protected:
   virtual ~SVGRootRenderingObserver()
   {
-    StopListening();
+    StopObserving();
   }
 
   virtual Element* GetTarget() override
@@ -87,7 +87,7 @@ protected:
     return mDocWrapper->GetRootSVGElem();
   }
 
-  virtual void DoUpdate() override
+  virtual void OnRenderingChange() override
   {
     Element* elem = GetTarget();
     MOZ_ASSERT(elem, "missing root SVG node");
@@ -108,7 +108,7 @@ protected:
     // Our caller might've removed us from rendering-observer list.
     // Add ourselves back!
     if (!mInObserverList) {
-      nsSVGEffects::AddRenderingObserver(elem, this);
+      SVGObserverUtils::AddRenderingObserver(elem, this);
       mInObserverList = true;
     }
   }

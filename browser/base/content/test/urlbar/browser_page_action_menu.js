@@ -1,19 +1,26 @@
 "use strict";
 
-/* global sinon */
+/* global sinon, UIState */
 Services.scriptloader.loadSubScript("resource://testing-common/sinon-2.3.2.js");
 
 registerCleanupFunction(function() {
   delete window.sinon;
 });
 
-Cu.import("resource://services-sync/UIState.jsm");
-
 const mockRemoteClients = [
   { id: "0", name: "foo", type: "mobile" },
   { id: "1", name: "bar", type: "desktop" },
   { id: "2", name: "baz", type: "mobile" },
 ];
+
+add_task(async function init() {
+  // Disable panel animations.  They cause intermittent timeouts on Linux when
+  // the test tries to synthesize clicks on items in newly opened panels.
+  BrowserPageActions._disablePanelAnimations = true;
+  registerCleanupFunction(() => {
+    BrowserPageActions._disablePanelAnimations = false;
+  });
+});
 
 add_task(async function bookmark() {
   // Open a unique page.
@@ -40,7 +47,11 @@ add_task(async function bookmark() {
       }
       StarUI.panel.addEventListener("popupshown", resolve, { once: true });
     });
+    Assert.equal(BookmarkingUI.starBox.getAttribute("open"), "true",
+      "Star has open attribute");
     StarUI.panel.hidePopup();
+    Assert.ok(!BookmarkingUI.starBox.hasAttribute("open"),
+      "Star no longer has open attribute");
 
     // Open the panel again.
     await promisePageActionPanelOpen();
@@ -131,12 +142,16 @@ add_task(async function sendToDevice_nonSendable() {
     await promiseSyncReady();
     // Open the panel.  Send to Device should be disabled.
     await promisePageActionPanelOpen();
+    Assert.equal(BrowserPageActions.mainButtonNode.getAttribute("open"),
+      "true", "Main button has 'open' attribute");
     let sendToDeviceButton =
       document.getElementById("pageAction-panel-sendToDevice");
     Assert.ok(sendToDeviceButton.disabled);
     let hiddenPromise = promisePageActionPanelHidden();
     BrowserPageActions.panelNode.hidePopup();
     await hiddenPromise;
+    Assert.ok(!BrowserPageActions.mainButtonNode.hasAttribute("open"),
+      "Main button no longer has 'open' attribute");
     // Remove the `display` style set above.
     BrowserPageActions.mainButtonNode.style.removeProperty("display");
   });
@@ -478,11 +493,6 @@ add_task(async function sendToDevice_inUrlbar() {
     };
     registerCleanupFunction(cleanUp);
 
-    // Disable the activated-action panel animation when it opens.  Otherwise
-    // it's necessary to wait a moment before trying to click the device menu
-    // item below.
-    BrowserPageActions._disableActivatedActionPanelAnimation = true;
-
     // Add Send to Device to the urlbar.
     let action = PageActions.actionForID("sendToDevice");
     action.shownInUrlbar = true;
@@ -496,6 +506,8 @@ add_task(async function sendToDevice_inUrlbar() {
       promisePanelShown(BrowserPageActions._activatedActionPanelID);
     EventUtils.synthesizeMouseAtCenter(urlbarButton, {});
     await panelPromise;
+    Assert.equal(urlbarButton.getAttribute("open"), "true",
+      "Button has open attribute");
 
     // The devices should be shown in the subview.
     let expectedItems = [
@@ -546,6 +558,8 @@ add_task(async function sendToDevice_inUrlbar() {
     EventUtils.synthesizeMouseAtCenter(deviceMenuItem, {});
     info("Waiting for Send to Device panel to close after clicking a device");
     await hiddenPromise;
+    Assert.ok(!urlbarButton.hasAttribute("open"),
+      "URL bar button no longer has open attribute");
 
     // And then the "Sent!" notification panel should open and close by itself
     // after a moment.
@@ -560,7 +574,6 @@ add_task(async function sendToDevice_inUrlbar() {
 
     // Remove Send to Device from the urlbar.
     action.shownInUrlbar = false;
-    BrowserPageActions._disableActivatedActionPanelAnimation = false;
 
     cleanUp();
   });

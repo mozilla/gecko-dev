@@ -377,7 +377,8 @@ nsRuleNode::GetMetricsFor(nsPresContext* aPresContext,
                           bool aIsVertical,
                           const nsStyleFont* aStyleFont,
                           nscoord aFontSize,
-                          bool aUseUserFontSet)
+                          bool aUseUserFontSet,
+                          FlushUserFontSet aFlushUserFontSet)
 {
   nsFont font = aStyleFont->mFont;
   font.size = aFontSize;
@@ -387,8 +388,9 @@ nsRuleNode::GetMetricsFor(nsPresContext* aPresContext,
   params.language = aStyleFont->mLanguage;
   params.explicitLanguage = aStyleFont->mExplicitLanguage;
   params.orientation = orientation;
-  params.userFontSet =
-    aUseUserFontSet ? aPresContext->GetUserFontSet() : nullptr;
+  params.userFontSet = aUseUserFontSet
+    ? aPresContext->GetUserFontSet(aFlushUserFontSet == FlushUserFontSet::Yes)
+    : nullptr;
   params.textPerf = aPresContext->GetTextPerfMetrics();
   return aPresContext->DeviceContext()->GetMetricsFor(font, params);
 }
@@ -408,8 +410,9 @@ nsRuleNode::GetMetricsFor(nsPresContext* aPresContext,
       isVertical = true;
     }
   }
-  return nsRuleNode::GetMetricsFor(aPresContext, isVertical, aStyleFont,
-                                   aFontSize, aUseUserFontSet);
+  return nsRuleNode::GetMetricsFor(
+      aPresContext, isVertical, aStyleFont, aFontSize, aUseUserFontSet,
+      FlushUserFontSet::Yes);
 }
 
 /* static */
@@ -1467,7 +1470,7 @@ static void SetStyleImage(GeckoStyleContext* aStyleContext,
     }
     case eCSSUnit_Element:
     {
-      nsCOMPtr<nsIAtom> atom = NS_Atomize(aValue.GetStringBufferValue());
+      RefPtr<nsAtom> atom = NS_Atomize(aValue.GetStringBufferValue());
       aResult.SetElementId(atom.forget());
       break;
     }
@@ -2462,7 +2465,7 @@ GetPseudoRestriction(GeckoStyleContext *aContext)
 {
   // This needs to match nsStyleSet::WalkRestrictionRule.
   uint32_t pseudoRestriction = 0;
-  nsIAtom *pseudoType = aContext->GetPseudo();
+  nsAtom *pseudoType = aContext->GetPseudo();
   if (pseudoType) {
     if (pseudoType == nsCSSPseudoElements::firstLetter) {
       pseudoRestriction = CSS_PROPERTY_APPLIES_TO_FIRST_LETTER;
@@ -4373,16 +4376,13 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
   // the optimization with a non-null aStartStruct?
   const nsCSSValue* familyValue = aRuleData->ValueForFontFamily();
   if (eCSSUnit_FontFamilyList == familyValue->GetUnit()) {
-    const FontFamilyList* fontlist = familyValue->GetFontFamilyListValue();
-    FontFamilyList& fl = font->mFont.fontlist;
-    fl = *fontlist;
-
-    // extract the first generic in the fontlist, if exists
-    FontFamilyType fontType = fontlist->FirstGeneric();
+    NotNull<SharedFontList*> fontlist = familyValue->GetFontFamilyListValue();
+    font->mFont.fontlist = FontFamilyList(fontlist);
 
     // if only a single generic, set the generic type
-    if (fontlist->Length() == 1) {
-      switch (fontType) {
+    if (fontlist->mNames.Length() == 1) {
+      // extract the first generic in the fontlist, if exists
+      switch (font->mFont.fontlist.FirstGeneric()) {
         case eFamily_serif:
           generic = kGenericFont_serif;
           break;
@@ -6396,7 +6396,7 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     // and 'position'.  Since generated content can't be floated or
     // positioned, we can deal with it here.
 
-    nsIAtom* pseudo = aContext->GetPseudo();
+    nsAtom* pseudo = aContext->GetPseudo();
     if (pseudo && display->mDisplay == StyleDisplay::Contents) {
       // We don't want to create frames for anonymous content using a parent
       // frame that is for content above the root of the anon tree.
@@ -6498,7 +6498,7 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     for (const nsCSSValueList* item = willChangeValue->GetListValue();
          item; item = item->mNext)
     {
-      nsIAtom* atom = item->mValue.GetAtomValue();
+      nsAtom* atom = item->mValue.GetAtomValue();
       display->mWillChange.AppendElement(atom);
       if (atom == nsGkAtoms::transform) {
         display->mWillChangeBitField |= NS_STYLE_WILL_CHANGE_TRANSFORM;
@@ -7748,13 +7748,10 @@ nsRuleNode::ComputeBorderData(void* aStartStruct,
     case eCSSUnit_Inherit: {
       conditions.SetUncacheable();
       border->ClearBorderColors(side);
-      if (parentContext) {
-        nsBorderColors *parentColors;
-        parentBorder->GetCompositeColors(side, &parentColors);
-        if (parentColors) {
-          border->EnsureBorderColors();
-          border->mBorderColors[side] = parentColors->Clone();
-        }
+      if (parentBorder->mBorderColors) {
+        border->EnsureBorderColors();
+        border->mBorderColors->mColors[side] =
+          parentBorder->mBorderColors->mColors[side];
       }
       break;
     }
@@ -7769,7 +7766,7 @@ nsRuleNode::ComputeBorderData(void* aStartStruct,
       while (list) {
         if (SetColor(list->mValue, unused, mPresContext,
                      aContext, borderColor, conditions))
-          border->AppendBorderColor(side, borderColor);
+          border->mBorderColors->mColors[side].AppendElement(borderColor);
         else {
           NS_NOTREACHED("unexpected item in -moz-border-*-colors list");
         }
@@ -8080,7 +8077,7 @@ nsRuleNode::ComputeListData(void* aStartStruct,
 
   // list-style-type: string, none, inherit, initial
   const nsCSSValue* typeValue = aRuleData->ValueForListStyleType();
-  auto setListStyleType = [this, list](nsIAtom* type) {
+  auto setListStyleType = [this, list](nsAtom* type) {
     list->mCounterStyle = mPresContext->
       CounterStyleManager()->BuildCounterStyle(type);
   };
@@ -8110,7 +8107,7 @@ nsRuleNode::ComputeListData(void* aStartStruct,
       // from the items in EnumTable listed in HTMLLIElement.cpp and
       // HTMLSharedListElement.cpp.
       int32_t intValue = typeValue->GetIntValue();
-      nsCOMPtr<nsIAtom> name;
+      RefPtr<nsAtom> name;
       switch (intValue) {
         case NS_STYLE_LIST_STYLE_LOWER_ROMAN:
           name = nsGkAtoms::lowerRoman;
@@ -9760,7 +9757,7 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
     for (const nsCSSValueList* item = contextPropsValue->GetListValue();
          item; item = item->mNext)
     {
-      nsIAtom* atom = item->mValue.GetAtomValue();
+      nsAtom* atom = item->mValue.GetAtomValue();
       svg->mContextProps.AppendElement(atom);
       if (atom == nsGkAtoms::fill) {
         svg->mContextPropsBits |= NS_STYLE_CONTEXT_PROPERTY_FILL;
@@ -9795,13 +9792,13 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
   COMPUTE_END_INHERITED(SVG, svg)
 }
 
-static already_AddRefed<StyleBasicShape>
+static UniquePtr<StyleBasicShape>
 GetStyleBasicShapeFromCSSValue(const nsCSSValue& aValue,
                                GeckoStyleContext* aStyleContext,
                                nsPresContext* aPresContext,
                                RuleNodeCacheConditions& aConditions)
 {
-  RefPtr<StyleBasicShape> basicShape;
+  UniquePtr<StyleBasicShape> basicShape;
 
   nsCSSValue::Array* shapeFunction = aValue.GetArrayValue();
   nsCSSKeyword functionName =
@@ -9809,7 +9806,7 @@ GetStyleBasicShapeFromCSSValue(const nsCSSValue& aValue,
 
   if (functionName == eCSSKeyword_polygon) {
     MOZ_ASSERT(!basicShape, "did not expect value");
-    basicShape = new StyleBasicShape(StyleBasicShapeType::Polygon);
+    basicShape = MakeUnique<StyleBasicShape>(StyleBasicShapeType::Polygon);
     MOZ_ASSERT(shapeFunction->Count() > 1,
                "polygon has wrong number of arguments");
     size_t j = 1;
@@ -9846,7 +9843,7 @@ GetStyleBasicShapeFromCSSValue(const nsCSSValue& aValue,
       StyleBasicShapeType::Circle :
       StyleBasicShapeType::Ellipse;
     MOZ_ASSERT(!basicShape, "did not expect value");
-    basicShape = new StyleBasicShape(type);
+    basicShape = MakeUnique<StyleBasicShape>(type);
     const int32_t mask = SETCOORD_PERCENT | SETCOORD_LENGTH |
       SETCOORD_STORE_CALC | SETCOORD_ENUMERATED;
     size_t count = type == StyleBasicShapeType::Circle ? 2 : 3;
@@ -9882,7 +9879,7 @@ GetStyleBasicShapeFromCSSValue(const nsCSSValue& aValue,
     }
   } else if (functionName == eCSSKeyword_inset) {
     MOZ_ASSERT(!basicShape, "did not expect value");
-    basicShape = new StyleBasicShape(StyleBasicShapeType::Inset);
+    basicShape = MakeUnique<StyleBasicShape>(StyleBasicShapeType::Inset);
     MOZ_ASSERT(shapeFunction->Count() == 6,
                "inset function has wrong number of arguments");
     MOZ_ASSERT(shapeFunction->Item(1).GetUnit() != eCSSUnit_Null,
@@ -9943,7 +9940,7 @@ GetStyleBasicShapeFromCSSValue(const nsCSSValue& aValue,
     NS_NOTREACHED("unexpected basic shape function");
   }
 
-  return basicShape.forget();
+  return basicShape;
 }
 
 static void
@@ -9962,7 +9959,7 @@ SetStyleShapeSourceToCSSValue(
              "Expect one or both of a shape function and a reference box");
 
   StyleGeometryBox referenceBox = StyleGeometryBox::NoBox;
-  RefPtr<StyleBasicShape> basicShape;
+  UniquePtr<StyleBasicShape> basicShape;
 
   for (size_t i = 0; i < array->Count(); ++i) {
     const nsCSSValue& item = array->Item(i);
@@ -9978,7 +9975,7 @@ SetStyleShapeSourceToCSSValue(
   }
 
   if (basicShape) {
-    aShapeSource->SetBasicShape(basicShape, referenceBox);
+    aShapeSource->SetBasicShape(Move(basicShape), referenceBox);
   } else {
     aShapeSource->SetReferenceBox(referenceBox);
   }
@@ -10149,7 +10146,6 @@ nsRuleNode::ComputeSVGResetData(void* aStartStruct,
            parentSVGReset->mMaskType,
            NS_STYLE_MASK_TYPE_LUMINANCE);
 
-#ifdef MOZ_ENABLE_MASK_AS_SHORTHAND
   uint32_t maxItemCount = 1;
   bool rebuild = false;
 
@@ -10249,21 +10245,6 @@ nsRuleNode::ComputeSVGResetData(void* aStartStruct,
   if (rebuild) {
     FillAllBackgroundLists(svgReset->mMask, maxItemCount);
   }
-#else
-  // mask: none | <url>
-  const nsCSSValue* maskValue = aRuleData->ValueForMask();
-  if (eCSSUnit_URL == maskValue->GetUnit()) {
-    svgReset->mMask.mLayers[0].mSourceURI = maskValue->GetURLStructValue();
-  } else if (eCSSUnit_None == maskValue->GetUnit() ||
-             eCSSUnit_Initial == maskValue->GetUnit() ||
-             eCSSUnit_Unset == maskValue->GetUnit()) {
-    svgReset->mMask.mLayers[0].mSourceURI = nullptr;
-  } else if (eCSSUnit_Inherit == maskValue->GetUnit()) {
-    conditions.SetUncacheable();
-    svgReset->mMask.mLayers[0].mSourceURI =
-      parentSVGReset->mMask.mLayers[0].mSourceURI;
-  }
-#endif
 
   COMPUTE_END_RESET(SVGReset, svgReset)
 }

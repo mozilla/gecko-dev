@@ -10,9 +10,6 @@ browser.jar:
 * skin/classic/browser/syncedtabs/sidebar.css     (syncedtabs/sidebar.css)
 * skin/classic/browser/browser.css
 * skin/classic/browser/compacttheme.css
-  skin/classic/browser/livemark-folder.png
-  skin/classic/browser/menu-back.png
-  skin/classic/browser/menu-forward.png
   skin/classic/browser/menuPanel-customize.png
   skin/classic/browser/menuPanel-customize@2x.png
   skin/classic/browser/menuPanel-exit.png
@@ -23,11 +20,6 @@ browser.jar:
   skin/classic/browser/monitor_16-10.png
   skin/classic/browser/pageInfo.css
   skin/classic/browser/pageInfo.png
-  skin/classic/browser/privatebrowsing-mask-tabstrip.png
-  skin/classic/browser/privatebrowsing-mask-tabstrip-win7.png
-  skin/classic/browser/privatebrowsing-mask-titlebar.png
-  skin/classic/browser/privatebrowsing-mask-titlebar-win7.png
-  skin/classic/browser/privatebrowsing-mask-titlebar-win7-tall.png
   skin/classic/browser/searchbar.css
   skin/classic/browser/setDesktopBackground.css
   skin/classic/browser/slowStartup-16.png
@@ -49,10 +41,8 @@ browser.jar:
   skin/classic/browser/notification-icons/geo.svg              (notification-icons/geo.svg)
 * skin/classic/browser/places/places.css                       (places/places.css)
 * skin/classic/browser/places/organizer.css                    (places/organizer.css)
-  skin/classic/browser/places/query.png                        (places/query.png)
   skin/classic/browser/places/bookmarksMenu.png                (places/bookmarksMenu.png)
   skin/classic/browser/places/bookmarksToolbar.png             (places/bookmarksToolbar.png)
-  skin/classic/browser/places/calendar.png                     (places/calendar.png)
   skin/classic/browser/places/toolbarDropMarker.png            (places/toolbarDropMarker.png)
   skin/classic/browser/places/editBookmarkOverlay.css          (places/editBookmarkOverlay.css)
   skin/classic/browser/places/libraryToolbar.png               (places/libraryToolbar.png)
@@ -91,6 +81,4 @@ browser.jar:
 % override chrome://browser/skin/feeds/videoFeedIcon.png              chrome://browser/skin/feeds/feedIcon.png
 % override chrome://browser/skin/feeds/videoFeedIcon16.png            chrome://browser/skin/feeds/feedIcon16.png
 
-% override chrome://browser/skin/privatebrowsing-mask-tabstrip.png    chrome://browser/skin/privatebrowsing-mask-tabstrip-win7.png  os=WINNT osversion<=6.1
-% override chrome://browser/skin/privatebrowsing-mask-titlebar.png    chrome://browser/skin/privatebrowsing-mask-titlebar-win7.png  os=WINNT osversion<=6.1
 % override chrome://browser/skin/toolbarbutton-dropdown-arrow.png     chrome://browser/skin/toolbarbutton-dropdown-arrow-win7.png   os=WINNT osversion<=6.1

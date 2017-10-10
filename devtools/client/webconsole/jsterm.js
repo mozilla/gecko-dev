@@ -21,8 +21,8 @@ loader.lazyRequireGetter(this, "AutocompletePopup", "devtools/client/shared/auto
 loader.lazyRequireGetter(this, "ToolSidebar", "devtools/client/framework/sidebar", true);
 loader.lazyRequireGetter(this, "Messages", "devtools/client/webconsole/console-output", true);
 loader.lazyRequireGetter(this, "asyncStorage", "devtools/shared/async-storage");
-loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/main", true);
+loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/environment-client");
+loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/object-client");
 loader.lazyImporter(this, "VariablesView", "resource://devtools/client/shared/widgets/VariablesView.jsm");
 loader.lazyImporter(this, "VariablesViewController", "resource://devtools/client/shared/widgets/VariablesViewController.jsm");
 loader.lazyRequireGetter(this, "gDevTools", "devtools/client/framework/devtools", true);
@@ -549,6 +549,21 @@ JSTerm.prototype = {
   },
 
   /**
+   * Copy the object/variable by invoking the server
+   * which invokes the `copy(variable)` command and makes it
+   * available in the clipboard
+   * @param evalString - string which has the evaluation string to be copied
+   * @param options - object - Options for evaluation
+   * @return object
+   *         A promise object that is resolved when the server response is
+   *         received.
+   */
+  copyObject: function (evalString, evalOptions) {
+    return this.webConsoleClient.evaluateJSAsync(`copy(${evalString})`,
+      null, evalOptions);
+  },
+
+  /**
    * Retrieve the FrameActor ID given a frame depth.
    *
    * @param number frame
@@ -1006,7 +1021,11 @@ JSTerm.prototype = {
     inputNode.style.height = "auto";
 
     // Now resize the input field to fit its contents.
-    let scrollHeight = inputNode.inputField.scrollHeight;
+    // TODO: remove `inputNode.inputField.scrollHeight` when the old
+    // console UI is removed. See bug 1381834
+    let scrollHeight = inputNode.inputField ?
+      inputNode.inputField.scrollHeight : inputNode.scrollHeight;
+
     if (scrollHeight > 0) {
       inputNode.style.height = scrollHeight + "px";
     }

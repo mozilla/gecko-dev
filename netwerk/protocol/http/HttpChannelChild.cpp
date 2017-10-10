@@ -81,6 +81,7 @@ NS_IMETHODIMP
 InterceptStreamListener::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 {
   if (mOwner) {
+    mOwner->SynthesizeResponseStartTime(TimeStamp::Now());
     mOwner->DoOnStartRequest(mOwner, mContext);
   }
   return NS_OK;
@@ -139,6 +140,7 @@ NS_IMETHODIMP
 InterceptStreamListener::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext, nsresult aStatusCode)
 {
   if (mOwner) {
+    mOwner->SynthesizeResponseEndTime(TimeStamp::Now());
     mOwner->DoPreOnStopRequest(aStatusCode);
     mOwner->DoOnStopRequest(mOwner, aStatusCode, mContext);
   }
@@ -1074,11 +1076,6 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
   mCacheReadStart = timing.cacheReadStart;
   mCacheReadEnd = timing.cacheReadEnd;
 
-  Performance* documentPerformance = GetPerformance();
-  if (documentPerformance) {
-      documentPerformance->AddEntry(this, this);
-  }
-
   DoPreOnStopRequest(channelStatus);
 
   { // We must flush the queue before we Send__delete__
@@ -1119,6 +1116,11 @@ HttpChannelChild::DoPreOnStopRequest(nsresult aStatus)
   LOG(("HttpChannelChild::DoPreOnStopRequest [this=%p status=%" PRIx32 "]\n",
        this, static_cast<uint32_t>(aStatus)));
   mIsPending = false;
+
+  Performance* documentPerformance = GetPerformance();
+  if (documentPerformance) {
+      documentPerformance->AddEntry(this, this);
+  }
 
   if (!mCanceled && NS_SUCCEEDED(mStatus)) {
     mStatus = aStatus;
@@ -1164,7 +1166,7 @@ HttpChannelChild::DoOnStopRequest(nsIRequest* aRequest, nsresult aChannelStatus,
       aChannelStatus == NS_ERROR_BLOCKED_URI ||
       aChannelStatus == NS_ERROR_HARMFUL_URI ||
       aChannelStatus == NS_ERROR_PHISHING_URI) {
-    nsCString list, provider, prefix;
+    nsCString list, provider, fullhash;
 
     nsresult rv = GetMatchedList(list);
     NS_ENSURE_SUCCESS_VOID(rv);
@@ -1172,10 +1174,10 @@ HttpChannelChild::DoOnStopRequest(nsIRequest* aRequest, nsresult aChannelStatus,
     rv = GetMatchedProvider(provider);
     NS_ENSURE_SUCCESS_VOID(rv);
 
-    rv = GetMatchedPrefix(prefix);
+    rv = GetMatchedFullHash(fullhash);
     NS_ENSURE_SUCCESS_VOID(rv);
 
-    nsChannelClassifier::SetBlockedContent(this, aChannelStatus, list, provider, prefix);
+    nsChannelClassifier::SetBlockedContent(this, aChannelStatus, list, provider, fullhash);
   }
 
   MOZ_ASSERT(!mOnStopRequestCalled,
@@ -1818,7 +1820,7 @@ HttpChannelChild::FlushedForDiversion()
 void
 HttpChannelChild::ProcessSetClassifierMatchedInfo(const nsCString& aList,
                                                   const nsCString& aProvider,
-                                                  const nsCString& aPrefix)
+                                                  const nsCString& aFullHash)
 {
   LOG(("HttpChannelChild::ProcessSetClassifierMatchedInfo [this=%p]\n", this));
   MOZ_ASSERT(OnSocketThread());
@@ -1828,7 +1830,7 @@ HttpChannelChild::ProcessSetClassifierMatchedInfo(const nsCString& aList,
     NewRunnableMethod<const nsCString, const nsCString, const nsCString>
       ("HttpChannelChild::SetMatchedInfo",
        this, &HttpChannelChild::SetMatchedInfo,
-       aList, aProvider, aPrefix),
+       aList, aProvider, aFullHash),
     NS_DISPATCH_NORMAL);
 }
 
@@ -3537,9 +3539,7 @@ HttpChannelChild::OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>&
   MOZ_ASSERT(neckoTarget);
 
   rv = nsInputStreamPump::Create(getter_AddRefs(mSynthesizedResponsePump),
-                                 aSynthesizedInput,
-                                 int64_t(-1), int64_t(-1), 0, 0, true,
-                                 neckoTarget);
+                                 aSynthesizedInput, 0, 0, true, neckoTarget);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aSynthesizedInput->Close();
     return;
@@ -3568,12 +3568,6 @@ HttpChannelChild::ForceIntercepted(bool aPostRedirectChannelShouldIntercept,
   mPostRedirectChannelShouldIntercept = aPostRedirectChannelShouldIntercept;
   mPostRedirectChannelShouldUpgrade = aPostRedirectChannelShouldUpgrade;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-HttpChannelChild::ForceIntercepted(uint64_t aInterceptionID)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 void
@@ -3670,6 +3664,18 @@ HttpChannelChild::LogBlockedCORSRequest(const nsAString & aMessage)
     nsCORSListenerProxy::LogBlockedCORSRequest(innerWindowID, aMessage);
   }
   return NS_OK;
+}
+
+void
+HttpChannelChild::SynthesizeResponseStartTime(const TimeStamp& aTime)
+{
+  mTransactionTimings.responseStart = aTime;
+}
+
+void
+HttpChannelChild::SynthesizeResponseEndTime(const TimeStamp& aTime)
+{
+  mTransactionTimings.responseEnd = aTime;
 }
 
 } // namespace net

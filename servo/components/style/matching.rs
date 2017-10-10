@@ -81,30 +81,6 @@ impl ChildCascadeRequirement {
     }
 }
 
-bitflags! {
-    /// Flags that represent the result of replace_rules.
-    pub flags RulesChanged: u8 {
-        /// Normal rules are changed.
-        const NORMAL_RULES_CHANGED = 0x01,
-        /// Important rules are changed.
-        const IMPORTANT_RULES_CHANGED = 0x02,
-    }
-}
-
-impl RulesChanged {
-    /// Return true if there are any normal rules changed.
-    #[inline]
-    pub fn normal_rules_changed(&self) -> bool {
-        self.contains(NORMAL_RULES_CHANGED)
-    }
-
-    /// Return true if there are any important rules changed.
-    #[inline]
-    pub fn important_rules_changed(&self) -> bool {
-        self.contains(IMPORTANT_RULES_CHANGED)
-    }
-}
-
 /// Determines which styles are being cascaded currently.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CascadeVisitedMode {
@@ -150,7 +126,7 @@ trait PrivateMatchMethods: TElement {
         let inputs =
             CascadeInputs {
                 rules: Some(without_transition_rules),
-                visited_rules: primary_style.get_visited_style().and_then(|s| s.rules.clone()),
+                visited_rules: primary_style.visited_rules().cloned()
             };
 
         // Actually `PseudoElementResolution` doesn't really matter.
@@ -210,6 +186,10 @@ trait PrivateMatchMethods: TElement {
         use context::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL;
         use properties::longhands::display::computed_value as display;
 
+        if !restyle_hints.intersects(RESTYLE_SMIL) {
+            return;
+        }
+
         let display_changed_from_none = old_values.map_or(false, |old| {
             let old_display_style = old.get_box().clone_display();
             let new_display_style = new_values.get_box().clone_display();
@@ -218,17 +198,17 @@ trait PrivateMatchMethods: TElement {
         });
 
         if display_changed_from_none {
-          // When display value is changed from none to other, we need
-          // to traverse descendant elements in a subsequent normal
-          // traversal (we can't traverse them in this animation-only
-          // restyle since we have no way to know whether the decendants
-          // need to be traversed at the beginning of the animation-only
-          // restyle)
-          debug_assert!(restyle_hints.intersects(RESTYLE_SMIL),
-                        "Display animation should only happen for SMIL");
-          let task = ::context::SequentialTask::process_post_animation(*self,
-                                                                       DISPLAY_CHANGED_FROM_NONE_FOR_SMIL);
-          context.thread_local.tasks.push(task);
+            // When display value is changed from none to other, we need to
+            // traverse descendant elements in a subsequent normal
+            // traversal (we can't traverse them in this animation-only restyle
+            // since we have no way to know whether the decendants
+            // need to be traversed at the beginning of the animation-only
+            // restyle).
+            let task = ::context::SequentialTask::process_post_animation(
+                *self,
+                DISPLAY_CHANGED_FROM_NONE_FOR_SMIL,
+            );
+            context.thread_local.tasks.push(task);
         }
     }
 
@@ -243,10 +223,12 @@ trait PrivateMatchMethods: TElement {
         use context::UpdateAnimationsTasks;
 
         if context.shared.traversal_flags.for_animation_only() {
-            self.handle_display_change_for_smil_if_needed(context,
-                                                          old_values.as_ref().map(|v| &**v),
-                                                          new_values,
-                                                          restyle_hint);
+            self.handle_display_change_for_smil_if_needed(
+                context,
+                old_values.as_ref().map(|v| &**v),
+                new_values,
+                restyle_hint,
+            );
             return;
         }
 
@@ -535,7 +517,6 @@ pub trait MatchMethods : TElement {
         mut new_styles: ResolvedElementStyles,
         important_rules_changed: bool,
     ) -> ChildCascadeRequirement {
-        use app_units::Au;
         use dom::TNode;
         use std::cmp;
 
@@ -577,7 +558,7 @@ pub trait MatchMethods : TElement {
 
             if old_styles.primary.as_ref().map_or(true, |s| s.get_font().clone_font_size() != new_font_size) {
                 debug_assert!(self.owner_doc_matches_for_testing(device));
-                device.set_root_font_size(Au::from(new_font_size));
+                device.set_root_font_size(new_font_size.size());
                 // If the root font-size changed since last time, and something
                 // in the document did use rem units, ensure we recascade the
                 // entire tree.

@@ -16,8 +16,17 @@
   padding-inline-start: 18px;
 }
 
+.subviewbutton.download {
+  padding-inline-start: 14px;
+}
+
 photonpanelmultiview .toolbaritem-combined-buttons > label {
   padding-inline-start: 42px; /* 18px toolbarbutton padding + 16px icon + 8px label padding start */
+}
+
+#appMenu-addon-banners > .addon-banner-item,
+#appMenu-mainView > .panel-subview-body > .panel-banner-item {
+  padding-inline-start: 18px;
 }
 
 #appMenu-fxa-container[fxastatus="signedin"] > #appMenu-fxa-status > #appMenu-fxa-label {

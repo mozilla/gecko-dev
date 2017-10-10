@@ -8,7 +8,7 @@
 #include "nsPresContext.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
-#include "nsFormControlFrame.h"
+#include "nsCheckboxRadioFrame.h"
 #include "nsLayoutUtils.h"
 #include "mozilla/MouseEvents.h"
 #include "nsIContent.h"
@@ -53,7 +53,7 @@ public:
                              nsIFrame::Cursor& aCursor) override;
   // nsIFormContromFrame
   virtual void SetFocus(bool aOn, bool aRepaint) override;
-  virtual nsresult SetFormProperty(nsIAtom* aName,
+  virtual nsresult SetFormProperty(nsAtom* aName,
                                    const nsAString& aValue) override;
 };
 
@@ -70,7 +70,7 @@ void
 nsImageControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   if (!GetPrevInFlow()) {
-    nsFormControlFrame::RegUnRegAccessKey(this, false);
+    nsCheckboxRadioFrame::RegUnRegAccessKey(this, false);
   }
   nsImageFrame::DestroyFrom(aDestructRoot);
 }
@@ -125,7 +125,7 @@ nsImageControlFrame::Reflow(nsPresContext*           aPresContext,
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   if (!GetPrevInFlow() && (mState & NS_FRAME_FIRST_REFLOW)) {
-    nsFormControlFrame::RegUnRegAccessKey(this, true);
+    nsCheckboxRadioFrame::RegUnRegAccessKey(this, true);
   }
   return nsImageFrame::Reflow(aPresContext, aDesiredSize, aReflowInput, aStatus);
 }
@@ -191,7 +191,7 @@ nsImageControlFrame::GetCursor(const nsPoint&    aPoint,
 }
 
 nsresult
-nsImageControlFrame::SetFormProperty(nsIAtom* aName,
+nsImageControlFrame::SetFormProperty(nsAtom* aName,
                                      const nsAString& aValue)
 {
   return NS_OK;

@@ -11,9 +11,7 @@
 #include "gtest/MozGtestFriend.h"
 #include "nsStringGlue.h"
 #include "prtime.h"
-#ifdef ENABLE_INTL_API
 #include "unicode/udat.h"
-#endif
 
 namespace mozilla {
 
@@ -38,12 +36,6 @@ enum nsTimeFormatSelector : long
 
 class DateTimeFormat {
 public:
-  // performs a locale sensitive date formatting operation on the time_t parameter
-  static nsresult FormatTime(const nsDateFormatSelector aDateFormatSelector,
-                             const nsTimeFormatSelector aTimeFormatSelector,
-                             const time_t aTimetTime,
-                             nsAString& aStringOut);
-
   // performs a locale sensitive date formatting operation on the PRTime parameter
   static nsresult FormatPRTime(const nsDateFormatSelector aDateFormatSelector,
                                const nsTimeFormatSelector aTimeFormatSelector,
@@ -68,14 +60,12 @@ private:
   FRIEND_TEST(DateTimeFormat, FormatPRExplodedTimeForeign);
   FRIEND_TEST(DateTimeFormat, DateFormatSelectorsForeign);
 
-#ifdef ENABLE_INTL_API
   // performs a locale sensitive date formatting operation on the UDate parameter
   static nsresult FormatUDateTime(const nsDateFormatSelector aDateFormatSelector,
                                   const nsTimeFormatSelector aTimeFormatSelector,
                                   const UDate aUDateTime,
                                   const PRTimeParameters* aTimeParameters,
                                   nsAString& aStringOut);
-#endif
 
   static nsCString* mLocale;
 };

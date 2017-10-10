@@ -331,7 +331,7 @@ bool StringSplitHelper(JSContext* cx, HandleString str, HandleString sep,
 bool
 ArrayPopDense(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    MOZ_ASSERT(obj->is<ArrayObject>() || obj->is<UnboxedArrayObject>());
+    MOZ_ASSERT(obj->is<ArrayObject>());
 
     AutoDetectInvalidation adi(cx, rval);
 
@@ -350,21 +350,20 @@ ArrayPopDense(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 }
 
 bool
-ArrayPushDense(JSContext* cx, HandleObject obj, HandleValue v, uint32_t* length)
+ArrayPushDense(JSContext* cx, HandleArrayObject arr, HandleValue v, uint32_t* length)
 {
-    *length = GetAnyBoxedOrUnboxedArrayLength(obj);
-    DenseElementResult result =
-        SetOrExtendAnyBoxedOrUnboxedDenseElements(cx, obj, *length, v.address(), 1,
-                                                  ShouldUpdateTypes::DontUpdate);
+    *length = arr->length();
+    DenseElementResult result = arr->setOrExtendDenseElements(cx, *length, v.address(), 1,
+                                                              ShouldUpdateTypes::DontUpdate);
     if (result != DenseElementResult::Incomplete) {
         (*length)++;
         return result == DenseElementResult::Success;
     }
 
     // AutoDetectInvalidation uses GetTopJitJSScript(cx)->ionScript(), but it's
-    // possible the SetOrExtendAnyBoxedOrUnboxedDenseElements call already
-    // invalidated the IonScript. JSJitFrameIter::ionScript works when the
-    // script is invalidated so we use that instead.
+    // possible the setOrExtendDenseElements call already invalidated the
+    // IonScript. JSJitFrameIter::ionScript works when the script is invalidated
+    // so we use that instead.
     JSJitFrameIter frame(cx);
     MOZ_ASSERT(frame.type() == JitFrame_Exit);
     ++frame;
@@ -373,7 +372,7 @@ ArrayPushDense(JSContext* cx, HandleObject obj, HandleValue v, uint32_t* length)
     JS::AutoValueArray<3> argv(cx);
     AutoDetectInvalidation adi(cx, argv[0], ionScript);
     argv[0].setUndefined();
-    argv[1].setObject(*obj);
+    argv[1].setObject(*arr);
     argv[2].set(v);
     if (!js::array_push(cx, 1, argv.begin()))
         return false;
@@ -396,7 +395,7 @@ ArrayPushDense(JSContext* cx, HandleObject obj, HandleValue v, uint32_t* length)
 bool
 ArrayShiftDense(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    MOZ_ASSERT(obj->is<ArrayObject>() || obj->is<UnboxedArrayObject>());
+    MOZ_ASSERT(obj->is<ArrayObject>());
 
     AutoDetectInvalidation adi(cx, rval);
 
@@ -497,7 +496,7 @@ SetProperty(JSContext* cx, HandleObject obj, HandlePropertyName name, HandleValu
         // Aliased var assigns ignore readonly attributes on the property, as
         // required for initializing 'const' closure variables.
         Shape* shape = obj->as<NativeObject>().lookup(cx, name);
-        MOZ_ASSERT(shape && shape->hasSlot());
+        MOZ_ASSERT(shape && shape->isDataProperty());
         obj->as<NativeObject>().setSlotWithType(cx, shape, value);
         return true;
     }
@@ -542,10 +541,10 @@ InterruptCheck(JSContext* cx)
 }
 
 void*
-MallocWrapper(JSRuntime* rt, size_t nbytes)
+MallocWrapper(JS::Zone* zone, size_t nbytes)
 {
     AutoUnsafeCallWithABI unsafe;
-    return rt->pod_malloc<uint8_t>(nbytes);
+    return zone->pod_malloc<uint8_t>(nbytes);
 }
 
 JSObject*
@@ -823,8 +822,8 @@ bool
 DebugEpilogueOnBaselineReturn(JSContext* cx, BaselineFrame* frame, jsbytecode* pc)
 {
     if (!DebugEpilogue(cx, frame, pc, true)) {
-        // DebugEpilogue popped the frame by updating exitFP, so run the stop
-        // event here before we enter the exception handler.
+        // DebugEpilogue popped the frame by updating packedExitFP, so run the
+        // stop event here before we enter the exception handler.
         TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
         TraceLogStopEvent(logger, TraceLogger_Baseline);
         TraceLogStopEvent(logger, TraceLogger_Scripts);
@@ -850,8 +849,8 @@ DebugEpilogue(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool ok)
     frame->setOverridePc(script->lastPC());
 
     if (!ok) {
-        // Pop this frame by updating exitFP, so that the exception handling
-        // code will start at the previous frame.
+        // Pop this frame by updating packedExitFP, so that the exception
+        // handling code will start at the previous frame.
         JitFrameLayout* prefix = frame->framePrefix();
         EnsureBareExitFrame(cx, prefix);
         return false;
@@ -1050,8 +1049,7 @@ InitRestParameter(JSContext* cx, uint32_t length, Value* rest, HandleObject temp
         if (length > 0) {
             if (!arrRes->ensureElements(cx, length))
                 return nullptr;
-            arrRes->setDenseInitializedLength(length);
-            arrRes->initDenseElements(0, rest, length);
+            arrRes->initDenseElements(rest, length);
             arrRes->setLengthInt32(length);
         }
         return arrRes;
@@ -1237,7 +1235,6 @@ bool
 InitBaselineFrameForOsr(BaselineFrame* frame, InterpreterFrame* interpFrame,
                         uint32_t numStackValues)
 {
-    AutoUnsafeCallWithABI unsafe;
     return frame->initForOsr(interpFrame, numStackValues);
 }
 
@@ -1298,16 +1295,15 @@ Recompile(JSContext* cx)
 }
 
 bool
-SetDenseOrUnboxedArrayElement(JSContext* cx, HandleObject obj, int32_t index,
-                              HandleValue value, bool strict)
+SetDenseElement(JSContext* cx, HandleNativeObject obj, int32_t index, HandleValue value,
+                bool strict)
 {
     // This function is called from Ion code for StoreElementHole's OOL path.
-    // In this case we know the object is native or an unboxed array and that
-    // no type changes are needed.
+    // In this case we know the object is native and that no type changes are
+    // needed.
 
-    DenseElementResult result =
-        SetOrExtendAnyBoxedOrUnboxedDenseElements(cx, obj, index, value.address(), 1,
-                                                  ShouldUpdateTypes::DontUpdate);
+    DenseElementResult result = obj->setOrExtendDenseElements(cx, index, value.address(), 1,
+                                                              ShouldUpdateTypes::DontUpdate);
     if (result != DenseElementResult::Incomplete)
         return result == DenseElementResult::Success;
 
@@ -1606,7 +1602,7 @@ GetNativeDataProperty(JSContext* cx, NativeObject* obj, jsid id, Value* vp)
 
     while (true) {
         if (Shape* shape = obj->lastProperty()->search(cx, id)) {
-            if (!shape->hasSlot() || !shape->hasDefaultGetter())
+            if (!shape->isDataProperty())
                 return false;
 
             *vp = obj->getSlot(shape->slot());
@@ -1718,8 +1714,7 @@ SetNativeDataProperty(JSContext* cx, JSObject* obj, PropertyName* name, Value* v
     NativeObject* nobj = &obj->as<NativeObject>();
     Shape* shape = nobj->lastProperty()->search(cx, NameToId(name));
     if (!shape ||
-        !shape->hasSlot() ||
-        !shape->hasDefaultSetter() ||
+        !shape->isDataProperty() ||
         !shape->writable() ||
         nobj->watched())
     {
@@ -1782,8 +1777,9 @@ ObjectHasGetterSetter(JSContext* cx, JSObject* objArg, Shape* propShape)
     }
 }
 
+template <bool HasOwn>
 bool
-HasOwnNativeDataProperty(JSContext* cx, JSObject* obj, Value* vp)
+HasNativeDataProperty(JSContext* cx, JSObject* obj, Value* vp)
 {
     AutoUnsafeCallWithABI unsafe;
 
@@ -1793,31 +1789,50 @@ HasOwnNativeDataProperty(JSContext* cx, JSObject* obj, Value* vp)
     if (!ValueToAtomOrSymbol(cx, idVal, &id))
         return false;
 
-    if (!obj->isNative()) {
-        if (obj->is<UnboxedPlainObject>()) {
-            bool res = obj->as<UnboxedPlainObject>().containsUnboxedOrExpandoProperty(cx, id);
-            vp[1].setBoolean(res);
-            return true;
-        }
-        return false;
-    }
+    do {
+        if (obj->isNative()) {
+            if (obj->as<NativeObject>().lastProperty()->search(cx, id)) {
+                vp[1].setBoolean(true);
+                return true;
+            }
 
-    NativeObject* nobj = &obj->as<NativeObject>();
-    if (nobj->lastProperty()->search(cx, id)) {
-        vp[1].setBoolean(true);
-        return true;
-    }
-
-    // Property not found. Watch out for Class hooks.
-    if (MOZ_UNLIKELY(!nobj->is<PlainObject>())) {
-        if (ClassMayResolveId(cx->names(), nobj->getClass(), id, nobj))
+            // Fail if there's a resolve hook, unless the mayResolve hook tells
+            // us the resolve hook won't define a property with this id.
+            if (MOZ_UNLIKELY(ClassMayResolveId(cx->names(), obj->getClass(), id, obj)))
+                return false;
+        } else if (obj->is<UnboxedPlainObject>()) {
+            if (obj->as<UnboxedPlainObject>().containsUnboxedOrExpandoProperty(cx, id)) {
+                vp[1].setBoolean(true);
+                return true;
+            }
+        } else if (obj->is<TypedObject>()) {
+            if (obj->as<TypedObject>().typeDescr().hasProperty(cx->names(), id)) {
+                vp[1].setBoolean(true);
+                return true;
+            }
+        } else {
             return false;
-    }
+        }
+
+        // If implementing Object.hasOwnProperty, don't follow protochain.
+        if (HasOwn)
+            break;
+
+        // Get prototype. Objects that may allow dynamic prototypes are already
+        // filtered out above.
+        obj = obj->staticPrototype();
+    } while (obj);
 
     // Missing property.
     vp[1].setBoolean(false);
     return true;
 }
+
+template bool
+HasNativeDataProperty<true>(JSContext* cx, JSObject* obj, Value* vp);
+
+template bool
+HasNativeDataProperty<false>(JSContext* cx, JSObject* obj, Value* vp);
 
 JSString*
 TypeOfObject(JSObject* obj, JSRuntime* rt)

@@ -9,17 +9,14 @@ const ReactDOM = require("devtools/client/shared/vendor/react-dom");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
 
 const actions = require("devtools/client/webconsole/new-console-output/actions/index");
-const { batchActions } = require("devtools/client/shared/redux/middleware/debounce");
 const { createContextMenu } = require("devtools/client/webconsole/new-console-output/utils/context-menu");
 const { configureStore } = require("devtools/client/webconsole/new-console-output/store");
 
 const EventEmitter = require("devtools/shared/old-event-emitter");
-const ConsoleOutput = React.createFactory(require("devtools/client/webconsole/new-console-output/components/console-output"));
-const FilterBar = React.createFactory(require("devtools/client/webconsole/new-console-output/components/filter-bar"));
+const ConsoleOutput = React.createFactory(require("devtools/client/webconsole/new-console-output/components/ConsoleOutput"));
+const FilterBar = React.createFactory(require("devtools/client/webconsole/new-console-output/components/FilterBar"));
 
 let store = null;
-let queuedActions = [];
-let throttledDispatchTimeout = false;
 
 function NewConsoleOutputWrapper(parentNode, jsterm, toolbox, owner, document) {
   EventEmitter.decorate(this);
@@ -31,6 +28,11 @@ function NewConsoleOutputWrapper(parentNode, jsterm, toolbox, owner, document) {
   this.document = document;
 
   this.init = this.init.bind(this);
+
+  this.queuedMessageAdds = [];
+  this.queuedMessageUpdates = [];
+  this.queuedRequestUpdates = [];
+  this.throttledDispatchTimeout = false;
 
   store = configureStore(this.jsterm.hud);
 }
@@ -58,7 +60,8 @@ NewConsoleOutputWrapper.prototype = {
       }
 
       // Do not focus if something other than the output region was clicked
-      if (!target.closest(".webconsole-output")) {
+      // (including e.g. the clear messages button in toolbar)
+      if (!target.closest(".webconsole-output-wrapper")) {
         return;
       }
 
@@ -73,10 +76,11 @@ NewConsoleOutputWrapper.prototype = {
 
     const serviceContainer = {
       attachRefToHud,
-      emitNewMessage: (node, messageId) => {
+      emitNewMessage: (node, messageId, timeStamp) => {
         this.jsterm.hud.emit("new-messages", new Set([{
           node,
           messageId,
+          timeStamp,
         }]));
       },
       hudProxy: this.jsterm.hud.proxy,
@@ -84,7 +88,7 @@ NewConsoleOutputWrapper.prototype = {
         this.jsterm.hud.owner.openLink(url);
       },
       createElement: nodename => {
-        return this.document.createElementNS("http://www.w3.org/1999/xhtml", nodename);
+        return this.document.createElement(nodename);
       },
     };
 
@@ -97,12 +101,19 @@ NewConsoleOutputWrapper.prototype = {
       let messageEl = target.closest(".message");
       let clipboardText = messageEl ? messageEl.textContent : null;
 
+      let messageVariable = target.closest(".objectBox");
+      // Ensure that console.group and console.groupCollapsed commands are not captured
+      let variableText = (messageVariable
+        && !(messageEl.classList.contains("startGroup"))
+        && !(messageEl.classList.contains("startGroupCollapsed")))
+          ? messageVariable.textContent : null;
+
       // Retrieve closes actor id from the DOM.
       let actorEl = target.closest("[data-link-actor-id]");
       let actor = actorEl ? actorEl.dataset.linkActorId : null;
 
       let menu = createContextMenu(this.jsterm, this.parentNode,
-        { actor, clipboardText, message, serviceContainer });
+        { actor, clipboardText, variableText, message, serviceContainer });
 
       // Emit the "menu-open" event for testing.
       menu.once("open", () => this.emit("menu-open"));
@@ -180,20 +191,19 @@ NewConsoleOutputWrapper.prototype = {
 
     this.jsterm.focus();
   },
+
   dispatchMessageAdd: function (message, waitForResponse) {
-    let action = actions.messageAdd(message);
-    batchedMessageAdd(action);
     // Wait for the message to render to resolve with the DOM node.
     // This is just for backwards compatibility with old tests, and should
     // be removed once it's not needed anymore.
     // Can only wait for response if the action contains a valid message.
-    if (waitForResponse && action.message) {
-      let messageId = action.message.id;
-      return new Promise(resolve => {
+    let promise;
+    if (waitForResponse) {
+      promise = new Promise(resolve => {
         let jsterm = this.jsterm;
         jsterm.hud.on("new-messages", function onThisMessage(e, messages) {
           for (let m of messages) {
-            if (m.messageId === messageId) {
+            if (m.timeStamp === message.timestamp) {
               resolve(m.node);
               jsterm.hud.off("new-messages", onThisMessage);
               return;
@@ -201,14 +211,16 @@ NewConsoleOutputWrapper.prototype = {
           }
         });
       });
+    } else {
+      promise = Promise.resolve();
     }
 
-    return Promise.resolve();
+    this.batchedMessagesAdd(message);
+    return promise;
   },
 
   dispatchMessagesAdd: function (messages) {
-    const batchedActions = messages.map(message => actions.messageAdd(message));
-    store.dispatch(batchActions(batchedActions));
+    store.dispatch(actions.messagesAdd(messages));
   },
 
   dispatchMessagesClear: function () {
@@ -225,22 +237,63 @@ NewConsoleOutputWrapper.prototype = {
     // that networkInfo.updates has all we need.
     const NUMBER_OF_NETWORK_UPDATE = 8;
     if (res.networkInfo.updates.length === NUMBER_OF_NETWORK_UPDATE) {
-      batchedMessageAdd(actions.networkMessageUpdate(message));
-      this.jsterm.hud.emit("network-message-updated", res);
+      this.batchedMessageUpdates({ res, message });
     }
   },
 
   dispatchRequestUpdate: function (id, data) {
-    batchedMessageAdd(actions.networkUpdateRequest(id, data));
+    this.batchedRequestUpdates({ id, data });
+  },
 
-    // Fire an event indicating that all data fetched from
-    // the backend has been received. This is based on
-    // 'FirefoxDataProvider.isQueuePayloadReady', see more
-    // comments in that method.
-    // (netmonitor/src/connector/firefox-data-provider).
-    // This event might be utilized in tests to find the right
-    // time when to finish.
-    this.jsterm.hud.emit("network-request-payload-ready", {id, data});
+  batchedMessageUpdates: function (info) {
+    this.queuedMessageUpdates.push(info);
+    this.setTimeoutIfNeeded();
+  },
+
+  batchedRequestUpdates: function (message) {
+    this.queuedRequestUpdates.push(message);
+    this.setTimeoutIfNeeded();
+  },
+
+  batchedMessagesAdd: function (message) {
+    this.queuedMessageAdds.push(message);
+    this.setTimeoutIfNeeded();
+  },
+
+  setTimeoutIfNeeded: function () {
+    if (this.throttledDispatchTimeout) {
+      return;
+    }
+
+    this.throttledDispatchTimeout = setTimeout(() => {
+      this.throttledDispatchTimeout = null;
+
+      store.dispatch(actions.messagesAdd(this.queuedMessageAdds));
+      this.queuedMessageAdds = [];
+
+      if (this.queuedMessageUpdates.length > 0) {
+        this.queuedMessageUpdates.forEach(({ message, res }) => {
+          store.dispatch(actions.networkMessageUpdate(message));
+          this.jsterm.hud.emit("network-message-updated", res);
+        });
+        this.queuedMessageUpdates = [];
+      }
+      if (this.queuedRequestUpdates.length > 0) {
+        this.queuedRequestUpdates.forEach(({ id, data}) => {
+          store.dispatch(actions.networkUpdateRequest(id, data));
+        });
+        this.queuedRequestUpdates = [];
+
+        // Fire an event indicating that all data fetched from
+        // the backend has been received. This is based on
+        // 'FirefoxDataProvider.isQueuePayloadReady', see more
+        // comments in that method.
+        // (netmonitor/src/connector/firefox-data-provider).
+        // This event might be utilized in tests to find the right
+        // time when to finish.
+        this.jsterm.hud.emit("network-request-payload-ready");
+      }
+    }, 50);
   },
 
   // Should be used for test purpose only.
@@ -248,17 +301,6 @@ NewConsoleOutputWrapper.prototype = {
     return store;
   }
 };
-
-function batchedMessageAdd(action) {
-  queuedActions.push(action);
-  if (!throttledDispatchTimeout) {
-    throttledDispatchTimeout = setTimeout(() => {
-      store.dispatch(batchActions(queuedActions));
-      queuedActions = [];
-      throttledDispatchTimeout = null;
-    }, 50);
-  }
-}
 
 // Exports from this module
 module.exports = NewConsoleOutputWrapper;

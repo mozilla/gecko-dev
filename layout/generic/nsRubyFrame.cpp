@@ -115,7 +115,8 @@ nsRubyFrame::Reflow(nsPresContext* aPresContext,
   }
 
   // Grab overflow frames from prev-in-flow and its own.
-  MoveOverflowToChildList();
+  MoveInlineOverflowToChildList(
+    aReflowInput.mLineLayout->LineContainerFrame());
 
   // Clear leadings
   mLeadings.Reset();
@@ -228,7 +229,7 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
       aStatus.Reset();
       aStatus.SetInlineLineBreakAfter();
       aStatus.SetIncomplete();
-      PushChildren(aBaseContainer, aBaseContainer->GetPrevSibling());
+      PushChildrenToOverflow(aBaseContainer, aBaseContainer->GetPrevSibling());
       aReflowInput.mLineLayout->SetDirtyNextLine();
     }
     // This base container is not placed at all, we can skip all
@@ -274,7 +275,7 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
       // Always push the next frame after the last child in this segment.
       // It is possible that we pulled it back before our next-in-flow
       // drain our overflow.
-      PushChildren(lastChild->GetNextSibling(), lastChild);
+      PushChildrenToOverflow(lastChild->GetNextSibling(), lastChild);
       aReflowInput.mLineLayout->SetDirtyNextLine();
     }
   } else {

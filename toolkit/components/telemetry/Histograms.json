@@ -2481,7 +2481,7 @@
   },
   "TLS_EARLY_DATA_NEGOTIATED": {
     "record_in_processes": ["main", "content"],
-    "expires_in_version": "58",
+    "expires_in_version": "62",
     "kind": "enumerated",
     "n_values": 3,
     "description": "Sending TLS early data was possible: 0 - not possible, 1 - possible but not used, 2 - possible and used.",
@@ -2490,7 +2490,7 @@
   },
   "TLS_EARLY_DATA_ACCEPTED": {
     "record_in_processes": ["main", "content"],
-    "expires_in_version": "58",
+    "expires_in_version": "62",
     "kind": "boolean",
     "description": "TLS early data was used and it was accepted (true) or rejected (false) by the remote host.",
     "alert_emails": ["necko@mozilla.com"],
@@ -2498,7 +2498,7 @@
   },
   "TLS_EARLY_DATA_BYTES_WRITTEN": {
     "record_in_processes": ["main", "content"],
-    "expires_in_version": "58",
+    "expires_in_version": "62",
     "kind": "exponential",
     "high": 60000,
     "n_buckets": 100,
@@ -5014,6 +5014,27 @@
     "bug_numbers": [1338082],
     "description": "Negative cache duration (ms) received in fullhash response from any v4 provider"
   },
+  "URLCLASSIFIER_THREATHIT_NETWORK_ERROR": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["tnguyen@mozilla.com, safebrowsing-telemetry@mozilla.org"],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "enumerated",
+    "n_values": 30,
+    "bug_numbers": [1351147],
+    "description": "Whether or not an error was encountered while sending a Safe Browsing ThreatHit report. (0=sucess, 1=unknown error, 2=already connected, 3=not connected, 4=connection refused,5=net timeout, 6=offline, 7=port access not allowed, 8=net reset, 9=net interrupt, 10=proxy connection refused, 11=partial transfer, 12=inadequate security, 13=unknown host, 14=dns lookup queue full, 15=unknown proxy host)"
+  },
+  "URLCLASSIFIER_THREATHIT_REMOTE_STATUS": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["tnguyen@mozilla.com, safebrowsing-telemetry@mozilla.org"],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "enumerated",
+    "n_values": 16,
+    "bug_numbers": [1351147],
+    "description": "Server HTTP status code from Safe Browsing ThreatHit report. (0=1xx, 1=200, 2=2xx, 3=204, 4=3xx, 5=400, 6=4xx, 7=403, 8=404, 9=408, 10=413, 11=5xx, 12=502|504|511, 13=503, 14=505, 15=Other)"
+  },
+
   "CSP_DOCUMENTS_COUNT": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["seceng-telemetry@mozilla.com"],
@@ -5206,6 +5227,16 @@
     "high": 513,
     "n_buckets" : 64,
     "description": "The width dimension of the 'sizes' attribute for <link rel=icon>."
+  },
+  "PAGE_METADATA_SIZE": {
+    "record_in_processes": ["main", "content"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "high": 500,
+    "n_buckets": 10,
+    "alert_emails": ["najiang@mozilla.com", "activity-stream@mozilla.com"],
+    "bug_numbers": [1399880],
+    "description": "The size of the description and preview image url for page metadata (Bytes)"
   },
   "FENNEC_DISTRIBUTION_REFERRER_INVALID": {
     "record_in_processes": ["main", "content"],
@@ -6499,6 +6530,46 @@
     "releaseChannelCollection": "opt-out",
     "description":"Count how the Preferences are opened."
   },
+  "FX_PAGE_ACTION_ADDED": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["gijs@mozilla.com"],
+    "bug_numbers": [1393843],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
+               "sendToDevice", "other"],
+    "description": "Count how many times people add items to the url bar"
+  },
+  "FX_PAGE_ACTION_REMOVED": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["gijs@mozilla.com"],
+    "bug_numbers": [1393843],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
+               "sendToDevice", "other"],
+    "description": "Count how many times people remove items from the url bar"
+  },
+  "FX_PAGE_ACTION_URLBAR_USED": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["gijs@mozilla.com"],
+    "bug_numbers": [1393843],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
+               "sendToDevice", "other"],
+    "description": "Count how many times people use items in the url bar"
+  },
+  "FX_PAGE_ACTION_PANEL_USED": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["gijs@mozilla.com"],
+    "bug_numbers": [1393843],
+    "expires_in_version": "60",
+    "kind": "categorical",
+    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
+               "sendToDevice", "other"],
+    "description": "Count how many times people use items from the main page action button"
+  },
   "INPUT_EVENT_RESPONSE_MS": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
@@ -7268,7 +7339,8 @@
       "eChannelOpen",
       "eRedirect",
       "abort",
-      "timeout"
+      "timeout",
+      "eTooLate"
     ],
     "description": "Counts of the different ways sending a Telemetry ping can fail."
   },
@@ -8419,6 +8491,14 @@
     "description": "Records a value each time Fennec remote decoding process crashes unexpected while decoding media content.",
     "releaseChannelCollection": "opt-out"
   },
+  "MEDIA_ANDROID_VIDEO_TUNNELING_SUPPORT": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["bwu@mozilla.com", "jolin@mozilla.com"],
+    "expires_in_version": "60",
+    "kind": "boolean",
+    "description": "Records whether tunneled playback is supported by a video decoder when creating it.",
+    "bug_numbers": [1403849]
+  },
   "MEDIA_EME_SECURE_CONTEXT": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["cpearce@mozilla.com"],
@@ -8523,7 +8603,7 @@
   "VIDEO_CAN_CREATE_AAC_DECODER": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["cpearce@mozilla.com"],
-    "expires_in_version": "58",
+    "expires_in_version": "68",
     "kind": "boolean",
     "description": "Whether at startup we report we can playback MP4 (AAC) audio. This is single value is recorded at every startup.",
     "releaseChannelCollection": "opt-out"
@@ -8531,7 +8611,7 @@
   "VIDEO_CAN_CREATE_H264_DECODER": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["cpearce@mozilla.com"],
-    "expires_in_version": "58",
+    "expires_in_version": "68",
     "kind": "boolean",
     "description": "Whether at startup we report we can playback MP4 (H.264) video. This is single value is recorded at every startup.",
     "releaseChannelCollection": "opt-out"
@@ -9220,6 +9300,14 @@
     "kind": "boolean",
     "description": "Was DataChannels negotiated"
   },
+  "WEBRTC_RTCP_MUX": {
+    "record_in_processes": ["main", "content"],
+    "bug_numbers": [1402221],
+    "alert_emails": ["webrtc-telemetry-alerts@mozilla.com", "nohlmeier@mozilla.com"],
+    "expires_in_version": "62",
+    "kind": "boolean",
+    "description": "Was RTCP-MUX negotiated for a track"
+  },
   "WEBRTC_CALL_TYPE": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["webrtc-telemetry-alerts@mozilla.com"],
@@ -9227,6 +9315,25 @@
     "kind": "enumerated",
     "n_values": 8,
     "description": "Type of call: (Bitmask) Audio = 1, Video = 2, DataChannels = 4"
+  },
+  "MEDIA_RECORDER_RECORDING_DURATION": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["bvandyk@mozilla.com"],
+    "expires_in_version": "60",
+    "kind": "exponential",
+    "high": 3600,
+    "n_buckets": 100,
+    "bug_numbers": [1400757],
+    "description": "The length of time (in seconds) that a recording lasted. Recorded when a recorder stops"
+  },
+  "MEDIA_RECORDER_TRACK_ENCODER_INIT_TIMEOUT_TYPE": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["bvandyk@mozilla.com"],
+    "expires_in_version": "60",
+    "kind": "enumerated",
+    "n_values": 4,
+    "bug_numbers": [1400757],
+    "description": "Records the type of timeout that happened while attempting to init the encoder. Audio = 0, Video = 1. Recorded immediately following a timeout"
   },
   "DEVTOOLS_ENTRY_POINT": {
     "record_in_processes": ["main"],
@@ -12962,24 +13069,6 @@
     "n_buckets": 10,
     "bug_numbers": [1331804],
     "description": "The time a given main thread runnable took to run (in milliseconds). The key comes from the runnables nsINamed::name value."
-  },
-  "MOZ_BLOB_IN_XHR": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["amarchesini@mozilla.com"],
-    "expires_in_version": "58",
-    "kind": "boolean",
-    "bug_numbers": [1335365],
-    "releaseChannelCollection": "opt-out",
-    "description": "XMLHttpRequest.responseType set to moz-blob"
-  },
-  "MOZ_CHUNKED_TEXT_IN_XHR": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["amarchesini@mozilla.com"],
-    "expires_in_version": "58",
-    "kind": "boolean",
-    "bug_numbers": [1335365],
-    "releaseChannelCollection": "opt-out",
-    "description": "XMLHttpRequest.responseType set to moz-chunked-text"
   },
   "MOZ_CHUNKED_ARRAYBUFFER_IN_XHR": {
     "record_in_processes": ["main", "content"],

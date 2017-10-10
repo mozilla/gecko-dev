@@ -686,7 +686,7 @@ logging::Tree(const char* aTitle, const char* aMsgText,
     printf("%s", NS_ConvertUTF16toUTF8(level).get());
     logging::AccessibleInfo(prefix, root);
     if (root->FirstChild() && !root->FirstChild()->IsDoc()) {
-      level.Append(NS_LITERAL_STRING("  "));
+      level.AppendLiteral(u"  ");
       root = root->FirstChild();
       continue;
     }
@@ -724,7 +724,7 @@ logging::DOMTree(const char* aTitle, const char* aMsgText,
     printf("%s", NS_ConvertUTF16toUTF8(level).get());
     logging::Node("", root);
     if (root->GetFirstChild()) {
-      level.Append(NS_LITERAL_STRING("  "));
+      level.AppendLiteral(u"  ");
       root = root->GetFirstChild();
       continue;
     }
@@ -853,7 +853,7 @@ logging::Node(const char* aDescr, nsINode* aNode)
   nsAutoCString tag;
   elm->NodeInfo()->NameAtom()->ToUTF8String(tag);
 
-  nsIAtom* idAtom = elm->GetID();
+  nsAtom* idAtom = elm->GetID();
   nsAutoCString id;
   if (idAtom)
     idAtom->ToUTF8String(id);
@@ -919,7 +919,7 @@ logging::AccessibleInfo(const char* aDescr, Accessible* aAccessible)
     nsAutoCString tag;
     el->NodeInfo()->NameAtom()->ToUTF8String(tag);
 
-    nsIAtom* idAtom = el->GetID();
+    nsAtom* idAtom = el->GetID();
     nsAutoCString id;
     if (idAtom) {
       idAtom->ToUTF8String(id);

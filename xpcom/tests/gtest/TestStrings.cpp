@@ -426,20 +426,6 @@ TEST(Strings, equals_ic)
   EXPECT_FALSE(s.LowerCaseEqualsLiteral("view-source"));
 }
 
-TEST(Strings, fixed_string)
-{
-  char buf[256] = "hello world";
-
-  nsFixedCString s(buf, sizeof(buf));
-
-  EXPECT_EQ(s.Length(), strlen(buf));
-
-  EXPECT_STREQ(s.get(), buf);
-
-  s.Assign("foopy doopy doo");
-  EXPECT_EQ(s.get(), buf);
-}
-
 TEST(Strings, concat)
 {
   nsCString bar("bar");
@@ -999,7 +985,7 @@ TEST(Strings, Split)
 
   size_t counter = 0;
   for (const nsACString& token : one.Split(',')) {
-    EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("one")));
+    EXPECT_TRUE(token.EqualsLiteral("one"));
     counter++;
   }
   EXPECT_EQ(counter, (size_t)1);
@@ -1007,9 +993,9 @@ TEST(Strings, Split)
   counter = 0;
   for (const nsACString& token : two.Split(';')) {
     if (counter == 0) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("one")));
+      EXPECT_TRUE(token.EqualsLiteral("one"));
     } else if (counter == 1) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("two")));
+      EXPECT_TRUE(token.EqualsLiteral("two"));
     }
     counter++;
   }
@@ -1018,11 +1004,11 @@ TEST(Strings, Split)
   counter = 0;
   for (const nsACString& token : three.Split('-')) {
     if (counter == 0) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("one")));
+      EXPECT_TRUE(token.EqualsLiteral("one"));
     } else if (counter == 1) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("")));
+      EXPECT_TRUE(token.EqualsLiteral(""));
     } else if (counter == 2) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("three")));
+      EXPECT_TRUE(token.EqualsLiteral("three"));
     }
     counter++;
   }
@@ -1038,9 +1024,9 @@ TEST(Strings, Split)
   counter = 0;
   for (const nsACString& token : delimStart.Split('-')) {
     if (counter == 0) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("")));
+      EXPECT_TRUE(token.EqualsLiteral(""));
     } else if (counter == 1) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("two")));
+      EXPECT_TRUE(token.EqualsLiteral("two"));
     }
     counter++;
   }
@@ -1049,9 +1035,9 @@ TEST(Strings, Split)
   counter = 0;
   for (const nsACString& token : delimEnd.Split('-')) {
     if (counter == 0) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("one")));
+      EXPECT_TRUE(token.EqualsLiteral("one"));
     } else if (counter == 1) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_CSTRING("")));
+      EXPECT_TRUE(token.EqualsLiteral(""));
     }
     counter++;
   }

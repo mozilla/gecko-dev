@@ -23,11 +23,7 @@ static uint16_t GetUnitTypeForString(const nsAString& unitStr);
 void
 SVGLength::GetValueAsString(nsAString &aValue) const
 {
-  char16_t buf[24];
-  nsTextFormatter::snprintf(buf, sizeof(buf)/sizeof(char16_t),
-                            u"%g",
-                            (double)mValue);
-  aValue.Assign(buf);
+  nsTextFormatter::ssprintf(aValue, u"%g", (double)mValue);
 
   nsAutoString unitString;
   GetUnitString(unitString, mUnit);
@@ -188,7 +184,7 @@ SVGLength::GetUserUnitsPerPercent(const nsSVGElement *aElement, uint8_t aAxis)
 // Helpers:
 
 // These items must be at the same index as the nsIDOMSVGLength constants!
-static nsIAtom** const unitMap[] =
+static nsAtom** const unitMap[] =
 {
   nullptr, /* SVG_LENGTHTYPE_UNKNOWN */
   nullptr, /* SVG_LENGTHTYPE_NUMBER */
@@ -221,7 +217,7 @@ GetUnitTypeForString(const nsAString& unitStr)
   if (unitStr.IsEmpty())
     return nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER;
 
-  nsIAtom* unitAtom = NS_GetStaticAtom(unitStr);
+  nsAtom* unitAtom = NS_GetStaticAtom(unitStr);
 
   if (unitAtom) {
     for (uint32_t i = 1 ; i < ArrayLength(unitMap) ; i++) {

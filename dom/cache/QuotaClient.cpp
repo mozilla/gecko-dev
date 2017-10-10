@@ -70,6 +70,40 @@ GetBodyUsage(nsIFile* aDir, const Atomic<bool>& aCanceled,
   return NS_OK;
 }
 
+static nsresult
+LockedGetPaddingSizeFromDB(nsIFile* aDir, const nsACString& aGroup,
+                           const nsACString& aOrigin, int64_t* aPaddingSizeOut)
+{
+  MOZ_DIAGNOSTIC_ASSERT(aDir);
+  MOZ_DIAGNOSTIC_ASSERT(aPaddingSizeOut);
+
+  *aPaddingSizeOut = 0;
+
+  nsCOMPtr<mozIStorageConnection> conn;
+  QuotaInfo quotaInfo;
+  quotaInfo.mGroup = aGroup;
+  quotaInfo.mOrigin = aOrigin;
+  nsresult rv = mozilla::dom::cache::
+                OpenDBConnection(quotaInfo, aDir, getter_AddRefs(conn));
+  if (rv == NS_ERROR_FILE_NOT_FOUND ||
+      rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST) {
+    // Return NS_OK with size = 0 if both the db and padding file don't exist.
+    // There is no other way to get the overall padding size of an origin.
+    return NS_OK;
+  }
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  int64_t paddingSize = 0;
+  rv = mozilla::dom::cache::
+       LockedDirectoryPaddingRestore(aDir, conn, /* aMustRestore */ false,
+                                     &paddingSize);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  *aPaddingSizeOut = paddingSize;
+
+  return rv;
+}
+
 class CacheQuotaClient final : public Client
 {
   static CacheQuotaClient* sInstance;
@@ -143,18 +177,7 @@ public:
           NS_WARN_IF(NS_FAILED(mozilla::dom::cache::
                                LockedDirectoryPaddingGet(dir,
                                                          &paddingSize)))) {
-        nsCOMPtr<mozIStorageConnection> conn;
-        QuotaInfo quotaInfo;
-        quotaInfo.mGroup = aGroup;
-        quotaInfo.mOrigin = aOrigin;
-        rv = mozilla::dom::cache::
-             OpenDBConnection(quotaInfo, dir, getter_AddRefs(conn));
-        if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-        rv = mozilla::dom::cache::LockedDirectoryPaddingRestore(dir, conn);
-        if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-        rv = mozilla::dom::cache::LockedDirectoryPaddingGet(dir, &paddingSize);
+        rv = LockedGetPaddingSizeFromDB(dir, aGroup, aOrigin, &paddingSize);
         if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
       }
     }
@@ -329,23 +352,34 @@ public:
                                          aDecreaseSize,
                                          temporaryPaddingFileExist);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        mozilla::dom::cache::
-        LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::TMP_FILE);
+        // Don't delete the temporary padding file here to force the next action
+        // recalculate the padding size.
         return rv;
       }
 
       rv = aCommitHook();
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        mozilla::dom::cache::
-        LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::TMP_FILE);
+        // Don't delete the temporary padding file here to force the next action
+        // recalculate the padding size.
         return rv;
       }
 
       rv = mozilla::dom::cache::LockedDirectoryPaddingFinalizeWrite(aBaseDir);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         // Force restore file next time.
-        mozilla::dom::cache::
-        LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE);
+        Unused << mozilla::dom::cache::
+                  LockedDirectoryPaddingDeleteFile(aBaseDir,
+                                                   DirPaddingFile::FILE);
+
+        // Ensure that we are able to force the padding file to be restored.
+        MOZ_ASSERT(
+          mozilla::dom::cache::
+          DirectoryPaddingFileExists(aBaseDir, DirPaddingFile::TMP_FILE));
+
+        // Since both the body file and header have been stored in the
+        // file-system, just make the action be resolve and let the padding file
+        // be restored in the next action.
+        rv = NS_OK;
       }
     }
 
@@ -360,10 +394,14 @@ public:
     MOZ_DIAGNOSTIC_ASSERT(aBaseDir);
     MOZ_DIAGNOSTIC_ASSERT(aConn);
 
+    int64_t dummyPaddingSize;
+
     MutexAutoLock lock(mDirPaddingFileMutex);
 
     nsresult rv =
-      mozilla::dom::cache::LockedDirectoryPaddingRestore(aBaseDir, aConn);
+      mozilla::dom::cache::
+      LockedDirectoryPaddingRestore(aBaseDir, aConn, /* aMustRestore */ true,
+                                    &dummyPaddingSize);
     Unused << NS_WARN_IF(NS_FAILED(rv));
 
     return rv;
@@ -378,20 +416,21 @@ public:
 
     MutexAutoLock lock(mDirPaddingFileMutex);
 
-    // Remove temporary file if we have one.
-    nsresult rv =
-      mozilla::dom::cache::
-      LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::TMP_FILE);
-    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
-    MOZ_DIAGNOSTIC_ASSERT(mozilla::dom::cache::
-                          DirectoryPaddingFileExists(aBaseDir,
-                                                     DirPaddingFile::FILE));
+    MOZ_ASSERT(mozilla::dom::cache::
+               DirectoryPaddingFileExists(aBaseDir, DirPaddingFile::FILE));
 
     int64_t paddingSize = 0;
-    rv = mozilla::dom::cache::LockedDirectoryPaddingGet(aBaseDir, &paddingSize);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      // If read file fail, there is nothing we can do to recover the file.
+    bool temporaryPaddingFileExist =
+      mozilla::dom::cache::
+      DirectoryPaddingFileExists(aBaseDir, DirPaddingFile::TMP_FILE);
+
+    if (temporaryPaddingFileExist ||
+        NS_WARN_IF(NS_FAILED(
+          mozilla::dom::cache::
+          LockedDirectoryPaddingGet(aBaseDir, &paddingSize)))) {
+      // XXXtt: Maybe have a method in the QuotaManager to clean the usage under
+      // the quota client and the origin.
+      // There is nothing we can do to recover the file.
       NS_WARNING("Cannnot read padding size from file!");
       paddingSize = 0;
     }
@@ -400,8 +439,14 @@ public:
       mozilla::dom::cache::DecreaseUsageForQuotaInfo(aQuotaInfo, paddingSize);
     }
 
+    nsresult rv =
+      mozilla::dom::cache::
+      LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE);
+    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+    // Remove temporary file if we have one.
     rv = mozilla::dom::cache::
-         LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::FILE);
+         LockedDirectoryPaddingDeleteFile(aBaseDir, DirPaddingFile::TMP_FILE);
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
     rv = mozilla::dom::cache::LockedDirectoryPaddingInit(aBaseDir);

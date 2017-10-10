@@ -54,11 +54,17 @@ public class Experiments {
     // Show AddOns menu-item in top level menu
     public static final String TOP_ADDONS_MENU = "top-addons-menu";
 
+    // User in this group will enable Custom Tabs
+    public static final String CUSTOM_TABS = "custom-tabs";
+
     // Enable full bookmark management(full-page dialog, bookmark/folder modification, etc.)
     public static final String FULL_BOOKMARK_MANAGEMENT = "full-bookmark-management";
 
     // Enable Leanplum SDK
     public static final String LEANPLUM = "leanplum-start";
+
+    // Enable to use testing user id for Leanplum
+    public static final String LEANPLUM_DEBUG = "leanplum-debug";
 
     // Enable processing of background telemetry.
     public static final String ENABLE_PROCESSING_BACKGROUND_TELEMETRY = "process-background-telemetry";

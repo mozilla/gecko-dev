@@ -618,7 +618,7 @@ Navigator::CookieEnabled()
 
   // Pass null for the channel, just like the cookie service does.
   nsCookieAccess access;
-  nsresult rv = permMgr->CanAccess(codebaseURI, nullptr, &access);
+  nsresult rv = permMgr->CanAccess(doc->NodePrincipal(), &access);
   NS_ENSURE_SUCCESS(rv, cookieEnabled);
 
   if (access != nsICookiePermission::ACCESS_DEFAULT) {
@@ -1493,14 +1493,19 @@ Navigator::GetActiveVRDisplays(nsTArray<RefPtr<VRDisplay>>& aDisplays) const
 {
   /**
    * Get only the active VR displays.
-   * Callers do not wish to VRDisplay::RefreshVRDisplays, as the enumeration may
-   * activate hardware that is not yet intended to be used.
+   * GetActiveVRDisplays should only enumerate displays that
+   * are already active without causing any other hardware to be
+   * activated.
+   * We must not call nsGlobalWindow::NotifyVREventListenerAdded here,
+   * as that would cause enumeration and activation of other VR hardware.
+   * Activating VR hardware is intrusive to the end user, as it may
+   * involve physically powering on devices that the user did not
+   * intend to use.
    */
   if (!mWindow || !mWindow->GetDocShell()) {
     return;
   }
   nsGlobalWindow* win = nsGlobalWindow::Cast(mWindow);
-  win->NotifyVREventListenerAdded();
   nsTArray<RefPtr<VRDisplay>> displays;
   if (win->UpdateVRDisplays(displays)) {
     for (auto display : displays) {

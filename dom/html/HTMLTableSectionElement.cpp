@@ -36,13 +36,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLTableSectionElement,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRows)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_IMPL_ADDREF_INHERITED(HTMLTableSectionElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLTableSectionElement, Element)
-
-// QueryInterface implementation for HTMLTableSectionElement
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(HTMLTableSectionElement)
-NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
-
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLTableSectionElement,
+                                               nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLTableSectionElement)
 
@@ -133,7 +128,7 @@ HTMLTableSectionElement::DeleteRow(int32_t aValue, ErrorResult& aError)
 
 bool
 HTMLTableSectionElement::ParseAttribute(int32_t aNamespaceID,
-                                        nsIAtom* aAttribute,
+                                        nsAtom* aAttribute,
                                         const nsAString& aValue,
                                         nsAttrValue& aResult)
 {
@@ -184,7 +179,7 @@ HTMLTableSectionElement::MapAttributesIntoRule(const nsMappedAttributes* aAttrib
 }
 
 NS_IMETHODIMP_(bool)
-HTMLTableSectionElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLTableSectionElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry attributes[] = {
     { &nsGkAtoms::align },

@@ -18,11 +18,6 @@ loader.lazyRequireGetter(this, "gDevToolsBrowser", "devtools/client/framework/de
 loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice", true);
 loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
 
-// Dependencies required for addon sdk compatibility layer.
-loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
-loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
-loader.lazyImporter(this, "BrowserToolboxProcess", "resource://devtools/client/framework/ToolboxProcess.jsm");
-
 loader.lazyRequireGetter(this, "WebExtensionInspectedWindowFront",
       "devtools/shared/fronts/webextension-inspected-window", true);
 
@@ -104,10 +99,6 @@ DevTools.prototype = {
    *                     A falsy value indicates that it cannot be hidden.
    * - icon: URL pointing to a graphic which will be used as the src for an
    *         16x16 img tag (string|required)
-   * - invertIconForLightTheme: The icon can automatically have an inversion
-   *         filter applied (default is false).  All builtin tools are true, but
-   *         addons may omit this to prevent unwanted changes to the `icon`
-   *         image. filter: invert(1) is applied to the image (boolean|optional)
    * - url: URL pointing to a XUL/XHTML document containing the user interface
    *        (string|required)
    * - label: Localized name for the tool to be displayed to the user
@@ -545,42 +536,6 @@ DevTools.prototype = {
    */
   getTargetForTab: function (tab) {
     return TargetFactory.forTab(tab);
-  },
-
-  /**
-   * Compatibility layer for addon-sdk. Remove when Firefox 57 hits release.
-   * Initialize the debugger server if needed and and create a connection.
-   *
-   * @return {DebuggerTransport} a client-side DebuggerTransport for communicating with
-   *         the created connection.
-   */
-  connectDebuggerServer: function () {
-    if (!DebuggerServer.initialized) {
-      DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
-    }
-
-    return DebuggerServer.connectPipe();
-  },
-
-  /**
-   * Compatibility layer for addon-sdk. Remove when Firefox 57 hits release.
-   *
-   * Create a connection to the debugger server and return a debugger client for this
-   * new connection.
-   */
-  createDebuggerClient: function () {
-    let transport = this.connectDebuggerServer();
-    return new DebuggerClient(transport);
-  },
-
-  /**
-   * Compatibility layer for addon-sdk. Remove when Firefox 57 hits release.
-   *
-   * Create a BrowserToolbox process linked to the provided addon id.
-   */
-  initBrowserToolboxProcessForAddon: function (addonID) {
-    BrowserToolboxProcess.init({ addonID });
   },
 
   /**

@@ -17,24 +17,6 @@ function WebRequestEventManager(context, eventName) {
   let name = `webRequest.${eventName}`;
   let register = (fire, filter, info) => {
     let listener = data => {
-      // Prevent listening in on requests originating from system principal to
-      // prevent tinkering with OCSP, app and addon updates, etc.
-      if (data.isSystemPrincipal) {
-        return;
-      }
-
-      // Check hosts permissions for both the resource being requested,
-      const hosts = context.extension.whiteListedHosts;
-      if (!hosts.matches(data.URI)) {
-        return;
-      }
-      // and the origin that is loading the resource.
-      const origin = data.documentUrl;
-      const own = origin && origin.startsWith(context.extension.getURL());
-      if (origin && !own && !hosts.matches(data.documentURI)) {
-        return;
-      }
-
       let browserData = {tabId: -1, windowId: -1};
       if (data.browser) {
         browserData = tabTracker.getBrowserData(data.browser);
@@ -89,6 +71,7 @@ function WebRequestEventManager(context, eventName) {
 
     let listenerDetails = {
       addonId: context.extension.id,
+      extension: context.extension.policy,
       blockingAllowed,
       tabParent: context.xulBrowser.frameLoader.tabParent,
     };

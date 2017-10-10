@@ -11,7 +11,7 @@ const EventEmitter = require("devtools/shared/old-event-emitter");
 
 const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
 
-loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
+loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/debugger-client", true);
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);
 loader.lazyRequireGetter(this, "gDevTools", "devtools/client/framework/devtools", true);
@@ -31,10 +31,6 @@ loader.lazyRequireGetter(this, "EmulationFront",
 /**
  * ResponsiveUIManager is the external API for the browser UI, etc. to use when
  * opening and closing the responsive UI.
- *
- * While the HTML UI is in an experimental stage, the older ResponsiveUIManager
- * from devtools/client/responsivedesign/responsivedesign.jsm delegates to this
- * object when the pref "devtools.responsive.html.enabled" is true.
  */
 const ResponsiveUIManager = exports.ResponsiveUIManager = {
   activeTabs: new Map(),
@@ -261,8 +257,8 @@ const ResponsiveUIManager = exports.ResponsiveUIManager = {
   },
 };
 
-// GCLI commands in ../responsivedesign/resize-commands.js listen for events
-// from this object to know when the UI for a tab has opened or closed.
+// GCLI commands in ./commands.js listen for events from this object to know
+// when the UI for a tab has opened or closed.
 EventEmitter.decorate(ResponsiveUIManager);
 
 /**

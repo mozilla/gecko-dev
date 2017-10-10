@@ -7,7 +7,7 @@
 #define GFX_SCROLLINGLAYERSHELPER_H
 
 #include "mozilla/Attributes.h"
-#include "mozilla/layers/WebRenderLayerManager.h"
+#include "mozilla/layers/WebRenderCommandBuilder.h"
 
 namespace mozilla {
 
@@ -20,20 +20,15 @@ class DisplayListBuilder;
 namespace layers {
 
 struct FrameMetrics;
-struct LayerClip;
 class StackingContextHelper;
-class WebRenderLayer;
 
 class MOZ_RAII ScrollingLayersHelper
 {
 public:
-  ScrollingLayersHelper(WebRenderLayer* aLayer,
-                        wr::DisplayListBuilder& aBuilder,
-                        const StackingContextHelper& aSc);
   ScrollingLayersHelper(nsDisplayItem* aItem,
                         wr::DisplayListBuilder& aBuilder,
                         const StackingContextHelper& aStackingContext,
-                        WebRenderLayerManager::ClipIdMap& aCache,
+                        WebRenderCommandBuilder::ClipIdMap& aCache,
                         bool aApzEnabled);
   ~ScrollingLayersHelper();
 
@@ -44,21 +39,16 @@ private:
                                  wr::DisplayListBuilder& aBuilder,
                                  int32_t aAppUnitsPerDevPixel,
                                  const StackingContextHelper& aStackingContext,
-                                 WebRenderLayerManager::ClipIdMap& aCache);
+                                 WebRenderCommandBuilder::ClipIdMap& aCache);
   void DefineAndPushChain(const DisplayItemClipChain* aChain,
                           wr::DisplayListBuilder& aBuilder,
                           const StackingContextHelper& aStackingContext,
                           int32_t aAppUnitsPerDevPixel,
-                          WebRenderLayerManager::ClipIdMap& aCache);
+                          WebRenderCommandBuilder::ClipIdMap& aCache);
   bool DefineAndPushScrollLayer(const FrameMetrics& aMetrics,
                                 const StackingContextHelper& aStackingContext);
-  void PushLayerLocalClip(const StackingContextHelper& aStackingContext);
-  void PushLayerClip(const LayerClip& aClip,
-                     const StackingContextHelper& aSc);
 
-  WebRenderLayer* mLayer;
   wr::DisplayListBuilder* mBuilder;
-  bool mPushedLayerLocalClip;
   bool mPushedClipAndScroll;
   std::vector<wr::ScrollOrClipId> mPushedClips;
 };

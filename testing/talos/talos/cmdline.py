@@ -73,9 +73,6 @@ def create_parser(mach_interface=False):
             help="disable e10s")
     add_arg('--noChrome', action='store_true',
             help="do not run tests as chrome")
-    add_arg('--rss', action='store_true',
-            help="Collect RSS counters from pageloader instead of the"
-                 " operating system")
     add_arg('--mainthread', action='store_true',
             help="Collect mainthread IO data from the browser by setting"
                  " an environment variable")
@@ -101,8 +98,8 @@ def create_parser(mach_interface=False):
     add_arg('--geckoProfileEntries', dest="gecko_profile_entries", type=int,
             help="How many samples to take with the profiler")
     add_arg('--extension', dest='extensions', action='append',
-            default=['${talos}/talos-powers/talos-powers-signed.xpi',
-                     '${talos}/pageloader/pageloader-signed.xpi'],
+            default=['${talos}/talos-powers',
+                     '${talos}/pageloader'],
             help="Extension to install while running")
     add_arg('--fast', action='store_true',
             help="Run tp tests as tp_fast")
@@ -179,7 +176,8 @@ def create_parser(mach_interface=False):
     add_arg('--stylo-threads', type=int,
             dest='stylothreads',
             help='If given, run Stylo with a certain number of threads')
-
+    add_arg('--profile', type=str, default=None,
+            help="Downloads a profile from TaskCluster and uses it")
     add_logging_group(parser)
     return parser
 

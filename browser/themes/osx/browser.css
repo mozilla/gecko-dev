@@ -14,6 +14,7 @@
 
 :root {
   --tabs-border: rgba(0,0,0,.3);
+  --tab-line-color: #0a84ff;
 
   --toolbar-non-lwt-bgcolor: #f9f9fa;
   --toolbar-non-lwt-textcolor: #0c0c0d;
@@ -54,6 +55,16 @@
 
 /** Begin titlebar **/
 
+#titlebar {
+  /* Centrally align content items vertically */
+  -moz-box-pack: center;
+}
+
+#titlebar-content {
+  /* Ensure the the content part of the titlebar does not shrink. */
+  min-height: inherit;
+}
+
 #titlebar-buttonbox > .titlebar-button {
   display: none;
 }
@@ -63,6 +74,12 @@
 #titlebar-secondary-buttonbox {
   position: relative;
   z-index: 1;
+  /* Centrally align indicators and full screen button vertically */
+  -moz-box-align: center;
+}
+
+#titlebar-buttonbox-container {
+  -moz-box-align: center;
 }
 
 /* These would be margin-inline-start/end if it wasn't for the fact that OS X
@@ -72,10 +89,8 @@
   margin-left: 7px;
 }
 
-.titlebar-placeholder[type="fullscreen-button"],
-#titlebar-secondary-buttonbox {
-  margin-right: 7px;
-  margin-left: 7px;
+.titlebar-placeholder[type="fullscreen-button"] {
+  margin-right: 4px;
 }
 
 #main-window:not(:-moz-lwtheme) > #titlebar {
@@ -93,28 +108,6 @@
  */
 #main-window[tabsintitlebar] > #titlebar {
   min-height: calc(var(--tab-min-height) + var(--space-above-tabbar) - var(--tab-toolbar-navbar-overlap));
-}
-
-/**
- * We also vertically center the window buttons.
- */
-#titlebar-buttonbox-container {
-  -moz-box-align: start;
-}
-
-#main-window[tabsintitlebar] > #titlebar > #titlebar-content > #titlebar-buttonbox-container,
-#main-window[tabsintitlebar] > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > #titlebar-fullscreen-button {
-  /*
-   * To vertically center the window controls, we place them at half the
-   * height of the tabstrip ((tab height + drag space) / 2) - half the height
-   * of the window controls (16px / 2).
-   * */
-  margin-top: calc((var(--tab-min-height) + var(--space-above-tabbar)) / 2 - 8px);
-}
-
-#main-window:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-buttonbox-container,
-#main-window:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > #titlebar-fullscreen-button {
-  margin-top: 3px;
 }
 
 /** End titlebar **/
@@ -176,79 +169,6 @@
 #nav-bar-customization-target > #wrapper-personal-bookmarks > #personal-bookmarks {
   min-height: 32px;
   -moz-box-align: center;
-}
-
-/* ----- BOOKMARK BUTTONS ----- */
-
-.bookmark-item[container] {
-  list-style-image: url("chrome://global/skin/tree/folder.png");
-}
-
-.bookmark-item[container][livemark] {
-  list-style-image: url("chrome://browser/skin/page-livemarks.png");
-}
-
-.bookmark-item[container][livemark] .bookmark-item {
-  list-style-image: url("chrome://browser/skin/places/livemark-item.png");
-  -moz-image-region: rect(0px, 16px, 16px, 0px);
-}
-
-.bookmark-item[container][livemark] .bookmark-item[visited] {
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
-}
-
-.bookmark-item[container][query] {
-  list-style-image: url("chrome://browser/skin/places/query.png");
-}
-
-.bookmark-item[query][tagContainer] {
-  list-style-image: url("chrome://browser/skin/places/tag.png");
-}
-
-.bookmark-item[query][dayContainer] {
-  list-style-image: url("chrome://browser/skin/places/history.png");
-}
-
-.bookmark-item[query][hostContainer] {
-  list-style-image: url("chrome://global/skin/tree/folder.png");
-}
-
-.bookmark-item[query][hostContainer][open] {
-  list-style-image: url("chrome://global/skin/tree/folder.png");
-}
-
-@media (min-resolution: 2dppx) {
-  .bookmark-item[container] {
-    list-style-image: url("chrome://global/skin/tree/folder@2x.png");
-  }
-
-  .bookmark-item[container][livemark] {
-    list-style-image: url("chrome://browser/skin/page-livemarks@2x.png");
-  }
-
-  .bookmark-item[container][livemark] .bookmark-item {
-    list-style-image: url("chrome://browser/skin/places/livemark-item.png");
-  }
-
-  .bookmark-item[container][query] {
-    list-style-image: url("chrome://browser/skin/places/query@2x.png");
-  }
-
-  .bookmark-item[query][tagContainer] {
-    list-style-image: url("chrome://browser/skin/places/tag@2x.png");
-  }
-
-  .bookmark-item[query][dayContainer] {
-    list-style-image: url("chrome://browser/skin/places/history@2x.png");
-  }
-
-  .bookmark-item[query][hostContainer] {
-    list-style-image: url("chrome://global/skin/tree/folder@2x.png");
-  }
-
-  .bookmark-item[query][hostContainer][open] {
-    list-style-image: url("chrome://global/skin/tree/folder@2x.png");
-  }
 }
 
 /* Workaround for native menubar inheritance */
@@ -313,26 +233,20 @@
 
 /* On Mac, native buttons keep their full opacity when they become disabled
  * and only the glyph or text on top of them becomes less opaque. */
-#back-button[disabled="true"] > .toolbarbutton-icon {
+#main-window:not([customizing]) #back-button[disabled="true"] > .toolbarbutton-icon {
   opacity: 1 !important;
   -moz-context-properties: fill, fill-opacity;
-  fill-opacity: 0.4;
+  /* Disabled toolbar buttons get an opacity of 0.4 which multiplies
+   * their fill-opacity of 0.7. calc() doesn't work here - we'd need
+   * to multiply two unitless numbers and that's invalid in CSS, so
+   * we need to hard code the value for now. */
+  fill-opacity: 0.28;
 }
 
 /* Inactive elements are faded out on OSX */
 .toolbarbutton-1:not(:hover):-moz-window-inactive,
 #main-window:not([customizing]) .toolbarbutton-1:-moz-window-inactive[disabled="true"] {
   opacity: 0.5;
-}
-
-.unified-nav-back[_moz-menuactive]:-moz-locale-dir(ltr),
-.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/menu-back.png") !important;
-}
-
-.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(ltr),
-.unified-nav-back[_moz-menuactive]:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/menu-forward.png") !important;
 }
 
 /* ----- FULLSCREEN WINDOW CONTROLS ----- */
@@ -364,10 +278,6 @@
   box-shadow: var(--focus-ring-box-shadow);
   border-inline-end-style: none;
   padding-inline-end: 5px;
-}
-.urlbar-input-box {
-  margin: 0;
-  padding: 3px 0 2px;
 }
 
 /* ::::: URL Bar Zoom Reset Button ::::: */
@@ -424,6 +334,14 @@
 
 %include ../shared/autocomplete.inc.css
 %include ../shared/urlbar-autocomplete.inc.css
+
+/* Give an extra margin top to align the top of the awesomebar with the
+ * bottom of the nav bar, OSX calculates the panel position with an missing
+ * 1px - https://bugzilla.mozilla.org/show_bug.cgi?id=1406353
+ */
+#PopupAutoCompleteRichResult {
+  margin-top: 1px;
+}
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype~="datalist-first"] {
   border-top: 1px solid #C7C7C7;
@@ -483,7 +401,7 @@ html|span.ac-emphasize-text-url {
 
 .ac-type-icon[type=keyword],
 .ac-site-icon[type=searchengine] {
-  list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg);
+  list-style-image: url(chrome://browser/skin/search-glass.svg);
   -moz-context-properties: fill;
   fill: GrayText;
 }
@@ -805,11 +723,11 @@ html|span.ac-emphasize-text-url {
 #sidebar-box {
   -moz-appearance: -moz-mac-source-list;
   -moz-font-smoothing-background-color: -moz-mac-source-list;
+  /* Default font size is 11px on mac, so this is 12px */
+  font-size: 1.0909rem;
 }
 
 #sidebar-header {
-  /* system font size is a bit smaller in mac, so need more ems. */
-  font-size: 1.4545em;
   border-bottom: 1px solid hsla(240, 5%, 5%, .1);
   background-color: transparent;
 }
@@ -825,10 +743,6 @@ html|span.ac-emphasize-text-url {
   border-top: @scopeBarSeparatorBorder@;
   color: -moz-DialogText;
   text-shadow: none;
-}
-
-.bookmark-item {
-  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
 }
 
 .openintabs-menuitem {
@@ -920,6 +834,10 @@ html|span.ac-emphasize-text-url {
 /**
  * Tab Drag and Drop
  */
+
+.tab-drop-indicator-box {
+  -moz-box-align: center;
+}
 
 .tab-drop-indicator {
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
@@ -1236,66 +1154,21 @@ html|*.addon-webext-perm-list {
 
 /* End customization mode */
 
-.private-browsing-indicator {
-  background-image: url("chrome://browser/skin/privatebrowsing-mask.png");
-  background-repeat: no-repeat;
-  background-size: 100% auto;
-  width: 38px;
-  height: 28px;
-  /**
-   * The private browsing mask graphic has a 3px flare at the top. The distance
-   * we want between the mask and items on either side is 7px, so we use 4px,
-   * since the other 3px is accounted for by the empty space on either side.
-   */
-  margin-left: 4px;
-  margin-right: 4px;
-}
+/* Private browsing and accessibility indicators */
 
-#titlebar-secondary-buttonbox > .private-browsing-indicator {
-  position: relative;
-}
-
-#main-window[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator {
-  background-image: url("chrome://browser/skin/privatebrowsing-mask-short.png");
-  height: 20px;
-}
-
-#main-window:not([privatebrowsingmode=temporary]) .private-browsing-indicator,
-#main-window[privatebrowsingmode=temporary][inFullscreen] > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator,
-#main-window[privatebrowsingmode=temporary]:not([inFullscreen]) > #tab-view-deck > #browser-panel > #navigator-toolbox > #TabsToolbar > .private-browsing-indicator {
+:root[accessibilitymode][tabsintitlebar]:not([inFullscreen]) > #tab-view-deck > #browser-panel > #navigator-toolbox > #TabsToolbar > .accessibility-indicator,
+:root[privatebrowsingmode=temporary][tabsintitlebar]:not([inFullscreen]) > #tab-view-deck > #browser-panel > #navigator-toolbox > #TabsToolbar > .private-browsing-indicator,
+:root[accessibilitymode]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .accessibility-indicator,
+:root[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator {
   display: none;
 }
 
-@media (min-resolution: 2dppx) {
-  .private-browsing-indicator {
-    background-image: url("chrome://browser/skin/privatebrowsing-mask@2x.png");
-  }
-  #main-window[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator {
-    background-image: url("chrome://browser/skin/privatebrowsing-mask-short@2x.png");
-  }
-}
-
-#TabsToolbar > .private-browsing-indicator {
-  /* We offset by 38px for mask graphic, plus 4px to account for the
-   * margin-left, which sums to 42px.
-   */
-  margin-right: -42px;
-}
-
-#main-window[privatebrowsingmode=temporary] .titlebar-placeholder[type="fullscreen-button"],
-#main-window[privatebrowsingmode=temporary] > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > #titlebar-fullscreen-button {
-  margin-left: 0px;
-}
-
-#main-window[privatebrowsingmode=temporary][inFullscreen] .titlebar-placeholder[type="fullscreen-button"] {
-  /* Override display:none for .titlebar-placeholder in fullscreen so we can have consistent
-     position and padding for the private browsing indicator. */
-  display: -moz-box;
-}
-
-#TabsToolbar > .private-browsing-indicator:-moz-locale-dir(rtl) {
+#TabsToolbar > .private-browsing-indicator:-moz-locale-dir(rtl),
+#TabsToolbar > .accessibility-indicator:-moz-locale-dir(rtl) {
   -moz-box-ordinal-group: 0;
 }
+
+/* End private browsing and accessibility indicators */
 
 %include ../shared/UITour.inc.css
 
@@ -1307,12 +1180,6 @@ html|*.addon-webext-perm-list {
 #UITourTooltipClose {
   margin-inline-end: -10px;
   margin-top: -14px;
-}
-
-@media (min-resolution: 2dppx) {
-  #UITourTooltipClose > .toolbarbutton-icon {
-    width: 16px;
-  }
 }
 
 %include ../shared/contextmenu.inc.css

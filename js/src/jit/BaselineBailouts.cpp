@@ -362,7 +362,7 @@ struct BaselineStackBuilder
         // in the baseline frame is meaningless, since Ion saves all registers
         // before calling other ion frames, and the entry frame saves all
         // registers too.
-        if (type == JitFrame_IonJS || type == JitFrame_Entry || type == JitFrame_IonICCall)
+        if (JSJitFrameIter::isEntry(type) || type == JitFrame_IonJS || type == JitFrame_IonICCall)
             return nullptr;
 
         // BaselineStub - Baseline calling into Ion.
@@ -394,11 +394,13 @@ struct BaselineStackBuilder
         BufferPointer<RectifierFrameLayout> priorFrame =
             pointerAtStackOffset<RectifierFrameLayout>(priorOffset);
         FrameType priorType = priorFrame->prevType();
-        MOZ_ASSERT(priorType == JitFrame_IonJS || priorType == JitFrame_BaselineStub);
+        MOZ_ASSERT(priorType == JitFrame_WasmToJSJit ||
+                   priorType == JitFrame_IonJS ||
+                   priorType == JitFrame_BaselineStub);
 
-        // If the frame preceding the rectifier is an IonJS frame, then once again
-        // the frame pointer does not matter.
-        if (priorType == JitFrame_IonJS)
+        // If the frame preceding the rectifier is an IonJS or WasmToJSJit
+        // entry frame, then once again the frame pointer does not matter.
+        if (priorType == JitFrame_IonJS || priorType == JitFrame_WasmToJSJit)
             return nullptr;
 
         // Otherwise, the frame preceding the rectifier is a BaselineStub frame.
@@ -1515,14 +1517,14 @@ jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
     // The caller of the top frame must be one of the following:
     //      IonJS - Ion calling into Ion.
     //      BaselineStub - Baseline calling into Ion.
-    //      Entry - Interpreter or other calling into Ion.
+    //      Entry / WasmToJSJit - Interpreter or other (wasm) calling into Ion.
     //      Rectifier - Arguments rectifier calling into Ion.
     MOZ_ASSERT(iter.isBailoutJS());
 #if defined(DEBUG) || defined(JS_JITSPEW)
     FrameType prevFrameType = iter.prevType();
-    MOZ_ASSERT(prevFrameType == JitFrame_IonJS ||
+    MOZ_ASSERT(JSJitFrameIter::isEntry(prevFrameType) ||
+               prevFrameType == JitFrame_IonJS ||
                prevFrameType == JitFrame_BaselineStub ||
-               prevFrameType == JitFrame_Entry ||
                prevFrameType == JitFrame_Rectifier ||
                prevFrameType == JitFrame_IonICCall);
 #endif

@@ -24,6 +24,7 @@
 #include "nsPrintfCString.h"
 #include "mozilla/dom/AnonymousContent.h"
 #include "mozilla/layers/StackingContextHelper.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/PresShell.h"
 // for focus
 #include "nsIScrollableFrame.h"
@@ -309,15 +310,12 @@ bool
 nsDisplayCanvasBackgroundColor::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                         const StackingContextHelper& aSc,
-                                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                                         WebRenderLayerManager* aManager,
                                                         nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   nsCanvasFrame *frame = static_cast<nsCanvasFrame *>(mFrame);
@@ -331,6 +329,7 @@ nsDisplayCanvasBackgroundColor::CreateWebRenderCommands(mozilla::wr::DisplayList
   wr::LayoutRect transformedRect = aSc.ToRelativeLayoutRect(rect);
   aBuilder.PushRect(transformedRect,
                     transformedRect,
+                    !BackfaceIsHidden(),
                     wr::ToColorF(ToDeviceColor(mColor)));
   return true;
 }

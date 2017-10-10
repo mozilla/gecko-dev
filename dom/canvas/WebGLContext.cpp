@@ -45,7 +45,7 @@
 #include "nsIWidget.h"
 #include "nsIXPConnect.h"
 #include "nsServiceManagerUtils.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "prenv.h"
 #include "ScopedGLHelpers.h"
 #include "VRManagerChild.h"
@@ -114,7 +114,6 @@ WebGLContext::WebGLContext()
     , mBufferFetchingHasPerVertex(false)
     , mMaxFetchedVertices(0)
     , mMaxFetchedInstances(0)
-    , mLayerIsMirror(false)
     , mBypassShaderValidation(false)
     , mEmptyTFO(0)
     , mContextLossHandler(this)
@@ -316,7 +315,7 @@ WebGLContext::Invalidate()
     if (mInvalidated)
         return;
 
-    nsSVGEffects::InvalidateDirectRenderingObservers(mCanvasElement);
+    SVGObserverUtils::InvalidateDirectRenderingObservers(mCanvasElement);
 
     mInvalidated = true;
     mCanvasElement->InvalidateCanvasContent(nullptr);
@@ -1278,7 +1277,6 @@ WebGLContext::UpdateLastUseIndex()
 }
 
 static uint8_t gWebGLLayerUserData;
-static uint8_t gWebGLMirrorLayerUserData;
 
 class WebGLContextUserData : public LayerUserData
 {
@@ -1314,11 +1312,11 @@ private:
 already_AddRefed<layers::Layer>
 WebGLContext::GetCanvasLayer(nsDisplayListBuilder* builder,
                              Layer* oldLayer,
-                             LayerManager* manager,
-                             bool aMirror /*= false*/)
+                             LayerManager* manager)
 {
     if (!mResetLayer && oldLayer &&
-        oldLayer->HasUserData(aMirror ? &gWebGLMirrorLayerUserData : &gWebGLLayerUserData)) {
+        oldLayer->HasUserData(&gWebGLLayerUserData))
+    {
         RefPtr<layers::Layer> ret = oldLayer;
         return ret.forget();
     }
@@ -1330,38 +1328,33 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* builder,
     }
 
     WebGLContextUserData* userData = nullptr;
-    if (builder->IsPaintingToWindow() && mCanvasElement && !aMirror) {
+    if (builder->IsPaintingToWindow() && mCanvasElement) {
         userData = new WebGLContextUserData(mCanvasElement);
     }
 
-    canvasLayer->SetUserData(aMirror ? &gWebGLMirrorLayerUserData : &gWebGLLayerUserData, userData);
+    canvasLayer->SetUserData(&gWebGLLayerUserData, userData);
 
     CanvasRenderer* canvasRenderer = canvasLayer->CreateOrGetCanvasRenderer();
-    if (!InitializeCanvasRenderer(builder, canvasRenderer, aMirror))
+    if (!InitializeCanvasRenderer(builder, canvasRenderer))
       return nullptr;
 
     uint32_t flags = gl->Caps().alpha ? 0 : Layer::CONTENT_OPAQUE;
     canvasLayer->SetContentFlags(flags);
 
     mResetLayer = false;
-    // We only wish to update mLayerIsMirror when a new layer is returned.
-    // If a cached layer is returned above, aMirror is not changing since
-    // the last cached layer was created and mLayerIsMirror is still valid.
-    mLayerIsMirror = aMirror;
 
     return canvasLayer.forget();
 }
 
 bool
 WebGLContext::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
-                                       CanvasRenderer* aRenderer,
-                                       bool aMirror)
+                                       CanvasRenderer* aRenderer)
 {
     if (IsContextLost())
         return false;
 
     CanvasInitializeData data;
-    if (aBuilder->IsPaintingToWindow() && mCanvasElement && !aMirror) {
+    if (aBuilder->IsPaintingToWindow() && mCanvasElement) {
         // Make the layer tell us whenever a transaction finishes (including
         // the current transaction), so we can clear our invalidation state and
         // start invalidating again. We need to do this for the layer that is
@@ -1384,7 +1377,6 @@ WebGLContext::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
     data.mSize = nsIntSize(mWidth, mHeight);
     data.mHasAlpha = gl->Caps().alpha;
     data.mIsGLAlphaPremult = IsPremultAlpha() || !data.mHasAlpha;
-    data.mIsMirror = aMirror;
 
     aRenderer->Initialize(data);
     aRenderer->SetDirty();
@@ -1827,7 +1819,7 @@ WebGLContext::UpdateContextLossStatus()
         if (mCanvasElement) {
             nsContentUtils::DispatchTrustedEvent(
                 mCanvasElement->OwnerDoc(),
-                static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement),
+                static_cast<nsIContent*>(mCanvasElement),
                 kEventName,
                 kCanBubble,
                 kIsCancelable,
@@ -1895,7 +1887,7 @@ WebGLContext::UpdateContextLossStatus()
         if (mCanvasElement) {
             nsContentUtils::DispatchTrustedEvent(
                 mCanvasElement->OwnerDoc(),
-                static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement),
+                static_cast<nsIContent*>(mCanvasElement),
                 NS_LITERAL_STRING("webglcontextrestored"),
                 true,
                 true);
@@ -2333,79 +2325,25 @@ WebGLContext::GetUnpackSize(bool isFunc3D, uint32_t width, uint32_t height,
 already_AddRefed<layers::SharedSurfaceTextureClient>
 WebGLContext::GetVRFrame()
 {
-    if (!mLayerIsMirror) {
-        /**
-         * Do not allow VR frame submission until a mirroring canvas layer has
-         * been returned by GetCanvasLayer
-         */
-        return nullptr;
-    }
+  /**
+   * Swap buffers as though composition has occurred.
+   * We will then share the resulting front buffer to be submitted to the VR
+   * compositor.
+   */
+  BeginComposition();
+  EndComposition();
 
-    VRManagerChild* vrmc = VRManagerChild::Get();
-    if (!vrmc) {
-        return nullptr;
-    }
+  gl::GLScreenBuffer* screen = gl->Screen();
+  if (!screen) {
+      return nullptr;
+  }
 
-    /**
-     * Swap buffers as though composition has occurred.
-     * We will then share the resulting front buffer to be submitted to the VR
-     * compositor.
-     */
-    BeginComposition();
-    EndComposition();
+  RefPtr<SharedSurfaceTextureClient> sharedSurface = screen->Front();
+  if (!sharedSurface) {
+      return nullptr;
+  }
 
-    gl::GLScreenBuffer* screen = gl->Screen();
-    if (!screen) {
-        return nullptr;
-    }
-
-    RefPtr<SharedSurfaceTextureClient> sharedSurface = screen->Front();
-    if (!sharedSurface) {
-        return nullptr;
-    }
-
-    if (sharedSurface && sharedSurface->GetAllocator() != vrmc) {
-        RefPtr<SharedSurfaceTextureClient> dest =
-        screen->Factory()->NewTexClient(sharedSurface->GetSize(), vrmc);
-        if (!dest) {
-            return nullptr;
-        }
-        gl::SharedSurface* destSurf = dest->Surf();
-        destSurf->ProducerAcquire();
-        SharedSurface::ProdCopy(sharedSurface->Surf(), dest->Surf(),
-                                screen->Factory());
-        destSurf->ProducerRelease();
-
-        return dest.forget();
-    }
-
-  return sharedSurface.forget();
-}
-
-bool
-WebGLContext::StartVRPresentation()
-{
-    VRManagerChild* vrmc = VRManagerChild::Get();
-    if (!vrmc) {
-        return false;
-    }
-    gl::GLScreenBuffer* screen = gl->Screen();
-    if (!screen) {
-        return false;
-    }
-    gl::SurfaceCaps caps = screen->mCaps;
-
-    UniquePtr<gl::SurfaceFactory> factory =
-        gl::GLScreenBuffer::CreateFactory(gl,
-            caps,
-            vrmc,
-            vrmc->GetBackendType(),
-            TextureFlags::ORIGIN_BOTTOM_LEFT);
-
-    if (factory) {
-        screen->Morph(Move(factory));
-    }
-    return true;
+    return sharedSurface.forget();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

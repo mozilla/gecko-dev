@@ -6,9 +6,6 @@ skip script ecma_6/String/normalize-generateddata-input.js # input data for othe
 # Skip intl402 tests when Intl isn't available.
 skip-if(!this.hasOwnProperty('Intl')) include test262/intl402/jstests.list
 
-# Skip Intl.PluralRules tests when the addIntlExtras helper isn't available.
-skip-if(!this.hasOwnProperty('addIntlExtras')) include test262/intl402/PluralRules/jstests.list
-
 # Skip built-ins/Simd tests when SIMD isn't available.
 skip-if(!this.hasOwnProperty('SIMD')) include test262/built-ins/Simd/jstests.list
 
@@ -361,11 +358,7 @@ skip script test262/language/statements/with/cptn-abrupt-empty.js
 skip script test262/language/statements/with/cptn-nrml.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1289882
-skip script test262/intl402/NumberFormat/prototype/formatToParts/formatToParts.js
 skip script test262/intl402/NumberFormat/prototype/formatToParts/length.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/main.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/name.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/return-abrupt-tonumber.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1296234
 skip script test262/intl402/Collator/prototype/compare/compare-function-name.js

@@ -39,8 +39,7 @@ void ReleaseVRManagerParentSingleton() {
 }
 
 VRManagerChild::VRManagerChild()
-  : TextureForwarder()
-  , mDisplaysInitialized(false)
+  : mDisplaysInitialized(false)
   , mMessageLoop(MessageLoop::current())
   , mFrameRequestCallbackCounter(0)
   , mBackend(layers::LayersBackend::LAYERS_NONE)
@@ -167,31 +166,8 @@ VRManagerChild::Destroy()
              NewRunnableFunction(DeferredDestroy, selfRef));
 }
 
-layers::PTextureChild*
-VRManagerChild::AllocPTextureChild(const SurfaceDescriptor&,
-                                   const LayersBackend&,
-                                   const TextureFlags&,
-                                   const uint64_t&)
-{
-  return TextureClient::CreateIPDLActor();
-}
-
-bool
-VRManagerChild::DeallocPTextureChild(PTextureChild* actor)
-{
-  return TextureClient::DestroyIPDLActor(actor);
-}
-
 PVRLayerChild*
 VRManagerChild::AllocPVRLayerChild(const uint32_t& aDisplayID,
-                                   const float& aLeftEyeX,
-                                   const float& aLeftEyeY,
-                                   const float& aLeftEyeWidth,
-                                   const float& aLeftEyeHeight,
-                                   const float& aRightEyeX,
-                                   const float& aRightEyeY,
-                                   const float& aRightEyeWidth,
-                                   const float& aRightEyeHeight,
                                    const uint32_t& aGroup)
 {
   return VRLayerChild::CreateIPDLActor();
@@ -342,27 +318,6 @@ VRManagerChild::RecvParentAsyncMessages(InfallibleTArray<AsyncParentMessageData>
   return IPC_OK();
 }
 
-PTextureChild*
-VRManagerChild::CreateTexture(const SurfaceDescriptor& aSharedData,
-                              LayersBackend aLayersBackend,
-                              TextureFlags aFlags,
-                              uint64_t aSerial,
-                              wr::MaybeExternalImageId& aExternalImageId,
-                              nsIEventTarget* aTarget)
-{
-  return SendPTextureConstructor(aSharedData, aLayersBackend, aFlags, aSerial);
-}
-
-void
-VRManagerChild::CancelWaitForRecycle(uint64_t aTextureId)
-{
-  RefPtr<TextureClient> client = mTexturesWaitingRecycled.Get(aTextureId);
-  if (!client) {
-    return;
-  }
-  mTexturesWaitingRecycled.Remove(aTextureId);
-}
-
 void
 VRManagerChild::NotifyNotUsed(uint64_t aTextureId, uint64_t aFwdTransactionId)
 {
@@ -373,52 +328,18 @@ VRManagerChild::NotifyNotUsed(uint64_t aTextureId, uint64_t aFwdTransactionId)
   mTexturesWaitingRecycled.Remove(aTextureId);
 }
 
-bool
-VRManagerChild::AllocShmem(size_t aSize,
-                           ipc::SharedMemory::SharedMemoryType aType,
-                           ipc::Shmem* aShmem)
-{
-  return PVRManagerChild::AllocShmem(aSize, aType, aShmem);
-}
-
-bool
-VRManagerChild::AllocUnsafeShmem(size_t aSize,
-                                 ipc::SharedMemory::SharedMemoryType aType,
-                                 ipc::Shmem* aShmem)
-{
-  return PVRManagerChild::AllocUnsafeShmem(aSize, aType, aShmem);
-}
-
-bool
-VRManagerChild::DeallocShmem(ipc::Shmem& aShmem)
-{
-  return PVRManagerChild::DeallocShmem(aShmem);
-}
-
 PVRLayerChild*
 VRManagerChild::CreateVRLayer(uint32_t aDisplayID,
-                              const Rect& aLeftEyeRect,
-                              const Rect& aRightEyeRect,
                               nsIEventTarget* aTarget,
                               uint32_t aGroup)
 {
-  PVRLayerChild* vrLayerChild = AllocPVRLayerChild(aDisplayID, aLeftEyeRect.x,
-                                                   aLeftEyeRect.y, aLeftEyeRect.Width(),
-                                                   aLeftEyeRect.Height(), aRightEyeRect.x,
-                                                   aRightEyeRect.y, aRightEyeRect.Width(),
-                                                   aRightEyeRect.Height(),
-                                                   aGroup);
+  PVRLayerChild* vrLayerChild = AllocPVRLayerChild(aDisplayID, aGroup);
   // Do the DOM labeling.
   if (aTarget) {
     SetEventTargetForActor(vrLayerChild, aTarget);
     MOZ_ASSERT(vrLayerChild->GetActorEventTarget());
   }
-  return SendPVRLayerConstructor(vrLayerChild, aDisplayID, aLeftEyeRect.x,
-                                 aLeftEyeRect.y, aLeftEyeRect.Width(),
-                                 aLeftEyeRect.Height(), aRightEyeRect.x,
-                                 aRightEyeRect.y, aRightEyeRect.Width(),
-                                 aRightEyeRect.Height(),
-                                 aGroup);
+  return SendPVRLayerConstructor(vrLayerChild, aDisplayID, aGroup);
 }
 
 
@@ -528,7 +449,7 @@ VRManagerChild::RecvReplyCreateVRServiceTestController(const nsCString& aID,
 void
 VRManagerChild::RunFrameRequestCallbacks()
 {
-  AutoProfilerTracing tracing("VR", "RunFrameRequestCallbacks");
+  AUTO_PROFILER_TRACING("VR", "RunFrameRequestCallbacks");
 
   TimeStamp nowTime = TimeStamp::Now();
   mozilla::TimeDuration duration = nowTime - mStartTimeStamp;

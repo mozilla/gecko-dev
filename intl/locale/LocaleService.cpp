@@ -7,17 +7,17 @@
 
 #include <algorithm>  // find_if()
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/Services.h"
+#include "mozilla/Omnijar.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 #include "mozilla/intl/OSPreferences.h"
 #include "nsIObserverService.h"
-#include "nsStringEnumerator.h"
 #include "nsIToolkitChromeRegistry.h"
+#include "nsStringEnumerator.h"
 #include "nsXULAppAPI.h"
+#include "nsZipArchive.h"
 
-#ifdef ENABLE_INTL_API
 #include "unicode/uloc.h"
-#endif
 
 #define MATCH_OS_LOCALE_PREF "intl.locale.matchOS"
 #define SELECTED_LOCALE_PREF "general.useragent.locale"
@@ -53,7 +53,6 @@ mozilla::StaticRefPtr<LocaleService> LocaleService::sInstance;
 static void
 SanitizeForBCP47(nsACString& aLocale)
 {
-#ifdef ENABLE_INTL_API
   // Currently, the only locale code we use that's not BCP47-conformant is
   // "ja-JP-mac" on OS X, but let's try to be more general than just
   // hard-coding that here.
@@ -68,15 +67,6 @@ SanitizeForBCP47(nsACString& aLocale)
   if (U_SUCCESS(err) && len > 0) {
     aLocale.Assign(langTag, len);
   }
-#else
-  // This is only really needed for Intl API purposes, AFAIK,
-  // so probably won't be used in a non-ENABLE_INTL_API build.
-  // But let's fix up the single anomalous code we actually ship,
-  // just in case:
-  if (aLocale.EqualsLiteral("ja-JP-mac")) {
-    aLocale.AssignLiteral("ja-JP");
-  }
-#endif
 }
 
 static bool
@@ -516,28 +506,11 @@ LocaleService::IsAppLocaleRTL()
   nsAutoCString locale;
   GetAppLocaleAsBCP47(locale);
 
-#ifdef ENABLE_INTL_API
   int pref = Preferences::GetInt("intl.uidirection", -1);
   if (pref >= 0) {
     return (pref > 0);
   }
   return uloc_isRightToLeft(locale.get());
-#else
-  // first check the intl.uidirection.<locale> preference, and if that is not
-  // set, check the same preference but with just the first two characters of
-  // the locale. If that isn't set, default to left-to-right.
-  nsAutoCString prefString = NS_LITERAL_CSTRING("intl.uidirection.") + locale;
-  nsAutoCString dir;
-  Preferences::GetCString(prefString.get(), dir);
-  if (dir.IsEmpty()) {
-    int32_t hyphen = prefString.FindChar('-');
-    if (hyphen >= 1) {
-      prefString.Truncate(hyphen);
-      Preferences::GetCString(prefString.get(), dir);
-    }
-  }
-  return dir.EqualsLiteral("rtl");
-#endif
 }
 
 NS_IMETHODIMP
@@ -594,7 +567,34 @@ CreateOutArray(const nsTArray<nsCString>& aArray)
 NS_IMETHODIMP
 LocaleService::GetDefaultLocale(nsACString& aRetVal)
 {
-  aRetVal.AssignLiteral("en-US");
+  // We don't allow this to change during a session (it's set at build/package
+  // time), so we cache the result the first time we're called.
+  if (mDefaultLocale.IsEmpty()) {
+    // Try to get the package locale from update.locale in omnijar. If the
+    // update.locale file is not found, item.len will remain 0 and we'll
+    // just use our hard-coded default below.
+    // (We could also search for an update.locale file in the GRE resources
+    // directory, to support non-packaged builds, but that seems like a lot
+    // of extra code for what is probably not an important use case.)
+    RefPtr<nsZipArchive> zip = Omnijar::GetReader(Omnijar::GRE);
+    if (zip) {
+      nsZipItemPtr<char> item(zip, "update.locale");
+      size_t len = item.Length();
+      // Ignore any trailing spaces, newlines, etc.
+      while (len > 0 && item.Buffer()[len - 1] <= ' ') {
+        len--;
+      }
+      mDefaultLocale.Assign(item.Buffer(), len);
+    }
+    // Hard-coded fallback, e.g. for non-packaged developer builds.
+    // XXX Is there any reason to make this a compile-time #define that
+    // can be set via configure or something?
+    if (mDefaultLocale.IsEmpty()) {
+      mDefaultLocale.AssignLiteral("en-US");
+    }
+  }
+
+  aRetVal = mDefaultLocale;
   return NS_OK;
 }
 
@@ -784,16 +784,16 @@ LocaleService::Locale::Locale(const nsCString& aLocale, bool aRange)
 
   if (aRange) {
     if (mLanguage.IsEmpty()) {
-      mLanguage.Assign(NS_LITERAL_CSTRING("*"));
+      mLanguage.AssignLiteral("*");
     }
     if (mScript.IsEmpty()) {
-      mScript.Assign(NS_LITERAL_CSTRING("*"));
+      mScript.AssignLiteral("*");
     }
     if (mRegion.IsEmpty()) {
-      mRegion.Assign(NS_LITERAL_CSTRING("*"));
+      mRegion.AssignLiteral("*");
     }
     if (mVariant.IsEmpty()) {
-      mVariant.Assign(NS_LITERAL_CSTRING("*"));
+      mVariant.AssignLiteral("*");
     }
   }
 }
@@ -858,7 +858,6 @@ LocaleService::Locale::AddLikelySubtagsWithoutRegion()
 bool
 LocaleService::Locale::AddLikelySubtagsForLocale(const nsACString& aLocale)
 {
-#ifdef ENABLE_INTL_API
   const int32_t kLocaleMax = 160;
   char maxLocale[kLocaleMax];
   nsAutoCString locale(aLocale);
@@ -885,9 +884,6 @@ LocaleService::Locale::AddLikelySubtagsForLocale(const nsACString& aLocale)
   // provide it and we want to preserve the range
 
   return true;
-#else
-  return false;
-#endif
 }
 
 NS_IMETHODIMP

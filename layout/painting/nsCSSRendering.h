@@ -19,7 +19,6 @@
 #include "nsIFrame.h"
 #include "nsImageRenderer.h"
 #include "nsCSSRenderingBorders.h"
-#include "TextDrawTarget.h"
 
 class gfxContext;
 class nsStyleContext;
@@ -35,7 +34,6 @@ class DrawTarget;
 namespace layers {
 class ImageContainer;
 class StackingContextHelper;
-class WebRenderDisplayItemLayer;
 class WebRenderParentCommand;
 class LayerManager;
 } // namespace layers
@@ -502,17 +500,15 @@ struct nsCSSRendering {
                                                               int32_t aLayer);
   static DrawResult BuildWebRenderDisplayItemsForStyleImageLayer(const PaintBGParams& aParams,
                                                                  mozilla::wr::DisplayListBuilder& aBuilder,
+                                                                 mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                                  const mozilla::layers::StackingContextHelper& aSc,
-                                                                 nsTArray<mozilla::layers::WebRenderParentCommand>& aParentCommands,
-                                                                 mozilla::layers::WebRenderDisplayItemLayer* aLayer,
                                                                  mozilla::layers::WebRenderLayerManager* aManager,
                                                                  nsDisplayItem* aItem);
 
   static DrawResult BuildWebRenderDisplayItemsForStyleImageLayerWithSC(const PaintBGParams& aParams,
                                                                        mozilla::wr::DisplayListBuilder& aBuilder,
+                                                                       mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                                        const mozilla::layers::StackingContextHelper& aSc,
-                                                                       nsTArray<mozilla::layers::WebRenderParentCommand>& aParentCommands,
-                                                                       mozilla::layers::WebRenderDisplayItemLayer* aLayer,
                                                                        mozilla::layers::WebRenderLayerManager* aManager,
                                                                        nsDisplayItem* aItem,
                                                                        nsStyleContext *mBackgroundSC,
@@ -600,7 +596,6 @@ struct nsCSSRendering {
     // The distance between the left edge of the given frame and the
     // position of the text as positioned without offset of the shadow.
     Float icoordInFrame = 0.0f;
-    mozilla::layout::TextDrawTarget* textDrawer = nullptr;
   };
 
   /**

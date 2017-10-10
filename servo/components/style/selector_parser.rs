@@ -112,6 +112,7 @@ pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
 }
 
 /// A per-functional-pseudo map, from a given pseudo to a `T`.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PerPseudoElementMap<T> {
     entries: [Option<T>; SIMPLE_PSEUDO_COUNT],
@@ -156,6 +157,15 @@ impl<T> PerPseudoElementMap<T> {
     /// Clear this enumerated array.
     pub fn clear(&mut self) {
         *self = Self::default();
+    }
+
+    /// Invokes a callback on each non-None entry.
+    pub fn for_each<F: FnMut(&mut T)>(&mut self, mut f: F) {
+        for entry in self.entries.iter_mut() {
+            if entry.is_some() {
+                f(entry.as_mut().unwrap());
+            }
+        }
     }
 
     /// Set an entry value.

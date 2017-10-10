@@ -96,12 +96,17 @@ private:
 
     static bool sInitialized;
 
+    static mozilla::StaticRefPtr<URLPreloader> sSingleton;
+
 protected:
+    friend class AddonManagerStartup;
     friend class ScriptPreloader;
 
     virtual ~URLPreloader();
 
     Result<Ok, nsresult> WriteCache();
+
+    static URLPreloader& ReInitialize();
 
     // Clear leftover entries after the cache has been written.
     void Cleanup();
@@ -224,7 +229,7 @@ private:
     {
         MOZ_IMPLICIT URLEntry(const CacheKey& key)
             : CacheKey(key)
-            , mData(NullCString())
+            , mData(VoidCString())
         {}
 
         explicit URLEntry(nsIFile* file)

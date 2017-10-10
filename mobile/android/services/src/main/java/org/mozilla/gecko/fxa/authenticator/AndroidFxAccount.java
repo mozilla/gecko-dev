@@ -41,6 +41,7 @@ import org.mozilla.gecko.fxa.login.StateFactory;
 import org.mozilla.gecko.fxa.sync.FxAccountProfileService;
 import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.NonObjectJSONException;
+import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.setup.Constants;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -147,25 +148,11 @@ public class AndroidFxAccount {
 
   protected final Context context;
   private final AccountManager accountManager;
+  private final long neverSynced = -1;
 
   // This is really, really meant to be final. Only changed when account name changes.
   // See Bug 1368147.
   protected volatile Account account;
-
-  /**
-   * A cache associating Account name (email address) to a representation of the
-   * account's internal bundle.
-   * <p>
-   * The cache is invalidated entirely when <it>any</it> new Account is added,
-   * because there is no reliable way to know that an Account has been removed
-   * and then re-added.
-   */
-  private static final ConcurrentHashMap<String, ExtendedJSONObject> perAccountBundleCache =
-      new ConcurrentHashMap<>();
-
-  public static void invalidateCaches() {
-    perAccountBundleCache.clear();
-  }
 
   /**
    * Create an Android Firefox Account instance backed by an Android Account
@@ -244,10 +231,6 @@ public class AndroidFxAccount {
     // Persist our UID into userData, so that we never have to do this dance again.
     accountManager.setUserData(account, ACCOUNT_KEY_UID, unpickledAccountUID);
 
-    // Our internal caches were also keyed by 'email' instead of 'uid', so we blow them away here
-    // so that they're re-populated correctly later on.
-    invalidateCaches();
-
     return unpickledAccountUID;
   }
 
@@ -256,28 +239,15 @@ public class AndroidFxAccount {
    * @param bundle to write to account.
    */
   private synchronized void persistBundle(ExtendedJSONObject bundle) {
-    perAccountBundleCache.put(getAccountUID(), bundle);
     accountManager.setUserData(account, ACCOUNT_KEY_DESCRIPTOR, bundle.toJSONString());
-  }
-
-  /* package-private */ ExtendedJSONObject unbundle() {
-    return unbundle(true);
   }
 
   /**
    * Retrieve the internal bundle associated with this account.
    * @return bundle associated with account.
    */
-  private synchronized ExtendedJSONObject unbundle(boolean allowCachedBundle) {
-    final String accountUID = getAccountUID();
-
-    if (allowCachedBundle) {
-      final ExtendedJSONObject cachedBundle = perAccountBundleCache.get(accountUID);
-      if (cachedBundle != null) {
-        Logger.debug(LOG_TAG, "Returning cached account bundle.");
-        return cachedBundle;
-      }
-    }
+  /* package-private */ synchronized ExtendedJSONObject unbundle() {
+    final String bundleString = accountManager.getUserData(account, ACCOUNT_KEY_DESCRIPTOR);
 
     final int version = getAccountVersion();
     if (version < CURRENT_ACCOUNT_VERSION) {
@@ -288,17 +258,14 @@ public class AndroidFxAccount {
 
     if (version > CURRENT_ACCOUNT_VERSION) {
       // Oh dear.
-      return null;
+      throw new IllegalStateException("Invalid account bundle version. Current: " + CURRENT_ACCOUNT_VERSION + ", bundle version: " + version);
     }
 
-    String bundleString = accountManager.getUserData(account, ACCOUNT_KEY_DESCRIPTOR);
     if (bundleString == null) {
       return null;
     }
-    final ExtendedJSONObject bundle = unbundleAccountV2(bundleString);
-    perAccountBundleCache.put(accountUID, bundle);
-    Logger.info(LOG_TAG, "Account bundle persisted to cache.");
-    return bundle;
+
+    return unbundleAccountV2(bundleString);
   }
 
   private String getBundleData(String key) {
@@ -622,10 +589,26 @@ public class AndroidFxAccount {
       accountManager.setUserData(account, key, userdata.getString(key));
     }
 
-    AndroidFxAccount fxAccount = new AndroidFxAccount(context, account);
+    final AndroidFxAccount fxAccount = new AndroidFxAccount(context, account);
 
     if (!fromPickle) {
       fxAccount.clearSyncPrefs();
+
+      // We can nearly eliminate various pickle races by pickling the account right after creation.
+      // These races are an unfortunate by-product of Bug 1368147. The long-term solution is to stop
+      // pickling entirely, but for now we just ensure we'll have a pickle file as soon as possible.
+      // Pickle in a background thread to avoid strict mode warnings.
+      ThreadPool.run(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            AccountPickler.pickle(fxAccount, FxAccountConstants.ACCOUNT_PICKLE_FILENAME);
+          } catch (Exception e) {
+            // Should never happen, but we really don't want to die in a background thread.
+            Logger.warn(LOG_TAG, "Got exception pickling current account details; ignoring.", e);
+          }
+        }
+      });
     }
 
     fxAccount.setAuthoritiesToSyncAutomaticallyMap(authoritiesToSyncAutomaticallyMap);
@@ -682,9 +665,10 @@ public class AndroidFxAccount {
    *
    * @param stagesToSync stage names to sync; can be null to sync <b>all</b> known stages.
    * @param stagesToSkip stage names to skip; can be null to skip <b>no</b> known stages.
+   * @param ignoreSettings whether we should check if syncing is allowed via in-app or system settings.
    */
-  public void requestImmediateSync(String[] stagesToSync, String[] stagesToSkip) {
-    FirefoxAccounts.requestImmediateSync(getAndroidAccount(), stagesToSync, stagesToSkip);
+  public void requestImmediateSync(String[] stagesToSync, String[] stagesToSkip, boolean ignoreSettings) {
+    FirefoxAccounts.requestImmediateSync(getAndroidAccount(), stagesToSync, stagesToSkip, ignoreSettings);
   }
 
   /**
@@ -833,12 +817,20 @@ public class AndroidFxAccount {
   }
 
   public long getLastSyncedTimestamp() {
-    final long neverSynced = -1L;
     try {
       return getSyncPrefs().getLong(PREF_KEY_LAST_SYNCED_TIMESTAMP, neverSynced);
     } catch (Exception e) {
       Logger.warn(LOG_TAG, "Got exception getting last synced time; ignoring.", e);
       return neverSynced;
+    }
+  }
+
+  public boolean neverSynced() {
+    try {
+      return getSyncPrefs().getLong(PREF_KEY_LAST_SYNCED_TIMESTAMP, neverSynced) == -1;
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Got exception getting last synced time; ignoring.", e);
+      return false;
     }
   }
 
@@ -1109,7 +1101,8 @@ public class AndroidFxAccount {
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private void doOptionalProfileRename21Plus(final String newEmail, final Runnable migrateSyncSettingsCallback, final Runnable callback) {
-    accountManager.renameAccount(account, newEmail, new AccountManagerCallback<Account>() {
+    final Account currentAccount = new Account(account.name, account.type);
+    accountManager.renameAccount(currentAccount, newEmail, new AccountManagerCallback<Account>() {
       @Override
       public void run(AccountManagerFuture<Account> future) {
         if (future.isCancelled()) {
@@ -1134,7 +1127,6 @@ public class AndroidFxAccount {
             account = updatedAccount;
             migrateSyncSettingsCallback.run();
 
-            invalidateCaches();
             callback.run();
           }
         } catch (OperationCanceledException | IOException | AuthenticatorException e) {
@@ -1162,7 +1154,8 @@ public class AndroidFxAccount {
     accountManager.setUserData(account, ACCOUNT_KEY_RENAME_IN_PROGRESS, ACCOUNT_VALUE_RENAME_IN_PROGRESS);
 
     // Then, remove current account.
-    accountManager.removeAccount(account, new AccountManagerCallback<Boolean>() {
+    final Account currentAccount = new Account(account.name, account.type);
+    accountManager.removeAccount(currentAccount, new AccountManagerCallback<Boolean>() {
       @Override
       public void run(AccountManagerFuture<Boolean> future) {
         boolean accountRemovalSucceeded = false;
@@ -1191,9 +1184,6 @@ public class AndroidFxAccount {
         }
 
         // It appears that we've successfully removed the account. It's now time to re-add it.
-
-        // Purge our internal state.
-        invalidateCaches();
 
         // Finally, add an Android account with new name and old user data.
         final Account newAccount = new Account(email, FxAccountConstants.ACCOUNT_TYPE);

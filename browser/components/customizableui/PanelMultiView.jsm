@@ -191,6 +191,15 @@ this.PanelMultiView = class {
     }
   }
 
+  /**
+   * @return {Boolean} |true| when the 'ephemeral' attribute is set, which means
+   *                   that this instance should be ready to be thrown away at
+   *                   any time.
+   */
+  get _ephemeral() {
+    return this.node.hasAttribute("ephemeral");
+  }
+
   get panelViews() {
     // If there's a dedicated subViews container, we're not in the right binding
     // to use SlidingPanelViews.
@@ -217,10 +226,9 @@ this.PanelMultiView = class {
                                     .getService(Ci.nsIScreenManager);
   }
   /**
-   * Getter that returns the currently visible subview OR the subview that is
-   * about to be shown whilst a 'ViewShowing' event is being dispatched.
-   *
-   * @return {panelview}
+   * @return {panelview} the currently visible subview OR the subview that is
+   *                     about to be shown whilst a 'ViewShowing' event is being
+   *                     dispatched.
    */
   get current() {
     return this._viewShowing || this._currentSubView
@@ -234,6 +242,13 @@ this.PanelMultiView = class {
     else
       this.__currentSubView = panel;
     return panel;
+  }
+  /**
+   * @return {Promise} showSubView() returns a promise, which is kept here for
+   *                   random access.
+   */
+  get currentShowPromise() {
+    return this._currentShowPromise || Promise.resolve();
   }
   get _keyNavigationMap() {
     if (!this.__keyNavigationMap)
@@ -316,9 +331,11 @@ this.PanelMultiView = class {
         value: (...args) => this[method](...args)
       });
     });
-    Object.defineProperty(this.node, "current", {
-      enumerable: true,
-      get: () => this.current
+    ["current", "currentShowPromise"].forEach(property => {
+      Object.defineProperty(this.node, property, {
+        enumerable: true,
+        get: () => this[property]
+      });
     });
   }
 
@@ -327,8 +344,10 @@ this.PanelMultiView = class {
     if (!this.node)
       return;
 
-    if (this._mainView) {
-      let mainView = this._mainView;
+    if (this._ephemeral)
+      this.hideAllViewsExcept(null);
+    let mainView = this._mainView;
+    if (mainView) {
       if (this._panelViewCache)
         this._panelViewCache.appendChild(mainView);
       mainView.removeAttribute("mainview");
@@ -395,10 +414,13 @@ this.PanelMultiView = class {
    * @return {Boolean}
    */
   _canGoBack(view = this._currentSubView) {
-    return view != this._mainView;
+    return view.id != this._mainViewId;
   }
 
   setMainView(aNewMainView) {
+    if (!aNewMainView)
+      return;
+
     if (this._mainView) {
       if (!this.panelViews)
         this._subViews.appendChild(this._mainView);
@@ -418,30 +440,59 @@ this.PanelMultiView = class {
   }
 
   showMainView() {
+    if (!this._mainViewId)
+      return Promise.resolve();
+
+    if (this.panelViews)
+      return this.showSubView(this._mainView);
+
     if (this.showingSubView) {
       let viewNode = this._currentSubView;
       this._dispatchViewEvent(viewNode, "ViewHiding");
-      if (this.panelViews) {
+      this._transitionHeight(() => {
         viewNode.removeAttribute("current");
-        this.showSubView(this._mainViewId);
-      } else {
-        this._transitionHeight(() => {
-          viewNode.removeAttribute("current");
-          this._currentSubView = null;
-          this.node.setAttribute("viewtype", "main");
-        });
-      }
-    } else if (this.panelViews) {
-      this._mainView.setAttribute("current", "true");
+        this._currentSubView = null;
+        this.node.setAttribute("viewtype", "main");
+      });
     }
 
-    if (!this.panelViews) {
-      this._shiftMainView();
+    this._shiftMainView();
+    return Promise.resolve();
+  }
+
+  /**
+   * Ensures that all the panelviews, that are currently part of this instance,
+   * are hidden, except one specifically.
+   *
+   * @param {panelview} [theOne] The panelview DOM node to ensure is visible.
+   *                             Optional.
+   */
+  hideAllViewsExcept(theOne = null) {
+    for (let panelview of this._panelViews) {
+      // When the panelview was already reparented, don't interfere any more.
+      if (panelview == theOne || !this.node || panelview.panelMultiView != this.node)
+        continue;
+      if (panelview.hasAttribute("current"))
+        this._dispatchViewEvent(panelview, "ViewHiding");
+      panelview.removeAttribute("current");
     }
+
+    this._viewShowing = null;
+
+    if (!this.node || !theOne)
+      return;
+
+    this._currentSubView = theOne;
+    if (!theOne.hasAttribute("current")) {
+      theOne.setAttribute("current", true);
+      this.descriptionHeightWorkaround(theOne);
+      this._dispatchViewEvent(theOne, "ViewShown");
+    }
+    this.node.setAttribute("viewtype", (theOne.id == this._mainViewId) ? "main" : "subview");
   }
 
   showSubView(aViewId, aAnchor, aPreviousView) {
-    return (async () => {
+    this._currentShowPromise = (async () => {
       // Support passing in the node directly.
       let viewNode = typeof aViewId == "string" ? this.node.querySelector("#" + aViewId) : aViewId;
       if (!viewNode) {
@@ -457,8 +508,11 @@ this.PanelMultiView = class {
 
       let reverse = !!aPreviousView;
       let previousViewNode = aPreviousView || this._currentSubView;
-      let playTransition = (!!previousViewNode && previousViewNode != viewNode &&
-        this._panel.state == "open");
+      // If the panelview to show is the same as the previous one, the 'ViewShowing'
+      // event has already been dispatched. Don't do it twice.
+      let showingSameView = viewNode == previousViewNode;
+      let playTransition = (!!previousViewNode && !showingSameView && this._panel.state == "open");
+      let isMainView = viewNode.id == this._mainViewId;
 
       let dwu, previousRect;
       if (playTransition || this.panelViews) {
@@ -466,16 +520,15 @@ this.PanelMultiView = class {
         previousRect = previousViewNode.__lastKnownBoundingRect =
           dwu.getBoundsWithoutFlushing(previousViewNode);
         if (this.panelViews) {
-          // Here go the measures that have the same caching lifetime as the width
-          // of the main view, i.e. 'forever', during the instance lifetime.
+          // Cache the measures that have the same caching lifetime as the width
+          // or height of the main view, i.e. whilst the panel is shown and/ or
+          // visible.
           if (!this._mainViewWidth) {
             this._mainViewWidth = previousRect.width;
             let top = dwu.getBoundsWithoutFlushing(previousViewNode.firstChild || previousViewNode).top;
             let bottom = dwu.getBoundsWithoutFlushing(previousViewNode.lastChild || previousViewNode).bottom;
             this._viewVerticalPadding = previousRect.height - (bottom - top);
           }
-          // Here go the measures that have the same caching lifetime as the height
-          // of the main view, i.e. whilst the panel is shown and/ or visible.
           if (!this._mainViewHeight) {
             this._mainViewHeight = previousRect.height;
             this._viewContainer.style.minHeight = this._mainViewHeight + "px";
@@ -484,6 +537,13 @@ this.PanelMultiView = class {
       }
 
       this._viewShowing = viewNode;
+      // Because the 'mainview' attribute may be out-of-sync, due to view node
+      // reparenting in combination with ephemeral PanelMultiView instances,
+      // this is the best place to correct it (just before showing).
+      if (isMainView)
+        viewNode.setAttribute("mainview", true);
+      else
+        viewNode.removeAttribute("mainview");
 
       // Make sure that new panels always have a title set.
       if (this.panelViews && aAnchor) {
@@ -491,60 +551,48 @@ this.PanelMultiView = class {
           viewNode.setAttribute("title", aAnchor.getAttribute("label"));
         viewNode.classList.add("PanelUI-subView");
       }
-      if (this.panelViews && this._mainViewWidth)
+      if (this.panelViews && !isMainView && this._mainViewWidth)
         viewNode.style.maxWidth = viewNode.style.minWidth = this._mainViewWidth + "px";
 
-      // Emit the ViewShowing event so that the widget definition has a chance
-      // to lazily populate the subview with things or perhaps even cancel this
-      // whole operation.
-      let detail = {
-        blockers: new Set(),
-        addBlocker(promise) {
-          this.blockers.add(promise);
+      if (!showingSameView || !viewNode.hasAttribute("current")) {
+        // Emit the ViewShowing event so that the widget definition has a chance
+        // to lazily populate the subview with things or perhaps even cancel this
+        // whole operation.
+        let detail = {
+          blockers: new Set(),
+          addBlocker(promise) {
+            this.blockers.add(promise);
+          }
+        };
+        let cancel = this._dispatchViewEvent(viewNode, "ViewShowing", aAnchor, detail);
+        if (detail.blockers.size) {
+          try {
+            let results = await Promise.all(detail.blockers);
+            cancel = cancel || results.some(val => val === false);
+          } catch (e) {
+            Cu.reportError(e);
+            cancel = true;
+          }
         }
-      };
-      let cancel = this._dispatchViewEvent(viewNode, "ViewShowing", aAnchor, detail);
-      if (detail.blockers.size) {
-        try {
-          let results = await Promise.all(detail.blockers);
-          cancel = cancel || results.some(val => val === false);
-        } catch (e) {
-          Cu.reportError(e);
-          cancel = true;
-        }
-      }
 
-      this._viewShowing = null;
-      if (cancel) {
-        return;
-      }
-
-      this._currentSubView = viewNode;
-      if (this.panelViews) {
-        if (viewNode.id == this._mainViewId) {
-          this.node.setAttribute("viewtype", "main");
-        } else {
-          this.node.setAttribute("viewtype", "subview");
-        }
-        if (!playTransition) {
-          viewNode.setAttribute("current", true);
-          this.descriptionHeightWorkaround(viewNode);
+        if (cancel) {
+          this._viewShowing = null;
+          return;
         }
       }
 
       // Now we have to transition the panel.
-      if (this.panelViews && playTransition) {
-        if (aAnchor)
-          aAnchor.setAttribute("open", true);
-
-        await this._transitionViews(previousViewNode, viewNode, reverse, previousRect);
-
-        if (aAnchor)
-          aAnchor.removeAttribute("open");
-
-        this._dispatchViewEvent(viewNode, "ViewShown");
-        this._updateKeyboardFocus(viewNode);
-      } else if (!this.panelViews) {
+      if (this.panelViews) {
+        // If we've got an older transition still running, make sure to clean it up.
+        await this._cleanupTransitionPhase();
+        if (playTransition) {
+          await this._transitionViews(previousViewNode, viewNode, reverse, previousRect, aAnchor);
+          this._updateKeyboardFocus(viewNode);
+        } else {
+          this.hideAllViewsExcept(viewNode);
+        }
+      } else {
+        this._currentSubView = viewNode;
         this._transitionHeight(() => {
           viewNode.setAttribute("current", true);
           if (viewNode.id == this._mainViewId) {
@@ -560,6 +608,7 @@ this.PanelMultiView = class {
         this._shiftMainView(aAnchor);
       }
     })().catch(e => Cu.reportError(e));
+    return this._currentShowPromise;
   }
 
   /**
@@ -577,11 +626,10 @@ this.PanelMultiView = class {
    *                                     previous view or forward to a next view.
    * @param {Object}    previousRect     Rect object, with the same structure as
    *                                     a DOMRect, of the `previousViewNode`.
-   * @param {Function}  callback         Function that will be invoked when the
-   *                                     transition is finished or when the
-   *                                     operation was canceled (early return).
+   * @param {Element}   anchor           the anchor for which we're opening
+   *                                     a new panelview, if any
    */
-  async _transitionViews(previousViewNode, viewNode, reverse, previousRect) {
+  async _transitionViews(previousViewNode, viewNode, reverse, previousRect, anchor) {
     // There's absolutely no need to show off our epic animation skillz when
     // the panel's not even open.
     if (this._panel.state != "open") {
@@ -593,11 +641,18 @@ this.PanelMultiView = class {
     if (this._autoResizeWorkaroundTimer)
       window.clearTimeout(this._autoResizeWorkaroundTimer);
 
-    this._transitionDetails = {
+    let details = this._transitionDetails = {
       phase: TRANSITION_PHASES.START,
-      previousViewNode, viewNode, reverse
+      previousViewNode, viewNode, reverse, anchor
     };
 
+    if (anchor)
+      anchor.setAttribute("open", "true");
+
+    // Since we're going to show two subview at the same time, don't abuse the
+    // 'current' attribute, since it's needed for other state-keeping, but use
+    // a separate 'in-transition' attribute instead.
+    previousViewNode.setAttribute("in-transition", true);
     // Set the viewContainer dimensions to make sure only the current view is
     // visible.
     this._viewContainer.style.height = Math.max(previousRect.height, this._mainViewHeight) + "px";
@@ -610,7 +665,7 @@ this.PanelMultiView = class {
     let viewRect;
     if (viewNode.__lastKnownBoundingRect) {
       viewRect = viewNode.__lastKnownBoundingRect;
-      viewNode.setAttribute("current", true);
+      viewNode.setAttribute("in-transition", true);
     } else if (viewNode.customRectGetter) {
       // Can't use Object.assign directly with a DOM Rect object because its properties
       // aren't enumerable.
@@ -620,11 +675,11 @@ this.PanelMultiView = class {
       if (header) {
         viewRect.height += this._dwu.getBoundsWithoutFlushing(header).height;
       }
-      viewNode.setAttribute("current", true);
+      viewNode.setAttribute("in-transition", true);
     } else {
       let oldSibling = viewNode.nextSibling || null;
       this._offscreenViewStack.appendChild(viewNode);
-      viewNode.setAttribute("current", true);
+      viewNode.setAttribute("in-transition", true);
 
       viewRect = await BrowserUtils.promiseLayoutFlushed(this.document, "layout", () => {
         return this._dwu.getBoundsWithoutFlushing(viewNode);
@@ -638,7 +693,7 @@ this.PanelMultiView = class {
     }
 
     this._transitioning = true;
-    this._transitionDetails.phase = TRANSITION_PHASES.PREPARE;
+    details.phase = TRANSITION_PHASES.PREPARE;
 
     // The 'magic' part: build up the amount of pixels to move right or left.
     let moveToLeft = (this._dir == "rtl" && !reverse) || (this._dir == "ltr" && reverse);
@@ -673,26 +728,26 @@ this.PanelMultiView = class {
     await BrowserUtils.promiseLayoutFlushed(document, "layout", () => {});
 
     // Kick off the transition!
-    this._transitionDetails.phase = TRANSITION_PHASES.TRANSITION;
+    details.phase = TRANSITION_PHASES.TRANSITION;
     this._viewStack.style.transform = "translateX(" + (moveToLeft ? "" : "-") + deltaX + "px)";
 
     await new Promise(resolve => {
-      this._transitionDetails.resolve = resolve;
-      this._viewContainer.addEventListener("transitionend", this._transitionDetails.listener = ev => {
+      details.resolve = resolve;
+      this._viewContainer.addEventListener("transitionend", details.listener = ev => {
         // It's quite common that `height` on the view container doesn't need
         // to transition, so we make sure to do all the work on the transform
         // transition-end, because that is guaranteed to happen.
         if (ev.target != this._viewStack || ev.propertyName != "transform")
           return;
-        this._viewContainer.removeEventListener("transitionend", this._transitionDetails.listener);
-        delete this._transitionDetails.listener;
+        this._viewContainer.removeEventListener("transitionend", details.listener);
+        delete details.listener;
         resolve();
       });
     });
 
-    this._transitionDetails.phase = TRANSITION_PHASES.END;
+    details.phase = TRANSITION_PHASES.END;
 
-    await this._cleanupTransitionPhase();
+    await this._cleanupTransitionPhase(details);
   }
 
   /**
@@ -700,20 +755,24 @@ this.PanelMultiView = class {
    * above. Which attributes and properties depends on the phase the transition
    * was left from - normally that'd be `TRANSITION_PHASES.END`.
    */
-  async _cleanupTransitionPhase() {
-    if (!this._transitionDetails)
+  async _cleanupTransitionPhase(details = this._transitionDetails) {
+    // Make sure to only clean up a phase from the most recent transition.
+    if (!this._transitionDetails || details != this._transitionDetails)
       return;
 
-    let {phase, previousViewNode, viewNode, reverse, resolve, listener} = this._transitionDetails;
+    let {phase, previousViewNode, viewNode, reverse, resolve, listener, anchor} = this._transitionDetails;
     this._transitionDetails = null;
 
     // Do the things we _always_ need to do whenever the transition ends or is
     // interrupted.
-    this._dispatchViewEvent(previousViewNode, "ViewHiding");
-    previousViewNode.removeAttribute("current");
+    this.hideAllViewsExcept(viewNode);
+    previousViewNode.removeAttribute("in-transition");
+    viewNode.removeAttribute("in-transition");
     if (reverse)
       this._resetKeyNavigation(previousViewNode);
-    this.descriptionHeightWorkaround(viewNode);
+
+    if (anchor)
+      anchor.removeAttribute("open");
 
     if (phase >= TRANSITION_PHASES.START) {
       this._panel.removeAttribute("width");
@@ -906,7 +965,7 @@ this.PanelMultiView = class {
       case "mousemove":
         this._resetKeyNavigation();
         break;
-      case "popupshowing":
+      case "popupshowing": {
         this.node.setAttribute("panelopen", "true");
         // Bug 941196 - The panel can get taller when opening a subview. Disabling
         // autoPositioning means that the panel won't jump around if an opened
@@ -962,13 +1021,14 @@ this.PanelMultiView = class {
         // without any scrolling (using "display: flex;"), and only if the view
         // exceeds the available space we set the height explicitly and enable
         // scrolling.
-        if (this._mainView.hasAttribute("blockinboxworkaround")) {
+        let mainView = this._mainView;
+        if (mainView && mainView.hasAttribute("blockinboxworkaround")) {
           let blockInBoxWorkaround = () => {
             let mainViewHeight =
-                this._dwu.getBoundsWithoutFlushing(this._mainView).height;
+                this._dwu.getBoundsWithoutFlushing(mainView).height;
             if (mainViewHeight > maxHeight) {
-              this._mainView.style.height = maxHeight + "px";
-              this._mainView.setAttribute("exceeding", "true");
+              mainView.style.height = maxHeight + "px";
+              mainView.setAttribute("exceeding", "true");
             }
           };
           // On Windows, we cannot measure the full height of the main view
@@ -984,12 +1044,14 @@ this.PanelMultiView = class {
           }
         }
         break;
+      }
       case "popupshown":
         // Now that the main view is visible, we can check the height of the
         // description elements it contains.
-        this.descriptionHeightWorkaround();
+        if (!this.panelViews)
+          this.descriptionHeightWorkaround();
         break;
-      case "popuphidden":
+      case "popuphidden": {
         // WebExtensions consumers can hide the popup from viewshowing, or
         // mid-transition, which disrupts our state:
         this._viewShowing = null;
@@ -997,7 +1059,6 @@ this.PanelMultiView = class {
         this.node.removeAttribute("panelopen");
         this.showMainView();
         if (this.panelViews) {
-          this._cleanupTransitionPhase();
           for (let panelView of this._viewStack.children) {
             if (panelView.nodeName != "children") {
               panelView.__lastKnownBoundingRect = null;
@@ -1021,12 +1082,14 @@ this.PanelMultiView = class {
 
         // Always try to layout the panel normally when reopening it. This is
         // also the layout that will be used in customize mode.
-        if (this._mainView.hasAttribute("blockinboxworkaround")) {
-          this._mainView.style.removeProperty("height");
-          this._mainView.removeAttribute("exceeding");
+        let mainView = this._mainView;
+        if (mainView && mainView.hasAttribute("blockinboxworkaround")) {
+          mainView.style.removeProperty("height");
+          mainView.removeAttribute("exceeding");
         }
         this._dispatchViewEvent(this.node, "PanelMultiViewHidden");
         break;
+      }
     }
   }
 
@@ -1249,7 +1312,7 @@ this.PanelMultiView = class {
    *        view if omitted.
    */
   descriptionHeightWorkaround(viewNode = this._mainView) {
-    if (!viewNode.hasAttribute("descriptionheightworkaround")) {
+    if (!viewNode || !viewNode.hasAttribute("descriptionheightworkaround")) {
       // This view does not require the workaround.
       return;
     }

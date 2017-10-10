@@ -540,10 +540,8 @@ BaselineInspector::hasSeenDoubleResult(jsbytecode* pc)
 
     if (stub->isUnaryArith_Fallback())
         return stub->toUnaryArith_Fallback()->sawDoubleResult();
-    else
-        return stub->toBinaryArith_Fallback()->sawDoubleResult();
 
-    return false;
+    return stub->toBinaryArith_Fallback()->sawDoubleResult();
 }
 
 JSObject*
@@ -629,7 +627,7 @@ BaselineInspector::getTemplateObjectForNative(jsbytecode* pc, Native native)
 
 bool
 BaselineInspector::isOptimizableConstStringSplit(jsbytecode* pc, JSString** strOut,
-                                                 JSString** sepOut, JSObject** objOut)
+                                                 JSString** sepOut, ArrayObject** objOut)
 {
     if (!hasBaselineScript())
         return false;

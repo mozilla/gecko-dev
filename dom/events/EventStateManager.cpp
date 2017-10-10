@@ -262,7 +262,6 @@ NS_INTERFACE_MAP_END
 /******************************************************************/
 
 static uint32_t sESMInstanceCount = 0;
-static bool sPointerEventEnabled = false;
 
 uint64_t EventStateManager::sUserInputCounter = 0;
 int32_t EventStateManager::sUserInputEventDepth = 0;
@@ -310,13 +309,6 @@ EventStateManager::EventStateManager()
     UpdateUserActivityTimer();
   }
   ++sESMInstanceCount;
-
-  static bool sAddedPointerEventEnabled = false;
-  if (!sAddedPointerEventEnabled) {
-    Preferences::AddBoolVarCache(&sPointerEventEnabled,
-                                 "dom.w3c_pointer_events.enabled", false);
-    sAddedPointerEventEnabled = true;
-  }
   WheelTransaction::InitializeStatics();
 }
 
@@ -624,6 +616,8 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     }
   }
 
+  PointerEventHandler::UpdateActivePointerState(mouseEvent);
+
   switch (aEvent->mMessage) {
   case eContextMenu:
     if (sIsPointerLocked) {
@@ -708,10 +702,8 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       mouseEvent->mReason = WidgetMouseEvent::eSynthesized;
       // then fall through...
     } else {
-      if (sPointerEventEnabled) {
-        // We should synthetize corresponding pointer events
-        GeneratePointerEnterExit(ePointerLeave, mouseEvent);
-      }
+      // We should synthetize corresponding pointer events
+      GeneratePointerEnterExit(ePointerLeave, mouseEvent);
       GenerateMouseEnterExit(mouseEvent);
       //This is a window level mouse exit event and should stop here
       aEvent->mMessage = eVoidEvent;
@@ -720,6 +712,10 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     MOZ_FALLTHROUGH;
   case eMouseMove:
   case ePointerDown:
+    if (aEvent->mMessage == ePointerDown) {
+      PointerEventHandler::ImplicitlyCapturePointer(aTargetFrame, aEvent);
+    }
+    MOZ_FALLTHROUGH;
   case ePointerMove: {
     // on the Mac, GenerateDragGesture() may not return until the drag
     // has completed and so |aTargetFrame| may have been deleted (moving
@@ -729,6 +725,13 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     // into UpdateCursor().
     GenerateDragGesture(aPresContext, mouseEvent);
     UpdateCursor(aPresContext, aEvent, mCurrentTarget, aStatus);
+
+    UpdateLastRefPointOfMouseEvent(mouseEvent);
+    if (sIsPointerLocked) {
+      ResetPointerToWindowCenterWhilePointerLocked(mouseEvent);
+    }
+    UpdateLastPointerPosition(mouseEvent);
+
     GenerateMouseEnterExit(mouseEvent);
     // Flush pending layout changes, so that later mouse move events
     // will go to the right nodes.
@@ -1292,8 +1295,9 @@ EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
     return;
   }
   case eDragEventClass: {
-    if (remote->Manager()->IsContentParent()) {
-      remote->Manager()->AsContentParent()->MaybeInvokeDragSession(remote);
+    RefPtr<TabParent> tabParent = remote;
+    if (tabParent->Manager()->IsContentParent()) {
+      tabParent->Manager()->AsContentParent()->MaybeInvokeDragSession(tabParent);
     }
 
     nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
@@ -1309,7 +1313,7 @@ EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
       }
     }
 
-    remote->SendRealDragEvent(*aEvent->AsDragEvent(), action, dropEffect);
+    tabParent->SendRealDragEvent(*aEvent->AsDragEvent(), action, dropEffect);
     return;
   }
   case ePluginEventClass: {
@@ -2628,7 +2632,7 @@ EventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
   }
 
   nsIScrollbarMediator::ScrollSnapMode snapMode = nsIScrollbarMediator::DISABLE_SNAP;
-  nsIAtom* origin = nullptr;
+  nsAtom* origin = nullptr;
   switch (aEvent->mDeltaMode) {
     case nsIDOMWheelEvent::DOM_DELTA_LINE:
       origin = nsGkAtoms::mouseWheel;
@@ -3206,21 +3210,20 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       SetActiveManager(this, activeContent);
     }
     break;
-  case ePointerCancel: {
-    if(WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent()) {
-      GenerateMouseEnterExit(mouseEvent);
-    }
-    // After firing the pointercancel event, a user agent must also fire a
-    // pointerout event followed by a pointerleave event.
-    MOZ_FALLTHROUGH;
-  }
+  case ePointerCancel:
   case ePointerUp: {
     WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent();
-    // After UP/Cancel Touch pointers become invalid so we can remove relevant helper from Table
-    // Mouse/Pen pointers are valid all the time (not only between down/up)
+    MOZ_ASSERT(pointerEvent);
+    // Implicitly releasing capture for given pointer. ePointerLostCapture
+    // should be send after ePointerUp or ePointerCancel.
+    PointerEventHandler::ImplicitlyReleasePointerCapture(pointerEvent);
+
     if (pointerEvent->inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {
-      mPointersEnterLeaveHelper.Remove(pointerEvent->pointerId);
+      // After UP/Cancel Touch pointers become invalid so we can remove relevant
+      // helper from Table Mouse/Pen pointers are valid all the time (not only
+      // between down/up)
       GenerateMouseEnterExit(pointerEvent);
+      mPointersEnterLeaveHelper.Remove(pointerEvent->pointerId);
     }
     break;
   }
@@ -4263,9 +4266,89 @@ void
 EventStateManager::GeneratePointerEnterExit(EventMessage aMessage,
                                             WidgetMouseEvent* aEvent)
 {
+  if (!PointerEventHandler::IsPointerEventEnabled()) {
+    return;
+  }
   WidgetPointerEvent pointerEvent(*aEvent);
   pointerEvent.mMessage = aMessage;
   GenerateMouseEnterExit(&pointerEvent);
+}
+
+/* static */ void
+EventStateManager::UpdateLastRefPointOfMouseEvent(WidgetMouseEvent* aMouseEvent)
+{
+  if (aMouseEvent->mMessage != eMouseMove) {
+    return;
+  }
+
+  // Mouse movement is reported on the MouseEvent.movement{X,Y} fields.
+  // Movement is calculated in UIEvent::GetMovementPoint() as:
+  //   previous_mousemove_mRefPoint - current_mousemove_mRefPoint.
+  if (sIsPointerLocked && aMouseEvent->mWidget) {
+    // The pointer is locked. If the pointer is not located at the center of
+    // the window, dispatch a synthetic mousemove to return the pointer there.
+    // Doing this between "real" pointer moves gives the impression that the
+    // (locked) pointer can continue moving and won't stop at the screen
+    // boundary. We cancel the synthetic event so that we don't end up
+    // dispatching the centering move event to content.
+    aMouseEvent->mLastRefPoint =
+      GetWindowClientRectCenter(aMouseEvent->mWidget);
+
+  } else if (sLastRefPoint == kInvalidRefPoint) {
+    // We don't have a valid previous mousemove mRefPoint. This is either
+    // the first move we've encountered, or the mouse has just re-entered
+    // the application window. We should report (0,0) movement for this
+    // case, so make the current and previous mRefPoints the same.
+    aMouseEvent->mLastRefPoint = aMouseEvent->mRefPoint;
+  } else {
+    aMouseEvent->mLastRefPoint = sLastRefPoint;
+  }
+}
+
+/* static */ void
+EventStateManager::ResetPointerToWindowCenterWhilePointerLocked(
+                     WidgetMouseEvent* aMouseEvent)
+{
+  MOZ_ASSERT(sIsPointerLocked);
+  if (aMouseEvent->mMessage != eMouseMove || !aMouseEvent->mWidget) {
+    return;
+  }
+
+  // The pointer is locked. If the pointer is not located at the center of
+  // the window, dispatch a synthetic mousemove to return the pointer there.
+  // Doing this between "real" pointer moves gives the impression that the
+  // (locked) pointer can continue moving and won't stop at the screen
+  // boundary. We cancel the synthetic event so that we don't end up
+  // dispatching the centering move event to content.
+  LayoutDeviceIntPoint center =
+    GetWindowClientRectCenter(aMouseEvent->mWidget);
+
+  if (aMouseEvent->mRefPoint != center) {
+    // Mouse move doesn't finish at the center of the window. Dispatch a
+    // synthetic native mouse event to move the pointer back to the center
+    // of the window, to faciliate more movement. But first, record that
+    // we've dispatched a synthetic mouse movement, so we can cancel it
+    // in the other branch here.
+    sSynthCenteringPoint = center;
+    aMouseEvent->mWidget->SynthesizeNativeMouseMove(
+      center + aMouseEvent->mWidget->WidgetToScreenOffset(), nullptr);
+  } else if (aMouseEvent->mRefPoint == sSynthCenteringPoint) {
+    // This is the "synthetic native" event we dispatched to re-center the
+    // pointer. Cancel it so we don't expose the centering move to content.
+    aMouseEvent->StopPropagation();
+    // Clear sSynthCenteringPoint so we don't cancel other events
+    // targeted at the center.
+    sSynthCenteringPoint = kInvalidRefPoint;
+  }
+}
+
+/* static */ void
+EventStateManager::UpdateLastPointerPosition(WidgetMouseEvent* aMouseEvent)
+{
+  if (aMouseEvent->mMessage != eMouseMove) {
+    return;
+  }
+  sLastRefPoint = aMouseEvent->mRefPoint;
 }
 
 void
@@ -4280,51 +4363,6 @@ EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
 
   switch(aMouseEvent->mMessage) {
   case eMouseMove:
-    {
-      // Mouse movement is reported on the MouseEvent.movement{X,Y} fields.
-      // Movement is calculated in UIEvent::GetMovementPoint() as:
-      //   previous_mousemove_mRefPoint - current_mousemove_mRefPoint.
-      if (sIsPointerLocked && aMouseEvent->mWidget) {
-        // The pointer is locked. If the pointer is not located at the center of
-        // the window, dispatch a synthetic mousemove to return the pointer there.
-        // Doing this between "real" pointer moves gives the impression that the
-        // (locked) pointer can continue moving and won't stop at the screen
-        // boundary. We cancel the synthetic event so that we don't end up
-        // dispatching the centering move event to content.
-        LayoutDeviceIntPoint center =
-          GetWindowClientRectCenter(aMouseEvent->mWidget);
-        aMouseEvent->mLastRefPoint = center;
-        if (aMouseEvent->mRefPoint != center) {
-          // Mouse move doesn't finish at the center of the window. Dispatch a
-          // synthetic native mouse event to move the pointer back to the center
-          // of the window, to faciliate more movement. But first, record that
-          // we've dispatched a synthetic mouse movement, so we can cancel it
-          // in the other branch here.
-          sSynthCenteringPoint = center;
-          aMouseEvent->mWidget->SynthesizeNativeMouseMove(
-            center + aMouseEvent->mWidget->WidgetToScreenOffset(), nullptr);
-        } else if (aMouseEvent->mRefPoint == sSynthCenteringPoint) {
-          // This is the "synthetic native" event we dispatched to re-center the
-          // pointer. Cancel it so we don't expose the centering move to content.
-          aMouseEvent->StopPropagation();
-          // Clear sSynthCenteringPoint so we don't cancel other events
-          // targeted at the center.
-          sSynthCenteringPoint = kInvalidRefPoint;
-        }
-      } else if (sLastRefPoint == kInvalidRefPoint) {
-        // We don't have a valid previous mousemove mRefPoint. This is either
-        // the first move we've encountered, or the mouse has just re-entered
-        // the application window. We should report (0,0) movement for this
-        // case, so make the current and previous mRefPoints the same.
-        aMouseEvent->mLastRefPoint = aMouseEvent->mRefPoint;
-      } else {
-        aMouseEvent->mLastRefPoint = sLastRefPoint;
-      }
-
-      // Update the last known mRefPoint with the current mRefPoint.
-      sLastRefPoint = aMouseEvent->mRefPoint;
-    }
-    MOZ_FALLTHROUGH;
   case ePointerMove:
   case ePointerDown:
   case ePointerGotCapture:
@@ -4423,6 +4461,10 @@ EventStateManager::SetPointerLock(nsIWidget* aWidget,
 
   if (sIsPointerLocked) {
     MOZ_ASSERT(aWidget, "Locking pointer requires a widget");
+
+    // Release all pointer capture when a pointer lock is successfully applied
+    // on an element.
+    PointerEventHandler::ReleaseAllPointerCapture();
 
     // Store the last known ref point so we can reposition the pointer after unlock.
     sPreLockPoint = sLastRefPoint;
@@ -5068,7 +5110,9 @@ EventStateManager::ResetLastOverForContent(
 }
 
 void
-EventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
+EventStateManager::ContentRemoved(nsIDocument* aDocument,
+                                  nsIContent* aMaybeContainer,
+                                  nsIContent* aContent)
 {
   /*
    * Anchor and area elements when focused or hovered might make the UI to show
@@ -5110,6 +5154,8 @@ EventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
       nsContentUtils::ContentIsDescendantOf(sDragOverContent, aContent)) {
     sDragOverContent = nullptr;
   }
+
+  PointerEventHandler::ReleaseIfCaptureByDescendant(aContent);
 
   // See bug 292146 for why we want to null this out
   ResetLastOverForContent(0, mMouseEnterLeaveHelper, aContent);

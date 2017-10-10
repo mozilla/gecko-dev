@@ -16,7 +16,6 @@ namespace mozilla {
 
 namespace layers {
 class StackingContextHelper;
-class WebRenderDisplayItemLayer;
 } // namespace layers
 
 namespace wr {
@@ -82,11 +81,11 @@ public:
    */
   void BuildWebRenderDisplayItems(wr::DisplayListBuilder& aBuilder,
                                   const layers::StackingContextHelper& aSc,
-                                  layers::WebRenderDisplayItemLayer* aLayer,
                                   const nsRect& aDest,
                                   const nsRect& aFill,
                                   const nsSize& aRepeatSize,
                                   const mozilla::CSSIntRect& aSrc,
+                                  bool aIsBackfaceVisible,
                                   float aOpacity = 1.0);
 
 private:

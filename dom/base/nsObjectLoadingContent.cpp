@@ -20,7 +20,6 @@
 #include "nsIDocument.h"
 #include "nsIDOMCustomEvent.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMHTMLObjectElement.h"
 #include "nsIExternalProtocolHandler.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIObjectFrame.h"
@@ -892,14 +891,14 @@ nsObjectLoadingContent::GetNestedParams(nsTArray<MozPluginParameter>& aParams)
       continue;
 
     nsCOMPtr<nsIContent> parent = element->GetParent();
-    nsCOMPtr<nsIDOMHTMLObjectElement> domObject;
-    while (!domObject && parent) {
-      domObject = do_QueryInterface(parent);
+    RefPtr<HTMLObjectElement> objectElement;
+    while (!objectElement && parent) {
+      objectElement = HTMLObjectElement::FromContent(parent);
       parent = parent->GetParent();
     }
 
-    if (domObject) {
-      parent = do_QueryInterface(domObject);
+    if (objectElement) {
+      parent = objectElement;
     } else {
       continue;
     }
@@ -931,7 +930,7 @@ nsObjectLoadingContent::BuildParametersArray()
   for (uint32_t i = 0; i != content->GetAttrCount(); i += 1) {
     MozPluginParameter param;
     const nsAttrName* attrName = content->GetAttrNameAt(i);
-    nsIAtom* atom = attrName->LocalName();
+    nsAtom* atom = attrName->LocalName();
     content->GetAttr(attrName->NamespaceID(), atom, param.mValue);
     atom->ToString(param.mName);
     mCachedAttributes.AppendElement(param);

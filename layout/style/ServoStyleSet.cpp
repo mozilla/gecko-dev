@@ -10,16 +10,17 @@
 #include "mozilla/AutoRestyleTimelineMarker.h"
 #include "mozilla/DocumentStyleRootIterator.h"
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/RestyleManagerInlines.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/ServoRestyleManager.h"
 #include "mozilla/ServoStyleRuleMap.h"
+#include "mozilla/ServoTypes.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/AnonymousContent.h"
 #include "mozilla/dom/ChildIterator.h"
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
-#include "mozilla/RestyleManagerInlines.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsCSSPseudoElements.h"
@@ -38,6 +39,14 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 ServoStyleSet* ServoStyleSet::sInServoTraversal = nullptr;
+
+#ifdef DEBUG
+bool
+ServoStyleSet::IsCurrentThreadInServoTraversal()
+{
+  return sInServoTraversal && (NS_IsMainThread() || Servo_IsWorkerThread());
+}
+#endif
 
 namespace mozilla {
 // On construction, sets sInServoTraversal to the given ServoStyleSet.
@@ -267,20 +276,19 @@ ServoStyleSet::AddSizeOfIncludingThis(nsWindowSizes& aSizes) const
     Servo_StyleSet_AddSizeOfExcludingThis(ServoStyleSetMallocSizeOf,
                                           ServoStyleSetMallocEnclosingSizeOf,
                                           &sizes, mRawSet.get());
-    aSizes.mLayoutServoStyleSetsStylistRuleTree +=
-      sizes.mStylistRuleTree;
-    aSizes.mLayoutServoStyleSetsStylistPrecomputedPseudos +=
-      sizes.mStylistPrecomputedPseudos;
+
+    // The StyleSet does not contain precomputed pseudos; they are in the UA
+    // cache.
+    MOZ_RELEASE_ASSERT(sizes.mPrecomputedPseudos == 0);
+
+    aSizes.mLayoutServoStyleSetsStylistRuleTree += sizes.mRuleTree;
     aSizes.mLayoutServoStyleSetsStylistElementAndPseudosMaps +=
-      sizes.mStylistElementAndPseudosMaps;
+      sizes.mElementAndPseudosMaps;
     aSizes.mLayoutServoStyleSetsStylistInvalidationMap +=
-      sizes.mStylistInvalidationMap;
+      sizes.mInvalidationMap;
     aSizes.mLayoutServoStyleSetsStylistRevalidationSelectors +=
-      sizes.mStylistRevalidationSelectors;
-    aSizes.mLayoutServoStyleSetsStylistOther +=
-      sizes.mStylistOther;
-    aSizes.mLayoutServoStyleSetsOther +=
-      sizes.mOther;
+      sizes.mRevalidationSelectors;
+    aSizes.mLayoutServoStyleSetsStylistOther += sizes.mOther;
   }
 
   if (mStyleRuleMap) {
@@ -336,7 +344,7 @@ ServoStyleSet::ResolveStyleFor(Element* aElement,
   if (aMayCompute == LazyComputeBehavior::Allow) {
     PreTraverseSync();
     return ResolveStyleLazilyInternal(
-        aElement, CSSPseudoElementType::NotPseudo, nullptr, aParentContext);
+        aElement, CSSPseudoElementType::NotPseudo, nullptr);
   }
 
   return ResolveServoStyle(aElement);
@@ -475,7 +483,7 @@ static inline already_AddRefed<ServoStyleContext>
 ResolveStyleForTextOrFirstLetterContinuation(
     RawServoStyleSetBorrowed aStyleSet,
     ServoStyleContext& aParent,
-    nsIAtom* aAnonBox)
+    nsAtom* aAnonBox)
 {
   MOZ_ASSERT(aAnonBox == nsCSSAnonBoxes::mozText ||
              aAnonBox == nsCSSAnonBoxes::firstLetterContinuation);
@@ -540,6 +548,17 @@ ServoStyleSet::ResolveStyleForPlaceholder()
   return computedValues.forget();
 }
 
+static inline bool
+LazyPseudoIsCacheable(CSSPseudoElementType aType,
+                      Element* aOriginatingElement,
+                      ServoStyleContext* aParentContext)
+{
+  return aParentContext &&
+         !nsCSSPseudoElements::IsEagerlyCascadedInServo(aType) &&
+         aOriginatingElement->HasServoData() &&
+         !Servo_Element_IsPrimaryStyleReusedViaRuleNode(aOriginatingElement);
+}
+
 already_AddRefed<ServoStyleContext>
 ServoStyleSet::ResolvePseudoElementStyle(Element* aOriginatingElement,
                                          CSSPseudoElementType aType,
@@ -558,7 +577,7 @@ ServoStyleSet::ResolvePseudoElementStyle(Element* aOriginatingElement,
       Servo_ResolveStyle(aPseudoElement, mRawSet.get()).Consume();
   } else {
     bool cacheable =
-      !nsCSSPseudoElements::IsEagerlyCascadedInServo(aType) && aParentContext;
+      LazyPseudoIsCacheable(aType, aOriginatingElement, aParentContext);
     computedValues =
       cacheable ? aParentContext->GetCachedLazyPseudoStyle(aType) : nullptr;
 
@@ -581,7 +600,7 @@ ServoStyleSet::ResolvePseudoElementStyle(Element* aOriginatingElement,
 already_AddRefed<ServoStyleContext>
 ServoStyleSet::ResolveStyleLazily(Element* aElement,
                                   CSSPseudoElementType aPseudoType,
-                                  nsIAtom* aPseudoTag,
+                                  nsAtom* aPseudoTag,
                                   StyleRuleInclusion aRuleInclusion)
 {
   // Lazy style computation avoids storing any new data in the tree.
@@ -604,12 +623,12 @@ ServoStyleSet::ResolveStyleLazily(Element* aElement,
   AutoClearStaleData guard(aElement);
   PreTraverseSync();
   return ResolveStyleLazilyInternal(aElement, aPseudoType, aPseudoTag,
-                                    nullptr, aRuleInclusion,
+                                    aRuleInclusion,
                                     ignoreExistingStyles);
 }
 
 already_AddRefed<ServoStyleContext>
-ServoStyleSet::ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
+ServoStyleSet::ResolveInheritingAnonymousBoxStyle(nsAtom* aPseudoTag,
                                                   ServoStyleContext* aParentContext)
 {
   MOZ_ASSERT(nsCSSAnonBoxes::IsAnonBox(aPseudoTag) &&
@@ -639,7 +658,7 @@ ServoStyleSet::ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
 }
 
 already_AddRefed<ServoStyleContext>
-ServoStyleSet::ResolveNonInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag)
+ServoStyleSet::ResolveNonInheritingAnonymousBoxStyle(nsAtom* aPseudoTag)
 {
   MOZ_ASSERT(nsCSSAnonBoxes::IsAnonBox(aPseudoTag) &&
              nsCSSAnonBoxes::IsNonInheritingAnonBox(aPseudoTag));
@@ -887,7 +906,7 @@ ServoStyleSet::ProbePseudoElementStyle(Element* aOriginatingElement,
   MOZ_ASSERT(aType < CSSPseudoElementType::Count);
 
   bool cacheable =
-    !nsCSSPseudoElements::IsEagerlyCascadedInServo(aType) && aParentContext;
+    LazyPseudoIsCacheable(aType, aOriginatingElement, aParentContext);
 
   RefPtr<ServoStyleContext> computedValues =
     cacheable ? aParentContext->GetCachedLazyPseudoStyle(aType) : nullptr;
@@ -950,14 +969,30 @@ ServoStyleSet::StyleDocument(ServoTraversalFlags aFlags)
   // Do the first traversal.
   DocumentStyleRootIterator iter(doc->GetServoRestyleRoot());
   while (Element* root = iter.GetNextStyleRoot()) {
-    MOZ_ASSERT(MayTraverseFrom(const_cast<Element*>(root)));
+    MOZ_ASSERT(MayTraverseFrom(root));
 
-    // If there were text nodes inserted into the document (but not elements),
-    // there may be lazy frame construction to do even if no styling is required.
-    postTraversalRequired |= root->HasFlag(NODE_DESCENDANTS_NEED_FRAMES);
+    Element* parent = root->GetFlattenedTreeParentElementForStyle();
+    MOZ_ASSERT_IF(parent,
+                  !parent->HasAnyOfFlags(Element::kAllServoDescendantBits));
 
-    bool required = Servo_TraverseSubtree(root, mRawSet.get(), &snapshots, aFlags);
-    postTraversalRequired |= required;
+    postTraversalRequired |=
+      Servo_TraverseSubtree(root, mRawSet.get(), &snapshots, aFlags);
+    postTraversalRequired |=
+      root->HasAnyOfFlags(Element::kAllServoDescendantBits | NODE_NEEDS_FRAME);
+
+    if (parent) {
+      MOZ_ASSERT(root == doc->GetServoRestyleRoot());
+      if (parent->HasDirtyDescendantsForServo()) {
+        // If any style invalidation was triggered in our siblings, then we may
+        // need to post-traverse them, even if the root wasn't restyled after
+        // all.
+        doc->SetServoRestyleRoot(
+            parent,
+            doc->GetServoRestyleRootDirtyBits() |
+            ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO);
+        postTraversalRequired = true;
+      }
+    }
   }
 
   // If there are still animation restyles needed, trigger a second traversal to
@@ -976,8 +1011,10 @@ ServoStyleSet::StyleDocument(ServoTraversalFlags aFlags)
     nsINode* styleRoot = doc->GetServoRestyleRoot();
     Element* root = styleRoot->IsElement() ? styleRoot->AsElement() : rootElement;
 
-    bool required = Servo_TraverseSubtree(root, mRawSet.get(), &snapshots, aFlags);
-    postTraversalRequired |= required;
+    postTraversalRequired |=
+      Servo_TraverseSubtree(root, mRawSet.get(), &snapshots, aFlags);
+    postTraversalRequired |=
+      root->HasAnyOfFlags(Element::kAllServoDescendantBits | NODE_NEEDS_FRAME);
   }
 
   return postTraversalRequired;
@@ -1183,9 +1220,8 @@ ServoStyleSet::GetAnimationValues(
 already_AddRefed<ServoStyleContext>
 ServoStyleSet::GetBaseContextForElement(
   Element* aElement,
-  ServoStyleContext* aParentContext,
   nsPresContext* aPresContext,
-  nsIAtom* aPseudoTag,
+  nsAtom* aPseudoTag,
   CSSPseudoElementType aPseudoType,
   const ServoStyleContext* aStyle)
 {
@@ -1242,7 +1278,15 @@ ServoStyleSet::EnsureUniqueInnerOnCSSSheets()
     StyleSheet* sheet = queue[idx];
     queue.RemoveElementAt(idx);
 
-    sheet->EnsureUniqueInner();
+    // Only call EnsureUniqueInner for complete sheets. If we do call it on
+    // incomplete sheets, we'll cause problems when the sheet is actually
+    // loaded. We don't care about incomplete sheets here anyway, because this
+    // method is only invoked by nsPresContext::EnsureSafeToHandOutCSSRules.
+    // The CSSRule objects we are handing out won't contain any rules derived
+    // from incomplete sheets (because they aren't yet applied in styling).
+    if (sheet->IsComplete()) {
+      sheet->EnsureUniqueInner();
+    }
 
     // Enqueue all the sheet's children.
     sheet->AppendAllChildSheets(queue);
@@ -1291,8 +1335,7 @@ ServoStyleSet::ClearNonInheritingStyleContexts()
 already_AddRefed<ServoStyleContext>
 ServoStyleSet::ResolveStyleLazilyInternal(Element* aElement,
                                           CSSPseudoElementType aPseudoType,
-                                          nsIAtom* aPseudoTag,
-                                          const ServoStyleContext* aParentContext,
+                                          nsAtom* aPseudoTag,
                                           StyleRuleInclusion aRuleInclusion,
                                           bool aIgnoreExistingStyles)
 {
@@ -1356,7 +1399,7 @@ ServoStyleSet::AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray)
 }
 
 nsCSSCounterStyleRule*
-ServoStyleSet::CounterStyleRuleForName(nsIAtom* aName)
+ServoStyleSet::CounterStyleRuleForName(nsAtom* aName)
 {
   return Servo_StyleSet_GetCounterStyleRule(mRawSet.get(), aName);
 }
@@ -1411,8 +1454,8 @@ ServoStyleSet::MaybeGCRuleTree()
   Servo_MaybeGCRuleTree(mRawSet.get());
 }
 
-bool
-ServoStyleSet::MayTraverseFrom(Element* aElement)
+/* static */ bool
+ServoStyleSet::MayTraverseFrom(const Element* aElement)
 {
   MOZ_ASSERT(aElement->IsInComposedDoc());
   Element* parent = aElement->GetFlattenedTreeParentElementForStyle();
@@ -1508,7 +1551,7 @@ ServoStyleSet::StyleRuleMap()
 
 bool
 ServoStyleSet::MightHaveAttributeDependency(const Element& aElement,
-                                            nsIAtom* aAttribute) const
+                                            nsAtom* aAttribute) const
 {
   return Servo_StyleSet_MightHaveAttributeDependency(
       mRawSet.get(), &aElement, aAttribute);
@@ -1532,4 +1575,53 @@ ServoStyleSet::ReparentStyleContext(ServoStyleContext* aStyleContext,
   return Servo_ReparentStyle(aStyleContext, aNewParent,
                              aNewParentIgnoringFirstLine, aNewLayoutParent,
                              aElement, mRawSet.get()).Consume();
+}
+
+NS_IMPL_ISUPPORTS(UACacheReporter, nsIMemoryReporter)
+
+MOZ_DEFINE_MALLOC_SIZE_OF(ServoUACacheMallocSizeOf)
+MOZ_DEFINE_MALLOC_ENCLOSING_SIZE_OF(ServoUACacheMallocEnclosingSizeOf)
+
+NS_IMETHODIMP
+UACacheReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
+                                nsISupports* aData, bool aAnonymize)
+{
+  ServoStyleSetSizes sizes;
+  Servo_UACache_AddSizeOf(ServoUACacheMallocSizeOf,
+                          ServoUACacheMallocEnclosingSizeOf, &sizes);
+
+#define REPORT(_path, _amount, _desc) \
+  do { \
+    size_t __amount = _amount;  /* evaluate _amount only once */ \
+    if (__amount > 0) { \
+      MOZ_COLLECT_REPORT(_path, KIND_HEAP, UNITS_BYTES, __amount, _desc); \
+    } \
+  } while (0)
+
+  // The UA cache does not contain the rule tree; that's in the StyleSet.
+  MOZ_RELEASE_ASSERT(sizes.mRuleTree == 0);
+
+  REPORT("explicit/layout/servo-ua-cache/precomputed-pseudos",
+         sizes.mPrecomputedPseudos,
+         "Memory used by precomputed pseudo-element declarations within the "
+         "UA cache.");
+
+  REPORT("explicit/layout/servo-ua-cache/element-and-pseudos-maps",
+         sizes.mElementAndPseudosMaps,
+         "Memory used by element and pseudos maps within the UA cache.");
+
+  REPORT("explicit/layout/servo-ua-cache/invalidation-map",
+         sizes.mInvalidationMap,
+         "Memory used by invalidation maps within the UA cache.");
+
+  REPORT("explicit/layout/servo-ua-cache/revalidation-selectors",
+         sizes.mRevalidationSelectors,
+         "Memory used by selectors for cache revalidation within the UA "
+         "cache.");
+
+  REPORT("explicit/layout/servo-ua-cache/other",
+         sizes.mOther,
+         "Memory used by other data within the UA cache");
+
+  return NS_OK;
 }

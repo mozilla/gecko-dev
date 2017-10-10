@@ -29,6 +29,13 @@ function openContextMenu(aMessage) {
   let browser = aMessage.target;
   let spellInfo = data.spellInfo;
 
+  // ContextMenu.jsm sends us the target as a CPOW only so that
+  // we can send that CPOW back down to the content process and
+  // have it resolve to a DOM node. The parent should not attempt
+  // to access any properties on this CPOW (in fact, doing so
+  // will throw an exception).
+  data.context.targetAsCPOW = aMessage.objects.targetAsCPOW;
+
   if (spellInfo) {
     spellInfo.target = aMessage.target.messageManager;
   }
@@ -204,6 +211,7 @@ nsContextMenu.prototype = {
     this.onVideo             = context.onVideo;
 
     this.target = this.isRemote ? context.target : document.popupNode;
+    this.targetAsCPOW = context.targetAsCPOW;
 
     this.principal = context.principal;
     this.frameOuterWindowID = context.frameOuterWindowID;
@@ -379,7 +387,7 @@ nsContextMenu.prototype = {
 
   initLeaveDOMFullScreenItems: function CM_initLeaveFullScreenItem() {
     // only show the option if the user is in DOM fullscreen
-    var shouldShow = (this.target.ownerDocument.fullscreenElement != null);
+    var shouldShow = this.target.ownerDocument.fullscreen;
     this.showItem("context-leave-dom-fullscreen", shouldShow);
 
     // Explicitly show if in DOM fullscreen, but do not hide it has already been shown
@@ -643,7 +651,7 @@ nsContextMenu.prototype = {
     this.showItem("context-media-loop", onMedia);
     this.showItem("context-media-showcontrols", onMedia && !this.target.controls);
     this.showItem("context-media-hidecontrols", this.target.controls && (this.onVideo || (this.onAudio && !this.inSyntheticDoc)));
-    this.showItem("context-video-fullscreen", this.onVideo && this.target.ownerDocument.fullscreenElement == null);
+    this.showItem("context-video-fullscreen", this.onVideo && !this.target.ownerDocument.fullscreen);
     this.showItem("context-media-eme-learnmore", this.onDRMMedia);
     this.showItem("context-media-eme-separator", this.onDRMMedia);
 
@@ -717,7 +725,7 @@ nsContextMenu.prototype = {
       return;
     }
     let documentURI = gContextMenuContentData.documentURIObject;
-    let fragment = LoginManagerContextMenu.addLoginsToMenu(this.target, this.browser, documentURI);
+    let fragment = LoginManagerContextMenu.addLoginsToMenu(this.targetAsCPOW, this.browser, documentURI);
 
     this.showItem("fill-login-no-logins", !fragment);
 

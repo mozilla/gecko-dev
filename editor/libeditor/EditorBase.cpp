@@ -57,7 +57,7 @@
 #include "nsFrameSelection.h"           // for nsFrameSelection
 #include "nsGkAtoms.h"                  // for nsGkAtoms, nsGkAtoms::dir
 #include "nsIAbsorbingTransaction.h"    // for nsIAbsorbingTransaction
-#include "nsIAtom.h"                    // for nsIAtom
+#include "nsAtom.h"                    // for nsAtom
 #include "nsIContent.h"                 // for nsIContent
 #include "nsIDOMAttr.h"                 // for nsIDOMAttr
 #include "nsIDOMCharacterData.h"        // for nsIDOMCharacterData
@@ -559,12 +559,18 @@ EditorBase::IsSelectionEditable()
     return anchorNode && IsEditable(anchorNode);
   }
 
+  nsINode* anchorNode = selection->GetAnchorNode();
+  nsINode* focusNode = selection->GetFocusNode();
+  if (!anchorNode || !focusNode) {
+    return false;
+  }
+
   // Per the editing spec as of June 2012: we have to have a selection whose
   // start and end nodes are editable, and which share an ancestor editing
   // host.  (Bug 766387.)
   bool isSelectionEditable = selection->RangeCount() &&
-                             selection->GetAnchorNode()->IsEditable() &&
-                             selection->GetFocusNode()->IsEditable();
+                             anchorNode->IsEditable() &&
+                             focusNode->IsEditable();
   if (!isSelectionEditable) {
     return false;
   }
@@ -953,7 +959,7 @@ EditorBase::EndTransaction()
 }
 
 void
-EditorBase::BeginPlaceholderTransaction(nsIAtom* aTransactionName)
+EditorBase::BeginPlaceholderTransaction(nsAtom* aTransactionName)
 {
   MOZ_ASSERT(mPlaceholderBatch >= 0, "negative placeholder batch count!");
   if (!mPlaceholderBatch) {
@@ -1255,14 +1261,14 @@ EditorBase::SetAttribute(nsIDOMElement* aElement,
   }
   nsCOMPtr<Element> element = do_QueryInterface(aElement);
   NS_ENSURE_TRUE(element, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
 
   return SetAttribute(element, attribute, aValue);
 }
 
 nsresult
 EditorBase::SetAttribute(Element* aElement,
-                         nsIAtom* aAttribute,
+                         nsAtom* aAttribute,
                          const nsAString& aValue)
 {
   RefPtr<ChangeAttributeTransaction> transaction =
@@ -1300,14 +1306,14 @@ EditorBase::RemoveAttribute(nsIDOMElement* aElement,
   }
   nsCOMPtr<Element> element = do_QueryInterface(aElement);
   NS_ENSURE_TRUE(element, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
 
   return RemoveAttribute(element, attribute);
 }
 
 nsresult
 EditorBase::RemoveAttribute(Element* aElement,
-                            nsIAtom* aAttribute)
+                            nsAtom* aAttribute)
 {
   RefPtr<ChangeAttributeTransaction> transaction =
     CreateTxnForRemoveAttribute(*aElement, *aAttribute);
@@ -1414,7 +1420,7 @@ EditorBase::CreateNode(const nsAString& aTag,
                        int32_t aPosition,
                        nsIDOMNode** aNewNode)
 {
-  nsCOMPtr<nsIAtom> tag = NS_Atomize(aTag);
+  RefPtr<nsAtom> tag = NS_Atomize(aTag);
   nsCOMPtr<nsINode> parent = do_QueryInterface(aParent);
   NS_ENSURE_STATE(parent);
   *aNewNode = GetAsDOMNode(CreateNode(tag, parent, aPosition).take());
@@ -1423,7 +1429,7 @@ EditorBase::CreateNode(const nsAString& aTag,
 }
 
 already_AddRefed<Element>
-EditorBase::CreateNode(nsIAtom* aTag,
+EditorBase::CreateNode(nsAtom* aTag,
                        nsINode* aParent,
                        int32_t aPosition)
 {
@@ -1658,8 +1664,8 @@ EditorBase::DeleteNode(nsINode* aNode)
  */
 already_AddRefed<Element>
 EditorBase::ReplaceContainer(Element* aOldContainer,
-                             nsIAtom* aNodeType,
-                             nsIAtom* aAttribute,
+                             nsAtom* aNodeType,
+                             nsAtom* aAttribute,
                              const nsAString* aValue,
                              ECloneAttributes aCloneAttributes)
 {
@@ -1753,8 +1759,8 @@ EditorBase::RemoveContainer(nsIContent* aNode)
  */
 already_AddRefed<Element>
 EditorBase::InsertContainerAbove(nsIContent* aNode,
-                                 nsIAtom* aNodeType,
-                                 nsIAtom* aAttribute,
+                                 nsAtom* aNodeType,
+                                 nsAtom* aAttribute,
                                  const nsAString* aValue)
 {
   MOZ_ASSERT(aNode && aNodeType);
@@ -2284,12 +2290,12 @@ EditorBase::CloneAttribute(const nsAString& aAttribute,
   nsCOMPtr<Element> sourceElement = do_QueryInterface(aSourceNode);
   NS_ENSURE_TRUE(destElement && sourceElement, NS_ERROR_NO_INTERFACE);
 
-  nsCOMPtr<nsIAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
   return CloneAttribute(attribute, destElement, sourceElement);
 }
 
 nsresult
-EditorBase::CloneAttribute(nsIAtom* aAttribute,
+EditorBase::CloneAttribute(nsAtom* aAttribute,
                            Element* aDestElement,
                            Element* aSourceElement)
 {
@@ -2424,12 +2430,31 @@ EditorBase::FindBetterInsertionPoint(nsCOMPtr<nsINode>& aNode,
     // In some other cases, aNode is the anonymous DIV, and offset points to the
     // terminating mozBR.  In that case, we'll adjust aInOutNode and
     // aInOutOffset to the preceding text node, if any.
-    if (offset > 0 && node->GetChildAt(offset - 1) &&
-        node->GetChildAt(offset - 1)->IsNodeOfType(nsINode::eTEXT)) {
-      NS_ENSURE_TRUE_VOID(node->Length() <= INT32_MAX);
-      aNode = node->GetChildAt(offset - 1);
-      aOffset = static_cast<int32_t>(aNode->Length());
-      return;
+    if (offset) {
+      if (AsHTMLEditor()) {
+        // Fall back to a slow path that uses GetChildAt() for Thunderbird's
+        // plaintext editor.
+        nsIContent* child = node->GetChildAt(offset - 1);
+        if (child && child->IsNodeOfType(nsINode::eTEXT)) {
+          NS_ENSURE_TRUE_VOID(node->Length() <= INT32_MAX);
+          aNode = child;
+          aOffset = static_cast<int32_t>(aNode->Length());
+          return;
+        }
+      } else {
+        // If we're in a real plaintext editor, use a fast path that avoids
+        // calling GetChildAt() which may perform a linear search.
+        nsIContent* child = node->GetLastChild();
+        while (child) {
+          if (child->IsNodeOfType(nsINode::eTEXT)) {
+            NS_ENSURE_TRUE_VOID(node->Length() <= INT32_MAX);
+            aNode = child;
+            aOffset = static_cast<int32_t>(aNode->Length());
+            return;
+          }
+          child = child->GetPreviousSibling();
+        }
+      }
     }
   }
 
@@ -2743,13 +2768,14 @@ EditorBase::SetTextImpl(Selection& aSelection, const nsAString& aString,
     return rv;
   }
 
-  // Only set selection to insertion point if editor gives permission
-  if (GetShouldTxnSetSelection()) {
+  {
+    // Create a nested scope to not overwrite rv from the outer scope.
     RefPtr<Selection> selection = GetSelection();
-    DebugOnly<nsresult> rv = selection->Collapse(&aCharData, length);
+    DebugOnly<nsresult> rv = selection->Collapse(&aCharData, aString.Length());
     NS_ASSERTION(NS_SUCCEEDED(rv),
                  "Selection could not be collapsed after insert");
   }
+
   mRangeUpdater.SelAdjDeleteText(&aCharData, 0, length);
   mRangeUpdater.SelAdjInsertText(aCharData, 0, aString);
 
@@ -3513,7 +3539,7 @@ EditorBase::CanContain(nsINode& aParent,
 
 bool
 EditorBase::CanContainTag(nsINode& aParent,
-                          nsIAtom& aChildTag)
+                          nsAtom& aChildTag)
 {
   switch (aParent.NodeType()) {
     case nsIDOMNode::ELEMENT_NODE:
@@ -3524,7 +3550,7 @@ EditorBase::CanContainTag(nsINode& aParent,
 }
 
 bool
-EditorBase::TagCanContain(nsIAtom& aParentTag,
+EditorBase::TagCanContain(nsAtom& aParentTag,
                           nsIContent& aChild)
 {
   switch (aChild.NodeType()) {
@@ -3537,8 +3563,8 @@ EditorBase::TagCanContain(nsIAtom& aParentTag,
 }
 
 bool
-EditorBase::TagCanContainTag(nsIAtom& aParentTag,
-                             nsIAtom& aChildTag)
+EditorBase::TagCanContainTag(nsAtom& aParentTag,
+                             nsAtom& aChildTag)
 {
   return true;
 }
@@ -3669,7 +3695,7 @@ EditorBase::ResetModificationCount()
   return NS_OK;
 }
 
-nsIAtom*
+nsAtom*
 EditorBase::GetTag(nsIDOMNode* aNode)
 {
   nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
@@ -3691,7 +3717,7 @@ EditorBase::GetTagString(nsIDOMNode* aNode,
     return NS_ERROR_NULL_POINTER;
   }
 
-  nsIAtom *atom = GetTag(aNode);
+  nsAtom *atom = GetTag(aNode);
   if (!atom) {
     return NS_ERROR_FAILURE;
   }
@@ -3869,6 +3895,32 @@ EditorBase::GetEndNodeAndOffset(Selection* aSelection,
 
   NS_IF_ADDREF(*aEndContainer = range->GetEndContainer());
   *aEndOffset = range->EndOffset();
+  return NS_OK;
+}
+
+nsresult
+EditorBase::GetEndChildNode(Selection* aSelection,
+                            nsIContent** aEndNode)
+{
+  MOZ_ASSERT(aSelection);
+  MOZ_ASSERT(aEndNode);
+
+  *aEndNode = nullptr;
+
+  if (NS_WARN_IF(!aSelection->RangeCount())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  const nsRange* range = aSelection->GetRangeAt(0);
+  if (NS_WARN_IF(!range)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (NS_WARN_IF(!range->IsPositioned())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  NS_IF_ADDREF(*aEndNode = range->GetChildAtEndOffset());
   return NS_OK;
 }
 
@@ -4161,7 +4213,7 @@ EditorBase::DeleteSelectionImpl(EDirection aAction,
 }
 
 already_AddRefed<Element>
-EditorBase::DeleteSelectionAndCreateElement(nsIAtom& aTag)
+EditorBase::DeleteSelectionAndCreateElement(nsAtom& aTag)
 {
   nsresult rv = DeleteSelectionAndPrepareToCreateNode();
   NS_ENSURE_SUCCESS(rv, nullptr);
@@ -4293,7 +4345,7 @@ EditorBase::DoAfterRedoTransaction()
 
 already_AddRefed<ChangeAttributeTransaction>
 EditorBase::CreateTxnForSetAttribute(Element& aElement,
-                                     nsIAtom& aAttribute,
+                                     nsAtom& aAttribute,
                                      const nsAString& aValue)
 {
   RefPtr<ChangeAttributeTransaction> transaction =
@@ -4304,7 +4356,7 @@ EditorBase::CreateTxnForSetAttribute(Element& aElement,
 
 already_AddRefed<ChangeAttributeTransaction>
 EditorBase::CreateTxnForRemoveAttribute(Element& aElement,
-                                        nsIAtom& aAttribute)
+                                        nsAtom& aAttribute)
 {
   RefPtr<ChangeAttributeTransaction> transaction =
     new ChangeAttributeTransaction(aElement, aAttribute, nullptr);
@@ -4313,7 +4365,7 @@ EditorBase::CreateTxnForRemoveAttribute(Element& aElement,
 }
 
 already_AddRefed<CreateElementTransaction>
-EditorBase::CreateTxnForCreateElement(nsIAtom& aTag,
+EditorBase::CreateTxnForCreateElement(nsAtom& aTag,
                                       nsINode& aParent,
                                       int32_t aPosition)
 {
@@ -4692,7 +4744,7 @@ EditorBase::ClearSelection()
 }
 
 already_AddRefed<Element>
-EditorBase::CreateHTMLContent(nsIAtom* aTag)
+EditorBase::CreateHTMLContent(nsAtom* aTag)
 {
   MOZ_ASSERT(aTag);
 
@@ -4735,7 +4787,7 @@ EditorBase::SetAttributeOrEquivalent(nsIDOMElement* aElement,
   if (NS_WARN_IF(!element)) {
     return NS_ERROR_NULL_POINTER;
   }
-  nsCOMPtr<nsIAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
   return SetAttributeOrEquivalent(element, attribute, aValue,
                                   aSuppressTransaction);
 }
@@ -4749,7 +4801,7 @@ EditorBase::RemoveAttributeOrEquivalent(nsIDOMElement* aElement,
   if (NS_WARN_IF(!element)) {
     return NS_ERROR_NULL_POINTER;
   }
-  nsCOMPtr<nsIAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
   return RemoveAttributeOrEquivalent(element, attribute, aSuppressTransaction);
 }
 

@@ -18,7 +18,7 @@
 #include "nsIFormControl.h"
 #include "nsTextFragment.h"
 #include "nsString.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsServiceManagerUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIDOMElement.h"
@@ -103,6 +103,12 @@ public:
   }
   virtual nsresult Init(nsINode* aStartContainer, uint32_t aStartOffset,
                         nsINode* aEndContainer, uint32_t aEndOffset) override
+  {
+    NS_NOTREACHED("internal error");
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  virtual nsresult Init(const RawRangeBoundary& aStart,
+                        const RawRangeBoundary& aEnd) override
   {
     NS_NOTREACHED("internal error");
     return NS_ERROR_NOT_IMPLEMENTED;

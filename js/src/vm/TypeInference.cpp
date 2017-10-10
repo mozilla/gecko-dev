@@ -1316,10 +1316,8 @@ js::EnsureTrackPropertyTypes(JSContext* cx, JSObject* obj, jsid id)
         if (obj->hasLazyGroup()) {
             AutoEnterOOMUnsafeRegion oomUnsafe;
             RootedObject objRoot(cx, obj);
-            if (!JSObject::getGroup(cx, objRoot)) {
+            if (!JSObject::getGroup(cx, objRoot))
                 oomUnsafe.crash("Could not allocate ObjectGroup in EnsureTrackPropertyTypes");
-                return;
-            }
         }
         if (!obj->group()->unknownProperties() && !obj->group()->getProperty(cx, obj, id)) {
             MOZ_ASSERT(obj->group()->unknownProperties());
@@ -1511,18 +1509,6 @@ js::FinishCompilation(JSContext* cx, HandleScript script, CompilerConstraintList
 
     *isValidOut = true;
     return true;
-}
-
-void
-js::InvalidateCompilerOutputsForScript(JSContext* cx, HandleScript script)
-{
-    TypeZone& types = cx->zone()->types;
-    if (types.compilerOutputs) {
-        for (auto& co : *types.compilerOutputs) {
-            if (co.script() == script)
-                co.invalidate();
-        }
-    }
 }
 
 static void
@@ -2124,7 +2110,7 @@ HeapTypeSetKey::constant(CompilerConstraintList* constraints, Value* valOut)
 
     // Get the current value of the property.
     Shape* shape = obj->as<NativeObject>().lookupPure(id());
-    if (!shape || !shape->hasDefaultGetter() || !shape->hasSlot() || shape->hadOverwrite())
+    if (!shape || !shape->isDataProperty() || shape->hadOverwrite())
         return false;
 
     Value val = obj->as<NativeObject>().getSlot(shape->slot());
@@ -2520,7 +2506,7 @@ TemporaryTypeSet::propertyNeedsBarrier(CompilerConstraintList* constraints, jsid
 bool
 js::ClassCanHaveExtraProperties(const Class* clasp)
 {
-    if (clasp == &UnboxedPlainObject::class_ || clasp == &UnboxedArrayObject::class_)
+    if (clasp == &UnboxedPlainObject::class_)
         return false;
     return clasp->getResolve()
         || clasp->getOpsLookupProperty()
@@ -2647,7 +2633,7 @@ UpdatePropertyType(JSContext* cx, HeapTypeSet* types, NativeObject* obj, Shape* 
     if (shape->hasGetterValue() || shape->hasSetterValue()) {
         types->setNonDataProperty(cx);
         types->TypeSet::addType(TypeSet::UnknownType(), &cx->typeLifoAlloc());
-    } else if (shape->hasDefaultGetter() && shape->hasSlot()) {
+    } else if (shape->isDataProperty()) {
         if (!indexed && types->canSetDefinite(shape->slot()))
             types->setDefinite(shape->slot());
 
@@ -3046,7 +3032,7 @@ ObjectGroup::clearNewScript(JSContext* cx, ObjectGroup* replacement /* = nullptr
         // Mark the constructing function as having its 'new' script cleared, so we
         // will not try to construct another one later.
         RootedFunction fun(cx, newScript->function());
-        if (!JSObject::setNewScriptCleared(cx, fun))
+        if (!NativeObject::setNewScriptCleared(cx, fun))
             cx->recoverFromOutOfMemory();
     }
 
@@ -3453,7 +3439,7 @@ JSFunction::setTypeForScriptedFunction(JSContext* cx, HandleFunction fun,
 /////////////////////////////////////////////////////////////////////
 
 void
-PreliminaryObjectArray::registerNewObject(JSObject* res)
+PreliminaryObjectArray::registerNewObject(PlainObject* res)
 {
     // The preliminary object pointers are weak, and won't be swept properly
     // during nursery collections, so the preliminary objects need to be
@@ -3471,7 +3457,7 @@ PreliminaryObjectArray::registerNewObject(JSObject* res)
 }
 
 void
-PreliminaryObjectArray::unregisterObject(JSObject* obj)
+PreliminaryObjectArray::unregisterObject(PlainObject* obj)
 {
     for (size_t i = 0; i < COUNT; i++) {
         if (objects[i] == obj) {
@@ -3558,11 +3544,10 @@ OnlyHasDataProperties(Shape* shape)
     MOZ_ASSERT(!shape->inDictionary());
 
     while (!shape->isEmptyShape()) {
-        if (!shape->isDataDescriptor() ||
+        if (!shape->isDataProperty() ||
             !shape->configurable() ||
             !shape->enumerable() ||
-            !shape->writable() ||
-            !shape->hasSlot())
+            !shape->writable())
         {
             return false;
         }
@@ -3606,37 +3591,34 @@ PreliminaryObjectArrayWithTemplate::maybeAnalyze(JSContext* cx, ObjectGroup* gro
     ScopedJSDeletePtr<PreliminaryObjectArrayWithTemplate> preliminaryObjects(this);
     group->detachPreliminaryObjects();
 
-    if (shape()) {
-        MOZ_ASSERT(shape()->slotSpan() != 0);
-        MOZ_ASSERT(OnlyHasDataProperties(shape()));
+    MOZ_ASSERT(shape());
+    MOZ_ASSERT(shape()->slotSpan() != 0);
+    MOZ_ASSERT(OnlyHasDataProperties(shape()));
 
-        // Make sure all the preliminary objects reflect the properties originally
-        // in the template object.
-        for (size_t i = 0; i < PreliminaryObjectArray::COUNT; i++) {
-            JSObject* objBase = preliminaryObjects->get(i);
-            if (!objBase)
-                continue;
-            PlainObject* obj = &objBase->as<PlainObject>();
+    // Make sure all the preliminary objects reflect the properties originally
+    // in the template object.
+    for (size_t i = 0; i < PreliminaryObjectArray::COUNT; i++) {
+        JSObject* objBase = preliminaryObjects->get(i);
+        if (!objBase)
+            continue;
+        PlainObject* obj = &objBase->as<PlainObject>();
 
-            if (obj->inDictionaryMode() || !OnlyHasDataProperties(obj->lastProperty()))
-                return;
+        if (obj->inDictionaryMode() || !OnlyHasDataProperties(obj->lastProperty()))
+            return;
 
-            if (CommonPrefix(obj->lastProperty(), shape()) != shape())
-                return;
-        }
+        if (CommonPrefix(obj->lastProperty(), shape()) != shape())
+            return;
     }
 
     TryConvertToUnboxedLayout(cx, enter, shape(), group, preliminaryObjects);
     if (group->maybeUnboxedLayout())
         return;
 
-    if (shape()) {
-        // We weren't able to use an unboxed layout, but since the preliminary
-        // objects still reflect the template object's properties, and all
-        // objects in the future will be created with those properties, the
-        // properties can be marked as definite for objects in the group.
-        group->addDefiniteProperties(cx, shape());
-    }
+    // We weren't able to use an unboxed layout, but since the preliminary
+    // objects still reflect the template object's properties, and all
+    // objects in the future will be created with those properties, the
+    // properties can be marked as definite for objects in the group.
+    group->addDefiniteProperties(cx, shape());
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -4428,6 +4410,8 @@ ObjectGroup::sweep(AutoClearTypeInferenceStateOnOOM* oom)
 /* static */ void
 JSScript::maybeSweepTypes(AutoClearTypeInferenceStateOnOOM* oom)
 {
+    MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
+
     if (!types_ || typesGeneration() == zone()->types.generation)
         return;
 
@@ -4611,6 +4595,7 @@ AutoClearTypeInferenceStateOnOOM::AutoClearTypeInferenceStateOnOOM(Zone* zone)
   : zone(zone), oom(false)
 {
     MOZ_RELEASE_ASSERT(CurrentThreadCanAccessZone(zone));
+    MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
     zone->types.setSweepingTypes(true);
 }
 

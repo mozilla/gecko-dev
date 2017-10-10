@@ -17,7 +17,7 @@
 
 #include "nsIDocument.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
 
@@ -976,7 +976,7 @@ public:
   {
   }
 
-  virtual void DoUpdate() override
+  virtual void OnRenderingChange() override
   {
     if (!mContext) {
       MOZ_CRASH("GFX: This should never be called without a context");
@@ -1300,7 +1300,7 @@ CanvasRenderingContext2D::Redraw()
     return NS_OK;
   }
 
-  nsSVGEffects::InvalidateDirectRenderingObservers(mCanvasElement);
+  SVGObserverUtils::InvalidateDirectRenderingObservers(mCanvasElement);
 
   mCanvasElement->InvalidateCanvasContent(nullptr);
 
@@ -1329,7 +1329,7 @@ CanvasRenderingContext2D::Redraw(const gfx::Rect& aR)
     return;
   }
 
-  nsSVGEffects::InvalidateDirectRenderingObservers(mCanvasElement);
+  SVGObserverUtils::InvalidateDirectRenderingObservers(mCanvasElement);
 
   mCanvasElement->InvalidateCanvasContent(&aR);
 }
@@ -3072,7 +3072,7 @@ class CanvasUserSpaceMetrics : public UserSpaceMetricsWithSize
 {
 public:
   CanvasUserSpaceMetrics(const gfx::IntSize& aSize, const nsFont& aFont,
-                         nsIAtom* aFontLanguage, bool aExplicitLanguage,
+                         nsAtom* aFontLanguage, bool aExplicitLanguage,
                          nsPresContext* aPresContext)
     : mSize(aSize)
     , mFont(aFont)
@@ -3106,7 +3106,7 @@ public:
 private:
   gfx::IntSize mSize;
   const nsFont& mFont;
-  nsIAtom* mFontLanguage;
+  nsAtom* mFontLanguage;
   bool mExplicitLanguage;
   nsPresContext* mPresContext;
 };
@@ -6095,14 +6095,8 @@ void CanvasRenderingContext2D::RemoveDrawObserver()
 already_AddRefed<Layer>
 CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                          Layer* aOldLayer,
-                                         LayerManager* aManager,
-                                         bool aMirror /* = false */)
+                                         LayerManager* aManager)
 {
-  if (aMirror) {
-    // Not supported for CanvasRenderingContext2D
-    return nullptr;
-  }
-
   if (mOpaque || mIsSkiaGL) {
     // If we're opaque then make sure we have a surface so we paint black
     // instead of transparent.
@@ -6173,7 +6167,7 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   canvasLayer->SetUserData(&g2DContextLayerUserData, userData);
 
   CanvasRenderer* canvasRenderer = canvasLayer->CreateOrGetCanvasRenderer();
-  InitializeCanvasRenderer(aBuilder, canvasRenderer, aMirror);
+  InitializeCanvasRenderer(aBuilder, canvasRenderer);
   uint32_t flags = mOpaque ? Layer::CONTENT_OPAQUE : 0;
   canvasLayer->SetContentFlags(flags);
 
@@ -6184,8 +6178,7 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
 
 bool
 CanvasRenderingContext2D::InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
-                                                   CanvasRenderer* aRenderer,
-                                                   bool aMirror)
+                                                   CanvasRenderer* aRenderer)
 {
   CanvasInitializeData data;
   data.mSize = GetSize();

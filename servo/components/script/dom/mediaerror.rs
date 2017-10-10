@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::MediaErrorBinding::{self, MediaErrorMethods};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
 
@@ -22,7 +23,7 @@ impl MediaError {
         }
     }
 
-    pub fn new(window: &Window, code: u16) -> Root<MediaError> {
+    pub fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
         reflect_dom_object(box MediaError::new_inherited(code),
                            window,
                            MediaErrorBinding::Wrap)
@@ -33,5 +34,10 @@ impl MediaErrorMethods for MediaError {
     // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
     fn Code(&self) -> u16 {
         self.code
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-mediaerror-message
+    fn Message(&self) -> DOMString {
+        DOMString::new()
     }
 }

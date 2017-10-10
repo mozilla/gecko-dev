@@ -130,8 +130,8 @@ public class GeckoPreferences
     private static final String PREFS_GEO_REPORTING = NON_PREF_PREFIX + "app.geo.reportdata";
     private static final String PREFS_GEO_LEARN_MORE = NON_PREF_PREFIX + "geo.learn_more";
     private static final String PREFS_HEALTHREPORT_LINK = NON_PREF_PREFIX + "healthreport.link";
-    private static final String PREFS_DEVTOOLS_REMOTE_USB_ENABLED = "devtools.remote.usb.enabled";
-    private static final String PREFS_DEVTOOLS_REMOTE_WIFI_ENABLED = "devtools.remote.wifi.enabled";
+    public static final String PREFS_DEVTOOLS_REMOTE_USB_ENABLED = "devtools.remote.usb.enabled";
+    public static final String PREFS_DEVTOOLS_REMOTE_WIFI_ENABLED = "devtools.remote.wifi.enabled";
     private static final String PREFS_DEVTOOLS_REMOTE_LINK = NON_PREF_PREFIX + "remote_debugging.link";
     public static final String PREFS_VOICE_INPUT_ENABLED = NON_PREF_PREFIX + "voice_input_enabled";
     public static final String PREFS_QRCODE_ENABLED = NON_PREF_PREFIX + "qrcode_enabled";
@@ -149,7 +149,6 @@ public class GeckoPreferences
     public static final String PREFS_APP_UPDATE_LAST_BUILD_ID = "app.update.last_build_id";
     public static final String PREFS_READ_PARTNER_CUSTOMIZATIONS_PROVIDER = NON_PREF_PREFIX + "distribution.read_partner_customizations_provider";
     public static final String PREFS_READ_PARTNER_BOOKMARKS_PROVIDER = NON_PREF_PREFIX + "distribution.read_partner_bookmarks_provider";
-    public static final String PREFS_CUSTOM_TABS = NON_PREF_PREFIX + "customtabs";
     public static final String PREFS_PWA = NON_PREF_PREFIX + "pwa";
     public static final String PREFS_CATEGORY_EXPERIMENTAL_FEATURES = NON_PREF_PREFIX + "category_experimental";
     public static final String PREFS_COMPACT_TABS = NON_PREF_PREFIX + "compact_tabs";
@@ -646,8 +645,7 @@ public class GeckoPreferences
                     i--;
                     continue;
                 } else if (PREFS_CATEGORY_EXPERIMENTAL_FEATURES.equals(key)
-                        && !AppConstants.MOZ_ANDROID_PWA
-                        && !AppConstants.MOZ_ANDROID_CUSTOM_TABS) {
+                        && !AppConstants.MOZ_ANDROID_PWA) {
                     preferences.removePreference(pref);
                     i--;
                     continue;
@@ -810,10 +808,6 @@ public class GeckoPreferences
                         i--;
                         continue;
                     }
-                } else if (PREFS_CUSTOM_TABS.equals(key) && !AppConstants.MOZ_ANDROID_CUSTOM_TABS) {
-                    preferences.removePreference(pref);
-                    i--;
-                    continue;
                 } else if (PREFS_PWA.equals(key) && !AppConstants.MOZ_ANDROID_PWA) {
                     preferences.removePreference(pref);
                     i--;

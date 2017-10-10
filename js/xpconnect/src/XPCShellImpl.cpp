@@ -1093,8 +1093,10 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     mozilla::LogModule::Init();
 
+#ifdef MOZ_GECKO_PROFILER
     char aLocal;
     profiler_init(&aLocal);
+#endif
 
     if (PR_GetEnv("MOZ_CHAOSMODE")) {
         ChaosFeature feature = ChaosFeature::Any;
@@ -1115,7 +1117,7 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     { // Start scoping nsCOMPtrs
         nsCOMPtr<nsIFile> appFile;
-        rv = XRE_GetBinaryPath(argv[0], getter_AddRefs(appFile));
+        rv = XRE_GetBinaryPath(getter_AddRefs(appFile));
         if (NS_FAILED(rv)) {
             printf("Couldn't find application file.\n");
             return 1;
@@ -1306,14 +1308,13 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
         if (xpc::SharedMemoryEnabled())
             options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);
         options.behaviors().setVersion(JSVERSION_DEFAULT);
-        nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-        rv = nsXPConnect::XPConnect()->
-            InitClassesWithNewWrappedGlobal(cx,
-                                            static_cast<nsIGlobalObject*>(backstagePass),
-                                            systemprincipal,
-                                            0,
-                                            options,
-                                            getter_AddRefs(holder));
+        JS::Rooted<JSObject*> glob(cx);
+        rv = xpc::InitClassesWithNewWrappedGlobal(cx,
+                                                  static_cast<nsIGlobalObject*>(backstagePass),
+                                                  systemprincipal,
+                                                  0,
+                                                  options,
+                                                  &glob);
         if (NS_FAILED(rv))
             return 1;
 
@@ -1343,7 +1344,6 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
 #endif
 
         {
-            JS::Rooted<JSObject*> glob(cx, holder->GetJSObject());
             if (!glob) {
                 return 1;
             }
@@ -1372,7 +1372,7 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
 
             JS_DefineProperty(cx, glob, "__LOCATION__",
                               GetLocationProperty, nullptr,
-                              JSPROP_SHARED);
+                              0);
 
             {
                 // We are almost certainly going to run script here, so we need an
@@ -1419,9 +1419,11 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
         CrashReporter::UnsetExceptionHandler();
 #endif
 
+#ifdef MOZ_GECKO_PROFILER
     // This must precede NS_LogTerm(), otherwise xpcshell return non-zero
     // during some tests, which causes failures.
     profiler_shutdown();
+#endif
 
     NS_LogTerm();
 
@@ -1433,10 +1435,11 @@ XPCShellDirProvider::SetGREDirs(nsIFile* greDir)
 {
     mGREDir = greDir;
     mGREDir->Clone(getter_AddRefs(mGREBinDir));
+
 #ifdef XP_MACOSX
     nsAutoCString leafName;
     mGREDir->GetNativeLeafName(leafName);
-    if (leafName.Equals("Resources")) {
+    if (leafName.EqualsLiteral("Resources")) {
         mGREBinDir->SetNativeLeafName(NS_LITERAL_CSTRING("MacOS"));
     }
 #endif

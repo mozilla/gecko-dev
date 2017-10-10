@@ -31,10 +31,12 @@ function checkExternalFunction(entry)
         "Servo_ComputedValues_EqualCustomProperties",
         /Servo_DeclarationBlock_GetCssText/,
         "Servo_GetArcStringData",
+        "Servo_IsWorkerThread",
         /nsIFrame::AppendOwnedAnonBoxes/,
         // Assume that atomic accesses are threadsafe.
         /^__atomic_fetch_/,
         /^__atomic_load_/,
+        /^__atomic_store_/,
         /^__atomic_thread_fence/,
     ];
     if (entry.matches(whitelist))
@@ -63,7 +65,7 @@ function hasThreadsafeReferenceCounts(entry, regexp)
         "nsIRunnable",
 
         // I don't know if these always have threadsafe refcounts.
-        "nsIAtom",
+        "nsAtom",
         "nsIPermissionManager",
         "nsIURI",
     ];
@@ -218,6 +220,7 @@ function treatAsSafeArgument(entry, varName, csuName)
         ["Gecko_CopyShapeSourceFrom", "aDst", null],
         ["Gecko_DestroyShapeSource", "aShape", null],
         ["Gecko_StyleShapeSource_SetURLValue", "aShape", null],
+        ["Gecko_NewBasicShape", "aShape", null],
         ["Gecko_nsFont_InitSystem", "aDest", null],
         ["Gecko_nsFont_SetFontFeatureValuesLookup", "aFont", null],
         ["Gecko_nsFont_ResetFontFeatureValuesLookup", "aFont", null],
@@ -235,9 +238,8 @@ function treatAsSafeArgument(entry, varName, csuName)
         ["Gecko_CounterStyle_GetName", "aResult", null],
         ["Gecko_CounterStyle_GetSingleString", "aResult", null],
         ["Gecko_EnsureMozBorderColors", "aBorder", null],
-        ["Gecko_ClearMozBorderColors", "aBorder", null],
-        ["Gecko_AppendMozBorderColors", "aBorder", null],
-        ["Gecko_CopyMozBorderColors", "aDest", null],
+        ["Gecko_nsTArray_FontFamilyName_AppendNamed", "aNames", null],
+        ["Gecko_nsTArray_FontFamilyName_AppendGeneric", "aNames", null],
     ];
     for (var [entryMatch, varMatch, csuMatch] of whitelist) {
         assert(entryMatch || varMatch || csuMatch);
@@ -303,13 +305,6 @@ function checkFieldWrite(entry, location, fields)
     for (var field of fields)
         str += " " + field;
 
-    // Bug 1400435
-    if (entry.stack[entry.stack.length - 1].callee.match(/^Gecko_CSSValue_Set/) &&
-        str == " nsAutoRefCnt.mValue")
-    {
-        return;
-    }
-
     dumpError(entry, location, "Field write" + str);
 }
 
@@ -373,6 +368,14 @@ function ignoreCallEdge(entry, callee)
     // analysis is not smart enough to know this.
     if (/CachedBorderImageData::PurgeCachedImages/.test(callee) &&
         /nsStyleImage::/.test(name) &&
+        entry.isSafeArgument(0))
+    {
+        return true;
+    }
+
+    // StyleShapeSource exclusively owns its UniquePtr<nsStyleImage>.
+    if (/nsStyleImage::SetURLValue/.test(callee) &&
+        /StyleShapeSource::SetURL/.test(name) &&
         entry.isSafeArgument(0))
     {
         return true;
@@ -475,12 +478,6 @@ function ignoreContents(entry)
         // Unable to trace through dataflow, but straightforward if inspected.
         "Gecko_NewNoneTransform",
 
-        // Bug 1368922
-        "Gecko_UnsetDirtyStyleAttr",
-
-        // Bug 1400438
-        "Gecko_AppendMozBorderColors",
-
         // Need main thread assertions or other fixes.
         /EffectCompositor::GetServoAnimationRule/,
         /LookAndFeel::GetColor/,
@@ -511,7 +508,6 @@ function ignoreContents(entry)
             /(nsTSubstring<T>|nsAC?String)::StripTaggedASCII/,
             /(nsTSubstring<T>|nsAC?String)::operator=/,
             /nsTAutoStringN<T, N>::nsTAutoStringN/,
-            /nsTFixedString<T>::nsTFixedString/,
 
             // Similar for some other data structures
             /nsCOMArray_base::SetCapacity/,
@@ -1092,10 +1088,6 @@ function processRoot(name)
 
     reachable = {};
 
-    var armed = false;
-    if (name.includes("Gecko_CSSValue_Set"))
-        armed = true;
-
     while (worklist.length > 0) {
         var entry = worklist.pop();
 
@@ -1370,6 +1362,8 @@ function testFailsOffMainThread(exp, value) {
             if (isDirectCall(edge, /NS_IsMainThread/) && value)
                 return true;
             if (isDirectCall(edge, /IsInServoTraversal/) && !value)
+                return true;
+            if (isDirectCall(edge, /IsCurrentThreadInServoTraversal/) && !value)
                 return true;
             if (isDirectCall(edge, /__builtin_expect/))
                 return testFailsOffMainThread(edge.PEdgeCallArguments.Exp[0], value);

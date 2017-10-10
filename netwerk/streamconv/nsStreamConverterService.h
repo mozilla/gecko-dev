@@ -13,7 +13,7 @@
 #include "nsStringFwd.h"
 #include "nsTArrayForwardDeclare.h"
 
-class nsIAtom;
+class nsAtom;
 
 class nsStreamConverterService : public nsIStreamConverterService {
 public:
@@ -40,7 +40,8 @@ private:
     nsresult ParseFromTo(const char *aContractID, nsCString &aFromRes, nsCString &aToRes);
 
     // member variables
-    nsClassHashtable<nsCStringHashKey, nsCOMArray<nsIAtom>> mAdjacencyList;
+    nsClassHashtable<nsCStringHashKey, nsTArray<RefPtr<nsAtom>>>
+        mAdjacencyList;
 };
 
 #endif // __nsstreamconverterservice__h___

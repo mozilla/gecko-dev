@@ -394,7 +394,11 @@ nsMixedContentBlocker::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
                   nullptr,              // aExtra
                   requestingPrincipal,
                   &decision);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    autoCallback.DontCallback();
+    aOldChannel->Cancel(NS_ERROR_DOM_BAD_URI);
+    return NS_BINDING_FAILED;
+  }
 
   if (nsMixedContentBlocker::sSendHSTSPriming) {
     // The LoadInfo passed in is for the original channel, HSTS priming needs to
@@ -419,6 +423,7 @@ nsMixedContentBlocker::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
   // If the channel is about to load mixed content, abort the channel
   if (!NS_CP_ACCEPTED(decision)) {
     autoCallback.DontCallback();
+    aOldChannel->Cancel(NS_ERROR_DOM_BAD_URI);
     return NS_BINDING_FAILED;
   }
 
@@ -464,7 +469,7 @@ nsMixedContentBlocker::IsPotentiallyTrustworthyLoopbackURL(nsIURI* aURL) {
   // We could also allow 'localhost' (if we can guarantee that it resolves
   // to a loopback address), but Chrome doesn't support it as of writing. For
   // web compat, lets only allow what Chrome allows.
-  return host.Equals("127.0.0.1") || host.Equals("::1");
+  return host.EqualsLiteral("127.0.0.1") || host.EqualsLiteral("::1");
 }
 
 /* Static version of ShouldLoad() that contains all the Mixed Content Blocker

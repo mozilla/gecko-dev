@@ -2504,9 +2504,11 @@ nsXPCComponents_Utils::Import(const nsACString& registryLocation,
     RefPtr<mozJSComponentLoader> moduleloader = mozJSComponentLoader::Get();
     MOZ_ASSERT(moduleloader);
 
+#ifdef MOZ_GECKO_PROFILER
     const nsCString& flatLocation = PromiseFlatCString(registryLocation);
     AUTO_PROFILER_LABEL_DYNAMIC("nsXPCComponents_Utils::Import", OTHER,
                                 flatLocation.get());
+#endif
 
     return moduleloader->Import(registryLocation, targetObj, cx, optionalArgc, retval);
 }
@@ -3394,6 +3396,15 @@ nsXPCComponents_Utils::ReadFile(nsIFile* aFile, nsACString& aResult)
     NS_ENSURE_TRUE(aFile, NS_ERROR_INVALID_ARG);
 
     MOZ_TRY_VAR(aResult, URLPreloader::ReadFile(aFile));
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::ReadURI(nsIURI* aURI, nsACString& aResult)
+{
+    NS_ENSURE_TRUE(aURI, NS_ERROR_INVALID_ARG);
+
+    MOZ_TRY_VAR(aResult, URLPreloader::ReadURI(aURI));
     return NS_OK;
 }
 

@@ -57,6 +57,7 @@
 
 .customizationmode-button {
   border: 1px solid #b1b1b1;
+  border-radius: 2px;
   background-color: #fcfcfd;
   -moz-appearance: none;
 }
@@ -371,6 +372,10 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
   text-align: start;
 }
 
+.customization-uidensity-menuitem > .menu-iconic-text {
+  font: menu;
+}
+
 #customization-lwtheme-menu-header,
 #customization-lwtheme-menu-recommended {
   padding: 10px;
@@ -434,6 +439,7 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
   border: 1px solid var(--arrowpanel-border-color);
   box-shadow: 0 0 4px hsla(0,0%,0%,.2);
 %endif
+  max-width: 29em;
 }
 
 #customization-panelWrapper > .panel-arrowbox {
@@ -442,15 +448,12 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
   margin-bottom: -1px;
 }
 
-/* The overflow button icon _looks_ disabled, but is also shown as [open]. */
-#nav-bar[customizing] > .overflow-button {
-  /* This color is the hard-coded #4c4c4c at 40% opacity as found in toolbarbutton-icons.inc.css */
-  fill: hsla(0,0%,30%,.4);
-}
-
+/* In customize mode, the overflow button should look both 'disabled' and 'open'.
+ * So we make the button fully opaque but fill the icon semi-transparent. */
 #nav-bar[customizing] > .overflow-button > .toolbarbutton-icon {
   background-color: var(--toolbarbutton-active-background);
   opacity: 1;
+  fill-opacity: 0.4;
 }
 
 #customization-panelWrapper > .panel-arrowbox > .panel-arrow[side="top"] {
@@ -494,28 +497,58 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
 }
 %endif
 
+#customization-panelDescription {
+  font-size: 1.1em;
+  padding: 2px 12px 10px;
+  margin: 0;
+}
+
+#customization-panelHeader {
+  font-size: 1.3em;
+  font-weight: 500;
+  padding: 2px 12px;
+  margin: 0;
+}
+
+#customization-panelHolder > #widget-overflow-fixed-list {
+  padding-top: 10px;
+}
+
+/**
+ * We create a ::before pseudoelement that contains a background image to show the
+ * drop dragon. This element fades in and out depending on whether the containing
+ * panel list is empty and unhovered, or not.
+ */
 #customization-panelHolder > #widget-overflow-fixed-list:not(:empty) {
   padding-bottom: 50px; /* Make sure there's always space to drop stuff. */
+  border-top: 1px solid rgba(0,0,0,0.1);
 }
 
-#customization-panelHolder > #widget-overflow-fixed-list:empty {
+#customization-panelHolder > #widget-overflow-fixed-list::before {
+  display: block;
+  content: "";
   background-image: url("chrome://browser/skin/customizableui/empty-overflow-panel.png");
-  background-position: center top 10px;
+  background-position: center bottom 10px;
   background-size: 218px 134px;
   background-repeat: no-repeat;
-}
-
-#customization-panelHolder > #widget-overflow-fixed-list:empty::after {
-  content: attr(emptylabel);
-  padding: 154px 10px 10px; /* 154 = 134 for the image, 10px space on either side. */
-  text-align: center;
-  display: block;
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  padding-bottom: 154px; /* 154 = 134 for the image, 10px space on either side. */
+  margin-bottom: -154px; /* don't affect positioning of the actual contents */
+  pointer-events: none;
 }
 
 @media (min-resolution: 1.1dppx) {
-  #customization-panelHolder > #widget-overflow-fixed-list:empty {
+  #customization-panelHolder > #widget-overflow-fixed-list::before {
     background-image: url("chrome://browser/skin/customizableui/empty-overflow-panel@2x.png");
   }
+}
+
+#customization-panelHolder > #widget-overflow-fixed-list:empty::before {
+  opacity: 1;
+}
+#customization-panelHolder > #widget-overflow-fixed-list[draggingover]:empty::before {
+  opacity: 0;
 }
 
 #downloads-button-autohide-panel > .panel-arrowcontainer > .panel-arrowcontent {

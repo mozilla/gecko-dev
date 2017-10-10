@@ -9,7 +9,7 @@ kind-dependencies:
 
 transforms:
    - taskgraph.transforms.build_attrs:transforms
-   - taskgraph.transforms.toolchain:transforms
+   - taskgraph.transforms.use_toolchains:transforms
    - taskgraph.transforms.job:transforms
    - taskgraph.transforms.task:transforms
 
@@ -44,4 +44,5 @@ jobs:
         toolchains:
             - linux64-clang
             - linux64-gcc
+            - linux64-rust
             - linux64-sccache

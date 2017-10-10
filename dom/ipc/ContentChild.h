@@ -633,6 +633,9 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvResumeInputEventQueue() override;
 
+  virtual mozilla::ipc::IPCResult
+  RecvAddDynamicScalars(nsTArray<DynamicScalarDefinition>&& aDefs) override;
+
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
   bool
   SendGetA11yContentId();
@@ -768,7 +771,7 @@ private:
   AppInfo mAppInfo;
 
   bool mIsForBrowser;
-  nsString mRemoteType = NullString();
+  nsString mRemoteType = VoidString();
   bool mIsAlive;
   nsString mProcessName;
 

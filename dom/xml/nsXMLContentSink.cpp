@@ -401,8 +401,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
     NS_ASSERTION(mDocument->IndexOf(rootElement) != -1,
                  "rootElement not in doc?");
     mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
-    nsNodeUtils::ContentInserted(mDocument, rootElement,
-                                 mDocument->IndexOf(rootElement));
+    nsNodeUtils::ContentInserted(mDocument, rootElement);
     mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
   }
 
@@ -869,7 +868,7 @@ nsXMLContentSink::MaybeStartLayout(bool aIgnorePendingSheets)
 
 bool
 nsXMLContentSink::SetDocElement(int32_t aNameSpaceID,
-                                nsIAtom* aTagName,
+                                nsAtom* aTagName,
                                 nsIContent *aContent)
 {
   if (mDocElement)
@@ -945,7 +944,7 @@ nsXMLContentSink::HandleStartElement(const char16_t *aName,
   mState = eXMLContentSinkState_InDocumentElement;
 
   int32_t nameSpaceID;
-  nsCOMPtr<nsIAtom> prefix, localName;
+  RefPtr<nsAtom> prefix, localName;
   nsContentUtils::SplitExpatName(aName, getter_AddRefs(prefix),
                                  getter_AddRefs(localName), &nameSpaceID);
 
@@ -1051,7 +1050,7 @@ nsXMLContentSink::HandleEndElement(const char16_t *aName,
   NS_ASSERTION(content, "failed to pop content");
 #ifdef DEBUG
   // Check that we're closing the right thing
-  nsCOMPtr<nsIAtom> debugNameSpacePrefix, debugTagAtom;
+  RefPtr<nsAtom> debugNameSpacePrefix, debugTagAtom;
   int32_t debugNameSpaceID;
   nsContentUtils::SplitExpatName(aName, getter_AddRefs(debugNameSpacePrefix),
                                  getter_AddRefs(debugTagAtom),
@@ -1071,6 +1070,17 @@ nsXMLContentSink::HandleEndElement(const char16_t *aName,
                isTemplateElement, "Wrong element being closed");
 #endif
 
+  // Make sure to notify on our kids before we call out to any other code that
+  // might reenter us and call FlushTags, in a state in which we've already
+  // popped "content" from the stack but haven't notified on its kids yet.
+  int32_t stackLen = mContentStack.Length();
+  if (mNotifyLevel >= stackLen) {
+    if (numFlushed < content->GetChildCount()) {
+      NotifyAppend(content, numFlushed);
+    }
+    mNotifyLevel = stackLen - 1;
+  }
+
   result = CloseElement(content);
 
   if (mCurrentHead == content) {
@@ -1086,13 +1096,6 @@ nsXMLContentSink::HandleEndElement(const char16_t *aName,
     MaybeStartLayout(false);
   }
 
-  int32_t stackLen = mContentStack.Length();
-  if (mNotifyLevel >= stackLen) {
-    if (numFlushed < content->GetChildCount()) {
-      NotifyAppend(content, numFlushed);
-    }
-    mNotifyLevel = stackLen - 1;
-  }
   DidAddContent();
 
   if (content->IsSVGElement(nsGkAtoms::svg)) {
@@ -1154,7 +1157,7 @@ nsXMLContentSink::HandleDoctypeDecl(const nsAString & aSubset,
 
   NS_ASSERTION(mDocument, "Shouldn't get here from a document fragment");
 
-  nsCOMPtr<nsIAtom> name = NS_Atomize(aName);
+  RefPtr<nsAtom> name = NS_Atomize(aName);
   NS_ENSURE_TRUE(name, NS_ERROR_OUT_OF_MEMORY);
 
   // Create a new doctype node
@@ -1403,7 +1406,7 @@ nsXMLContentSink::AddAttributes(const char16_t** aAtts,
                                 nsIContent* aContent)
 {
   // Add tag attributes to the content attributes
-  nsCOMPtr<nsIAtom> prefix, localName;
+  RefPtr<nsAtom> prefix, localName;
   while (*aAtts) {
     int32_t nameSpaceID;
     nsContentUtils::SplitExpatName(aAtts[0], getter_AddRefs(prefix),

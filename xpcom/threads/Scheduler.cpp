@@ -563,11 +563,7 @@ SchedulerImpl::StartEvent(Scheduler::EventLoopActivation& aActivation)
   MOZ_ASSERT(!sUnlabeledEventRunning);
   if (aActivation.IsLabeled()) {
     SchedulerGroup::SetValidatingAccess(SchedulerGroup::StartValidation);
-
-    for (SchedulerGroup* group : aActivation.EventGroupsAffected()) {
-      MOZ_ASSERT(!group->IsRunning());
-      group->SetIsRunning(true);
-    }
+    aActivation.EventGroupsAffected().SetIsRunning(true);
   } else {
     sUnlabeledEventRunning = true;
   }
@@ -578,11 +574,7 @@ SchedulerImpl::StartEvent(Scheduler::EventLoopActivation& aActivation)
 SchedulerImpl::FinishEvent(Scheduler::EventLoopActivation& aActivation)
 {
   if (aActivation.IsLabeled()) {
-    for (SchedulerGroup* group : aActivation.EventGroupsAffected()) {
-      MOZ_ASSERT(group->IsRunning());
-      group->SetIsRunning(false);
-    }
-
+    aActivation.EventGroupsAffected().SetIsRunning(false);
     SchedulerGroup::SetValidatingAccess(SchedulerGroup::EndValidation);
   } else {
     MOZ_ASSERT(sUnlabeledEventRunning);
@@ -639,7 +631,7 @@ SchedulerImpl::ThreadController::OnStartThread(size_t aIndex, const nsACString& 
   // GetCurrentVirtualThread() now returns mMainVirtual.
   nsThreadManager::get().CreateCurrentThread(mMainQueue, nsThread::MAIN_THREAD);
 
-  profiler_register_thread(aName.BeginReading(), &aStackTop);
+  PROFILER_REGISTER_THREAD(aName.BeginReading());
 
   mOldMainLoop = MessageLoop::current();
 
@@ -653,6 +645,7 @@ SchedulerImpl::ThreadController::OnStartThread(size_t aIndex, const nsACString& 
     JS_AddInterruptCallback(cx, SchedulerImpl::InterruptCallback);
   }
   js::SetCooperativeYieldCallback(cx, SchedulerImpl::YieldCallback);
+  Servo_InitializeCooperativeThread();
 }
 
 void
@@ -666,7 +659,7 @@ SchedulerImpl::ThreadController::OnStopThread(size_t aIndex)
   RefPtr<nsThread> self = static_cast<nsThread*>(NS_GetCurrentThread());
   nsThreadManager::get().UnregisterCurrentThread(*self);
 
-  profiler_unregister_thread();
+  PROFILER_UNREGISTER_THREAD();
 }
 
 void

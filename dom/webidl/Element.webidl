@@ -40,9 +40,9 @@ interface Element : Node {
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal, Throws]
   void setAttribute(DOMString name, DOMString value);
-  [CEReactions, Throws]
+  [CEReactions, NeedsSubjectPrincipal, Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
   [CEReactions, Throws]
   void removeAttribute(DOMString name);
@@ -171,9 +171,10 @@ interface Element : Node {
 };
 
 // http://dev.w3.org/csswg/cssom-view/
-enum ScrollLogicalPosition { "start", "end" };
+enum ScrollLogicalPosition { "start", "center", "end", "nearest" };
 dictionary ScrollIntoViewOptions : ScrollOptions {
   ScrollLogicalPosition block = "start";
+  ScrollLogicalPosition inline = "nearest";
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
@@ -182,8 +183,7 @@ partial interface Element {
   DOMRect getBoundingClientRect();
 
   // scrolling
-  void scrollIntoView(boolean top);
-  void scrollIntoView(optional ScrollIntoViewOptions options);
+  void scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg);
   // None of the CSSOM attributes are [Pure], because they flush
            attribute long scrollTop;   // scroll on setting
            attribute long scrollLeft;  // scroll on setting

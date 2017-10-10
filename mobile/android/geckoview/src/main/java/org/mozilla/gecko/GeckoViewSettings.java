@@ -62,9 +62,14 @@ public final class GeckoViewSettings {
     /*
      * Key to specify which display-mode we should use
      */
-    public static final Key<Boolean> DISPLAY_MODE =
-        new Key<Boolean>("displayMode");
+    public static final Key<Integer> DISPLAY_MODE =
+        new Key<Integer>("displayMode");
 
+    public static final Key<Boolean> USE_REMOTE_DEBUGGER =
+        new Key<Boolean>("useRemoteDebugger");
+
+    public static final Key<String> DEBUGGER_SOCKET_DIR =
+        new Key<String>("debuggerSocketDir");
 
     private final EventDispatcher mEventDispatcher;
     private final GeckoBundle mBundle;
@@ -81,6 +86,9 @@ public final class GeckoViewSettings {
         setBoolean(USE_PRIVATE_MODE, false);
         setBoolean(USE_MULTIPROCESS, true);
         setInt(DISPLAY_MODE, DisplayMode.BROWSER.value());
+        setBoolean(USE_REMOTE_DEBUGGER, false);
+        // Set in GeckoView.init().
+        setString(DEBUGGER_SOCKET_DIR, "");
     }
 
     /* package */ GeckoViewSettings(GeckoViewSettings settings, EventDispatcher eventDispatcher) {
@@ -105,7 +113,7 @@ public final class GeckoViewSettings {
         }
     }
 
-    public void setInt(final Key<Boolean> key, int value) {
+    public void setInt(final Key<Integer> key, int value) {
         synchronized (mBundle) {
             final Object old = mBundle.get(key.text);
             if (old != null && old.equals(value)) {
@@ -116,9 +124,26 @@ public final class GeckoViewSettings {
         dispatchUpdate();
     }
 
-    public int getInt(final Key<Boolean> key) {
+    public int getInt(final Key<Integer> key) {
         synchronized (mBundle) {
             return mBundle.getInt(key.text);
+        }
+    }
+
+    public void setString(final Key<String> key, final String value) {
+        synchronized (mBundle) {
+            final Object old = mBundle.get(key.text);
+            if (old != null && old.equals(value)) {
+                return;
+            }
+            mBundle.putString(key.text, value);
+        }
+        dispatchUpdate();
+    }
+
+    public String getString(final Key<String> key) {
+        synchronized (mBundle) {
+            return mBundle.getString(key.text);
         }
     }
 

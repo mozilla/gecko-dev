@@ -137,10 +137,13 @@ NativeObject::copyDenseElements(uint32_t dstStart, const Value* src, uint32_t co
     MOZ_ASSERT(dstStart + count <= getDenseCapacity());
     MOZ_ASSERT(!denseElementsAreCopyOnWrite());
     MOZ_ASSERT(!denseElementsAreFrozen());
+    MOZ_ASSERT_IF(count > 0, src != nullptr);
 #ifdef DEBUG
     for (uint32_t i = 0; i < count; ++i)
         checkStoredValue(src[i]);
 #endif
+    if (count == 0)
+        return;
     if (JS::shadow::Zone::asShadowZone(zone())->needsIncrementalBarrier()) {
         uint32_t numShifted = getElementsHeader()->numShiftedElements();
         for (uint32_t i = 0; i < count; ++i) {
@@ -155,17 +158,31 @@ NativeObject::copyDenseElements(uint32_t dstStart, const Value* src, uint32_t co
 }
 
 inline void
-NativeObject::initDenseElements(uint32_t dstStart, const Value* src, uint32_t count)
+NativeObject::initDenseElements(NativeObject* src, uint32_t srcStart, uint32_t count)
 {
-    MOZ_ASSERT(dstStart + count <= getDenseCapacity());
+    MOZ_ASSERT(src->getDenseInitializedLength() >= srcStart + count);
+
+    const Value* vp = src->getDenseElements() + srcStart;
+    initDenseElements(vp, count);
+}
+
+inline void
+NativeObject::initDenseElements(const Value* src, uint32_t count)
+{
+    MOZ_ASSERT(getDenseInitializedLength() == 0);
+    MOZ_ASSERT(count <= getDenseCapacity());
     MOZ_ASSERT(!denseElementsAreCopyOnWrite());
     MOZ_ASSERT(!denseElementsAreFrozen());
+
+    setDenseInitializedLength(count);
+
 #ifdef DEBUG
     for (uint32_t i = 0; i < count; ++i)
         checkStoredValue(src[i]);
 #endif
-    memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
-    elementsRangeWriteBarrierPost(dstStart, count);
+
+    memcpy(elements_, src, count * sizeof(HeapSlot));
+    elementsRangeWriteBarrierPost(0, count);
 }
 
 inline bool
@@ -379,6 +396,38 @@ NativeObject::ensureDenseElements(JSContext* cx, uint32_t index, uint32_t extra)
     return DenseElementResult::Success;
 }
 
+inline DenseElementResult
+NativeObject::setOrExtendDenseElements(JSContext* cx, uint32_t start, const Value* vp,
+                                       uint32_t count,
+                                       ShouldUpdateTypes updateTypes)
+{
+    if (denseElementsAreFrozen())
+        return DenseElementResult::Incomplete;
+
+    if (is<ArrayObject>() &&
+        !as<ArrayObject>().lengthIsWritable() &&
+        start + count >= as<ArrayObject>().length())
+    {
+        return DenseElementResult::Incomplete;
+    }
+
+    DenseElementResult result = ensureDenseElements(cx, start, count);
+    if (result != DenseElementResult::Success)
+        return result;
+
+    if (is<ArrayObject>() && start + count >= as<ArrayObject>().length())
+        as<ArrayObject>().setLengthInt32(start + count);
+
+    if (updateTypes == ShouldUpdateTypes::DontUpdate && !shouldConvertDoubleElements()) {
+        copyDenseElements(start, vp, count);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            setDenseElementWithType(cx, start + i, vp[i]);
+    }
+
+    return DenseElementResult::Success;
+}
+
 inline Value
 NativeObject::getDenseOrTypedArrayElement(uint32_t idx)
 {
@@ -498,6 +547,20 @@ NativeObject::create(JSContext* cx, js::gc::AllocKind kind, js::gc::InitialHeap 
     js::gc::TraceCreateObject(nobj);
 
     return nobj;
+}
+
+/* static */ inline JS::Result<NativeObject*, JS::OOM&>
+NativeObject::createWithTemplate(JSContext* cx, js::gc::InitialHeap heap,
+                                 HandleObject templateObject)
+{
+    RootedObjectGroup group(cx, templateObject->group());
+    RootedShape shape(cx, templateObject->as<NativeObject>().lastProperty());
+
+    gc::AllocKind kind = gc::GetGCObjectKind(shape->numFixedSlots());
+    MOZ_ASSERT(CanBeFinalizedInBackground(kind, shape->getObjectClass()));
+    kind = gc::GetBackgroundAllocKind(kind);
+
+    return create(cx, kind, heap, shape, group);
 }
 
 MOZ_ALWAYS_INLINE uint32_t

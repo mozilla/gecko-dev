@@ -781,20 +781,18 @@ ComputeAccessAddress(EMULATOR_CONTEXT* context, const Disassembler::ComplexAddre
 
 MOZ_COLD static void
 HandleMemoryAccess(EMULATOR_CONTEXT* context, uint8_t* pc, uint8_t* faultingAddress,
-                   const Instance& instance, WasmActivation* activation, uint8_t** ppc)
+                   const CodeSegment* segment, const Instance& instance, JitActivation* activation,
+                   uint8_t** ppc)
 {
-    MOZ_RELEASE_ASSERT(instance.code().containsFunctionPC(pc));
+    MOZ_RELEASE_ASSERT(instance.code().containsCodePC(pc));
 
-    const CodeSegment* segment;
-    const MemoryAccess* memoryAccess = instance.code().lookupMemoryAccess(pc, &segment);
+    const MemoryAccess* memoryAccess = instance.code().lookupMemoryAccess(pc);
     if (!memoryAccess) {
         // If there is no associated MemoryAccess for the faulting PC, this must be
         // experimental SIMD.js or Atomics. When these are converted to
         // non-experimental wasm features, this case, as well as outOfBoundsCode,
         // can be removed.
-        activation->startInterrupt(ToRegisterState(context));
-        if (!instance.code().containsCodePC(pc, &segment))
-            MOZ_CRASH("Cannot map PC to trap handler");
+        activation->startWasmInterrupt(ToRegisterState(context));
         *ppc = segment->outOfBoundsCode();
         return;
     }
@@ -819,7 +817,7 @@ HandleMemoryAccess(EMULATOR_CONTEXT* context, uint8_t* pc, uint8_t* faultingAddr
     uint8_t* end = Disassembler::DisassembleHeapAccess(pc, &access);
     const Disassembler::ComplexAddress& address = access.address();
     MOZ_RELEASE_ASSERT(end > pc);
-    MOZ_RELEASE_ASSERT(segment->containsFunctionPC(end));
+    MOZ_RELEASE_ASSERT(segment->containsCodePC(end));
 
     // Check x64 asm.js heap access invariants.
     MOZ_RELEASE_ASSERT(address.disp() >= 0);
@@ -930,17 +928,15 @@ HandleMemoryAccess(EMULATOR_CONTEXT* context, uint8_t* pc, uint8_t* faultingAddr
 
 MOZ_COLD static void
 HandleMemoryAccess(EMULATOR_CONTEXT* context, uint8_t* pc, uint8_t* faultingAddress,
-                   const Instance& instance, WasmActivation* activation, uint8_t** ppc)
+                   const CodeSegment* segment, const Instance& instance, JitActivation* activation,
+                   uint8_t** ppc)
 {
-    MOZ_RELEASE_ASSERT(instance.code().containsFunctionPC(pc));
+    MOZ_RELEASE_ASSERT(instance.code().containsCodePC(pc));
 
-    const CodeSegment* segment;
-    const MemoryAccess* memoryAccess = instance.code().lookupMemoryAccess(pc, &segment);
+    const MemoryAccess* memoryAccess = instance.code().lookupMemoryAccess(pc);
     if (!memoryAccess) {
         // See explanation in the WASM_HUGE_MEMORY HandleMemoryAccess.
-        activation->startInterrupt(ToRegisterState(context));
-        if (!instance.code().containsCodePC(pc, &segment))
-            MOZ_CRASH("Cannot map PC to trap handler");
+        activation->startWasmInterrupt(ToRegisterState(context));
         *ppc = segment->outOfBoundsCode();
         return;
     }
@@ -990,16 +986,16 @@ HandleFault(PEXCEPTION_POINTERS exception)
         return false;
     AutoSetHandlingSegFault handling(cx);
 
-    WasmActivation* activation = ActivationIfInnermost(cx);
-    if (!activation)
+    if (!cx->activation() || !cx->activation()->isJit())
+        return false;
+    JitActivation* activation = cx->activation()->asJit();
+
+    const CodeSegment* codeSegment = activation->compartment()->wasm.lookupCodeSegment(pc);
+    if (!codeSegment)
         return false;
 
-    const CodeSegment* codeSegment;
-    const Code* code = activation->compartment()->wasm.lookupCode(pc, &codeSegment);
-    if (!code)
-        return false;
-
-    if (!codeSegment->containsFunctionPC(pc)) {
+    const Instance* instance = LookupFaultingInstance(*codeSegment, pc, ContextToFP(context));
+    if (!instance) {
         // On Windows, it is possible for InterruptRunningJitCode to execute
         // between a faulting heap access and the handling of the fault due
         // to InterruptRunningJitCode's use of SuspendThread. When this happens,
@@ -1009,21 +1005,10 @@ HandleFault(PEXCEPTION_POINTERS exception)
         // always the logically-faulting pc). Fortunately, we can detect this
         // case and silence the exception ourselves (the exception will
         // retrigger after the interrupt jumps back to resumePC).
-
-        for (auto t : code->tiers()) {
-            if (pc == code->segment(t).interruptCode() &&
-                activation->interrupted() &&
-                code->segment(t).containsFunctionPC(activation->resumePC()))
-            {
-                return true;
-            }
-        }
-        return false;
+        return activation->isWasmInterrupted() &&
+               pc == codeSegment->interruptCode() &&
+               codeSegment->containsCodePC(activation->wasmResumePC());
     }
-
-    const Instance* instance = LookupFaultingInstance(*code, pc, ContextToFP(context));
-    if (!instance)
-        return false;
 
     uint8_t* faultingAddress = reinterpret_cast<uint8_t*>(record->ExceptionInformation[1]);
 
@@ -1034,17 +1019,17 @@ HandleFault(PEXCEPTION_POINTERS exception)
 
     // Similar to the non-atomic situation above, on Windows, an OOB fault at a
     // PC can trigger *after* an async interrupt observed that PC and attempted
-    // to redirect to the async stub. In this unique case, interrupted() is
+    // to redirect to the async stub. In this unique case, isWasmInterrupted() is
     // already true when the OOB handler is called. Since the point of the async
     // interrupt is to get out of an iloop and the OOB trap will do just that,
     // we can simply clear the interrupt. (The update to CONTEXT.pc made by
     // HandleMemoryAccess will clobber the interrupt's previous update.)
-    if (activation->interrupted()) {
-        MOZ_ASSERT(activation->resumePC() == pc);
-        activation->finishInterrupt();
+    if (activation->isWasmInterrupted()) {
+        MOZ_ASSERT(activation->wasmResumePC() == pc);
+        activation->finishWasmInterrupt();
     }
 
-    HandleMemoryAccess(context, pc, faultingAddress, *instance, activation, ppc);
+    HandleMemoryAccess(context, pc, faultingAddress, codeSegment, *instance, activation, ppc);
     return true;
 }
 
@@ -1136,16 +1121,16 @@ HandleMachException(JSContext* cx, const ExceptionRequest& request)
     // normally only be accessed by the cx's active thread.
     AutoNoteSingleThreadedRegion anstr;
 
-    WasmActivation* activation = ActivationIfInnermost(cx);
-    if (!activation)
+    if (!cx->activation() || !cx->activation()->isJit())
+        return false;
+    JitActivation* activation = cx->activation()->asJit();
+
+    const CodeSegment* codeSegment = activation->compartment()->wasm.lookupCodeSegment(pc);
+    if (!codeSegment)
         return false;
 
-    const Code* code = activation->compartment()->wasm.lookupCode(pc);
-    if (!code)
-        return false;
-
-    const Instance* instance = LookupFaultingInstance(*code, pc, ContextToFP(&context));
-    if (!instance || !instance->code().containsFunctionPC(pc))
+    const Instance* instance = LookupFaultingInstance(*codeSegment, pc, ContextToFP(&context));
+    if (!instance)
         return false;
 
     uint8_t* faultingAddress = reinterpret_cast<uint8_t*>(request.body.code[1]);
@@ -1155,7 +1140,7 @@ HandleMachException(JSContext* cx, const ExceptionRequest& request)
     if (!IsHeapAccessAddress(*instance, faultingAddress))
         return false;
 
-    HandleMemoryAccess(&context, pc, faultingAddress, *instance, activation, ppc);
+    HandleMemoryAccess(&context, pc, faultingAddress, codeSegment, *instance, activation, ppc);
 
     // Update the thread state with the new pc and register values.
     kret = thread_set_state(cxThread, float_state, (thread_state_t)&context.float_, float_state_count);
@@ -1347,17 +1332,16 @@ HandleFault(int signum, siginfo_t* info, void* ctx)
         return false;
     AutoSetHandlingSegFault handling(cx);
 
-    WasmActivation* activation = ActivationIfInnermost(cx);
-    if (!activation)
+    if (!cx->activation() || !cx->activation()->isJit())
+        return false;
+    JitActivation* activation = cx->activation()->asJit();
+
+    const CodeSegment* segment = activation->compartment()->wasm.lookupCodeSegment(pc);
+    if (!segment)
         return false;
 
-    const CodeSegment* segment;
-    const Code* code = activation->compartment()->wasm.lookupCode(pc, &segment);
-    if (!code)
-        return false;
-
-    const Instance* instance = LookupFaultingInstance(*code, pc, ContextToFP(context));
-    if (!instance || !instance->code().containsFunctionPC(pc, &segment))
+    const Instance* instance = LookupFaultingInstance(*segment, pc, ContextToFP(context));
+    if (!instance)
         return false;
 
     uint8_t* faultingAddress = reinterpret_cast<uint8_t*>(info->si_addr);
@@ -1387,13 +1371,13 @@ HandleFault(int signum, siginfo_t* info, void* ctx)
         // partly overlaps the end of the heap.  In this case, it is an out-of-bounds
         // error and we should signal that properly, but to do so we must inspect
         // the operand of the failed access.
-        activation->startInterrupt(ToRegisterState(context));
+        activation->startWasmInterrupt(ToRegisterState(context));
         *ppc = segment->unalignedAccessCode();
         return true;
     }
 #endif
 
-    HandleMemoryAccess(context, pc, faultingAddress, *instance, activation, ppc);
+    HandleMemoryAccess(context, pc, faultingAddress, segment, *instance, activation, ppc);
     return true;
 }
 
@@ -1457,11 +1441,18 @@ wasm::InInterruptibleCode(JSContext* cx, uint8_t* pc, const CodeSegment** cs)
     // Only interrupt in function code so that the frame iterators have the
     // invariant that resumePC always has a function CodeRange and we can't
     // get into any weird interrupt-during-interrupt-stub cases.
+
     if (!cx->compartment())
         return false;
 
-    const Code* code = cx->compartment()->wasm.lookupCode(pc, cs);
-    return code && (*cs)->containsFunctionPC(pc);
+    *cs = cx->compartment()->wasm.lookupCodeSegment(pc);
+    if (!*cs)
+        return false;
+
+    const Code* code = (*cs)->code();
+
+    const CodeRange* codeRange = code->lookupRange(pc);
+    return codeRange && codeRange->isFunction();
 }
 
 // The return value indicates whether the PC was changed, not whether there was
@@ -1489,29 +1480,27 @@ RedirectJitCodeToInterruptCheck(JSContext* cx, CONTEXT* context)
     if (!InInterruptibleCode(cx, pc, &codeSegment))
         return false;
 
-    // Only probe cx->activation() via ActivationIfInnermost after we know the
-    // pc is in wasm code. This way we don't depend on signal-safe update of
-    // cx->activation().
-    WasmActivation* activation = ActivationIfInnermost(cx);
-    MOZ_ASSERT(activation);
-
 #ifdef JS_SIMULATOR
     // The checks performed by the !JS_SIMULATOR path happen in
     // Simulator::handleWasmInterrupt.
     cx->simulator()->trigger_wasm_interrupt();
 #else
+    // Only probe cx->activation() after we know the pc is in wasm code. This
+    // way we don't depend on signal-safe update of cx->activation().
+    JitActivation* activation = cx->activation()->asJit();
+
     // fp may be null when first entering wasm code from an entry stub.
     uint8_t* fp = ContextToFP(context);
     if (!fp)
         return false;
 
-    // The out-of-bounds/unaligned trap paths which call startInterrupt() go
+    // The out-of-bounds/unaligned trap paths which call startWasmInterrupt() go
     // through function code, so test if already interrupted. These paths are
     // temporary though, so this case can be removed later.
-    if (activation->interrupted())
+    if (activation->isWasmInterrupted())
         return false;
 
-    activation->startInterrupt(ToRegisterState(context));
+    activation->startWasmInterrupt(ToRegisterState(context));
     *ContextToPC(context) = codeSegment->interruptCode();
 #endif
 

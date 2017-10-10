@@ -43,7 +43,6 @@
 #include "nsNetUtil.h"
 #include "nsNetCID.h"
 #include "nsCSSRendering.h"
-#include "nsIDOMHTMLAnchorElement.h"
 #include "nsNameSpaceManager.h"
 #include <algorithm>
 #ifdef ACCESSIBILITY
@@ -81,6 +80,7 @@
 
 #include "mozilla/dom/Link.h"
 #include "SVGImageContext.h"
+#include "mozilla/dom/HTMLAnchorElement.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -991,15 +991,15 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
 
   // see if we have a frozen size (i.e. a fixed width and height)
   if (HaveFixedSize(aReflowInput)) {
-    mState |= IMAGE_SIZECONSTRAINED;
+    AddStateBits(IMAGE_SIZECONSTRAINED);
   } else {
-    mState &= ~IMAGE_SIZECONSTRAINED;
+    RemoveStateBits(IMAGE_SIZECONSTRAINED);
   }
 
   // XXXldb These two bits are almost exact opposites (except in the
   // middle of the initial reflow); remove IMAGE_GOTINITIALREFLOW.
   if (GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-    mState |= IMAGE_GOTINITIALREFLOW;
+    AddStateBits(IMAGE_GOTINITIALREFLOW);
   }
 
   mComputedSize =
@@ -1701,7 +1701,6 @@ bool
 nsDisplayImage::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
                                         const StackingContextHelper& aSc,
-                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                         WebRenderLayerManager* aManager,
                                         nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -1725,7 +1724,7 @@ nsDisplayImage::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilde
   const LayoutDeviceRect destRect(
     LayoutDeviceIntRect::FromAppUnits(GetDestRect(), factor));
   const LayerRect dest = ViewAs<LayerPixel>(destRect, PixelCastJustification::WebRenderHasUnitResolution);
-  return aManager->PushImage(this, container, aBuilder, aSc, dest);
+  return aManager->CommandBuilder().PushImage(this, container, aBuilder, aResources, aSc, dest);
 }
 
 DrawResult
@@ -1994,7 +1993,7 @@ nsImageFrame::GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
       }
       status = (*aHref != nullptr);
 
-      nsCOMPtr<nsIDOMHTMLAnchorElement> anchor(do_QueryInterface(content));
+      RefPtr<HTMLAnchorElement> anchor = HTMLAnchorElement::FromContent(content);
       if (anchor) {
         anchor->GetTarget(aTarget);
       }
@@ -2140,7 +2139,7 @@ nsImageFrame::GetCursor(const nsPoint& aPoint,
 
 nsresult
 nsImageFrame::AttributeChanged(int32_t aNameSpaceID,
-                               nsIAtom* aAttribute,
+                               nsAtom* aAttribute,
                                int32_t aModType)
 {
   nsresult rv = nsAtomicContainerFrame::AttributeChanged(aNameSpaceID,
@@ -2272,6 +2271,7 @@ nsImageFrame::LoadIcon(const nsAString& aSpec,
                        nullptr,      /* referrer (not relevant for icons) */
                        mozilla::net::RP_Unset,
                        nullptr,      /* principal (not relevant for icons) */
+                       0,
                        loadGroup,
                        gIconLoad,
                        nullptr,      /* No context */

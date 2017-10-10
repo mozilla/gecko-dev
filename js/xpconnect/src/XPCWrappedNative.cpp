@@ -856,8 +856,8 @@ XPCWrappedNative::FlatJSObjectFinalized()
     MOZ_ASSERT(mIdentity, "bad pointer!");
 #ifdef XP_WIN
     // Try to detect free'd pointer
-    MOZ_ASSERT(*(int*)mIdentity.get() != 0xdddddddd, "bad pointer!");
-    MOZ_ASSERT(*(int*)mIdentity.get() != 0,          "bad pointer!");
+    MOZ_ASSERT(*(int*)mIdentity.get() != (int)0xdddddddd, "bad pointer!");
+    MOZ_ASSERT(*(int*)mIdentity.get() != (int)0,          "bad pointer!");
 #endif
 
     if (IsWrapperExpired()) {
@@ -2228,18 +2228,3 @@ static void DEBUG_CheckClassInfoClaims(XPCWrappedNative* wrapper)
     }
 }
 #endif
-
-NS_IMPL_ISUPPORTS(XPCJSObjectHolder, nsIXPConnectJSObjectHolder)
-
-JSObject*
-XPCJSObjectHolder::GetJSObject()
-{
-    NS_PRECONDITION(mJSObj, "bad object state");
-    return mJSObj;
-}
-
-XPCJSObjectHolder::XPCJSObjectHolder(JSContext* cx, JSObject* obj)
-  : mJSObj(cx, obj)
-{
-    MOZ_ASSERT(obj);
-}

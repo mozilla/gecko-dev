@@ -11,7 +11,6 @@
 #include "jsatom.h"
 
 #include "builtin/SelfHostingDefines.h"
-#include "gc/Zone.h"
 #include "js/GCVector.h"
 #include "js/Id.h"
 #include "vm/NativeObject.h"
@@ -237,7 +236,7 @@ using ModuleStatus = int32_t;
 class ModuleObject : public NativeObject
 {
   public:
-    enum
+    enum ModuleSlot
     {
         ScriptSlot = 0,
         InitialEnvironmentSlot,
@@ -285,7 +284,7 @@ class ModuleObject : public NativeObject
                               HandleArrayObject starExportEntries);
     static bool Freeze(JSContext* cx, HandleModuleObject self);
 #ifdef DEBUG
-    static bool IsFrozen(JSContext* cx, HandleModuleObject self);
+    static bool AssertFrozen(JSContext* cx, HandleModuleObject self);
 #endif
     void fixEnvironmentsAfterCompartmentMerge();
 

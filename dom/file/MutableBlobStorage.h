@@ -8,9 +8,11 @@
 #define mozilla_dom_MutableBlobStorage_h
 
 #include "mozilla/RefPtr.h"
+#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "prio.h"
 
 class nsIEventTarget;
+class nsIRunnable;
 
 namespace mozilla {
 
@@ -21,6 +23,8 @@ namespace dom {
 class Blob;
 class BlobImpl;
 class MutableBlobStorage;
+class TemporaryIPCBlobChild;
+class TemporaryIPCBlobChildCallback;
 
 class MutableBlobStorageCallback
 {
@@ -33,10 +37,11 @@ public:
 };
 
 // This class is main-thread only.
-class MutableBlobStorage final
+class MutableBlobStorage final : public nsIIPCBackgroundChildCreateCallback
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MutableBlobStorage);
+  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   enum MutableBlobStorageType
   {
@@ -45,22 +50,21 @@ public:
   };
 
   explicit MutableBlobStorage(MutableBlobStorageType aType,
-                              nsIEventTarget* aEventTarget = nullptr);
+                              nsIEventTarget* aEventTarget = nullptr,
+                              uint32_t aMaxMemory = 0);
 
   nsresult Append(const void* aData, uint32_t aLength);
 
   // This method can be called just once.
   // The callback will be called when the Blob is ready.
-  // The return value is the total size of the blob, when created.
-  uint64_t GetBlobWhenReady(nsISupports* aParent,
-                            const nsACString& aContentType,
-                            MutableBlobStorageCallback* aCallback);
+  void GetBlobWhenReady(nsISupports* aParent,
+                        const nsACString& aContentType,
+                        MutableBlobStorageCallback* aCallback);
 
   void TemporaryFileCreated(PRFileDesc* aFD);
 
-  void  CreateBlobAndRespond(already_AddRefed<nsISupports> aParent,
-                             const nsACString& aContentType,
-                             already_AddRefed<MutableBlobStorageCallback> aCallback);
+  void AskForBlob(TemporaryIPCBlobChildCallback* aCallback,
+                  const nsACString& aContentType);
 
   void ErrorPropagated(nsresult aRv);
 
@@ -70,6 +74,10 @@ public:
     return mEventTarget;
   }
 
+  // Returns the heap size in bytes of our internal buffers.
+  // Note that this intentionally ignores the data in the temp file.
+  size_t SizeOfCurrentMemoryBuffer() const;
+
 private:
   ~MutableBlobStorage();
 
@@ -77,7 +85,7 @@ private:
 
   bool ShouldBeTemporaryStorage(uint64_t aSize) const;
 
-  nsresult MaybeCreateTemporaryFile();
+  void MaybeCreateTemporaryFile();
 
   void DispatchToIOThread(already_AddRefed<nsIRunnable> aRunnable);
 
@@ -107,6 +115,14 @@ private:
   nsCOMPtr<nsISupports> mPendingParent;
   nsCString mPendingContentType;
   RefPtr<MutableBlobStorageCallback> mPendingCallback;
+
+  RefPtr<TemporaryIPCBlobChild> mActor;
+
+  // This value is used when we go from eInMemory to eWaitingForTemporaryFile
+  // and eventually eInTemporaryFile. If the size of the buffer is >=
+  // mMaxMemory, the creation of the temporary file will start.
+  // It's not used if mStorageState is eKeepInMemory.
+  uint32_t mMaxMemory;
 };
 
 } // namespace dom

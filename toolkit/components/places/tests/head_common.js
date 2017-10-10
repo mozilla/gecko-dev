@@ -6,7 +6,7 @@
 // It is expected that the test files importing this file define Cu etc.
 /* global Cu, Ci, Cc, Cr */
 
-const CURRENT_SCHEMA_VERSION = 39;
+const CURRENT_SCHEMA_VERSION = 40;
 const FIRST_UPGRADABLE_SCHEMA_VERSION = 11;
 
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
@@ -75,7 +75,7 @@ XPCOMUtils.defineLazyGetter(this, "SMALLSVG_DATA_URI", function() {
 var gTestDir = do_get_cwd();
 
 // Initialize profile.
-var gProfD = do_get_profile();
+var gProfD = do_get_profile(true);
 
 Services.prefs.setBoolPref("browser.urlbar.usepreloadedtopurls.enabled", false);
 do_register_cleanup(() =>

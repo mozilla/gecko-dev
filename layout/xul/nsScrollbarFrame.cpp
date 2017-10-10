@@ -51,7 +51,7 @@ nsScrollbarFrame::Init(nsIContent*       aContent,
   // slider.  Any reflow inside the scrollbar frame will be a reflow to
   // move the slider and will thus not change anything outside of the
   // scrollbar or change the size of the scrollbar frame.
-  mState |= NS_FRAME_REFLOW_ROOT;
+  AddStateBits(NS_FRAME_REFLOW_ROOT);
 }
 
 void
@@ -76,7 +76,7 @@ nsScrollbarFrame::Reflow(nsPresContext*          aPresContext,
 
 nsresult
 nsScrollbarFrame::AttributeChanged(int32_t aNameSpaceID,
-                                   nsIAtom* aAttribute,
+                                   nsAtom* aAttribute,
                                    int32_t aModType)
 {
   nsresult rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,

@@ -8,7 +8,7 @@
 #include "nsGkAtoms.h"
 #include "nsIFrame.h"
 #include "nsLiteralString.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGFilters.h"
 
 /*
@@ -49,7 +49,7 @@ public:
 #endif
 
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     int32_t  aModType) override;
 
   virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override {
@@ -82,14 +82,14 @@ SVGFEContainerFrame::Init(nsIContent*       aContent,
 
 nsresult
 SVGFEContainerFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                      nsIAtom* aAttribute,
+                                      nsAtom* aAttribute,
                                       int32_t  aModType)
 {
   nsSVGFE *element = static_cast<nsSVGFE*>(GetContent());
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {
     MOZ_ASSERT(GetParent()->IsSVGFilterFrame(),
                "Observers observe the filter, so that's what we must invalidate");
-    nsSVGEffects::InvalidateDirectRenderingObservers(GetParent());
+    SVGObserverUtils::InvalidateDirectRenderingObservers(GetParent());
   }
 
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);

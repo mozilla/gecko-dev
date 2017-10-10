@@ -11,7 +11,7 @@
 #include "mozilla/gfx/PathHelpers.h"
 #include "nsCOMPtr.h"
 #include "nsFocusManager.h"
-#include "nsFormControlFrame.h"
+#include "nsCheckboxRadioFrame.h"
 #include "nsGkAtoms.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsHTMLParts.h"
@@ -595,7 +595,7 @@ nsComboboxControlFrame::GetAvailableDropdownSpace(WritingMode aWM,
   *aBefore = 0;
   *aAfter = 0;
 
-  nsRect screen = nsFormControlFrame::GetUsableScreenRect(PresContext());
+  nsRect screen = nsCheckboxRadioFrame::GetUsableScreenRect(PresContext());
   nsSize containerSize = screen.Size();
   LogicalRect logicalScreen(aWM, screen, containerSize);
   if (mLastDropDownAfterScreenBCoord == nscoord_MIN) {
@@ -1181,7 +1181,7 @@ nsComboboxControlFrame::HandleEvent(nsPresContext* aPresContext,
 
 
 nsresult
-nsComboboxControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aValue)
+nsComboboxControlFrame::SetFormProperty(nsAtom* aName, const nsAString& aValue)
 {
   nsIFormControlFrame* fcFrame = do_QueryFrame(mDropdownFrame);
   if (!fcFrame) {
@@ -1220,7 +1220,7 @@ nsComboboxControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   // isn't possible to set the display type in CSS2 to create a button frame.
 
     // create content used for display
-  //nsIAtom* tag = NS_Atomize("mozcombodisplay");
+  //nsAtom* tag = NS_Atomize("mozcombodisplay");
 
   // Add a child text content node for the label
 
@@ -1406,7 +1406,7 @@ nsComboboxControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   // Revoke any pending RedisplayTextEvent
   mRedisplayTextEvent.Revoke();
 
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsCheckboxRadioFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
 
   if (mDroppedDown) {
     MOZ_ASSERT(mDropdownFrame, "mDroppedDown without frame");
@@ -1701,7 +1701,7 @@ nsComboboxControlFrame::GenerateStateKey(nsIContent* aContent,
   if (NS_FAILED(rv) || aKey.IsEmpty()) {
     return rv;
   }
-  aKey.Append("CCF");
+  aKey.AppendLiteral("CCF");
   return NS_OK;
 }
 
@@ -1718,4 +1718,3 @@ nsComboboxControlFrame::ToolkitHasNativePopup()
   return false;
 #endif /* MOZ_USE_NATIVE_POPUP_WINDOWS */
 }
-

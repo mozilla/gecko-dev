@@ -869,7 +869,7 @@ public:
       mMaster->StopPlayback();
       mMaster->UpdatePlaybackPositionInternal(mSeekJob.mTarget->GetTime());
       mMaster->mOnPlaybackEvent.Notify(MediaEventType::SeekStarted);
-      mMaster->UpdateNextFrameStatus(
+      mMaster->mOnNextFrameStatus.Notify(
         MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING);
     }
 
@@ -1144,8 +1144,9 @@ protected:
       MOZ_ASSERT_IF(aReject.mType == MediaData::VIDEO_DATA, !mMaster->IsWaitingVideoData());
 
       // Fire 'waiting' to notify the player that we are waiting for data.
-      mMaster->UpdateNextFrameStatus(
+      mMaster->mOnNextFrameStatus.Notify(
         MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING);
+
       Reader()
         ->WaitForData(aReject.mType)
         ->Then(OwnerThread(), __func__,
@@ -1604,6 +1605,11 @@ public:
     AccurateSeekingState::Enter(Move(aCurrentSeekJob),
                                 EventVisibility::Suppressed);
 
+    // Once seekToNextFrame() is called, we assume the user is likely to keep
+    // calling seekToNextFrame() repeatedly, and so, we should prevent the MDSM
+    // from getting into Dormant state.
+    mMaster->mMinimizePreroll = false;
+
     return mFutureSeekJob.mPromise.Ensure(__func__);
   }
 
@@ -1790,7 +1796,7 @@ public:
 
     mBufferingStart = TimeStamp::Now();
     mMaster->ScheduleStateMachineIn(TimeUnit::FromMicroseconds(USECS_PER_S));
-    mMaster->UpdateNextFrameStatus(
+    mMaster->mOnNextFrameStatus.Notify(
       MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING);
   }
 
@@ -1896,7 +1902,7 @@ public:
     bool hasNextFrame = (!mMaster->HasAudio() || !mMaster->mAudioCompleted) &&
                         (!mMaster->HasVideo() || !mMaster->mVideoCompleted);
 
-    mMaster->UpdateNextFrameStatus(
+    mMaster->mOnNextFrameStatus.Notify(
       hasNextFrame ? MediaDecoderOwner::NEXT_FRAME_AVAILABLE
                    : MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE);
 
@@ -1940,6 +1946,10 @@ public:
         mMaster->mDuration = Some(clockTime);
       }
       mMaster->UpdatePlaybackPosition(clockTime);
+
+      // Ensure readyState is updated before firing the 'ended' event.
+      mMaster->mOnNextFrameStatus.Notify(
+        MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE);
 
       mMaster->mOnPlaybackEvent.Notify(MediaEventType::PlaybackEnded);
 
@@ -2276,7 +2286,7 @@ DecodingState::Enter()
     }
   });
 
-  mMaster->UpdateNextFrameStatus(MediaDecoderOwner::NEXT_FRAME_AVAILABLE);
+  mMaster->mOnNextFrameStatus.Notify(MediaDecoderOwner::NEXT_FRAME_AVAILABLE);
 
   mDecodeStartTime = TimeStamp::Now();
 
@@ -2568,7 +2578,6 @@ ShutdownState::Enter()
   master->mMediaPrincipalHandle.DisconnectIfConnected();
 
   master->mDuration.DisconnectAll();
-  master->mNextFrameStatus.DisconnectAll();
   master->mCurrentPosition.DisconnectAll();
   master->mPlaybackOffset.DisconnectAll();
   master->mIsAudioDataAudible.DisconnectAll();
@@ -2621,7 +2630,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   INIT_MIRROR(mSameOriginMedia, false),
   INIT_MIRROR(mMediaPrincipalHandle, PRINCIPAL_HANDLE_NONE),
   INIT_CANONICAL(mDuration, NullableTimeUnit()),
-  INIT_CANONICAL(mNextFrameStatus, MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE),
   INIT_CANONICAL(mCurrentPosition, TimeUnit::Zero()),
   INIT_CANONICAL(mPlaybackOffset, 0),
   INIT_CANONICAL(mIsAudioDataAudible, false)
@@ -3129,7 +3137,7 @@ MediaDecoderStateMachine::RequestAudioData()
       mStateObj->HandleAudioDecoded(aAudio);
     },
     [this, self] (const MediaResult& aError) {
-      LOGV("OnAudioNotDecoded aError=%" PRIu32, static_cast<uint32_t>(aError.Code()));
+      LOGV("OnAudioNotDecoded aError=%s", aError.ErrorName().get());
       mAudioDataRequest.Complete();
       switch (aError.Code()) {
         case NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA:
@@ -3175,7 +3183,7 @@ MediaDecoderStateMachine::RequestVideoData(const media::TimeUnit& aCurrentTime)
       mStateObj->HandleVideoDecoded(aVideo, videoDecodeStartTime);
     },
     [this, self] (const MediaResult& aError) {
-      LOGV("OnVideoNotDecoded aError=%" PRIu32 , static_cast<uint32_t>(aError.Code()));
+      LOGV("OnVideoNotDecoded aError=%s" , aError.ErrorName().get());
       mVideoDataRequest.Complete();
       switch (aError.Code()) {
         case NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA:
@@ -3480,34 +3488,6 @@ MediaDecoderStateMachine::UpdatePlaybackPositionPeriodically()
 
   int64_t delay = std::max<int64_t>(1, AUDIO_DURATION_USECS / mPlaybackRate);
   ScheduleStateMachineIn(TimeUnit::FromMicroseconds(delay));
-}
-
-/* static */ const char*
-MediaDecoderStateMachine::ToStr(NextFrameStatus aStatus)
-{
-  switch (aStatus) {
-    case MediaDecoderOwner::NEXT_FRAME_AVAILABLE:
-      return "NEXT_FRAME_AVAILABLE";
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE:
-      return "NEXT_FRAME_UNAVAILABLE";
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING:
-      return "NEXT_FRAME_UNAVAILABLE_BUFFERING";
-    case MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING:
-      return "NEXT_FRAME_UNAVAILABLE_SEEKING";
-    case MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED:
-      return "NEXT_FRAME_UNINITIALIZED";
-  }
-  return "UNKNOWN";
-}
-
-void
-MediaDecoderStateMachine::UpdateNextFrameStatus(NextFrameStatus aStatus)
-{
-  MOZ_ASSERT(OnTaskQueue());
-  if (aStatus != mNextFrameStatus) {
-    LOG("Changed mNextFrameStatus to %s", ToStr(aStatus));
-    mNextFrameStatus = aStatus;
-  }
 }
 
 void

@@ -2,7 +2,11 @@
   window.gActivityStreamPrerenderedState = {
   "TopSites": {
     "initialized": false,
-    "rows": []
+    "rows": [],
+    "editForm": {
+      "visible": false,
+      "site": null
+    }
   },
   "App": {
     "initialized": false,
@@ -41,7 +45,7 @@
       "search_for_something_with": " ",
       "search_button": " ",
       "search_header": " ",
-      "search_web_placeholder": "Search the Web",
+      "search_web_placeholder": " ",
       "search_settings": " ",
       "section_info_option": " ",
       "section_info_send_feedback": " ",
@@ -134,9 +138,6 @@
       "enabled": true,
       "icon": "pocket",
       "id": "topstories",
-      "topics": [
-        {}
-      ],
       "initialized": false
     },
     {
@@ -150,5 +151,8 @@
       "icon": "highlights",
       "initialized": false
     }
-  ]
+  ],
+  "PreferencesPane": {
+    "visible": false
+  }
 };

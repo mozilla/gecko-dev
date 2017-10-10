@@ -195,6 +195,7 @@ where
 
         if may_reuse {
             let cached = self.context.thread_local.sharing_cache.lookup_by_rules(
+                self.context.shared,
                 parent_style.unwrap(),
                 inputs.rules.as_ref().unwrap(),
                 inputs.visited_rules.as_ref(),
@@ -292,7 +293,7 @@ where
         pseudo: Option<&PseudoElement>,
     ) -> ResolvedStyle {
         let mut style_if_visited = None;
-        if parent_style.map_or(false, |s| s.get_visited_style().is_some()) ||
+        if parent_style.map_or(false, |s| s.visited_style().is_some()) ||
             inputs.visited_rules.is_some() {
             style_if_visited = Some(self.cascade_style(
                 inputs.visited_rules.as_ref().or(inputs.rules.as_ref()),
@@ -383,7 +384,7 @@ where
         };
 
         let mut visited_rules = None;
-        if originating_element_style.style().get_visited_style().is_some() {
+        if originating_element_style.style().visited_style().is_some() {
             visited_rules = self.match_pseudo(
                 originating_element_style.style(),
                 pseudo,
@@ -412,10 +413,12 @@ where
 
         let map = &mut self.context.thread_local.selector_flags;
         let bloom_filter = self.context.thread_local.bloom_filter.filter();
+        let nth_index_cache = &mut self.context.thread_local.nth_index_cache;
         let mut matching_context =
             MatchingContext::new_for_visited(
                 MatchingMode::Normal,
                 Some(bloom_filter),
+                Some(nth_index_cache),
                 visited_handling,
                 self.context.shared.quirks_mode(),
             );
@@ -485,11 +488,13 @@ where
         }
 
         let bloom_filter = self.context.thread_local.bloom_filter.filter();
+        let nth_index_cache = &mut self.context.thread_local.nth_index_cache;
 
         let mut matching_context =
             MatchingContext::new_for_visited(
                 MatchingMode::ForStatelessPseudoElement,
                 Some(bloom_filter),
+                Some(nth_index_cache),
                 visited_handling,
                 self.context.shared.quirks_mode(),
             );
@@ -562,7 +567,7 @@ where
             // visitedness of the relevant link should influence style.
             if pseudo.is_some() || !self.element.is_link() {
                 parent_style = parent_style.map(|s| {
-                    s.get_visited_style().unwrap_or(s)
+                    s.visited_style().unwrap_or(s)
                 });
             }
             cascade_flags.insert(VISITED_DEPENDENT_ONLY);

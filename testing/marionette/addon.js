@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {interfaces: Ci, utils: Cu} = Components;
+const {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -90,6 +90,10 @@ async function installAddon(file) {
 addon.install = async function(path, temporary = false) {
   let file = new FileUtils.File(path);
   let addon;
+
+  if (!file.exists()) {
+    throw new UnknownError(`Could not find add-on at '${path}'`);
+  }
 
   try {
     if (temporary) {

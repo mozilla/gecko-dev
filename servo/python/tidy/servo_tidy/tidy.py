@@ -467,15 +467,6 @@ def check_rust(file_name, lines):
         prev_indent = indent
         indent = len(original_line) - len(line)
 
-        # Hack for components/selectors/build.rs
-        if multi_line_string:
-            if line.startswith('"#'):
-                multi_line_string = False
-            else:
-                continue
-        if line.endswith('r#"'):
-            multi_line_string = True
-
         is_attribute = re.search(r"#\[.*\]", line)
         is_comment = re.search(r"^//|^/\*|^\*", line)
 
@@ -494,6 +485,14 @@ def check_rust(file_name, lines):
             line = merged_lines + line
             merged_lines = ''
 
+        if multi_line_string:
+            line, count = re.subn(
+                r'^(\\.|[^"\\])*?"', '', line, count=1)
+            if count == 1:
+                multi_line_string = False
+            else:
+                continue
+
         # Ignore attributes, comments, and imports
         # Keep track of whitespace to enable checking for a merged import block
         if import_block:
@@ -504,9 +503,17 @@ def check_rust(file_name, lines):
                     import_block = False
 
         # get rid of strings and chars because cases like regex expression, keep attributes
-        if not is_attribute:
+        if not is_attribute and not is_comment:
             line = re.sub(r'"(\\.|[^\\"])*?"', '""', line)
-            line = re.sub(r"'(\\.|[^\\'])*?'", "''", line)
+            line = re.sub(
+                r"'(\\.|[^\\']|(\\x[0-9a-fA-F]{2})|(\\u{[0-9a-fA-F]{1,6}}))'",
+                "''", line)
+            # If, after parsing all single-line strings, we still have
+            # an odd number of double quotes, this line starts a
+            # multiline string
+            if line.count('"') % 2 == 1:
+                line = re.sub(r'"(\\.|[^\\"])*?$', '""', line)
+                multi_line_string = True
 
         # get rid of comments
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '//', line)
@@ -567,11 +574,11 @@ def check_rust(file_name, lines):
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
             # There should be any use of banned types:
-            # Cell<JSVal>, Cell<JS<T>>, DOMRefCell<JS<T>>, DOMRefCell<HEAP<T>>
-            (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead", no_filter),
-            (r"(\s|:)+Cell<JS<.+>>", "Banned type Cell<JS<T>> detected. Use MutJS<JS<T>> instead", no_filter),
-            (r"DOMRefCell<JS<.+>>", "Banned type DOMRefCell<JS<T>> detected. Use MutJS<JS<T>> instead", no_filter),
-            (r"DOMRefCell<Heap<.+>>", "Banned type DOMRefCell<Heap<T>> detected. Use MutJS<JS<T>> instead", no_filter),
+            # Cell<JSVal>, Cell<Dom<T>>, DomRefCell<Dom<T>>, DomRefCell<HEAP<T>>
+            (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutDom<JSVal> instead", no_filter),
+            (r"(\s|:)+Cell<Dom<.+>>", "Banned type Cell<Dom<T>> detected. Use MutDom<T> instead", no_filter),
+            (r"DomRefCell<Dom<.+>>", "Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead", no_filter),
+            (r"DomRefCell<Heap<.+>>", "Banned type DomRefCell<Heap<T>> detected. Use MutDom<T> instead", no_filter),
             # No benefit to using &Root<T>
             (r": &Root<", "use &T instead of &Root<T>", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),

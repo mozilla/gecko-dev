@@ -124,7 +124,9 @@ public:
     // that we called AddPendingRestyle for and found the element this is
     // the RestyleData for as its nearest restyle root.
     nsTArray<RefPtr<Element>> mDescendants;
+#if defined(MOZ_GECKO_PROFILER)
     UniqueProfilerBacktrace mBacktrace;
+#endif
   };
 
   /**
@@ -259,9 +261,11 @@ RestyleTracker::AddPendingRestyleToTable(Element* aElement,
   if (!existingData) {
     RestyleData* rd =
       new RestyleData(aRestyleHint, aMinChangeHint, aRestyleHintData);
+#if defined(MOZ_GECKO_PROFILER)
     if (profiler_feature_active(ProfilerFeature::Restyle)) {
       rd->mBacktrace = profiler_get_backtrace();
     }
+#endif
     mPendingRestyles.Put(aElement, rd);
     return false;
   }
@@ -353,6 +357,15 @@ RestyleTracker::AddPendingRestyle(Element* aElement,
       if (curData) {
         curData->mDescendants.AppendElement(aElement);
       }
+    }
+  }
+
+  // If we need to restyle later siblings, we will need a flag on parent to note
+  // that some children need restyle for nsComputedDOMStyle.
+  if (aRestyleHint & eRestyle_LaterSiblings) {
+    nsIContent* parent = aElement->GetFlattenedTreeParent();
+    if (parent && parent->IsElement()) {
+      parent->SetFlags(ELEMENT_HAS_CHILD_WITH_LATER_SIBLINGS_HINT);
     }
   }
 

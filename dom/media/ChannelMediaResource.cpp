@@ -9,10 +9,13 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICachingChannel.h"
 #include "nsIClassOfService.h"
+#include "nsIInputStream.h"
+#include "nsIThreadRetargetableRequest.h"
 #include "nsNetUtil.h"
 
 static const uint32_t HTTP_PARTIAL_RESPONSE_CODE = 206;
 static const uint32_t HTTP_OK_CODE = 200;
+static const uint32_t HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
 
 mozilla::LazyLogModule gMediaResourceLog("MediaResource");
 // Debug logging macro with object pointer and class name.
@@ -68,6 +71,7 @@ nsresult
 ChannelMediaResource::Listener::OnStartRequest(nsIRequest* aRequest,
                                                nsISupports* aContext)
 {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!mResource)
     return NS_OK;
   return mResource->OnStartRequest(aRequest, mOffset);
@@ -78,6 +82,7 @@ ChannelMediaResource::Listener::OnStopRequest(nsIRequest* aRequest,
                                               nsISupports* aContext,
                                               nsresult aStatus)
 {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!mResource)
     return NS_OK;
   return mResource->OnStopRequest(aRequest, aStatus);
@@ -91,8 +96,14 @@ ChannelMediaResource::Listener::OnDataAvailable(nsIRequest* aRequest,
                                                 uint32_t aCount)
 {
   // This might happen off the main thread.
-  MOZ_DIAGNOSTIC_ASSERT(mResource);
-  return mResource->OnDataAvailable(aRequest, aStream, aCount);
+  RefPtr<ChannelMediaResource> res;
+  {
+    MutexAutoLock lock(mMutex);
+    res = mResource;
+  }
+  // Note Rekove() might happen at the same time to reset mResource. We check
+  // the load ID to determine if the data is from an old channel.
+  return res ? res->OnDataAvailable(mLoadID, aStream, aCount) : NS_OK;
 }
 
 nsresult
@@ -102,6 +113,8 @@ ChannelMediaResource::Listener::AsyncOnChannelRedirect(
   uint32_t aFlags,
   nsIAsyncVerifyRedirectCallback* cb)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   nsresult rv = NS_OK;
   if (mResource) {
     rv = mResource->OnChannelRedirect(aOld, aNew, aFlags, mOffset);
@@ -125,6 +138,14 @@ nsresult
 ChannelMediaResource::Listener::GetInterface(const nsIID& aIID, void** aResult)
 {
   return QueryInterface(aIID, aResult);
+}
+
+void
+ChannelMediaResource::Listener::Revoke()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(mMutex);
+  mResource = nullptr;
 }
 
 static bool
@@ -170,6 +191,8 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest,
 
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(aRequest);
   bool seekable = false;
+  int64_t startOffset = aRequestOffset;
+
   if (hc) {
     uint32_t responseStatus = 0;
     Unused << hc->GetResponseStatus(&responseStatus);
@@ -225,6 +248,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest,
       bool gotRangeHeader = NS_SUCCEEDED(rv);
 
       if (gotRangeHeader) {
+        startOffset = rangeStart;
         // We received 'Content-Range', so the server accepts range requests.
         // Notify media cache about the length and start offset of data received.
         // Note: If aRangeTotal == -1, then the total bytes is unknown at this stage.
@@ -232,17 +256,17 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest,
         if (rangeTotal != -1) {
           contentLength = std::max(contentLength, rangeTotal);
         }
-        mCacheStream.NotifyDataStarted(rangeStart);
       }
       acceptsRanges = gotRangeHeader;
-    } else if (aRequestOffset > 0 && responseStatus == HTTP_OK_CODE) {
-      // If we get an OK response but we were seeking, or requesting a byte
-      // range, then we have to assume that seeking doesn't work. We also need
-      // to tell the cache that it's getting data for the start of the stream.
-      mCacheStream.NotifyDataStarted(0);
+    } else if (responseStatus == HTTP_OK_CODE) {
+      // HTTP_OK_CODE means data will be sent from the start of the stream.
+      startOffset = 0;
 
-      // The server claimed it supported range requests.  It lied.
-      acceptsRanges = false;
+      if (aRequestOffset > 0) {
+        // If HTTP_OK_CODE is responded for a non-zero range request, we have
+        // to assume seeking doesn't work.
+        acceptsRanges = false;
+      }
     }
     if (aRequestOffset == 0 && contentLength >= 0 &&
         (responseStatus == HTTP_OK_CODE ||
@@ -256,7 +280,17 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest,
     // and the server isn't sending Accept-Ranges:bytes then we don't
     // support seeking. We also can't seek in compressed streams.
     seekable = !isCompressed && acceptsRanges;
+  } else {
+    // Not an HTTP channel. Assume data will be sent from position zero.
+    startOffset = 0;
   }
+
+  // Update principals before OnDataAvailable() putting the data in the cache.
+  // This is important, we want to make sure all principals are updated before
+  // any consumer can see the new data.
+  UpdatePrincipal();
+
+  mCacheStream.NotifyDataStarted(mLoadID, startOffset);
   mCacheStream.SetTransportSeekable(seekable);
   mChannelStatistics.Start();
   mReopenOnError = false;
@@ -265,6 +299,16 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest,
 
   // Fires an initial progress event.
   owner->DownloadProgressed();
+
+  // TODO: Don't turn this on until we fix all data races.
+  nsCOMPtr<nsIThreadRetargetableRequest> retarget;
+  if (Preferences::GetBool("media.omt_data_delivery.enabled", false) &&
+      (retarget = do_QueryInterface(aRequest)) && mCacheStream.OwnerThread()) {
+    // Note this will not always succeed. We need to handle the case where
+    // all resources sharing the same cache might run their data callbacks
+    // on different threads.
+    retarget->RetargetDeliveryTo(mCacheStream.OwnerThread());
+  }
 
   return NS_OK;
 }
@@ -382,51 +426,44 @@ ChannelMediaResource::OnChannelRedirect(nsIChannel* aOld,
 }
 
 nsresult
-ChannelMediaResource::CopySegmentToCache(const char* aFromSegment,
-                                         uint32_t aCount,
-                                         uint32_t* aWriteCount)
-{
-  mCacheStream.NotifyDataReceived(aCount, aFromSegment);
-  *aWriteCount = aCount;
-  return NS_OK;
-}
-
-nsresult
 ChannelMediaResource::CopySegmentToCache(nsIInputStream* aInStream,
-                                         void* aResource,
+                                         void* aClosure,
                                          const char* aFromSegment,
                                          uint32_t aToOffset,
                                          uint32_t aCount,
                                          uint32_t* aWriteCount)
 {
-  ChannelMediaResource* res = static_cast<ChannelMediaResource*>(aResource);
-  return res->CopySegmentToCache(aFromSegment, aCount, aWriteCount);
+  Closure* closure = static_cast<Closure*>(aClosure);
+  closure->mResource->mCacheStream.NotifyDataReceived(
+    closure->mLoadID, aCount, aFromSegment);
+  *aWriteCount = aCount;
+  return NS_OK;
 }
 
 nsresult
-ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
+ChannelMediaResource::OnDataAvailable(uint32_t aLoadID,
                                       nsIInputStream* aStream,
                                       uint32_t aCount)
 {
   // This might happen off the main thread.
-  NS_ASSERTION(mChannel.get() == aRequest, "Wrong channel!");
-
-  // Update principals before putting the data in the cache. This is important,
-  // we want to make sure all principals are updated before any consumer can see
-  // the new data.
-  // TODO: Handle the case where OnDataAvailable() runs off the main thread.
-  UpdatePrincipal();
 
   RefPtr<ChannelMediaResource> self = this;
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-    "ChannelMediaResource::OnDataAvailable",
-    [self, aCount]() { self->mChannelStatistics.AddBytes(aCount); });
+    "ChannelMediaResource::OnDataAvailable", [self, aCount, aLoadID]() {
+      if (aLoadID != self->mLoadID) {
+        // Ignore data from the old channel.
+        return;
+      }
+      self->mChannelStatistics.AddBytes(aCount);
+    });
   mCallback->AbstractMainThread()->Dispatch(r.forget());
 
+  Closure closure{ aLoadID, this };
   uint32_t count = aCount;
   while (count > 0) {
     uint32_t read;
-    nsresult rv = aStream->ReadSegments(CopySegmentToCache, this, count, &read);
+    nsresult rv =
+      aStream->ReadSegments(CopySegmentToCache, &closure, count, &read);
     if (NS_FAILED(rv))
       return rv;
     NS_ASSERTION(read > 0, "Read 0 bytes while data was available?");
@@ -457,7 +494,7 @@ ChannelMediaResource::Open(nsIStreamListener** aStreamListener)
   }
 
   MOZ_ASSERT(GetOffset() == 0, "Who set offset already?");
-  mListener = new Listener(this, 0);
+  mListener = new Listener(this, 0, ++mLoadID);
   *aStreamListener = mListener;
   NS_ADDREF(*aStreamListener);
   return NS_OK;
@@ -470,7 +507,7 @@ ChannelMediaResource::OpenChannel(int64_t aOffset)
   MOZ_ASSERT(mChannel);
   MOZ_ASSERT(!mListener, "Listener should have been removed by now");
 
-  mListener = new Listener(this, aOffset);
+  mListener = new Listener(this, aOffset, ++mLoadID);
   nsresult rv = mChannel->SetNotificationCallbacks(mListener.get());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -726,15 +763,35 @@ ChannelMediaResource::RecreateChannel()
   nsContentPolicyType contentPolicyType = element->IsHTMLElement(nsGkAtoms::audio) ?
     nsIContentPolicy::TYPE_INTERNAL_AUDIO : nsIContentPolicy::TYPE_INTERNAL_VIDEO;
 
-  nsresult rv = NS_NewChannel(getter_AddRefs(mChannel),
-                              mURI,
-                              element,
-                              securityFlags,
-                              contentPolicyType,
-                              loadGroup,
-                              nullptr,  // aCallbacks
-                              loadFlags);
+  // If element has 'loadingprincipal' attribute, we will use the value as
+  // loadingPrincipal for the channel, otherwise it will default to use
+  // aElement->NodePrincipal().
+  // This function returns true when element has 'loadingprincipal', so if
+  // setAttrs is true we will override the origin attributes on the channel
+  // later.
+  nsCOMPtr<nsIPrincipal> loadingPrincipal;
+  bool setAttrs =
+    nsContentUtils::GetLoadingPrincipalForXULNode(element,
+                                                  getter_AddRefs(loadingPrincipal));
+
+  nsresult rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(mChannel),
+                                                     mURI,
+                                                     element,
+                                                     loadingPrincipal,
+                                                     securityFlags,
+                                                     contentPolicyType,
+                                                     loadGroup,
+                                                     nullptr,  // aCallbacks
+                                                     loadFlags);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (setAttrs) {
+    nsCOMPtr<nsILoadInfo> loadInfo = mChannel->GetLoadInfo();
+    if (loadInfo) {
+      // The function simply returns NS_OK, so we ignore the return value.
+      Unused << loadInfo->SetOriginAttributes(loadingPrincipal->OriginAttributesRef());
+   }
+  }
 
   nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(mChannel));
   if (cos) {
@@ -780,9 +837,10 @@ void
 ChannelMediaResource::UpdatePrincipal()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mChannel);
   nsCOMPtr<nsIPrincipal> principal;
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  if (secMan && mChannel) {
+  if (secMan) {
     secMan->GetChannelResultPrincipal(mChannel, getter_AddRefs(principal));
     mCacheStream.UpdatePrincipal(principal);
   }

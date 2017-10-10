@@ -10,8 +10,8 @@ use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -51,7 +51,7 @@ pub trait Iterable {
 #[dom_struct]
 pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
     reflector: Reflector,
-    iterable: JS<T>,
+    iterable: Dom<T>,
     type_: IteratorType,
     index: Cell<u32>,
 }
@@ -61,11 +61,11 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     pub fn new(iterable: &T,
                type_: IteratorType,
                wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
-                     -> Root<Self>) -> Root<Self> {
+                     -> DomRoot<Self>) -> DomRoot<Self> {
         let iterator = box IterableIterator {
             reflector: Reflector::new(),
             type_: type_,
-            iterable: JS::from_ref(iterable),
+            iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
         };
         reflect_dom_object(iterator, &*iterable.global(), wrap)
@@ -132,7 +132,10 @@ fn key_and_value_return(cx: *mut JSContext,
                         value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
     dict.done = false;
-    dict.value = Some(vec![Heap::new(key.get()), Heap::new(value.get())]);
+    let values = vec![Heap::default(), Heap::default()];
+    values[0].set(key.get());
+    values[1].set(value.get());
+    dict.value = Some(values);
     rooted!(in(cx) let mut dict_value = UndefinedValue());
     unsafe {
         dict.to_jsval(cx, dict_value.handle_mut());

@@ -16,6 +16,7 @@ from mozbuild.util import memoize
 from types import FunctionType
 from collections import namedtuple
 from taskgraph import create
+from taskgraph.util import taskcluster
 from taskgraph.util.docker import docker_image
 from taskgraph.parameters import Parameters
 
@@ -190,10 +191,10 @@ def register_callback_action(name, title, symbol, description, order=10000,
             return {
                 'created': {'$fromNow': ''},
                 'deadline': {'$fromNow': '12 hours'},
-                'expires': {'$fromNow': '14 days'},
+                'expires': {'$fromNow': '1 year'},
                 'metadata': {
                     'owner': 'mozilla-taskcluster-maintenance@mozilla.com',
-                    'source': '{}raw-file/{}/{}'.format(
+                    'source': '{}/raw-file/{}/{}'.format(
                         parameters['head_repository'], parameters['head_rev'], source_path,
                     ),
                     'name': 'Action: {}'.format(title),
@@ -215,6 +216,8 @@ def register_callback_action(name, title, symbol, description, order=10000,
                         parameters['project'], parameters['head_rev'], parameters['pushlog_id']),
                     'tc-treeherder-stage.v2.{}.{}.{}'.format(
                         parameters['project'], parameters['head_rev'], parameters['pushlog_id']),
+                    'index.gecko.v2.{}.pushlog-id.{}.actions.${{ownTaskId}}'.format(
+                        parameters['project'], parameters['pushlog_id'])
                 ],
                 'payload': {
                     'env': {
@@ -229,9 +232,17 @@ def register_callback_action(name, title, symbol, description, order=10000,
                         'ACTION_INPUT': {'$json': {'$eval': 'input'}},
                         'ACTION_CALLBACK': cb.__name__,
                         'ACTION_PARAMETERS': {'$json': {'$eval': 'parameters'}},
+                        'TASKCLUSTER_CACHES': '/builds/worker/checkouts',
+                    },
+                    'artifacts': {
+                        'public': {
+                            'type': 'directory',
+                            'path': '/builds/worker/artifacts',
+                            'expires': {'$fromNow': '1 year'},
+                        },
                     },
                     'cache': {
-                        'level-{}-checkouts'.format(parameters['level']):
+                        'level-{}-checkouts-sparse-v1'.format(parameters['level']):
                             '/builds/worker/checkouts',
                     },
                     'features': {
@@ -243,6 +254,7 @@ def register_callback_action(name, title, symbol, description, order=10000,
                     'command': [
                         '/builds/worker/bin/run-task',
                         '--vcs-checkout=/builds/worker/checkouts/gecko',
+                        '--sparse-profile=build/sparse-profiles/taskgraph',
                         '--', 'bash', '-cx',
                         """\
 cd /builds/worker/checkouts/gecko &&
@@ -255,6 +267,16 @@ ln -s /builds/worker/artifacts artifacts &&
                         'groupName': 'action-callback',
                         'groupSymbol': 'AC',
                         'symbol': symbol,
+                    },
+                    'parent': task_group_id,
+                    'action': {
+                        'name': name,
+                        'context': {
+                            'taskGroupId': task_group_id,
+                            'taskId': {'$eval': 'taskId'},
+                            'input': {'$eval': 'input'},
+                            'parameters': {'$eval': 'parameters'},
+                        },
                     },
                 },
             }
@@ -317,6 +339,7 @@ def trigger_action_callback(task_group_id, task_id, task, input, callback, param
 
     if test:
         create.testing = True
+        taskcluster.testing = True
 
     cb(Parameters(**parameters), input, task_group_id, task_id, task)
 

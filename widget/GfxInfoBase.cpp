@@ -291,6 +291,8 @@ BlacklistOSToOperatingSystem(const nsAString& os)
     return OperatingSystem::OSX10_11;
   else if (os.EqualsLiteral("Darwin 16"))
     return OperatingSystem::OSX10_12;
+  else if (os.EqualsLiteral("Darwin 17"))
+    return OperatingSystem::OSX10_13;
   else if (os.EqualsLiteral("Android"))
     return OperatingSystem::Android;
   // For historical reasons, "All" in blocklist means "All Windows"
@@ -1540,6 +1542,7 @@ GfxInfoBase::ControlGPUProcessForXPCShell(bool aEnable, bool *_retval)
     gpm->LaunchGPUProcess();
     gpm->EnsureGPUReady();
   } else {
+    gfxConfig::UserDisable(Feature::GPU_PROCESS, "xpcshell-test");
     gpm->KillProcess();
   }
 

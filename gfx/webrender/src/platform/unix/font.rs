@@ -9,9 +9,9 @@ use freetype::freetype::{FT_BBox, FT_Outline_Translate, FT_Pixel_Mode, FT_Render
 use freetype::freetype::{FT_Done_Face, FT_Error, FT_Get_Char_Index, FT_Int32};
 use freetype::freetype::{FT_Done_FreeType, FT_Library_SetLcdFilter, FT_Pos};
 use freetype::freetype::{FT_F26Dot6, FT_Face, FT_Glyph_Format, FT_Long, FT_UInt};
-use freetype::freetype::{FT_GlyphSlot, FT_LcdFilter, FT_New_Memory_Face};
+use freetype::freetype::{FT_GlyphSlot, FT_LcdFilter, FT_New_Memory_Face, FT_Outline_Transform};
 use freetype::freetype::{FT_Init_FreeType, FT_Load_Glyph, FT_Render_Glyph};
-use freetype::freetype::{FT_Library, FT_Outline_Get_CBox, FT_Set_Char_Size};
+use freetype::freetype::{FT_Library, FT_Matrix, FT_Outline_Get_CBox, FT_Set_Char_Size};
 use internal_types::FastHashMap;
 use std::{mem, ptr, slice};
 use std::sync::Arc;
@@ -186,7 +186,9 @@ impl FontContext {
         // Apply extra pixel of padding for subpixel AA, due to the filter.
         let padding = match font.render_mode {
             FontRenderMode::Subpixel => self.lcd_extra_pixels * 64,
-            FontRenderMode::Alpha | FontRenderMode::Mono => 0,
+            FontRenderMode::Alpha |
+            FontRenderMode::Mono |
+            FontRenderMode::Bitmap => 0,
         };
         cbox.xMin -= padding as FT_Pos;
         cbox.xMax += padding as FT_Pos;
@@ -262,6 +264,11 @@ impl FontContext {
         slot.and_then(|slot| self.get_glyph_dimensions_impl(slot, font, key))
     }
 
+    pub fn is_bitmap_font(&mut self, _font_key: FontKey) -> bool {
+        // TODO(gw): Support bitmap fonts in Freetype.
+        false
+    }
+
     pub fn rasterize_glyph(
         &mut self,
         font: &FontInstance,
@@ -276,6 +283,7 @@ impl FontContext {
             FontRenderMode::Mono => FT_Render_Mode::FT_RENDER_MODE_MONO,
             FontRenderMode::Alpha => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
             FontRenderMode::Subpixel => FT_Render_Mode::FT_RENDER_MODE_LCD,
+            FontRenderMode::Bitmap => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
         };
 
         // Get dimensions of the glyph, to see if we need to rasterize it.
@@ -305,6 +313,20 @@ impl FontContext {
                 dx - ((cbox.xMin + dx) & !63),
                 dy - ((cbox.yMin + dy) & !63),
             );
+
+            if font.synthetic_italics {
+                // These magic numbers are pre-encoded fixed point
+                // values that apply ~12 degree shear. Borrowed
+                // from the Freetype implementation of the
+                // FT_GlyphSlot_Oblique function.
+                let transform = FT_Matrix {
+                    xx: 0x10000,
+                    yx: 0x00000,
+                    xy: 0x0366A,
+                    yy: 0x10000,
+                };
+                FT_Outline_Transform(outline, &transform);
+            }
         }
 
         let result = unsafe { FT_Render_Glyph(slot, render_mode) };

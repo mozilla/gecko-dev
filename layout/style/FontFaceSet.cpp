@@ -16,6 +16,7 @@
 #include "mozilla/dom/FontFaceSetLoadEvent.h"
 #include "mozilla/dom/FontFaceSetLoadEventBinding.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/net/ReferrerPolicy.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
@@ -198,7 +199,7 @@ FontFaceSet::RemoveDOMContentLoadedListener()
 void
 FontFaceSet::ParseFontShorthandForMatching(
                             const nsAString& aFont,
-                            RefPtr<FontFamilyListRefCnt>& aFamilyList,
+                            RefPtr<SharedFontList>& aFamilyList,
                             uint32_t& aWeight,
                             int32_t& aStretch,
                             uint8_t& aStyle,
@@ -240,8 +241,7 @@ FontFaceSet::ParseFontShorthandForMatching(
     return;
   }
 
-  aFamilyList =
-    static_cast<FontFamilyListRefCnt*>(family->GetFontFamilyListValue());
+  aFamilyList = family->GetFontFamilyListValue();
 
   int32_t weight = data->ValueFor(eCSSProperty_font_weight)->GetIntValue();
 
@@ -281,7 +281,7 @@ FontFaceSet::FindMatchingFontFaces(const nsAString& aFont,
                                    nsTArray<FontFace*>& aFontFaces,
                                    ErrorResult& aRv)
 {
-  RefPtr<FontFamilyListRefCnt> familyList;
+  RefPtr<SharedFontList> familyList;
   uint32_t weight;
   int32_t stretch;
   uint8_t italicStyle;
@@ -303,7 +303,7 @@ FontFaceSet::FindMatchingFontFaces(const nsAString& aFont,
   // Set of FontFaces that we want to return.
   nsTHashtable<nsPtrHashKey<FontFace>> matchingFaces;
 
-  for (const FontFamilyName& fontFamilyName : familyList->GetFontlist()) {
+  for (const FontFamilyName& fontFamilyName : familyList->mNames) {
     RefPtr<gfxFontFamily> family =
       mUserFontSet->LookupFamily(fontFamilyName.mName);
 
@@ -663,7 +663,7 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
 
     nsAutoCString accept("application/font-woff;q=0.9,*/*;q=0.8");
     if (Preferences::GetBool(GFX_PREF_WOFF2_ENABLED)) {
-      accept.Insert(NS_LITERAL_CSTRING("application/font-woff2;q=1.0,"), 0);
+      accept.InsertLiteral("application/font-woff2;q=1.0,", 0);
     }
     rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
                                        accept, false);
@@ -683,7 +683,7 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
     priorityChannel->AdjustPriority(nsISupportsPriority::PRIORITY_HIGH);
   }
 
-  rv = NS_NewStreamLoader(getter_AddRefs(streamLoader), fontLoader);
+  rv = NS_NewStreamLoader(getter_AddRefs(streamLoader), fontLoader, fontLoader);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mozilla::net::PredictorLearn(aFontFaceSrc->mURI->get(),
@@ -1100,6 +1100,7 @@ FontFaceSet::FindOrCreateUserFontEntryFromFontFace(const nsAString& aFamilyName,
 
     face->mSourceType = gfxFontFaceSrc::eSourceType_Buffer;
     face->mBuffer = aFontFace->CreateBufferSource();
+    face->mReferrerPolicy = mozilla::net::RP_Unset;
   } else {
     aFontFace->GetDesc(eCSSFontDesc_Src, val);
     unit = val.GetUnit();
@@ -1121,6 +1122,7 @@ FontFaceSet::FindOrCreateUserFontEntryFromFontFace(const nsAString& aFamilyName,
           face->mSourceType = gfxFontFaceSrc::eSourceType_Local;
           face->mURI = nullptr;
           face->mFormatFlags = 0;
+          face->mReferrerPolicy = mozilla::net::RP_Unset;
           break;
         case eCSSUnit_URL: {
           face->mSourceType = gfxFontFaceSrc::eSourceType_URL;

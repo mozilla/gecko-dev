@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Generated with cbindgen:0.1.23 */
+/* Generated with cbindgen:0.1.25 */
 
 /* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen.
  * To generate this file:
@@ -63,6 +63,7 @@ enum class FontRenderMode : uint32_t {
   Mono = 0,
   Alpha = 1,
   Subpixel = 2,
+  Bitmap = 3,
 
   Sentinel /* this must be last for serialization purposes. */
 };
@@ -405,11 +406,13 @@ struct BorderRadius {
   }
 };
 
-struct WrComplexClipRegion {
+struct ComplexClipRegion {
+  // The boundaries of the rectangle.
   LayoutRect rect;
+  // Border radii of this rectangle.
   BorderRadius radii;
 
-  bool operator==(const WrComplexClipRegion& aOther) const {
+  bool operator==(const ComplexClipRegion& aOther) const {
     return rect == aOther.rect &&
            radii == aOther.radii;
   }
@@ -436,6 +439,16 @@ struct WrImageMask {
     return image == aOther.image &&
            rect == aOther.rect &&
            repeat == aOther.repeat;
+  }
+};
+
+struct StickySideConstraint {
+  float margin;
+  float max_offset;
+
+  bool operator==(const StickySideConstraint& aOther) const {
+    return margin == aOther.margin &&
+           max_offset == aOther.max_offset;
   }
 };
 
@@ -533,6 +546,18 @@ typedef TypedVector2D_f32__LayerPixel LayerVector2D;
 
 typedef LayerVector2D LayoutVector2D;
 
+struct Shadow {
+  LayoutVector2D offset;
+  ColorF color;
+  float blur_radius;
+
+  bool operator==(const Shadow& aOther) const {
+    return offset == aOther.offset &&
+           color == aOther.color &&
+           blur_radius == aOther.blur_radius;
+  }
+};
+
 struct WrFilterOp {
   WrFilterOpType filter_type;
   float argument;
@@ -572,18 +597,6 @@ struct GlyphOptions {
 
   bool operator==(const GlyphOptions& aOther) const {
     return render_mode == aOther.render_mode;
-  }
-};
-
-struct TextShadow {
-  LayoutVector2D offset;
-  ColorF color;
-  float blur_radius;
-
-  bool operator==(const TextShadow& aOther) const {
-    return offset == aOther.offset &&
-           color == aOther.color &&
-           blur_radius == aOther.blur_radius;
   }
 };
 
@@ -719,11 +732,13 @@ struct FontKey {
 
 typedef FontKey WrFontKey;
 
-struct FontInstanceOptions {
+struct WrFontInstanceOptions {
   FontRenderMode render_mode;
+  bool synthetic_italics;
 
-  bool operator==(const FontInstanceOptions& aOther) const {
-    return render_mode == aOther.render_mode;
+  bool operator==(const WrFontInstanceOptions& aOther) const {
+    return render_mode == aOther.render_mode &&
+           synthetic_italics == aOther.synthetic_italics;
   }
 };
 
@@ -747,6 +762,8 @@ struct FontInstancePlatformOptions {
 extern void gfx_critical_note(const char *aMsg);
 
 extern bool gfx_use_wrench();
+
+extern const char *gfx_wr_resource_path_override();
 
 extern bool is_glcontext_egl(void *aGlcontextPtr);
 
@@ -838,15 +855,9 @@ void wr_dec_ref_arc(const VecU8 *aArc)
 WR_FUNC;
 
 WR_INLINE
-void wr_dp_begin(WrState *aState,
-                 uint32_t aWidth,
-                 uint32_t aHeight)
-WR_FUNC;
-
-WR_INLINE
 uint64_t wr_dp_define_clip(WrState *aState,
                            LayoutRect aClipRect,
-                           const WrComplexClipRegion *aComplex,
+                           const ComplexClipRegion *aComplex,
                            size_t aComplexCount,
                            const WrImageMask *aMask)
 WR_FUNC;
@@ -859,7 +870,12 @@ void wr_dp_define_scroll_layer(WrState *aState,
 WR_FUNC;
 
 WR_INLINE
-void wr_dp_end(WrState *aState)
+uint64_t wr_dp_define_sticky_frame(WrState *aState,
+                                   LayoutRect aContentRect,
+                                   const StickySideConstraint *aTopRange,
+                                   const StickySideConstraint *aRightRange,
+                                   const StickySideConstraint *aBottomRange,
+                                   const StickySideConstraint *aLeftRange)
 WR_FUNC;
 
 WR_INLINE
@@ -875,17 +891,18 @@ void wr_dp_pop_scroll_layer(WrState *aState)
 WR_FUNC;
 
 WR_INLINE
-void wr_dp_pop_stacking_context(WrState *aState)
+void wr_dp_pop_shadow(WrState *aState)
 WR_FUNC;
 
 WR_INLINE
-void wr_dp_pop_text_shadow(WrState *aState)
+void wr_dp_pop_stacking_context(WrState *aState)
 WR_FUNC;
 
 WR_INLINE
 void wr_dp_push_border(WrState *aState,
                        LayoutRect aRect,
                        LayoutRect aClip,
+                       bool aIsBackfaceVisible,
                        BorderWidths aWidths,
                        BorderSide aTop,
                        BorderSide aRight,
@@ -898,6 +915,7 @@ WR_INLINE
 void wr_dp_push_border_gradient(WrState *aState,
                                 LayoutRect aRect,
                                 LayoutRect aClip,
+                                bool aIsBackfaceVisible,
                                 BorderWidths aWidths,
                                 LayoutPoint aStartPoint,
                                 LayoutPoint aEndPoint,
@@ -911,6 +929,7 @@ WR_INLINE
 void wr_dp_push_border_image(WrState *aState,
                              LayoutRect aRect,
                              LayoutRect aClip,
+                             bool aIsBackfaceVisible,
                              BorderWidths aWidths,
                              WrImageKey aImage,
                              NinePatchDescriptor aPatch,
@@ -923,6 +942,7 @@ WR_INLINE
 void wr_dp_push_border_radial_gradient(WrState *aState,
                                        LayoutRect aRect,
                                        LayoutRect aClip,
+                                       bool aIsBackfaceVisible,
                                        BorderWidths aWidths,
                                        LayoutPoint aCenter,
                                        LayoutSize aRadius,
@@ -936,6 +956,7 @@ WR_INLINE
 void wr_dp_push_box_shadow(WrState *aState,
                            LayoutRect aRect,
                            LayoutRect aClip,
+                           bool aIsBackfaceVisible,
                            LayoutRect aBoxBounds,
                            LayoutVector2D aOffset,
                            ColorF aColor,
@@ -943,12 +964,6 @@ void wr_dp_push_box_shadow(WrState *aState,
                            float aSpreadRadius,
                            float aBorderRadius,
                            BoxShadowClipMode aClipMode)
-WR_FUNC;
-
-WR_INLINE
-void wr_dp_push_built_display_list(WrState *aState,
-                                   BuiltDisplayListDescriptor aDlDescriptor,
-                                   WrVecU8 *aDlData)
 WR_FUNC;
 
 WR_INLINE
@@ -965,6 +980,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_iframe(WrState *aState,
                        LayoutRect aRect,
+                       bool aIsBackfaceVisible,
                        WrPipelineId aPipelineId)
 WR_FUNC;
 
@@ -972,6 +988,7 @@ WR_INLINE
 void wr_dp_push_image(WrState *aState,
                       LayoutRect aBounds,
                       LayoutRect aClip,
+                      bool aIsBackfaceVisible,
                       LayoutSize aStretchSize,
                       LayoutSize aTileSpacing,
                       ImageRendering aImageRendering,
@@ -981,6 +998,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_line(WrState *aState,
                      LayoutRect aClip,
+                     bool aIsBackfaceVisible,
                      float aBaseline,
                      float aStart,
                      float aEnd,
@@ -994,6 +1012,7 @@ WR_INLINE
 void wr_dp_push_linear_gradient(WrState *aState,
                                 LayoutRect aRect,
                                 LayoutRect aClip,
+                                bool aIsBackfaceVisible,
                                 LayoutPoint aStartPoint,
                                 LayoutPoint aEndPoint,
                                 const GradientStop *aStops,
@@ -1007,6 +1026,7 @@ WR_INLINE
 void wr_dp_push_radial_gradient(WrState *aState,
                                 LayoutRect aRect,
                                 LayoutRect aClip,
+                                bool aIsBackfaceVisible,
                                 LayoutPoint aCenter,
                                 LayoutSize aRadius,
                                 const GradientStop *aStops,
@@ -1020,12 +1040,21 @@ WR_INLINE
 void wr_dp_push_rect(WrState *aState,
                      LayoutRect aRect,
                      LayoutRect aClip,
+                     bool aIsBackfaceVisible,
                      ColorF aColor)
 WR_FUNC;
 
 WR_INLINE
 void wr_dp_push_scroll_layer(WrState *aState,
                              uint64_t aScrollId)
+WR_FUNC;
+
+WR_INLINE
+void wr_dp_push_shadow(WrState *aState,
+                       LayoutRect aBounds,
+                       LayoutRect aClip,
+                       bool aIsBackfaceVisible,
+                       Shadow aShadow)
 WR_FUNC;
 
 WR_INLINE
@@ -1038,13 +1067,15 @@ void wr_dp_push_stacking_context(WrState *aState,
                                  const LayoutTransform *aPerspective,
                                  MixBlendMode aMixBlendMode,
                                  const WrFilterOp *aFilters,
-                                 size_t aFilterCount)
+                                 size_t aFilterCount,
+                                 bool aIsBackfaceVisible)
 WR_FUNC;
 
 WR_INLINE
 void wr_dp_push_text(WrState *aState,
                      LayoutRect aBounds,
                      LayoutRect aClip,
+                     bool aIsBackfaceVisible,
                      ColorF aColor,
                      WrFontInstanceKey aFontKey,
                      const GlyphInstance *aGlyphs,
@@ -1052,18 +1083,12 @@ void wr_dp_push_text(WrState *aState,
                      const GlyphOptions *aGlyphOptions)
 WR_FUNC;
 
-WR_INLINE
-void wr_dp_push_text_shadow(WrState *aState,
-                            LayoutRect aBounds,
-                            LayoutRect aClip,
-                            TextShadow aShadow)
-WR_FUNC;
-
 // Push a 2 planar NV12 image.
 WR_INLINE
 void wr_dp_push_yuv_NV12_image(WrState *aState,
                                LayoutRect aBounds,
                                LayoutRect aClip,
+                               bool aIsBackfaceVisible,
                                WrImageKey aImageKey0,
                                WrImageKey aImageKey1,
                                WrYuvColorSpace aColorSpace,
@@ -1075,6 +1100,7 @@ WR_INLINE
 void wr_dp_push_yuv_interleaved_image(WrState *aState,
                                       LayoutRect aBounds,
                                       LayoutRect aClip,
+                                      bool aIsBackfaceVisible,
                                       WrImageKey aImageKey0,
                                       WrYuvColorSpace aColorSpace,
                                       ImageRendering aImageRendering)
@@ -1085,6 +1111,7 @@ WR_INLINE
 void wr_dp_push_yuv_planar_image(WrState *aState,
                                  LayoutRect aBounds,
                                  LayoutRect aClip,
+                                 bool aIsBackfaceVisible,
                                  WrImageKey aImageKey0,
                                  WrImageKey aImageKey1,
                                  WrImageKey aImageKey2,
@@ -1185,8 +1212,9 @@ void wr_resource_updates_add_font_instance(ResourceUpdates *aResources,
                                            WrFontInstanceKey aKey,
                                            WrFontKey aFontKey,
                                            float aGlyphSize,
-                                           const FontInstanceOptions *aOptions,
-                                           const FontInstancePlatformOptions *aPlatformOptions)
+                                           const WrFontInstanceOptions *aOptions,
+                                           const FontInstancePlatformOptions *aPlatformOptions,
+                                           WrVecU8 *aVariations)
 WR_FUNC;
 
 WR_INLINE
@@ -1275,7 +1303,8 @@ WR_DESTRUCTOR_SAFE_FUNC;
 
 WR_INLINE
 WrState *wr_state_new(WrPipelineId aPipelineId,
-                      LayoutSize aContentSize)
+                      LayoutSize aContentSize,
+                      size_t aCapacity)
 WR_FUNC;
 
 WR_INLINE

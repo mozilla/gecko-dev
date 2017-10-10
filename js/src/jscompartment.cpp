@@ -98,6 +98,7 @@ JSCompartment::JSCompartment(Zone* zone, const JS::CompartmentOptions& options =
     jitCompartment_(nullptr),
     mappedArgumentsTemplate_(nullptr),
     unmappedArgumentsTemplate_(nullptr),
+    iterResultTemplate_(nullptr),
     lcovOutput()
 {
     PodArrayZero(sawDeprecatedLanguageExtension);
@@ -441,6 +442,10 @@ JSCompartment::getOrCreateWrapper(JSContext* cx, HandleObject existing, MutableH
         return true;
     }
 
+    // Ensure that the wrappee is exposed in case we are creating a new wrapper
+    // for a gray object.
+    ExposeObjectToActiveJS(obj);
+
     // Create a new wrapper for the object.
     auto wrap = cx->runtime()->wrapObjectCallbacks->wrap;
     RootedObject wrapper(cx, wrap(cx, existing, obj));
@@ -636,10 +641,10 @@ JSCompartment::addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name)
 /* static */ HashNumber
 TemplateRegistryHashPolicy::hash(const Lookup& lookup)
 {
-    size_t length = GetAnyBoxedOrUnboxedInitializedLength(lookup);
+    size_t length = lookup->as<NativeObject>().getDenseInitializedLength();
     HashNumber hash = 0;
     for (uint32_t i = 0; i < length; i++) {
-        JSAtom& lookupAtom = GetAnyBoxedOrUnboxedDenseElement(lookup, i).toString()->asAtom();
+        JSAtom& lookupAtom = lookup->as<NativeObject>().getDenseElement(i).toString()->asAtom();
         hash = mozilla::AddToHash(hash, lookupAtom.hash());
     }
     return hash;
@@ -648,13 +653,13 @@ TemplateRegistryHashPolicy::hash(const Lookup& lookup)
 /* static */ bool
 TemplateRegistryHashPolicy::match(const Key& key, const Lookup& lookup)
 {
-    size_t length = GetAnyBoxedOrUnboxedInitializedLength(lookup);
-    if (GetAnyBoxedOrUnboxedInitializedLength(key) != length)
+    size_t length = lookup->as<NativeObject>().getDenseInitializedLength();
+    if (key->as<NativeObject>().getDenseInitializedLength() != length)
         return false;
 
     for (uint32_t i = 0; i < length; i++) {
-        JSAtom* a = &GetAnyBoxedOrUnboxedDenseElement(key, i).toString()->asAtom();
-        JSAtom* b = &GetAnyBoxedOrUnboxedDenseElement(lookup, i).toString()->asAtom();
+        JSAtom* a = &key->as<NativeObject>().getDenseElement(i).toString()->asAtom();
+        JSAtom* b = &lookup->as<NativeObject>().getDenseElement(i).toString()->asAtom();
         if (a != b)
             return false;
     }
@@ -663,7 +668,7 @@ TemplateRegistryHashPolicy::match(const Key& key, const Lookup& lookup)
 }
 
 bool
-JSCompartment::getTemplateLiteralObject(JSContext* cx, HandleObject rawStrings,
+JSCompartment::getTemplateLiteralObject(JSContext* cx, HandleArrayObject rawStrings,
                                         MutableHandleObject templateObj)
 {
     if (TemplateRegistry::AddPtr p = templateLiteralMap_.lookupForAdd(rawStrings)) {
@@ -690,7 +695,7 @@ JSCompartment::getTemplateLiteralObject(JSContext* cx, HandleObject rawStrings,
 }
 
 JSObject*
-JSCompartment::getExistingTemplateLiteralObject(JSObject* rawStrings)
+JSCompartment::getExistingTemplateLiteralObject(ArrayObject* rawStrings)
 {
     TemplateRegistry::Ptr p = templateLiteralMap_.lookup(rawStrings);
     MOZ_ASSERT(p);
@@ -712,7 +717,7 @@ JSCompartment::traceOutgoingCrossCompartmentWrappers(JSTracer* trc)
              * We have a cross-compartment wrapper. Its private pointer may
              * point into the compartment being collected, so we should mark it.
              */
-            TraceEdge(trc, wrapper->slotOfPrivate(), "cross-compartment wrapper");
+            ProxyObject::traceEdgeToTarget(trc, wrapper);
         }
     }
 }
@@ -993,6 +998,9 @@ JSCompartment::sweepTemplateObjects()
 
     if (unmappedArgumentsTemplate_ && IsAboutToBeFinalized(&unmappedArgumentsTemplate_))
         unmappedArgumentsTemplate_.set(nullptr);
+
+    if (iterResultTemplate_ && IsAboutToBeFinalized(&iterResultTemplate_))
+        iterResultTemplate_.set(nullptr);
 }
 
 /* static */ void

@@ -50,8 +50,8 @@ nsXULTemplateResultSetStorage::nsXULTemplateResultSetStorage(mozIStorageStatemen
         nsAutoCString name;
         rv = aStatement->GetColumnName(c, name);
         if (NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsIAtom> columnName = NS_Atomize(NS_LITERAL_CSTRING("?") + name);
-            mColumnNames.AppendObject(columnName);
+            RefPtr<nsAtom> columnName = NS_Atomize(NS_LITERAL_CSTRING("?") + name);
+            mColumnNames.AppendElement(columnName);
         }
     }
 }
@@ -87,9 +87,9 @@ nsXULTemplateResultSetStorage::GetNext(nsISupports **aResult)
 
 
 int32_t
-nsXULTemplateResultSetStorage::GetColumnIndex(nsIAtom* aColumnName)
+nsXULTemplateResultSetStorage::GetColumnIndex(nsAtom* aColumnName)
 {
-    int32_t count = mColumnNames.Count();
+    int32_t count = mColumnNames.Length();
     for (int32_t c = 0; c < count; c++) {
         if (mColumnNames[c] == aColumnName)
             return c;
@@ -104,7 +104,7 @@ nsXULTemplateResultSetStorage::FillColumnValues(nsCOMArray<nsIVariant>& aArray)
     if (!mStatement)
         return;
 
-    int32_t count = mColumnNames.Count();
+    int32_t count = mColumnNames.Length();
 
     for (int32_t c = 0; c < count; c++) {
         RefPtr<nsVariant> value = new nsVariant();
@@ -273,8 +273,8 @@ nsXULTemplateQueryProcessorStorage::Done()
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorStorage::CompileQuery(nsIXULTemplateBuilder* aBuilder,
                                                  nsIDOMNode* aQueryNode,
-                                                 nsIAtom* aRefVariable,
-                                                 nsIAtom* aMemberVariable,
+                                                 nsAtom* aRefVariable,
+                                                 nsAtom* aMemberVariable,
                                                  nsISupports** aReturn)
 {
     nsCOMPtr<nsIDOMNodeList> childNodes;
@@ -411,8 +411,8 @@ nsXULTemplateQueryProcessorStorage::GenerateResults(nsISupports* aDatasource,
 
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorStorage::AddBinding(nsIDOMNode* aRuleNode,
-                                               nsIAtom* aVar,
-                                               nsIAtom* aRef,
+                                               nsAtom* aVar,
+                                               nsAtom* aRef,
                                                const nsAString& aExpr)
 {
     return NS_OK;
@@ -434,7 +434,7 @@ nsXULTemplateQueryProcessorStorage::TranslateRef(nsISupports* aDatasource,
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorStorage::CompareResults(nsIXULTemplateResult* aLeft,
                                                    nsIXULTemplateResult* aRight,
-                                                   nsIAtom* aVar,
+                                                   nsAtom* aVar,
                                                    uint32_t aSortHints,
                                                    int32_t* aResult)
 {

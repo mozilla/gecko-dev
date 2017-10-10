@@ -12,7 +12,8 @@
 #include "nsISupports.h"
 #include "nsIFrame.h"
 class nsComboboxControlFrame;
-class nsIAtom;
+class nsCheckboxRadioFrame;
+class nsAtom;
 class nsNodeInfoManager;
 class nsIContent;
 class nsIDocument;
@@ -57,7 +58,7 @@ NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 // attribute of its *grandparent* content node.
 nsresult
 NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
-                       int32_t aNameSpaceID, nsIAtom* aAttrName,
+                       int32_t aNameSpaceID, nsAtom* aAttrName,
                        nsIContent** aResult);
 
 // Create a basic area frame but the GetFrameForPoint is overridden to always
@@ -131,16 +132,12 @@ NS_NewFirstLineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 // forms
 nsContainerFrame*
 NS_NewGfxButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsCheckboxRadioFrame*
+NS_NewCheckboxRadioFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewImageControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewHTMLButtonControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewGfxCheckboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeCheckboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewFieldSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
@@ -150,17 +147,7 @@ NS_NewColorControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewLegendFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
-NS_NewNativeTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
 NS_NewTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewGfxAutoTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewGfxRadioControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeRadioControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsIFrame*
-NS_NewNativeSelectControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewListControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsComboboxControlFrame*

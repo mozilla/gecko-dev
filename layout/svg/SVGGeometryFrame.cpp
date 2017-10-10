@@ -18,7 +18,7 @@
 #include "nsDisplayList.h"
 #include "nsGkAtoms.h"
 #include "nsLayoutUtils.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGMarkerFrame.h"
 #include "SVGGeometryElement.h"
@@ -166,7 +166,7 @@ SVGGeometryFrame::Init(nsIContent*       aContent,
 
 nsresult
 SVGGeometryFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                   nsIAtom*        aAttribute,
+                                   nsAtom*        aAttribute,
                                    int32_t         aModType)
 {
   // We don't invalidate for transform changes (the layers code does that).
@@ -191,15 +191,6 @@ SVGGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   nsFrame::DidSetStyleContext(aOldStyleContext);
 
   if (aOldStyleContext) {
-    auto oldStyleEffects = aOldStyleContext->PeekStyleEffects();
-    if (oldStyleEffects &&
-        StyleEffects()->mOpacity != oldStyleEffects->mOpacity &&
-        nsSVGUtils::CanOptimizeOpacity(this)) {
-      // nsIFrame::BuildDisplayListForStackingContext() is not going to create an
-      // nsDisplayOpacity display list item, so DLBI won't invalidate for us.
-      InvalidateFrame();
-    }
-
     SVGGeometryElement* element =
       static_cast<SVGGeometryElement*>(GetContent());
 
@@ -417,15 +408,15 @@ SVGGeometryFrame::ReflowSVG()
     // Make sure we have our filter property (if any) before calling
     // FinishAndStoreOverflow (subsequent filter changes are handled off
     // nsChangeHint_UpdateEffects):
-    nsSVGEffects::UpdateEffects(this);
+    SVGObserverUtils::UpdateEffects(this);
   }
 
   nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
   nsOverflowAreas overflowAreas(overflow, overflow);
   FinishAndStoreOverflow(overflowAreas, mRect.Size());
 
-  mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
-              NS_FRAME_HAS_DIRTY_CHILDREN);
+  RemoveStateBits(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
+                  NS_FRAME_HAS_DIRTY_CHILDREN);
 
   // Invalidate, but only if this is not our first reflow (since if it is our
   // first reflow then we haven't had our first paint yet).
@@ -702,20 +693,20 @@ SVGGeometryFrame::GetMarkerProperties(SVGGeometryFrame *aFrame)
 
   MarkerProperties result;
   nsCOMPtr<nsIURI> markerURL =
-    nsSVGEffects::GetMarkerURI(aFrame, &nsStyleSVG::mMarkerStart);
+    SVGObserverUtils::GetMarkerURI(aFrame, &nsStyleSVG::mMarkerStart);
   result.mMarkerStart =
-    nsSVGEffects::GetMarkerProperty(markerURL, aFrame,
-                                    nsSVGEffects::MarkerBeginProperty());
+    SVGObserverUtils::GetMarkerProperty(markerURL, aFrame,
+                                        SVGObserverUtils::MarkerBeginProperty());
 
-  markerURL = nsSVGEffects::GetMarkerURI(aFrame, &nsStyleSVG::mMarkerMid);
+  markerURL = SVGObserverUtils::GetMarkerURI(aFrame, &nsStyleSVG::mMarkerMid);
   result.mMarkerMid =
-    nsSVGEffects::GetMarkerProperty(markerURL, aFrame,
-                                    nsSVGEffects::MarkerMiddleProperty());
+    SVGObserverUtils::GetMarkerProperty(markerURL, aFrame,
+                                        SVGObserverUtils::MarkerMiddleProperty());
 
-  markerURL = nsSVGEffects::GetMarkerURI(aFrame, &nsStyleSVG::mMarkerEnd);
+  markerURL = SVGObserverUtils::GetMarkerURI(aFrame, &nsStyleSVG::mMarkerEnd);
   result.mMarkerEnd =
-    nsSVGEffects::GetMarkerProperty(markerURL, aFrame,
-                                    nsSVGEffects::MarkerEndProperty());
+    SVGObserverUtils::GetMarkerProperty(markerURL, aFrame,
+                                        SVGObserverUtils::MarkerEndProperty());
   return result;
 }
 

@@ -1323,7 +1323,7 @@ nsPresContext::SetImageAnimationMode(uint16_t aMode)
   mImageAnimationMode = aMode;
 }
 
-already_AddRefed<nsIAtom>
+already_AddRefed<nsAtom>
 nsPresContext::GetContentLanguage() const
 {
   nsAutoString language;
@@ -1362,6 +1362,12 @@ nsPresContext::UpdateEffectiveTextZoom()
     MediaFeatureValuesChanged(eRestyle_ForceDescendants,
                               NS_STYLE_HINT_REFLOW);
   }
+}
+
+float
+nsPresContext::GetDeviceFullZoom()
+{
+  return mDeviceContext->GetFullZoom();
 }
 
 void
@@ -1963,7 +1969,7 @@ nsPresContext::UIResolutionChangedInternalScale(double aScale)
 void
 nsPresContext::EmulateMedium(const nsAString& aMediaType)
 {
-  nsIAtom* previousMedium = Medium();
+  nsAtom* previousMedium = Medium();
   mIsEmulatingMedia = true;
 
   nsAutoString mediaType;
@@ -1977,7 +1983,7 @@ nsPresContext::EmulateMedium(const nsAString& aMediaType)
 
 void nsPresContext::StopEmulatingMedium()
 {
-  nsIAtom* previousMedium = Medium();
+  nsAtom* previousMedium = Medium();
   mIsEmulatingMedia = false;
   if (Medium() != previousMedium) {
     MediaFeatureValuesChanged(nsRestyleHint(0), nsChangeHint(0));
@@ -1985,7 +1991,7 @@ void nsPresContext::StopEmulatingMedium()
 }
 
 void
-nsPresContext::ForceCacheLang(nsIAtom *aLanguage)
+nsPresContext::ForceCacheLang(nsAtom *aLanguage)
 {
   // force it to be cached
   GetDefaultFont(kPresContext_DefaultVariableFont_ID, aLanguage);
@@ -1996,7 +2002,7 @@ void
 nsPresContext::CacheAllLangs()
 {
   if (mFontGroupCacheDirty) {
-    nsCOMPtr<nsIAtom> thisLang = nsStyleFont::GetLanguage(this);
+    RefPtr<nsAtom> thisLang = nsStyleFont::GetLanguage(this);
     GetDefaultFont(kPresContext_DefaultVariableFont_ID, thisLang.get());
     GetDefaultFont(kPresContext_DefaultVariableFont_ID, nsGkAtoms::x_math);
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1362599#c12
@@ -2111,7 +2117,16 @@ nsPresContext::MediaFeatureValuesChanged(nsRestyleHint aRestyleHint,
   if (!mDocument->MediaQueryLists().isEmpty()) {
     // We build a list of all the notifications we're going to send
     // before we send any of them.
-    for (auto mql : mDocument->MediaQueryLists()) {
+
+    // Copy pointers to all the lists into a new array, in case one of our
+    // notifications modifies the list.
+    nsTArray<RefPtr<mozilla::dom::MediaQueryList>> localMediaQueryLists;
+    for (auto* mql : mDocument->MediaQueryLists()) {
+      localMediaQueryLists.AppendElement(mql);
+    }
+
+    // Now iterate our local array of the lists.
+    for (const auto& mql : localMediaQueryLists) {
       nsAutoMicroTask mt;
       mql->MaybeNotify();
     }

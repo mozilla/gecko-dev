@@ -488,10 +488,6 @@
                 onget="return this.docShell.contentViewer.QueryInterface(Components.interfaces.nsIContentViewerEdit);"
                 readonly="true"/>
 
-      <property name="contentViewerFile"
-                onget="return this.docShell.contentViewer.QueryInterface(Components.interfaces.nsIContentViewerFile);"
-                readonly="true"/>
-
       <property name="contentDocument"
                 onget="return this.webNavigation.document;"
                 readonly="true"/>
@@ -520,6 +516,17 @@
                 onget="return this.contentDocument.nodePrincipal;"
                 readonly="true"/>
 
+      <property name="contentRequestContextID" readonly="true">
+        <getter><![CDATA[
+          try {
+            return this.contentDocument.documentLoadGroup
+                       .requestContextID;
+          } catch (e) {
+            return null;
+          }
+        ]]></getter>
+      </property>
+
       <property name="showWindowResizer"
                 onset="if (val) this.setAttribute('showresizer', 'true');
                        else this.removeAttribute('showresizer');
@@ -541,6 +548,13 @@
         <setter><![CDATA[
           this.markupDocumentViewer.fullZoom = val;
         ]]></setter>
+      </property>
+
+      <property name="deviceFullZoom"
+                readonly="true">
+        <getter><![CDATA[
+          return this.markupDocumentViewer.deviceFullZoom;
+        ]]></getter>
       </property>
 
       <property name="textZoom">

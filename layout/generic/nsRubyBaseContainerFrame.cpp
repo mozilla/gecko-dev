@@ -313,12 +313,13 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
 
   mDescendantLeadings.Reset();
 
-  MoveOverflowToChildList();
+  nsIFrame* lineContainer = aReflowInput.mLineLayout->LineContainerFrame();
+  MoveInlineOverflowToChildList(lineContainer);
   // Ask text containers to drain overflows
   AutoRubyTextContainerArray textContainers(this);
   const uint32_t rtcCount = textContainers.Length();
   for (uint32_t i = 0; i < rtcCount; i++) {
-    textContainers[i]->MoveOverflowToChildList();
+    textContainers[i]->MoveInlineOverflowToChildList(lineContainer);
   }
 
   WritingMode lineWM = aReflowInput.mLineLayout->GetWritingMode();
@@ -342,9 +343,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   for (uint32_t i = 0; i < rtcCount; i++) {
     nsRubyTextContainerFrame* textContainer = textContainers[i];
     WritingMode rtcWM = textContainer->GetWritingMode();
-    nsLineLayout* baseLineLayout =
-        lineWM.IsOrthogonalTo(rtcWM) ? nullptr : aReflowInput.mLineLayout;
-        // Don't attach a base line layout in the inter-character case.
+    WritingMode reflowWM = lineWM.IsOrthogonalTo(rtcWM) ? rtcWM : lineWM;
     if (textContainer->IsSpanContainer()) {
       hasSpan = true;
     }
@@ -356,7 +355,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     nsLineLayout* lineLayout = new nsLineLayout(aPresContext,
                                                 reflowInput->mFloatManager,
                                                 reflowInput, nullptr,
-                                                baseLineLayout);
+                                                aReflowInput.mLineLayout);
     lineLayout->SetSuppressLineWrap(true);
     lineLayouts.AppendElement(lineLayout);
 
@@ -371,11 +370,9 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     // rt frames will be updated when reflowing this text container,
     // hence leave container size 0 here for now.
     lineLayout->BeginLineReflow(0, 0, reflowInput->ComputedISize(),
-                                NS_UNCONSTRAINEDSIZE, false, false,
-                                baseLineLayout ? lineWM : rtcWM, nsSize(0, 0));
-    if (baseLineLayout) {
-      lineLayout->AttachRootFrameToBaseLineLayout();
-    }
+                                NS_UNCONSTRAINEDSIZE,
+                                false, false, reflowWM, nsSize(0, 0));
+    lineLayout->AttachRootFrameToBaseLineLayout();
   }
 
   aReflowInput.mLineLayout->BeginSpan(this, &aReflowInput,
@@ -548,7 +545,7 @@ nsRubyBaseContainerFrame::ReflowColumns(const RubyReflowInput& aReflowInput,
       baseFrame = nextColumn->mBaseFrame;
     }
     if (baseFrame) {
-      PushChildren(baseFrame, baseFrame->GetPrevSibling());
+      PushChildrenToOverflow(baseFrame, baseFrame->GetPrevSibling());
     }
     for (uint32_t i = 0; i < rtcCount; i++) {
       nsRubyTextFrame* textFrame = column.mTextFrames[i];
@@ -556,8 +553,8 @@ nsRubyBaseContainerFrame::ReflowColumns(const RubyReflowInput& aReflowInput,
         textFrame = nextColumn->mTextFrames[i];
       }
       if (textFrame) {
-        aReflowInput.mTextContainers[i]->PushChildren(
-          textFrame, textFrame->GetPrevSibling());
+        aReflowInput.mTextContainers[i]->
+          PushChildrenToOverflow(textFrame, textFrame->GetPrevSibling());
       }
     }
   } else if (reflowStatus.IsInlineBreakAfter()) {

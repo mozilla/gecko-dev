@@ -93,6 +93,10 @@ public:
     return CallbackPreserveColor();
   }
 
+  // Like CallbackOrNull(), but will return a new dead proxy object in the
+  // caller's compartment if the callback is null.
+  JSObject* Callback(JSContext* aCx);
+
   JSObject* GetCreationStack() const
   {
     return mCreationStack;
@@ -139,13 +143,13 @@ public:
     // Report any exception and don't throw it to the caller code.
     eReportExceptions,
     // Throw an exception to the caller code if the thrown exception is a
-    // binding object for a DOMError or DOMException from the caller's scope,
-    // otherwise report it.
+    // binding object for a DOMException from the caller's scope, otherwise
+    // report it.
     eRethrowContentExceptions,
     // Throw exceptions to the caller code, unless the caller compartment is
-    // provided, the exception is not a DOMError or DOMException from the
-    // caller compartment, and the caller compartment does not subsume our
-    // unwrapped callback.
+    // provided, the exception is not a DOMException from the caller
+    // compartment, and the caller compartment does not subsume our unwrapped
+    // callback.
     eRethrowExceptions
   };
 
@@ -594,10 +598,15 @@ public:
     this->get().operator=(arg);
   }
 
-  // Codegen relies on being able to do CallbackOrNull() on us.
+  // Codegen relies on being able to do CallbackOrNull() and Callback() on us.
   JS::Handle<JSObject*> CallbackOrNull() const
   {
     return this->get()->CallbackOrNull();
+  }
+
+  JSObject* Callback(JSContext* aCx) const
+  {
+    return this->get()->Callback(aCx);
   }
 
   ~RootedCallback()

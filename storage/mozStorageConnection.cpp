@@ -73,6 +73,8 @@ namespace storage {
 
 using mozilla::dom::quota::QuotaObject;
 
+const char *GetVFSName();
+
 namespace {
 
 int
@@ -627,7 +629,7 @@ Connection::initialize()
   AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   // in memory database requested, sqlite uses a magic file name
-  int srv = ::sqlite3_open_v2(":memory:", &mDBConn, mFlags, nullptr);
+  int srv = ::sqlite3_open_v2(":memory:", &mDBConn, mFlags, GetVFSName());
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     return convertResultCode(srv);
@@ -660,7 +662,7 @@ Connection::initialize(nsIFile *aDatabaseFile)
 #else
   static const char* sIgnoreLockingVFS = "unix-none";
 #endif
-  const char* vfs = mIgnoreLockingMode ? sIgnoreLockingVFS : nullptr;
+  const char* vfs = mIgnoreLockingMode ? sIgnoreLockingVFS : GetVFSName();
 
   int srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn,
                               mFlags, vfs);
@@ -694,7 +696,7 @@ Connection::initialize(nsIFileURL *aFileURL)
   rv = aFileURL->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int srv = ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, nullptr);
+  int srv = ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, GetVFSName());
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     return convertResultCode(srv);
@@ -1485,8 +1487,8 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
     while (stmt && NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
       nsAutoCString name;
       rv = stmt->GetUTF8String(1, name);
-      if (NS_SUCCEEDED(rv) && !name.Equals(NS_LITERAL_CSTRING("main")) &&
-                              !name.Equals(NS_LITERAL_CSTRING("temp"))) {
+      if (NS_SUCCEEDED(rv) && !name.EqualsLiteral("main") &&
+                              !name.EqualsLiteral("temp")) {
         nsCString path;
         rv = stmt->GetUTF8String(2, path);
         if (NS_SUCCEEDED(rv) && !path.IsEmpty()) {

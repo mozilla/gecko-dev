@@ -842,27 +842,20 @@ DOMMediaStream::OwnsTrack(const MediaStreamTrack& aTrack) const
 }
 
 bool
-DOMMediaStream::AddDirectListener(DirectMediaStreamListener* aListener)
-{
-  if (GetInputStream() && GetInputStream()->AsSourceStream()) {
-    GetInputStream()->AsSourceStream()->AddDirectListener(aListener);
-    return true; // application should ignore NotifyQueuedTrackData
-  }
-  return false;
-}
-
-void
-DOMMediaStream::RemoveDirectListener(DirectMediaStreamListener* aListener)
-{
-  if (GetInputStream() && GetInputStream()->AsSourceStream()) {
-    GetInputStream()->AsSourceStream()->RemoveDirectListener(aListener);
-  }
-}
-
-bool
 DOMMediaStream::IsFinished() const
 {
   return !mPlaybackStream || mPlaybackStream->IsFinished();
+}
+
+TrackRate
+DOMMediaStream::GraphRate()
+{
+  if (mPlaybackStream) { return mPlaybackStream->GraphRate(); }
+  if (mOwnedStream) { return mOwnedStream->GraphRate(); }
+  if (mInputStream) { return mInputStream->GraphRate(); }
+
+  MOZ_ASSERT(false, "Not hooked up to a graph");
+  return 0;
 }
 
 void

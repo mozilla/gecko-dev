@@ -65,6 +65,8 @@ LOCAL_INCLUDES += [
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    if CONFIG['CC_TYPE'] == 'gcc':
+        DEFINES['SK_JUMPER_USE_ASSEMBLY'] = False
     DEFINES['UNICODE'] = True
     DEFINES['_UNICODE'] = True
     UNIFIED_SOURCES += [
@@ -101,7 +103,7 @@ elif CONFIG['CPU_ARCH'] == 'aarch64' and CONFIG['GNU_CC']:
 
 DEFINES['SKIA_IMPLEMENTATION'] = 1
 
-if CONFIG['MOZ_ENABLE_SKIA_PDF_SFNTLY'] and CONFIG['ENABLE_INTL_API']:
+if CONFIG['MOZ_ENABLE_SKIA_PDF_SFNTLY']:
     DEFINES['SK_PDF_USE_SFNTLY'] = 1
 
 if not CONFIG['MOZ_ENABLE_SKIA_GPU']:
@@ -197,6 +199,7 @@ def generate_separated_sources(platform_sources):
     'skia/src/effects/Sk',
     'skia/src/fonts/',
     'skia/src/images/',
+    'skia/src/jumper/SkJumper_generated_win.S',
     'skia/src/ports/SkImageGenerator',
     'skia/src/gpu/vk/',
     'SkBitmapRegion',
@@ -261,6 +264,9 @@ def generate_separated_sources(platform_sources):
     'linux': {
       'skia/src/ports/SkFontHost_cairo.cpp',
       'skia/src/ports/SkFontHost_FreeType_common.cpp',
+    },
+    'no-mingw': {
+      'skia/src/jumper/SkJumper_generated_win.S',
     },
     'intel': set(),
     'arm': set(),
@@ -433,6 +439,8 @@ def write_mozbuild(sources):
   write_sources(f, sources['linux'], 4)
 
   f.write("if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':\n")
+  f.write("    if CONFIG['CC_TYPE'] != 'gcc':\n")
+  write_list(f, "SOURCES", sources['no-mingw'], 8)
   # Windows-specific files don't get unification because of nasty headers.
   # Luckily there are not many files in this.
   write_list(f, "SOURCES", sources['win'], 4)

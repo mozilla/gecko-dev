@@ -31,8 +31,8 @@ HTMLSharedElement::~HTMLSharedElement()
 {
 }
 
-NS_IMPL_ADDREF_INHERITED(HTMLSharedElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLSharedElement, Element)
+NS_IMPL_ADDREF_INHERITED(HTMLSharedElement, nsGenericHTMLElement)
+NS_IMPL_RELEASE_INHERITED(HTMLSharedElement, nsGenericHTMLElement)
 
 // QueryInterface implementation for HTMLSharedElement
 NS_INTERFACE_MAP_BEGIN(HTMLSharedElement)
@@ -89,7 +89,7 @@ HTMLSharedElement::SetHref(const nsAString& aValue)
 
 bool
 HTMLSharedElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
@@ -129,7 +129,7 @@ DirectoryMapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLSharedElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLSharedElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   if (mNodeInfo->Equals(nsGkAtoms::dir)) {
     static const MappedAttributeEntry attributes[] = {
@@ -226,9 +226,11 @@ SetBaseTargetUsingFirstBaseWithTarget(nsIDocument* aDocument,
 }
 
 nsresult
-HTMLSharedElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+HTMLSharedElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue, bool aNotify)
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify)
 {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::href) {
@@ -252,7 +254,7 @@ HTMLSharedElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNamespaceID, aName, aValue,
-                                            aOldValue, aNotify);
+                                            aOldValue, aSubjectPrincipal, aNotify);
 }
 
 nsresult

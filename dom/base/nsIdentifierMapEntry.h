@@ -21,7 +21,7 @@
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "nsContentList.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIDocument.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
@@ -45,7 +45,7 @@ class nsIdentifierMapEntry : public PLDHashEntryHdr
 public:
   struct AtomOrString
   {
-    MOZ_IMPLICIT AtomOrString(nsIAtom* aAtom) : mAtom(aAtom) {}
+    MOZ_IMPLICIT AtomOrString(nsAtom* aAtom) : mAtom(aAtom) {}
     MOZ_IMPLICIT AtomOrString(const nsAString& aString) : mString(aString) {}
     AtomOrString(const AtomOrString& aOther)
       : mAtom(aOther.mAtom)
@@ -59,7 +59,7 @@ public:
     {
     }
 
-    nsCOMPtr<nsIAtom> mAtom;
+    RefPtr<nsAtom> mAtom;
     const nsString mString;
   };
 
@@ -78,7 +78,7 @@ public:
   {
   }
   nsIdentifierMapEntry(nsIdentifierMapEntry&& aOther) :
-    mKey(mozilla::Move(aOther.GetKey())),
+    mKey(mozilla::Move(aOther.mKey)),
     mIdContentList(mozilla::Move(aOther.mIdContentList)),
     mNameContentList(aOther.mNameContentList.forget()),
     mChangeCallbacks(aOther.mChangeCallbacks.forget()),
@@ -86,8 +86,6 @@ public:
   {
   }
   ~nsIdentifierMapEntry();
-
-  KeyType GetKey() const { return mKey; }
 
   nsString GetKeyAsString() const
   {

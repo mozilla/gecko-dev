@@ -374,7 +374,7 @@ public:
 // Base types
 ////////////////////////////////////////////////////////////////////////
 
-struct PtrInfo;
+class PtrInfo;
 
 class EdgePool
 {
@@ -579,13 +579,15 @@ enum NodeColor { black, white, grey };
 // hundreds of thousands of them to be allocated and touched
 // repeatedly during each cycle collection.
 
-struct PtrInfo
+class PtrInfo final
 {
+public:
   void* mPointer;
   nsCycleCollectionParticipant* mParticipant;
   uint32_t mColor : 2;
   uint32_t mInternalRefs : 30;
   uint32_t mRefCount;
+
 private:
   EdgePool::Iterator mFirstChild;
 
@@ -655,7 +657,28 @@ public:
     CC_GRAPH_ASSERT(aLastChild.Initialized());
     (this + 1)->mFirstChild = aLastChild;
   }
+
+  void AnnotatedReleaseAssert(bool aCondition, const char* aMessage);
 };
+
+void
+PtrInfo::AnnotatedReleaseAssert(bool aCondition, const char* aMessage)
+{
+  if (aCondition) {
+    return;
+  }
+
+#ifdef MOZ_CRASHREPORTER
+  const char* piName = "Unknown";
+  if (mParticipant) {
+    piName = mParticipant->ClassName();
+  }
+  nsPrintfCString msg("%s, for class %s", aMessage, piName);
+  CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("CycleCollector"), msg);
+#endif
+
+  MOZ_CRASH();
+}
 
 /**
  * A structure designed to be used like a linked list of PtrInfo, except
@@ -1080,7 +1103,7 @@ public:
     }
 
     uint32_t oldLength = mEntries.Length();
-    uint32_t newLength = 0;
+    uint32_t keptLength = 0;
     auto revIter = mEntries.IterFromLast();
     auto iter = mEntries.Iter();
      // After iteration this points to the first empty entry.
@@ -1121,7 +1144,7 @@ public:
       // in mEntries.
       if (e.mObject) {
         firstEmptyIter.Next();
-        ++newLength;
+        ++keptLength;
       }
 
       if (&e == &revIter.Get()) {
@@ -1130,7 +1153,7 @@ public:
     }
 
     // There were some empty entries.
-    if (oldLength != newLength) {
+    if (oldLength != keptLength) {
 
       // While visiting entries, some new ones were possibly added. This can
       // happen during CanSkip. Move all such new entries to be after other
@@ -1144,11 +1167,10 @@ public:
           firstEmptyIter.Get().Swap(iterForNewEntries.Get());
           firstEmptyIter.Next();
           iterForNewEntries.Next();
-          ++newLength; // We keep all the new entries.
         }
       }
 
-      mEntries.PopLastN(oldLength - newLength);
+      mEntries.PopLastN(oldLength - keptLength);
     }
   }
 
@@ -2371,8 +2393,10 @@ CCGraphBuilder::NoteNativeRoot(void* aRoot,
 NS_IMETHODIMP_(void)
 CCGraphBuilder::DescribeRefCountedNode(nsrefcnt aRefCount, const char* aObjName)
 {
-  MOZ_RELEASE_ASSERT(aRefCount != 0, "CCed refcounted object has zero refcount");
-  MOZ_RELEASE_ASSERT(aRefCount != UINT32_MAX, "CCed refcounted object has overflowing refcount");
+  mCurrPi->AnnotatedReleaseAssert(aRefCount != 0,
+                                  "CCed refcounted object has zero refcount");
+  mCurrPi->AnnotatedReleaseAssert(aRefCount != UINT32_MAX,
+                                  "CCed refcounted object has overflowing refcount");
 
   mResults.mVisitedRefCounted++;
 
@@ -3203,17 +3227,8 @@ nsCycleCollector::ScanWhiteNodes(bool aFullySynchGraphBuild)
       continue;
     }
 
-    if (pi->mInternalRefs > pi->mRefCount) {
-#ifdef MOZ_CRASHREPORTER
-      const char* piName = "Unknown";
-      if (pi->mParticipant) {
-        piName = pi->mParticipant->ClassName();
-      }
-      nsPrintfCString msg("More references to an object than its refcount, for class %s", piName);
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("CycleCollector"), msg);
-#endif
-      MOZ_CRASH();
-    }
+    pi->AnnotatedReleaseAssert(pi->mInternalRefs <= pi->mRefCount,
+                               "More references to an object than its refcount");
 
     // This node will get marked black in the next pass.
   }

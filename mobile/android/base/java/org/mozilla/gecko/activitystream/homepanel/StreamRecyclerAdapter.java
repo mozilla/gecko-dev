@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.activitystream.homepanel;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.support.annotation.NonNull;
@@ -23,6 +24,7 @@ import org.mozilla.gecko.activitystream.homepanel.menu.ActivityStreamContextMenu
 import org.mozilla.gecko.activitystream.homepanel.model.RowModel;
 import org.mozilla.gecko.activitystream.homepanel.model.WebpageRowModel;
 import org.mozilla.gecko.activitystream.homepanel.stream.HighlightsEmptyStateRow;
+import org.mozilla.gecko.activitystream.homepanel.stream.LearnMoreRow;
 import org.mozilla.gecko.activitystream.homepanel.stream.TopPanelRow;
 import org.mozilla.gecko.activitystream.homepanel.model.TopStory;
 import org.mozilla.gecko.activitystream.homepanel.topstories.PocketStoriesLoader;
@@ -54,7 +56,8 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
     private List<TopStory> topStoriesQueue;
 
     // Content sections available on the Activity Stream page. These may be hidden if the sections are disabled.
-    private final RowItemType[] ACTIVITY_STREAM_SECTIONS = { RowItemType.TOP_PANEL, RowItemType.TOP_STORIES_TITLE, RowItemType.HIGHLIGHTS_TITLE };
+    private final RowItemType[] ACTIVITY_STREAM_SECTIONS =
+            { RowItemType.TOP_PANEL, RowItemType.TOP_STORIES_TITLE, RowItemType.HIGHLIGHTS_TITLE, RowItemType.LEARN_MORE_LINK };
     public static final int MAX_TOP_STORIES = 3;
     private static final String LINK_MORE_POCKET = "https://getpocket.cdn.mozilla.net/explore/trending?src=ff_android";
 
@@ -69,7 +72,8 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
         TOP_STORIES_ITEM(-1), // There can be multiple Top Stories items so caller should handle as a special case.
         HIGHLIGHTS_TITLE (-4),
         HIGHLIGHTS_EMPTY_STATE(-5),
-        HIGHLIGHT_ITEM (-1); // There can be multiple Highlight Items so caller should handle as a special case.
+        HIGHLIGHT_ITEM (-1), // There can be multiple Highlight Items so caller should handle as a special case.
+        LEARN_MORE_LINK(-6);
 
         public final int stableId;
 
@@ -94,6 +98,12 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
     public StreamRecyclerAdapter() {
         setHasStableIds(true);
         recyclerViewModel = new LinkedList<>();
+
+        clearAndInit();
+    }
+
+    public void clearAndInit() {
+        recyclerViewModel.clear();
         for (RowItemType type : ACTIVITY_STREAM_SECTIONS) {
             recyclerViewModel.add(makeRowModelFromType(type));
         }
@@ -113,7 +123,8 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
     @Override
     public int getItemViewType(int position) {
         if (position >= recyclerViewModel.size()) {
-            throw new IllegalArgumentException("Requested position does not exist");
+            throw new IllegalArgumentException("Requested position, " + position + ", does not exist. Size is :" +
+                    recyclerViewModel.size());
         }
         return recyclerViewModel.get(position).getRowItemType().getViewType();
     }
@@ -125,19 +136,17 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
         if (type == RowItemType.TOP_PANEL.getViewType()) {
             return new TopPanelRow(inflater.inflate(TopPanelRow.LAYOUT_ID, parent, false), onUrlOpenListener, onUrlOpenInBackgroundListener);
         } else if (type == RowItemType.TOP_STORIES_TITLE.getViewType()) {
-            final boolean pocketEnabled = GeckoSharedPrefs.forProfile(parent.getContext()).getBoolean(ActivityStreamPanel.PREF_POCKET_ENABLED, true);
-            return new StreamTitleRow(inflater.inflate(StreamTitleRow.LAYOUT_ID, parent, false), R.string.activity_stream_topstories, pocketEnabled, R.string.activity_stream_link_more, LINK_MORE_POCKET, onUrlOpenListener);
+            return new StreamTitleRow(inflater.inflate(StreamTitleRow.LAYOUT_ID, parent, false), R.string.activity_stream_topstories, R.string.activity_stream_link_more, LINK_MORE_POCKET, onUrlOpenListener);
         } else if (type == RowItemType.TOP_STORIES_ITEM.getViewType()) {
             return new WebpageItemRow(inflater.inflate(WebpageItemRow.LAYOUT_ID, parent, false), this);
         } else if (type == RowItemType.HIGHLIGHT_ITEM.getViewType()) {
             return new WebpageItemRow(inflater.inflate(WebpageItemRow.LAYOUT_ID, parent, false), this);
         } else if (type == RowItemType.HIGHLIGHTS_TITLE.getViewType()) {
-            final SharedPreferences sharedPreferences = GeckoSharedPrefs.forProfile(parent.getContext());
-            final boolean bookmarksEnabled = sharedPreferences.getBoolean(ActivityStreamPanel.PREF_BOOKMARKS_ENABLED, true);
-            final boolean visitedEnabled = sharedPreferences.getBoolean(ActivityStreamPanel.PREF_VISITED_ENABLED, true);
-            return new StreamTitleRow(inflater.inflate(StreamTitleRow.LAYOUT_ID, parent, false), R.string.activity_stream_highlights, bookmarksEnabled || visitedEnabled);
+            return new StreamTitleRow(inflater.inflate(StreamTitleRow.LAYOUT_ID, parent, false), R.string.activity_stream_highlights);
         } else if (type == RowItemType.HIGHLIGHTS_EMPTY_STATE.getViewType()) {
             return new HighlightsEmptyStateRow(inflater.inflate(HighlightsEmptyStateRow.LAYOUT_ID, parent, false));
+        } else if (type == RowItemType.LEARN_MORE_LINK.getViewType()) {
+            return new LearnMoreRow(inflater.inflate(LearnMoreRow.LAYOUT_ID, parent, false));
         } else {
             throw new IllegalStateException("Missing inflation for ViewType " + type);
         }
@@ -178,7 +187,51 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
         } else if (type == RowItemType.TOP_STORIES_ITEM.getViewType()) {
             final TopStory story = (TopStory) recyclerViewModel.get(position);
             ((WebpageItemRow) holder).bind(story, position, tilesSize);
+        } else if (type == RowItemType.HIGHLIGHTS_TITLE.getViewType()
+                || type == RowItemType.HIGHLIGHTS_EMPTY_STATE.getViewType()) {
+            final Context context = holder.itemView.getContext();
+            final SharedPreferences sharedPreferences = GeckoSharedPrefs.forProfile(context);
+            final boolean bookmarksEnabled = sharedPreferences.getBoolean(ActivityStreamPanel.PREF_BOOKMARKS_ENABLED,
+                    context.getResources().getBoolean(R.bool.pref_activitystream_recentbookmarks_enabled_default));
+            final boolean visitedEnabled = sharedPreferences.getBoolean(ActivityStreamPanel.PREF_VISITED_ENABLED,
+                    context.getResources().getBoolean(R.bool.pref_activitystream_visited_enabled_default));
+            setViewVisible(bookmarksEnabled || visitedEnabled, holder.itemView);
+        } else if (type == RowItemType.TOP_STORIES_TITLE.getViewType()) {
+            final Context context = holder.itemView.getContext();
+            final boolean pocketEnabled = ActivityStreamConfiguration.isPocketEnabledByLocale(context) &&
+                    GeckoSharedPrefs.forProfile(context).getBoolean(ActivityStreamPanel.PREF_POCKET_ENABLED,
+                    context.getResources().getBoolean(R.bool.pref_activitystream_pocket_enabled_default));
+            setViewVisible(pocketEnabled, holder.itemView);
         }
+    }
+
+    /**
+     * This sets a child view of the adapter visible or hidden.
+     *
+     * This only applies to children whose height and width are WRAP_CONTENT and MATCH_PARENT
+     * respectively.
+     *
+     * NB: This is a hack for the views that are included in the RecyclerView adapter even if
+     * they shouldn't be shown, such as the section title views or the empty view for highlights.
+     *
+     * A more correct implementation would dynamically add/remove these title views rather than
+     * showing and hiding them.
+     *
+     * @param toShow true if the view is to be shown, false to be hidden
+     * @param view child View whose visibility is to be changed
+     */
+    private static void setViewVisible(boolean toShow, final View view) {
+        view.setVisibility(toShow ? View.VISIBLE : View.GONE);
+        // We also need to set the layout height and width to 0 for the RecyclerView child.
+        final RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) view.getLayoutParams();
+        if (toShow) {
+            layoutParams.height = RecyclerView.LayoutParams.WRAP_CONTENT;
+            layoutParams.width = RecyclerView.LayoutParams.MATCH_PARENT;
+        } else {
+            layoutParams.height = 0;
+            layoutParams.width = 0;
+        }
+        view.setLayoutParams(layoutParams);
     }
 
     @Override
@@ -195,7 +248,9 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
         final String referrerUri;
         final int viewType = getItemViewType(position);
 
+        final ActivityStreamTelemetry.Extras.Builder extras = ActivityStreamTelemetry.Extras.builder();
         if (viewType == RowItemType.HIGHLIGHT_ITEM.getViewType()) {
+            extras.forHighlightSource(model.getSource());
             sourceType = ActivityStreamTelemetry.Contract.TYPE_HIGHLIGHTS;
             actionPosition = getHighlightsIndexFromAdapterPosition(position);
             size = getNumOfTypeShown(RowItemType.HIGHLIGHT_ITEM);
@@ -207,11 +262,9 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
             referrerUri = PocketStoriesLoader.POCKET_REFERRER_URI;
         }
 
-        ActivityStreamTelemetry.Extras.Builder extras = ActivityStreamTelemetry.Extras.builder()
-                .forHighlightSource(model.getSource())
-                .set(ActivityStreamTelemetry.Contract.SOURCE_TYPE, sourceType)
-                .set(ActivityStreamTelemetry.Contract.ACTION_POSITION, actionPosition)
-                .set(ActivityStreamTelemetry.Contract.COUNT, size);
+        extras.set(ActivityStreamTelemetry.Contract.SOURCE_TYPE, sourceType)
+              .set(ActivityStreamTelemetry.Contract.ACTION_POSITION, actionPosition)
+              .set(ActivityStreamTelemetry.Contract.COUNT, size);
 
         Telemetry.sendUIEvent(
                 TelemetryContract.Event.LOAD_URL,
@@ -271,7 +324,9 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
         final int actionPosition;
         final ActivityStreamContextMenu.MenuMode menuMode;
 
+        ActivityStreamTelemetry.Extras.Builder extras = ActivityStreamTelemetry.Extras.builder();
         if (model.getRowItemType() == RowItemType.HIGHLIGHT_ITEM) {
+            extras.forHighlightSource(model.getSource());
             sourceType = ActivityStreamTelemetry.Contract.TYPE_HIGHLIGHTS;
             actionPosition = getHighlightsIndexFromAdapterPosition(position);
             menuMode = ActivityStreamContextMenu.MenuMode.HIGHLIGHT;
@@ -281,11 +336,9 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
             menuMode = ActivityStreamContextMenu.MenuMode.TOPSTORY;
         }
 
-        ActivityStreamTelemetry.Extras.Builder extras = ActivityStreamTelemetry.Extras.builder()
-                .set(ActivityStreamTelemetry.Contract.SOURCE_TYPE, sourceType)
-                .set(ActivityStreamTelemetry.Contract.ACTION_POSITION, actionPosition)
-                .set(ActivityStreamTelemetry.Contract.INTERACTION, interactionExtra)
-                .forHighlightSource(model.getSource());
+        extras.set(ActivityStreamTelemetry.Contract.SOURCE_TYPE, sourceType)
+              .set(ActivityStreamTelemetry.Contract.ACTION_POSITION, actionPosition)
+              .set(ActivityStreamTelemetry.Contract.INTERACTION, interactionExtra);
 
         ActivityStreamContextMenu.show(webpageItemRow.itemView.getContext(),
                 webpageItemRow.getContextMenuAnchor(),
@@ -309,11 +362,21 @@ public class StreamRecyclerAdapter extends RecyclerView.Adapter<StreamViewHolder
     }
 
     public void swapHighlights(List<Highlight> highlights) {
-        recyclerViewModel = recyclerViewModel.subList(0, ACTIVITY_STREAM_SECTIONS.length + getNumOfTypeShown(RowItemType.TOP_STORIES_ITEM));
-        if (!highlights.isEmpty()) {
-            recyclerViewModel.addAll(highlights);
+        final int insertionIndex = indexOfType(RowItemType.HIGHLIGHTS_TITLE, recyclerViewModel) + 1;
+        if (getNumOfTypeShown(RowItemType.HIGHLIGHTS_EMPTY_STATE) > 0) {
+            recyclerViewModel.remove(insertionIndex); // remove empty state.
         } else {
-            recyclerViewModel.add(makeRowModelFromType(RowItemType.HIGHLIGHTS_EMPTY_STATE));
+            int numHighlights = getNumOfTypeShown(RowItemType.HIGHLIGHT_ITEM);
+            while (numHighlights > 0) {
+                recyclerViewModel.remove(insertionIndex);
+                numHighlights--;
+            }
+        }
+
+        if (!highlights.isEmpty()) {
+            recyclerViewModel.addAll(insertionIndex, highlights);
+        } else {
+            recyclerViewModel.add(insertionIndex, makeRowModelFromType(RowItemType.HIGHLIGHTS_EMPTY_STATE));
         }
         notifyDataSetChanged();
     }

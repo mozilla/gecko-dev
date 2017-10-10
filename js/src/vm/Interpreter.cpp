@@ -1630,10 +1630,10 @@ SetObjectElementOperation(JSContext* cx, HandleObject obj, HandleId id, HandleVa
     if (obj->isNative() &&
         JSID_IS_ATOM(id) &&
         !obj->as<NativeObject>().inDictionaryMode() &&
-        !obj->hadElementsAccess() &&
+        !obj->as<NativeObject>().hadElementsAccess() &&
         obj->as<NativeObject>().slotSpan() > PropertyTree::MAX_HEIGHT_WITH_ELEMENTS_ACCESS / 3)
     {
-        if (!JSObject::setHadElementsAccess(cx, obj))
+        if (!NativeObject::setHadElementsAccess(cx, obj.as<NativeObject>()))
             return false;
     }
 
@@ -2005,6 +2005,7 @@ CASE(JSOP_NOP)
 CASE(JSOP_NOP_DESTRUCTURING)
 CASE(JSOP_TRY_DESTRUCTURING_ITERCLOSE)
 CASE(JSOP_ITERNEXT)
+CASE(JSOP_UNUSED126)
 CASE(JSOP_UNUSED223)
 CASE(JSOP_CONDSWITCH)
 {
@@ -2517,24 +2518,24 @@ CASE(JSOP_GE)
 }
 END_CASE(JSOP_GE)
 
-#define SIGNED_SHIFT_OP(OP)                                                   \
+#define SIGNED_SHIFT_OP(OP, TYPE)                                             \
     JS_BEGIN_MACRO                                                            \
         int32_t i, j;                                                         \
         if (!ToInt32(cx, REGS.stackHandleAt(-2), &i))                         \
             goto error;                                                       \
         if (!ToInt32(cx, REGS.stackHandleAt(-1), &j))                         \
             goto error;                                                       \
-        i = i OP (j & 31);                                                    \
+        i = TYPE(i) OP (j & 31);                                              \
         REGS.sp--;                                                            \
         REGS.sp[-1].setInt32(i);                                              \
     JS_END_MACRO
 
 CASE(JSOP_LSH)
-    SIGNED_SHIFT_OP(<<);
+    SIGNED_SHIFT_OP(<<, uint32_t);
 END_CASE(JSOP_LSH)
 
 CASE(JSOP_RSH)
-    SIGNED_SHIFT_OP(>>);
+    SIGNED_SHIFT_OP(>>, int32_t);
 END_CASE(JSOP_RSH)
 
 #undef SIGNED_SHIFT_OP
@@ -3320,7 +3321,7 @@ CASE(JSOP_CALLSITEOBJ)
     ReservedRooted<JSObject*> cso(&rootObject0, script->getObject(REGS.pc));
     ReservedRooted<JSObject*> raw(&rootObject1, script->getObject(GET_UINT32_INDEX(REGS.pc) + 1));
 
-    if (!cx->compartment()->getTemplateLiteralObject(cx, raw, &cso))
+    if (!cx->compartment()->getTemplateLiteralObject(cx, raw.as<ArrayObject>(), &cso))
         goto error;
 
     PUSH_OBJECT(*cso);
@@ -3752,7 +3753,6 @@ CASE(JSOP_NEWINIT)
 END_CASE(JSOP_NEWINIT)
 
 CASE(JSOP_NEWARRAY)
-CASE(JSOP_SPREADCALLARRAY)
 {
     uint32_t length = GET_UINT32(REGS.pc);
     JSObject* obj = NewArrayOperation(cx, script, REGS.pc, length);
@@ -4805,10 +4805,10 @@ js::InitGetterSetterOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, H
     MOZ_ASSERT(val->isCallable());
     GetterOp getter;
     SetterOp setter;
-    unsigned attrs = JSPROP_SHARED;
 
     JSOp op = JSOp(*pc);
 
+    unsigned attrs = 0;
     if (!IsHiddenInitOp(op))
         attrs |= JSPROP_ENUMERATE;
 
@@ -4987,7 +4987,7 @@ js::NewObjectOperation(JSContext* cx, HandleScript script, jsbytecode* pc,
             return UnboxedPlainObject::create(cx, group, newKind);
     }
 
-    RootedObject obj(cx);
+    RootedPlainObject obj(cx);
 
     if (*pc == JSOP_NEWOBJECT) {
         RootedPlainObject baseObject(cx, &script->getObject(pc)->as<PlainObject>());
@@ -5055,23 +5055,16 @@ js::NewArrayOperation(JSContext* cx, HandleScript script, jsbytecode* pc, uint32
 
         if (group->shouldPreTenure() || group->maybePreliminaryObjects())
             newKind = TenuredObject;
-
-        if (group->maybeUnboxedLayout())
-            return UnboxedArrayObject::create(cx, group, length, newKind);
     }
 
     ArrayObject* obj = NewDenseFullyAllocatedArray(cx, length, nullptr, newKind);
     if (!obj)
         return nullptr;
 
-    if (newKind == SingletonObject) {
+    if (newKind == SingletonObject)
         MOZ_ASSERT(obj->isSingleton());
-    } else {
+    else
         obj->setGroup(group);
-
-        if (PreliminaryObjectArray* preliminaryObjects = group->maybePreliminaryObjects())
-            preliminaryObjects->registerNewObject(obj);
-    }
 
     return obj;
 }
@@ -5082,12 +5075,6 @@ js::NewArrayOperationWithTemplate(JSContext* cx, HandleObject templateObject)
     MOZ_ASSERT(!templateObject->isSingleton());
 
     NewObjectKind newKind = templateObject->group()->shouldPreTenure() ? TenuredObject : GenericObject;
-
-    if (templateObject->is<UnboxedArrayObject>()) {
-        uint32_t length = templateObject->as<UnboxedArrayObject>().length();
-        RootedObjectGroup group(cx, templateObject->group());
-        return UnboxedArrayObject::create(cx, group, length, newKind);
-    }
 
     ArrayObject* obj = NewDenseFullyAllocatedArray(cx, templateObject->as<ArrayObject>().length(),
                                                    nullptr, newKind);

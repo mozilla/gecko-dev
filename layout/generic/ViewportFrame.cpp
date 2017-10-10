@@ -48,7 +48,7 @@ ViewportFrame::Init(nsIContent*       aContent,
   if (parent) {
     nsFrameState state = parent->GetStateBits();
 
-    mState |= state & (NS_FRAME_IN_POPUP);
+    AddStateBits(state & (NS_FRAME_IN_POPUP));
   }
 }
 
@@ -421,7 +421,7 @@ void
 ViewportFrame::UpdateStyle(ServoRestyleState& aRestyleState)
 {
   ServoStyleContext* oldContext = StyleContext()->AsServo();
-  nsIAtom* pseudo = oldContext->GetPseudo();
+  nsAtom* pseudo = oldContext->GetPseudo();
   RefPtr<ServoStyleContext> newContext =
     aRestyleState.StyleSet().ResolveInheritingAnonymousBoxStyle(pseudo, nullptr);
 

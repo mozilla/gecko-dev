@@ -102,6 +102,9 @@ const PREF_EM_MIN_COMPAT_PLATFORM_VERSION = "extensions.minCompatiblePlatformVer
 const PREF_EM_HOTFIX_ID               = "extensions.hotfix.id";
 const PREF_EM_LAST_APP_BUILD_ID       = "extensions.lastAppBuildId";
 
+// Specify a list of valid built-in add-ons to load.
+const BUILT_IN_ADDONS_URI             = "chrome://browser/content/built_in_addons.json";
+
 const OBSOLETE_PREFERENCES = [
   "extensions.bootstrappedAddons",
   "extensions.enabledAddons",
@@ -880,6 +883,7 @@ function createAddonDetails(id, aAddon) {
     runInSafeMode: aAddon.runInSafeMode,
     dependencies: aAddon.dependencies,
     hasEmbeddedWebExtension: aAddon.hasEmbeddedWebExtension,
+    startupData: aAddon.startupData,
   };
 }
 
@@ -1132,6 +1136,7 @@ const JSON_FIELDS = Object.freeze([
   "lastModifiedTime",
   "path",
   "runInSafeMode",
+  "startupData",
   "type",
   "version",
 ]);
@@ -1271,6 +1276,9 @@ class XPIState {
       json.runInSafeMode = this.runInSafeMode;
       json.hasEmbeddedWebExtension = this.hasEmbeddedWebExtension;
     }
+    if (this.startupData) {
+      json.startupData = this.startupData;
+    }
     return json;
   }
 
@@ -1323,6 +1331,7 @@ class XPIState {
     this.version = aDBAddon.version;
     this.type = aDBAddon.type;
     this.enableShims = this.type == "extension" && !aDBAddon.multiprocessCompatible;
+    this.startupData = aDBAddon.startupData;
 
     this.bootstrapped = !!aDBAddon.bootstrap;
     if (this.bootstrapped) {
@@ -2039,6 +2048,18 @@ this.XPIProvider = {
       XPIProvider.installLocationsByName[location.name] = location;
     }
 
+    function addBuiltInInstallLocation(name, key, paths, scope) {
+      try {
+        let dir = FileUtils.getDir(key, paths);
+        let location = new BuiltInInstallLocation(name, dir, scope);
+
+        XPIProvider.installLocations.push(location);
+        XPIProvider.installLocationsByName[location.name] = location;
+      } catch (e) {
+        logger.warn(`Failed to add built-in install location ${name}`, e);
+      }
+    }
+
     function addSystemAddonInstallLocation(aName, aKey, aPaths, aScope) {
       try {
         var dir = FileUtils.getDir(aKey, aPaths);
@@ -2107,8 +2128,8 @@ this.XPIProvider = {
                                     [DIR_SYSTEM_ADDONS],
                                     AddonManager.SCOPE_PROFILE);
 
-      addDirectoryInstallLocation(KEY_APP_SYSTEM_DEFAULTS, KEY_APP_FEATURES,
-                                  [], AddonManager.SCOPE_PROFILE, true);
+      addBuiltInInstallLocation(KEY_APP_SYSTEM_DEFAULTS, KEY_APP_FEATURES,
+                                [], AddonManager.SCOPE_PROFILE);
 
       if (enabledScopes & AddonManager.SCOPE_USER) {
         addDirectoryInstallLocation(KEY_APP_SYSTEM_USER, "XREUSysExt",
@@ -4462,6 +4483,10 @@ this.XPIProvider = {
         resourceURI: getURIForResourceInFile(aFile, "")
       };
 
+      if (aMethod == "startup" && aAddon.startupData) {
+        params.startupData = aAddon.startupData;
+      }
+
       if (aExtraParams) {
         for (let key in aExtraParams) {
           params[key] = aExtraParams[key];
@@ -4907,6 +4932,7 @@ AddonInternal.prototype = {
   foreignInstall: false,
   seen: true,
   skinnable: false,
+  startupData: null,
 
   /**
    * @property {Array<string>} dependencies
@@ -5330,6 +5356,10 @@ AddonWrapper.prototype = {
 
   get isWebExtension() {
     return isWebExtension(addonFor(this).type);
+  },
+
+  get isAPIExtension() {
+    return addonFor(this).type == "apiextension";
   },
 
   get temporarilyInstalled() {
@@ -6444,6 +6474,49 @@ class MutableDirectoryInstallLocation extends DirectoryInstallLocation {
     XPIStates.removeAddon(this.name, aId);
 
     delete this._IDToFileMap[aId];
+  }
+}
+
+/**
+ * An object which identifies a built-in install location for add-ons, such
+ * as default system add-ons.
+ *
+ * This location should point either to a XPI, or a directory in a local build.
+ */
+class BuiltInInstallLocation extends DirectoryInstallLocation {
+  /**
+   * Read the manifest of allowed add-ons and build a mapping between ID and URI
+   * for each.
+   */
+  _readAddons() {
+    let manifest;
+    try {
+      let url = Services.io.newURI(BUILT_IN_ADDONS_URI);
+      let data = Cu.readURI(url);
+      manifest = JSON.parse(data);
+    } catch (e) {
+      logger.warn("List of valid built-in add-ons could not be parsed.", e);
+      return;
+    }
+
+    if (!("system" in manifest)) {
+      logger.warn("No list of valid system add-ons found.");
+      return;
+    }
+
+    for (let id of manifest.system) {
+      let file = new FileUtils.File(this._directory.path);
+      file.append(`${id}.xpi`);
+
+      // Only attempt to load unpacked directory if unofficial build.
+      if (!AppConstants.MOZILLA_OFFICIAL && !file.exists()) {
+        file = new FileUtils.File(this._directory.path);
+        file.append(`${id}`);
+      }
+
+      this._IDToFileMap[id] = file;
+      XPIProvider._addURIMapping(id, file);
+    }
   }
 }
 

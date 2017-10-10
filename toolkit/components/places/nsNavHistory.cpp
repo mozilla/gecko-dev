@@ -620,9 +620,9 @@ Atomic<int64_t> nsNavHistory::sLastInsertedVisitId(0);
 void // static
 nsNavHistory::StoreLastInsertedId(const nsACString& aTable,
                                   const int64_t aLastInsertedId) {
-  if (aTable.Equals(NS_LITERAL_CSTRING("moz_places"))) {
+  if (aTable.EqualsLiteral("moz_places")) {
     nsNavHistory::sLastInsertedPlaceId = aLastInsertedId;
-  } else if (aTable.Equals(NS_LITERAL_CSTRING("moz_historyvisits"))) {
+  } else if (aTable.EqualsLiteral("moz_historyvisits")) {
     nsNavHistory::sLastInsertedVisitId = aLastInsertedId;
   } else {
     MOZ_ASSERT(false, "Trying to store the insert id for an unknown table?");
@@ -1761,14 +1761,12 @@ PlacesSQLQueryBuilder::SelectAsDay()
         sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of month','-");
         sqlFragmentContainerBeginTime.AppendInt(MonthIndex);
-        sqlFragmentContainerBeginTime.Append(NS_LITERAL_CSTRING(
-            " months','utc')*1000000)"));
+        sqlFragmentContainerBeginTime.AppendLiteral(" months','utc')*1000000)");
         // To start of MonthIndex months ago
         sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of month','-");
         sqlFragmentContainerEndTime.AppendInt(MonthIndex - 1);
-        sqlFragmentContainerEndTime.Append(NS_LITERAL_CSTRING(
-            " months','utc')*1000000)"));
+        sqlFragmentContainerEndTime.AppendLiteral(" months','utc')*1000000)");
         // Search for the same timeframe.
         sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
         sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
@@ -2534,81 +2532,6 @@ nsNavHistory::CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString)
                      nsINavHistoryObserver,
                      OnDeleteURI(URIs[i], GUIDs[i], nsINavHistoryObserver::REASON_DELETED));
   }
-
-  return NS_OK;
-}
-
-
-// nsNavHistory::RemovePages
-//
-//    Removes a bunch of uris from history.
-//    Has better performance than RemovePage when deleting a lot of history.
-//    We don't do duplicates removal, URIs array should be cleaned-up before.
-
-NS_IMETHODIMP
-nsNavHistory::RemovePages(nsIURI **aURIs, uint32_t aLength)
-{
-  PLACES_WARN_DEPRECATED();
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURIs);
-
-  nsresult rv;
-  // build a list of place ids to delete
-  nsCString deletePlaceIdsQueryString;
-  for (uint32_t i = 0; i < aLength; i++) {
-    int64_t placeId;
-    nsAutoCString guid;
-    if (!aURIs[i])
-      continue;
-    rv = GetIdForPage(aURIs[i], &placeId, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (placeId != 0) {
-      if (!deletePlaceIdsQueryString.IsEmpty())
-        deletePlaceIdsQueryString.Append(',');
-      deletePlaceIdsQueryString.AppendInt(placeId);
-    }
-  }
-
-  UpdateBatchScoper batch(*this); // sends Begin/EndUpdateBatch to observers
-
-  rv = RemovePagesInternal(deletePlaceIdsQueryString);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Clear the registered embed visits.
-  clearEmbedVisits();
-
-  return NS_OK;
-}
-
-
-// nsNavHistory::RemovePage
-//
-//    Removes all visits and the main history entry for the given URI.
-//    Silently fails if we have no knowledge of the page.
-
-NS_IMETHODIMP
-nsNavHistory::RemovePage(nsIURI *aURI)
-{
-  PLACES_WARN_DEPRECATED();
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  // Build a list of place ids to delete.
-  int64_t placeId;
-  nsAutoCString guid;
-  nsresult rv = GetIdForPage(aURI, &placeId, guid);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (placeId == 0) {
-    return NS_OK;
-  }
-  nsAutoCString deletePlaceIdQueryString;
-  deletePlaceIdQueryString.AppendInt(placeId);
-
-  rv = RemovePagesInternal(deletePlaceIdQueryString);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Clear the registered embed visits.
-  clearEmbedVisits();
 
   return NS_OK;
 }

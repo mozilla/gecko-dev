@@ -62,12 +62,12 @@ public:
 
   // nsIContent
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult) override;
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
+  virtual nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
                                               int32_t aModType) const override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
 
   virtual nsresult GetEventTargetParent(
@@ -142,21 +142,21 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::alt, aAlt, aError);
   }
-  void GetSrc(nsAString& aSrc)
+  void GetSrc(nsAString& aSrc, nsIPrincipal&)
   {
     GetURIAttr(nsGkAtoms::src, nullptr, aSrc);
   }
-  void SetSrc(const nsAString& aSrc, ErrorResult& aError)
+  void SetSrc(const nsAString& aSrc, nsIPrincipal& aTriggeringPrincipal, ErrorResult& aError)
   {
-    SetHTMLAttr(nsGkAtoms::src, aSrc, aError);
+    SetHTMLAttr(nsGkAtoms::src, aSrc, aTriggeringPrincipal, aError);
   }
-  void GetSrcset(nsAString& aSrcset)
+  void GetSrcset(nsAString& aSrcset, nsIPrincipal&)
   {
     GetHTMLAttr(nsGkAtoms::srcset, aSrcset);
   }
-  void SetSrcset(const nsAString& aSrcset, ErrorResult& aError)
+  void SetSrcset(const nsAString& aSrcset, nsIPrincipal& aTriggeringPrincipal, ErrorResult& aError)
   {
-    SetHTMLAttr(nsGkAtoms::srcset, aSrcset, aError);
+    SetHTMLAttr(nsGkAtoms::srcset, aSrcset, aTriggeringPrincipal, aError);
   }
   void GetCrossOrigin(nsAString& aResult)
   {
@@ -372,15 +372,16 @@ protected:
   virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
   void UpdateFormOwner();
 
-  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify) override;
 
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
                                 const nsAttrValue* aOldValue,
+                                nsIPrincipal* aMaybeScriptedPrincipal,
                                 bool aNotify) override;
-  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsIAtom* aName,
+  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
                                           const nsAttrValueOrString& aValue,
                                           bool aNotify) override;
 
@@ -417,13 +418,16 @@ private:
    *        OnAttrSetButNotChanged to indicate that the value was not changed.
    * @param aNotify Whether we plan to notify document observers.
    */
-  void AfterMaybeChangeAttr(int32_t aNamespaceID, nsIAtom* aName,
+  void AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName,
                             const nsAttrValueOrString& aValue,
                             const nsAttrValue* aOldValue,
+                            nsIPrincipal* aMaybeScriptedPrincipal,
                             bool aValueMaybeChanged, bool aNotify);
 
   bool mInDocResponsiveContent;
   RefPtr<ImageLoadTask> mPendingImageLoadTask;
+  nsCOMPtr<nsIPrincipal> mSrcTriggeringPrincipal;
+  nsCOMPtr<nsIPrincipal> mSrcsetTriggeringPrincipal;
 
   // Last URL that was attempted to load by this element.
   nsCOMPtr<nsIURI> mLastSelectedSource;

@@ -1359,7 +1359,7 @@ RNewArray::recover(JSContext* cx, SnapshotIterator& iter) const
     RootedValue result(cx);
     RootedObjectGroup group(cx, templateObject->group());
 
-    JSObject* resultObject = NewFullyAllocatedArrayTryUseGroup(cx, group, count_);
+    ArrayObject* resultObject = NewFullyAllocatedArrayTryUseGroup(cx, group, count_);
     if (!resultObject)
         return false;
 
@@ -1509,6 +1509,35 @@ RLambdaArrow::recover(JSContext* cx, SnapshotIterator& iter) const
     RootedFunction fun(cx, &iter.read().toObject().as<JSFunction>());
 
     JSObject* resultObject = js::LambdaArrow(cx, fun, scopeChain, newTarget);
+    if (!resultObject)
+        return false;
+
+    RootedValue result(cx);
+    result.setObject(*resultObject);
+    iter.storeInstructionResult(result);
+    return true;
+}
+
+bool
+MNewCallObject::writeRecoverData(CompactBufferWriter& writer) const
+{
+    MOZ_ASSERT(canRecoverOnBailout());
+    writer.writeUnsigned(uint32_t(RInstruction::Recover_NewCallObject));
+    return true;
+}
+
+RNewCallObject::RNewCallObject(CompactBufferReader& reader)
+{
+}
+
+bool
+RNewCallObject::recover(JSContext* cx, SnapshotIterator& iter) const
+{
+    Rooted<CallObject*> templateObj(cx, &iter.read().toObject().as<CallObject>());
+
+    RootedShape shape(cx, templateObj->lastProperty());
+    RootedObjectGroup group(cx, templateObj->group());
+    JSObject* resultObject = NewCallObject(cx, shape, group);
     if (!resultObject)
         return false;
 

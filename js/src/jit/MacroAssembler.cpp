@@ -705,31 +705,6 @@ template void
 MacroAssembler::storeUnboxedProperty(BaseIndex address, JSValueType type,
                                      const ConstantOrRegister& value, Label* failure);
 
-void
-MacroAssembler::checkUnboxedArrayCapacity(Register obj, const RegisterOrInt32Constant& index,
-                                          Register temp, Label* failure)
-{
-    Address initLengthAddr(obj, UnboxedArrayObject::offsetOfCapacityIndexAndInitializedLength());
-    Address lengthAddr(obj, UnboxedArrayObject::offsetOfLength());
-
-    Label capacityIsIndex, done;
-    load32(initLengthAddr, temp);
-    branchTest32(Assembler::NonZero, temp, Imm32(UnboxedArrayObject::CapacityMask), &capacityIsIndex);
-    branch32(Assembler::BelowOrEqual, lengthAddr, index, failure);
-    jump(&done);
-    bind(&capacityIsIndex);
-
-    // Do a partial shift so that we can get an absolute offset from the base
-    // of CapacityArray to use.
-    JS_STATIC_ASSERT(sizeof(UnboxedArrayObject::CapacityArray[0]) == 4);
-    rshiftPtr(Imm32(UnboxedArrayObject::CapacityShift - 2), temp);
-    and32(Imm32(~0x3), temp);
-
-    addPtr(ImmPtr(&UnboxedArrayObject::CapacityArray), temp);
-    branch32(Assembler::BelowOrEqual, Address(temp, 0), index, failure);
-    bind(&done);
-}
-
 // Inlined version of gc::CheckAllocatorState that checks the bare essentials
 // and bails for anything that cannot be handled with our jit allocators.
 void
@@ -843,20 +818,30 @@ MacroAssembler::freeListAllocate(Register result, Register temp, gc::AllocKind a
 void
 MacroAssembler::callMallocStub(size_t nbytes, Register result, Label* fail)
 {
-    // This register must match the one in JitRuntime::generateMallocStub.
-    const Register regNBytes = CallTempReg0;
+    // These registers must match the ones in JitRuntime::generateMallocStub.
+    const Register regReturn = CallTempReg0;
+    const Register regZone = CallTempReg0;
+    const Register regNBytes = CallTempReg1;
 
     MOZ_ASSERT(nbytes > 0);
     MOZ_ASSERT(nbytes <= INT32_MAX);
 
+    if (regZone != result)
+        push(regZone);
     if (regNBytes != result)
         push(regNBytes);
+
     move32(Imm32(nbytes), regNBytes);
+    movePtr(ImmPtr(GetJitContext()->compartment->zone()), regZone);
     call(GetJitContext()->runtime->jitRuntime()->mallocStub());
-    if (regNBytes != result) {
-        movePtr(regNBytes, result);
+    if (regReturn != result)
+        movePtr(regReturn, result);
+
+    if (regNBytes != result)
         pop(regNBytes);
-    }
+    if (regZone != result)
+        pop(regZone);
+
     branchTest32(Assembler::Zero, result, result, fail);
 }
 
@@ -1299,16 +1284,6 @@ MacroAssembler::initGCThing(Register obj, Register temp, JSObject* templateObj,
         storePtr(ImmWord(0), Address(obj, UnboxedPlainObject::offsetOfExpando()));
         if (initContents)
             initUnboxedObjectContents(obj, &templateObj->as<UnboxedPlainObject>());
-    } else if (templateObj->is<UnboxedArrayObject>()) {
-        MOZ_ASSERT(templateObj->as<UnboxedArrayObject>().hasInlineElements());
-        int elementsOffset = UnboxedArrayObject::offsetOfInlineElements();
-        computeEffectiveAddress(Address(obj, elementsOffset), temp);
-        storePtr(temp, Address(obj, UnboxedArrayObject::offsetOfElements()));
-        store32(Imm32(templateObj->as<UnboxedArrayObject>().length()),
-                Address(obj, UnboxedArrayObject::offsetOfLength()));
-        uint32_t capacityIndex = templateObj->as<UnboxedArrayObject>().capacityIndex();
-        store32(Imm32(capacityIndex << UnboxedArrayObject::CapacityShift),
-                Address(obj, UnboxedArrayObject::offsetOfCapacityIndexAndInitializedLength()));
     } else {
         MOZ_CRASH("Unknown object");
     }
@@ -1677,6 +1652,22 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             jump(jitcodeReg);
         }
     }
+}
+
+void
+MacroAssembler::assertRectifierFrameParentType(Register frameType)
+{
+#ifdef DEBUG
+    {
+        // Check the possible previous frame types here.
+        Label checkOk;
+        branch32(Assembler::Equal, frameType, Imm32(JitFrame_IonJS), &checkOk);
+        branch32(Assembler::Equal, frameType, Imm32(JitFrame_BaselineStub), &checkOk);
+        branch32(Assembler::Equal, frameType, Imm32(JitFrame_WasmToJSJit), &checkOk);
+        assumeUnreachable("Unrecognized frame type preceding RectifierFrame.");
+        bind(&checkOk);
+    }
+#endif
 }
 
 void
@@ -2886,7 +2877,7 @@ void
 MacroAssembler::linkExitFrame(Register cxreg, Register scratch)
 {
     loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
-    storeStackPtr(Address(scratch, JitActivation::offsetOfExitFP()));
+    storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
 }
 
 void
@@ -3136,20 +3127,7 @@ MacroAssembler::wasmEmitTrapOutOfLineCode()
     // iterator to find the right CodeRange while walking the stack.
     breakpoint();
 
-    clearTrapSites();
-}
-
-void
-MacroAssembler::wasmAssertNonExitInvariants(Register activation)
-{
-#ifdef DEBUG
-    // WasmActivation.exitFP should be null when outside any exit frame.
-    Label ok;
-    Address exitFP(activation, WasmActivation::offsetOfExitFP());
-    branchPtr(Assembler::Equal, exitFP, ImmWord(0), &ok);
-    breakpoint();
-    bind(&ok);
-#endif
+    trapSites().clear();
 }
 
 void

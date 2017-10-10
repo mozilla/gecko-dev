@@ -317,6 +317,7 @@ nsFaviconService::SetAndFetchFaviconForPage(nsIURI* aPageURI,
                                             uint32_t aFaviconLoadType,
                                             nsIFaviconDataCallback* aCallback,
                                             nsIPrincipal* aLoadingPrincipal,
+                                            uint64_t aRequestContextID,
                                             mozIPlacesPendingOperation **_canceler)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -401,13 +402,14 @@ nsFaviconService::SetAndFetchFaviconForPage(nsIURI* aPageURI,
   // for database size and UX concerns.
   // Don't store favicons for error pages too.
   if (icon.spec.Equals(page.spec) ||
-      icon.spec.Equals(FAVICON_ERRORPAGE_URL)) {
+      icon.spec.EqualsLiteral(FAVICON_ERRORPAGE_URL)) {
     return NS_OK;
   }
 
   RefPtr<AsyncFetchAndSetIconForPage> event =
     new AsyncFetchAndSetIconForPage(icon, page, loadPrivate,
-                                    aCallback, aLoadingPrincipal);
+                                    aCallback, aLoadingPrincipal,
+                                    aRequestContextID);
 
   // Get the target thread and start the work.
   // DB will be updated and observers notified when data has finished loading.

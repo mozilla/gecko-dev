@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::abstractworker::SimpleWorkerErrorHandler;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
 use dom::bindings::error::{ErrorResult, Error};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::USVString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
@@ -19,14 +19,14 @@ use js::jsapi::{HandleValue, JSContext};
 use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use task::Task;
+use task::TaskOnce;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 
 #[dom_struct]
 pub struct ServiceWorker {
     eventtarget: EventTarget,
-    script_url: DOMRefCell<String>,
+    script_url: DomRefCell<String>,
     scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
     skip_waiting: Cell<bool>
@@ -38,7 +38,7 @@ impl ServiceWorker {
                      scope_url: ServoUrl) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
-            script_url: DOMRefCell::new(String::from(script_url)),
+            script_url: DomRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
             scope_url: scope_url,
             skip_waiting: Cell::new(skip_waiting)
@@ -48,7 +48,7 @@ impl ServiceWorker {
     pub fn install_serviceworker(global: &GlobalScope,
                                  script_url: ServoUrl,
                                  scope_url: ServoUrl,
-                                 skip_waiting: bool) -> Root<ServiceWorker> {
+                                 skip_waiting: bool) -> DomRoot<ServiceWorker> {
         reflect_dom_object(box ServiceWorker::new_inherited(script_url.as_str(),
                                                             skip_waiting,
                                                             scope_url), global, Wrap)
@@ -104,10 +104,9 @@ impl ServiceWorkerMethods for ServiceWorker {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 }
 
-impl Task for SimpleWorkerErrorHandler<ServiceWorker> {
+impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
     #[allow(unrooted_must_root)]
-    fn run(self: Box<Self>) {
-        let this = *self;
-        ServiceWorker::dispatch_simple_error(this.addr);
+    fn run_once(self) {
+        ServiceWorker::dispatch_simple_error(self.addr);
     }
 }

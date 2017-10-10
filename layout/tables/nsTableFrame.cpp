@@ -53,7 +53,7 @@
 
 #include "gfxPrefs.h"
 #include "mozilla/layers/StackingContextHelper.h"
-#include "mozilla/layers/WebRenderDisplayItemLayer.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 
 using namespace mozilla;
 using namespace mozilla::image;
@@ -1277,7 +1277,6 @@ public:
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc,
-                                       nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
                                        nsDisplayListBuilder* aDisplayListBuilder) override;
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
@@ -1317,20 +1316,16 @@ bool
 nsDisplayTableBorderCollapse::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                       wr::IpcResourceUpdateQueue& aResources,
                                                       const StackingContextHelper& aSc,
-                                                      nsTArray<WebRenderParentCommand>& aParentCommands,
                                                       mozilla::layers::WebRenderLayerManager* aManager,
                                                       nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   static_cast<nsTableFrame *>(mFrame)->CreateWebRenderCommandsForBCBorders(aBuilder,
                                                                           aSc,
-                                                                          aParentCommands,
                                                                           ToReferenceFrame());
   return true;
 }
@@ -1608,6 +1603,8 @@ nsTableFrame::DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
     }
   }
 
+  aFrame->DisplayOutline(aBuilder, aLists);
+
   aTraversal(aBuilder, aFrame, aLists);
 
   if (isVisible) {
@@ -1628,8 +1625,6 @@ nsTableFrame::DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
       }
     }
   }
-
-  aFrame->DisplayOutline(aBuilder, aLists);
 }
 
 // table paint code is concerned primarily with borders and bg color
@@ -6502,6 +6497,7 @@ struct BCBorderParameters
   nscoord mStartBevelOffset;
   mozilla::Side mEndBevelSide;
   nscoord mEndBevelOffset;
+  bool mBackfaceIsVisible;
 };
 
 struct BCBlockDirSeg
@@ -6526,7 +6522,6 @@ struct BCBlockDirSeg
                                BCPixelSize aInlineSegBSize,
                                wr::DisplayListBuilder& aBuilder,
                                const layers::StackingContextHelper& aSc,
-                               nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                const nsPoint& aPt);
   void AdvanceOffsetB();
   void IncludeCurrentBorder(BCPaintBorderIterator& aIter);
@@ -6581,7 +6576,6 @@ struct BCInlineDirSeg
   void CreateWebRenderCommands(BCPaintBorderIterator& aIter,
                                wr::DisplayListBuilder& aBuilder,
                                const layers::StackingContextHelper& aSc,
-                               nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                const nsPoint& aPt);
 
   nscoord            mOffsetI;       // i-offset with respect to the table edge
@@ -6619,18 +6613,15 @@ struct BCCreateWebRenderCommandsData
 {
   BCCreateWebRenderCommandsData(wr::DisplayListBuilder& aBuilder,
                                 const layers::StackingContextHelper& aSc,
-                                nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                 const nsPoint& aOffsetToReferenceFrame)
     : mBuilder(aBuilder)
     , mSc(aSc)
-    , mParentCommands(aParentCommands)
     , mOffsetToReferenceFrame(aOffsetToReferenceFrame)
   {
   }
 
   wr::DisplayListBuilder& mBuilder;
   const layers::StackingContextHelper& mSc;
-  nsTArray<layers::WebRenderParentCommand>& mParentCommands;
   const nsPoint& mOffsetToReferenceFrame;
 };
 
@@ -6644,10 +6635,9 @@ struct BCPaintBorderAction
 
   BCPaintBorderAction(wr::DisplayListBuilder& aBuilder,
                       const layers::StackingContextHelper& aSc,
-                      nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                       const nsPoint& aOffsetToReferenceFrame)
     : mMode(Mode::CREATE_WEBRENDER_COMMANDS)
-    , mCreateWebRenderCommandsData(aBuilder, aSc, aParentCommands, aOffsetToReferenceFrame)
+    , mCreateWebRenderCommandsData(aBuilder, aSc, aOffsetToReferenceFrame)
   {
     mMode = Mode::CREATE_WEBRENDER_COMMANDS;
   }
@@ -7335,6 +7325,7 @@ BCBlockDirSeg::BuildBorderParameters(BCPaintBorderIterator& aIter,
   result.mBorderStyle = NS_STYLE_BORDER_STYLE_SOLID;
   result.mBorderColor = 0xFFFFFFFF;
   result.mBGColor = aIter.mTableBgColor;
+  result.mBackfaceIsVisible = true;
 
   // All the tables frames have the same presContext, so we just use any one
   // that exists here:
@@ -7391,6 +7382,7 @@ BCBlockDirSeg::BuildBorderParameters(BCPaintBorderIterator& aIter,
   }
   if (owner) {
     ::GetPaintStyleInfo(owner, aIter.mTableWM, side, &result.mBorderStyle, &result.mBorderColor);
+    result.mBackfaceIsVisible = !owner->BackfaceIsHidden();
   }
   BCPixelSize smallHalf, largeHalf;
   DivideBCBorderSize(mWidth, smallHalf, largeHalf);
@@ -7462,7 +7454,6 @@ BCBlockDirSeg::CreateWebRenderCommands(BCPaintBorderIterator& aIter,
                                        BCPixelSize aInlineSegBSize,
                                        wr::DisplayListBuilder& aBuilder,
                                        const layers::StackingContextHelper& aSc,
-                                       nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                        const nsPoint& aOffset)
 {
   Maybe<BCBorderParameters> param = BuildBorderParameters(aIter, aInlineSegBSize);
@@ -7492,6 +7483,7 @@ BCBlockDirSeg::CreateWebRenderCommands(BCPaintBorderIterator& aIter,
   Range<const wr::BorderSide> wrsides(wrSide, 4);
   aBuilder.PushBorder(transformedRect,
                       transformedRect,
+                      param->mBackfaceIsVisible,
                       borderWidths,
                       wrsides,
                       borderRadii);
@@ -7604,6 +7596,7 @@ BCInlineDirSeg::BuildBorderParameters(BCPaintBorderIterator& aIter)
   nsIFrame* cell = mFirstCell;
   nsIFrame* col;
   nsIFrame* owner = nullptr;
+  result.mBackfaceIsVisible = true;
 
   // All the tables frames have the same presContext, so we just use any one
   // that exists here:
@@ -7662,6 +7655,7 @@ BCInlineDirSeg::BuildBorderParameters(BCPaintBorderIterator& aIter)
   }
   if (owner) {
     ::GetPaintStyleInfo(owner, aIter.mTableWM, side, &result.mBorderStyle, &result.mBorderColor);
+    result.mBackfaceIsVisible = !owner->BackfaceIsHidden();
   }
   BCPixelSize smallHalf, largeHalf;
   DivideBCBorderSize(mWidth, smallHalf, largeHalf);
@@ -7721,7 +7715,6 @@ void
 BCInlineDirSeg::CreateWebRenderCommands(BCPaintBorderIterator& aIter,
                                         wr::DisplayListBuilder& aBuilder,
                                         const layers::StackingContextHelper& aSc,
-                                        nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                         const nsPoint& aPt)
 {
   Maybe<BCBorderParameters> param = BuildBorderParameters(aIter);
@@ -7751,6 +7744,7 @@ BCInlineDirSeg::CreateWebRenderCommands(BCPaintBorderIterator& aIter,
   Range<const wr::BorderSide> wrsides(wrSide, 4);
   aBuilder.PushBorder(transformedRect,
                       transformedRect,
+                      param->mBackfaceIsVisible,
                       borderWidths,
                       wrsides,
                       borderRadii);
@@ -7850,7 +7844,6 @@ BCPaintBorderIterator::AccumulateOrDoActionInlineDirSegment(BCPaintBorderAction&
           mInlineSeg.CreateWebRenderCommands(*this,
                                              aAction.mCreateWebRenderCommandsData.mBuilder,
                                              aAction.mCreateWebRenderCommandsData.mSc,
-                                             aAction.mCreateWebRenderCommandsData.mParentCommands,
                                              aAction.mCreateWebRenderCommandsData.mOffsetToReferenceFrame);
         }
       }
@@ -7903,7 +7896,6 @@ BCPaintBorderIterator::AccumulateOrDoActionBlockDirSegment(BCPaintBorderAction& 
                                               inlineSegBSize,
                                               aAction.mCreateWebRenderCommandsData.mBuilder,
                                               aAction.mCreateWebRenderCommandsData.mSc,
-                                              aAction.mCreateWebRenderCommandsData.mParentCommands,
                                               aAction.mCreateWebRenderCommandsData.mOffsetToReferenceFrame);
         }
       }
@@ -7978,10 +7970,9 @@ nsTableFrame::PaintBCBorders(DrawTarget& aDrawTarget, const nsRect& aDirtyRect)
 void
 nsTableFrame::CreateWebRenderCommandsForBCBorders(wr::DisplayListBuilder& aBuilder,
                                                   const mozilla::layers::StackingContextHelper& aSc,
-                                                  nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                                   const nsPoint& aOffsetToReferenceFrame)
 {
-  BCPaintBorderAction action(aBuilder, aSc, aParentCommands, aOffsetToReferenceFrame);
+  BCPaintBorderAction action(aBuilder, aSc, aOffsetToReferenceFrame);
   // We always draw whole table border for webrender. Passing the table rect as
   // dirty rect.
   IterateBCBorders(action, GetRect());

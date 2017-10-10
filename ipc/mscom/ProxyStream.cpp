@@ -13,6 +13,7 @@
 #include "mozilla/mscom/EnsureMTA.h"
 #include "mozilla/mscom/ProxyStream.h"
 #include "mozilla/mscom/Utils.h"
+#include "mozilla/ScopeExit.h"
 
 #if defined(MOZ_CRASHREPORTER)
 #include "mozilla/mscom/Objref.h"
@@ -39,7 +40,7 @@ ProxyStream::ProxyStream()
 // GetBuffer() fails with this variant, but that's okay because we're just
 // reconstructing the stream from a buffer anyway.
 ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
-                         const int aInitBufSize)
+                         const int aInitBufSize, Environment* aEnv)
   : mGlobalLockedBuf(nullptr)
   , mHGlobal(nullptr)
   , mBufSize(aInitBufSize)
@@ -83,6 +84,7 @@ ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
 #if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
   const uint32_t expectedStreamLen = GetOBJREFSize(WrapNotNull(mStream));
   nsAutoCString strActCtx;
+  nsAutoString manifestPath;
 #endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
 
   HRESULT unmarshalResult = S_OK;
@@ -92,11 +94,28 @@ ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
   // actual interface later.
 
 #if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
-  auto marshalFn = [this, &strActCtx, &unmarshalResult, &aIID]() -> void
+  auto marshalFn = [this, &strActCtx, &manifestPath, &unmarshalResult, &aIID, aEnv]() -> void
 #else
-  auto marshalFn = [this, &unmarshalResult, &aIID]() -> void
+  auto marshalFn = [this, &unmarshalResult, &aIID, aEnv]() -> void
 #endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
   {
+    if (aEnv) {
+      bool pushOk = aEnv->Push();
+      MOZ_DIAGNOSTIC_ASSERT(pushOk);
+      if (!pushOk) {
+        return;
+      }
+    }
+
+    auto popEnv = MakeScopeExit([aEnv]() -> void {
+      if (!aEnv) {
+        return;
+      }
+
+      bool popOk = aEnv->Pop();
+      MOZ_DIAGNOSTIC_ASSERT(popOk);
+    });
+
 #if defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
     auto curActCtx = ActivationContext::GetCurrent();
     if (curActCtx.isOk()) {
@@ -104,6 +123,8 @@ ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
     } else {
       strActCtx.AppendPrintf("HRESULT 0x%08X", curActCtx.unwrapErr());
     }
+
+    ActivationContext::GetCurrentManifestPath(manifestPath);
 #endif // defined(ACCESSIBILITY) && defined(MOZ_CRASHREPORTER)
 
     unmarshalResult =
@@ -137,6 +158,8 @@ ProxyStream::ProxyStream(REFIID aIID, const BYTE* aInitBuf,
     AnnotateClassRegistration(CLSID_AccessibleHandler);
     CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("UnmarshalActCtx"),
                                        strActCtx);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("UnmarshalActCtxManifestPath"),
+                                       NS_ConvertUTF16toUTF8(manifestPath));
     CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("A11yHandlerRegistered"),
                                        a11y::IsHandlerRegistered() ?
                                        NS_LITERAL_CSTRING("true") :
@@ -264,7 +287,7 @@ ProxyStream::GetInterface(void** aOutInterface)
   return true;
 }
 
-ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject,
+ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject, Environment* aEnv,
                          ProxyStreamFlags aFlags)
   : mGlobalLockedBuf(nullptr)
   , mHGlobal(nullptr)
@@ -285,12 +308,44 @@ ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject,
   HRESULT statResult = S_OK;
   HRESULT getHGlobalResult = S_OK;
 
-  auto marshalFn = [&]() -> void
+#if defined(MOZ_CRASHREPORTER)
+  nsAutoString manifestPath;
+
+  auto marshalFn = [this, &aIID, aObject, mshlFlags, &stream, &streamSize,
+                    &hglobal, &createStreamResult, &marshalResult, &statResult,
+                    &getHGlobalResult, aEnv, &manifestPath]() -> void
+#else
+  auto marshalFn = [this, &aIID, aObject, mshlFlags, &stream, &streamSize,
+                    &hglobal, &createStreamResult, &marshalResult, &statResult,
+                    &getHGlobalResult, aEnv]() -> void
+#endif // defined(MOZ_CRASHREPORTER)
   {
-    createStreamResult = ::CreateStreamOnHGlobal(nullptr, TRUE, getter_AddRefs(stream));
+    if (aEnv) {
+      bool pushOk = aEnv->Push();
+      MOZ_DIAGNOSTIC_ASSERT(pushOk);
+      if (!pushOk) {
+        return;
+      }
+    }
+
+    auto popEnv = MakeScopeExit([aEnv]() -> void {
+      if (!aEnv) {
+        return;
+      }
+
+      bool popOk = aEnv->Pop();
+      MOZ_DIAGNOSTIC_ASSERT(popOk);
+    });
+
+    createStreamResult = ::CreateStreamOnHGlobal(nullptr, TRUE,
+                                                 getter_AddRefs(stream));
     if (FAILED(createStreamResult)) {
       return;
     }
+
+#if defined(MOZ_CRASHREPORTER)
+    ActivationContext::GetCurrentManifestPath(manifestPath);
+#endif // defined(MOZ_CRASHREPORTER)
 
     marshalResult = ::CoMarshalInterface(stream, aIID, aObject, MSHCTX_LOCAL,
                                          nullptr, mshlFlags);
@@ -333,6 +388,8 @@ ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject,
     nsPrintfCString hrAsStr("0x%08X", marshalResult);
     CrashReporter::AnnotateCrashReport(
         NS_LITERAL_CSTRING("CoMarshalInterfaceFailure"), hrAsStr);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("MarshalActCtxManifestPath"),
+                                       NS_ConvertUTF16toUTF8(manifestPath));
   }
 
   if (FAILED(statResult)) {

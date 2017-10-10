@@ -13,6 +13,7 @@
 
 :root {
   --tabs-border: rgba(0,0,0,.3);
+  --tab-line-color: highlight;
 
   --toolbar-non-lwt-bgcolor: -moz-dialog;
   --toolbar-non-lwt-textcolor: -moz-dialogtext;
@@ -123,48 +124,6 @@ menuitem.bookmark-item {
   list-style-image: url(chrome://browser/skin/places/toolbarDropMarker.png);
 }
 
-/* Bookmark items */
-.bookmark-item {
-  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
-}
-
-.bookmark-item[container] {
-  list-style-image: url("moz-icon://stock/gtk-directory?size=menu");
-}
-
-.bookmark-item[container][livemark] {
-  list-style-image: url("chrome://browser/skin/feeds/feedIcon16.png");
-}
-
-.bookmark-item[container][livemark] .bookmark-item {
-  list-style-image: url("chrome://browser/skin/places/livemark-item.png");
-  -moz-image-region: rect(0px, 16px, 16px, 0px);
-}
-
-.bookmark-item[container][livemark] .bookmark-item[visited] {
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
-}
-
-.bookmark-item[container][query] {
-  list-style-image: url("chrome://browser/skin/places/query.png");
-}
-
-.bookmark-item[query][tagContainer] {
-  list-style-image: url("chrome://browser/skin/places/tag.png");
-}
-
-.bookmark-item[query][dayContainer] {
-  list-style-image: url("chrome://browser/skin/places/calendar.png");
-}
-
-.bookmark-item[query][hostContainer] {
-  list-style-image: url("moz-icon://stock/gtk-directory?size=menu");
-}
-
-.bookmark-item[query][hostContainer][open] {
-  list-style-image: url("moz-icon://stock/gtk-directory?size=menu");
-}
-
 .bookmark-item[cutting] > .toolbarbutton-icon,
 .bookmark-item[cutting] > .menu-iconic-left > .menu-iconic-icon {
   opacity: 0.5;
@@ -176,20 +135,6 @@ menuitem.bookmark-item {
 }
 
 %include ../shared/bookmarked-notification.inc.css
-
-.unified-nav-back[_moz-menuactive] {
-  list-style-image: url("moz-icon://stock/gtk-go-back-ltr?size=menu") !important;
-}
-.unified-nav-back[_moz-menuactive]:-moz-locale-dir(rtl) {
-  list-style-image: url("moz-icon://stock/gtk-go-back-rtl?size=menu") !important;
-}
-.unified-nav-forward[_moz-menuactive] {
-  list-style-image: url("moz-icon://stock/gtk-go-forward-ltr?size=menu") !important;
-}
-.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(rtl) {
-  list-style-image: url("moz-icon://stock/gtk-go-forward-rtl?size=menu") !important;
-}
-
 %include ../shared/toolbarbuttons.inc.css
 %include ../shared/toolbarbutton-icons.inc.css
 %include ../shared/menupanel.inc.css
@@ -232,9 +177,6 @@ menuitem.bookmark-item {
 .urlbar-textbox-container {
   -moz-appearance: none;
   -moz-box-align: stretch;
-}
-.urlbar-input-box {
-  margin: 0;
 }
 
 /* ::::: URL Bar Zoom Reset Button ::::: */
@@ -508,7 +450,7 @@ html|span.ac-emphasize-text-url {
 
 .ac-type-icon[type=keyword],
 .ac-site-icon[type=searchengine] {
-  list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg);
+  list-style-image: url(chrome://browser/skin/search-glass.svg);
   -moz-context-properties: fill;
   fill: GrayText;
 }
@@ -612,6 +554,7 @@ html|span.ac-emphasize-text-url {
   color: -moz-menubartext;
 }
 
+#nav-bar,
 #toolbar-menubar:not([autohide="true"]):not(:-moz-lwtheme):-moz-system-metric(menubar-drag),
 #TabsToolbar:not(:-moz-lwtheme):-moz-system-metric(menubar-drag) {
   -moz-binding: url("chrome://browser/content/customizableui/toolbar.xml#toolbar-drag");
@@ -717,12 +660,6 @@ html|span.ac-emphasize-text-url {
 
 /* End customization mode */
 
-
-#main-window[privatebrowsingmode=temporary] #private-browsing-indicator {
-  background: url("chrome://browser/skin/privatebrowsing-mask.png") center no-repeat;
-  width: 40px;
-}
-
 %include ../shared/UITour.inc.css
 
 #UITourHighlight {
@@ -743,8 +680,6 @@ html|span.ac-emphasize-text-url {
 
 #UITourTooltipClose {
   margin-inline-end: -4px;
-  height: 16px;
-  width: 16px;
 }
 
 /**

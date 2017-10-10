@@ -72,6 +72,11 @@ namespace mozilla {
 
 class Mutex;
 
+namespace wr {
+struct WrFontInstanceOptions;
+struct FontInstancePlatformOptions;
+}
+
 namespace gfx {
 class UnscaledFont;
 class ScaledFont;
@@ -205,7 +210,7 @@ struct DrawSurfaceOptions {
  * matching DrawTarget. Not adhering to this condition will make a draw call
  * fail.
  */
-class GradientStops : public RefCounted<GradientStops>
+class GradientStops : public external::AtomicRefCounted<GradientStops>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GradientStops)
@@ -514,6 +519,9 @@ public:
   /** @deprecated
    * Get the raw bitmap data of the surface.
    * Can return null if there was OOM allocating surface data.
+   *
+   * Deprecated means you shouldn't be using this!! Use Map instead.
+   * Please deny any reviews which add calls to this!
    */
   virtual uint8_t *GetData() = 0;
 
@@ -612,7 +620,7 @@ class FlattenedPath;
 /** The path class is used to create (sets of) figures of any shape that can be
  * filled or stroked to a DrawTarget
  */
-class Path : public RefCounted<Path>
+class Path : public external::AtomicRefCounted<Path>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(Path)
@@ -770,7 +778,9 @@ public:
   virtual already_AddRefed<ScaledFont>
     CreateScaledFont(Float aGlyphSize,
                      const uint8_t* aInstanceData,
-                     uint32_t aInstanceDataLength)
+                     uint32_t aInstanceDataLength,
+                     const FontVariation* aVariations,
+                     uint32_t aNumVariations)
   {
     return nullptr;
   }
@@ -820,9 +830,18 @@ public:
    */
   virtual void GetGlyphDesignMetrics(const uint16_t* aGlyphIndices, uint32_t aNumGlyphs, GlyphMetrics* aGlyphMetrics) = 0;
 
-  typedef void (*FontInstanceDataOutput)(const uint8_t* aData, uint32_t aLength, void* aBaton);
+  typedef void (*FontInstanceDataOutput)(const uint8_t* aData, uint32_t aLength,
+                                         const FontVariation* aVariations, uint32_t aNumVariations,
+                                         void* aBaton);
 
   virtual bool GetFontInstanceData(FontInstanceDataOutput, void *) { return false; }
+
+  virtual bool GetWRFontInstanceOptions(Maybe<wr::WrFontInstanceOptions>* aOutOptions,
+                                        Maybe<wr::FontInstancePlatformOptions>* aOutPlatformOptions,
+                                        std::vector<FontVariation>* aOutVariations)
+  {
+    return false;
+  }
 
   virtual bool CanSerialize() { return false; }
 

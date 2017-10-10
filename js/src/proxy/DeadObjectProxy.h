@@ -13,15 +13,13 @@ namespace js {
 
 class ProxyObject;
 
-enum DeadProxyIsCallableIsConstructorOption
+enum DeadObjectProxyFlags
 {
-    DeadProxyNotCallableNotConstructor,
-    DeadProxyNotCallableIsConstructor,
-    DeadProxyIsCallableNotConstructor,
-    DeadProxyIsCallableIsConstructor
+    DeadObjectProxyIsCallable            = 1 << 0,
+    DeadObjectProxyIsConstructor         = 1 << 1,
+    DeadObjectProxyIsBackgroundFinalized = 1 << 2
 };
 
-template <DeadProxyIsCallableIsConstructorOption CC>
 class DeadObjectProxy : public BaseProxyHandler
 {
   public:
@@ -64,25 +62,30 @@ class DeadObjectProxy : public BaseProxyHandler
     virtual RegExpShared* regexp_toShared(JSContext* cx, HandleObject proxy) const override;
 
     virtual bool isCallable(JSObject* obj) const override {
-        return CC == DeadProxyIsCallableIsConstructor || CC == DeadProxyIsCallableNotConstructor;
+        return flags(obj) & DeadObjectProxyIsCallable;
     }
     virtual bool isConstructor(JSObject* obj) const override {
-        return CC == DeadProxyIsCallableIsConstructor || CC == DeadProxyNotCallableIsConstructor;
+        return flags(obj) & DeadObjectProxyIsConstructor;
     }
 
-    static const DeadObjectProxy* singleton() {
-        static DeadObjectProxy singleton;
-        return &singleton;
+    virtual bool finalizeInBackground(const JS::Value& priv) const override {
+        return priv.toInt32() & DeadObjectProxyIsBackgroundFinalized;
     }
 
+    static const DeadObjectProxy singleton;
     static const char family;
+
+  private:
+    static int32_t flags(JSObject* obj) {
+        return GetProxyPrivate(obj).toInt32();
+    }
 };
 
 bool
 IsDeadProxyObject(JSObject* obj);
 
-const BaseProxyHandler*
-SelectDeadProxyHandler(ProxyObject* obj);
+Value
+DeadProxyTargetValue(ProxyObject* obj);
 
 JSObject*
 NewDeadProxyObject(JSContext* cx, JSObject* origObj = nullptr);

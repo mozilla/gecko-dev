@@ -378,7 +378,6 @@ NS_IMPL_ISUPPORTS(HTMLCanvasElementObserver, nsIObserver)
 HTMLCanvasElement::HTMLCanvasElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
     mResetLayer(true) ,
-    mVRPresentationActive(false),
     mWriteOnly(false)
 {}
 
@@ -404,9 +403,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLCanvasElement, nsGenericHTMLElement,
                                    mPrintState, mOriginalCanvas,
                                    mOffscreenCanvas)
 
-NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLCanvasElement,
-                                             nsGenericHTMLElement,
-                                             nsIDOMHTMLCanvasElement)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLCanvasElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLCanvasElement)
 
@@ -460,23 +457,21 @@ HTMLCanvasElement::GetWidthHeight()
   return size;
 }
 
-NS_IMPL_UINT_ATTR_DEFAULT_VALUE(HTMLCanvasElement, Width, width, DEFAULT_CANVAS_WIDTH)
-NS_IMPL_UINT_ATTR_DEFAULT_VALUE(HTMLCanvasElement, Height, height, DEFAULT_CANVAS_HEIGHT)
-NS_IMPL_BOOL_ATTR(HTMLCanvasElement, MozOpaque, moz_opaque)
-
 nsresult
-HTMLCanvasElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+HTMLCanvasElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue, bool aNotify)
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify)
 {
   AfterMaybeChangeAttr(aNamespaceID, aName, aNotify);
 
   return nsGenericHTMLElement::AfterSetAttr(aNamespaceID, aName, aValue,
-                                            aOldValue, aNotify);
+                                            aOldValue, aSubjectPrincipal, aNotify);
 }
 
 nsresult
-HTMLCanvasElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsIAtom* aName,
+HTMLCanvasElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
                                           const nsAttrValueOrString& aValue,
                                           bool aNotify)
 {
@@ -487,7 +482,7 @@ HTMLCanvasElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsIAtom* aName,
 }
 
 void
-HTMLCanvasElement::AfterMaybeChangeAttr(int32_t aNamespaceID, nsIAtom* aName,
+HTMLCanvasElement::AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName,
                                         bool aNotify)
 {
   if (mCurrentContext && aNamespaceID == kNameSpaceID_None &&
@@ -611,7 +606,7 @@ nsresult HTMLCanvasElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 }
 
 nsChangeHint
-HTMLCanvasElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
+HTMLCanvasElement::GetAttributeChangeHint(const nsAtom* aAttribute,
                                           int32_t aModType) const
 {
   nsChangeHint retval =
@@ -629,7 +624,7 @@ HTMLCanvasElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 
 bool
 HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
@@ -1057,7 +1052,7 @@ HTMLCanvasElement::InvalidateCanvasContent(const gfx::Rect* damageRect)
   // Instead, we mark the CanvasRenderer dirty and scheduling an empty transaction
   // which is effectively equivalent.
   CanvasRenderer* renderer = nullptr;
-  if (gfxPrefs::WebRenderLayersFree() && frame->HasProperty(nsIFrame::WebRenderUserDataProperty())) {
+  if (frame->HasProperty(nsIFrame::WebRenderUserDataProperty())) {
     nsIFrame::WebRenderUserDataTable* userDataTable =
       frame->GetProperty(nsIFrame::WebRenderUserDataProperty());
     RefPtr<WebRenderUserData> data;
@@ -1160,7 +1155,7 @@ HTMLCanvasElement::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   static uint8_t sOffscreenCanvasLayerUserDataDummy = 0;
 
   if (mCurrentContext) {
-    return mCurrentContext->GetCanvasLayer(aBuilder, aOldLayer, aManager, mVRPresentationActive);
+    return mCurrentContext->GetCanvasLayer(aBuilder, aOldLayer, aManager);
   }
 
   if (mOffscreenCanvas) {
@@ -1501,32 +1496,6 @@ HTMLCanvasElement::InvalidateFromAsyncCanvasRenderer(AsyncCanvasRenderer *aRende
   }
 
   element->InvalidateCanvasContent(nullptr);
-}
-
-void
-HTMLCanvasElement::StartVRPresentation()
-{
-  if (GetCurrentContextType() != CanvasContextType::WebGL1 &&
-      GetCurrentContextType() != CanvasContextType::WebGL2) {
-    return;
-  }
-
-  WebGLContext* webgl = static_cast<WebGLContext*>(GetContextAtIndex(0));
-  if (!webgl) {
-    return;
-  }
-
-  if (!webgl->StartVRPresentation()) {
-    return;
-  }
-
-  mVRPresentationActive = true;
-}
-
-void
-HTMLCanvasElement::StopVRPresentation()
-{
-  mVRPresentationActive = false;
 }
 
 already_AddRefed<layers::SharedSurfaceTextureClient>

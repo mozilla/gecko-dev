@@ -30,8 +30,6 @@ public:
 
   RefPtr<InitPromise> Init() override;
 
-  bool HasTrackType(TrackInfo::TrackType aType) const override;
-
   uint32_t GetNumberTracks(TrackInfo::TrackType aType) const override;
 
   already_AddRefed<MediaTrackDemuxer>
@@ -44,8 +42,8 @@ public:
   bool ShouldComputeStartTime() const override { return false; }
 
   /* interface for TrackBuffersManager */
-  void AttachSourceBuffer(TrackBuffersManager* aSourceBuffer);
-  void DetachSourceBuffer(TrackBuffersManager* aSourceBuffer);
+  void AttachSourceBuffer(RefPtr<TrackBuffersManager>& aSourceBuffer);
+  void DetachSourceBuffer(RefPtr<TrackBuffersManager>& aSourceBuffer);
   AutoTaskQueue* GetTaskQueue() { return mTaskQueue; }
   void NotifyInitDataArrived();
 
@@ -66,10 +64,10 @@ private:
   friend class MediaSourceTrackDemuxer;
   // Scan source buffers and update information.
   bool ScanSourceBuffersForContent();
-  TrackBuffersManager* GetManager(TrackInfo::TrackType aType);
+  RefPtr<TrackBuffersManager> GetManager(TrackInfo::TrackType aType);
   TrackInfo* GetTrackInfo(TrackInfo::TrackType);
-  void DoAttachSourceBuffer(TrackBuffersManager* aSourceBuffer);
-  void DoDetachSourceBuffer(TrackBuffersManager* aSourceBuffer);
+  void DoAttachSourceBuffer(RefPtr<TrackBuffersManager>&& aSourceBuffer);
+  void DoDetachSourceBuffer(RefPtr<TrackBuffersManager>&& aSourceBuffer);
   bool OnTaskQueue()
   {
     return !GetTaskQueue() || GetTaskQueue()->IsCurrentThreadIn();

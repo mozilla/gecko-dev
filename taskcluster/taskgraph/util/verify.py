@@ -5,11 +5,16 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import logging
 import re
 import os
 import sys
 
-base_path = os.path.join(os.getcwd(), "taskcluster/docs/")
+from .. import GECKO
+from taskgraph.util.bbb_validation import valid_bbb_builders
+
+logger = logging.getLogger(__name__)
+base_path = os.path.join(GECKO, 'taskcluster', 'docs')
 
 
 class VerificationSequence(object):
@@ -145,3 +150,26 @@ def verify_dependency_tiers(task, taskgraph, scratch_pad):
                         '{} (tier {}) cannot depend on {} (tier {})'
                         .format(task.label, printable_tier(tier),
                                 d, printable_tier(tiers[d])))
+
+
+@verifications.add('optimized_task_graph')
+def verify_bbb_builders_valid(task, taskgraph, scratch_pad):
+    """
+        This function ensures that any task which is run
+        in buildbot (via buildbot-bridge) is using a recognized buildername.
+
+        If you see an unexpected failure with a task due to this check, please
+        see the IRC Channel, #releng.
+    """
+    if task is None:
+        return
+    valid_builders = valid_bbb_builders()
+    if valid_builders is None:
+        return
+    if task.task.get('workerType') == 'buildbot-bridge':
+        buildername = task.task['payload']['buildername']
+        if buildername not in valid_builders:
+            logger.warning(
+                '{} uses an invalid buildbot buildername ("{}") '
+                ' - contact #releng for help'
+                .format(task.label, buildername))

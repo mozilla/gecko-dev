@@ -890,10 +890,12 @@ SyncEngine.prototype = {
     this._toFetch = val;
     CommonUtils.namedTimer(function() {
       try {
-        Async.promiseSpinningly(Utils.jsonSave("toFetch/" + this.name, this, val));
+        Async.promiseSpinningly(Utils.jsonSave("toFetch/" + this.name, this, this._toFetch));
       } catch (error) {
         this._log.error("Failed to read JSON records to fetch", error);
       }
+      // Notify our tests that we finished writing the file.
+      Observers.notify("sync-testing:file-saved:toFetch", null, this.name);
     }, 0, this, "_toFetchDelay");
   },
 
@@ -916,11 +918,15 @@ SyncEngine.prototype = {
     }
     this._previousFailed = val;
     CommonUtils.namedTimer(function() {
-      Utils.jsonSave("failed/" + this.name, this, val).then(() => {
+      Utils.jsonSave("failed/" + this.name, this, this._previousFailed).then(() => {
         this._log.debug("Successfully wrote previousFailed.");
       })
       .catch((error) => {
         this._log.error("Failed to set previousFailed", error);
+      })
+      .then(() => {
+        // Notify our tests that we finished writing the file.
+        Observers.notify("sync-testing:file-saved:previousFailed", null, this.name);
       });
     }, 0, this, "_previousFailedDelay");
   },
@@ -943,14 +949,6 @@ SyncEngine.prototype = {
   set lastSyncLocal(value) {
     // Store as a string because pref can only store C longs as numbers.
     Svc.Prefs.set(this.name + ".lastSyncLocal", value.toString());
-  },
-
-  get maxRecordPayloadBytes() {
-    let serverConfiguration = this.service.serverConfiguration;
-    if (serverConfiguration && serverConfiguration.max_record_payload_bytes) {
-      return serverConfiguration.max_record_payload_bytes;
-    }
-    return DEFAULT_MAX_RECORD_PAYLOAD_BYTES;
   },
 
   /*
@@ -1159,7 +1157,7 @@ SyncEngine.prototype = {
 
       try {
         try {
-          item.decrypt(key);
+          await item.decrypt(key);
         } catch (ex) {
           if (!Utils.isHMACMismatch(ex)) {
             throw ex;
@@ -1171,7 +1169,7 @@ SyncEngine.prototype = {
               // Try decrypting again, typically because we've got new keys.
               self._log.info("Trying decrypt again...");
               key = self.service.collectionKeys.keyForCollection(self.name);
-              item.decrypt(key);
+              await item.decrypt(key);
               strategy = null;
             } catch (ex) {
               if (!Utils.isHMACMismatch(ex)) {
@@ -1677,15 +1675,7 @@ SyncEngine.prototype = {
           }
           if (this._log.level <= Log.Level.Trace)
             this._log.trace("Outgoing: " + out);
-
-          out.encrypt(this.service.collectionKeys.keyForCollection(this.name));
-          let payloadLength = JSON.stringify(out.payload).length;
-          if (payloadLength > this.maxRecordPayloadBytes) {
-            if (this.allowSkippedRecord) {
-              this._modified.delete(id); // Do not attempt to sync that record again
-            }
-            throw new Error(`Payload too big: ${payloadLength} bytes`);
-          }
+          await out.encrypt(this.service.collectionKeys.keyForCollection(this.name));
           ok = true;
         } catch (ex) {
           this._log.warn("Error creating record", ex);
@@ -1704,6 +1694,7 @@ SyncEngine.prototype = {
             ++counts.failed;
             if (!this.allowSkippedRecord) {
               Observers.notify("weave:engine:sync:uploaded", counts, this.name);
+              this._log.warn(`Failed to enqueue record "${id}" (aborting)`, error);
               throw error;
             }
             this._modified.delete(id);
@@ -1810,7 +1801,7 @@ SyncEngine.prototype = {
       let json = (await test.get()).obj[0];
       let record = new this._recordObj();
       record.deserialize(json);
-      record.decrypt(key);
+      await record.decrypt(key);
       canDecrypt = true;
     } catch (ex) {
       if (Async.isShutdownException(ex)) {

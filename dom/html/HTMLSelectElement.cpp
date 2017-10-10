@@ -751,7 +751,7 @@ HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
 bool
 HTMLSelectElement::MatchSelectedOptions(Element* aElement,
                                         int32_t /* unused */,
-                                        nsIAtom* /* unused */,
+                                        nsAtom* /* unused */,
                                         void* /* unused*/)
 {
   HTMLOptionElement* option = HTMLOptionElement::FromContent(aElement);
@@ -1287,7 +1287,7 @@ HTMLSelectElement::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 nsresult
-HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify)
 {
@@ -1314,9 +1314,11 @@ HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue, bool aNotify)
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::disabled) {
@@ -1349,6 +1351,7 @@ HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
   return nsGenericHTMLFormElementWithState::AfterSetAttr(aNameSpaceID, aName,
                                                          aValue, aOldValue,
+                                                         aSubjectPrincipal,
                                                          aNotify);
 }
 
@@ -1395,7 +1398,7 @@ HTMLSelectElement::DoneAddingChildren(bool aHaveNotified)
 
 bool
 HTMLSelectElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
@@ -1420,7 +1423,7 @@ HTMLSelectElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 }
 
 nsChangeHint
-HTMLSelectElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
+HTMLSelectElement::GetAttributeChangeHint(const nsAtom* aAttribute,
                                           int32_t aModType) const
 {
   nsChangeHint retval =
@@ -1433,7 +1436,7 @@ HTMLSelectElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLSelectElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLSelectElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry* const map[] = {
     sCommonAttributeMap,

@@ -7,17 +7,15 @@
 //! the script thread. The script thread contains a JobQueue, which stores all scheduled Jobs
 //! by multiple service worker clients in a Vec.
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::error::Error;
-use dom::bindings::js::JS;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::Dom;
 use dom::client::Client;
-use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::urlhelper::UrlHelper;
-use js::jsapi::JSAutoCompartment;
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
@@ -48,7 +46,7 @@ pub struct Job {
     pub promise: Rc<Promise>,
     pub equivalent_jobs: Vec<Job>,
     // client can be a window client, worker client so `Client` will be an enum in future
-    pub client: JS<Client>,
+    pub client: Dom<Client>,
     pub referrer: ServoUrl
 }
 
@@ -66,7 +64,7 @@ impl Job {
             script_url: script_url,
             promise: promise,
             equivalent_jobs: vec![],
-            client: JS::from_ref(client),
+            client: Dom::from_ref(client),
             referrer: client.creation_url()
         }
     }
@@ -95,11 +93,11 @@ impl PartialEq for Job {
 
 #[must_root]
 #[derive(JSTraceable)]
-pub struct JobQueue(pub DOMRefCell<HashMap<ServoUrl, Vec<Job>>>);
+pub struct JobQueue(pub DomRefCell<HashMap<ServoUrl, Vec<Job>>>);
 
 impl JobQueue {
     pub fn new() -> JobQueue {
-        JobQueue(DOMRefCell::new(HashMap::new()))
+        JobQueue(DomRefCell::new(HashMap::new()))
     }
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#schedule-job-algorithm
@@ -116,7 +114,7 @@ impl JobQueue {
         } else {
             // Step 2
             let mut last_job = job_queue.pop().unwrap();
-            if job == last_job && !last_job.promise.is_settled() {
+            if job == last_job && !last_job.promise.is_fulfilled() {
                 last_job.append_equivalent_job(job);
                 job_queue.push(last_job);
                 debug!("appended equivalent job");
@@ -261,11 +259,10 @@ impl JobQueue {
     }
 }
 
-fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleType) {
-    let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
+fn settle_job_promise(promise: &Promise, settle: SettleType) {
     match settle {
-        SettleType::Resolve(reg) => promise.resolve_native(global.get_cx(), &*reg.root()),
-        SettleType::Reject(err) => promise.reject_error(global.get_cx(), err),
+        SettleType::Resolve(reg) => promise.resolve_native(&*reg.root()),
+        SettleType::Reject(err) => promise.reject_error(err),
     };
 }
 
@@ -275,9 +272,9 @@ fn queue_settle_promise_for_job(job: &Job, settle: SettleType, task_source: &DOM
     let promise = TrustedPromise::new(job.promise.clone());
     // FIXME(nox): Why are errors silenced here?
     let _ = task_source.queue(
-        box task!(settle_promise_for_job: move || {
+        task!(settle_promise_for_job: move || {
             let promise = promise.root();
-            settle_job_promise(&promise.global(), &promise, settle)
+            settle_job_promise(&promise, settle)
         }),
         &*global,
     );

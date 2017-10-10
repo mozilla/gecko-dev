@@ -71,6 +71,7 @@ EXPORTS += [
     'nsDOMJSUtils.h',
     'nsDOMNavigationTiming.h',
     'nsDOMString.h',
+    'nsDOMTokenList.h',
     'nsFocusManager.h',
     'nsFrameMessageManager.h',
     'nsGenericDOMDataNode.h',
@@ -111,13 +112,13 @@ EXPORTS += [
     'nsPIWindowRoot.h',
     'nsPropertyTable.h',
     'nsRange.h',
-    'nsReferencedElement.h',
     'nsSandboxFlags.h',
     'nsStructuredCloneContainer.h',
     'nsStubAnimationObserver.h',
     'nsStubDocumentObserver.h',
     'nsStubMutationObserver.h',
     'nsStyledElement.h',
+    'nsStyleLinkElement.h',
     'nsTextFragment.h',
     'nsTraversal.h',
     'nsTreeSanitizer.h',
@@ -140,6 +141,7 @@ EXPORTS.mozilla += [
     'CORSMode.h',
     'FeedWriterEnabled.h',
     'FlushType.h',
+    'RangeBoundary.h',
     'TextInputProcessor.h',
     'UseCounter.h',
 ]
@@ -183,8 +185,10 @@ EXPORTS.mozilla.dom += [
     'GroupedSHistory.h',
     'IdleDeadline.h',
     'IdleRequest.h',
+    'IDTracker.h',
     'ImageEncoder.h',
     'ImageTracker.h',
+    'IntlUtils.h',
     'Link.h',
     'Location.h',
     'NameSpaceConstants.h',
@@ -256,8 +260,10 @@ UNIFIED_SOURCES += [
     'GroupedSHistory.cpp',
     'IdleDeadline.cpp',
     'IdleRequest.cpp',
+    'IDTracker.cpp',
     'ImageEncoder.cpp',
     'ImageTracker.cpp',
+    'IntlUtils.cpp',
     'Link.cpp',
     'Location.cpp',
     'Navigator.cpp',
@@ -313,7 +319,6 @@ UNIFIED_SOURCES += [
     'nsPropertyTable.cpp',
     'nsQueryContentEventResult.cpp',
     'nsRange.cpp',
-    'nsReferencedElement.cpp',
     'nsScreen.cpp',
     'nsScriptNameSpaceManager.cpp',
     'nsStructuredCloneContainer.cpp',
@@ -373,14 +378,6 @@ if CONFIG['MOZ_WEBRTC']:
 if CONFIG['FUZZING']:
     UNIFIED_SOURCES += [
         'FuzzingFunctions.cpp',
-    ]
-
-if CONFIG['ENABLE_INTL_API']:
-    UNIFIED_SOURCES += [
-        'IntlUtils.cpp',
-    ]
-    EXPORTS.mozilla.dom += [
-        'IntlUtils.h',
     ]
 
 # these files couldn't be in UNIFIED_SOURCES for now for reasons given below:

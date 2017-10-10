@@ -164,11 +164,12 @@ JS::ObjectOpResult::reportStrictErrorOrWarning(JSContext* cx, HandleObject obj, 
     assertSameCompartment(cx, obj);
 
     unsigned flags = strict ? JSREPORT_ERROR : (JSREPORT_WARNING | JSREPORT_STRICT);
-    if (code_ == JSMSG_OBJECT_NOT_EXTENSIBLE || code_ == JSMSG_SET_NON_OBJECT_RECEIVER) {
+    if (code_ == JSMSG_OBJECT_NOT_EXTENSIBLE) {
         RootedValue val(cx, ObjectValue(*obj));
         return ReportValueErrorFlags(cx, flags, code_, JSDVG_IGNORE_STACK, val,
                                      nullptr, nullptr, nullptr);
     }
+
     if (ErrorTakesArguments(code_)) {
         RootedValue idv(cx, IdToValue(id));
         RootedString str(cx, ValueToSource(cx, idv));
@@ -178,6 +179,15 @@ JS::ObjectOpResult::reportStrictErrorOrWarning(JSContext* cx, HandleObject obj, 
         JSAutoByteString propName;
         if (!propName.encodeUtf8(cx, str))
             return false;
+
+        if (code_ == JSMSG_SET_NON_OBJECT_RECEIVER) {
+            // We know that the original receiver was a primitive, so unbox it.
+            RootedValue val(cx);
+            if (!Unbox(cx, obj, &val))
+                return false;
+            return ReportValueErrorFlags(cx, flags, code_, JSDVG_IGNORE_STACK, val,
+                                         nullptr, propName.ptr(), nullptr);
+        }
 
         if (ErrorTakesObjectArgument(code_)) {
             return JS_ReportErrorFlagsAndNumberUTF8(cx, flags, GetErrorMessage, nullptr, code_,
@@ -1334,7 +1344,7 @@ JS_malloc(JSContext* cx, size_t nbytes)
 {
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
-    return static_cast<void*>(cx->runtime()->pod_malloc<uint8_t>(nbytes));
+    return static_cast<void*>(cx->zone()->pod_malloc<uint8_t>(nbytes));
 }
 
 JS_PUBLIC_API(void*)
@@ -3677,7 +3687,7 @@ CloneFunctionObject(JSContext* cx, HandleObject funobj, HandleObject env, Handle
         return nullptr;
     }
 
-    if (IsAsmJSModule(fun)) {
+    if (IsAsmJSModule(fun) || wasm::IsExportedFunction(fun)) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
         return nullptr;
     }
@@ -4098,7 +4108,7 @@ Compile(JSContext* cx, const ReadOnlyCompileOptions& options, ScopeKind scopeKin
     if (options.utf8)
         chars.reset(UTF8CharsToNewTwoByteCharsZ(cx, UTF8Chars(bytes, length), &length).get());
     else
-        chars.reset(InflateString(cx, bytes, &length));
+        chars.reset(InflateString(cx, bytes, length));
     if (!chars)
         return false;
 
@@ -4601,7 +4611,7 @@ JS::CompileFunction(JSContext* cx, AutoObjectVector& envChain,
     if (options.utf8)
         chars.reset(UTF8CharsToNewTwoByteCharsZ(cx, UTF8Chars(bytes, length), &length).get());
     else
-        chars.reset(InflateString(cx, bytes, &length));
+        chars.reset(InflateString(cx, bytes, length));
     if (!chars)
         return false;
 
@@ -4782,7 +4792,7 @@ JS::Evaluate(JSContext* cx, const ReadOnlyCompileOptions& options,
     if (options.utf8)
         chars = UTF8CharsToNewTwoByteCharsZ(cx, JS::UTF8Chars(bytes, length), &length).get();
     else
-        chars = InflateString(cx, bytes, &length);
+        chars = InflateString(cx, bytes, length);
     if (!chars)
         return false;
 
@@ -6599,7 +6609,7 @@ JS_NewRegExpObject(JSContext* cx, const char* bytes, size_t length, unsigned fla
 {
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
-    ScopedJSFreePtr<char16_t> chars(InflateString(cx, bytes, &length));
+    ScopedJSFreePtr<char16_t> chars(InflateString(cx, bytes, length));
     if (!chars)
         return nullptr;
 
@@ -6725,10 +6735,10 @@ JS_GetRegExpSource(JSContext* cx, HandleObject obj)
 /************************************************************************/
 
 JS_PUBLIC_API(bool)
-JS_SetDefaultLocale(JSContext* cx, const char* locale)
+JS_SetDefaultLocale(JSRuntime* rt, const char* locale)
 {
     AssertHeapIsIdle();
-    return cx->runtime()->setDefaultLocale(locale);
+    return rt->setDefaultLocale(locale);
 }
 
 JS_PUBLIC_API(UniqueChars)
@@ -6742,24 +6752,24 @@ JS_GetDefaultLocale(JSContext* cx)
 }
 
 JS_PUBLIC_API(void)
-JS_ResetDefaultLocale(JSContext* cx)
+JS_ResetDefaultLocale(JSRuntime* rt)
 {
     AssertHeapIsIdle();
-    cx->runtime()->resetDefaultLocale();
+    rt->resetDefaultLocale();
 }
 
 JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSContext* cx, const JSLocaleCallbacks* callbacks)
+JS_SetLocaleCallbacks(JSRuntime* rt, const JSLocaleCallbacks* callbacks)
 {
     AssertHeapIsIdle();
-    cx->runtime()->localeCallbacks = callbacks;
+    rt->localeCallbacks = callbacks;
 }
 
 JS_PUBLIC_API(const JSLocaleCallbacks*)
-JS_GetLocaleCallbacks(JSContext* cx)
+JS_GetLocaleCallbacks(JSRuntime* rt)
 {
     /* This function can be called by a finalizer. */
-    return cx->runtime()->localeCallbacks;
+    return rt->localeCallbacks;
 }
 
 /************************************************************************/
@@ -7514,19 +7524,6 @@ UnhideScriptedCaller(JSContext* cx)
 }
 
 } /* namespace JS */
-
-AutoGCRooter::AutoGCRooter(JSContext* cx, ptrdiff_t tag)
-  : AutoGCRooter(JS::RootingContext::get(cx), tag)
-{}
-
-AutoGCRooter::AutoGCRooter(JS::RootingContext* cx, ptrdiff_t tag)
-  : down(cx->autoGCRooters_),
-    tag_(tag),
-    stackTop(&cx->autoGCRooters_)
-{
-    MOZ_ASSERT(this != *stackTop);
-    *stackTop = this;
-}
 
 #ifdef JS_DEBUG
 JS_PUBLIC_API(void)

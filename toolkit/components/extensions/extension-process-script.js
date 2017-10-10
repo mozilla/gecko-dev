@@ -224,7 +224,6 @@ DocumentManager = {
    */
   checkParentFrames(window, addonId) {
     while (window.parent !== window) {
-      let {frameElement} = window;
       window = window.parent;
 
       let principal = window.document.nodePrincipal;
@@ -233,14 +232,6 @@ DocumentManager = {
         // The add-on manager is a special case, since it contains extension
         // options pages in same-type <browser> frames.
         if (window.location.href === "about:addons") {
-          return true;
-        }
-
-        // NOTE: Special handling for devtools panels using a chrome iframe here
-        // for the devtools panel, it is needed because a content iframe breaks
-        // switching between docked and undocked mode (see bug 1075490).
-        if (frameElement &&
-            frameElement.mozMatchesSelector("browser[webextension-view-type='devtools_panel']")) {
           return true;
         }
       }
@@ -389,6 +380,16 @@ ExtensionManager = {
       }
 
       case "Schema:Add": {
+        // If we're given a Map, the ordering of the initial items
+        // matters, so swap with our current data to make sure its
+        // entries appear first.
+        if (typeof data.get === "function") {
+          [this.schemaJSON, data] = [data, this.schemaJSON];
+
+          Services.cpmm.initialProcessData["Extension:Schemas"] =
+            this.schemaJSON;
+        }
+
         for (let [url, schema] of data) {
           this.schemaJSON.set(url, schema);
         }

@@ -66,7 +66,7 @@ using mozilla::AutoJSContext;
     }                                                             \
     ShadowRoot* shadow = ShadowRoot::FromNode(node);              \
     if (shadow) {                                                 \
-      node = shadow->GetPoolHost();                               \
+      node = shadow->GetHost();                                   \
     } else {                                                      \
       node = node->GetParentNode();                               \
     }                                                             \
@@ -94,7 +94,7 @@ using mozilla::AutoJSContext;
     }                                                             \
     ShadowRoot* shadow = ShadowRoot::FromNode(node);              \
     if (shadow) {                                                 \
-      node = shadow->GetPoolHost();                               \
+      node = shadow->GetHost();                                   \
     } else {                                                      \
       node = node->GetParentNode();                               \
     }                                                             \
@@ -125,7 +125,7 @@ nsNodeUtils::CharacterDataChanged(nsIContent* aContent,
 void
 nsNodeUtils::AttributeWillChange(Element* aElement,
                                  int32_t aNameSpaceID,
-                                 nsIAtom* aAttribute,
+                                 nsAtom* aAttribute,
                                  int32_t aModType,
                                  const nsAttrValue* aNewValue)
 {
@@ -138,7 +138,7 @@ nsNodeUtils::AttributeWillChange(Element* aElement,
 void
 nsNodeUtils::AttributeChanged(Element* aElement,
                               int32_t aNameSpaceID,
-                              nsIAtom* aAttribute,
+                              nsAtom* aAttribute,
                               int32_t aModType,
                               const nsAttrValue* aOldValue)
 {
@@ -151,7 +151,7 @@ nsNodeUtils::AttributeChanged(Element* aElement,
 void
 nsNodeUtils::AttributeSetToCurrentValue(Element* aElement,
                                         int32_t aNameSpaceID,
-                                        nsIAtom* aAttribute)
+                                        nsAtom* aAttribute)
 {
   nsIDocument* doc = aElement->OwnerDoc();
   IMPL_MUTATION_NOTIFICATION(AttributeSetToCurrentValue, aElement,
@@ -160,14 +160,12 @@ nsNodeUtils::AttributeSetToCurrentValue(Element* aElement,
 
 void
 nsNodeUtils::ContentAppended(nsIContent* aContainer,
-                             nsIContent* aFirstNewContent,
-                             int32_t aNewIndexInContainer)
+                             nsIContent* aFirstNewContent)
 {
   nsIDocument* doc = aContainer->OwnerDoc();
 
   IMPL_MUTATION_NOTIFICATION(ContentAppended, aContainer,
-                             (doc, aContainer, aFirstNewContent,
-                              aNewIndexInContainer));
+                             (doc, aContainer, aFirstNewContent));
 }
 
 void
@@ -181,8 +179,7 @@ nsNodeUtils::NativeAnonymousChildListChange(nsIContent* aContent,
 
 void
 nsNodeUtils::ContentInserted(nsINode* aContainer,
-                             nsIContent* aChild,
-                             int32_t aIndexInContainer)
+                             nsIContent* aChild)
 {
   NS_PRECONDITION(aContainer->IsNodeOfType(nsINode::eCONTENT) ||
                   aContainer->IsNodeOfType(nsINode::eDOCUMENT),
@@ -200,13 +197,12 @@ nsNodeUtils::ContentInserted(nsINode* aContainer,
   }
 
   IMPL_MUTATION_NOTIFICATION(ContentInserted, aContainer,
-                             (document, container, aChild, aIndexInContainer));
+                             (document, container, aChild));
 }
 
 void
 nsNodeUtils::ContentRemoved(nsINode* aContainer,
                             nsIContent* aChild,
-                            int32_t aIndexInContainer,
                             nsIContent* aPreviousSibling)
 {
   NS_PRECONDITION(aContainer->IsNodeOfType(nsINode::eCONTENT) ||
@@ -225,8 +221,7 @@ nsNodeUtils::ContentRemoved(nsINode* aContainer,
   }
 
   IMPL_MUTATION_NOTIFICATION(ContentRemoved, aContainer,
-                             (document, container, aChild, aIndexInContainer,
-                              aPreviousSibling));
+                             (document, container, aChild, aPreviousSibling));
 }
 
 Maybe<NonOwningAnimationTarget>
@@ -298,19 +293,6 @@ nsNodeUtils::LastRelease(nsINode* aNode)
                                               NodeWillBeDestroyed, (aNode));
     }
 
-    if (aNode->IsElement()) {
-      Element* elem = aNode->AsElement();
-      FragmentOrElement::nsDOMSlots* domSlots =
-        static_cast<FragmentOrElement::nsDOMSlots*>(slots);
-      if (domSlots->mExtendedSlots) {
-        for (auto iter = domSlots->mExtendedSlots->mRegisteredIntersectionObservers.Iter();
-             !iter.Done(); iter.Next()) {
-          DOMIntersectionObserver* observer = iter.Key();
-          observer->UnlinkTarget(*elem);
-        }
-      }
-    }
-
     delete slots;
     aNode->mSlots = nullptr;
   }
@@ -325,6 +307,12 @@ nsNodeUtils::LastRelease(nsINode* aNode)
   }
   else {
     if (aNode->HasProperties()) {
+      if (aNode->IsElement()) {
+        Element* elem = aNode->AsElement();
+        elem->UnlinkIntersectionObservers();
+        elem->DeleteProperty(nsGkAtoms::intersectionobserverlist);
+      }
+
       // Strong reference to the document so that deleting properties can't
       // delete the document.
       nsCOMPtr<nsIDocument> document = aNode->OwnerDoc();
@@ -388,7 +376,7 @@ nsNodeUtils::LastRelease(nsINode* aNode)
 }
 
 static void
-NoteUserData(void *aObject, nsIAtom *aKey, void *aXPCOMChild, void *aData)
+NoteUserData(void *aObject, nsAtom *aKey, void *aXPCOMChild, void *aData)
 {
   nsCycleCollectionTraversalCallback* cb =
     static_cast<nsCycleCollectionTraversalCallback*>(aData);
@@ -477,19 +465,37 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
       return nullptr;
     }
 
-    if (clone->IsElement()) {
+    if (CustomElementRegistry::IsCustomElementEnabled() && clone->IsElement()) {
       // The cloned node may be a custom element that may require
-      // enqueing created callback and prototype swizzling.
+      // enqueing upgrade reaction.
       Element* elem = clone->AsElement();
-      if (nsContentUtils::IsCustomElementName(nodeInfo->NameAtom())) {
-        nsContentUtils::SetupCustomElement(elem);
+      CustomElementDefinition* definition = nullptr;
+      RefPtr<nsAtom> tagAtom = nodeInfo->NameAtom();
+      if (nsContentUtils::IsCustomElementName(tagAtom)) {
+        definition =
+          nsContentUtils::LookupCustomElementDefinition(nodeInfo->GetDocument(),
+                                                        nodeInfo->LocalName(),
+                                                        nodeInfo->NamespaceID());
+        if (definition) {
+          elem->SetCustomElementData(new CustomElementData(tagAtom));
+          nsContentUtils::EnqueueUpgradeReaction(elem, definition);
+        }
       } else {
         // Check if node may be custom element by type extension.
         // ex. <button is="x-button">
         nsAutoString extension;
         if (elem->GetAttr(kNameSpaceID_None, nsGkAtoms::is, extension) &&
             !extension.IsEmpty()) {
-          nsContentUtils::SetupCustomElement(elem, &extension);
+          definition =
+            nsContentUtils::LookupCustomElementDefinition(nodeInfo->GetDocument(),
+                                                          nodeInfo->LocalName(),
+                                                          nodeInfo->NamespaceID(),
+                                                          &extension);
+          if (definition) {
+            RefPtr<nsAtom> typeAtom = NS_Atomize(extension);
+            elem->SetCustomElementData(new CustomElementData(typeAtom));
+            nsContentUtils::EnqueueUpgradeReaction(elem, definition);
+          }
         }
       }
     }
@@ -527,6 +533,23 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
 
     nsIDocument* newDoc = aNode->OwnerDoc();
     if (newDoc) {
+      if (CustomElementRegistry::IsCustomElementEnabled()) {
+        // Adopted callback must be enqueued whenever a node’s
+        // shadow-including inclusive descendants that is custom.
+        Element* element = aNode->IsElement() ? aNode->AsElement() : nullptr;
+        if (element) {
+          RefPtr<CustomElementData> data = element->GetCustomElementData();
+          if (data && data->mState == CustomElementData::State::eCustom) {
+            LifecycleAdoptedCallbackArgs args = {
+              oldDoc,
+              newDoc
+            };
+            nsContentUtils::EnqueueLifecycleCallback(nsIDocument::eAdopted,
+                                                     element, nullptr, &args);
+          }
+        }
+      }
+
       // XXX what if oldDoc is null, we don't know if this should be
       // registered or not! Can that really happen?
       if (wasRegistered) {

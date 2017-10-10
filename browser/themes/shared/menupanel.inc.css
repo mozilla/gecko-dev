@@ -30,7 +30,7 @@
 
 #appMenu-find-button,
 #panelMenu_searchBookmarks {
-  list-style-image: url(chrome://browser/skin/find.svg);
+  list-style-image: url(chrome://browser/skin/search-glass.svg);
 }
 
 #appMenu-help-button {
@@ -97,7 +97,7 @@
 }
 
 #panelMenu_viewBookmarksToolbar {
-  list-style-image: url("chrome://browser/skin/toolbar.svg");
+  list-style-image: url("chrome://browser/skin/bookmarks-toolbar.svg");
 }
 
 #appMenu-library-bookmarks-button,

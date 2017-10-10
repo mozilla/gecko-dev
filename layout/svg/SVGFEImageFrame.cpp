@@ -10,7 +10,7 @@
 #include "nsGkAtoms.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsLiteralString.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGFilters.h"
 #include "mozilla/dom/SVGFEImageElement.h"
 
@@ -55,7 +55,7 @@ public:
 #endif
 
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     int32_t  aModType) override;
 
   void OnVisibilityChange(Visibility aNewVisibility,
@@ -118,14 +118,14 @@ SVGFEImageFrame::Init(nsIContent*       aContent,
 
 nsresult
 SVGFEImageFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   int32_t  aModType)
 {
   SVGFEImageElement* element = static_cast<SVGFEImageElement*>(GetContent());
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {
     MOZ_ASSERT(GetParent()->IsSVGFilterFrame(),
                "Observers observe the filter, so that's what we must invalidate");
-    nsSVGEffects::InvalidateDirectRenderingObservers(GetParent());
+    SVGObserverUtils::InvalidateDirectRenderingObservers(GetParent());
   }
 
   // Currently our SMIL implementation does not modify the DOM attributes. Once

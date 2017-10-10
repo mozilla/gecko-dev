@@ -624,14 +624,14 @@ intrinsic_DefineProperty(JSContext* cx, unsigned argc, Value* vp)
         if (getter.isObject())
             desc.setGetterObject(&getter.toObject());
         if (!getter.isNull())
-            attrs |= JSPROP_GETTER | JSPROP_SHARED;
+            attrs |= JSPROP_GETTER;
 
         Value setter = args[4];
         MOZ_ASSERT(setter.isObject() || setter.isNullOrUndefined());
         if (setter.isObject())
             desc.setSetterObject(&setter.toObject());
         if (!setter.isNull())
-            attrs |= JSPROP_SETTER | JSPROP_SHARED;
+            attrs |= JSPROP_SETTER;
 
         // By convention, these bits are not used on accessor descriptors.
         attrs &= ~(JSPROP_IGNORE_READONLY | JSPROP_IGNORE_VALUE);
@@ -1651,7 +1651,7 @@ intrinsic_RegExpGetSubstitution(JSContext* cx, unsigned argc, Value* vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     MOZ_ASSERT(args.length() == 5);
 
-    RootedObject matchResult(cx, &args[0].toObject());
+    RootedArrayObject matchResult(cx, &args[0].toObject().as<ArrayObject>());
 
     RootedLinearString string(cx, args[1].toString()->ensureLinear(cx));
     if (!string)
@@ -2600,6 +2600,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("intl_PluralRules_availableLocales", intl_PluralRules_availableLocales, 0,0),
     JS_FN("intl_GetPluralCategories", intl_GetPluralCategories, 2, 0),
     JS_FN("intl_SelectPluralRule", intl_SelectPluralRule, 2,0),
+    JS_FN("intl_RelativeTimeFormat_availableLocales", intl_RelativeTimeFormat_availableLocales, 0,0),
+    JS_FN("intl_FormatRelativeTime", intl_FormatRelativeTime, 3,0),
     JS_FN("intl_toLocaleLowerCase", intl_toLocaleLowerCase, 2,0),
     JS_FN("intl_toLocaleUpperCase", intl_toLocaleUpperCase, 2,0),
 
@@ -2615,6 +2617,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("IsPluralRules",
                     intrinsic_IsInstanceOfBuiltin<PluralRulesObject>, 1,0,
                     IntlIsPluralRules),
+    JS_INLINABLE_FN("IsRelativeTimeFormat",
+                    intrinsic_IsInstanceOfBuiltin<RelativeTimeFormatObject>, 1,0,
+                    IntlIsRelativeTimeFormat),
     JS_FN("GetDateTimeFormatConstructor",
           intrinsic_GetBuiltinIntlConstructor<GlobalObject::getOrCreateDateTimeFormatConstructor>,
           0,0),
@@ -2959,7 +2964,7 @@ GetUnclonedValue(JSContext* cx, HandleNativeObject selfHostedObject,
 
     RootedShape shape(cx, selfHostedObject->lookupPure(id));
     MOZ_ASSERT(shape);
-    MOZ_ASSERT(shape->hasSlot() && shape->hasDefaultGetter());
+    MOZ_ASSERT(shape->isDataProperty());
     vp.set(selfHostedObject->getSlot(shape->slot()));
     return true;
 }

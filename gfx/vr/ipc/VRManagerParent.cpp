@@ -21,8 +21,7 @@ using namespace layers;
 namespace gfx {
 
 VRManagerParent::VRManagerParent(ProcessId aChildProcessId, bool aIsContentChild)
-  : HostIPCAllocator()
-  , mDisplayTestID(0)
+  : mDisplayTestID(0)
   , mControllerTestID(0)
   , mHaveEventListener(false)
   , mHaveControllerListener(false)
@@ -41,37 +40,12 @@ VRManagerParent::~VRManagerParent()
   MOZ_COUNT_DTOR(VRManagerParent);
 }
 
-PTextureParent*
-VRManagerParent::AllocPTextureParent(const SurfaceDescriptor& aSharedData,
-                                     const LayersBackend& aLayersBackend,
-                                     const TextureFlags& aFlags,
-                                     const uint64_t& aSerial)
-{
-  return layers::TextureHost::CreateIPDLActor(this, aSharedData, aLayersBackend, aFlags, aSerial, Nothing());
-}
-
-bool
-VRManagerParent::DeallocPTextureParent(PTextureParent* actor)
-{
-  return layers::TextureHost::DestroyIPDLActor(actor);
-}
-
 PVRLayerParent*
 VRManagerParent::AllocPVRLayerParent(const uint32_t& aDisplayID,
-                                     const float& aLeftEyeX,
-                                     const float& aLeftEyeY,
-                                     const float& aLeftEyeWidth,
-                                     const float& aLeftEyeHeight,
-                                     const float& aRightEyeX,
-                                     const float& aRightEyeY,
-                                     const float& aRightEyeWidth,
-                                     const float& aRightEyeHeight,
                                      const uint32_t& aGroup)
 {
   RefPtr<VRLayerParent> layer;
   layer = new VRLayerParent(aDisplayID,
-                            Rect(aLeftEyeX, aLeftEyeY, aLeftEyeWidth, aLeftEyeHeight),
-                            Rect(aRightEyeX, aRightEyeY, aRightEyeWidth, aRightEyeHeight),
                             aGroup);
   VRManager* vm = VRManager::Get();
   RefPtr<gfx::VRDisplayHost> display = vm->GetDisplay(aDisplayID);
@@ -89,49 +63,9 @@ VRManagerParent::DeallocPVRLayerParent(PVRLayerParent* actor)
 }
 
 bool
-VRManagerParent::AllocShmem(size_t aSize,
-  ipc::SharedMemory::SharedMemoryType aType,
-  ipc::Shmem* aShmem)
-{
-  return PVRManagerParent::AllocShmem(aSize, aType, aShmem);
-}
-
-bool
-VRManagerParent::AllocUnsafeShmem(size_t aSize,
-  ipc::SharedMemory::SharedMemoryType aType,
-  ipc::Shmem* aShmem)
-{
-  return PVRManagerParent::AllocUnsafeShmem(aSize, aType, aShmem);
-}
-
-void
-VRManagerParent::DeallocShmem(ipc::Shmem& aShmem)
-{
-  PVRManagerParent::DeallocShmem(aShmem);
-}
-
-bool
 VRManagerParent::IsSameProcess() const
 {
   return OtherPid() == base::GetCurrentProcId();
-}
-
-void
-VRManagerParent::NotifyNotUsed(PTextureParent* aTexture, uint64_t aTransactionId)
-{
-  MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-}
-
-void
-VRManagerParent::SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage)
-{
-  MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-}
-
-base::ProcessId
-VRManagerParent::GetChildProcessId()
-{
-  return OtherPid();
 }
 
 void
@@ -289,18 +223,19 @@ VRManagerParent::RecvSetHaveEventListener(const bool& aHaveEventListener)
 mozilla::ipc::IPCResult
 VRManagerParent::RecvControllerListenerAdded()
 {
+  // Force update the available controllers for GamepadManager,
+  // remove the existing controllers and sync them by NotifyVsync().
   VRManager* vm = VRManager::Get();
+  vm->RemoveControllers();
   mHaveControllerListener = true;
-  // Ask the connected gamepads to be added to GamepadManager
-  vm->ScanForControllers();
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult
 VRManagerParent::RecvControllerListenerRemoved()
 {
-  VRManager* vm = VRManager::Get();
   mHaveControllerListener = false;
+  VRManager* vm = VRManager::Get();
   vm->RemoveControllers();
   return IPC_OK();
 }

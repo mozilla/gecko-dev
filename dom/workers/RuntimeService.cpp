@@ -21,6 +21,7 @@
 #include "nsISupportsPriority.h"
 #include "nsITimer.h"
 #include "nsIURI.h"
+#include "nsIXULRuntime.h"
 #include "nsPIDOMWindow.h"
 
 #include <algorithm>
@@ -321,6 +322,15 @@ LoadContextOptions(const char* aPrefName, void* /* aClosure */)
                 .setStreams(GetWorkerPref<bool>(NS_LITERAL_CSTRING("streams")))
                 .setExtraWarnings(GetWorkerPref<bool>(NS_LITERAL_CSTRING("strict")));
 
+  nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+  if (xr) {
+    bool safeMode = false;
+    xr->GetInSafeMode(&safeMode);
+    if (safeMode) {
+      contextOptions.disableOptionsForSafeMode();
+    }
+  }
+
   RuntimeService::SetDefaultContextOptions(contextOptions);
 
   if (rts) {
@@ -586,7 +596,7 @@ InterruptCallback(JSContext* aCx)
   MOZ_ASSERT(worker);
 
   // Now is a good time to turn on profiling if it's pending.
-  profiler_js_interrupt_callback();
+  PROFILER_JS_INTERRUPT_CALLBACK();
 
   return worker->InterruptCallback(aCx);
 }
@@ -866,18 +876,6 @@ InitJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSContext* aWorkerCx)
   JSSettings settings;
   aWorkerPrivate->CopyJSSettings(settings);
 
-  {
-    JS::UniqueChars defaultLocale = aWorkerPrivate->AdoptDefaultLocale();
-    MOZ_ASSERT(defaultLocale,
-               "failure of a WorkerPrivate to have a default locale should "
-               "have made the worker fail to spawn");
-
-    if (!JS_SetDefaultLocale(aWorkerCx, defaultLocale.get())) {
-      NS_WARNING("failed to set workerCx's default locale");
-      return false;
-    }
-  }
-
   JS::ContextOptionsRef(aWorkerCx) = settings.contextOptions;
 
   JSSettings::JSGCSettingsArray& gcSettings = settings.gcSettings;
@@ -977,6 +975,17 @@ public:
   {
     MOZ_COUNT_CTOR_INHERITED(WorkerJSRuntime, CycleCollectedJSRuntime);
     MOZ_ASSERT(aWorkerPrivate);
+
+    {
+      JS::UniqueChars defaultLocale = aWorkerPrivate->AdoptDefaultLocale();
+      MOZ_ASSERT(defaultLocale,
+                 "failure of a WorkerPrivate to have a default locale should "
+                 "have made the worker fail to spawn");
+
+      if (!JS_SetDefaultLocale(Runtime(), defaultLocale.get())) {
+        NS_WARNING("failed to set workerCx's default locale");
+      }
+    }
   }
 
   void Shutdown(JSContext* cx) override
@@ -2422,7 +2431,7 @@ RuntimeService::CreateSharedWorkerFromLoadInfo(JSContext* aCx,
   if (!workerPrivate) {
     workerPrivate =
       WorkerPrivate::Constructor(aCx, aScriptURL, false,
-                                 WorkerTypeShared, aName, NullCString(),
+                                 WorkerTypeShared, aName, VoidCString(),
                                  aLoadInfo, rv);
     NS_ENSURE_TRUE(workerPrivate, rv.StealNSResult());
 
@@ -2756,8 +2765,6 @@ WorkerThreadPrimaryRunnable::Run()
 {
   using mozilla::ipc::BackgroundChild;
 
-  char stackBaseGuess;
-
   NS_SetCurrentThreadName("DOM Worker");
 
   nsAutoCString threadName;
@@ -2765,7 +2772,7 @@ WorkerThreadPrimaryRunnable::Run()
   threadName.Append(NS_LossyConvertUTF16toASCII(mWorkerPrivate->ScriptURL()));
   threadName.Append('\'');
 
-  profiler_register_thread(threadName.get(), &stackBaseGuess);
+  AUTO_PROFILER_REGISTER_THREAD(threadName.get());
 
   // Note: GetOrCreateForCurrentThread() must be called prior to
   //       mWorkerPrivate->SetThread() in order to avoid accidentally consuming
@@ -2830,7 +2837,7 @@ WorkerThreadPrimaryRunnable::Run()
     }
 
     {
-      profiler_set_js_context(cx);
+      PROFILER_SET_JS_CONTEXT(cx);
 
       {
         JSAutoRequest ar(cx);
@@ -2844,7 +2851,7 @@ WorkerThreadPrimaryRunnable::Run()
 
       BackgroundChild::CloseForCurrentThread();
 
-      profiler_clear_js_context();
+      PROFILER_CLEAR_JS_CONTEXT();
     }
 
     // There may still be runnables on the debugger event queue that hold a
@@ -2884,7 +2891,6 @@ WorkerThreadPrimaryRunnable::Run()
   MOZ_ALWAYS_SUCCEEDS(mainTarget->Dispatch(finishedRunnable,
                                            NS_DISPATCH_NORMAL));
 
-  profiler_unregister_thread();
   return NS_OK;
 }
 

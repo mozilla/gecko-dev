@@ -69,6 +69,8 @@ let ParentAPIManager;
 let ProxyMessenger;
 let StartupCache;
 
+const global = this;
+
 // This object loads the ext-*.js scripts that define the extension API.
 let apiManager = new class extends SchemaAPIManager {
   constructor() {
@@ -783,6 +785,8 @@ ParentAPIManager = {
         },
         {
           recipient: {childId},
+        }).then(result => {
+          return result && result.deserialize(global);
         });
     }
 
@@ -1306,9 +1310,9 @@ let IconDetails = {
           this._checkURL(lightURL, extension);
           this._checkURL(darkURL, extension);
 
-          let defaultURL = result[size];
+          let defaultURL = result[size] || result[19]; // always fallback to default first
           result[size] = {
-            "default": defaultURL || lightURL, // Fallback to the light url if no default is specified.
+            "default": defaultURL || darkURL, // Fallback to the dark url if no default is specified.
             "light": lightURL,
             "dark": darkURL,
           };

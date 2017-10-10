@@ -668,19 +668,19 @@ WasmBreakpointSite::destroyIfEmpty(FreeOp* fop)
 
 Debugger::Debugger(JSContext* cx, NativeObject* dbg)
   : object(dbg),
-    debuggees(cx->runtime()),
+    debuggees(cx->zone()),
     uncaughtExceptionHook(nullptr),
     enabled(true),
     allowUnobservedAsmJS(false),
     allowWasmBinarySource(false),
     collectCoverageInfo(false),
-    observedGCs(cx->runtime()),
+    observedGCs(cx->zone()),
     allocationsLog(cx),
     trackingAllocationSites(false),
     allocationSamplingProbability(1.0),
     maxAllocationsLogLength(DEFAULT_MAX_LOG_LENGTH),
     allocationsLogOverflowed(false),
-    frames(cx->runtime()),
+    frames(cx->zone()),
     scripts(cx),
     sources(cx),
     objects(cx),
@@ -2298,10 +2298,7 @@ Debugger::appendAllocationSite(JSContext* cx, HandleObject obj, HandleSavedFrame
     }
 
     if (allocationsLog.length() > maxAllocationsLogLength) {
-        if (!allocationsLog.popFront()) {
-            ReportOutOfMemory(cx);
-            return false;
-        }
+        allocationsLog.popFront();
         MOZ_ASSERT(allocationsLog.length() == maxAllocationsLogLength);
         allocationsLogOverflowed = true;
     }
@@ -2343,11 +2340,17 @@ Debugger::firePromiseHook(JSContext* cx, Hook hook, HandleObject promise, Mutabl
 }
 
 /* static */ void
-Debugger::slowPathPromiseHook(JSContext* cx, Hook hook, HandleObject promise)
+Debugger::slowPathPromiseHook(JSContext* cx, Hook hook, Handle<PromiseObject*> promise)
 {
     MOZ_ASSERT(hook == OnNewPromise || hook == OnPromiseSettled);
-    RootedValue rval(cx);
 
+    Maybe<AutoCompartment> ac;
+    if (hook == OnNewPromise)
+        ac.emplace(cx, promise);
+
+    assertSameCompartment(cx, promise);
+
+    RootedValue rval(cx);
     JSTrapStatus status = dispatchHook(
         cx,
         [hook](Debugger* dbg) -> bool { return dbg->getHook(hook); },
@@ -4246,12 +4249,12 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery
         cx(cx),
         debugger(dbg),
         iterMarker(&cx->runtime()->gc),
-        compartments(cx->runtime()),
+        compartments(cx->zone()),
         url(cx),
         displayURLString(cx),
         hasSource(false),
         source(cx, AsVariant(static_cast<ScriptSourceObject*>(nullptr))),
-        innermostForCompartment(cx->runtime()),
+        innermostForCompartment(cx->zone()),
         vector(cx, ScriptVector(cx)),
         wasmInstanceVector(cx, WasmInstanceObjectVector(cx))
     {}
@@ -4501,7 +4504,7 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery
     /* Require the set of compartments to stay fixed while the ScriptQuery is alive. */
     gc::AutoEnterIteration iterMarker;
 
-    typedef HashSet<JSCompartment*, DefaultHasher<JSCompartment*>, RuntimeAllocPolicy>
+    typedef HashSet<JSCompartment*, DefaultHasher<JSCompartment*>, ZoneAllocPolicy>
         CompartmentSet;
 
     /* A script must be in one of these compartments to match the query. */
@@ -4534,7 +4537,7 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery
     /* True if the query has an 'innermost' property whose value is true. */
     bool innermost;
 
-    typedef HashMap<JSCompartment*, JSScript*, DefaultHasher<JSCompartment*>, RuntimeAllocPolicy>
+    typedef HashMap<JSCompartment*, JSScript*, DefaultHasher<JSCompartment*>, ZoneAllocPolicy>
         CompartmentToScriptMap;
 
     /*
@@ -6527,7 +6530,7 @@ struct DebuggerScriptSetBreakpointMatcher
         if (!site)
             return false;
         site->inc(cx_->runtime()->defaultFreeOp());
-        if (cx_->runtime()->new_<Breakpoint>(dbg_, site, handler_))
+        if (cx_->zone()->new_<Breakpoint>(dbg_, site, handler_))
             return true;
         site->dec(cx_->runtime()->defaultFreeOp());
         site->destroyIfEmpty(cx_->runtime()->defaultFreeOp());
@@ -6544,7 +6547,7 @@ struct DebuggerScriptSetBreakpointMatcher
         if (!site)
             return false;
         site->inc(cx_->runtime()->defaultFreeOp());
-        if (cx_->runtime()->new_<WasmBreakpoint>(dbg_, site, handler_, instance.object()))
+        if (cx_->zone()->new_<WasmBreakpoint>(dbg_, site, handler_, instance.object()))
             return true;
         site->dec(cx_->runtime()->defaultFreeOp());
         site->destroyIfEmpty(cx_->runtime()->defaultFreeOp());
@@ -8484,7 +8487,7 @@ DebuggerArguments::create(JSContext* cx, HandleObject proto, HandleDebuggerFrame
         if (!getobj ||
             !NativeDefineAccessorProperty(cx, obj, id,
                                           JS_DATA_TO_FUNC_PTR(GetterOp, getobj.get()), nullptr,
-                                          JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_GETTER))
+                                          JSPROP_ENUMERATE | JSPROP_GETTER))
         {
             return nullptr;
         }
@@ -10647,7 +10650,7 @@ DebuggerObject::forceLexicalInitializationByName(JSContext* cx, HandleDebuggerOb
         MOZ_ASSERT(prop.isNativeProperty());
         Shape* shape = prop.shape();
         Value v = globalLexical->as<NativeObject>().getSlot(shape->slot());
-        if (shape->hasSlot() && v.isMagic() && v.whyMagic() == JS_UNINITIALIZED_LEXICAL) {
+        if (shape->isDataProperty() && v.isMagic() && v.whyMagic() == JS_UNINITIALIZED_LEXICAL) {
             globalLexical->as<NativeObject>().setSlot(shape->slot(), UndefinedValue());
             result = true;
         }
@@ -11568,32 +11571,6 @@ JS_DefineDebuggerObject(JSContext* cx, HandleObject obj)
     return true;
 }
 
-static inline void
-AssertIsPromise(JSContext* cx, HandleObject promise)
-{
-    MOZ_ASSERT(promise);
-    assertSameCompartment(cx, promise);
-    MOZ_ASSERT(strcmp(promise->getClass()->name, "Promise") == 0);
-}
-
-JS_PUBLIC_API(void)
-JS::dbg::onNewPromise(JSContext* cx, HandleObject promise_)
-{
-    RootedObject promise(cx, promise_);
-    if (IsWrapper(promise))
-        promise = UncheckedUnwrap(promise);
-    AutoCompartment ac(cx, promise);
-    AssertIsPromise(cx, promise);
-    Debugger::slowPathPromiseHook(cx, Debugger::OnNewPromise, promise);
-}
-
-JS_PUBLIC_API(void)
-JS::dbg::onPromiseSettled(JSContext* cx, HandleObject promise)
-{
-    AssertIsPromise(cx, promise);
-    Debugger::slowPathPromiseHook(cx, Debugger::OnPromiseSettled, promise);
-}
-
 JS_PUBLIC_API(bool)
 JS::dbg::IsDebugger(JSObject& obj)
 {
@@ -11651,7 +11628,7 @@ namespace dbg {
 /* static */ GarbageCollectionEvent::Ptr
 GarbageCollectionEvent::Create(JSRuntime* rt, ::js::gcstats::Statistics& stats, uint64_t gcNumber)
 {
-    auto data = rt->make_unique<GarbageCollectionEvent>(gcNumber);
+    auto data = MakeUnique<GarbageCollectionEvent>(gcNumber);
     if (!data)
         return nullptr;
 

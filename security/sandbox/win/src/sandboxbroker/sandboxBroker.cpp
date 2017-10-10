@@ -28,6 +28,11 @@
 #include "sandbox/win/src/security_level.h"
 #include "WinUtils.h"
 
+// We're just blocking one DLL for the moment because of problems with the
+// Alternate Desktop. If and when we expand this we'll make this a static list
+// and add checking to see if DLL is loaded in the parent.
+#define WEBROOT_DLL L"WRusr.dll"
+
 namespace mozilla
 {
 
@@ -45,6 +50,10 @@ static UniquePtr<nsString> sProfileDir;
 static UniquePtr<nsString> sContentTempDir;
 static UniquePtr<nsString> sRoamingAppDataDir;
 static UniquePtr<nsString> sLocalAppDataDir;
+static UniquePtr<nsString> sUserExtensionsDevDir;
+#ifdef ENABLE_SYSTEM_EXTENSION_DIRS
+static UniquePtr<nsString> sUserExtensionsDir;
+#endif
 
 static LazyLogModule sSandboxBrokerLog("SandboxBroker");
 
@@ -122,6 +131,10 @@ SandboxBroker::CacheRulesDirectories()
   CacheDirAndAutoClear(dirSvc, NS_APP_CONTENT_PROCESS_TEMP_DIR, &sContentTempDir);
   CacheDirAndAutoClear(dirSvc, NS_WIN_APPDATA_DIR, &sRoamingAppDataDir);
   CacheDirAndAutoClear(dirSvc, NS_WIN_LOCAL_APPDATA_DIR, &sLocalAppDataDir);
+  CacheDirAndAutoClear(dirSvc, XRE_USER_SYS_EXTENSION_DEV_DIR, &sUserExtensionsDevDir);
+#ifdef ENABLE_SYSTEM_EXTENSION_DIRS
+  CacheDirAndAutoClear(dirSvc, XRE_USER_SYS_EXTENSION_DIR, &sUserExtensionsDir);
+#endif
 }
 
 SandboxBroker::SandboxBroker()
@@ -358,8 +371,8 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     accessTokenLevel = sandbox::USER_LOCKDOWN;
     initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_UNTRUSTED;
-  } else if (aSandboxLevel >= 10) {
-    jobLevel = sandbox::JOB_RESTRICTED;
+  } else if (aSandboxLevel >= 4) {
+    jobLevel = sandbox::JOB_LOCKDOWN;
     accessTokenLevel = sandbox::USER_LIMITED;
     initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
@@ -432,6 +445,12 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
                        "Failed to create alternate desktop for sandbox.");
 
+    // Webroot SecureAnywhere causes crashes when we use an Alternate Desktop,
+    // so block the DLL from loading in the child process. (bug 1400637)
+    result = mPolicy->AddDllToUnload(WEBROOT_DLL);
+    MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
+                       "AddDllToUnload should never fail, what happened?");
+
     mitigations |= sandbox::MITIGATION_IMAGE_LOAD_NO_LOW_LABEL;
     // If we're running from a network drive then we can't block loading from
     // remote locations.
@@ -474,13 +493,23 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
     AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_READONLY,
                      sBinDir, NS_LITERAL_STRING("\\*"));
 
-    // Add rule to allow read access chrome directory within profile.
+    // Add rule to allow read access to the chrome directory within profile.
     AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_READONLY,
                      sProfileDir, NS_LITERAL_STRING("\\chrome\\*"));
 
-    // Add rule to allow read access extensions directory within profile.
+    // Add rule to allow read access to the extensions directory within profile.
     AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_READONLY,
                      sProfileDir, NS_LITERAL_STRING("\\extensions\\*"));
+
+    // Read access to a directory for system extension dev (see bug 1393805)
+    AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                     sUserExtensionsDevDir, NS_LITERAL_STRING("\\*"));
+
+#ifdef ENABLE_SYSTEM_EXTENSION_DIRS
+    // Add rule to allow read access to the per-user extensions directory.
+    AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                     sUserExtensionsDir, NS_LITERAL_STRING("\\*"));
+#endif
   }
 
   // Add the policy for the client side of a pipe. It is just a file
@@ -803,6 +832,12 @@ SandboxBroker::SetSecurityLevelForGMPlugin(SandboxLevel aLevel)
   result = mPolicy->SetAlternateDesktop(true);
   SANDBOX_ENSURE_SUCCESS(result,
                          "Failed to create alternate desktop for sandbox.");
+
+  // Webroot SecureAnywhere causes crashes when we use an Alternate Desktop,
+  // so block the DLL from loading in the child process. (bug 1400637)
+  result = mPolicy->AddDllToUnload(WEBROOT_DLL);
+  MOZ_RELEASE_ASSERT(sandbox::SBOX_ALL_OK == result,
+                     "AddDllToUnload should never fail, what happened?");
 
   result = mPolicy->SetIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
   MOZ_ASSERT(sandbox::SBOX_ALL_OK == result,

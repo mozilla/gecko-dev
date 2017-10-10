@@ -2356,14 +2356,14 @@ WebSocketImpl::UpdateURI()
 }
 
 void
-WebSocket::EventListenerAdded(nsIAtom* aType)
+WebSocket::EventListenerAdded(nsAtom* aType)
 {
   AssertIsOnMainThread();
   UpdateMustKeepAlive();
 }
 
 void
-WebSocket::EventListenerRemoved(nsIAtom* aType)
+WebSocket::EventListenerRemoved(nsAtom* aType)
 {
   AssertIsOnMainThread();
   UpdateMustKeepAlive();
@@ -2459,7 +2459,7 @@ WebSocket::Send(Blob& aData, ErrorResult& aRv)
   AssertIsOnTargetThread();
 
   nsCOMPtr<nsIInputStream> msgStream;
-  aData.GetInternalStream(getter_AddRefs(msgStream), aRv);
+  aData.CreateInputStream(getter_AddRefs(msgStream), aRv);
   if (NS_WARN_IF(aRv.Failed())){
     return;
   }

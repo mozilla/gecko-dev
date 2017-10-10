@@ -43,7 +43,7 @@
 #include "BasicLayers.h"
 #include "nsBoxFrame.h"
 #include "nsSubDocumentFrame.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGElement.h"
 #include "nsSVGClipPathFrame.h"
 #include "GeckoProfiler.h"
@@ -88,7 +88,6 @@
 #include "ClientLayerManager.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
-#include "mozilla/layers/WebRenderDisplayItemLayer.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/layers/WebRenderMessages.h"
 #include "mozilla/layers/WebRenderScrollData.h"
@@ -158,7 +157,7 @@ ActiveScrolledRoot::ToString(const ActiveScrolledRoot* aActiveScrolledRoot)
   for (auto* asr = aActiveScrolledRoot; asr; asr = asr->mParent) {
     str.AppendPrintf("<0x%p>", asr->mScrollableFrame);
     if (asr->mParent) {
-      str.Append(", ");
+      str.AppendLiteral(", ");
     }
   }
   return str;
@@ -1218,6 +1217,10 @@ nsDisplayListBuilder::EnterPresShell(nsIFrame* aReferenceFrame,
   state->mCaretFrame = nullptr;
   state->mFirstFrameMarkedForDisplay = mFramesMarkedForDisplay.Length();
 
+#ifdef DEBUG
+  state->mAutoLayoutPhase.emplace(aReferenceFrame->PresContext(), eLayoutPhase_DisplayListBuilding);
+#endif
+
   state->mPresShell->UpdateCanvasBackground();
 
   if (mIsPaintingToWindow) {
@@ -2148,8 +2151,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
   nsIPresShell* presShell = presContext->PresShell();
   nsIDocument* document = presShell->GetDocument();
 
-  if (gfxPrefs::WebRenderLayersFree() &&
-      layerManager->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
+  if (layerManager->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
     if (doBeginTransaction) {
       if (aCtx) {
         if (!layerManager->BeginTransactionWithTarget(aCtx)) {
@@ -2183,7 +2185,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
       TriggerPendingAnimations(document, layerManager->GetAnimationReadyTime());
     }
 
-    if (wrManager->ShouldNotifyInvalidation()) {
+    if (presContext->RefreshDriver()->HasScheduleFlush()) {
       presContext->NotifyInvalidation(layerManager->GetLastTransactionId(), nsIntRect());
     }
 
@@ -2207,7 +2209,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
   }
 
   {
-    AutoProfilerTracing tracing("Paint", "LayerBuilding");
+    AUTO_PROFILER_TRACING("Paint", "LayerBuilding");
 
     if (doBeginTransaction) {
       if (aCtx) {
@@ -2930,15 +2932,12 @@ bool
 nsDisplaySolidColor::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                              mozilla::wr::IpcResourceUpdateQueue& aResources,
                                              const StackingContextHelper& aSc,
-                                             nsTArray<WebRenderParentCommand>& aParentCommands,
                                              mozilla::layers::WebRenderLayerManager* aManager,
                                              nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(
@@ -2947,6 +2946,7 @@ nsDisplaySolidColor::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aB
 
   aBuilder.PushRect(transformedRect,
                     transformedRect,
+                    !BackfaceIsHidden(),
                     wr::ToColorF(ToDeviceColor(mColor)));
 
   return true;
@@ -2988,7 +2988,6 @@ bool
 nsDisplaySolidColorRegion::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                    mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                    const StackingContextHelper& aSc,
-                                                   nsTArray<WebRenderParentCommand>& aParentCommands,
                                                    mozilla::layers::WebRenderLayerManager* aManager,
                                                    nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -2999,6 +2998,7 @@ nsDisplaySolidColorRegion::CreateWebRenderCommands(mozilla::wr::DisplayListBuild
     wr::LayoutRect transformedRect = aSc.ToRelativeLayoutRect(layerRects);
     aBuilder.PushRect(transformedRect,
                       transformedRect,
+                      !BackfaceIsHidden(),
                       wr::ToColorF(ToDeviceColor(mColor)));
   }
 
@@ -3255,7 +3255,8 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
   // to create an item for hit testing.
   if ((drawBackgroundColor && color != NS_RGBA(0,0,0,0)) ||
       aBuilder->IsForEventDelivery()) {
-    DisplayListClipState::AutoSaveRestore clipState(aBuilder);
+    Maybe<DisplayListClipState::AutoSaveRestore> clipState;
+    nsRect bgColorRect = bgRect;
     if (bg && !aBuilder->IsForEventDelivery()) {
       // Disable the will-paint-border optimization for background
       // colors with no border-radius. Enabling it for background colors
@@ -3266,18 +3267,30 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
       // artifacts along the rounded corners.
       bool useWillPaintBorderOptimization = willPaintBorder &&
           nsLayoutUtils::HasNonZeroCorner(borderStyle->mBorderRadius);
-      SetBackgroundClipRegion(clipState, aFrame, toRef,
-                              bg->BottomLayer(), bgRect,
-                              useWillPaintBorderOptimization);
+
+      nsCSSRendering::ImageLayerClipState clip;
+      nsCSSRendering::GetImageLayerClip(bg->BottomLayer(), aFrame, *aFrame->StyleBorder(),
+                                        bgRect, bgRect, useWillPaintBorderOptimization,
+                                        aFrame->PresContext()->AppUnitsPerDevPixel(),
+                                        &clip);
+
+      bgColorRect = bgColorRect.Intersect(clip.mBGClipArea);
+      if (clip.mHasAdditionalBGClipArea) {
+        bgColorRect = bgColorRect.Intersect(clip.mAdditionalBGClipArea);
+      }
+      if (clip.mHasRoundedCorners) {
+        clipState.emplace(aBuilder);
+        clipState->ClipContentDescendants(clip.mBGClipArea, clip.mRadii);
+      }
     }
     if (aSecondaryReferenceFrame) {
       bgItemList.AppendNewToTop(
-          new (aBuilder) nsDisplayTableBackgroundColor(aBuilder, aSecondaryReferenceFrame, bgRect, bg,
+          new (aBuilder) nsDisplayTableBackgroundColor(aBuilder, aSecondaryReferenceFrame, bgColorRect, bg,
                                                        drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0),
                                                        aFrame));
     } else {
       bgItemList.AppendNewToTop(
-          new (aBuilder) nsDisplayBackgroundColor(aBuilder, aFrame, bgRect, bg,
+          new (aBuilder) nsDisplayBackgroundColor(aBuilder, aFrame, bgColorRect, bg,
                                                   drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0)));
     }
   }
@@ -3624,15 +3637,12 @@ bool
 nsDisplayBackgroundImage::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                   mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                   const StackingContextHelper& aSc,
-                                                  nsTArray<WebRenderParentCommand>& aParentCommands,
                                                   WebRenderLayerManager* aManager,
                                                   nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   if (aDisplayListBuilder) {
@@ -3646,7 +3656,7 @@ nsDisplayBackgroundImage::CreateWebRenderCommands(mozilla::wr::DisplayListBuilde
                                                   CompositionOp::OP_OVER);
   params.bgClipRect = &mBounds;
   DrawResult result =
-    nsCSSRendering::BuildWebRenderDisplayItemsForStyleImageLayer(params, aBuilder, aSc, aParentCommands, nullptr, aManager, this);
+    nsCSSRendering::BuildWebRenderDisplayItemsForStyleImageLayer(params, aBuilder, aResources, aSc, aManager, this);
   nsDisplayBackgroundGeometry::UpdateDrawResult(this, result);
 
   return true;
@@ -4249,19 +4259,16 @@ bool
 nsDisplayBackgroundColor::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                   mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                   const StackingContextHelper& aSc,
-                                                  nsTArray<WebRenderParentCommand>& aParentCommands,
                                                   mozilla::layers::WebRenderLayerManager* aManager,
                                                   nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
-  }
-
   if (mColor == Color()) {
     return true;
+  }
+
+  StyleGeometryBox clip = mBackgroundStyle->mImage.mLayers[0].mClip;
+  if (clip == StyleGeometryBox::Text) {
+    return false;
   }
 
   LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(
@@ -4270,6 +4277,7 @@ nsDisplayBackgroundColor::CreateWebRenderCommands(mozilla::wr::DisplayListBuilde
 
   aBuilder.PushRect(transformedRect,
                     transformedRect,
+                    !BackfaceIsHidden(),
                     wr::ToColorF(ToDeviceColor(mColor)));
 
   return true;
@@ -4470,15 +4478,12 @@ bool
 nsDisplayOutline::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                           mozilla::wr::IpcResourceUpdateQueue& aResources,
                                           const StackingContextHelper& aSc,
-                                          nsTArray<WebRenderParentCommand>& aParentCommands,
                                           mozilla::layers::WebRenderLayerManager* aManager,
                                           nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   mBorderRenderer->CreateWebRenderCommands(aBuilder, aResources, aSc);
@@ -4754,15 +4759,12 @@ bool
 nsDisplayCaret::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
                                         const StackingContextHelper& aSc,
-                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                         mozilla::layers::WebRenderLayerManager* aManager,
                                         nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   using namespace mozilla::layers;
@@ -4791,11 +4793,13 @@ nsDisplayCaret::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilde
   // Note, WR will pixel snap anything that is layout aligned.
   aBuilder.PushRect(caret,
                     caret,
+                    !BackfaceIsHidden(),
                     wr::ToColorF(color));
 
   if (!devHookRect.IsEmpty()) {
     aBuilder.PushRect(hook,
                       hook,
+                      !BackfaceIsHidden(),
                       wr::ToColorF(color));
   }
   return true;
@@ -5020,19 +5024,16 @@ bool
 nsDisplayBorder::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                          mozilla::wr::IpcResourceUpdateQueue& aResources,
                                          const StackingContextHelper& aSc,
-                                         nsTArray<WebRenderParentCommand>& aParentCommands,
                                          mozilla::layers::WebRenderLayerManager* aManager,
                                          nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   if (mBorderImageRenderer) {
-    CreateBorderImageWebRenderCommands(aBuilder, aSc, aParentCommands,
+    CreateBorderImageWebRenderCommands(aBuilder, aResources, aSc,
                                        aManager, aDisplayListBuilder);
   } else if (mBorderRenderer) {
     mBorderRenderer->CreateWebRenderCommands(aBuilder, aResources, aSc);
@@ -5043,8 +5044,8 @@ nsDisplayBorder::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuild
 
 void
 nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                                    mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                     const StackingContextHelper& aSc,
-                                                    nsTArray<WebRenderParentCommand>& aParentCommands,
                                                     mozilla::layers::WebRenderLayerManager* aManager,
                                                     nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -5088,13 +5089,15 @@ nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuil
       }
 
       gfx::IntSize size;
-      Maybe<wr::ImageKey> key = aManager->CreateImageKey(this, container, aBuilder, aSc, size);
+      Maybe<wr::ImageKey> key = aManager->CommandBuilder().CreateImageKey(this, container, aBuilder,
+                                                                          aResources, aSc, size);
       if (key.isNothing()) {
         return;
       }
 
       aBuilder.PushBorderImage(dest,
                                clip,
+                               !BackfaceIsHidden(),
                                wr::ToBorderWidths(widths[0], widths[1], widths[2], widths[3]),
                                key.value(),
                                wr::ToNinePatchDescriptor(
@@ -5128,6 +5131,7 @@ nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuil
 
         aBuilder.PushBorderGradient(dest,
                                     clip,
+                                    !BackfaceIsHidden(),
                                     wr::ToBorderWidths(widths[0], widths[1], widths[2], widths[3]),
                                     wr::ToLayoutPoint(startPoint),
                                     wr::ToLayoutPoint(endPoint),
@@ -5137,6 +5141,7 @@ nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuil
       } else {
         aBuilder.PushBorderRadialGradient(dest,
                                           clip,
+                                          !BackfaceIsHidden(),
                                           wr::ToBorderWidths(widths[0], widths[1], widths[2], widths[3]),
                                           wr::ToLayoutPoint(lineStart),
                                           wr::ToLayoutSize(gradientRadius),
@@ -5388,15 +5393,12 @@ bool
 nsDisplayBoxShadowOuter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                  mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                  const StackingContextHelper& aSc,
-                                                 nsTArray<WebRenderParentCommand>& aParentCommands,
                                                  mozilla::layers::WebRenderLayerManager* aManager,
                                                  nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
@@ -5460,6 +5462,7 @@ nsDisplayBoxShadowOuter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder
 
       aBuilder.PushBoxShadow(deviceBoxRect,
                              deviceClipRect,
+                             !BackfaceIsHidden(),
                              deviceBoxRect,
                              wr::ToLayoutVector2D(shadowOffset),
                              wr::ToColorF(shadowColor),
@@ -5632,6 +5635,7 @@ nsDisplayBoxShadowInner::CreateInsetBoxShadowWebRenderCommands(mozilla::wr::Disp
 
       aBuilder.PushBoxShadow(wr::ToLayoutRect(deviceBoxRect),
                              deviceClipRect,
+                             !aFrame->BackfaceIsHidden(),
                              wr::ToLayoutRect(deviceBoxRect),
                              wr::ToLayoutVector2D(shadowOffset),
                              wr::ToColorF(shadowColor),
@@ -5648,15 +5652,12 @@ bool
 nsDisplayBoxShadowInner::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                  mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                  const StackingContextHelper& aSc,
-                                                 nsTArray<WebRenderParentCommand>& aParentCommands,
                                                  mozilla::layers::WebRenderLayerManager* aManager,
                                                  nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   bool snap;
@@ -5821,7 +5822,16 @@ nsDisplayWrapList::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   if (mListPtr->IsOpaque()) {
     // Everything within GetBounds that's visible is opaque.
     result = GetBounds(aBuilder, aSnap);
+  } else if (aBuilder->HitTestShouldStopAtFirstOpaque()) {
+    // If we care about an accurate opaque region, iterate the display list
+    // and build up a region of opaque bounds.
+    nsDisplayItem* item = mList.GetBottom();
+    while (item) {
+      result.OrWith(item->GetOpaqueRegion(aBuilder, aSnap));
+      item = item->GetAbove();
+    }
   }
+  *aSnap = false;
   return result;
 }
 
@@ -5914,21 +5924,14 @@ bool
 nsDisplayWrapList::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                            mozilla::wr::IpcResourceUpdateQueue& aResources,
                                            const StackingContextHelper& aSc,
-                                           nsTArray<WebRenderParentCommand>& aParentCommands,
                                            mozilla::layers::WebRenderLayerManager* aManager,
                                            nsDisplayListBuilder* aDisplayListBuilder)
 {
-  // If this function is called in layers mode that means we created a
-  // WebRenderDisplayItemLayer for a display item that is a subclass of
-  // nsDisplayWrapList, but we didn't actually implement the overridden
-  // CreateWebRenderCommandsFromDisplayList on it. That doesn't seem correct.
-  MOZ_ASSERT(aManager->IsLayersFreeTransaction());
-
-  aManager->CreateWebRenderCommandsFromDisplayList(GetChildren(),
-                                                   aDisplayListBuilder,
-                                                   aSc,
-                                                   aBuilder,
-                                                   aResources);
+  aManager->CommandBuilder().CreateWebRenderCommandsFromDisplayList(GetChildren(),
+                                                                    aDisplayListBuilder,
+                                                                    aSc,
+                                                                    aBuilder,
+                                                                    aResources);
   return true;
 }
 
@@ -6194,10 +6197,15 @@ nsDisplayOpacity::ShouldFlattenAway(nsDisplayListBuilder* aBuilder)
   // usually never have their own clip because during display item creation
   // time we propagated the clip to our contents, so maybe we should just
   // remove the clip parameter from ApplyOpacity completely.
-  DisplayItemClipChain clip { GetClip(), mActiveScrolledRoot, nullptr };
+  const DisplayItemClipChain* clip = nullptr;
+
+  if (mClip) {
+    clip = aBuilder->AllocateDisplayItemClipChain(*mClip, mActiveScrolledRoot,
+                                                  nullptr);
+  }
 
   for (uint32_t i = 0; i < childCount; i++) {
-    children[i].item->ApplyOpacity(aBuilder, mOpacity, mClip ? &clip : nullptr);
+    children[i].item->ApplyOpacity(aBuilder, mOpacity, clip);
   }
 
   return true;
@@ -6249,22 +6257,23 @@ bool
 nsDisplayOpacity::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                           mozilla::wr::IpcResourceUpdateQueue& aResources,
                                           const StackingContextHelper& aSc,
-                                          nsTArray<WebRenderParentCommand>& aParentCommands,
                                           mozilla::layers::WebRenderLayerManager* aManager,
                                           nsDisplayListBuilder* aDisplayListBuilder)
 {
   float* opacityForSC = &mOpacity;
 
-  RefPtr<WebRenderAnimationData> animationData = aManager->CreateOrRecycleWebRenderUserData<WebRenderAnimationData>(this);
+  RefPtr<WebRenderAnimationData> animationData = aManager->CommandBuilder().CreateOrRecycleWebRenderUserData<WebRenderAnimationData>(this);
   AnimationInfo& animationInfo = animationData->GetAnimationInfo();
   AddAnimationsForProperty(Frame(), aDisplayListBuilder,
                            this, eCSSProperty_opacity,
                            animationInfo, false);
   animationInfo.StartPendingAnimations(aManager->GetAnimationReadyTime());
-  uint64_t animationsId = 0;
+
+  // Note that animationsId can be 0 (uninitialized in AnimationInfo) if there
+  // are no active animations.
+  uint64_t animationsId = animationInfo.GetCompositorAnimationsId();
 
   if (!animationInfo.GetAnimations().IsEmpty()) {
-    animationsId = animationInfo.GetCompositorAnimationsId();
     opacityForSC = nullptr;
     OptionalOpacity opacityForCompositor = mOpacity;
 
@@ -6272,26 +6281,21 @@ nsDisplayOpacity::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuil
       anim(CompositorAnimations(animationInfo.GetAnimations(), animationsId),
            void_t(), opacityForCompositor);
     aManager->WrBridge()->AddWebRenderParentCommand(anim);
+    aManager->AddActiveCompositorAnimationId(animationsId);
+  } else if (animationsId) {
+    aManager->AddCompositorAnimationsIdForDiscard(animationsId);
+    animationsId = 0;
   }
 
   nsTArray<mozilla::wr::WrFilterOp> filters;
-  StackingContextHelper sc(aSc,
-                           aBuilder,
-                           aDisplayListBuilder,
-                           this,
-                           &mList,
-                           nullptr,
-                           animationsId,
-                           opacityForSC,
-                           nullptr,
-                           nullptr,
-                           filters);
+  StackingContextHelper sc(aSc, aBuilder, filters, nullptr, animationsId,
+                           opacityForSC);
 
-  aManager->CreateWebRenderCommandsFromDisplayList(&mList,
-                                                   aDisplayListBuilder,
-                                                   sc,
-                                                   aBuilder,
-                                                   aResources);
+  aManager->CommandBuilder().CreateWebRenderCommandsFromDisplayList(&mList,
+                                                                    aDisplayListBuilder,
+                                                                    sc,
+                                                                    aBuilder,
+                                                                    aResources);
   return true;
 }
 
@@ -6333,16 +6337,14 @@ bool
 nsDisplayBlendMode::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                             mozilla::wr::IpcResourceUpdateQueue& aResources,
                                             const StackingContextHelper& aSc,
-                                            nsTArray<WebRenderParentCommand>& aParentCommands,
                                             mozilla::layers::WebRenderLayerManager* aManager,
                                             nsDisplayListBuilder* aDisplayListBuilder)
 {
   nsTArray<mozilla::wr::WrFilterOp> filters;
-  StackingContextHelper sc(aSc, aBuilder, aDisplayListBuilder, this,
-                           &mList, nullptr, 0, nullptr, nullptr, nullptr,
-                           filters, nsCSSRendering::GetGFXBlendMode(mBlendMode));
+  StackingContextHelper sc(aSc, aBuilder, filters, nullptr, 0, nullptr, nullptr,
+                           nullptr, nsCSSRendering::GetGFXBlendMode(mBlendMode));
 
-  return nsDisplayWrapList::CreateWebRenderCommands(aBuilder,aResources, sc, aParentCommands,
+  return nsDisplayWrapList::CreateWebRenderCommands(aBuilder,aResources, sc,
                                                     aManager, aDisplayListBuilder);
 }
 
@@ -6465,14 +6467,12 @@ bool
 nsDisplayBlendContainer::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                  mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                  const StackingContextHelper& aSc,
-                                                 nsTArray<WebRenderParentCommand>& aParentCommands,
                                                  mozilla::layers::WebRenderLayerManager* aManager,
                                                  nsDisplayListBuilder* aDisplayListBuilder)
 {
-  StackingContextHelper sc(aSc, aBuilder, aDisplayListBuilder, this,
-                           &mList, nullptr, 0, nullptr, nullptr);
+  StackingContextHelper sc(aSc, aBuilder);
 
-  return nsDisplayWrapList::CreateWebRenderCommands(aBuilder, aResources, sc, aParentCommands,
+  return nsDisplayWrapList::CreateWebRenderCommands(aBuilder, aResources, sc,
                                                     aManager, aDisplayListBuilder);
 }
 
@@ -6559,29 +6559,28 @@ bool
 nsDisplayOwnLayer::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                            mozilla::wr::IpcResourceUpdateQueue& aResources,
                                            const StackingContextHelper& aSc,
-                                           nsTArray<WebRenderParentCommand>& aParentCommands,
                                            WebRenderLayerManager* aManager,
                                            nsDisplayListBuilder* aDisplayListBuilder)
 {
   if (!aManager->AsyncPanZoomEnabled() ||
       mThumbData.mDirection == ScrollDirection::NONE) {
     return nsDisplayWrapList::CreateWebRenderCommands(aBuilder, aResources, aSc,
-        aParentCommands, aManager, aDisplayListBuilder);
+                                                      aManager, aDisplayListBuilder);
   }
 
   // APZ is enabled and this is a scroll thumb, so we need to create and
   // set an animation id. That way APZ can move this scrollthumb around as
   // needed.
-  RefPtr<WebRenderAnimationData> animationData = aManager->CreateOrRecycleWebRenderUserData<WebRenderAnimationData>(this);
+  RefPtr<WebRenderAnimationData> animationData = aManager->CommandBuilder().CreateOrRecycleWebRenderUserData<WebRenderAnimationData>(this);
   AnimationInfo& animationInfo = animationData->GetAnimationInfo();
   animationInfo.EnsureAnimationsId();
   mWrAnimationId = animationInfo.GetCompositorAnimationsId();
 
-  StackingContextHelper sc(aSc, aBuilder, aDisplayListBuilder, this,
-                           &mList, nullptr, mWrAnimationId, nullptr, nullptr);
+  StackingContextHelper sc(aSc, aBuilder, nsTArray<wr::WrFilterOp>(), nullptr,
+                           mWrAnimationId);
 
   nsDisplayWrapList::CreateWebRenderCommands(aBuilder, aResources, sc,
-      aParentCommands, aManager, aDisplayListBuilder);
+                                             aManager, aDisplayListBuilder);
   return true;
 }
 
@@ -7039,6 +7038,113 @@ nsDisplayStickyPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
   layer->SetStickyPositionData(scrollId, stickyOuter, stickyInner);
 
   return layer.forget();
+}
+
+bool
+nsDisplayStickyPosition::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                                 mozilla::wr::IpcResourceUpdateQueue& aResources,
+                                                 const StackingContextHelper& aSc,
+                                                 WebRenderLayerManager* aManager,
+                                                 nsDisplayListBuilder* aDisplayListBuilder)
+{
+  LayerPoint scTranslation;
+  StickyScrollContainer* stickyScrollContainer = StickyScrollContainer::GetStickyScrollContainerForFrame(mFrame);
+  if (stickyScrollContainer) {
+    float auPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+
+    bool snap;
+    nsRect itemBounds = GetBounds(aDisplayListBuilder, &snap);
+
+    // The itemBounds here already take into account the main-thread
+    // position:sticky implementation, so we need to unapply that.
+    nsIFrame* firstCont = nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
+    nsPoint translation = stickyScrollContainer->ComputePosition(firstCont) - firstCont->GetNormalPosition();
+    itemBounds.MoveBy(-translation);
+    scTranslation = ViewAs<LayerPixel>(
+        LayoutDevicePoint::FromAppUnits(translation, auPerDevPixel),
+        PixelCastJustification::WebRenderHasUnitResolution);
+
+    LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(itemBounds, auPerDevPixel);
+
+    Maybe<wr::StickySideConstraint> top;
+    Maybe<wr::StickySideConstraint> right;
+    Maybe<wr::StickySideConstraint> bottom;
+    Maybe<wr::StickySideConstraint> left;
+
+    nsRect outer;
+    nsRect inner;
+    stickyScrollContainer->GetScrollRanges(mFrame, &outer, &inner);
+
+    nsRect scrollPort = stickyScrollContainer->ScrollFrame()->GetScrollPortRect();
+
+    // The following computations make more sense upon understanding the
+    // semantics of "inner" and "outer", which is explained in the comment on
+    // SetStickyPositionData in Layers.h.
+
+    if (outer.YMost() != inner.YMost()) {
+      // Question: How far will itemBounds.y be from the top of the scrollport
+      // when we have scrolled down from the current scroll position of "0" to a
+      // scroll position of "inner.YMost()" (which is >= 0 since we are
+      // scrolling down)?
+      // Answer: (itemBounds.y - 0) - (inner.YMost() - 0)
+      //      == itemBounds.y - inner.YMost()
+      float margin = NSAppUnitsToFloatPixels(itemBounds.y - inner.YMost(), auPerDevPixel);
+      // The scroll distance during which the item should remain "stuck"
+      float maxOffset = NSAppUnitsToFloatPixels(outer.YMost() - inner.YMost(), auPerDevPixel);
+      top = Some(wr::StickySideConstraint { margin, maxOffset });
+    }
+    if (outer.y != inner.y) {
+      // Question: How far will itemBounds.YMost() be from the bottom of the
+      // scrollport when we have scrolled up from the current scroll position of
+      // "0" to a scroll position of "inner.y" (which is <= 0 since we are
+      // scrolling up)?
+      // Answer: (scrollPort.height - itemBounds.YMost()) - (0 - inner.y)
+      //      == scrollPort.height - itemBounds.YMost() + inner.y
+      float margin = NSAppUnitsToFloatPixels(scrollPort.height - itemBounds.YMost() + inner.y, auPerDevPixel);
+      // The scroll distance during which the item should remain "stuck"
+      float maxOffset = NSAppUnitsToFloatPixels(outer.y - inner.y, auPerDevPixel);
+      bottom = Some(wr::StickySideConstraint { margin, maxOffset });
+    }
+    // Same as above, but for the x-axis
+    if (outer.XMost() != inner.XMost()) {
+      float margin = NSAppUnitsToFloatPixels(itemBounds.x - inner.XMost(), auPerDevPixel);
+      float maxOffset = NSAppUnitsToFloatPixels(outer.XMost() - inner.XMost(), auPerDevPixel);
+      left = Some(wr::StickySideConstraint { margin, maxOffset });
+    }
+    if (outer.x != inner.x) {
+      float margin = NSAppUnitsToFloatPixels(scrollPort.width - itemBounds.XMost() + inner.x, auPerDevPixel);
+      float maxOffset = NSAppUnitsToFloatPixels(outer.x - inner.x, auPerDevPixel);
+      right = Some(wr::StickySideConstraint { margin, maxOffset });
+    }
+
+    wr::WrStickyId id = aBuilder.DefineStickyFrame(aSc.ToRelativeLayoutRect(bounds),
+        top.ptrOr(nullptr), right.ptrOr(nullptr), bottom.ptrOr(nullptr), left.ptrOr(nullptr));
+
+    aBuilder.PushStickyFrame(id);
+  }
+
+  // All the things inside this position:sticky item also have the main-thread
+  // translation already applied, so we need to make sure that gets unapplied.
+  // The easiest way to do it is to just create a new stacking context with an
+  // adjusted origin and use that for the nested items. This way all the
+  // ToRelativeLayoutRect calls on this StackingContextHelper object will
+  // include the necessary adjustment.
+  StackingContextHelper sc(aSc, aBuilder);
+  sc.AdjustOrigin(scTranslation);
+
+  // TODO: if, inside this nested command builder, we try to turn a gecko clip
+  // chain into a WR clip chain, we might end up repushing the clip stack
+  // without `id` which effectively throws out the sticky behaviour. The
+  // repushing can happen because of the need to define a new clip while
+  // particular things are on the stack
+  nsDisplayOwnLayer::CreateWebRenderCommands(aBuilder, aResources, sc,
+      aManager, aDisplayListBuilder);
+
+  if (stickyScrollContainer) {
+    aBuilder.PopStickyFrame();
+  }
+
+  return true;
 }
 
 nsDisplayScrollInfoLayer::nsDisplayScrollInfoLayer(
@@ -7900,7 +8006,6 @@ bool
 nsDisplayTransform::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                             mozilla::wr::IpcResourceUpdateQueue& aResources,
                                             const StackingContextHelper& aSc,
-                                            nsTArray<WebRenderParentCommand>& aParentCommands,
                                             WebRenderLayerManager* aManager,
                                             nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -7913,18 +8018,19 @@ nsDisplayTransform::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBu
     transformForSC = nullptr;
   }
 
-  RefPtr<WebRenderAnimationData> animationData = aManager->CreateOrRecycleWebRenderUserData<WebRenderAnimationData>(this);
+  RefPtr<WebRenderAnimationData> animationData = aManager->CommandBuilder().CreateOrRecycleWebRenderUserData<WebRenderAnimationData>(this);
 
   AnimationInfo& animationInfo = animationData->GetAnimationInfo();
   AddAnimationsForProperty(Frame(), aDisplayListBuilder,
                            this, eCSSProperty_transform,
                            animationInfo, false);
   animationInfo.StartPendingAnimations(aManager->GetAnimationReadyTime());
-  uint64_t animationsId = 0;
+
+  // Note that animationsId can be 0 (uninitialized in AnimationInfo) if there
+  // are no active animations.
+  uint64_t animationsId = animationInfo.GetCompositorAnimationsId();
 
   if (!animationInfo.GetAnimations().IsEmpty()) {
-    animationsId = animationInfo.GetCompositorAnimationsId();
-
     // Update transfrom as nullptr in stacking context if there exists
     // transform animation, the transform value will be resolved
     // after animation sampling on the compositor
@@ -7938,24 +8044,25 @@ nsDisplayTransform::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBu
       anim(CompositorAnimations(animationInfo.GetAnimations(), animationsId),
            transformForCompositor, void_t());
     aManager->WrBridge()->AddWebRenderParentCommand(anim);
+    aManager->AddActiveCompositorAnimationId(animationsId);
+  } else if (animationsId) {
+    aManager->AddCompositorAnimationsIdForDiscard(animationsId);
+    animationsId = 0;
   }
-
-  gfx::Matrix4x4Typed<LayerPixel, LayerPixel> boundTransform = ViewAs<gfx::Matrix4x4Typed<LayerPixel, LayerPixel>>(newTransformMatrix);
 
   nsTArray<mozilla::wr::WrFilterOp> filters;
   StackingContextHelper sc(aSc,
                            aBuilder,
-                           aDisplayListBuilder,
-                           this,
-                           mStoredList.GetChildren(),
-                           &boundTransform,
+                           filters,
+                           &newTransformMatrix,
                            animationsId,
                            nullptr,
                            transformForSC,
                            nullptr,
-                           filters);
+                           gfx::CompositionOp::OP_OVER,
+                           !BackfaceIsHidden());
 
-  return mStoredList.CreateWebRenderCommands(aBuilder, aResources, sc, aParentCommands,
+  return mStoredList.CreateWebRenderCommands(aBuilder, aResources, sc,
                                              aManager, aDisplayListBuilder);
 }
 
@@ -7974,11 +8081,18 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
                                                        LayerManager *aManager,
                                                        const ContainerLayerParameters& aContainerParameters)
 {
+  // While generating a glyph mask, the transform vector of the root frame had
+  // been applied into the target context, so stop applying it again here.
+  const bool shouldSkipTransform =
+    (aBuilder->RootReferenceFrame() == mFrame) &&
+    (aBuilder->IsForGenerateGlyphMask() || aBuilder->IsForPaintingSelectionBG());
+
   /* For frames without transform, it would not be removed for
    * backface hidden here.  But, it would be removed by the init
    * function of nsDisplayTransform.
    */
-  const Matrix4x4& newTransformMatrix = GetTransformForRendering();
+  const Matrix4x4 newTransformMatrix =
+    shouldSkipTransform ? Matrix4x4(): GetTransformForRendering();
 
   uint32_t flags = FrameLayerBuilder::CONTAINER_ALLOW_PULL_BACKGROUND_COLOR;
   RefPtr<ContainerLayer> container = aManager->GetLayerBuilder()->
@@ -8513,7 +8627,6 @@ bool
 nsDisplayPerspective::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                               mozilla::wr::IpcResourceUpdateQueue& aResources,
                                               const StackingContextHelper& aSc,
-                                              nsTArray<WebRenderParentCommand>& aParentCommands,
                                               WebRenderLayerManager* aManager,
                                               nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -8551,17 +8664,16 @@ nsDisplayPerspective::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& a
   nsTArray<mozilla::wr::WrFilterOp> filters;
   StackingContextHelper sc(aSc,
                            aBuilder,
-                           aDisplayListBuilder,
-                           this,
-                           mList.GetChildren(),
+                           filters,
                            nullptr,
                            0,
                            nullptr,
                            &transformForSC,
                            &perspectiveMatrix,
-                           filters);
+                           gfx::CompositionOp::OP_OVER,
+                           !BackfaceIsHidden());
 
-  return mList.CreateWebRenderCommands(aBuilder, aResources, sc, aParentCommands,
+  return mList.CreateWebRenderCommands(aBuilder, aResources, sc,
                                        aManager, aDisplayListBuilder);
 }
 
@@ -8750,8 +8862,8 @@ ComputeMaskGeometry(PaintFramesParams& aParams)
 
   const nsStyleSVGReset *svgReset = firstFrame->StyleSVGReset();
 
-  nsSVGEffects::EffectProperties effectProperties =
-    nsSVGEffects::GetEffectProperties(firstFrame);
+  SVGObserverUtils::EffectProperties effectProperties =
+    SVGObserverUtils::GetEffectProperties(firstFrame);
   nsTArray<nsSVGMaskFrame *> maskFrames = effectProperties.GetMaskFrames();
 
   if (maskFrames.Length() == 0) {
@@ -8843,17 +8955,36 @@ nsDisplayMask::~nsDisplayMask()
 }
 #endif
 
+static bool
+CanMergeDisplayMaskFrame(nsIFrame* aFrame)
+{
+  // Do not merge items for box-decoration-break:clone elements,
+  // since each box should have its own mask in that case.
+  if (aFrame->StyleBorder()->mBoxDecorationBreak ==
+        mozilla::StyleBoxDecorationBreak::Clone) {
+    return false;
+  }
+
+  // Do not merge if either frame has a mask. Continuation frames should apply
+  // the mask independently (just like nsDisplayBackgroundImage).
+  if (aFrame->StyleSVGReset()->HasMask()) {
+    return false;
+  }
+
+  return true;
+}
+
 bool
 nsDisplayMask::CanMerge(const nsDisplayItem* aItem) const
 {
   // Items for the same content element should be merged into a single
   // compositing group.
-  // Do not merge if mFrame has mask. Continuation frames should apply mask
-  // independently (just like nsDisplayBackgroundImage).
-  return HasSameTypeAndClip(aItem) && HasSameContent(aItem) &&
-         !mFrame->StyleSVGReset()->HasMask() &&
-         (mFrame->StyleBorder()->mBoxDecorationBreak !=
-            mozilla::StyleBoxDecorationBreak::Clone);
+  if (!HasSameTypeAndClip(aItem) || !HasSameContent(aItem)) {
+    return false;
+  }
+
+  return CanMergeDisplayMaskFrame(mFrame) &&
+         CanMergeDisplayMaskFrame(aItem->Frame());
 }
 
 already_AddRefed<Layer>
@@ -8871,8 +9002,8 @@ nsDisplayMask::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-  nsSVGEffects::EffectProperties effectProperties =
-    nsSVGEffects::GetEffectProperties(firstFrame);
+  SVGObserverUtils::EffectProperties effectProperties =
+    SVGObserverUtils::GetEffectProperties(firstFrame);
 
   if (effectProperties.HasInvalidClipPath() ||
       effectProperties.HasInvalidMask()) {
@@ -9027,7 +9158,6 @@ bool
 nsDisplayMask::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        mozilla::wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc,
-                                       nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
                                        nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -9037,21 +9167,22 @@ nsDisplayMask::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder
   LayerRect bounds = ViewAs<LayerPixel>(LayoutDeviceRect::FromAppUnits(displayBound, appUnitsPerDevPixel),
                                         PixelCastJustification::WebRenderHasUnitResolution);
 
-  Maybe<wr::WrImageMask> mask = aManager->BuildWrMaskImage(this, aBuilder, aResources,
-                                                           aSc, aDisplayListBuilder, bounds);
+  Maybe<wr::WrImageMask> mask = aManager->CommandBuilder().BuildWrMaskImage(this, aBuilder, aResources,
+                                                                            aSc, aDisplayListBuilder,
+                                                                            bounds);
   if (mask) {
     wr::WrClipId clipId = aBuilder.DefineClip(
         aSc.ToRelativeLayoutRect(bounds), nullptr, mask.ptr());
     // Don't record this clip push in aBuilder's internal clip stack, because
     // otherwise any nested ScrollingLayersHelper instances that are created
     // will get confused about which clips are pushed.
-    aBuilder.PushClip(clipId, /*aRecordInStack*/ false);
+    aBuilder.PushClip(clipId, /*aMask*/ true);
   }
 
-  nsDisplaySVGEffects::CreateWebRenderCommands(aBuilder, aResources, aSc, aParentCommands, aManager, aDisplayListBuilder);
+  nsDisplaySVGEffects::CreateWebRenderCommands(aBuilder, aResources, aSc, aManager, aDisplayListBuilder);
 
   if (mask) {
-    aBuilder.PopClip(/*aRecordInStack*/ false);
+    aBuilder.PopClip(/*aMask*/ true);
   }
 
   return true;
@@ -9063,8 +9194,8 @@ nsDisplayMask::PrintEffects(nsACString& aTo)
 {
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-  nsSVGEffects::EffectProperties effectProperties =
-    nsSVGEffects::GetEffectProperties(firstFrame);
+  SVGObserverUtils::EffectProperties effectProperties =
+    SVGObserverUtils::GetEffectProperties(firstFrame);
   nsSVGClipPathFrame *clipPathFrame = effectProperties.GetClipPathFrame();
   bool first = true;
   aTo += " effects=(";
@@ -9130,8 +9261,8 @@ nsDisplayFilter::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-  nsSVGEffects::EffectProperties effectProperties =
-    nsSVGEffects::GetEffectProperties(firstFrame);
+  SVGObserverUtils::EffectProperties effectProperties =
+    SVGObserverUtils::GetEffectProperties(firstFrame);
 
   if (effectProperties.HasInvalidFilter()) {
     return nullptr;
@@ -9146,7 +9277,6 @@ nsDisplayFilter::BuildLayer(nsDisplayListBuilder* aBuilder,
   RefPtr<ContainerLayer> container = aManager->GetLayerBuilder()->
     BuildContainerLayerFor(aBuilder, aManager, mFrame, this, &mList,
                            newContainerParameters, nullptr);
-
   LayerState state = this->GetLayerState(aBuilder, aManager, newContainerParameters);
   if (container && state != LAYER_SVG_EFFECTS) {
     const nsTArray<nsStyleFilter>& filters = mFrame->StyleEffects()->mFilters;
@@ -9254,16 +9384,13 @@ bool
 nsDisplayFilter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                          mozilla::wr::IpcResourceUpdateQueue& aResources,
                                          const StackingContextHelper& aSc,
-                                         nsTArray<WebRenderParentCommand>& aParentCommands,
                                          mozilla::layers::WebRenderLayerManager* aManager,
                                          nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      // TODO: should have a fallback path to paint the child list
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    // TODO: should have a fallback path to paint the child list
+    return false;
   }
 
   nsTArray<mozilla::wr::WrFilterOp> wrFilters;
@@ -9273,19 +9400,9 @@ nsDisplayFilter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuild
     wrFilters.AppendElement(wr::ToWrFilterOp(ToCSSFilter(filter)));
   }
 
-  StackingContextHelper sc(aSc,
-                           aBuilder,
-                           aDisplayListBuilder,
-                           this,
-                           &mList,
-                           nullptr,
-                           0,
-                           nullptr,
-                           nullptr,
-                           nullptr,
-                           wrFilters);
+  StackingContextHelper sc(aSc, aBuilder, wrFilters);
 
-  nsDisplaySVGEffects::CreateWebRenderCommands(aBuilder, aResources, sc, aParentCommands, aManager, aDisplayListBuilder);
+  nsDisplaySVGEffects::CreateWebRenderCommands(aBuilder, aResources, sc, aManager, aDisplayListBuilder);
   return true;
 }
 
@@ -9295,8 +9412,8 @@ nsDisplayFilter::PrintEffects(nsACString& aTo)
 {
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-  nsSVGEffects::EffectProperties effectProperties =
-    nsSVGEffects::GetEffectProperties(firstFrame);
+  SVGObserverUtils::EffectProperties effectProperties =
+    SVGObserverUtils::GetEffectProperties(firstFrame);
   bool first = true;
   aTo += " effects=(";
   if (mFrame->StyleEffects()->mOpacity != 1.0f && mHandleOpacity) {

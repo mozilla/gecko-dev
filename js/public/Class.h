@@ -379,13 +379,11 @@ typedef bool
 /**
  * Set a property named by id in obj, treating the assignment as strict
  * mode code if strict is true. Note the jsid id type -- id may be a string
- * (Unicode property identifier) or an int (element index). The *vp out
- * parameter, on success, is the new property value after the
- * set.
+ * (Unicode property identifier) or an int (element index).
  */
 typedef bool
 (* JSSetterOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-               JS::MutableHandleValue vp, JS::ObjectOpResult& result);
+               JS::HandleValue v, JS::ObjectOpResult& result);
 
 /**
  * Delete a property named by id in obj.
@@ -861,7 +859,7 @@ static const uint32_t JSCLASS_FOREGROUND_FINALIZE =     1 << (JSCLASS_HIGH_FLAGS
 // application.
 static const uint32_t JSCLASS_GLOBAL_APPLICATION_SLOTS = 5;
 static const uint32_t JSCLASS_GLOBAL_SLOT_COUNT =
-    JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 2 + 37;
+    JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 2 + 38;
 
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                              \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))

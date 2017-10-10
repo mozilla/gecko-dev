@@ -9,14 +9,12 @@
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLFrameElement.h"
-#include "nsIDOMHTMLIFrameElement.h"
 #include "nsDOMTokenList.h"
 
 namespace mozilla {
 namespace dom {
 
 class HTMLIFrameElement final : public nsGenericHTMLFrameElement
-                              , public nsIDOMHTMLIFrameElement
 {
 public:
   explicit HTMLIFrameElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
@@ -33,15 +31,12 @@ public:
     return true;
   }
 
-  // nsIDOMHTMLIFrameElement
-  NS_DECL_NSIDOMHTMLIFRAMEELEMENT
-
   // nsIContent
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult) override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
 
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
@@ -50,10 +45,13 @@ public:
   uint32_t GetSandboxFlags();
 
   // Web IDL binding methods
-  // The XPCOM GetSrc is fine for our purposes
-  void SetSrc(const nsAString& aSrc, ErrorResult& aError)
+  void GetSrc(nsString& aSrc, nsIPrincipal&) const
   {
-    SetHTMLAttr(nsGkAtoms::src, aSrc, aError);
+    GetURIAttr(nsGkAtoms::src, nullptr, aSrc);
+  }
+  void SetSrc(const nsAString& aSrc, nsIPrincipal& aTriggeringPrincipal, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::src, aSrc, aTriggeringPrincipal, aError);
   }
   void GetSrcdoc(DOMString& aSrcdoc)
   {
@@ -133,7 +131,10 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::frameborder, aFrameBorder, aError);
   }
-  // The XPCOM GetLongDesc is fine
+  void GetLongDesc(nsAString& aLongDesc) const
+  {
+    GetURIAttr(nsGkAtoms::longdesc, nullptr, aLongDesc);
+  }
   void SetLongDesc(const nsAString& aLongDesc, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::longdesc, aLongDesc, aError);
@@ -191,11 +192,12 @@ protected:
 
   virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
                                 const nsAttrValue* aOldValue,
+                                nsIPrincipal* aMaybeScriptedPrincipal,
                                 bool aNotify) override;
-  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsIAtom* aName,
+  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
                                           const nsAttrValueOrString& aValue,
                                           bool aNotify) override;
 
@@ -214,7 +216,7 @@ private:
    * @param aName the localname of the attribute being set
    * @param aNotify Whether we plan to notify document observers.
    */
-  void AfterMaybeChangeAttr(int32_t aNamespaceID, nsIAtom* aName, bool aNotify);
+  void AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName, bool aNotify);
 };
 
 } // namespace dom

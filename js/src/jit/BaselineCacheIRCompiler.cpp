@@ -293,42 +293,6 @@ BaselineCacheIRCompiler::emitGuardCompartment()
 }
 
 bool
-BaselineCacheIRCompiler::emitGuardAnyClass()
-{
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    AutoScratchRegister scratch(allocator, masm);
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    Address testAddr(stubAddress(reader.stubOffset()));
-
-    masm.loadObjGroup(obj, scratch);
-    masm.loadPtr(Address(scratch, ObjectGroup::offsetOfClasp()), scratch);
-    masm.branchPtr(Assembler::NotEqual, testAddr, scratch, failure->label());
-    return true;
-}
-
-bool
-BaselineCacheIRCompiler::emitGuardHasProxyHandler()
-{
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    AutoScratchRegister scratch(allocator, masm);
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    Address testAddr(stubAddress(reader.stubOffset()));
-    masm.loadPtr(testAddr, scratch);
-
-    Address handlerAddr(obj, ProxyObject::offsetOfHandler());
-    masm.branchPtr(Assembler::NotEqual, handlerAddr, scratch, failure->label());
-    return true;
-}
-
-bool
 BaselineCacheIRCompiler::emitGuardSpecificObject()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
@@ -400,54 +364,6 @@ BaselineCacheIRCompiler::emitGuardSpecificSymbol()
 
     Address addr(stubAddress(reader.stubOffset()));
     masm.branchPtr(Assembler::NotEqual, addr, sym, failure->label());
-    return true;
-}
-
-bool
-BaselineCacheIRCompiler::emitGuardXrayExpandoShapeAndDefaultProto()
-{
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    bool hasExpando = reader.readBool();
-    Address shapeWrapperAddress(stubAddress(reader.stubOffset()));
-
-    AutoScratchRegister scratch(allocator, masm);
-    Maybe<AutoScratchRegister> scratch2;
-    if (hasExpando)
-        scratch2.emplace(allocator, masm);
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    masm.loadPtr(Address(obj, ProxyObject::offsetOfReservedSlots()), scratch);
-    Address holderAddress(scratch, sizeof(Value) * GetXrayJitInfo()->xrayHolderSlot);
-    Address expandoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->holderExpandoSlot));
-
-    if (hasExpando) {
-        masm.branchTestObject(Assembler::NotEqual, holderAddress, failure->label());
-        masm.unboxObject(holderAddress, scratch);
-        masm.branchTestObject(Assembler::NotEqual, expandoAddress, failure->label());
-        masm.unboxObject(expandoAddress, scratch);
-
-        // Unwrap the expando before checking its shape.
-        masm.loadPtr(Address(scratch, ProxyObject::offsetOfReservedSlots()), scratch);
-        masm.unboxObject(Address(scratch, detail::ProxyReservedSlots::offsetOfPrivateSlot()), scratch);
-
-        masm.loadPtr(shapeWrapperAddress, scratch2.ref());
-        LoadShapeWrapperContents(masm, scratch2.ref(), scratch2.ref(), failure->label());
-        masm.branchTestObjShape(Assembler::NotEqual, scratch, scratch2.ref(), failure->label());
-
-        // The reserved slots on the expando should all be in fixed slots.
-        Address protoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->expandoProtoSlot));
-        masm.branchTestUndefined(Assembler::NotEqual, protoAddress, failure->label());
-    } else {
-        Label done;
-        masm.branchTestObject(Assembler::NotEqual, holderAddress, &done);
-        masm.unboxObject(holderAddress, scratch);
-        masm.branchTestObject(Assembler::Equal, expandoAddress, failure->label());
-        masm.bind(&done);
-    }
-
     return true;
 }
 
@@ -614,7 +530,7 @@ BaselineCacheIRCompiler::emitCallScriptedGetterResult()
     Register obj = allocator.useRegister(masm, reader.objOperandId());
     Address getterAddr(stubAddress(reader.stubOffset()));
 
-    AutoScratchRegisterExcluding code(allocator, masm, ArgumentsRectifierReg);
+    AutoScratchRegister code(allocator, masm);
     AutoScratchRegister callee(allocator, masm);
     AutoScratchRegister scratch(allocator, masm);
 
@@ -655,12 +571,9 @@ BaselineCacheIRCompiler::emitCallScriptedGetterResult()
     masm.branch32(Assembler::Equal, callee, Imm32(0), &noUnderflow);
     {
         // Call the arguments rectifier.
-        MOZ_ASSERT(ArgumentsRectifierReg != code);
-
         JitCode* argumentsRectifier = cx_->runtime()->jitRuntime()->getArgumentsRectifier();
         masm.movePtr(ImmGCPtr(argumentsRectifier), code);
         masm.loadPtr(Address(code, JitCode::offsetOfCode()), code);
-        masm.movePtr(ImmWord(0), ArgumentsRectifierReg);
     }
 
     masm.bind(&noUnderflow);
@@ -757,14 +670,18 @@ BaselineCacheIRCompiler::emitCallProxyGetByValueResult()
     return true;
 }
 
+typedef bool (*ProxyHasFn)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
+static const VMFunction ProxyHasInfo = FunctionInfo<ProxyHasFn>(ProxyHas, "ProxyHas");
+
 typedef bool (*ProxyHasOwnFn)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
 static const VMFunction ProxyHasOwnInfo = FunctionInfo<ProxyHasOwnFn>(ProxyHasOwn, "ProxyHasOwn");
 
 bool
-BaselineCacheIRCompiler::emitCallProxyHasOwnResult()
+BaselineCacheIRCompiler::emitCallProxyHasPropResult()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
     ValueOperand idVal = allocator.useValueRegister(masm, reader.valOperandId());
+    bool hasOwn = reader.readBool();
 
     AutoScratchRegister scratch(allocator, masm);
 
@@ -776,8 +693,13 @@ BaselineCacheIRCompiler::emitCallProxyHasOwnResult()
     masm.Push(idVal);
     masm.Push(obj);
 
-    if (!callVM(masm, ProxyHasOwnInfo))
-        return false;
+    if (hasOwn) {
+        if (!callVM(masm, ProxyHasOwnInfo))
+            return false;
+    } else {
+        if (!callVM(masm, ProxyHasInfo))
+            return false;
+    }
 
     stubFrame.leave(masm);
     return true;
@@ -1670,135 +1592,6 @@ BaselineCacheIRCompiler::emitStoreTypedElement()
     return true;
 }
 
-bool
-BaselineCacheIRCompiler::emitStoreUnboxedArrayElement()
-{
-    ObjOperandId objId = reader.objOperandId();
-    Int32OperandId indexId = reader.int32OperandId();
-
-    // Allocate the fixed registers first. These need to be fixed for
-    // callTypeUpdateIC.
-    AutoScratchRegister scratch(allocator, masm, R1.scratchReg());
-    ValueOperand val = allocator.useFixedValueRegister(masm, reader.valOperandId(), R0);
-
-    JSValueType elementType = reader.valueType();
-    Register obj = allocator.useRegister(masm, objId);
-    Register index = allocator.useRegister(masm, indexId);
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    // Bounds check.
-    Address initLength(obj, UnboxedArrayObject::offsetOfCapacityIndexAndInitializedLength());
-    masm.load32(initLength, scratch);
-    masm.and32(Imm32(UnboxedArrayObject::InitializedLengthMask), scratch);
-    masm.branch32(Assembler::BelowOrEqual, scratch, index, failure->label());
-
-    // Call the type update IC. After this everything must be infallible as we
-    // don't save all registers here.
-    if (elementType == JSVAL_TYPE_OBJECT) {
-        LiveGeneralRegisterSet saveRegs;
-        saveRegs.add(obj);
-        saveRegs.add(index);
-        saveRegs.add(val);
-        if (!callTypeUpdateIC(obj, val, scratch, saveRegs))
-            return false;
-    }
-
-    // Load obj->elements.
-    masm.loadPtr(Address(obj, UnboxedArrayObject::offsetOfElements()), scratch);
-
-    // Note that the storeUnboxedProperty call here is infallible, as the
-    // IR emitter is responsible for guarding on |val|'s type.
-    BaseIndex element(scratch, index, ScaleFromElemWidth(UnboxedTypeSize(elementType)));
-    EmitICUnboxedPreBarrier(masm, element, elementType);
-    masm.storeUnboxedProperty(element, elementType,
-                              ConstantOrRegister(TypedOrValueRegister(val)),
-                              /* failure = */ nullptr);
-
-    if (UnboxedTypeNeedsPostBarrier(elementType))
-        emitPostBarrierSlot(obj, val, scratch);
-    return true;
-}
-
-bool
-BaselineCacheIRCompiler::emitStoreUnboxedArrayElementHole()
-{
-    ObjOperandId objId = reader.objOperandId();
-    Int32OperandId indexId = reader.int32OperandId();
-
-    // Allocate the fixed registers first. These need to be fixed for
-    // callTypeUpdateIC.
-    AutoScratchRegister scratch(allocator, masm, R1.scratchReg());
-    ValueOperand val = allocator.useFixedValueRegister(masm, reader.valOperandId(), R0);
-
-    JSValueType elementType = reader.valueType();
-    Register obj = allocator.useRegister(masm, objId);
-    Register index = allocator.useRegister(masm, indexId);
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    // Check index <= initLength.
-    Address initLength(obj, UnboxedArrayObject::offsetOfCapacityIndexAndInitializedLength());
-    masm.load32(initLength, scratch);
-    masm.and32(Imm32(UnboxedArrayObject::InitializedLengthMask), scratch);
-    masm.branch32(Assembler::Below, scratch, index, failure->label());
-
-    // Check capacity.
-    masm.checkUnboxedArrayCapacity(obj, RegisterOrInt32Constant(index), scratch, failure->label());
-
-    // Call the type update IC. After this everything must be infallible as we
-    // don't save all registers here.
-    if (elementType == JSVAL_TYPE_OBJECT) {
-        LiveGeneralRegisterSet saveRegs;
-        saveRegs.add(obj);
-        saveRegs.add(index);
-        saveRegs.add(val);
-        if (!callTypeUpdateIC(obj, val, scratch, saveRegs))
-            return false;
-    }
-
-    // Load obj->elements.
-    masm.loadPtr(Address(obj, UnboxedArrayObject::offsetOfElements()), scratch);
-
-    // If index == initLength, increment initialized length.
-    Label inBounds, doStore;
-    masm.load32(initLength, scratch);
-    masm.and32(Imm32(UnboxedArrayObject::InitializedLengthMask), scratch);
-    masm.branch32(Assembler::NotEqual, scratch, index, &inBounds);
-
-    masm.add32(Imm32(1), initLength);
-
-    // If length is now <= index, increment length.
-    Address length(obj, UnboxedArrayObject::offsetOfLength());
-    Label skipIncrementLength;
-    masm.branch32(Assembler::Above, length, index, &skipIncrementLength);
-    masm.add32(Imm32(1), length);
-    masm.bind(&skipIncrementLength);
-
-    // Skip EmitICUnboxedPreBarrier as the memory is uninitialized.
-    masm.jump(&doStore);
-
-    masm.bind(&inBounds);
-
-    BaseIndex element(scratch, index, ScaleFromElemWidth(UnboxedTypeSize(elementType)));
-    EmitICUnboxedPreBarrier(masm, element, elementType);
-
-    // Note that the storeUnboxedProperty call here is infallible, as the
-    // IR emitter is responsible for guarding on |val|'s type.
-    masm.bind(&doStore);
-    masm.storeUnboxedProperty(element, elementType,
-                              ConstantOrRegister(TypedOrValueRegister(val)),
-                              /* failure = */ nullptr);
-
-    if (UnboxedTypeNeedsPostBarrier(elementType))
-        emitPostBarrierSlot(obj, val, scratch);
-    return true;
-}
-
 typedef bool (*CallNativeSetterFn)(JSContext*, HandleFunction, HandleObject, HandleValue);
 static const VMFunction CallNativeSetterInfo =
     FunctionInfo<CallNativeSetterFn>(CallNativeSetter, "CallNativeSetter");
@@ -1834,7 +1627,7 @@ BaselineCacheIRCompiler::emitCallNativeSetter()
 bool
 BaselineCacheIRCompiler::emitCallScriptedSetter()
 {
-    AutoScratchRegisterExcluding scratch1(allocator, masm, ArgumentsRectifierReg);
+    AutoScratchRegister scratch1(allocator, masm);
     AutoScratchRegister scratch2(allocator, masm);
 
     Register obj = allocator.useRegister(masm, reader.objOperandId());
@@ -1889,12 +1682,9 @@ BaselineCacheIRCompiler::emitCallScriptedSetter()
     masm.branch32(Assembler::BelowOrEqual, scratch2, Imm32(1), &noUnderflow);
     {
         // Call the arguments rectifier.
-        MOZ_ASSERT(ArgumentsRectifierReg != scratch1);
-
         JitCode* argumentsRectifier = cx_->runtime()->jitRuntime()->getArgumentsRectifier();
         masm.movePtr(ImmGCPtr(argumentsRectifier), scratch1);
         masm.loadPtr(Address(scratch1, JitCode::offsetOfCode()), scratch1);
-        masm.movePtr(ImmWord(1), ArgumentsRectifierReg);
     }
 
     masm.bind(&noUnderflow);

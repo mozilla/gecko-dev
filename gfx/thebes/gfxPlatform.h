@@ -35,7 +35,7 @@ class gfxFontEntry;
 class gfxPlatformFontList;
 class gfxTextRun;
 class nsIURI;
-class nsIAtom;
+class nsAtom;
 class nsIObserver;
 class SRGBOverrideObserver;
 class gfxTextPerfMetrics;
@@ -116,6 +116,8 @@ GetBackendName(mozilla::gfx::BackendType aBackend)
         return "recording";
       case mozilla::gfx::BackendType::DIRECT2D1_1:
         return "direct2d 1.1";
+      case mozilla::gfx::BackendType::WEBRENDER_TEXT:
+        return "webrender text";
       case mozilla::gfx::BackendType::NONE:
         return "none";
       case mozilla::gfx::BackendType::BACKEND_LAST:
@@ -330,7 +332,7 @@ public:
      * that correspond to the given language group or generic font family
      * (or both, or neither).
      */
-    virtual nsresult GetFontList(nsIAtom *aLangGroup,
+    virtual nsresult GetFontList(nsAtom *aLangGroup,
                                  const nsACString& aGenericFamily,
                                  nsTArray<nsString>& aListOfFonts);
 

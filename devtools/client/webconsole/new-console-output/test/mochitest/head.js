@@ -4,7 +4,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 /* import-globals-from ../../../../framework/test/shared-head.js */
 /* exported WCUL10n, openNewTabAndConsole, waitForMessages, waitFor, findMessage,
-   openContextMenu, hideContextMenu, loadDocument,
+   openContextMenu, hideContextMenu, loadDocument, hasFocus,
    waitForNodeMutation, testOpenInDebugger, checkClickOnNode */
 
 "use strict";
@@ -15,6 +15,7 @@ Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/framework/test/shared-head.js",
   this);
 
+var {HUDService} = require("devtools/client/webconsole/hudservice");
 var WCUL10n = require("devtools/client/webconsole/webconsole-l10n");
 
 Services.prefs.setBoolPref("devtools.webconsole.new-frontend-enabled", true);
@@ -252,4 +253,11 @@ function* checkClickOnNode(hud, toolbox, frameLinkNode) {
     url,
     "expected source url"
   );
+}
+
+/**
+ * Returns true if the give node is currently focused.
+ */
+function hasFocus(node) {
+  return node.ownerDocument.activeElement == node;
 }

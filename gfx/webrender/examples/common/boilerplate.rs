@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate env_logger;
+
 use gleam::gl;
 use glutin;
 use std::env;
@@ -77,6 +79,8 @@ pub trait Example {
 }
 
 pub fn main_wrapper(example: &mut Example, options: Option<webrender::RendererOptions>) {
+    env_logger::init().unwrap();
+
     let args: Vec<String> = env::args().collect();
     let res_path = if args.len() > 1 {
         Some(PathBuf::from(&args[1]))
@@ -212,6 +216,28 @@ pub fn main_wrapper(example: &mut Example, options: Option<webrender::RendererOp
                     let mut flags = renderer.get_debug_flags();
                     flags.toggle(webrender::ALPHA_PRIM_DBG);
                     renderer.set_debug_flags(flags);
+                }
+                glutin::Event::KeyboardInput(
+                    glutin::ElementState::Pressed,
+                    _,
+                    Some(glutin::VirtualKeyCode::Key1),
+                ) => {
+                    api.set_window_parameters(document_id,
+                        size,
+                        DeviceUintRect::new(DeviceUintPoint::zero(), size),
+                        1.0
+                    );
+                }
+                glutin::Event::KeyboardInput(
+                    glutin::ElementState::Pressed,
+                    _,
+                    Some(glutin::VirtualKeyCode::Key2),
+                ) => {
+                    api.set_window_parameters(document_id,
+                        size,
+                        DeviceUintRect::new(DeviceUintPoint::zero(), size),
+                        2.0
+                    );
                 }
                 glutin::Event::KeyboardInput(
                     glutin::ElementState::Pressed,

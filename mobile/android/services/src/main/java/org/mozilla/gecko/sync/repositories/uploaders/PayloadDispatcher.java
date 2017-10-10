@@ -15,6 +15,7 @@ import org.mozilla.gecko.sync.net.SyncStorageResponse;
 
 import java.util.ArrayList;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -34,11 +35,9 @@ class PayloadDispatcher {
     private final Executor executor;
     private final BatchingUploader uploader;
 
-    // For both of these flags:
     // Written from sequentially running thread(s) on the SingleThreadExecutor `executor`.
     // Read by many threads running concurrently on the records consumer thread pool.
-    volatile boolean recordUploadFailed = false;
-    volatile boolean storeFailed = false;
+    final AtomicBoolean storeFailed = new AtomicBoolean(false);
 
     PayloadDispatcher(Executor executor, BatchingUploader uploader, @Nullable Long initialLastModified) {
         // Initially we don't know if we're in a batching mode.
@@ -104,8 +103,8 @@ class PayloadDispatcher {
         }
     }
 
-    void lastPayloadFailed(Exception e) {
-        uploader.sessionStoreDelegate.onStoreFailed(e);
+    void payloadFailed(Exception e) {
+        doStoreFailed(e);
     }
 
     void finalizeQueue(final boolean needToCommit, final Runnable finalRunnable) {
@@ -130,18 +129,23 @@ class PayloadDispatcher {
 
     void recordFailed(final Exception e, final String recordGuid) {
         Logger.debug(LOG_TAG, "Record store failed for guid " + recordGuid + " with exception: " + e.toString());
-        recordUploadFailed = true;
         uploader.sessionStoreDelegate.onRecordStoreFailed(e, recordGuid);
     }
 
     void concurrentModificationDetected() {
-        recordUploadFailed = true;
-        storeFailed = true;
-        uploader.sessionStoreDelegate.onStoreFailed(new CollectionConcurrentModificationException());
+        doStoreFailed(new CollectionConcurrentModificationException());
     }
 
     void prepareForNextBatch() {
         batchWhiteboard = batchWhiteboard.nextBatchMeta();
+    }
+
+    private void doStoreFailed(Exception reason) {
+        if (storeFailed.getAndSet(true)) {
+            return;
+        }
+        uploader.abort();
+        uploader.sessionStoreDelegate.onStoreFailed(reason);
     }
 
     private static void bumpTimestampTo(final AtomicLong current, long newValue) {
@@ -202,7 +206,7 @@ class PayloadDispatcher {
     // Instances of this class must be accessed from threads running on the `executor`.
     private class BatchingAtomicUploaderMayUploadProvider implements MayUploadProvider {
         public boolean mayUpload() {
-            return !recordUploadFailed;
+            return !storeFailed.get();
         }
     }
 }

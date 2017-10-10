@@ -103,20 +103,17 @@ class VCSHelper(object):
         self.check_working_directory(push)
 
         config = None
-        if labels:
+        if labels or labels == []:
             config = self.write_task_config(labels, templates)
 
         try:
             if not push:
-                print("Calculated try selector:")
+                print("Commit message:")
+                print(commit_message)
                 if config:
+                    print("Calculated try_task_config.json:")
                     with open(config) as fh:
                         print(fh.read())
-                else:
-                    print(msg)
-
-                print('Commit message:')
-                print(commit_message)
                 return
 
             self._push_to_try(commit_message, config)

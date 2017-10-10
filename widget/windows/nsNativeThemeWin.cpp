@@ -1492,7 +1492,8 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
 static bool
 AssumeThemePartAndStateAreTransparent(int32_t aPart, int32_t aState)
 {
-  if (aPart == MENU_POPUPITEM && aState == MBI_NORMAL) {
+  if (!(IsWin8Point1OrLater() && nsUXThemeData::IsHighContrastOn()) &&
+      aPart == MENU_POPUPITEM && aState == MBI_NORMAL) {
     return true;
   }
   return false;
@@ -2451,7 +2452,7 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsPresContext* aPresContext, nsIFrame* aF
 
 NS_IMETHODIMP
 nsNativeThemeWin::WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType, 
-                                     nsIAtom* aAttribute, bool* aShouldRepaint,
+                                     nsAtom* aAttribute, bool* aShouldRepaint,
                                      const nsAttrValue* aOldValue)
 {
   // Some widget types just never change state.

@@ -1248,76 +1248,6 @@ public:
   // mouse capturing
   static CapturingContentInfo gCaptureInfo;
 
-  class PointerCaptureInfo final
-  {
-  public:
-    nsCOMPtr<nsIContent> mPendingContent;
-    nsCOMPtr<nsIContent> mOverrideContent;
-
-    explicit PointerCaptureInfo(nsIContent* aPendingContent)
-      : mPendingContent(aPendingContent)
-    {
-      MOZ_COUNT_CTOR(PointerCaptureInfo);
-    }
-
-    ~PointerCaptureInfo()
-    {
-      MOZ_COUNT_DTOR(PointerCaptureInfo);
-    }
-
-    bool Empty()
-    {
-      return !(mPendingContent || mOverrideContent);
-    }
-  };
-
-  class PointerInfo final
-  {
-  public:
-    uint16_t mPointerType;
-    bool mActiveState;
-    bool mPrimaryState;
-    bool mPreventMouseEventByContent;
-    explicit PointerInfo(bool aActiveState, uint16_t aPointerType,
-                         bool aPrimaryState)
-      : mPointerType(aPointerType)
-      , mActiveState(aActiveState)
-      , mPrimaryState(aPrimaryState)
-      , mPreventMouseEventByContent(false)
-    {
-    }
-  };
-
-  static void DispatchGotOrLostPointerCaptureEvent(
-                bool aIsGotCapture,
-                const mozilla::WidgetPointerEvent* aPointerEvent,
-                nsIContent* aCaptureTarget);
-
-  static PointerCaptureInfo* GetPointerCaptureInfo(uint32_t aPointerId);
-  static void SetPointerCapturingContent(uint32_t aPointerId,
-                                         nsIContent* aContent);
-  static void ReleasePointerCapturingContent(uint32_t aPointerId);
-  static nsIContent* GetPointerCapturingContent(uint32_t aPointerId);
-
-  // CheckPointerCaptureState checks cases, when got/lostpointercapture events
-  // should be fired.
-  static void CheckPointerCaptureState(
-                const mozilla::WidgetPointerEvent* aPointerEvent);
-
-  // GetPointerInfo returns true if pointer with aPointerId is situated in
-  // device, false otherwise.
-  // aActiveState is additional information, which shows state of pointer like
-  // button state for mouse.
-  static bool GetPointerInfo(uint32_t aPointerId, bool& aActiveState);
-
-  // GetPointerType returns pointer type like mouse, pen or touch for pointer
-  // event with pointerId
-  static uint16_t GetPointerType(uint32_t aPointerId);
-
-  // GetPointerPrimaryState returns state of attribute isPrimary for pointer
-  // event with pointerId
-  static bool GetPointerPrimaryState(uint32_t aPointerId);
-
   /**
    * When capturing content is set, it traps all mouse events and retargets
    * them at this content node. If capturing is not allowed
@@ -1581,6 +1511,21 @@ public:
     mFontSizeInflationEnabledIsDirty = true;
   }
 
+  /**
+   * Return true if the most recent interruptible reflow was interrupted.
+   */
+  bool IsReflowInterrupted() const {
+    return mWasLastReflowInterrupted;
+  }
+
+  /**
+   * Return true if the the interruptible reflows have to be suppressed.
+   * This may happen only if if the most recent reflow was interrupted.
+   */
+  bool SuppressInterruptibleReflows() const {
+    return mWasLastReflowInterrupted;
+  }
+
   //////////////////////////////////////////////////////////////////////////////
   // Approximate frame visibility tracking public API.
   //////////////////////////////////////////////////////////////////////////////
@@ -1669,12 +1614,6 @@ public:
 
   virtual bool AddPostRefreshObserver(nsAPostRefreshObserver* aObserver);
   virtual bool RemovePostRefreshObserver(nsAPostRefreshObserver* aObserver);
-
-  /**
-   * Initialize and shut down static variables.
-   */
-  static void InitializeStatics();
-  static void ReleaseStatics();
 
   // If a frame in the subtree rooted at aFrame is capturing the mouse then
   // clears that capture.
@@ -1794,7 +1733,8 @@ protected:
   bool                      mIsFirstPaint : 1;
   bool                      mObservesMutationsForPrint : 1;
 
-  bool                      mSuppressInterruptibleReflows : 1;
+  // Whether the most recent interruptible reflow was actually interrupted:
+  bool                      mWasLastReflowInterrupted : 1;
   bool                      mScrollPositionClampingScrollPortSizeSet : 1;
 
   // True if a layout flush might not be a no-op

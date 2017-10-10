@@ -2122,7 +2122,7 @@ nsChildView::AddWindowOverlayWebRenderCommands(layers::WebRenderBridgeChild* aWr
 
     wr::LayoutRect rect = wr::ToLayoutRect(mTitlebarRect);
     aBuilder.PushImage(wr::LayoutRect{ rect.origin, { float(size.width), float(size.height) } },
-                       rect, wr::ImageRendering::Auto, *mTitlebarImageKey);
+                       rect, true, wr::ImageRendering::Auto, *mTitlebarImageKey);
   }
 }
 
@@ -2560,12 +2560,11 @@ nsChildView::UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometri
     FindFirstRectOfType(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeToolbox).YMost();
 
   ToolbarWindow* win = (ToolbarWindow*)[mView window];
-  bool drawsContentsIntoWindowFrame = [win drawsContentsIntoWindowFrame];
   int32_t titlebarHeight = CocoaPointsToDevPixels([win titlebarHeight]);
-  int32_t contentOffset = drawsContentsIntoWindowFrame ? titlebarHeight : 0;
-  int32_t devUnifiedHeight = titlebarHeight + unifiedToolbarBottom - contentOffset;
+  int32_t devUnifiedHeight = titlebarHeight + unifiedToolbarBottom;
   [win setUnifiedToolbarHeight:DevPixelsToCocoaPoints(devUnifiedHeight)];
-  int32_t devSheetPosition = titlebarHeight + std::max(toolboxBottom, unifiedToolbarBottom) - contentOffset;
+  int32_t devSheetPosition = titlebarHeight +
+                             std::max(toolboxBottom, unifiedToolbarBottom);
   [win setSheetAttachmentPosition:DevPixelsToCocoaPoints(devSheetPosition)];
 
   // Update titlebar control offsets.
@@ -4166,24 +4165,11 @@ NSEvent* gLastDragMouseDownEvent = nil;
   NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(NO);
 }
 
-/*
- * In OS X Mountain Lion and above, smart zoom gestures are implemented in
- * smartMagnifyWithEvent. In OS X Lion, they are implemented in
- * magnifyWithEvent. See inline comments for more info.
- *
- * The prototypes swipeWithEvent, beginGestureWithEvent, magnifyWithEvent,
- * smartMagnifyWithEvent, rotateWithEvent, and endGestureWithEvent were
- * obtained from the following links:
- * https://developer.apple.com/library/mac/#documentation/Cocoa/Reference/ApplicationKit/Classes/NSResponder_Class/Reference/Reference.html
- * https://developer.apple.com/library/mac/#releasenotes/Cocoa/AppKit.html
- */
-
 - (void)swipeWithEvent:(NSEvent *)anEvent
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!anEvent || !mGeckoChild ||
-      [self beginOrEndGestureForEventPhase:anEvent]) {
+  if (!anEvent || !mGeckoChild) {
     return;
   }
 
@@ -4214,6 +4200,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
+// Pinch zoom gesture.
 - (void)magnifyWithEvent:(NSEvent *)anEvent
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
@@ -4283,6 +4270,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
+// Smart zoom gesture, i.e. two-finger double tap on trackpads.
 - (void)smartMagnifyWithEvent:(NSEvent *)anEvent
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
@@ -6758,8 +6746,7 @@ HandleEvent(CGEventTapProxy aProxy, CGEventType aType,
 
 - (void)runEventThread
 {
-  char aLocal;
-  profiler_register_thread("APZC Event Thread", &aLocal);
+  PROFILER_REGISTER_THREAD("APZC Event Thread");
   NS_SetCurrentThreadName("APZC Event Thread");
 
   mThread = [NSThread currentThread];

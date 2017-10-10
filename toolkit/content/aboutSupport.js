@@ -49,6 +49,7 @@ var snapshotFormatters = {
     $("buildid-box").textContent = data.buildID;
     if (data.updateChannel)
       $("updatechannel-box").textContent = data.updateChannel;
+    $("profile-dir-box").textContent = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
 
     let statusText = strings.GetStringFromName("multiProcessStatus.unknown");
 
@@ -606,6 +607,7 @@ var snapshotFormatters = {
         let th = $.new("th", strings.GetStringFromName(key), "column");
         let td = $.new("td", value);
         td.style["white-space"] = "pre-wrap";
+        td.colSpan = 8;
         return $.new("tr", [th, td]);
       }
       $.append($("media-info-tbody"), [createRow(key, value)]);

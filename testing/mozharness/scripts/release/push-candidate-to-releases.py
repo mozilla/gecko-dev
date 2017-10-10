@@ -44,7 +44,6 @@ class ReleasePusher(BaseScript, VirtualenvMixin):
                 r"^.*/partner-repacks.*$",
                 r"^.*.checksums(\.asc)?$",
                 r"^.*/logs/.*$",
-                r"^.*/jsshell.*$",
                 r"^.*json$",
                 r"^.*/host.*$",
                 r"^.*/mar-tools/.*$",
@@ -71,6 +70,7 @@ class ReleasePusher(BaseScript, VirtualenvMixin):
             require_config_file=False,
             config={
                 "virtualenv_modules": [
+                    "pip==1.5.5",
                     "boto",
                     "redo",
                 ],

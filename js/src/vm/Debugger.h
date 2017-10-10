@@ -48,7 +48,7 @@ class WasmInstanceObject;
 
 typedef HashSet<ReadBarrieredGlobalObject,
                 MovableCellHasher<ReadBarrieredGlobalObject>,
-                RuntimeAllocPolicy> WeakGlobalObjectSet;
+                ZoneAllocPolicy> WeakGlobalObjectSet;
 
 /*
  * A weakmap from GC thing keys to JSObject values that supports the keys being
@@ -85,7 +85,7 @@ class DebuggerWeakMap : private WeakMap<HeapPtr<UnbarrieredKey>, HeapPtr<JSObjec
     typedef HashMap<JS::Zone*,
                     uintptr_t,
                     DefaultHasher<JS::Zone*>,
-                    RuntimeAllocPolicy> CountMap;
+                    ZoneAllocPolicy> CountMap;
 
     CountMap zoneCounts;
     JSCompartment* compartment;
@@ -95,7 +95,7 @@ class DebuggerWeakMap : private WeakMap<HeapPtr<UnbarrieredKey>, HeapPtr<JSObjec
 
     explicit DebuggerWeakMap(JSContext* cx)
         : Base(cx),
-          zoneCounts(cx->runtime()),
+          zoneCounts(cx->zone()),
           compartment(cx->compartment())
     { }
 
@@ -268,8 +268,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     friend bool (::JS_DefineDebuggerObject)(JSContext* cx, JS::HandleObject obj);
     friend bool (::JS::dbg::IsDebugger)(JSObject&);
     friend bool (::JS::dbg::GetDebuggeeGlobals)(JSContext*, JSObject&, AutoObjectVector&);
-    friend void JS::dbg::onNewPromise(JSContext* cx, HandleObject promise);
-    friend void JS::dbg::onPromiseSettled(JSContext* cx, HandleObject promise);
     friend bool JS::dbg::FireOnGarbageCollectionHookRequired(JSContext* cx);
     friend bool JS::dbg::FireOnGarbageCollectionHook(JSContext* cx,
                                                      JS::dbg::GarbageCollectionEvent::Ptr&& data);
@@ -404,7 +402,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     // The set of GC numbers for which one or more of this Debugger's observed
     // debuggees participated in.
-    using GCNumberSet = HashSet<uint64_t, DefaultHasher<uint64_t>, RuntimeAllocPolicy>;
+    using GCNumberSet = HashSet<uint64_t, DefaultHasher<uint64_t>, ZoneAllocPolicy>;
     GCNumberSet observedGCs;
 
     using AllocationsLog = js::TraceableFifo<AllocationsLogEntry>;
@@ -481,7 +479,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     typedef HashMap<AbstractFramePtr,
                     HeapPtr<DebuggerFrame*>,
                     DefaultHasher<AbstractFramePtr>,
-                    RuntimeAllocPolicy> FrameMap;
+                    ZoneAllocPolicy> FrameMap;
     FrameMap frames;
 
     /* An ephemeral map from JSScript* to Debugger.Script instances. */
@@ -739,7 +737,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
                                                          HandleSavedFrame frame,
                                                          mozilla::TimeStamp when,
                                                          GlobalObject::DebuggerVector& dbgs);
-    static void slowPathPromiseHook(JSContext* cx, Hook hook, HandleObject promise);
+    static void slowPathPromiseHook(JSContext* cx, Hook hook, Handle<PromiseObject*> promise);
 
     template <typename HookIsEnabledFun /* bool (Debugger*) */,
               typename FireHookFun /* JSTrapStatus (Debugger*) */>
@@ -938,6 +936,20 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static void propagateForcedReturn(JSContext* cx, AbstractFramePtr frame, HandleValue rval);
     static bool hasLiveHook(GlobalObject* global, Hook which);
     static bool inFrameMaps(AbstractFramePtr frame);
+
+    // Notify any Debugger instances observing this promise's global that a new
+    // promise was allocated.
+    static inline void onNewPromise(JSContext* cx, Handle<PromiseObject*> promise);
+
+    // Notify any Debugger instances observing this promise's global that the
+    // promise has settled (ie, it has either been fulfilled or rejected). Note that
+    // this is *not* equivalent to the promise resolution (ie, the promise's fate
+    // getting locked in) because you can resolve a promise with another pending
+    // promise, in which case neither promise has settled yet.
+    //
+    // This should never be called on the same promise more than once, because a
+    // promise can only make the transition from unsettled to settled once.
+    static inline void onPromiseSettled(JSContext* cx, Handle<PromiseObject*> promise);
 
     /************************************* Functions for use by Debugger.cpp. */
 

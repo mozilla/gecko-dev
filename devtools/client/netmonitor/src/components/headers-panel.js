@@ -20,6 +20,7 @@ const {
   getHTTPStatusCodeURL,
 } = require("../utils/mdn-utils");
 const { writeHeaderText } = require("../utils/request-utils");
+const { sortObjectKeys } = require("../utils/sort-utils");
 
 // Components
 const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
@@ -66,12 +67,16 @@ const HeadersPanel = createClass({
 
   getProperties(headers, title) {
     if (headers && headers.headers.length) {
-      return {
-        [`${title} (${getFormattedSize(headers.headersSize, 3)})`]:
+      let headerKey = `${title} (${getFormattedSize(headers.headersSize, 3)})`;
+      let propertiesResult = {
+        [headerKey]:
           headers.headers.reduce((acc, { name, value }) =>
             name ? Object.assign(acc, { [name]: value }) : acc
           , {})
       };
+
+      propertiesResult[headerKey] = sortObjectKeys(propertiesResult[headerKey]);
+      return propertiesResult;
     }
 
     return null;

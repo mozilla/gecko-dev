@@ -35,7 +35,8 @@ public:
   static PVRLayerChild* CreateIPDLActor();
   static bool DestroyIPDLActor(PVRLayerChild* actor);
 
-  void Initialize(dom::HTMLCanvasElement* aCanvasElement);
+  void Initialize(dom::HTMLCanvasElement* aCanvasElement,
+                  const gfx::Rect& aLeftEyeRect, const gfx::Rect& aRightEyeRect);
   void SubmitFrame(uint64_t aFrameId);
   bool IsIPCOpen();
 
@@ -46,8 +47,6 @@ private:
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
   RefPtr<dom::HTMLCanvasElement> mCanvasElement;
-  RefPtr<layers::SharedSurfaceTextureClient> mShSurfClient;
-  RefPtr<layers::TextureClient> mFront;
   bool mIPCOpen;
 
   // AddIPDLReference and ReleaseIPDLReference are only to be called by CreateIPDLActor
@@ -56,6 +55,14 @@ private:
   // actor goes down: mIPCOpen is then set to false.
   void AddIPDLReference();
   void ReleaseIPDLReference();
+
+  gfx::Rect mLeftEyeRect;
+  gfx::Rect mRightEyeRect;
+
+  RefPtr<layers::SharedSurfaceTextureClient> mThisFrameTexture;
+  RefPtr<layers::SharedSurfaceTextureClient> mLastFrameTexture;
+
+  uint64_t mLastSubmittedFrameId;
 };
 
 } // namespace gfx

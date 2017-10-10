@@ -8,7 +8,7 @@
 #define mozilla_dom_SVGUseElement_h
 
 #include "mozilla/dom/FromParser.h"
-#include "nsReferencedElement.h"
+#include "mozilla/dom/IDTracker.h"
 #include "nsStubMutationObserver.h"
 #include "mozilla/dom/SVGGraphicsElement.h"
 #include "nsSVGLength2.h"
@@ -68,7 +68,7 @@ public:
   // nsIContent interface
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
                          bool aPreallocateChildren) const override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
   // WebIDL
   already_AddRefed<SVGAnimatedString> Href();
@@ -81,19 +81,27 @@ public:
   URLExtraData* GetContentURLData() const { return mContentURLData; }
 
 protected:
-  class SourceReference : public nsReferencedElement {
+  /**
+   * Helper that provides a reference to the element with the ID that is
+   * referenced by the 'use' element's 'href' attribute, and that will update
+   * the 'use' element if the element that that ID identifies changes to a
+   * different element (or none).
+   */
+  class ElementTracker final : public IDTracker {
   public:
-    explicit SourceReference(SVGUseElement* aContainer) : mContainer(aContainer) {}
+    explicit ElementTracker(SVGUseElement* aOwningUseElement)
+      : mOwningUseElement(aOwningUseElement)
+    {}
   protected:
     virtual void ElementChanged(Element* aFrom, Element* aTo) override {
-      nsReferencedElement::ElementChanged(aFrom, aTo);
+      IDTracker::ElementChanged(aFrom, aTo);
       if (aFrom) {
-        aFrom->RemoveMutationObserver(mContainer);
+        aFrom->RemoveMutationObserver(mOwningUseElement);
       }
-      mContainer->TriggerReclone();
+      mOwningUseElement->TriggerReclone();
     }
   private:
-    SVGUseElement* mContainer;
+    SVGUseElement* mOwningUseElement;
   };
 
   nsSVGUseFrame* GetFrame() const;
@@ -107,7 +115,7 @@ protected:
    * element that we're referencing.
    */
   bool OurWidthAndHeightAreUsed() const;
-  void SyncWidthOrHeight(nsIAtom *aName);
+  void SyncWidthOrHeight(nsAtom *aName);
   void LookupHref();
   void TriggerReclone();
   void UnlinkSource();
@@ -122,7 +130,7 @@ protected:
 
   nsCOMPtr<nsIContent> mOriginal; // if we've been cloned, our "real" copy
   nsCOMPtr<nsIContent> mClone;    // cloned tree
-  SourceReference      mSource;   // observed element
+  ElementTracker       mReferencedElementTracker;
   RefPtr<URLExtraData> mContentURLData; // URL data for its anonymous content
 };
 

@@ -278,7 +278,7 @@ js::GetBuiltinClass(JSContext* cx, HandleObject obj, ESClass* cls)
 
     if (obj->is<PlainObject>() || obj->is<UnboxedPlainObject>())
         *cls = ESClass::Object;
-    else if (obj->is<ArrayObject>() || obj->is<UnboxedArrayObject>())
+    else if (obj->is<ArrayObject>())
         *cls = ESClass::Array;
     else if (obj->is<NumberObject>())
         *cls = ESClass::Number;
@@ -1122,7 +1122,7 @@ JS::ForceLexicalInitialization(JSContext *cx, HandleObject obj)
     for (Shape::Range<NoGC> r(nobj->lastProperty()); !r.empty(); r.popFront()) {
         Shape* s = &r.front();
         Value v = nobj->getSlot(s->slot());
-        if (s->hasSlot() && v.isMagic() && v.whyMagic() == JS_UNINITIALIZED_LEXICAL) {
+        if (s->isDataProperty() && v.isMagic() && v.whyMagic() == JS_UNINITIALIZED_LEXICAL) {
             nobj->setSlot(s->slot(), UndefinedValue());
             initializedAny = true;
         }
@@ -1368,20 +1368,6 @@ DOMProxyShadowsCheck
 js::GetDOMProxyShadowsCheck()
 {
     return gDOMProxyShadowsCheck;
-}
-
-static XrayJitInfo* gXrayJitInfo = nullptr;
-
-JS_FRIEND_API(void)
-js::SetXrayJitInfo(XrayJitInfo* info)
-{
-    gXrayJitInfo = info;
-}
-
-XrayJitInfo*
-js::GetXrayJitInfo()
-{
-    return gXrayJitInfo;
 }
 
 bool

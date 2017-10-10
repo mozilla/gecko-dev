@@ -56,6 +56,7 @@ enum class SurfaceFormat : int8_t {
 
   // This one is a single-byte, so endianness isn't an issue.
   A8,
+  A16,
 
   R8G8,
 
@@ -141,6 +142,7 @@ enum class BackendType : int8_t {
   SKIA,
   RECORDING,
   DIRECT2D1_1,
+  WEBRENDER_TEXT,
 
   // Add new entries above this line.
   BACKEND_LAST

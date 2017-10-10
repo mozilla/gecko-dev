@@ -29,7 +29,13 @@ const INITIAL_STATE = {
     // Have we received real data from history yet?
     initialized: false,
     // The history (and possibly default) links
-    rows: []
+    rows: [],
+    // Used in content only to dispatch action from
+    // context menu to TopSitesEdit.
+    editForm: {
+      visible: false,
+      site: null
+    }
   },
   Prefs: {
     initialized: false,
@@ -39,7 +45,8 @@ const INITIAL_STATE = {
     visible: false,
     data: {}
   },
-  Sections: []
+  Sections: [],
+  PreferencesPane: {visible: false}
 };
 
 function App(prevState = INITIAL_STATE.App, action) {
@@ -104,6 +111,10 @@ function TopSites(prevState = INITIAL_STATE.TopSites, action) {
         return prevState;
       }
       return Object.assign({}, prevState, {initialized: true, rows: action.data});
+    case at.TOP_SITES_EDIT:
+      return Object.assign({}, prevState, {editForm: {visible: true, site: action.data}});
+    case at.TOP_SITES_CANCEL_EDIT:
+      return Object.assign({}, prevState, {editForm: {visible: false}});
     case at.SCREENSHOT_UPDATED:
       newRows = prevState.rows.map(row => {
         if (row && row.url === action.data.url) {
@@ -278,7 +289,9 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
           return item;
         })
       }));
-    case at.PLACES_LINK_DELETED:
+    case at.PLACES_LINKS_DELETED:
+      return prevState.map(section => Object.assign({}, section,
+        {rows: section.rows.filter(site => !action.data.includes(site.url))}));
     case at.PLACES_LINK_BLOCKED:
       return prevState.map(section =>
         Object.assign({}, section, {rows: section.rows.filter(site => site.url !== action.data.url)}));
@@ -298,11 +311,22 @@ function Snippets(prevState = INITIAL_STATE.Snippets, action) {
   }
 }
 
+function PreferencesPane(prevState = INITIAL_STATE.PreferencesPane, action) {
+  switch (action.type) {
+    case at.SETTINGS_OPEN:
+      return Object.assign({}, prevState, {visible: true});
+    case at.SETTINGS_CLOSE:
+      return Object.assign({}, prevState, {visible: false});
+    default:
+      return prevState;
+  }
+}
+
 this.INITIAL_STATE = INITIAL_STATE;
 this.TOP_SITES_DEFAULT_LENGTH = TOP_SITES_DEFAULT_LENGTH;
 this.TOP_SITES_SHOWMORE_LENGTH = TOP_SITES_SHOWMORE_LENGTH;
 
-this.reducers = {TopSites, App, Snippets, Prefs, Dialog, Sections};
+this.reducers = {TopSites, App, Snippets, Prefs, Dialog, Sections, PreferencesPane};
 this.insertPinned = insertPinned;
 
 this.EXPORTED_SYMBOLS = ["reducers", "INITIAL_STATE", "insertPinned", "TOP_SITES_DEFAULT_LENGTH", "TOP_SITES_SHOWMORE_LENGTH"];

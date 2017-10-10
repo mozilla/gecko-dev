@@ -17,7 +17,7 @@
 #include "nsContentUtils.h"
 #include "nsIURI.h"
 #include "mozilla/URLExtraData.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGUseFrame.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Use)
@@ -62,7 +62,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(SVGUseElement,
                                                   SVGUseElementBase)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOriginal)
-  tmp->mSource.Traverse(&cb);
+  tmp->mReferencedElementTracker.Traverse(&cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(SVGUseElement,
@@ -73,7 +73,8 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(SVGUseElement,
 // Implementation
 
 SVGUseElement::SVGUseElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : SVGUseElementBase(aNodeInfo), mSource(this)
+  : SVGUseElementBase(aNodeInfo)
+  , mReferencedElementTracker(this)
 {
 }
 
@@ -158,7 +159,7 @@ void
 SVGUseElement::AttributeChanged(nsIDocument* aDocument,
                                 Element* aElement,
                                 int32_t aNameSpaceID,
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 int32_t aModType,
                                 const nsAttrValue* aOldValue)
 {
@@ -170,8 +171,7 @@ SVGUseElement::AttributeChanged(nsIDocument* aDocument,
 void
 SVGUseElement::ContentAppended(nsIDocument *aDocument,
                                nsIContent *aContainer,
-                               nsIContent *aFirstNewContent,
-                               int32_t aNewIndexInContainer)
+                               nsIContent *aFirstNewContent)
 {
   if (nsContentUtils::IsInSameAnonymousTree(this, aContainer)) {
     TriggerReclone();
@@ -181,8 +181,7 @@ SVGUseElement::ContentAppended(nsIDocument *aDocument,
 void
 SVGUseElement::ContentInserted(nsIDocument *aDocument,
                                nsIContent *aContainer,
-                               nsIContent *aChild,
-                               int32_t aIndexInContainer)
+                               nsIContent *aChild)
 {
   if (nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
     TriggerReclone();
@@ -193,7 +192,6 @@ void
 SVGUseElement::ContentRemoved(nsIDocument *aDocument,
                               nsIContent *aContainer,
                               nsIContent *aChild,
-                              int32_t aIndexInContainer,
                               nsIContent *aPreviousSibling)
 {
   if (nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
@@ -213,12 +211,12 @@ SVGUseElement::NodeWillBeDestroyed(const nsINode *aNode)
 already_AddRefed<nsIContent>
 SVGUseElement::CreateAnonymousContent()
 {
-  if (mSource.get()) {
-    mSource.get()->RemoveMutationObserver(this);
+  if (mReferencedElementTracker.get()) {
+    mReferencedElementTracker.get()->RemoveMutationObserver(this);
   }
 
   LookupHref();
-  nsIContent* targetContent = mSource.get();
+  nsIContent* targetContent = mReferencedElementTracker.get();
   if (!targetContent)
     return nullptr;
 
@@ -303,7 +301,7 @@ SVGUseElement::CreateAnonymousContent()
 nsIURI*
 SVGUseElement::GetSourceDocURI()
 {
-  nsIContent* targetContent = mSource.get();
+  nsIContent* targetContent = mReferencedElementTracker.get();
   if (!targetContent)
     return nullptr;
 
@@ -324,7 +322,7 @@ SVGUseElement::OurWidthAndHeightAreUsed() const
 // implementation helpers
 
 void
-SVGUseElement::SyncWidthOrHeight(nsIAtom* aName)
+SVGUseElement::SyncWidthOrHeight(nsAtom* aName)
 {
   NS_ASSERTION(aName == nsGkAtoms::width || aName == nsGkAtoms::height,
                "The clue is in the function name");
@@ -375,13 +373,13 @@ SVGUseElement::LookupHref()
   nsCOMPtr<nsIURI> originURI =
     mOriginal ? mOriginal->GetBaseURI() : GetBaseURI();
   nsCOMPtr<nsIURI> baseURI = nsContentUtils::IsLocalRefURL(href)
-    ? nsSVGEffects::GetBaseURLForLocalRef(this, originURI)
+    ? SVGObserverUtils::GetBaseURLForLocalRef(this, originURI)
     : originURI;
 
   nsCOMPtr<nsIURI> targetURI;
   nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(targetURI), href,
                                             GetComposedDoc(), baseURI);
-  mSource.Reset(this, targetURI);
+  mReferencedElementTracker.Reset(this, targetURI);
 }
 
 void
@@ -399,10 +397,10 @@ SVGUseElement::TriggerReclone()
 void
 SVGUseElement::UnlinkSource()
 {
-  if (mSource.get()) {
-    mSource.get()->RemoveMutationObserver(this);
+  if (mReferencedElementTracker.get()) {
+    mReferencedElementTracker.get()->RemoveMutationObserver(this);
   }
-  mSource.Unlink();
+  mReferencedElementTracker.Unlink();
 }
 
 //----------------------------------------------------------------------
@@ -480,7 +478,7 @@ SVGUseElement::GetFrame() const
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-SVGUseElement::IsAttributeMapped(const nsIAtom* name) const
+SVGUseElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sFEFloodMap,

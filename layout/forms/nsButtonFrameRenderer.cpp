@@ -19,7 +19,7 @@
 #include "Layers.h"
 #include "gfxPrefs.h"
 #include "gfxUtils.h"
-#include "mozilla/layers/WebRenderDisplayItemLayer.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 
 #define ACTIVE   "active"
 #define HOVER    "hover"
@@ -92,7 +92,6 @@ public:
     mozilla::wr::DisplayListBuilder& aBuilder,
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc,
-    nsTArray<WebRenderParentCommand>& aParentCommands,
     mozilla::layers::WebRenderLayerManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) override;
 
@@ -199,16 +198,13 @@ nsDisplayButtonBoxShadowOuter::CreateWebRenderCommands(
   mozilla::wr::DisplayListBuilder& aBuilder,
   mozilla::wr::IpcResourceUpdateQueue& aResources,
   const StackingContextHelper& aSc,
-  nsTArray<WebRenderParentCommand>& aParentCommands,
   mozilla::layers::WebRenderLayerManager* aManager,
   nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) !=
-        LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) !=
+      LAYER_ACTIVE) {
+    return false;
   }
   int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
   nsRect shadowRect = nsRect(ToReferenceFrame(), mFrame->GetSize());
@@ -253,6 +249,7 @@ nsDisplayButtonBoxShadowOuter::CreateWebRenderCommands(
 
     aBuilder.PushBoxShadow(deviceBoxRect,
                            deviceClipRect,
+                           !BackfaceIsHidden(),
                            deviceBoxRect,
                            wr::ToLayoutVector2D(shadowOffset),
                            wr::ToColorF(shadowColor),
@@ -300,7 +297,6 @@ public:
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        mozilla::wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc,
-                                       nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
                                        nsDisplayListBuilder* aDisplayListBuilder) override;
   NS_DISPLAY_DECL_NAME("ButtonBorderBackground", TYPE_BUTTON_BORDER_BACKGROUND)
@@ -368,15 +364,12 @@ bool
 nsDisplayButtonBorder::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                const StackingContextHelper& aSc,
-                                               nsTArray<WebRenderParentCommand>& aParentCommands,
                                                mozilla::layers::WebRenderLayerManager* aManager,
                                                nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   MOZ_ASSERT(mBorderRenderer);
@@ -465,7 +458,6 @@ public:
    virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
                                         const StackingContextHelper& aSc,
-                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                         mozilla::layers::WebRenderLayerManager* aManager,
                                         nsDisplayListBuilder* aDisplayListBuilder) override;
   NS_DISPLAY_DECL_NAME("ButtonForeground", TYPE_BUTTON_FOREGROUND)
@@ -552,15 +544,12 @@ bool
 nsDisplayButtonForeground::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                    mozilla::wr::IpcResourceUpdateQueue& aResources,
                                                    const StackingContextHelper& aSc,
-                                                   nsTArray<WebRenderParentCommand>& aParentCommands,
                                                    mozilla::layers::WebRenderLayerManager* aManager,
                                                    nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   mBorderRenderer->CreateWebRenderCommands(aBuilder, aResources, aSc);

@@ -68,7 +68,6 @@ ifdef COMPILE_ENVIRONMENT
 # through TestHarness.h, by modifying the list of includes and the libs against
 # which stuff links.
 SIMPLE_PROGRAMS += $(CPP_UNIT_TESTS)
-INCLUDES += -I$(ABS_DIST)/include/testing
 
 ifndef MOZ_PROFILE_GENERATE
 CPP_UNIT_TESTS_FILES = $(CPP_UNIT_TESTS)
@@ -1008,6 +1007,18 @@ else
 force-cargo-library-check:
 	@true
 endif # RUST_LIBRARY_FILE
+
+ifdef RUST_TEST
+
+ifdef RUST_TEST_FEATURES
+rust_features_flag := --features "$(RUST_TEST_FEATURES)"
+endif
+
+force-cargo-test-run:
+	$(call RUN_CARGO,test $(cargo_target_flag) -p $(RUST_TEST) $(rust_features_flag),$(target_cargo_env_vars))
+
+check:: force-cargo-test-run
+endif
 
 ifdef HOST_RUST_LIBRARY_FILE
 

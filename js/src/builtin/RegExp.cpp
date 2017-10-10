@@ -1206,6 +1206,25 @@ js::regexp_test_no_statics(JSContext* cx, unsigned argc, Value* vp)
 
 using CapturesVector = GCVector<Value, 4>;
 
+struct JSSubString
+{
+    JSLinearString* base;
+    size_t          offset;
+    size_t          length;
+
+    JSSubString() { mozilla::PodZero(this); }
+
+    void initEmpty(JSLinearString* base) {
+        this->base = base;
+        offset = length = 0;
+    }
+    void init(JSLinearString* base, size_t offset, size_t length) {
+        this->base = base;
+        this->offset = offset;
+        this->length = length;
+    }
+};
+
 static void
 GetParen(JSLinearString* matched, const JS::Value& capture, JSSubString* out)
 {
@@ -1413,21 +1432,20 @@ NeedTwoBytes(HandleLinearString string, HandleLinearString replacement,
 
 /* ES 2016 draft Mar 25, 2016 21.1.3.14.1. */
 bool
-js::RegExpGetSubstitution(JSContext* cx, HandleObject matchResult, HandleLinearString string,
+js::RegExpGetSubstitution(JSContext* cx, HandleArrayObject matchResult, HandleLinearString string,
                           size_t position, HandleLinearString replacement,
                           size_t firstDollarIndex, MutableHandleValue rval)
 {
     MOZ_ASSERT(firstDollarIndex < replacement->length());
-    MOZ_ASSERT(matchResult->is<ArrayObject>() || matchResult->is<UnboxedArrayObject>());
 
     // Step 1 (skipped).
 
     // Step 10 (reordered).
-    uint32_t matchResultLength = GetAnyBoxedOrUnboxedArrayLength(matchResult);
+    uint32_t matchResultLength = matchResult->length();
     MOZ_ASSERT(matchResultLength > 0);
-    MOZ_ASSERT(matchResultLength == GetAnyBoxedOrUnboxedInitializedLength(matchResult));
+    MOZ_ASSERT(matchResultLength == matchResult->getDenseInitializedLength());
 
-    const Value& matchedValue = GetAnyBoxedOrUnboxedDenseElement(matchResult, 0);
+    const Value& matchedValue = matchResult->getDenseElement(0);
     RootedLinearString matched(cx, matchedValue.toString()->ensureLinear(cx));
     if (!matched)
         return false;
@@ -1447,7 +1465,7 @@ js::RegExpGetSubstitution(JSContext* cx, HandleObject matchResult, HandleLinearS
 
     // Step 7.
     for (uint32_t i = 1; i <= nCaptures; i++) {
-        const Value& capture = GetAnyBoxedOrUnboxedDenseElement(matchResult, i);
+        const Value& capture = matchResult->getDenseElement(i);
 
         if (capture.isUndefined()) {
             captures.infallibleAppend(capture);

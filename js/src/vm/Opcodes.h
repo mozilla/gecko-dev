@@ -1282,17 +1282,7 @@
      *   Stack: propval, receiver, obj => obj[propval]
      */ \
     macro(JSOP_GETELEM_SUPER, 125, "getelem-super", NULL, 1,  3,  1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_LEFTASSOC) \
-    /*
-     * Pushes newly created array for a spread call onto the stack. This has
-     * the same semantics as JSOP_NEWARRAY, but is distinguished to avoid
-     * using unboxed arrays in spread calls, which would make compiling spread
-     * calls in baseline more complex.
-     *   Category: Literals
-     *   Type: Array
-     *   Operands: uint32_t length
-     *   Stack: => obj
-     */ \
-    macro(JSOP_SPREADCALLARRAY, 126, "spreadcallarray", NULL, 5,  0,  1, JOF_UINT32) \
+    macro(JSOP_UNUSED126, 126, "unused126", NULL, 5,  0,  1, JOF_UINT32) \
     \
     /*
      * Defines the given function on the current scope.
@@ -1626,8 +1616,14 @@
     macro(JSOP_STRICTSETGNAME, 156, "strict-setgname",  NULL,       5,  2,  1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSTRICT) \
     /*
      * Pushes the implicit 'this' value for calls to the associated name onto
-     * the stack; only used when we know this implicit this will be our first
-     * non-syntactic scope.
+     * the stack; only used when the implicit this might be derived from a
+     * non-syntactic scope (instead of the global itself).
+     *
+     * Note that code evaluated via the Debugger API uses DebugEnvironmentProxy
+     * objects on its scope chain, which are non-syntactic environments that
+     * refer to syntactic environments. As a result, the binding we want may be
+     * held by a syntactic environments such as CallObject or
+     * VarEnvrionmentObject.
      *
      *   Category: Variables and Scopes
      *   Type: This

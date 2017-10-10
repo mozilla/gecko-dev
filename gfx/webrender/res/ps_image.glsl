@@ -15,6 +15,7 @@ flat varying float vLayer;
 
 #ifdef WR_FEATURE_TRANSFORM
 varying vec3 vLocalPos;
+flat varying vec4 vLocalRect;
 #else
 varying vec2 vLocalPos;
 #endif
@@ -34,6 +35,7 @@ void main(void) {
                                                     prim.task,
                                                     prim.local_rect);
     vLocalPos = vi.local_pos;
+    vLocalRect = vec4(prim.local_rect.p0, prim.local_rect.p0 + prim.local_rect.size);
 #else
     VertexInfo vi = write_vertex(prim.local_rect,
                                  prim.local_clip_rect,
@@ -89,10 +91,12 @@ void main(void) {
 
     // We clamp the texture coordinate calculation here to the local rectangle boundaries,
     // which makes the edge of the texture stretch instead of repeat.
-    vec2 relative_pos_in_rect = clamp(pos, vLocalBounds.xy, vLocalBounds.zw) - vLocalBounds.xy;
+    vec2 upper_bound_mask = step(vLocalRect.zw, pos);
+    vec2 relative_pos_in_rect = clamp(pos, vLocalRect.xy, vLocalRect.zw) - vLocalRect.xy;
 #else
     float alpha = 1.0;
     vec2 relative_pos_in_rect = vLocalPos;
+    vec2 upper_bound_mask = vec2(0.0);
 #endif
 
     alpha = min(alpha, do_clip());
@@ -100,7 +104,12 @@ void main(void) {
     // We calculate the particular tile this fragment belongs to, taking into
     // account the spacing in between tiles. We only paint if our fragment does
     // not fall into that spacing.
-    vec2 position_in_tile = mod(relative_pos_in_rect, vStretchSize + vTileSpacing);
+    // If the pixel is at the local rectangle upper bound, we force the current
+    // tile upper bound in order to avoid wrapping.
+    vec2 position_in_tile = mix(
+        mod(relative_pos_in_rect, vStretchSize + vTileSpacing),
+        vStretchSize,
+        upper_bound_mask);
     vec2 st = vTextureOffset + ((position_in_tile / vStretchSize) * vTextureSize);
     st = clamp(st, vStRect.xy, vStRect.zw);
 

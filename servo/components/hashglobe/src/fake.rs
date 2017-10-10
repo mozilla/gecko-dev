@@ -43,24 +43,6 @@ impl<K, V, S> DerefMut for HashMap<K, V, S> {
     }
 }
 
-impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
-    #[inline]
-    pub fn new() -> HashMap<K, V, RandomState> {
-        HashMap(StdMap::new())
-    }
-
-    #[inline]
-    pub fn with_capacity(capacity: usize) -> HashMap<K, V, RandomState> {
-        HashMap(StdMap::with_capacity(capacity))
-    }
-
-    #[inline]
-    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, FailedAllocationError> {
-        Ok(HashMap(StdMap::with_capacity(capacity)))
-    }
-}
-
-
 impl<K, V, S> HashMap<K, V, S>
     where K: Eq + Hash,
           S: BuildHasher
@@ -95,10 +77,24 @@ impl<K, V, S> HashMap<K, V, S>
         Ok(self.entry(key))
     }
 
+    #[inline(always)]
+    pub fn try_get_or_insert_with<F: FnOnce() -> V>(
+        &mut self,
+        key: K,
+        default: F
+    ) -> Result<&mut V, FailedAllocationError> {
+        Ok(self.entry(key).or_insert_with(default))
+    }
+
     #[inline]
     pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, FailedAllocationError> {
         Ok(self.insert(k, v))
     }
+
+    #[inline(always)]
+    pub fn begin_mutation(&mut self) {}
+    #[inline(always)]
+    pub fn end_mutation(&mut self) {}
 }
 
 #[derive(Clone)]

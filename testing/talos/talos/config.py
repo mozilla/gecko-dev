@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function
 import copy
 import os
 import sys
+import time
 
 from mozlog.commandline import setup_logging
 from talos import utils, test
@@ -15,6 +16,8 @@ from talos.cmdline import parse_args
 class ConfigurationError(Exception):
     pass
 
+
+FAR_IN_FUTURE = 7258114800
 
 DEFAULTS = dict(
     # args to pass to browser
@@ -32,7 +35,6 @@ DEFAULTS = dict(
         gecko_profile_interval=1,
         gecko_profile_entries=100000,
         resolution=1,
-        rss=False,
         mainthread=False,
         shutdown=False,
         timeout=3600,
@@ -92,6 +94,9 @@ DEFAULTS = dict(
         'network.proxy.http': 'localhost',
         'network.proxy.http_port': 80,
         'network.proxy.type': 1,
+        # Bug 1383896 - reduces noise in tests
+        'idle.lastDailyNotification': int(time.time()),
+        'places.database.lastMaintenance': FAR_IN_FUTURE,
         'security.enable_java': False,
         'security.fileuri.strict_origin_policy': False,
         'dom.send_after_paint_to_content': True,
@@ -161,6 +166,10 @@ DEFAULTS = dict(
             'http://127.0.0.1/dummy-system-addons.xml',
         'extensions.shield-recipe-client.api_url':
             'https://127.0.0.1/selfsupport-dummy/',
+        'browser.ping-centre.staging.endpoint':
+            'https://127.0.0.1/pingcentre/dummy/',
+        'browser.ping-centre.production.endpoint':
+            'https://127.0.0.1/pingcentre/dummy/',
         'media.navigator.enabled': True,
         'media.peerconnection.enabled': True,
         'media.navigator.permission.disabled': True,
@@ -194,7 +203,9 @@ DEFAULTS = dict(
         'identity.fxaccounts.migrateToDevEdition': False,
         'plugin.state.flash': 0,
         'media.libavcodec.allow-obsolete': True,
-        'extensions.legacy.enabled': True
+        'extensions.legacy.enabled': True,
+        'xpinstall.signatures.required': False,
+        'extensions.allow-non-mpc-extensions': True
     }
 )
 
@@ -205,8 +216,6 @@ GLOBAL_OVERRIDES = (
     'gecko_profile',
     'gecko_profile_interval',
     'gecko_profile_entries',
-    'mainthread',
-    'rss',
     'shutdown',
     'tpcycles',
     'tpdelay',
@@ -305,8 +314,6 @@ def fix_init_url(config):
 
 def get_counters(config):
     counters = set()
-    if config['rss']:
-        counters.add('Main_RSS')
     return counters
 
 

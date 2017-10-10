@@ -50,7 +50,7 @@
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsIAnonymousContentCreator.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIBaseWindow.h"
 #include "nsICategoryManager.h"
 #include "nsIContentIterator.h"
@@ -158,7 +158,7 @@ nsINode::~nsINode()
 }
 
 void*
-nsINode::GetProperty(uint16_t aCategory, nsIAtom *aPropertyName,
+nsINode::GetProperty(uint16_t aCategory, nsAtom *aPropertyName,
                      nsresult *aStatus) const
 {
   if (!HasProperties()) { // a fast HasFlag() test
@@ -172,7 +172,7 @@ nsINode::GetProperty(uint16_t aCategory, nsIAtom *aPropertyName,
 }
 
 nsresult
-nsINode::SetProperty(uint16_t aCategory, nsIAtom *aPropertyName, void *aValue,
+nsINode::SetProperty(uint16_t aCategory, nsAtom *aPropertyName, void *aValue,
                      NSPropertyDtorFunc aDtor, bool aTransfer,
                      void **aOldValue)
 {
@@ -190,13 +190,13 @@ nsINode::SetProperty(uint16_t aCategory, nsIAtom *aPropertyName, void *aValue,
 }
 
 void
-nsINode::DeleteProperty(uint16_t aCategory, nsIAtom *aPropertyName)
+nsINode::DeleteProperty(uint16_t aCategory, nsAtom *aPropertyName)
 {
   OwnerDoc()->PropertyTable(aCategory)->DeleteProperty(this, aPropertyName);
 }
 
 void*
-nsINode::UnsetProperty(uint16_t aCategory, nsIAtom *aPropertyName,
+nsINode::UnsetProperty(uint16_t aCategory, nsAtom *aPropertyName,
                        nsresult *aStatus)
 {
   return OwnerDoc()->PropertyTable(aCategory)->UnsetProperty(this,
@@ -773,7 +773,7 @@ nsINode::LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix)
                                  aNamespaceURI, eCaseMatters)) {
           // If the localName is "xmlns", the prefix we output should be
           // null.
-          nsIAtom *localName = name->LocalName();
+          nsAtom *localName = name->LocalName();
 
           if (localName != nsGkAtoms::xmlns) {
             localName->ToString(aPrefix);
@@ -791,7 +791,7 @@ nsINode::LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix)
 }
 
 static nsresult
-SetUserDataProperty(uint16_t aCategory, nsINode *aNode, nsIAtom *aKey,
+SetUserDataProperty(uint16_t aCategory, nsINode *aNode, nsAtom *aKey,
                     nsISupports* aValue, void** aOldValue)
 {
   nsresult rv = aNode->SetProperty(aCategory, aKey, aValue,
@@ -811,7 +811,7 @@ nsINode::SetUserData(const nsAString &aKey, nsIVariant *aData, nsIVariant **aRes
   OwnerDoc()->WarnOnceAbout(nsIDocument::eGetSetUserData);
   *aResult = nullptr;
 
-  nsCOMPtr<nsIAtom> key = NS_Atomize(aKey);
+  RefPtr<nsAtom> key = NS_Atomize(aKey);
   if (!key) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -864,7 +864,7 @@ nsIVariant*
 nsINode::GetUserData(const nsAString& aKey)
 {
   OwnerDoc()->WarnOnceAbout(nsIDocument::eGetSetUserData);
-  nsCOMPtr<nsIAtom> key = NS_Atomize(aKey);
+  RefPtr<nsAtom> key = NS_Atomize(aKey);
   if (!key) {
     return nullptr;
   }
@@ -1631,9 +1631,9 @@ nsINode::doInsertChildAt(nsIContent* aKid, uint32_t aIndex,
     // Note that we always want to call ContentInserted when things are added
     // as kids to documents
     if (parent && isAppend) {
-      nsNodeUtils::ContentAppended(parent, aKid, aIndex);
+      nsNodeUtils::ContentAppended(parent, aKid);
     } else {
-      nsNodeUtils::ContentInserted(this, aKid, aIndex);
+      nsNodeUtils::ContentInserted(this, aKid);
     }
 
     if (nsContentUtils::HasMutationListeners(aKid,
@@ -1939,7 +1939,7 @@ nsINode::doRemoveChildAt(uint32_t aIndex, bool aNotify,
   }
 
   if (aNotify) {
-    nsNodeUtils::ContentRemoved(this, aKid, aIndex, previousSibling);
+    nsNodeUtils::ContentRemoved(this, aKid, previousSibling);
   }
 
   aKid->UnbindFromTree();
@@ -2475,7 +2475,6 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
 
     bool appending =
       !IsNodeOfType(eDOCUMENT) && uint32_t(insPos) == GetChildCount();
-    int32_t firstInsPos = insPos;
     nsIContent* firstInsertedContent = fragChildren->ElementAt(0);
 
     // Iterate through the fragment's children, and insert them in the new
@@ -2489,8 +2488,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
         // Make sure to notify on any children that we did succeed to insert
         if (appending && i != 0) {
           nsNodeUtils::ContentAppended(static_cast<nsIContent*>(this),
-                                       firstInsertedContent,
-                                       firstInsPos);
+                                       firstInsertedContent);
         }
         return nullptr;
       }
@@ -2503,7 +2501,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     // Notify and fire mutation events when appending
     if (appending) {
       nsNodeUtils::ContentAppended(static_cast<nsIContent*>(this),
-                                   firstInsertedContent, firstInsPos);
+                                   firstInsertedContent);
       if (mutationBatch) {
         mutationBatch->NodesAdded();
       }
@@ -2678,27 +2676,76 @@ nsINode::Length() const
   }
 }
 
+const RawServoSelectorList*
+nsINode::ParseServoSelectorList(
+  const nsAString& aSelectorString,
+  ErrorResult& aRv)
+{
+  nsIDocument* doc = OwnerDoc();
+  MOZ_ASSERT(doc->IsStyledByServo());
+
+  nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
+  nsIDocument::SelectorCache::SelectorList* list =
+    cache.GetList(aSelectorString);
+  if (list) {
+    if (!*list) {
+      // Invalid selector.
+      aRv.ThrowDOMException(NS_ERROR_DOM_SYNTAX_ERR,
+        NS_LITERAL_CSTRING("'") + NS_ConvertUTF16toUTF8(aSelectorString) +
+        NS_LITERAL_CSTRING("' is not a valid selector")
+      );
+      return nullptr;
+    }
+
+    // FIXME(emilio): Make this private and use `WithSelectorList` everywhere,
+    // then assert.
+    if (list->IsServo()) {
+      return list->AsServo();
+    }
+  }
+
+  NS_ConvertUTF16toUTF8 selectorString(aSelectorString);
+
+  auto* selectorList = Servo_SelectorList_Parse(&selectorString);
+  if (!selectorList) {
+    aRv.ThrowDOMException(NS_ERROR_DOM_SYNTAX_ERR,
+      NS_LITERAL_CSTRING("'") + selectorString +
+      NS_LITERAL_CSTRING("' is not a valid selector")
+    );
+  }
+
+  cache.CacheList(aSelectorString, UniquePtr<RawServoSelectorList>(selectorList));
+  return selectorList;
+}
+
 nsCSSSelectorList*
 nsINode::ParseSelectorList(const nsAString& aSelectorString,
                            ErrorResult& aRv)
 {
   nsIDocument* doc = OwnerDoc();
   nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
-  nsCSSSelectorList* selectorList = nullptr;
-  bool haveCachedList = cache.GetList(aSelectorString, &selectorList);
-  if (haveCachedList) {
-    if (!selectorList) {
+  nsIDocument::SelectorCache::SelectorList* list =
+    cache.GetList(aSelectorString);
+  if (list) {
+    if (!*list) {
       // Invalid selector.
       aRv.ThrowDOMException(NS_ERROR_DOM_SYNTAX_ERR,
         NS_LITERAL_CSTRING("'") + NS_ConvertUTF16toUTF8(aSelectorString) +
         NS_LITERAL_CSTRING("' is not a valid selector")
       );
+      return nullptr;
     }
-    return selectorList;
+
+    // FIXME(emilio): Make this private and use `WithSelectorList` everywhere,
+    // then assert.
+    if (list->IsGecko()) {
+      return list->AsGecko();
+    }
   }
 
   nsCSSParser parser(doc->CSSLoader());
 
+  nsCSSSelectorList* selectorList = nullptr;
   aRv = parser.ParseSelectorString(aSelectorString,
                                    doc->GetDocumentURI(),
                                    0, // XXXbz get the line number!
@@ -2716,7 +2763,7 @@ nsINode::ParseSelectorList(const nsAString& aSelectorString,
       NS_LITERAL_CSTRING("' is not a valid selector")
     );
 
-    cache.CacheList(aSelectorString, nullptr);
+    cache.CacheList(aSelectorString, UniquePtr<nsCSSSelectorList>());
     return nullptr;
   }
 
@@ -2736,7 +2783,7 @@ nsINode::ParseSelectorList(const nsAString& aSelectorString,
   if (selectorList) {
     NS_ASSERTION(selectorList->mSelectors,
                  "How can we not have any selectors?");
-    cache.CacheList(aSelectorString, selectorList);
+    cache.CacheList(aSelectorString, UniquePtr<nsCSSSelectorList>(selectorList));
   } else {
     // This is the "only pseudo-element selectors" case, which is
     // not common, so just don't worry about caching it.  That way a
@@ -2836,7 +2883,7 @@ FindMatchingElements(nsINode* aRoot, nsCSSSelectorList* aSelectorList, T &aList,
       doc->GetCompatibilityMode() != eCompatibility_NavQuirks &&
       !aSelectorList->mNext &&
       aSelectorList->mSelectors->mIDList) {
-    nsIAtom* id = aSelectorList->mSelectors->mIDList->mAtom;
+    nsAtom* id = aSelectorList->mSelectors->mIDList->mAtom;
     SelectorMatchInfo info = { aSelectorList, matchingContext };
     FindMatchingElementsWithId<onlyFirstMatch, T>(nsDependentAtomString(id),
                                                   aRoot, &info, aList);
@@ -2929,7 +2976,7 @@ nsINode::GetElementById(const nsAString& aId)
     if (!kid->IsElement()) {
       continue;
     }
-    nsIAtom* id = kid->AsElement()->GetID();
+    nsAtom* id = kid->AsElement()->GetID();
     if (id && id->Equals(aId)) {
       return kid->AsElement();
     }

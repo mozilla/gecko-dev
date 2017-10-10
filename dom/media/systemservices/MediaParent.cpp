@@ -37,6 +37,7 @@ mozilla::LazyLogModule gMediaParentLog("MediaParent");
 namespace mozilla {
 namespace media {
 
+StaticMutex sOriginKeyStoreMutex;
 static OriginKeyStore* sOriginKeyStore = nullptr;
 
 class OriginKeyStore : public nsISupports
@@ -111,7 +112,7 @@ class OriginKeyStore : public nsISupports
     {
       switch (aPrincipalInfo.type()) {
         case ipc::PrincipalInfo::TSystemPrincipalInfo:
-          aString.Assign("[System Principal]");
+          aString.AssignLiteral("[System Principal]");
           return;
 
         case ipc::PrincipalInfo::TNullPrincipalInfo: {
@@ -136,20 +137,20 @@ class OriginKeyStore : public nsISupports
           const ipc::ExpandedPrincipalInfo& info =
             aPrincipalInfo.get_ExpandedPrincipalInfo();
 
-          aString.Assign("[Expanded Principal [");
+          aString.AssignLiteral("[Expanded Principal [");
 
           for (uint32_t i = 0; i < info.whitelist().Length(); i++) {
             nsAutoCString str;
             PrincipalInfoToString(info.whitelist()[i], str);
 
             if (i != 0) {
-              aString.Append(", ");
+              aString.AppendLiteral(", ");
             }
 
             aString.Append(str);
           }
 
-          aString.Append("]]");
+          aString.AppendLiteral("]]");
           return;
         }
 
@@ -396,6 +397,7 @@ class OriginKeyStore : public nsISupports
 private:
   virtual ~OriginKeyStore()
   {
+    StaticMutexAutoLock lock(sOriginKeyStoreMutex);
     sOriginKeyStore = nullptr;
     LOG((__FUNCTION__));
   }
@@ -404,6 +406,7 @@ public:
   static OriginKeyStore* Get()
   {
     MOZ_ASSERT(NS_IsMainThread());
+    StaticMutexAutoLock lock(sOriginKeyStoreMutex);
     if (!sOriginKeyStore) {
       sOriginKeyStore = new OriginKeyStore();
     }
@@ -447,8 +450,8 @@ Parent<Super>::RecvGetPrincipalKey(const uint32_t& aRequestId,
     return IPCResult(this, false);
   }
 
-  // Then over to stream-transport thread to do the actual file io.
-  // Stash a pledge to hold the answer and get an id for this request.
+  // Then over to stream-transport thread (a thread pool) to do the actual
+  // file io. Stash a pledge to hold the answer and get an id for this request.
 
   RefPtr<Pledge<nsCString>> p = new Pledge<nsCString>();
   uint32_t id = mOutstandingPledges.Append(*p);
@@ -460,14 +463,18 @@ Parent<Super>::RecvGetPrincipalKey(const uint32_t& aRequestId,
   rv = sts->Dispatch(NewRunnableFrom([this, that, id, profileDir,
                                       aPrincipalInfo, aPersist]() -> nsresult {
     MOZ_ASSERT(!NS_IsMainThread());
-    mOriginKeyStore->mOriginKeys.SetProfileDir(profileDir);
+    StaticMutexAutoLock lock(sOriginKeyStoreMutex);
+    if (!sOriginKeyStore) {
+      return NS_ERROR_FAILURE;
+    }
+    sOriginKeyStore->mOriginKeys.SetProfileDir(profileDir);
 
     nsresult rv;
     nsAutoCString result;
     if (IsPincipalInfoPrivate(aPrincipalInfo)) {
-      rv = mOriginKeyStore->mPrivateBrowsingOriginKeys.GetPrincipalKey(aPrincipalInfo, result);
+      rv = sOriginKeyStore->mPrivateBrowsingOriginKeys.GetPrincipalKey(aPrincipalInfo, result);
     } else {
-      rv = mOriginKeyStore->mOriginKeys.GetPrincipalKey(aPrincipalInfo, result, aPersist);
+      rv = sOriginKeyStore->mOriginKeys.GetPrincipalKey(aPrincipalInfo, result, aPersist);
     }
 
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -518,19 +525,22 @@ Parent<Super>::RecvSanitizeOriginKeys(const uint64_t& aSinceWhen,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IPCResult(this, false);
   }
-  // Over to stream-transport thread to do the file io.
+  // Over to stream-transport thread (a thread pool) to do the file io.
 
   nsCOMPtr<nsIEventTarget> sts = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
   MOZ_ASSERT(sts);
-  RefPtr<OriginKeyStore> store(mOriginKeyStore);
 
-  rv = sts->Dispatch(NewRunnableFrom([profileDir, store, aSinceWhen,
+  rv = sts->Dispatch(NewRunnableFrom([profileDir, aSinceWhen,
                                       aOnlyPrivateBrowsing]() -> nsresult {
     MOZ_ASSERT(!NS_IsMainThread());
-    store->mPrivateBrowsingOriginKeys.Clear(aSinceWhen);
+    StaticMutexAutoLock lock(sOriginKeyStoreMutex);
+    if (!sOriginKeyStore) {
+      return NS_ERROR_FAILURE;
+    }
+    sOriginKeyStore->mPrivateBrowsingOriginKeys.Clear(aSinceWhen);
     if (!aOnlyPrivateBrowsing) {
-      store->mOriginKeys.SetProfileDir(profileDir);
-      store->mOriginKeys.Clear(aSinceWhen);
+      sOriginKeyStore->mOriginKeys.SetProfileDir(profileDir);
+      sOriginKeyStore->mOriginKeys.Clear(aSinceWhen);
     }
     return NS_OK;
   }), NS_DISPATCH_NORMAL);

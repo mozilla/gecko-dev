@@ -14,6 +14,8 @@ class IShmemAllocator;
 }
 namespace wr {
 
+/// ShmSegmentsWriter pushes bytes in a sequence of fixed size shmems for small
+/// allocations and creates dedicated shmems for large allocations.
 class ShmSegmentsWriter {
 public:
   ShmSegmentsWriter(ipc::IShmemAllocator* aAllocator, size_t aChunkSize);
@@ -21,14 +23,22 @@ public:
 
   layers::OffsetRange Write(Range<uint8_t> aBytes);
 
-  void Flush(nsTArray<ipc::Shmem>& aData);
+  template<typename T>
+  layers::OffsetRange WriteAsBytes(Range<T> aValues)
+  {
+    return Write(Range<uint8_t>((uint8_t*)aValues.begin().get(), aValues.length() * sizeof(T)));
+  }
+
+  void Flush(nsTArray<ipc::Shmem>& aSmallAllocs, nsTArray<ipc::Shmem>& aLargeAllocs);
 
   void Clear();
 
 protected:
   void AllocChunk();
+  layers::OffsetRange AllocLargeChunk(size_t aSize);
 
-  nsTArray<ipc::Shmem> mData;
+  nsTArray<ipc::Shmem> mSmallAllocs;
+  nsTArray<ipc::Shmem> mLargeAllocs;
   ipc::IShmemAllocator* mShmAllocator;
   size_t mCursor;
   size_t mChunkSize;
@@ -36,24 +46,26 @@ protected:
 
 class ShmSegmentsReader {
 public:
-  explicit ShmSegmentsReader(const nsTArray<ipc::Shmem>& aShmems);
+  ShmSegmentsReader(const nsTArray<ipc::Shmem>& aSmallShmems,
+                    const nsTArray<ipc::Shmem>& aLargeShmems);
 
-  bool Read(layers::OffsetRange aRange, wr::Vec_u8& aInto);
+  bool Read(const layers::OffsetRange& aRange, wr::Vec_u8& aInto);
 
 protected:
-  void AllocChunk();
+  bool ReadLarge(const layers::OffsetRange& aRange, wr::Vec_u8& aInto);
 
-  const nsTArray<ipc::Shmem>& mData;
+  const nsTArray<ipc::Shmem>& mSmallAllocs;
+  const nsTArray<ipc::Shmem>& mLargeAllocs;
   size_t mChunkSize;
 };
 
 class IpcResourceUpdateQueue {
 public:
-  // TODO: 8192 is completely arbitrary, needs some adjustments.
-  // Because we are using shmems, the size should be a multiple of the page size, and keep in mind
-  // that each shmem has guard pages, one of which contains meta-data so at least an extra page
-  // is mapped under the hood (so having a lot of smaller shmems = overhead).
-  explicit IpcResourceUpdateQueue(ipc::IShmemAllocator* aAllocator, size_t aChunkSize = 8192);
+  // Because we are using shmems, the size should be a multiple of the page size.
+  // Each shmem has two guard pages, and the minimum shmem size (at least one Windows)
+  // is 64k which is already quite large for a lot of the resources we use here.
+  // So we pick 64k - 2 * 4k = 57344 bytes as the defautl alloc
+  explicit IpcResourceUpdateQueue(ipc::IShmemAllocator* aAllocator, size_t aChunkSize = 57344);
 
   void AddImage(wr::ImageKey aKey,
                 const ImageDescriptor& aDescriptor,
@@ -62,6 +74,8 @@ public:
   void AddBlobImage(wr::ImageKey aKey,
                     const ImageDescriptor& aDescriptor,
                     Range<uint8_t> aBytes);
+
+  void AddExternalImage(wr::ExternalImageId aExtId, wr::ImageKey aKey);
 
   void UpdateImageBuffer(wr::ImageKey aKey,
                          const ImageDescriptor& aDescriptor,
@@ -87,14 +101,16 @@ public:
                        wr::FontKey aFontKey,
                        float aGlyphSize,
                        const wr::FontInstanceOptions* aOptions,
-                       const wr::FontInstancePlatformOptions* aPlatformOptions);
+                       const wr::FontInstancePlatformOptions* aPlatformOptions,
+                       Range<const gfx::FontVariation> aVariations);
 
   void DeleteFontInstance(wr::FontInstanceKey aKey);
 
   void Clear();
 
   void Flush(nsTArray<layers::OpUpdateResource>& aUpdates,
-             nsTArray<ipc::Shmem>& aResources);
+             nsTArray<ipc::Shmem>& aSmallAllocs,
+             nsTArray<ipc::Shmem>& aLargeAllocs);
 
 protected:
   ShmSegmentsWriter mWriter;

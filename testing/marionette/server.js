@@ -4,10 +4,8 @@
 
 "use strict";
 
-const {Constructor: CC, classes: Cc, interfaces: Ci, utils: Cu} = Components;
+const {Constructor: CC, interfaces: Ci, utils: Cu} = Components;
 
-const loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
-    .getService(Ci.mozIJSSubScriptLoader);
 const ServerSocket = CC(
     "@mozilla.org/network/server-socket;1",
     "nsIServerSocket",
@@ -161,6 +159,14 @@ const RECOMMENDED_PREFS = new Map([
   //
   // Should be set in profile.
   ["browser.uitour.enabled", false],
+
+  // Turn off search suggestions in the location bar so as not to trigger
+  // network connections.
+  ["browser.urlbar.suggest.searches", false],
+
+  // Turn off the location bar search suggestions opt-in.  It interferes with
+  // tests that don't expect it to be there.
+  ["browser.urlbar.userMadeSearchSuggestionsChoice", true],
 
   // Do not show datareporting policy notifications which can
   // interfere with tests
@@ -452,7 +458,7 @@ server.TCPConnection = class {
    * Debugger transport callback that cleans up
    * after a connection is closed.
    */
-  onClosed(reason) {
+  onClosed() {
     this.driver.deleteSession();
     if (this.onclose) {
       this.onclose(this);

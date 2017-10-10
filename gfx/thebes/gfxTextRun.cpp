@@ -23,6 +23,7 @@
 #include "gfx2DGlue.h"
 #include "mozilla/gfx/Logging.h"        // for gfxCriticalError
 #include "mozilla/UniquePtr.h"
+#include "TextDrawTarget.h"
 
 #ifdef XP_WIN
 #include "gfxWindowsPlatform.h"
@@ -473,6 +474,11 @@ gfxTextRun::DrawPartialLigature(gfxFont *aFont, Range aRange,
         return;
     }
 
+    if (auto* textDrawer = aParams.context->GetTextDrawer()) {
+        textDrawer->FoundUnsupportedFeature();
+        return;
+    }
+
     // Draw partial ligature. We hack this by clipping the ligature.
     LigatureData data = ComputeLigatureData(aRange, aProvider);
     gfxRect clipExtents = aParams.context->GetClipExtents();
@@ -607,7 +613,7 @@ gfxTextRun::Draw(Range aRange, gfxPoint aPt, const DrawParams& aParams) const
     if (aParams.drawMode & DrawMode::GLYPH_FILL) {
         Color currentColor;
         if (aParams.context->GetDeviceColor(currentColor) &&
-            currentColor.a == 0 && !aParams.textDrawer) {
+            currentColor.a == 0 && !aParams.context->GetTextDrawer()) {
             skipDrawing = true;
         }
     }
@@ -636,7 +642,9 @@ gfxTextRun::Draw(Range aRange, gfxPoint aPt, const DrawParams& aParams) const
 
     if (aParams.drawMode & DrawMode::GLYPH_FILL &&
         HasNonOpaqueNonTransparentColor(aParams.context, currentColor) &&
-        HasSyntheticBoldOrColor(this, aRange)) {
+        HasSyntheticBoldOrColor(this, aRange) &&
+        !aParams.context->GetTextDrawer()) {
+
         needToRestore = true;
         // Measure text; use the bounding box to determine the area we need
         // to buffer.
@@ -725,7 +733,6 @@ gfxTextRun::Draw(Range aRange, gfxPoint aPt, const DrawParams& aParams) const
 // This method is mostly parallel to Draw().
 void
 gfxTextRun::DrawEmphasisMarks(gfxContext *aContext,
-                              mozilla::layout::TextDrawTarget* aTextDrawer,
                               gfxTextRun* aMark,
                               gfxFloat aMarkAdvance, gfxPoint aPt,
                               Range aRange, PropertyProvider* aProvider) const
@@ -734,7 +741,6 @@ gfxTextRun::DrawEmphasisMarks(gfxContext *aContext,
 
     EmphasisMarkDrawParams params;
     params.context = aContext;
-    params.textDrawer = aTextDrawer;
     params.mark = aMark;
     params.advance = aMarkAdvance;
     params.direction = GetDirection();
@@ -1829,7 +1835,7 @@ gfxFontGroup::BuildFontList()
     gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
 
     // lookup fonts in the fontlist
-    for (const FontFamilyName& name : mFamilyList.GetFontlist()) {
+    for (const FontFamilyName& name : mFamilyList.GetFontlist()->mNames) {
         if (name.IsNamed()) {
             AddPlatformFont(name.mName, fonts);
         } else {

@@ -106,7 +106,7 @@ js::StartOffThreadWasmCompile(wasm::CompileTask* task, wasm::CompileMode mode)
 {
     AutoLockHelperThreadState lock;
 
-    if (!HelperThreadState().wasmWorklist(lock, mode).append(task))
+    if (!HelperThreadState().wasmWorklist(lock, mode).pushBack(task))
         return false;
 
     HelperThreadState().notifyOne(GlobalHelperThreadState::PRODUCER, lock);
@@ -1178,6 +1178,14 @@ GlobalHelperThreadState::maxWasmTier2GeneratorThreads() const
 }
 
 size_t
+GlobalHelperThreadState::maxPromiseHelperThreads() const
+{
+    if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_WASM))
+        return 1;
+    return cpuCount;
+}
+
+size_t
 GlobalHelperThreadState::maxParseThreads() const
 {
     if (IsHelperThreadSimulatingOOM(js::THREAD_TYPE_PARSE))
@@ -1268,7 +1276,11 @@ GlobalHelperThreadState::canStartWasmTier2Generator(const AutoLockHelperThreadSt
 bool
 GlobalHelperThreadState::canStartPromiseHelperTask(const AutoLockHelperThreadState& lock)
 {
-    return !promiseHelperTasks(lock).empty();
+    // PromiseHelperTasks can be wasm compilation tasks that in turn block on
+    // wasm compilation so set isMaster = true.
+    return !promiseHelperTasks(lock).empty() &&
+           checkTaskThreadLimit<PromiseHelperTask*>(maxPromiseHelperThreads(),
+                                                    /*isMaster=*/true);
 }
 
 static bool
@@ -1802,7 +1814,7 @@ HelperThread::handleWasmWorkload(AutoLockHelperThreadState& locked, wasm::Compil
     MOZ_ASSERT(HelperThreadState().canStartWasmCompile(locked, mode));
     MOZ_ASSERT(idle());
 
-    currentTask.emplace(HelperThreadState().wasmWorklist(locked, mode).popCopy());
+    currentTask.emplace(HelperThreadState().wasmWorklist(locked, mode).popCopyFront());
 
     wasm::CompileTask* task = wasmTask();
     {
@@ -1850,7 +1862,7 @@ HelperThread::handlePromiseHelperTaskWorkload(AutoLockHelperThreadState& locked)
     {
         AutoUnlockHelperThreadState unlock(locked);
         task->execute();
-        task->dispatchResolve();
+        task->dispatchResolveAndDestroy();
     }
 
     // No active thread should be waiting on the CONSUMER mutex.
@@ -1982,6 +1994,8 @@ HelperThread::handleParseWorkload(AutoLockHelperThreadState& locked)
         AutoCompartment ac(cx, task->parseGlobal);
 
         task->parse(cx);
+
+        cx->frontendCollectionPool().purge();
     }
 
     // The callback is invoked while we are still off thread.
@@ -2094,7 +2108,7 @@ js::CancelOffThreadCompressions(JSRuntime* runtime)
 }
 
 void
-PromiseHelperTask::executeAndResolve(JSContext* cx)
+PromiseHelperTask::executeAndResolveAndDestroy(JSContext* cx)
 {
     execute();
     run(cx, JS::Dispatchable::NotShuttingDown);
@@ -2105,7 +2119,7 @@ js::StartOffThreadPromiseHelperTask(JSContext* cx, UniquePtr<PromiseHelperTask> 
 {
     // Execute synchronously if there are no helper threads.
     if (!CanUseExtraThreads()) {
-        task.release()->executeAndResolve(cx);
+        task.release()->executeAndResolveAndDestroy(cx);
         return true;
     }
 

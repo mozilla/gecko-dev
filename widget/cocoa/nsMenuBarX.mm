@@ -304,15 +304,19 @@ void nsMenuBarX::RemoveMenuAtIndex(uint32_t aIndex)
 
 void nsMenuBarX::ObserveAttributeChanged(nsIDocument* aDocument,
                                          nsIContent* aContent,
-                                         nsIAtom* aAttribute)
+                                         nsAtom* aAttribute)
 {
 }
 
 void nsMenuBarX::ObserveContentRemoved(nsIDocument* aDocument,
+                                       nsIContent* aContainer,
                                        nsIContent* aChild,
-                                       int32_t aIndexInContainer)
+                                       nsIContent* aPreviousSibling)
 {
-  RemoveMenuAtIndex(aIndexInContainer);
+  nsINode* parent = NODE_FROM(aContainer, aDocument);
+  MOZ_ASSERT(parent);
+  int32_t index = parent->IndexOf(aPreviousSibling) + 1;
+  RemoveMenuAtIndex(index);
 }
 
 void nsMenuBarX::ObserveContentInserted(nsIDocument* aDocument,

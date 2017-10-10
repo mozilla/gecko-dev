@@ -20,6 +20,7 @@ import org.mozilla.gecko.util.ActivityUtils;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
 import org.mozilla.gecko.util.GeckoBundle;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
 import android.content.ContentResolver;
@@ -462,7 +463,7 @@ public class GeckoView extends LayerView {
      * @param context Activity or Application Context for starting GeckoView.
      */
     public static void preload(final Context context) {
-        preload(context, /* geckoArgs */ null);
+        preload(context, /* geckoArgs */ null, /* multiprocess */ false);
     }
 
     /**
@@ -470,26 +471,26 @@ public class GeckoView extends LayerView {
      * if Gecko is not already running.
      *
      * @param context Activity or Application Context for starting GeckoView.
-     * @param geckoArgs Arguments to be passed to Gecko, if Gecko is not already running
+     * @param geckoArgs Arguments to be passed to Gecko, if Gecko is not already running.
+     * @param multiprocess True if child process in multiprocess mode should be preloaded.
      */
-    public static void preload(final Context context, final String geckoArgs) {
+    public static void preload(final Context context, final String geckoArgs,
+                               final boolean multiprocess) {
         final Context appContext = context.getApplicationContext();
         if (GeckoAppShell.getApplicationContext() == null) {
             GeckoAppShell.setApplicationContext(appContext);
         }
 
-        if (GeckoThread.initMainProcess(/* profile */ null,
-                                        geckoArgs,
-                                        /* debugging */ false)) {
+        final int flags = multiprocess ? GeckoThread.FLAG_PRELOAD_CHILD : 0;
+        if (GeckoThread.initMainProcess(/* profile */ null, geckoArgs, flags)) {
             GeckoThread.launch();
         }
     }
 
     private void init(final Context context, final GeckoViewSettings settings) {
-        preload(context);
-
-        // Perform common initialization for Fennec/GeckoView.
-        GeckoAppShell.setLayerView(this);
+        final boolean multiprocess = settings != null &&
+                                     settings.getBoolean(GeckoViewSettings.USE_MULTIPROCESS);
+        preload(context, /* geckoArgs */ null, multiprocess);
 
         initializeView();
         mListener.registerListeners();
@@ -499,6 +500,9 @@ public class GeckoView extends LayerView {
         } else {
             mSettings = settings;
         }
+        mSettings.setString(GeckoViewSettings.DEBUGGER_SOCKET_DIR,
+                            context.getApplicationInfo().dataDir);
+
     }
 
     @Override
@@ -686,6 +690,18 @@ public class GeckoView extends LayerView {
         mEventDispatcher.dispatch("GeckoView:GoForward", null);
     }
 
+    /**
+    * Set this GeckoView as active or inactive. Setting a GeckoView to inactive will
+    * significantly reduce its memory footprint, but should only be done if the
+    * GeckoView is not currently visible.
+    * @param active A boolean determining whether the GeckoView is active
+    */
+    public void setActive(boolean active) {
+        final GeckoBundle msg = new GeckoBundle();
+        msg.putBoolean("active", active);
+        mEventDispatcher.dispatch("GeckoView:SetActive", msg);
+    }
+
     public GeckoViewSettings getSettings() {
         return mSettings;
     }
@@ -751,7 +767,8 @@ public class GeckoView extends LayerView {
                 mInputConnectionListener.onKeyMultiple(keyCode, repeatCount, event);
     }
 
-    /* package */ boolean isIMEEnabled() {
+    @Override
+    public boolean isIMEEnabled() {
         return mInputConnectionListener != null &&
                 mInputConnectionListener.isIMEEnabled();
     }

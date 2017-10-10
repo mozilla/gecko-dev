@@ -600,11 +600,13 @@ nsFrameMessageManager::SendMessage(const nsAString& aMessageName,
                                    JS::MutableHandle<JS::Value> aRetval,
                                    bool aIsSync)
 {
+#ifdef MOZ_GECKO_PROFILER
   if (profiler_is_active()) {
     NS_LossyConvertUTF16toASCII messageNameCStr(aMessageName);
     AUTO_PROFILER_LABEL_DYNAMIC("nsFrameMessageManager::SendMessage", EVENTS,
                                 messageNameCStr.get());
   }
+#endif
 
   NS_ASSERTION(!IsGlobal(), "Should not call SendSyncMessage in chrome");
   NS_ASSERTION(!IsBroadcaster(), "Should not call SendSyncMessage in chrome");
@@ -1539,12 +1541,14 @@ void
 nsMessageManagerScriptExecutor::LoadScriptInternal(const nsAString& aURL,
                                                    bool aRunInGlobalScope)
 {
+#ifdef MOZ_GECKO_PROFILER
   if (profiler_is_active()) {
     NS_LossyConvertUTF16toASCII urlCStr(aURL);
     AUTO_PROFILER_LABEL_DYNAMIC(
       "nsMessageManagerScriptExecutor::LoadScriptInternal", OTHER,
       urlCStr.get());
   }
+#endif
 
   if (!mGlobal || !sCachedScripts) {
     return;
@@ -1719,8 +1723,7 @@ nsMessageManagerScriptExecutor::InitChildGlobalInternal(
   AutoSafeJSContext cx;
   nsContentUtils::GetSecurityManager()->GetSystemPrincipal(getter_AddRefs(mPrincipal));
 
-  nsIXPConnect* xpc = nsContentUtils::XPConnect();
-  const uint32_t flags = nsIXPConnect::INIT_JS_STANDARD_CLASSES;
+  const uint32_t flags = xpc::INIT_JS_STANDARD_CLASSES;
 
   JS::CompartmentOptions options;
   options.creationOptions().setSystemZone();
@@ -1730,14 +1733,13 @@ nsMessageManagerScriptExecutor::InitChildGlobalInternal(
     options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);
   }
 
-  nsCOMPtr<nsIXPConnectJSObjectHolder> globalHolder;
-  nsresult rv =
-    xpc->InitClassesWithNewWrappedGlobal(cx, aScope, mPrincipal,
-                                         flags, options,
-                                         getter_AddRefs(globalHolder));
+  JS::Rooted<JSObject*> global(cx);
+  nsresult rv = xpc::InitClassesWithNewWrappedGlobal(cx, aScope, mPrincipal,
+                                                     flags, options,
+                                                     &global);
   NS_ENSURE_SUCCESS(rv, false);
 
-  mGlobal = globalHolder->GetJSObject();
+  mGlobal = global;
   NS_ENSURE_TRUE(mGlobal, false);
 
   // Set the location information for the new global, so that tools like

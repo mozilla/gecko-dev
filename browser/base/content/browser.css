@@ -90,12 +90,12 @@ panel[hidden] panelview {
   transition: transform var(--panelui-subview-transition-duration);
 }
 
-panelview:not([mainview]):not([current]) {
+panelview:not([mainview]):not([current]):not([in-transition]) {
   transition: visibility 0s linear var(--panelui-subview-transition-duration);
   visibility: collapse;
 }
 
-photonpanelmultiview panelview:not([current]) {
+photonpanelmultiview panelview:not([current]):not([in-transition]) {
   transition: none;
   visibility: collapse;
 }
@@ -114,9 +114,9 @@ tabbrowser {
 }
 
 #tabbrowser-tabs:not([overflow="true"]) ~ #alltabs-button,
-#tabbrowser-tabs:not([overflow="true"]) + #new-tab-button,
+#tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow="true"]) ~ #new-tab-button,
 #tabbrowser-tabs[overflow="true"] > .tabbrowser-arrowscrollbox > .tabs-newtab-button,
-#TabsToolbar[currentset]:not([currentset*="tabbrowser-tabs,new-tab-button"]) > #tabbrowser-tabs > .tabbrowser-arrowscrollbox > .tabs-newtab-button,
+#tabbrowser-tabs:not([hasadjacentnewtabbutton]) > .tabbrowser-arrowscrollbox > .tabs-newtab-button,
 #TabsToolbar[customizing="true"] > #tabbrowser-tabs > .tabbrowser-arrowscrollbox > .tabs-newtab-button {
   visibility: collapse;
 }
@@ -132,10 +132,15 @@ tabbrowser {
 .tabbrowser-tab:not([pinned]) {
   -moz-box-flex: 100;
   max-width: 225px;
-  min-width: 100px;
+  min-width: var(--tab-min-width);
   width: 0;
   transition: min-width 100ms ease-out,
               max-width 100ms ease-out;
+}
+
+:root[uidensity=touch] .tabbrowser-tab:not([pinned]) {
+  /* Touch mode needs additional space for the close button. */
+  min-width: calc(var(--tab-min-width) + 10px);
 }
 
 .tabbrowser-tab:not([pinned]):not([fadein]) {
@@ -201,6 +206,7 @@ tabbrowser {
 }
 
 /* Allow dropping a tab on buttons with associated drop actions. */
+#TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #personal-bookmarks,
 #TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #home-button,
 #TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #downloads-button,
 #TabsToolbar[movingtab] + #nav-bar > #nav-bar-customization-target > #bookmarks-menu-button {
@@ -240,6 +246,12 @@ window:not([chromehidden~="toolbar"]) #nav-bar[nonemptyoverflow] > .overflow-but
 
 
 %ifdef CAN_DRAW_IN_TITLEBAR
+%ifdef MENUBAR_CAN_AUTOHIDE
+#toolbar-menubar:not([autohide=true]) ~ #TabsToolbar > .titlebar-placeholder,
+%endif
+%ifndef MOZ_WIDGET_COCOA
+#main-window:not([sizemode=normal]) .titlebar-placeholder[type="pre-tabs"],
+%endif
 #main-window:not([chromemargin]) > #titlebar,
 #main-window[inFullscreen] > #titlebar,
 #main-window[inFullscreen] .titlebar-placeholder,
@@ -299,12 +311,6 @@ toolbarpaletteitem {
 }
 %endif
 
-%if !defined(MOZ_WIDGET_GTK)
-#TabsToolbar > .private-browsing-indicator {
-  -moz-box-ordinal-group: 1000;
-}
-%endif
-
 %ifdef XP_WIN
 #main-window[sizemode="maximized"] #titlebar-buttonbox {
   -moz-appearance: -moz-window-button-box-maximized;
@@ -314,12 +320,6 @@ toolbarpaletteitem {
 #main-window[tabletmode] #titlebar-max {
   display: none !important;
 }
-
-#main-window[tabsintitlebar] #TabsToolbar,
-#main-window[tabsintitlebar] #toolbar-menubar,
-#main-window[tabsintitlebar] #navigator-toolbox > toolbar:-moz-lwtheme {
-  -moz-window-dragging: drag;
-}
 %endif
 
 %endif
@@ -328,6 +328,7 @@ toolbarpaletteitem {
 #main-window[inFullscreen][inDOMFullscreen] #fullscr-toggler,
 #main-window[inFullscreen][inDOMFullscreen] #sidebar-box,
 #main-window[inFullscreen][inDOMFullscreen] #sidebar-splitter,
+#main-window[inFullscreen][inDOMFullscreen] #developer-toolbar,
 #main-window[inFullscreen]:not([OSXLionFullscreen]) toolbar:not([fullscreentoolbar=true]),
 #main-window[inFullscreen] #global-notificationbox,
 #main-window[inFullscreen] #high-priority-global-notificationbox {
@@ -376,12 +377,11 @@ toolbarpaletteitem > toolbaritem[sdkstylewidget="true"][cui-areatype="toolbar"] 
     list-style-image: var(--webextension-menupanel-image, inherit);
   }
 
-  .webextension-browser-action[cui-areatype="menu-panel"],
   toolbarpaletteitem[place="palette"] > .webextension-browser-action:-moz-lwtheme-brighttext {
     list-style-image: var(--webextension-menupanel-image-light, inherit);
   }
 
-  .webextension-browser-action[cui-areatype="menu-panel"],
+  .webextension-browser-action[cui-areatype="menu-panel"]:-moz-lwtheme-darktext,
   toolbarpaletteitem[place="palette"] > .webextension-browser-action:-moz-lwtheme-darktext {
     list-style-image: var(--webextension-menupanel-image-dark, inherit);
   }
@@ -413,12 +413,11 @@ toolbarpaletteitem > toolbaritem[sdkstylewidget="true"][cui-areatype="toolbar"] 
     list-style-image: var(--webextension-menupanel-image-2x, inherit);
   }
 
-  .webextension-browser-action[cui-areatype="menu-panel"],
   toolbarpaletteitem[place="palette"] > .webextension-browser-action:-moz-lwtheme-brighttext {
     list-style-image: var(--webextension-menupanel-image-2x-light, inherit);
   }
 
-  .webextension-browser-action[cui-areatype="menu-panel"],
+  .webextension-browser-action[cui-areatype="menu-panel"]:-moz-lwtheme-darktext,
   toolbarpaletteitem[place="palette"] > .webextension-browser-action:-moz-lwtheme-darktext {
     list-style-image: var(--webextension-menupanel-image-2x-dark, inherit);
   }
@@ -526,10 +525,6 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   background-position: bottom left;
   background-color: var(--lwt-accent-color);
   background-image: var(--lwt-footer-image);
-}
-
-.menuitem-iconic-tooltip {
-  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#menuitem-iconic-tooltip");
 }
 
 /* Hide menu elements intended for keyboard access support */
@@ -1103,29 +1098,6 @@ html|*#gcli-output-frame,
   -moz-box-pack: center;
 }
 
-/* Responsive Mode */
-
-.browserContainer[responsivemode] {
-  overflow: auto;
-}
-
-.devtools-responsiveui-toolbar:-moz-locale-dir(rtl) {
-  -moz-box-pack: end;
-}
-
-.browserStack[responsivemode] {
-  transition-duration: 200ms;
-  transition-timing-function: linear;
-}
-
-.browserStack[responsivemode] {
-  transition-property: min-width, max-width, min-height, max-height;
-}
-
-.browserStack[responsivemode][notransition] {
-  transition: none;
-}
-
 /* Translation */
 notification[value="translation"] {
   -moz-binding: url("chrome://browser/content/translation-infobar.xml#translationbar");
@@ -1278,7 +1250,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
 }
 
 #customization-panelHolder > #widget-overflow-fixed-list {
-  flex: 0 1 auto; /* Size to content, but allow ourselves to shrink */
+  flex: 1 1 auto; /* Grow within the available space, and allow ourselves to shrink */
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -1290,7 +1262,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
 #customization-panelHolder {
   flex-direction: column;
   display: flex;
-  min-height: 0;
+  min-height: calc(174px + 8em);
 }
 
 #customization-panelWrapper {

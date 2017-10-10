@@ -1641,13 +1641,19 @@ var gPrivacyPane = {
 
   _initA11yString() {
     let a11yLearnMoreLink =
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
-      "accessibility";
+      Services.urlFormatter.formatURLPref("accessibility.support.url");
     document.getElementById("a11yLearnMoreLink")
       .setAttribute("href", a11yLearnMoreLink);
   },
 
   updateA11yPrefs(checked) {
-    Services.prefs.setIntPref("accessibility.force_disabled", checked ? 1 : 0);
+    let buttonIndex = confirmRestartPrompt(checked, 0, true, false);
+    if (buttonIndex == CONFIRM_RESTART_PROMPT_RESTART_NOW) {
+      Services.prefs.setIntPref("accessibility.force_disabled", checked ? 1 : 0);
+      Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+    }
+
+    // Revert the checkbox in case we didn't quit
+    document.getElementById("a11yPrivacyCheckbox").checked = !checked;
   }
 };

@@ -158,7 +158,7 @@ void
 nsMutationReceiver::AttributeWillChange(nsIDocument* aDocument,
                                         mozilla::dom::Element* aElement,
                                         int32_t aNameSpaceID,
-                                        nsIAtom* aAttribute,
+                                        nsAtom* aAttribute,
                                         int32_t aModType,
                                         const nsAttrValue* aNewValue)
 {
@@ -222,8 +222,7 @@ nsMutationReceiver::CharacterDataWillChange(nsIDocument *aDocument,
 void
 nsMutationReceiver::ContentAppended(nsIDocument* aDocument,
                                     nsIContent* aContainer,
-                                    nsIContent* aFirstNewContent,
-                                    int32_t aNewIndexInContainer)
+                                    nsIContent* aFirstNewContent)
 {
   nsINode* parent = NODE_FROM(aContainer, aDocument);
   bool wantsChildList =
@@ -263,8 +262,7 @@ nsMutationReceiver::ContentAppended(nsIDocument* aDocument,
 void
 nsMutationReceiver::ContentInserted(nsIDocument* aDocument,
                                     nsIContent* aContainer,
-                                    nsIContent* aChild,
-                                    int32_t aIndexInContainer)
+                                    nsIContent* aChild)
 {
   nsINode* parent = NODE_FROM(aContainer, aDocument);
   bool wantsChildList =
@@ -299,7 +297,6 @@ void
 nsMutationReceiver::ContentRemoved(nsIDocument* aDocument,
                                    nsIContent* aContainer,
                                    nsIContent* aChild,
-                                   int32_t aIndexInContainer,
                                    nsIContent* aPreviousSibling)
 {
   if (!IsObservable(aChild)) {
@@ -371,11 +368,14 @@ nsMutationReceiver::ContentRemoved(nsIDocument* aDocument,
       // Already handled case.
       return;
     }
+    MOZ_ASSERT(parent);
+
     m->mTarget = parent;
     m->mRemovedNodes = new nsSimpleContentList(parent);
     m->mRemovedNodes->AppendElement(aChild);
     m->mPreviousSibling = aPreviousSibling;
-    m->mNextSibling = parent->GetChildAt(aIndexInContainer);
+    m->mNextSibling = aPreviousSibling ?
+      aPreviousSibling->GetNextSibling() : parent->GetFirstChild();
   }
   // We need to schedule always, so that after microtask mTransientReceivers
   // can be cleared correctly.
@@ -683,7 +683,7 @@ nsDOMMutationObserver::Observe(nsINode& aTarget,
     return;
   }
 
-  nsCOMArray<nsIAtom> filters;
+  nsTArray<RefPtr<nsAtom>> filters;
   bool allAttrs = true;
   if (aOptions.mAttributeFilter.WasPassed()) {
     allAttrs = false;
@@ -767,18 +767,18 @@ nsDOMMutationObserver::GetObservingInfo(
     info.mCharacterDataOldValue.Construct(mr->CharacterDataOldValue());
     info.mNativeAnonymousChildList = mr->NativeAnonymousChildList();
     info.mAnimations = mr->Animations();
-    nsCOMArray<nsIAtom>& filters = mr->AttributeFilter();
-    if (filters.Count()) {
+    nsTArray<RefPtr<nsAtom>>& filters = mr->AttributeFilter();
+    if (filters.Length()) {
       info.mAttributeFilter.Construct();
       mozilla::dom::Sequence<nsString>& filtersAsStrings =
         info.mAttributeFilter.Value();
-      nsString* strings = filtersAsStrings.AppendElements(filters.Count(),
+      nsString* strings = filtersAsStrings.AppendElements(filters.Length(),
                                                           mozilla::fallible);
       if (!strings) {
         aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
         return;
       }
-      for (int32_t j = 0; j < filters.Count(); ++j) {
+      for (size_t j = 0; j < filters.Length(); ++j) {
         filters[j]->ToString(strings[j]);
       }
     }
@@ -930,7 +930,7 @@ nsDOMMutationObserver::HandleMutationsInternal()
 }
 
 nsDOMMutationRecord*
-nsDOMMutationObserver::CurrentRecord(nsIAtom* aType)
+nsDOMMutationObserver::CurrentRecord(nsAtom* aType)
 {
   NS_ASSERTION(sMutationLevel > 0, "Unexpected mutation level!");
 

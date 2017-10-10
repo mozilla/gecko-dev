@@ -4,7 +4,7 @@
 
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -12,13 +12,17 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
+use dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
@@ -174,7 +178,7 @@ impl CompiledEventListener {
                             return;
                         }
 
-                        let _ = handler.Call_(object, EventOrString::Event(Root::from_ref(event)),
+                        let _ = handler.Call_(object, EventOrString::Event(DomRoot::from_ref(event)),
                                               None, None, None, None, exception_handle);
                     }
 
@@ -276,14 +280,14 @@ impl EventListeners {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DOMRefCell<HashMap<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
+    handlers: DomRefCell<HashMap<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
 }
 
 impl EventTarget {
     pub fn new_inherited() -> EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
-            handlers: DOMRefCell::new(Default::default()),
+            handlers: DomRefCell::new(Default::default()),
         }
     }
 
@@ -506,28 +510,28 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::NotCancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_bubbling_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::NotCancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_cancelable_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable)
@@ -538,19 +542,18 @@ impl EventTarget {
                                   name: Atom,
                                   bubbles: EventBubbles,
                                   cancelable: EventCancelable)
-                                  -> Root<Event> {
+                                  -> DomRoot<Event> {
         let event = Event::new(&self.global(), name, bubbles, cancelable);
         event.fire(self);
         event
     }
-}
-
-impl EventTargetMethods for EventTarget {
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
-    fn AddEventListener(&self,
-                        ty: DOMString,
-                        listener: Option<Rc<EventListener>>,
-                        capture: bool) {
+    pub fn add_event_listener(
+        &self,
+        ty: DOMString,
+        listener: Option<Rc<EventListener>>,
+        options: AddEventListenerOptions,
+    ) {
         let listener = match listener {
             Some(l) => l,
             None => return,
@@ -561,7 +564,11 @@ impl EventTargetMethods for EventTarget {
             Vacant(entry) => entry.insert(EventListeners(vec!())),
         };
 
-        let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
+        let phase = if options.parent.capture {
+            ListenerPhase::Capturing
+        } else {
+            ListenerPhase::Bubbling
+        };
         let new_entry = EventListenerEntry {
             phase: phase,
             listener: EventListenerType::Additive(listener)
@@ -572,10 +579,12 @@ impl EventTargetMethods for EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
-    fn RemoveEventListener(&self,
-                           ty: DOMString,
-                           listener: Option<Rc<EventListener>>,
-                           capture: bool) {
+    pub fn remove_event_listener(
+        &self,
+        ty: DOMString,
+        listener: Option<Rc<EventListener>>,
+        options: EventListenerOptions,
+    ) {
         let ref listener = match listener {
             Some(l) => l,
             None => return,
@@ -583,7 +592,11 @@ impl EventTargetMethods for EventTarget {
         let mut handlers = self.handlers.borrow_mut();
         let entry = handlers.get_mut(&Atom::from(ty));
         for entry in entry {
-            let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
+            let phase = if options.capture {
+                ListenerPhase::Capturing
+            } else {
+                ListenerPhase::Bubbling
+            };
             let old_entry = EventListenerEntry {
                 phase: phase,
                 listener: EventListenerType::Additive(listener.clone())
@@ -592,6 +605,28 @@ impl EventTargetMethods for EventTarget {
                 entry.remove(position);
             }
         }
+    }
+}
+
+impl EventTargetMethods for EventTarget {
+    // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
+    fn AddEventListener(
+        &self,
+        ty: DOMString,
+        listener: Option<Rc<EventListener>>,
+        options: AddEventListenerOptionsOrBoolean,
+    ) {
+        self.add_event_listener(ty, listener, options.into())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
+    fn RemoveEventListener(
+        &self,
+        ty: DOMString,
+        listener: Option<Rc<EventListener>>,
+        options: EventListenerOptionsOrBoolean,
+    ) {
+        self.remove_event_listener(ty, listener, options.into())
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
@@ -610,5 +645,31 @@ impl EventTargetMethods for EventTarget {
 impl VirtualMethods for EventTarget {
     fn super_type(&self) -> Option<&VirtualMethods> {
         None
+    }
+}
+
+impl From<AddEventListenerOptionsOrBoolean> for AddEventListenerOptions {
+    fn from(options: AddEventListenerOptionsOrBoolean) -> Self {
+        match options {
+            AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => {
+                options
+            },
+            AddEventListenerOptionsOrBoolean::Boolean(capture) => {
+                Self { parent: EventListenerOptions { capture } }
+            },
+        }
+    }
+}
+
+impl From<EventListenerOptionsOrBoolean> for EventListenerOptions {
+    fn from(options: EventListenerOptionsOrBoolean) -> Self {
+        match options {
+            EventListenerOptionsOrBoolean::EventListenerOptions(options) => {
+                options
+            },
+            EventListenerOptionsOrBoolean::Boolean(capture) => {
+                Self { capture }
+            },
+        }
     }
 }

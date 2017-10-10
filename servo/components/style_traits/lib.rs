@@ -24,6 +24,7 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 #[cfg(feature = "servo")] extern crate webrender_api;
+extern crate servo_arc;
 #[cfg(feature = "servo")] extern crate servo_atoms;
 
 #[cfg(feature = "servo")] pub use webrender_api::DevicePixel;
@@ -38,10 +39,6 @@ use selectors::parser::SelectorParseError;
 #[cfg(not(feature = "servo"))]
 #[derive(Clone, Copy, Debug)]
 pub enum DevicePixel {}
-
-/// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from `TNode`.
-pub type UnsafeNode = (usize, usize);
 
 /// Represents a mobile style pinch zoom factor.
 /// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_api.

@@ -272,6 +272,21 @@ Proxy::has(JSContext* cx, HandleObject proxy, HandleId id, bool* bp)
 }
 
 bool
+js::ProxyHas(JSContext* cx, HandleObject proxy, HandleValue idVal, MutableHandleValue result)
+{
+    RootedId id(cx);
+    if (!ValueToId<CanGC>(cx, idVal, &id))
+        return false;
+
+    bool has;
+    if (!Proxy::has(cx, proxy, id, &has))
+        return false;
+
+    result.setBoolean(has);
+    return true;
+}
+
+bool
 Proxy::hasOwn(JSContext* cx, HandleObject proxy, HandleId id, bool* bp)
 {
     if (!CheckRecursionLimit(cx))
@@ -678,6 +693,12 @@ proxy_DeleteProperty(JSContext* cx, HandleObject obj, HandleId id, ObjectOpResul
 }
 
 /* static */ void
+ProxyObject::traceEdgeToTarget(JSTracer* trc, ProxyObject* obj)
+{
+    TraceCrossCompartmentEdge(trc, obj, obj->slotOfPrivate(), "proxy target");
+}
+
+/* static */ void
 ProxyObject::trace(JSTracer* trc, JSObject* obj)
 {
     ProxyObject* proxy = &obj->as<ProxyObject>();
@@ -702,7 +723,8 @@ ProxyObject::trace(JSTracer* trc, JSObject* obj)
 
     // Note: If you add new slots here, make sure to change
     // nuke() to cope.
-    TraceCrossCompartmentEdge(trc, obj, proxy->slotOfPrivate(), "private");
+
+    traceEdgeToTarget(trc, proxy);
 
     size_t nreserved = proxy->numReservedSlots();
     for (size_t i = 0; i < nreserved; i++) {

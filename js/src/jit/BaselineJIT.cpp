@@ -222,11 +222,12 @@ jit::EnterBaselineAtBranch(JSContext* cx, InterpreterFrame* fp, jsbytecode* pc)
         data.jitcode += MacroAssembler::ToggledCallSize(data.jitcode);
     }
 
+    // Note: keep this in sync with SetEnterJitData.
+
     data.osrFrame = fp;
     data.osrNumStackValues = fp->script()->nfixed() + cx->interpreterRegs().stackDepth();
 
-    AutoValueVector vals(cx);
-    RootedValue thisv(cx);
+    RootedValue newTarget(cx);
 
     if (fp->isFunctionFrame()) {
         data.constructing = fp->isConstructing();
@@ -236,28 +237,18 @@ jit::EnterBaselineAtBranch(JSContext* cx, InterpreterFrame* fp, jsbytecode* pc)
         data.envChain = nullptr;
         data.calleeToken = CalleeToToken(&fp->callee(), data.constructing);
     } else {
-        thisv.setUndefined();
         data.constructing = false;
         data.numActualArgs = 0;
-        data.maxArgc = 1;
-        data.maxArgv = thisv.address();
+        data.maxArgc = 0;
+        data.maxArgv = nullptr;
         data.envChain = fp->environmentChain();
 
         data.calleeToken = CalleeToToken(fp->script());
 
         if (fp->isEvalFrame()) {
-            if (!vals.reserve(2))
-                return JitExec_Aborted;
-
-            vals.infallibleAppend(thisv);
-
-            if (fp->script()->isDirectEvalInFunction())
-                vals.infallibleAppend(fp->newTarget());
-            else
-                vals.infallibleAppend(NullValue());
-
-            data.maxArgc = 2;
-            data.maxArgv = vals.begin();
+            newTarget = fp->newTarget();
+            data.maxArgc = 1;
+            data.maxArgv = newTarget.address();
         }
     }
 
@@ -669,12 +660,16 @@ BaselineScript::maybeICEntryFromPCOffset(uint32_t pcOffset)
     if (!ComputeBinarySearchMid(this, pcOffset, &mid))
         return nullptr;
 
+    MOZ_ASSERT(mid < numICEntries());
+
     // Found an IC entry with a matching PC offset.  Search backward, and then
     // forward from this IC entry, looking for one with the same PC offset which
     // has isForOp() set.
-    for (size_t i = mid; i < numICEntries() && icEntry(i).pcOffset() == pcOffset; i--) {
+    for (size_t i = mid; icEntry(i).pcOffset() == pcOffset; i--) {
         if (icEntry(i).isForOp())
             return &icEntry(i);
+        if (i == 0)
+            break;
     }
     for (size_t i = mid+1; i < numICEntries() && icEntry(i).pcOffset() == pcOffset; i++) {
         if (icEntry(i).isForOp())
@@ -728,10 +723,13 @@ BaselineScript::callVMEntryFromPCOffset(uint32_t pcOffset)
     // inserted by VM calls.
     size_t mid;
     MOZ_ALWAYS_TRUE(ComputeBinarySearchMid(this, pcOffset, &mid));
+    MOZ_ASSERT(mid < numICEntries());
 
-    for (size_t i = mid; i < numICEntries() && icEntry(i).pcOffset() == pcOffset; i--) {
+    for (size_t i = mid; icEntry(i).pcOffset() == pcOffset; i--) {
         if (icEntry(i).kind() == ICEntry::Kind_CallVM)
             return icEntry(i);
+        if (i == 0)
+            break;
     }
     for (size_t i = mid+1; i < numICEntries() && icEntry(i).pcOffset() == pcOffset; i++) {
         if (icEntry(i).kind() == ICEntry::Kind_CallVM)

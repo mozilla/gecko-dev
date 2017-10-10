@@ -126,7 +126,7 @@ class FunctionCompiler
 
     const ModuleEnvironment&   env_;
     IonOpIter                  iter_;
-    const FuncCompileUnit&     func_;
+    const FuncCompileInput&    func_;
     const ValTypeVector&       locals_;
     size_t                     lastReadCallSite_;
 
@@ -149,7 +149,7 @@ class FunctionCompiler
   public:
     FunctionCompiler(const ModuleEnvironment& env,
                      Decoder& decoder,
-                     const FuncCompileUnit& func,
+                     const FuncCompileInput& func,
                      const ValTypeVector& locals,
                      MIRGenerator& mirGen)
       : env_(env),
@@ -171,7 +171,7 @@ class FunctionCompiler
     const ModuleEnvironment&   env() const   { return env_; }
     IonOpIter&                 iter()        { return iter_; }
     TempAllocator&             alloc() const { return alloc_; }
-    const Sig&                 sig() const   { return *env_.funcSigs[func_.index()]; }
+    const Sig&                 sig() const   { return *env_.funcSigs[func_.index]; }
 
     BytecodeOffset bytecodeOffset() const {
         return iter_.bytecodeOffset();
@@ -270,7 +270,7 @@ class FunctionCompiler
 #endif
         MOZ_ASSERT(inDeadCode());
         MOZ_ASSERT(done(), "all bytes must be consumed");
-        MOZ_ASSERT(func_.callSiteLineNums().length() == lastReadCallSite_);
+        MOZ_ASSERT(func_.callSiteLineNums.length() == lastReadCallSite_);
     }
 
     /************************* Read-only interface (after local scope setup) */
@@ -1574,8 +1574,8 @@ class FunctionCompiler
     /************************************************************ DECODING ***/
 
     uint32_t readCallSiteLineOrBytecode() {
-        if (!func_.callSiteLineNums().empty())
-            return func_.callSiteLineNums()[lastReadCallSite_++];
+        if (!func_.callSiteLineNums.empty())
+            return func_.callSiteLineNums[lastReadCallSite_++];
         return iter_.lastOpcodeOffset();
     }
 
@@ -2037,14 +2037,19 @@ EmitCallArgs(FunctionCompiler& f, const Sig& sig, const DefVector& args, CallCom
 }
 
 static bool
-EmitCall(FunctionCompiler& f)
+EmitCall(FunctionCompiler& f, bool asmJSFuncDef)
 {
     uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
 
     uint32_t funcIndex;
     DefVector args;
-    if (!f.iter().readCall(&funcIndex, &args))
-        return false;
+    if (asmJSFuncDef) {
+        if (!f.iter().readOldCallDirect(f.env().numFuncImports(), &funcIndex, &args))
+            return false;
+    } else {
+        if (!f.iter().readCall(&funcIndex, &args))
+            return false;
+    }
 
     if (f.inDeadCode())
         return true;
@@ -3327,7 +3332,7 @@ EmitBodyExprs(FunctionCompiler& f)
 
           // Calls
           case uint16_t(Op::Call):
-            CHECK(EmitCall(f));
+            CHECK(EmitCall(f, /* asmJSFuncDef = */ false));
           case uint16_t(Op::CallIndirect):
             CHECK(EmitCallIndirect(f, /* oldStyle = */ false));
 
@@ -3723,6 +3728,8 @@ EmitBodyExprs(FunctionCompiler& f)
                 CHECK_ASMJS(EmitBinaryMathBuiltinCall(f, SymbolicAddress::PowD, ValType::F64));
               case uint16_t(MozOp::F64Atan2):
                 CHECK_ASMJS(EmitBinaryMathBuiltinCall(f, SymbolicAddress::ATan2D, ValType::F64));
+              case uint16_t(MozOp::OldCallDirect):
+                CHECK_ASMJS(EmitCall(f, /* asmJSFuncDef = */ true));
               case uint16_t(MozOp::OldCallIndirect):
                 CHECK_ASMJS(EmitCallIndirect(f, /* oldStyle = */ true));
 
@@ -3852,70 +3859,86 @@ EmitBodyExprs(FunctionCompiler& f)
 }
 
 bool
-wasm::IonCompileFunction(CompileTask* task, FuncCompileUnit* func, UniqueChars* error)
+wasm::IonCompileFunctions(const ModuleEnvironment& env, LifoAlloc& lifo,
+                          const FuncCompileInputVector& inputs, CompiledCode* code,
+                          UniqueChars* error)
 {
-    MOZ_ASSERT(task->tier() == Tier::Ion);
+    MOZ_ASSERT(env.tier() == Tier::Ion);
 
-    const ModuleEnvironment& env = task->env();
+    TempAllocator alloc(&lifo);
+    JitContext jitContext(&alloc);
+    MOZ_ASSERT(IsCompilingWasm());
+    MacroAssembler masm(MacroAssembler::WasmToken(), alloc);
 
-    Decoder d(func->begin(), func->end(), func->lineOrBytecode(), error);
-
-    // Build the local types vector.
-
-    ValTypeVector locals;
-    if (!locals.appendAll(task->env().funcSigs[func->index()]->args()))
-        return false;
-    if (!DecodeLocalEntries(d, env.kind, &locals))
+    // Swap in already-allocated empty vectors to avoid malloc/free.
+    MOZ_ASSERT(code->empty());
+    if (!code->swap(masm))
         return false;
 
-    // Set up for Ion compilation.
+    for (const FuncCompileInput& func : inputs) {
+        Decoder d(func.begin, func.end, func.lineOrBytecode, error);
 
-    JitContext jitContext(&task->alloc());
-    const JitCompileOptions options;
-    MIRGraph graph(&task->alloc());
-    CompileInfo compileInfo(locals.length());
-    MIRGenerator mir(nullptr, options, &task->alloc(), &graph, &compileInfo,
-                     IonOptimizations.get(OptimizationLevel::Wasm));
-    mir.initMinWasmHeapLength(env.minMemoryLength);
+        // Build the local types vector.
 
-    // Build MIR graph
-    {
-        FunctionCompiler f(env, d, *func, locals, mir);
-        if (!f.init())
+        ValTypeVector locals;
+        if (!locals.appendAll(env.funcSigs[func.index]->args()))
+            return false;
+        if (!DecodeLocalEntries(d, env.kind, &locals))
             return false;
 
-        if (!f.startBlock())
-            return false;
+        // Set up for Ion compilation.
 
-        if (!EmitBodyExprs(f))
-            return false;
+        const JitCompileOptions options;
+        MIRGraph graph(&alloc);
+        CompileInfo compileInfo(locals.length());
+        MIRGenerator mir(nullptr, options, &alloc, &graph, &compileInfo,
+                         IonOptimizations.get(OptimizationLevel::Wasm));
+        mir.initMinWasmHeapLength(env.minMemoryLength);
 
-        f.finish();
+        // Build MIR graph
+        {
+            FunctionCompiler f(env, d, func, locals, mir);
+            if (!f.init())
+                return false;
+
+            if (!f.startBlock())
+                return false;
+
+            if (!EmitBodyExprs(f))
+                return false;
+
+            f.finish();
+        }
+
+        // Compile MIR graph
+        {
+            jit::SpewBeginFunction(&mir, nullptr);
+            jit::AutoSpewEndFunction spewEndFunction(&mir);
+
+            if (!OptimizeMIR(&mir))
+                return false;
+
+            LIRGraph* lir = GenerateLIR(&mir);
+            if (!lir)
+                return false;
+
+            SigIdDesc sigId = env.funcSigs[func.index]->id;
+
+            CodeGenerator codegen(&mir, lir, &masm);
+
+            BytecodeOffset prologueTrapOffset(func.lineOrBytecode);
+            FuncOffsets offsets;
+            if (!codegen.generateWasm(sigId, prologueTrapOffset, &offsets))
+                return false;
+
+            if (!code->codeRanges.emplaceBack(func.index, func.lineOrBytecode, offsets))
+                return false;
+        }
     }
 
-    // Compile MIR graph
-    {
-        jit::SpewBeginFunction(&mir, nullptr);
-        jit::AutoSpewEndFunction spewEndFunction(&mir);
+    masm.finish();
+    if (masm.oom())
+        return false;
 
-        if (!OptimizeMIR(&mir))
-            return false;
-
-        LIRGraph* lir = GenerateLIR(&mir);
-        if (!lir)
-            return false;
-
-        SigIdDesc sigId = env.funcSigs[func->index()]->id;
-
-        CodeGenerator codegen(&mir, lir, &task->masm());
-
-        BytecodeOffset prologueTrapOffset(func->lineOrBytecode());
-        FuncOffsets offsets;
-        if (!codegen.generateWasm(sigId, prologueTrapOffset, &offsets))
-            return false;
-
-        func->finish(offsets);
-    }
-
-    return true;
+    return code->swap(masm);
 }

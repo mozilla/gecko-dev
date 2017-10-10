@@ -107,12 +107,6 @@ class MOZ_RAII IonCacheIRCompiler : public CacheIRCompiler
     JSCompartment* compartmentStubField(uint32_t offset) {
         return (JSCompartment*)readStubWord(offset, StubField::Type::RawWord);
     }
-    const Class* classStubField(uintptr_t offset) {
-        return (const Class*)readStubWord(offset, StubField::Type::RawWord);
-    }
-    const void* proxyHandlerStubField(uintptr_t offset) {
-        return (const void*)readStubWord(offset, StubField::Type::RawWord);
-    }
     jsid idStubField(uint32_t offset) {
         return mozilla::BitwiseCast<jsid>(readStubWord(offset, StubField::Type::Id));
     }
@@ -670,37 +664,6 @@ IonCacheIRCompiler::emitGuardCompartment()
 }
 
 bool
-IonCacheIRCompiler::emitGuardAnyClass()
-{
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    AutoScratchRegister scratch(allocator, masm);
-
-    const Class* clasp = classStubField(reader.stubOffset());
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch, clasp, failure->label());
-    return true;
-}
-
-bool
-IonCacheIRCompiler::emitGuardHasProxyHandler()
-{
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    const void* handler = proxyHandlerStubField(reader.stubOffset());
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    Address handlerAddr(obj, ProxyObject::offsetOfHandler());
-    masm.branchPtr(Assembler::NotEqual, handlerAddr, ImmPtr(handler), failure->label());
-    return true;
-}
-
-bool
 IonCacheIRCompiler::emitGuardSpecificObject()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
@@ -770,55 +733,6 @@ IonCacheIRCompiler::emitGuardSpecificSymbol()
         return false;
 
     masm.branchPtr(Assembler::NotEqual, sym, ImmGCPtr(expected), failure->label());
-    return true;
-}
-
-bool
-IonCacheIRCompiler::emitGuardXrayExpandoShapeAndDefaultProto()
-{
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    bool hasExpando = reader.readBool();
-    JSObject* shapeWrapper = objectStubField(reader.stubOffset());
-    MOZ_ASSERT(hasExpando == !!shapeWrapper);
-
-    AutoScratchRegister scratch(allocator, masm);
-    Maybe<AutoScratchRegister> scratch2;
-    if (hasExpando)
-        scratch2.emplace(allocator, masm);
-
-    FailurePath* failure;
-    if (!addFailurePath(&failure))
-        return false;
-
-    masm.loadPtr(Address(obj, ProxyObject::offsetOfReservedSlots()), scratch);
-    Address holderAddress(scratch, sizeof(Value) * GetXrayJitInfo()->xrayHolderSlot);
-    Address expandoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->holderExpandoSlot));
-
-    if (hasExpando) {
-        masm.branchTestObject(Assembler::NotEqual, holderAddress, failure->label());
-        masm.unboxObject(holderAddress, scratch);
-        masm.branchTestObject(Assembler::NotEqual, expandoAddress, failure->label());
-        masm.unboxObject(expandoAddress, scratch);
-
-        // Unwrap the expando before checking its shape.
-        masm.loadPtr(Address(scratch, ProxyObject::offsetOfReservedSlots()), scratch);
-        masm.unboxObject(Address(scratch, detail::ProxyReservedSlots::offsetOfPrivateSlot()), scratch);
-
-        masm.movePtr(ImmGCPtr(shapeWrapper), scratch2.ref());
-        LoadShapeWrapperContents(masm, scratch2.ref(), scratch2.ref(), failure->label());
-        masm.branchTestObjShape(Assembler::NotEqual, scratch, scratch2.ref(), failure->label());
-
-        // The reserved slots on the expando should all be in fixed slots.
-        Address protoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->expandoProtoSlot));
-        masm.branchTestUndefined(Assembler::NotEqual, protoAddress, failure->label());
-    } else {
-        Label done;
-        masm.branchTestObject(Assembler::NotEqual, holderAddress, &done);
-        masm.unboxObject(holderAddress, scratch);
-        masm.branchTestObject(Assembler::Equal, expandoAddress, failure->label());
-        masm.bind(&done);
-    }
-
     return true;
 }
 
@@ -1179,17 +1093,21 @@ IonCacheIRCompiler::emitCallProxyGetByValueResult()
     return true;
 }
 
+typedef bool (*ProxyHasFn)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
+static const VMFunction ProxyHasInfo = FunctionInfo<ProxyHasFn>(ProxyHas, "ProxyHas");
+
 typedef bool (*ProxyHasOwnFn)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
 static const VMFunction ProxyHasOwnInfo = FunctionInfo<ProxyHasOwnFn>(ProxyHasOwn, "ProxyHasOwn");
 
 bool
-IonCacheIRCompiler::emitCallProxyHasOwnResult()
+IonCacheIRCompiler::emitCallProxyHasPropResult()
 {
     AutoSaveLiveRegisters save(*this);
     AutoOutputRegister output(*this);
 
     Register obj = allocator.useRegister(masm, reader.objOperandId());
     ValueOperand idVal = allocator.useValueRegister(masm, reader.valOperandId());
+    bool hasOwn = reader.readBool();
 
     allocator.discardStack(masm);
 
@@ -1198,8 +1116,13 @@ IonCacheIRCompiler::emitCallProxyHasOwnResult()
     masm.Push(idVal);
     masm.Push(obj);
 
-    if (!callVM(masm, ProxyHasOwnInfo))
-        return false;
+    if (hasOwn) {
+        if (!callVM(masm, ProxyHasOwnInfo))
+            return false;
+    } else {
+        if (!callVM(masm, ProxyHasInfo))
+            return false;
+    }
 
     masm.storeCallResultValue(output);
     return true;
@@ -1932,20 +1855,6 @@ IonCacheIRCompiler::emitStoreTypedElement()
 
     masm.bind(&done);
     return true;
-}
-
-bool
-IonCacheIRCompiler::emitStoreUnboxedArrayElement()
-{
-    // --unboxed-arrays is currently untested and broken.
-    MOZ_CRASH("Baseline-specific op");
-}
-
-bool
-IonCacheIRCompiler::emitStoreUnboxedArrayElementHole()
-{
-    // --unboxed-arrays is currently untested and broken.
-    MOZ_CRASH("Baseline-specific op");
 }
 
 bool

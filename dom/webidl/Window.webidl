@@ -259,7 +259,7 @@ partial interface Window {
   [Throws, NeedsCallerType]
   readonly attribute float mozInnerScreenY;
   [Replaceable, Throws, NeedsCallerType]
-  readonly attribute float devicePixelRatio;
+  readonly attribute double devicePixelRatio;
 
   /* The maximum offset that the window can be scrolled to
      (i.e., the document width/height minus the scrollport width/height) */
@@ -520,12 +520,10 @@ partial interface Window {
   [Func="IsChromeOrXBL"]
   sequence<DOMString> getRegionalPrefsLocales();
 
-#ifdef ENABLE_INTL_API
   /**
    * Getter funcion for IntlUtils, which provides helper functions for
    * localization.
    */
   [Throws, Func="IsChromeOrXBL"]
   readonly attribute IntlUtils intlUtils;
-#endif
 };

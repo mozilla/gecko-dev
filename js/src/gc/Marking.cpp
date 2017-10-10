@@ -1662,6 +1662,18 @@ ObjectDenseElementsMayBeMarkable(NativeObject* nobj)
     return mayBeMarkable;
 }
 
+static inline void
+CheckForCompartmentMismatch(JSObject* obj, JSObject* obj2)
+{
+#ifdef DEBUG
+    if (MOZ_UNLIKELY(obj->compartment() != obj2->compartment())) {
+        fprintf(stderr, "Compartment mismatch in pointer from %s object slot to %s object\n",
+                obj->getClass()->name, obj2->getClass()->name);
+        MOZ_CRASH("Compartment mismatch");
+    }
+#endif
+}
+
 inline void
 GCMarker::processMarkStackTop(SliceBudget& budget)
 {
@@ -1732,7 +1744,7 @@ GCMarker::processMarkStackTop(SliceBudget& budget)
             traverseEdge(obj, v.toString());
         } else if (v.isObject()) {
             JSObject* obj2 = &v.toObject();
-            MOZ_ASSERT(obj->compartment() == obj2->compartment());
+            CheckForCompartmentMismatch(obj, obj2);
             if (mark(obj2)) {
                 // Save the rest of this value array for later and start scanning obj2's children.
                 pushValueArray(obj, vp, end);
@@ -2704,6 +2716,7 @@ void
 js::gc::StoreBuffer::SlotsEdge::trace(TenuringTracer& mover) const
 {
     NativeObject* obj = object();
+    MOZ_ASSERT(IsCellPointerValid(obj));
 
     // Beware JSObject::swap exchanging a native object for a non-native one.
     if (!obj->isNative())
@@ -2776,6 +2789,7 @@ js::gc::StoreBuffer::traceWholeCells(TenuringTracer& mover)
 {
     for (ArenaCellSet* cells = bufferWholeCell; cells; cells = cells->next) {
         Arena* arena = cells->arena;
+        MOZ_ASSERT(IsCellPointerValid(arena));
 
         MOZ_ASSERT(arena->bufferedCells() == cells);
         arena->bufferedCells() = &ArenaCellSet::Empty;
@@ -2805,6 +2819,7 @@ js::gc::StoreBuffer::CellPtrEdge::trace(TenuringTracer& mover) const
     if (!*edge)
         return;
 
+    MOZ_ASSERT(IsCellPointerValid(*edge));
     MOZ_ASSERT((*edge)->getTraceKind() == JS::TraceKind::Object);
     mover.traverse(reinterpret_cast<JSObject**>(edge));
 }

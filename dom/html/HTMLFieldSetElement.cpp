@@ -68,9 +68,11 @@ HTMLFieldSetElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 }
 
 nsresult
-HTMLFieldSetElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLFieldSetElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                   const nsAttrValue* aValue,
-                                  const nsAttrValue* aOldValue, bool aNotify)
+                                  const nsAttrValue* aOldValue,
+                                  nsIPrincipal* aSubjectPrincipal,
+                                  bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::disabled) {
     // This *has* to be called *before* calling FieldSetDisabledChanged on our
@@ -92,7 +94,8 @@ HTMLFieldSetElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLFormElement::AfterSetAttr(aNameSpaceID, aName,
-                                                aValue, aOldValue, aNotify);
+                                                aValue, aOldValue,
+                                                aSubjectPrincipal, aNotify);
 }
 
 NS_IMETHODIMP
@@ -105,7 +108,7 @@ HTMLFieldSetElement::GetType(nsAString& aType)
 /* static */
 bool
 HTMLFieldSetElement::MatchListedElements(Element* aElement, int32_t aNamespaceID,
-                                         nsIAtom* aAtom, void* aData)
+                                         nsAtom* aAtom, void* aData)
 {
   nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aElement);
   return formControl;

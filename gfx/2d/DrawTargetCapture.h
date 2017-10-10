@@ -103,6 +103,8 @@ public:
 
   virtual void SetTransform(const Matrix &aTransform) override;
 
+  virtual bool SupportsRegionClipping() const override { return mRefDT->SupportsRegionClipping(); }
+
   virtual already_AddRefed<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                                   const IntSize &aSize,
                                                                   int32_t aStride,
@@ -168,6 +170,14 @@ private:
   RefPtr<DrawTarget> mRefDT;
   IntSize mSize;
 
+  struct PushedLayer
+  {
+    explicit PushedLayer(bool aOldPermitSubpixelAA)
+      : mOldPermitSubpixelAA(aOldPermitSubpixelAA)
+    {}
+    bool mOldPermitSubpixelAA;
+  };
+  std::vector<PushedLayer> mPushedLayers;
   std::vector<uint8_t> mDrawCommandStorage;
 };
 

@@ -6,8 +6,8 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::eventtarget::EventTarget;
@@ -39,7 +39,7 @@ impl HTMLDetailsElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLDetailsElement> {
+               document: &Document) -> DomRoot<HTMLDetailsElement> {
         Node::reflect_node(box HTMLDetailsElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDetailsElementBinding::Wrap)
@@ -70,7 +70,7 @@ impl VirtualMethods for HTMLDetailsElement {
             let this = Trusted::new(self);
             // FIXME(nox): Why are errors silenced here?
             let _ = window.dom_manipulation_task_source().queue(
-                box task!(details_notification_task_steps: move || {
+                task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
                         this.upcast::<EventTarget>().fire_event(atom!("toggle"));

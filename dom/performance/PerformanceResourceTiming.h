@@ -18,7 +18,7 @@ namespace mozilla {
 namespace dom {
 
 // http://www.w3.org/TR/resource-timing/#performanceresourcetiming
-class PerformanceResourceTiming final : public PerformanceEntry
+class PerformanceResourceTiming : public PerformanceEntry
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -30,7 +30,8 @@ public:
 
   PerformanceResourceTiming(PerformanceTiming* aPerformanceTiming,
                             Performance* aPerformance,
-                            const nsAString& aName);
+                            const nsAString& aName,
+                            nsIHttpChannel* aChannel = nullptr);
 
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
@@ -60,6 +61,12 @@ public:
   void SetNextHopProtocol(const nsAString& aNextHopProtocol)
   {
     mNextHopProtocol = aNextHopProtocol;
+  }
+
+  DOMHighResTimeStamp WorkerStart() const {
+    return mTiming && mTiming->TimingAllowed()
+        ? mTiming->WorkerStartHighRes()
+        : 0;
   }
 
   DOMHighResTimeStamp FetchStart() const {
@@ -173,6 +180,7 @@ public:
 
 protected:
   virtual ~PerformanceResourceTiming();
+  void SetPropertiesFromChannel(nsIHttpChannel* aChannel);
 
   size_t
   SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;

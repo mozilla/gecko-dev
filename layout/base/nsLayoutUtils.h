@@ -39,7 +39,7 @@
 class gfxContext;
 class nsPresContext;
 class nsIContent;
-class nsIAtom;
+class nsAtom;
 class nsIScrollableFrame;
 class nsIDOMEvent;
 class nsRegion;
@@ -211,6 +211,14 @@ public:
    * Check whether the given element has a displayport.
    */
   static bool HasDisplayPort(nsIContent* aContent);
+
+  /**
+   * Check whether the given frame has a displayport. It returns false
+   * for scrolled frames and true for the corresponding scroll frame.
+   * Optionally pass the child, and it only returns true if the child is the
+   * scrolled frame for the displayport.
+   */
+  static bool FrameHasDisplayPort(nsIFrame* aFrame, nsIFrame* aScrolledFrame = nullptr);
 
   /**
    * Check if the given element has a margins based displayport but is missing a
@@ -391,7 +399,7 @@ public:
    * @return whether aFrame is the generated aPseudoElement frame for aContent
    */
   static bool IsGeneratedContentFor(nsIContent* aContent, nsIFrame* aFrame,
-                                      nsIAtom* aPseudoElement);
+                                      nsAtom* aPseudoElement);
 
 #ifdef DEBUG
   // TODO: remove, see bug 598468.
@@ -865,7 +873,9 @@ public:
                                              const nsRect& aRect,
                                              const nsIFrame* aAncestor,
                                              bool* aPreservesAxisAlignedRectangles = nullptr,
-                                             mozilla::Maybe<Matrix4x4>* aMatrixCache = nullptr);
+                                             mozilla::Maybe<Matrix4x4>* aMatrixCache = nullptr,
+                                             bool aStopAtStackingContextAndDisplayPort = false,
+                                             nsIFrame** aOutAncestor = nullptr);
 
 
   /**
@@ -875,7 +885,8 @@ public:
    */
   static Matrix4x4 GetTransformToAncestor(nsIFrame *aFrame,
                                           const nsIFrame *aAncestor,
-                                          bool aInCSSUnits = false);
+                                          uint32_t aFlags = 0,
+                                          nsIFrame** aOutAncestor = nullptr);
 
   /**
    * Gets the scale factors of the transform for aFrame relative to the root
@@ -1054,6 +1065,10 @@ public:
   static bool RoundedRectIntersectsRect(const nsRect& aRoundedRect,
                                         const nscoord aRadii[8],
                                         const nsRect& aTestRect);
+
+  static bool MaybeCreateDisplayPortInFirstScrollFrameEncountered(
+    nsIFrame* aFrame, nsDisplayListBuilder& aBuilder);
+
 
   enum class PaintFrameFlags : uint32_t {
     PAINT_IN_TRANSFORM = 0x01,
@@ -2072,12 +2087,23 @@ public:
   GetDeviceContextForScreenInfo(nsPIDOMWindowOuter* aWindow);
 
   /**
-   * Some frames with 'position: fixed' (nsStylePosition::mDisplay ==
+   * Some frames with 'position: fixed' (nsStyleDisplay::mPosition ==
    * NS_STYLE_POSITION_FIXED) are not really fixed positioned, since
    * they're inside an element with -moz-transform.  This function says
    * whether such an element is a real fixed-pos element.
    */
-  static bool IsReallyFixedPos(nsIFrame* aFrame);
+  static bool IsReallyFixedPos(const nsIFrame* aFrame);
+
+  /**
+   * This function says whether `aFrame` would really be a fixed positioned
+   * frame if the frame was created with NS_STYLE_POSITION_FIXED.
+   *
+   * It is effectively the same as IsReallyFixedPos, but without asserting the
+   * position value. Use it only when you know what you're doing, like when
+   * tearing down the frame tree (where styles may have changed due to
+   * ::first-line reparenting and rule changes at the same time).
+   */
+  static bool MayBeReallyFixedPos(const nsIFrame* aFrame);
 
   /**
    * Obtain a SourceSurface from the given DOM element, if possible.
@@ -2234,6 +2260,13 @@ public:
    */
   static nsIContent*
     GetEditableRootContentByContentEditable(nsIDocument* aDocument);
+
+  static void AddExtraBackgroundItems(nsDisplayListBuilder& aBuilder,
+                                      nsDisplayList& aList,
+                                      nsIFrame* aFrame,
+                                      const nsRect& aCanvasArea,
+                                      const nsRegion& aVisibleRegion,
+                                      nscolor aBackstop);
 
   /**
    * Returns true if the passed in prescontext needs the dark grey background
@@ -2497,10 +2530,6 @@ public:
             (XRE_IsParentProcess() && !XRE_IsE10sParentProcess());
   }
 
-  static bool StyleAttrWithXMLBaseDisabled() {
-    return sStyleAttrWithXMLBaseDisabled;
-  }
-
   static uint32_t IdlePeriodDeadlineLimit() {
     return sIdlePeriodDeadlineLimit;
   }
@@ -2528,6 +2557,31 @@ public:
 
   static void Initialize();
   static void Shutdown();
+
+#ifdef MOZ_STYLO
+  /**
+   * Principal-based blocklist for stylo.
+   * Check if aPrincipal is blocked by stylo's blocklist and should fallback to
+   * use Gecko's style backend. Note that using a document's principal rather
+   * than the document URI will let us piggy-back off the existing principal
+   * relationships and symmetries.
+   */
+  static bool IsInStyloBlocklist(nsIPrincipal* aPrincipal);
+
+  /**
+   * Add aBlockedDomain to the existing stylo blocklist, i.e., sStyloBlocklist.
+   * This function is exposed to nsDOMWindowUtils and only for testing purpose.
+   * So, NEVER use this in any other cases.
+   */
+  static void AddToStyloBlocklist(const nsACString& aBlockedDomain);
+
+  /**
+   * Remove aBlockedDomain from the existing stylo blocklist, i.e., sStyloBlocklist.
+   * This function is exposed to nsDOMWindowUtils and only for testing purpose.
+   * So, NEVER use this in any other cases.
+   */
+  static void RemoveFromStyloBlocklist(const nsACString& aBlockedDomain);
+#endif
 
   /**
    * Register an imgIRequest object with a refresh driver.
@@ -2796,10 +2850,15 @@ public:
    * displayport yet (as tracked by |aBuilder|), calculate and set a
    * displayport.
    *
-   * This is intended to be called during display list building.
+   * If this is called during display list building pass DoNotRepaint in
+   * aRepaintMode.
+   *
+   * Returns true if there is a displayport on an async scrollable scrollframe
+   * after this call, either because one was just added or it already existed.
    */
-  static void MaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
-                                     nsIFrame* aScrollFrame);
+  static bool MaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
+                                     nsIFrame* aScrollFrame,
+                                     RepaintMode aRepaintMode);
 
   static nsIScrollableFrame* GetAsyncScrollableAncestorFrame(nsIFrame* aTarget);
 
@@ -2841,7 +2900,7 @@ public:
    * returns true for those, and returns false for other origins like APZ
    * itself, or scroll position updates from the history restore code.
    */
-  static bool CanScrollOriginClobberApz(nsIAtom* aScrollOrigin);
+  static bool CanScrollOriginClobberApz(nsAtom* aScrollOrigin);
 
   static ScrollMetadata ComputeScrollMetadata(nsIFrame* aForFrame,
                                               nsIFrame* aScrollFrame,
@@ -2991,8 +3050,9 @@ private:
   static bool sTextCombineUprightDigitsEnabled;
 #ifdef MOZ_STYLO
   static bool sStyloEnabled;
+  static bool sStyloBlocklistEnabled;
+  static nsTArray<nsCString>* sStyloBlocklist;
 #endif
-  static bool sStyleAttrWithXMLBaseDisabled;
   static uint32_t sIdlePeriodDeadlineLimit;
   static uint32_t sQuiescentFramesBeforeIdlePeriod;
 
@@ -3128,27 +3188,27 @@ void StrokeLineWithSnapping(const nsPoint& aP1, const nsPoint& aP2,
 class nsSetAttrRunnable : public mozilla::Runnable
 {
 public:
-  nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
+  nsSetAttrRunnable(nsIContent* aContent, nsAtom* aAttrName,
                     const nsAString& aValue);
-  nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
+  nsSetAttrRunnable(nsIContent* aContent, nsAtom* aAttrName,
                     int32_t aValue);
 
   NS_DECL_NSIRUNNABLE
 
   nsCOMPtr<nsIContent> mContent;
-  nsCOMPtr<nsIAtom> mAttrName;
+  RefPtr<nsAtom> mAttrName;
   nsAutoString mValue;
 };
 
 class nsUnsetAttrRunnable : public mozilla::Runnable
 {
 public:
-  nsUnsetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName);
+  nsUnsetAttrRunnable(nsIContent* aContent, nsAtom* aAttrName);
 
   NS_DECL_NSIRUNNABLE
 
   nsCOMPtr<nsIContent> mContent;
-  nsCOMPtr<nsIAtom> mAttrName;
+  RefPtr<nsAtom> mAttrName;
 };
 
 // This class allows you to easily set any pointer variable and ensure it's

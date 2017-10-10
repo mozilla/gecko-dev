@@ -27,7 +27,7 @@
 #include "nsLayoutUtils.h"
 #include "mozilla/EnumeratedArray.h"
 #include "FilterSupport.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "Layers.h"
 #include "nsBidi.h"
 
@@ -466,11 +466,9 @@ public:
   NS_IMETHOD Reset() override;
   already_AddRefed<Layer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                          Layer* aOldLayer,
-                                         LayerManager* aManager,
-                                         bool aMirror = false) override;
+                                         LayerManager* aManager) override;
   bool InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
-                                CanvasRenderer* aRenderer,
-                                bool aMirror = false) override;
+                                CanvasRenderer* aRenderer) override;
   virtual bool ShouldForceInactiveLayer(LayerManager* aManager) override;
   void MarkContextClean() override;
   void MarkContextCleanForFrameCapture() override;
@@ -1076,7 +1074,7 @@ protected:
     nsTArray<ClipState> clipsAndTransforms;
 
     RefPtr<gfxFontGroup> fontGroup;
-    nsCOMPtr<nsIAtom> fontLanguage;
+    RefPtr<nsAtom> fontLanguage;
     nsFont fontFont;
 
     EnumeratedArray<Style, Style::MAX, RefPtr<CanvasGradient>> gradientStyles;

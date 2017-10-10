@@ -111,11 +111,6 @@ nsDOMDataChannel::Init(nsPIDOMWindowInner* aDOMWindow)
   return rv;
 }
 
-NS_IMPL_EVENT_HANDLER(nsDOMDataChannel, open)
-NS_IMPL_EVENT_HANDLER(nsDOMDataChannel, error)
-NS_IMPL_EVENT_HANDLER(nsDOMDataChannel, close)
-NS_IMPL_EVENT_HANDLER(nsDOMDataChannel, message)
-
 // Most of the GetFoo()/SetFoo()s don't need to touch shared resources and
 // are safe after Close()
 NS_IMETHODIMP
@@ -279,7 +274,7 @@ nsDOMDataChannel::Send(Blob& aData, ErrorResult& aRv)
   MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
 
   nsCOMPtr<nsIInputStream> msgStream;
-  aData.GetInternalStream(getter_AddRefs(msgStream), aRv);
+  aData.CreateInputStream(getter_AddRefs(msgStream), aRv);
   if (NS_WARN_IF(aRv.Failed())){
     return;
   }
@@ -603,14 +598,14 @@ nsDOMDataChannel::ReleaseSelf()
 }
 
 void
-nsDOMDataChannel::EventListenerAdded(nsIAtom* aType)
+nsDOMDataChannel::EventListenerAdded(nsAtom* aType)
 {
   MOZ_ASSERT(NS_IsMainThread());
   UpdateMustKeepAlive();
 }
 
 void
-nsDOMDataChannel::EventListenerRemoved(nsIAtom* aType)
+nsDOMDataChannel::EventListenerRemoved(nsAtom* aType)
 {
   MOZ_ASSERT(NS_IsMainThread());
   UpdateMustKeepAlive();

@@ -32,8 +32,10 @@ import org.mozilla.gecko.ActivityHandlerHelper;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.DoorHangerPopup;
 import org.mozilla.gecko.GeckoScreenOrientation;
+import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.GeckoView;
 import org.mozilla.gecko.GeckoViewSettings;
+import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.customtabs.CustomTabsActivity;
 import org.mozilla.gecko.permissions.Permissions;
@@ -105,6 +107,10 @@ public class WebAppActivity extends AppCompatActivity
 
         final GeckoViewSettings settings = mGeckoView.getSettings();
         settings.setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
+        settings.setBoolean(
+            GeckoViewSettings.USE_REMOTE_DEBUGGER,
+            GeckoSharedPrefs.forApp(this).getBoolean(
+                GeckoPreferences.PREFS_DEVTOOLS_REMOTE_USB_ENABLED, false));
 
         mManifest = WebAppManifest.fromFile(getIntent().getStringExtra(MANIFEST_URL),
                                             getIntent().getStringExtra(MANIFEST_PATH));
@@ -114,6 +120,18 @@ public class WebAppActivity extends AppCompatActivity
         mGeckoView.loadUri(mManifest.getStartUri().toString());
 
         setContentView(mGeckoView);
+    }
+
+    @Override
+    public void onResume() {
+        mGeckoView.setActive(true);
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        mGeckoView.setActive(false);
+        super.onPause();
     }
 
     @Override
@@ -265,13 +283,17 @@ public class WebAppActivity extends AppCompatActivity
             return false;
         }
 
-        CustomTabsIntent tab = new CustomTabsIntent.Builder()
+        final CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder()
             .addDefaultShareMenuItem()
-            .setToolbarColor(mManifest.getThemeColor())
             .setStartAnimations(this, R.anim.slide_in_right, R.anim.slide_out_left)
-            .setExitAnimations(this, R.anim.slide_in_left, R.anim.slide_out_right)
-            .build();
+            .setExitAnimations(this, R.anim.slide_in_left, R.anim.slide_out_right);
 
+        final Integer themeColor = mManifest.getThemeColor();
+        if (themeColor != null) {
+            builder.setToolbarColor(themeColor);
+        }
+
+        final CustomTabsIntent tab = builder.build();
         tab.intent.setClass(this, CustomTabsActivity.class);
         tab.launchUrl(this, url);
         return true;

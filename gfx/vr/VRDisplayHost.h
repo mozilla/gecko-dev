@@ -17,17 +17,14 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/dom/GamepadPoseState.h"
+#include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 
-#if defined(XP_MACOSX)
+#if defined(XP_WIN)
+#include <d3d11_1.h>
+#elif defined(XP_MACOSX)
 class MacIOSurface;
 #endif
 namespace mozilla {
-namespace layers {
-class PTextureParent;
-#if defined(XP_WIN)
-class TextureSourceD3D11;
-#endif
-} // namespace layers
 namespace gfx {
 class VRLayerParent;
 
@@ -47,7 +44,7 @@ public:
 
   void StartFrame();
   void SubmitFrame(VRLayerParent* aLayer,
-                   mozilla::layers::PTextureParent* aTexture,
+                   const layers::SurfaceDescriptor& aTexture,
                    uint64_t aFrameId,
                    const gfx::Rect& aLeftEyeRect,
                    const gfx::Rect& aRightEyeRect);
@@ -55,6 +52,19 @@ public:
   bool CheckClearDisplayInfoDirty();
   void SetGroupMask(uint32_t aGroupMask);
   bool GetIsConnected();
+
+  class AutoRestoreRenderState {
+  public:
+    explicit AutoRestoreRenderState(VRDisplayHost* aDisplay);
+    ~AutoRestoreRenderState();
+    bool IsSuccess();
+  private:
+    RefPtr<VRDisplayHost> mDisplay;
+#if defined(XP_WIN)
+    RefPtr<ID3DDeviceContextState> mPrevDeviceContextState;
+#endif
+    bool mSuccess;
+  };
 
 protected:
   explicit VRDisplayHost(VRDeviceType aType);
@@ -65,7 +75,7 @@ protected:
   // Returns true if the SubmitFrame call will block as necessary
   // to control timing of the next frame and throttle the render loop
   // for the needed framerate.
-  virtual bool SubmitFrame(mozilla::layers::TextureSourceD3D11* aSource,
+  virtual bool SubmitFrame(ID3D11Texture2D* aSource,
                            const IntSize& aSize,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) = 0;
@@ -89,6 +99,19 @@ private:
   VRDisplayInfo mLastUpdateDisplayInfo;
   TimeStamp mLastFrameStart;
   bool mFrameStarted;
+
+#if defined(XP_WIN)
+protected:
+  bool CreateD3DObjects();
+  RefPtr<ID3D11Device1> mDevice;
+  RefPtr<ID3D11DeviceContext1> mContext;
+  ID3D11Device1* GetD3DDevice();
+  ID3D11DeviceContext1* GetD3DDeviceContext();
+  ID3DDeviceContextState* GetD3DDeviceContextState();
+
+private:
+  RefPtr<ID3DDeviceContextState> mDeviceContextState;
+#endif
 };
 
 class VRControllerHost {

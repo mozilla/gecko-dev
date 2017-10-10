@@ -6,15 +6,14 @@
 
 #include "VRLayerParent.h"
 #include "mozilla/Unused.h"
+#include "VRDisplayHost.h"
 
 namespace mozilla {
 namespace gfx {
 
-VRLayerParent::VRLayerParent(uint32_t aVRDisplayID, const Rect& aLeftEyeRect, const Rect& aRightEyeRect, const uint32_t aGroup)
+VRLayerParent::VRLayerParent(uint32_t aVRDisplayID, const uint32_t aGroup)
   : mIPCOpen(true)
   , mVRDisplayID(aVRDisplayID)
-  , mLeftEyeRect(aLeftEyeRect)
-  , mRightEyeRect(aRightEyeRect)
   , mGroup(aGroup)
 {
 }
@@ -57,12 +56,18 @@ VRLayerParent::Destroy()
 }
 
 mozilla::ipc::IPCResult
-VRLayerParent::RecvSubmitFrame(PTextureParent* texture,
-                               const uint64_t& aFrameId)
+VRLayerParent::RecvSubmitFrame(const layers::SurfaceDescriptor &aTexture,
+                               const uint64_t& aFrameId,
+                               const gfx::Rect& aLeftEyeRect,
+                               const gfx::Rect& aRightEyeRect)
 {
   if (mVRDisplayID) {
     VRManager* vm = VRManager::Get();
-    vm->SubmitFrame(this, texture, aFrameId, mLeftEyeRect, mRightEyeRect);
+    RefPtr<VRDisplayHost> display = vm->GetDisplay(mVRDisplayID);
+    if (display) {
+      display->SubmitFrame(this, aTexture, aFrameId,
+                           aLeftEyeRect, aRightEyeRect);
+    }
   }
 
   return IPC_OK();

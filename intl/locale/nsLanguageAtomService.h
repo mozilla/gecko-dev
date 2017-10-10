@@ -13,8 +13,8 @@
 
 #include "mozilla/NotNull.h"
 #include "nsCOMPtr.h"
-#include "nsIAtom.h"
-#include "nsInterfaceHashtable.h"
+#include "nsAtom.h"
+#include "nsRefPtrHashtable.h"
 
 namespace mozilla {
 class Encoding;
@@ -27,9 +27,9 @@ class nsLanguageAtomService final
 public:
   static nsLanguageAtomService* GetService();
 
-  nsIAtom* LookupLanguage(const nsACString &aLanguage);
-  already_AddRefed<nsIAtom> LookupCharSet(NotNull<const Encoding*> aCharSet);
-  nsIAtom* GetLocaleLanguage();
+  nsAtom* LookupLanguage(const nsACString &aLanguage);
+  already_AddRefed<nsAtom> LookupCharSet(NotNull<const Encoding*> aCharSet);
+  nsAtom* GetLocaleLanguage();
 
   // Returns the language group that the specified language is a part of.
   //
@@ -46,12 +46,12 @@ public:
   // get a true *aNeedsToCache outparam value should make an effort
   // to re-call GetLanguageGroup when it is safe to cache, to avoid
   // recomputing the language group again later.
-  nsIAtom* GetLanguageGroup(nsIAtom* aLanguage, bool* aNeedsToCache = nullptr);
-  already_AddRefed<nsIAtom> GetUncachedLanguageGroup(nsIAtom* aLanguage) const;
+  nsAtom* GetLanguageGroup(nsAtom* aLanguage, bool* aNeedsToCache = nullptr);
+  already_AddRefed<nsAtom> GetUncachedLanguageGroup(nsAtom* aLanguage) const;
 
 private:
-  nsInterfaceHashtable<nsISupportsHashKey, nsIAtom> mLangToGroup;
-  nsCOMPtr<nsIAtom> mLocaleLanguage;
+  nsRefPtrHashtable<nsRefPtrHashKey<nsAtom>, nsAtom> mLangToGroup;
+  RefPtr<nsAtom> mLocaleLanguage;
 };
 
 #endif

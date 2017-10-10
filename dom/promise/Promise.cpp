@@ -14,7 +14,6 @@
 #include "mozilla/Preferences.h"
 
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/MediaStreamError.h"
@@ -540,6 +539,22 @@ Promise::PerformMicroTaskCheckpoint()
   return true;
 }
 
+bool
+Promise::IsWorkerDebuggerMicroTaskEmpty()
+{
+  MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
+
+  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
+  if (!context) {
+    return true;
+  }
+
+  std::queue<nsCOMPtr<nsIRunnable>>* microtaskQueue =
+    &context->GetDebuggerPromiseMicroTaskQueue();
+
+  return microtaskQueue->empty();
+}
+
 void
 Promise::PerformWorkerMicroTaskCheckpoint()
 {
@@ -901,7 +916,7 @@ PromiseWorkerProxy::CustomWriteHandler(JSContext* aCx,
 
 // Specializations of MaybeRejectBrokenly we actually support.
 template<>
-void Promise::MaybeRejectBrokenly(const RefPtr<DOMError>& aArg) {
+void Promise::MaybeRejectBrokenly(const RefPtr<DOMException>& aArg) {
   MaybeSomething(aArg, &Promise::MaybeReject);
 }
 template<>

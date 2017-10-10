@@ -327,6 +327,10 @@ user_pref("browser.search.geoSpecificDefaults", false);
 // Make sure Shield doesn't hit the network.
 user_pref("extensions.shield-recipe-client.api_url", "");
 
+// Make sure PingCentre doesn't hit the network.
+user_pref("browser.ping-centre.staging.endpoint", "");
+user_pref("browser.ping-centre.production.endpoint", "");
+
 user_pref("media.eme.enabled", true);
 
 // Set the number of shmems the PChromiumCDM protocol pre-allocates to 0,
@@ -391,7 +395,7 @@ user_pref("extensions.formautofill.available", "on");
 user_pref("marionette.prefs.recommended", false);
 
 // Disable Screenshots by default for now
-user_pref("extensions.screenshots.system-disabled", true);
+user_pref("extensions.screenshots.disabled", true);
 
 // Set places maintenance far in the future to avoid it kicking in during tests.
 // The maintenance can take a relatively long time which may cause unnecessary

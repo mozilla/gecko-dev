@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -56,8 +56,8 @@ enum ReadyState {
 pub struct EventSource {
     eventtarget: EventTarget,
     url: ServoUrl,
-    request: DOMRefCell<Option<RequestInit>>,
-    last_event_id: DOMRefCell<DOMString>,
+    request: DomRefCell<Option<RequestInit>>,
+    last_event_id: DomRefCell<DOMString>,
     reconnection_time: Cell<u64>,
     generation_id: Cell<GenerationId>,
 
@@ -100,7 +100,7 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(announce_the_event_source_connection: move || {
+            task!(announce_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
@@ -121,7 +121,7 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(fail_the_event_source_connection: move || {
+            task!(fail_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
@@ -145,7 +145,7 @@ impl EventSourceContext {
         let global = event_source.global();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(reestablish_the_event_source_onnection: move || {
+            task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
 
                 // Step 1.1.
@@ -242,7 +242,7 @@ impl EventSourceContext {
         let event = Trusted::new(&*event);
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(dispatch_the_event_source_event: move || {
+            task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event.root().upcast::<Event>().fire(&event_source.upcast());
@@ -402,8 +402,8 @@ impl EventSource {
         EventSource {
             eventtarget: EventTarget::new_inherited(),
             url: url,
-            request: DOMRefCell::new(None),
-            last_event_id: DOMRefCell::new(DOMString::from("")),
+            request: DomRefCell::new(None),
+            last_event_id: DomRefCell::new(DOMString::from("")),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 
@@ -412,7 +412,7 @@ impl EventSource {
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> Root<EventSource> {
+    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
         reflect_dom_object(box EventSource::new_inherited(url, with_credentials),
                            global,
                            Wrap)
@@ -424,7 +424,7 @@ impl EventSource {
 
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
-                       event_source_init: &EventSourceInit) -> Fallible<Root<EventSource>> {
+                       event_source_init: &EventSourceInit) -> Fallible<DomRoot<EventSource>> {
         // TODO: Step 2 relevant settings object
         // Step 3
         let base_url = global.api_base_url();

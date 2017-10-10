@@ -93,6 +93,48 @@ def macos_target(value, target):
 set_config('MACOSX_DEPLOYMENT_TARGET', macos_target)
 add_old_configure_assignment('MACOSX_DEPLOYMENT_TARGET', macos_target)
 
+# Xcode state
+# ===========
+
+js_option('--disable-xcode-checks',
+       help='Do not check that Xcode is installed and properly configured')
+
+@depends(host, '--disable-xcode-checks')
+def xcode_path(host, xcode_checks):
+    if host.kernel != 'Darwin' or not xcode_checks:
+        return
+
+    # xcode-select -p prints the path to the installed Xcode. It
+    # should exit 0 and return non-empty result if Xcode is installed.
+
+    def bad_xcode_select():
+        die('Could not find installed Xcode; install Xcode from the App '
+            'Store, run it once to perform initial configuration, and then '
+            'try again; in the rare case you wish to build without Xcode '
+            'installed, add the --disable-xcode-checks configure flag')
+
+    xcode_path = check_cmd_output('xcode-select', '--print-path',
+                                  onerror=bad_xcode_select).strip()
+
+    if not xcode_path:
+        bad_xcode_select()
+
+    # Now look for the Command Line Tools.
+    def no_cltools():
+        die('Could not find installed Xcode Command Line Tools; '
+            'run `xcode-select --install` and follow the instructions '
+            'to install them then try again; if you wish to build without '
+            'Xcode Command Line Tools installed, '
+            'add the --disable-xcode-checks configure flag')
+
+    res = check_cmd_output('pkgutil', '--pkg-info',
+                           'com.apple.pkg.CLTools_Executables',
+                            onerror=no_cltools)
+
+    return xcode_path
+
+set_config('XCODE_PATH', xcode_path)
+
 
 # Compiler wrappers
 # ==============================================================
@@ -374,13 +416,24 @@ def check_compiler(compiler, language, target):
     # Note: MSVC, while supporting C++11, still reports 199711L for __cplusplus.
     # Note: this is a strict version check because we used to always add
     # -std=gnu++11.
+    draft_cxx14_version = 201300
+    cxx14_version = 201402
     if info.language == 'C++':
-        if info.type in ('clang', 'gcc') and info.language_version != 201103:
-            append_flag('-std=gnu++11')
-        # MSVC 2015 headers include C++14 features, but don't guard them
-        # with appropriate checks.
-        if info.type == 'clang-cl' and info.language_version != 201402:
-            append_flag('-std=c++14')
+        if target.kernel != 'WINNT':
+            if info.type in ('clang', 'gcc') and info.language_version != 201103:
+                append_flag('-std=gnu++11')
+        else:
+            if info.type == 'clang' and info.language_version != 201103:
+                append_flag('-std=gnu++11')
+            # MSVC 2015 headers include C++14 features, but don't guard them
+            # with appropriate checks.
+            if info.type == 'clang-cl' and info.language_version != cxx14_version:
+                append_flag('-std=c++14')
+            # GCC 4.9 indicates that it implements draft C++14 features
+            # instead of the full language.
+            elif info.type == 'gcc' and not \
+                (info.language_version == draft_cxx14_version or info.language_version == cxx14_version):
+                append_flag('-std=gnu++14')
 
     # We force clang-cl to emulate Visual C++ 2015 Update 3.
     if info.type == 'clang-cl' and info.version != '19.00.24213':
@@ -456,9 +509,9 @@ def get_vc_paths(topsrcdir):
             'x86': [os.path.join(tools_path, 'x86'), os.path.join(tools_path, 'x64')],
         })
 
-option('--with-visual-studio-version', nargs=1,
-       choices=('2015', '2017'),
-       help='Select a specific Visual Studio version to use')
+js_option('--with-visual-studio-version', nargs=1,
+          choices=('2015', '2017'),
+          help='Select a specific Visual Studio version to use')
 
 @depends('--with-visual-studio-version')
 def vs_major_version(value):
@@ -702,11 +755,17 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
                               host_or_target)
 
         # Check that the additional flags we got are enough to not require any
-        # more flags.
-        if info.flags:
-            flags += info.flags
-            info = check_compiler(wrapper + [compiler] + flags, language,
-                                  host_or_target)
+        # more flags. If we get an exception, just ignore it; it's liable to be
+        # invalid command-line flags, which means the compiler we're checking
+        # doesn't support those command-line flags and will fail one or more of
+        # the checks below.
+        try:
+            if info.flags:
+                flags += info.flags
+                info = check_compiler(wrapper + [compiler] + flags, language,
+                                      host_or_target)
+        except FatalCheckError:
+            pass
 
         if not info.target_cpu or info.target_cpu != host_or_target.cpu:
             raise FatalCheckError(
@@ -732,10 +791,6 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
                    info.target_endianness or 'unknown', host_or_target_str,
                    host_or_target.endianness))
 
-        if info.flags:
-            raise FatalCheckError(
-                'Unknown compiler or compiler not supported.')
-
         # Compiler version checks
         # ===================================================
         # Check the compiler version here instead of in `compiler_version` so
@@ -747,12 +802,14 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
                 % info.version)
 
         # If you want to bump the version check here search for
-        # __cpp_static_assert above, and see the associated comment.
+        # cxx_alignof above, and see the associated comment.
         if info.type == 'clang' and not info.version:
             raise FatalCheckError(
                 'Only clang/llvm 3.6 or newer is supported.')
 
         if info.type == 'msvc':
+            # 19.00 is VS2015.
+            # 19.10+ is VS2017+.
             if info.version < '19.00.24213':
                 raise FatalCheckError(
                     'This version (%s) of the MSVC compiler is not '
@@ -761,6 +818,18 @@ def compiler(language, host_or_target, c_compiler=None, other_compiler=None,
                     'order to build.\n'
                     'See https://developer.mozilla.org/en/'
                     'Windows_Build_Prerequisites' % info.version)
+
+            if info.version >= '19.10' and info.version < '19.11.25506':
+                raise FatalCheckError(
+                    'This version (%s) of the MSVC compiler is not supported.\n'
+                    'You must install Visual C++ 2017 15.3 or newer in order '
+                    'to build.\n'
+                    'See https://developer.mozilla.org/en/'
+                    'Windows_Build_Prerequisites' % info.version)
+
+        if info.flags:
+            raise FatalCheckError(
+                'Unknown compiler or compiler not supported.')
 
         return namespace(
             wrapper=wrapper,
@@ -899,6 +968,7 @@ def check_have_64_bit(have_64_bit, compiler_have_64_bit):
 
 option(env='BINDGEN_CFLAGS',
        nargs=1,
+       default=bindgen_cflags_defaults,
        help='Options bindgen should pass to the C/C++ parser')
 
 @depends('BINDGEN_CFLAGS')
@@ -1246,3 +1316,17 @@ def select_linker(linker, c_compiler, developer_options, build_env, toolchain_fl
 
 set_config('LD_IS_BFD', depends(select_linker.KIND)(lambda x: x == 'bfd' or None))
 set_config('LINKER_LDFLAGS', select_linker.LINKER_FLAG)
+
+# Code Coverage
+# ==============================================================
+
+js_option('--enable-coverage', env='MOZ_CODE_COVERAGE',
+       help='Enable code coverage')
+
+@depends('--enable-coverage')
+def code_coverage(value):
+    if value:
+        return True
+
+set_config('MOZ_CODE_COVERAGE', code_coverage)
+set_define('MOZ_CODE_COVERAGE', code_coverage)

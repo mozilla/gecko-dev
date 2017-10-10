@@ -293,13 +293,6 @@ HTMLTextAreaElement::GetRootEditorNode()
 }
 
 NS_IMETHODIMP_(Element*)
-HTMLTextAreaElement::CreatePlaceholderNode()
-{
-  NS_ENSURE_SUCCESS(mState.CreatePlaceholderNode(), nullptr);
-  return mState.GetPlaceholderNode();
-}
-
-NS_IMETHODIMP_(Element*)
 HTMLTextAreaElement::GetPlaceholderNode()
 {
   return mState.GetPlaceholderNode();
@@ -315,13 +308,6 @@ NS_IMETHODIMP_(bool)
 HTMLTextAreaElement::GetPlaceholderVisibility()
 {
   return mState.GetPlaceholderVisibility();
-}
-
-NS_IMETHODIMP_(Element*)
-HTMLTextAreaElement::CreatePreviewNode()
-{
-  NS_ENSURE_SUCCESS(mState.CreatePreviewNode(), nullptr);
-  return mState.GetPreviewNode();
 }
 
 NS_IMETHODIMP_(Element*)
@@ -469,7 +455,7 @@ HTMLTextAreaElement::SetDefaultValue(const nsAString& aDefaultValue, ErrorResult
 
 bool
 HTMLTextAreaElement::ParseAttribute(int32_t aNamespaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     const nsAString& aValue,
                                     nsAttrValue& aResult)
 {
@@ -509,7 +495,7 @@ HTMLTextAreaElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes
 }
 
 nsChangeHint
-HTMLTextAreaElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
+HTMLTextAreaElement::GetAttributeChangeHint(const nsAtom* aAttribute,
                                             int32_t aModType) const
 {
   nsChangeHint retval =
@@ -526,7 +512,7 @@ HTMLTextAreaElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLTextAreaElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLTextAreaElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry attributes[] = {
     { &nsGkAtoms::wrap },
@@ -1025,7 +1011,7 @@ HTMLTextAreaElement::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 nsresult
-HTMLTextAreaElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLTextAreaElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                    const nsAttrValueOrString* aValue,
                                    bool aNotify)
 {
@@ -1049,8 +1035,7 @@ HTMLTextAreaElement::CharacterDataChanged(nsIDocument* aDocument,
 void
 HTMLTextAreaElement::ContentAppended(nsIDocument* aDocument,
                                      nsIContent* aContainer,
-                                     nsIContent* aFirstNewContent,
-                                     int32_t /* unused */)
+                                     nsIContent* aFirstNewContent)
 {
   ContentChanged(aFirstNewContent);
 }
@@ -1058,8 +1043,7 @@ HTMLTextAreaElement::ContentAppended(nsIDocument* aDocument,
 void
 HTMLTextAreaElement::ContentInserted(nsIDocument* aDocument,
                                      nsIContent* aContainer,
-                                     nsIContent* aChild,
-                                     int32_t /* unused */)
+                                     nsIContent* aChild)
 {
   ContentChanged(aChild);
 }
@@ -1068,7 +1052,6 @@ void
 HTMLTextAreaElement::ContentRemoved(nsIDocument* aDocument,
                                     nsIContent* aContainer,
                                     nsIContent* aChild,
-                                    int32_t aIndexInContainer,
                                     nsIContent* aPreviousSibling)
 {
   ContentChanged(aChild);
@@ -1087,9 +1070,11 @@ HTMLTextAreaElement::ContentChanged(nsIContent* aContent)
 }
 
 nsresult
-HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                   const nsAttrValue* aValue,
-                                  const nsAttrValue* aOldValue, bool aNotify)
+                                  const nsAttrValue* aOldValue,
+                                  nsIPrincipal* aSubjectPrincipal,
+                                  bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::required || aName == nsGkAtoms::disabled ||
@@ -1122,7 +1107,7 @@ HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLFormElementWithState::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                                         aOldValue, aNotify);
+                                                         aOldValue, aSubjectPrincipal, aNotify);
   }
 
 nsresult

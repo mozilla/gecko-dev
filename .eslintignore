@@ -8,7 +8,6 @@ obj*/**
 # If you are enabling a directory, please add directory specific exclusions
 # below.
 chrome/**
-config/**
 docshell/**
 editor/**
 embedding/**
@@ -18,7 +17,6 @@ extensions/universalchardet/**
 gfx/**
 image/**
 intl/**
-ipc/**
 layout/**
 media/**
 memory/**
@@ -37,6 +35,7 @@ xpcom/**
 # We currently have no js files in these directories, so we ignore them by
 # default to aid ESLint's performance.
 build/**
+config/**
 db/**
 gradle/**
 hal/**
@@ -96,7 +95,6 @@ devtools/client/memory/test/chrome/*.html
 devtools/client/performance/components/test/test_jit_optimizations_01.html
 devtools/client/projecteditor/**
 devtools/client/responsive.html/test/browser/touch.html
-devtools/client/responsivedesign/**
 devtools/client/scratchpad/**
 devtools/client/shadereditor/**
 devtools/client/shared/*.jsm
@@ -121,6 +119,7 @@ devtools/client/storage/test/*.html
 !devtools/client/storage/test/storage-unsecured-iframe-usercontextid.html
 devtools/client/webaudioeditor/**
 devtools/client/webconsole/net/**
+devtools/client/webconsole/new-console-output/test/mochitest/**
 devtools/client/webconsole/test/**
 devtools/client/webconsole/hudservice.js
 devtools/client/webconsole/webconsole-connection-proxy.js
@@ -131,7 +130,7 @@ devtools/server/tests/browser/storage-*.html
 !devtools/server/tests/browser/storage-unsecured-iframe.html
 devtools/server/tests/browser/stylesheets-nested-iframes.html
 devtools/server/tests/unit/xpcshell_debugging_script.js
-devtools/shared/platform/content/test/test_clipboard.html
+devtools/client/shared/webpack/shims/test/test_clipboard.html
 devtools/shared/qrcode/tests/mochitest/test_decode.html
 devtools/shared/tests/mochitest/*.html
 devtools/shared/webconsole/test/test_*.html

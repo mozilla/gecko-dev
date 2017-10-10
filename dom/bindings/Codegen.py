@@ -2732,8 +2732,7 @@ class AttrDefiner(PropertyDefiner):
 
         def flags(attr):
             unforgeable = " | JSPROP_PERMANENT" if self.unforgeable else ""
-            enumerable = " | %s" % EnumerabilityFlags(attr)
-            return ("JSPROP_SHARED" + enumerable + unforgeable)
+            return EnumerabilityFlags(attr) + unforgeable
 
         def getter(attr):
             if self.static:
@@ -6912,7 +6911,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         # Callbacks can store null if we nuked the compartments their
         # objects lived in.
         wrapCode = setObjectOrNull(
-            "GetCallbackFromCallbackObject(%(result)s)",
+            "GetCallbackFromCallbackObject(cx, %(result)s)",
             wrapAsType=type)
         if type.nullable():
             wrapCode = (

@@ -616,7 +616,7 @@ WEBIDL_FILES = [
     'HTMLQuoteElement.webidl',
     'HTMLScriptElement.webidl',
     'HTMLSelectElement.webidl',
-    'HTMLShadowElement.webidl',
+    'HTMLSlotElement.webidl',
     'HTMLSourceElement.webidl',
     'HTMLSpanElement.webidl',
     'HTMLStyleElement.webidl',
@@ -656,6 +656,7 @@ WEBIDL_FILES = [
     'InputEvent.webidl',
     'InspectorUtils.webidl',
     'IntersectionObserver.webidl',
+    'IntlUtils.webidl',
     'IterableIterator.webidl',
     'KeyAlgorithm.webidl',
     'KeyboardEvent.webidl',
@@ -739,6 +740,7 @@ WEBIDL_FILES = [
     'PerformanceMark.webidl',
     'PerformanceMeasure.webidl',
     'PerformanceNavigation.webidl',
+    'PerformanceNavigationTiming.webidl',
     'PerformanceObserver.webidl',
     'PerformanceObserverEntryList.webidl',
     'PerformanceResourceTiming.webidl',
@@ -1142,9 +1144,4 @@ if CONFIG['MOZ_BUILD_APP'] in ['browser', 'mobile/android', 'xulrunner']:
 if CONFIG['ACCESSIBILITY']:
     WEBIDL_FILES += [
         'AccessibleNode.webidl',
-    ]
-
-if CONFIG['ENABLE_INTL_API']:
-    WEBIDL_FILES += [
-        'IntlUtils.webidl',
     ]

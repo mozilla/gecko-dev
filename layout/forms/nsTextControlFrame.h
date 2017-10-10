@@ -132,7 +132,7 @@ public:
 
 //==== BEGIN NSIFORMCONTROLFRAME
   virtual void SetFocus(bool aOn , bool aRepaint) override;
-  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) override;
+  virtual nsresult SetFormProperty(nsAtom* aName, const nsAString& aValue) override;
 
 //==== END NSIFORMCONTROLFRAME
 
@@ -165,7 +165,7 @@ public:
 
   /** handler for attribute changes to mContent */
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
-                                    nsIAtom*        aAttribute,
+                                    nsAtom*        aAttribute,
                                     int32_t         aModType) override;
 
   nsresult GetText(nsString& aText);
@@ -187,16 +187,22 @@ protected:
 public: //for methods who access nsTextControlFrame directly
   void SetValueChanged(bool aValueChanged);
 
+  mozilla::dom::Element* GetRootNode() const {
+    return mRootNode;
+  }
+
+  mozilla::dom::Element* GetPlaceholderNode() const {
+    return mPlaceholderDiv;
+  }
+
+  mozilla::dom::Element* GetPreviewNode() const {
+    return mPreviewDiv;
+  }
+
   // called by the focus listener
   nsresult MaybeBeginSecureKeyboardInput();
   void MaybeEndSecureKeyboardInput();
 
-#define DEFINE_TEXTCTRL_FORWARDER(type, name)                                  \
-  type name() {                                                                \
-    nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent()); \
-    NS_ASSERTION(txtCtrl, "Content not a text control element");               \
-    return txtCtrl->name();                                                    \
-  }
 #define DEFINE_TEXTCTRL_CONST_FORWARDER(type, name)                            \
   type name() const {                                                          \
     nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent()); \
@@ -212,7 +218,6 @@ public: //for methods who access nsTextControlFrame directly
   DEFINE_TEXTCTRL_CONST_FORWARDER(int32_t, GetRows)
 
 #undef DEFINE_TEXTCTRL_CONST_FORWARDER
-#undef DEFINE_TEXTCTRL_FORWARDER
 
 protected:
   class EditorInitializer;
@@ -292,7 +297,7 @@ protected:
    * @param aAtt the attribute to determine the existence of
    * @returns false if it does not exist
    */
-  bool AttributeExists(nsIAtom *aAtt) const
+  bool AttributeExists(nsAtom *aAtt) const
   { return mContent && mContent->HasAttr(kNameSpaceID_None, aAtt); }
 
   /**
@@ -333,7 +338,53 @@ private:
     DeleteProperty(TextControlInitializer());
   }
 
+  const nsAString& CachedValue() const
+  {
+    return mCachedValue;
+  }
+
+  void ClearCachedValue()
+  {
+    mCachedValue.SetIsVoid(true);
+  }
+
+  void CacheValue(const nsAString& aValue)
+  {
+    mCachedValue.Assign(aValue);
+  }
+
+  MOZ_MUST_USE bool
+  CacheValue(const nsAString& aValue, const mozilla::fallible_t& aFallible)
+  {
+    if (!mCachedValue.Assign(aValue, aFallible)) {
+      ClearCachedValue();
+      return false;
+    }
+    return true;
+  }
+
 private:
+  class nsAnonDivObserver;
+
+  nsresult CreateRootNode();
+  void CreatePlaceholderIfNeeded();
+  void CreatePreviewIfNeeded();
+  bool ShouldInitializeEagerly() const;
+  void InitializeEagerlyIfNeeded();
+
+  RefPtr<mozilla::dom::Element> mRootNode;
+  RefPtr<mozilla::dom::Element> mPlaceholderDiv;
+  RefPtr<mozilla::dom::Element> mPreviewDiv;
+  RefPtr<nsAnonDivObserver> mMutationObserver;
+  // Cache of the |.value| of <input> or <textarea> element without hard-wrap.
+  // If its IsVoid() returns true, it doesn't cache |.value|.
+  // Otherwise, it's cached when setting specific value or getting value from
+  // TextEditor.  Additionally, when contents in the anonymous <div> element
+  // is modified, this is cleared.
+  //
+  // FIXME(bug 1402545): Consider using an nsAutoString here.
+  nsString mCachedValue;
+
   // Our first baseline, or NS_INTRINSIC_WIDTH_UNKNOWN if we have a pending
   // Reflow.
   nscoord mFirstBaseline;
@@ -341,10 +392,6 @@ private:
   // these packed bools could instead use the high order bits on mState, saving 4 bytes
   bool mEditorHasBeenInitialized;
   bool mIsProcessing;
-  // Keep track if we have asked a placeholder node creation.
-  bool mUsePlaceholder;
-  // Similarly for preview node creation.
-  bool mUsePreview;
 
 #ifdef DEBUG
   bool mInEditorInitialization;

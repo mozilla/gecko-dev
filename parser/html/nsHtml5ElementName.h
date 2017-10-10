@@ -28,7 +28,7 @@
 #ifndef nsHtml5ElementName_h
 #define nsHtml5ElementName_h
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5String.h"
 #include "nsNameSpaceManager.h"
@@ -77,16 +77,16 @@ public:
   static const int32_t OPTIONAL_END_TAG = (1 << 23);
 
 private:
-  nsIAtom* name;
-  nsIAtom* camelCaseName;
+  nsAtom* name;
+  nsAtom* camelCaseName;
   mozilla::dom::HTMLContentCreatorFunction htmlCreator;
   mozilla::dom::SVGContentCreatorFunction svgCreator;
 
 public:
   int32_t flags;
-  inline nsIAtom* getName() { return name; }
+  inline nsAtom* getName() { return name; }
 
-  inline nsIAtom* getCamelCaseName() { return camelCaseName; }
+  inline nsAtom* getCamelCaseName() { return camelCaseName; }
 
   inline mozilla::dom::HTMLContentCreatorFunction getHtmlCreator()
   {
@@ -105,47 +105,47 @@ public:
   inline bool isInterned()
   {
     return !(flags & nsHtml5ElementName::NOT_INTERNED);
-    }
+  }
 
-    inline static int32_t levelOrderBinarySearch(jArray<int32_t, int32_t> data,
-                                                 int32_t key)
-    {
-      int32_t n = data.length;
-      int32_t i = 0;
-      while (i < n) {
-        int32_t val = data[i];
-        if (val < key) {
-          i = 2 * i + 2;
-        } else if (val > key) {
-          i = 2 * i + 1;
-        } else {
-          return i;
-        }
-      }
-      return -1;
-    }
-
-    inline static nsHtml5ElementName* elementNameByBuffer(
-      char16_t* buf,
-      int32_t offset,
-      int32_t length,
-      nsHtml5AtomTable* interner)
-    {
-      uint32_t hash = nsHtml5ElementName::bufToHash(buf, length);
-      jArray<int32_t, int32_t> hashes;
-      hashes = nsHtml5ElementName::ELEMENT_HASHES;
-      int32_t index = levelOrderBinarySearch(hashes, hash);
-      if (index < 0) {
-        return nullptr;
+  inline static int32_t levelOrderBinarySearch(jArray<int32_t, int32_t> data,
+                                               int32_t key)
+  {
+    int32_t n = data.length;
+    int32_t i = 0;
+    while (i < n) {
+      int32_t val = data[i];
+      if (val < key) {
+        i = 2 * i + 2;
+      } else if (val > key) {
+        i = 2 * i + 1;
       } else {
-        nsHtml5ElementName* elementName =
-          nsHtml5ElementName::ELEMENT_NAMES[index];
-        nsIAtom* name = elementName->name;
-        if (!nsHtml5Portability::localEqualsBuffer(name, buf, offset, length)) {
-          return nullptr;
-        }
-        return elementName;
+        return i;
       }
+    }
+    return -1;
+  }
+
+  inline static nsHtml5ElementName* elementNameByBuffer(
+    char16_t* buf,
+    int32_t offset,
+    int32_t length,
+    nsHtml5AtomTable* interner)
+  {
+    uint32_t hash = nsHtml5ElementName::bufToHash(buf, length);
+    jArray<int32_t, int32_t> hashes;
+    hashes = nsHtml5ElementName::ELEMENT_HASHES;
+    int32_t index = levelOrderBinarySearch(hashes, hash);
+    if (index < 0) {
+      return nullptr;
+    } else {
+      nsHtml5ElementName* elementName =
+        nsHtml5ElementName::ELEMENT_NAMES[index];
+      nsAtom* name = elementName->name;
+      if (!nsHtml5Portability::localEqualsBuffer(name, buf, offset, length)) {
+        return nullptr;
+      }
+      return elementName;
+    }
     }
 
   private:
@@ -179,8 +179,8 @@ public:
       return len + first + second + third + fourth + fifth;
     }
 
-    nsHtml5ElementName(nsIAtom* name,
-                       nsIAtom* camelCaseName,
+    nsHtml5ElementName(nsAtom* name,
+                       nsAtom* camelCaseName,
                        mozilla::dom::HTMLContentCreatorFunction htmlCreator,
                        mozilla::dom::SVGContentCreatorFunction svgCreator,
                        int32_t flags);
@@ -188,7 +188,7 @@ public:
   public:
     nsHtml5ElementName();
     ~nsHtml5ElementName();
-    inline void setNameForNonInterned(nsIAtom* name, bool custom)
+    inline void setNameForNonInterned(nsAtom* name, bool custom)
     {
       this->name = name;
       this->camelCaseName = name;
@@ -396,12 +396,12 @@ public:
     static nsHtml5ElementName* ELT_RECT;
     static nsHtml5ElementName* ELT_RADIALGRADIENT;
     static nsHtml5ElementName* ELT_SELECT;
+    static nsHtml5ElementName* ELT_SLOT;
     static nsHtml5ElementName* ELT_SCRIPT;
     static nsHtml5ElementName* ELT_TFOOT;
     static nsHtml5ElementName* ELT_TEXT;
     static nsHtml5ElementName* ELT_MENU;
     static nsHtml5ElementName* ELT_FEDROPSHADOW;
-    static nsHtml5ElementName* ELT_SHADOW;
     static nsHtml5ElementName* ELT_VIEW;
     static nsHtml5ElementName* ELT_FECOLORMATRIX;
     static nsHtml5ElementName* ELT_FECONVOLVEMATRIX;

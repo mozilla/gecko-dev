@@ -218,12 +218,12 @@ JSRuntime::init(JSContext* cx, uint32_t maxbytes, uint32_t maxNurseryBytes)
     if (!gc.init(maxbytes, maxNurseryBytes))
         return false;
 
-    ScopedJSDeletePtr<Zone> atomsZone(new_<Zone>(this, nullptr));
+    ScopedJSDeletePtr<Zone> atomsZone(js_new<Zone>(this, nullptr));
     if (!atomsZone || !atomsZone->init(true))
         return false;
 
     JS::CompartmentOptions options;
-    ScopedJSDeletePtr<JSCompartment> atomsCompartment(new_<JSCompartment>(atomsZone.get(), options));
+    ScopedJSDeletePtr<JSCompartment> atomsCompartment(js_new<JSCompartment>(atomsZone.get(), options));
     if (!atomsCompartment || !atomsCompartment->init(nullptr))
         return false;
 
@@ -799,13 +799,7 @@ JSRuntime::forkRandomKeyGenerator()
 void
 JSRuntime::updateMallocCounter(size_t nbytes)
 {
-    updateMallocCounter(nullptr, nbytes);
-}
-
-void
-JSRuntime::updateMallocCounter(JS::Zone* zone, size_t nbytes)
-{
-    gc.updateMallocCounter(zone, nbytes);
+    gc.updateMallocCounter(nbytes);
 }
 
 JS_FRIEND_API(void*)

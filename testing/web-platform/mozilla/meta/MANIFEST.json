@@ -8,6 +8,21 @@
      {}
     ]
    ],
+   "dom/throttling/resources/test.html": [
+    [
+     {}
+    ]
+   ],
+   "dom/throttling/resources/throttling.js": [
+    [
+     {}
+    ]
+   ],
+   "dom/throttling/resources/ws.sub.js": [
+    [
+     {}
+    ]
+   ],
    "fetch/api/redirect/redirect-referrer-mixed-content.js": [
     [
      {}
@@ -403,6 +418,54 @@
    "dom/classList.html": [
     [
      "/_mozilla/dom/classList.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-1.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-1.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-2.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-2.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-3.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-3.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-4.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-4.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-indexeddb.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-indexeddb.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-webaudio.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-webaudio.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-webrtc.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-webrtc.window.html",
+     {}
+    ]
+   ],
+   "dom/throttling/throttling-ws.window.js": [
+    [
+     "/_mozilla/dom/throttling/throttling-ws.window.html",
      {}
     ]
    ],
@@ -913,6 +976,50 @@
   ],
   "dom/classList.html": [
    "f289334e7b3486259b9aae54b4282a7211b8813e",
+   "testharness"
+  ],
+  "dom/throttling/resources/test.html": [
+   "0898e3efa5dbcc74138bdf27ff2787d1f1a2d4d8",
+   "support"
+  ],
+  "dom/throttling/resources/throttling.js": [
+   "e0bf1a7c5a0d2c8be2b793c786bb9484779dcbbf",
+   "support"
+  ],
+  "dom/throttling/resources/ws.sub.js": [
+   "66306649fb96efc2d5f13c566fac3da18339bc38",
+   "support"
+  ],
+  "dom/throttling/throttling-1.window.js": [
+   "216ffff13da87662a1dcddbc6ab091cc0e7380ba",
+   "testharness"
+  ],
+  "dom/throttling/throttling-2.window.js": [
+   "e76ad877b617c343968211596c34e787849ef587",
+   "testharness"
+  ],
+  "dom/throttling/throttling-3.window.js": [
+   "c7e6a0638b216f1f314a022d166ac3d2d6b3ffbd",
+   "testharness"
+  ],
+  "dom/throttling/throttling-4.window.js": [
+   "7a6d52ee3f4077bbfc7f0ac635559abc14e0fde5",
+   "testharness"
+  ],
+  "dom/throttling/throttling-indexeddb.window.js": [
+   "334beb79c9bd4fd56574b5eca2b6a3709d9057e7",
+   "testharness"
+  ],
+  "dom/throttling/throttling-webaudio.window.js": [
+   "27e56f68bc041ad07b9c9c27341006d95cd90194",
+   "testharness"
+  ],
+  "dom/throttling/throttling-webrtc.window.js": [
+   "02e6acec2ff275e0e935cb6d903d348f98d5d437",
+   "testharness"
+  ],
+  "dom/throttling/throttling-ws.window.js": [
+   "67a981ba2a4d08b684947ed42aba6648dcd262b4",
    "testharness"
   ],
   "fetch/api/redirect/redirect-referrer-mixed-content.js": [

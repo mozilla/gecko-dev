@@ -14,10 +14,6 @@ const { assert, dumpn } = DevToolsUtils;
 
 loader.lazyRequireGetter(this, "ThreadSafeChromeUtils");
 
-const TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
-                             "Uint32Array", "Int8Array", "Int16Array", "Int32Array",
-                             "Float32Array", "Float64Array"];
-
 // Number of items to preview in objects, arrays, maps, sets, lists,
 // collections, etc.
 const OBJECT_PREVIEW_MAX_ITEMS = 10;
@@ -77,80 +73,78 @@ ObjectActor.prototype = {
    * Returns a grip for this actor for returning in a protocol message.
    */
   grip: function () {
-    this.hooks.incrementGripDepth();
-
     let g = {
       "type": "object",
       "actor": this.actorID
     };
 
-    // If it's a proxy, lie and tell that it belongs to an invented "Proxy" class.
-    // The `isProxy` function detects them even behind non-opaque security wrappers,
-    // which is useful to avoid running proxy traps through transparent wrappers.
-    if (isProxy(this.obj)) {
+    // Check if the object has a wrapper which denies access. It may be a CPOW or a
+    // security wrapper. Change the class so that this will be visible in the UI.
+    let unwrapped = DevToolsUtils.unwrap(this.obj);
+    if (!unwrapped) {
+      if (DevToolsUtils.isCPOW(this.obj)) {
+        g.class = "CPOW: " + g.class;
+      } else {
+        g.class = "Inaccessible";
+      }
+      return g;
+    }
+
+    // Dead objects also deny access.
+    if (this.obj.class == "DeadObject") {
+      g.class = "DeadObject";
+      return g;
+    }
+
+    // Otherwise, increment grip depth and attempt to create a preview.
+    this.hooks.incrementGripDepth();
+
+    // The `isProxy` getter is called on `unwrapped` instead of `this.obj` in order
+    // to detect proxies behind transparent wrappers, and thus avoid running traps.
+    if (unwrapped.isProxy) {
       g.class = "Proxy";
     } else {
-      try {
-        g.class = this.obj.class;
-        g.extensible = this.obj.isExtensible();
-        g.frozen = this.obj.isFrozen();
-        g.sealed = this.obj.isSealed();
-      } catch (e) {
-        // Handle cases where the underlying object's calls to isExtensible, etc throw.
-        // This is possible with ProxyObjects like CPOWs. Note these are different from
-        // scripted Proxies created via `new Proxy`, which match isProxy(this.obj) above.
-      }
+      g.class = this.obj.class;
+      g.extensible = this.obj.isExtensible();
+      g.frozen = this.obj.isFrozen();
+      g.sealed = this.obj.isSealed();
     }
 
-    // Changing the class so that CPOWs will be visible in the UI
-    let isCPOW = DevToolsUtils.isCPOW(this.obj);
-    if (isCPOW) {
-      g.class = "CPOW: " + g.class;
+    if (g.class == "Promise") {
+      g.promiseState = this._createPromiseState();
     }
 
-    if (g.class != "DeadObject" && !isCPOW) {
-      if (g.class == "Promise") {
-        g.promiseState = this._createPromiseState();
-      }
+    // FF40+: Allow to know how many properties an object has to lazily display them
+    // when there is a bunch.
+    if (isTypedArray(g)) {
+      // Bug 1348761: getOwnPropertyNames is unnecessary slow on TypedArrays
+      g.ownPropertyLength = getArrayLength(this.obj);
+    } else if (g.class != "Proxy") {
+      g.ownPropertyLength = this.obj.getOwnPropertyNames().length;
+    }
 
-      // FF40+: Allow to know how many properties an object has
-      // to lazily display them when there is a bunch.
-      // Throws on some MouseEvent object in tests.
+    let raw = this.obj.unsafeDereference();
+
+    // If Cu is not defined, we are running on a worker thread, where xrays
+    // don't exist.
+    if (Cu) {
+      raw = Cu.unwaiveXrays(raw);
+    }
+
+    if (!DevToolsUtils.isSafeJSObject(raw)) {
+      raw = null;
+    }
+
+    let previewers = DebuggerServer.ObjectActorPreviewers[g.class] ||
+                     DebuggerServer.ObjectActorPreviewers.Object;
+    for (let fn of previewers) {
       try {
-        if (TYPED_ARRAY_CLASSES.indexOf(g.class) != -1) {
-          // Bug 1348761: getOwnPropertyNames is unecessary slow on TypedArrays
-          let length = DevToolsUtils.getProperty(this.obj, "length");
-          g.ownPropertyLength = length;
-        } else if (g.class != "Proxy") {
-          g.ownPropertyLength = this.obj.getOwnPropertyNames().length;
+        if (fn(this, g, raw)) {
+          break;
         }
       } catch (e) {
-        // ignored
-      }
-
-      let raw = this.obj.unsafeDereference();
-
-      // If Cu is not defined, we are running on a worker thread, where xrays
-      // don't exist.
-      if (Cu) {
-        raw = Cu.unwaiveXrays(raw);
-      }
-
-      if (!DevToolsUtils.isSafeJSObject(raw)) {
-        raw = null;
-      }
-
-      let previewers = DebuggerServer.ObjectActorPreviewers[g.class] ||
-                       DebuggerServer.ObjectActorPreviewers.Object;
-      for (let fn of previewers) {
-        try {
-          if (fn(this, g, raw)) {
-            break;
-          }
-        } catch (e) {
-          let msg = "ObjectActor.prototype.grip previewer function";
-          DevToolsUtils.reportException(msg, e);
-        }
+        let msg = "ObjectActor.prototype.grip previewer function";
+        DevToolsUtils.reportException(msg, e);
       }
     }
 
@@ -290,20 +284,20 @@ ObjectActor.prototype = {
   onPrototypeAndProperties: function () {
     let ownProperties = Object.create(null);
     let ownSymbols = [];
-    let names;
-    let symbols;
-    try {
-      names = this.obj.getOwnPropertyNames();
-      symbols = this.obj.getOwnPropertySymbols();
-    } catch (ex) {
-      // The above can throw if this.obj points to a dead object.
-      // TODO: we should use Cu.isDeadWrapper() - see bug 885800.
+
+    // Inaccessible, proxy and dead objects should not be accessed.
+    let unwrapped = DevToolsUtils.unwrap(this.obj);
+    if (!unwrapped || unwrapped.isProxy || this.obj.class == "DeadObject") {
       return { from: this.actorID,
                prototype: this.hooks.createValueGrip(null),
                ownProperties,
                ownSymbols,
                safeGetterValues: Object.create(null) };
     }
+
+    let names = this.obj.getOwnPropertyNames();
+    let symbols = this.obj.getOwnPropertySymbols();
+
     for (let name of names) {
       ownProperties[name] = this._propertyDescriptor(name);
     }
@@ -340,8 +334,9 @@ ObjectActor.prototype = {
     let obj = this.obj;
     let level = 0, i = 0;
 
-    // Do not search safe getters in proxy objects.
-    if (isProxy(obj)) {
+    // Do not search safe getters in inaccessible nor proxy objects.
+    let unwrapped = DevToolsUtils.unwrap(obj);
+    if (!unwrapped || unwrapped.isProxy) {
       return safeGetterValues;
     }
 
@@ -349,14 +344,18 @@ ObjectActor.prototype = {
     // prototype. Avoid calling getOwnPropertyNames on objects that may have
     // many properties like Array, strings or js objects. That to avoid
     // freezing firefox when doing so.
-    if (TYPED_ARRAY_CLASSES.includes(this.obj.class) ||
-        ["Array", "Object", "String"].includes(this.obj.class)) {
+    if (isArray(this.obj) || ["Object", "String"].includes(this.obj.class)) {
       obj = obj.proto;
       level++;
     }
 
-    // Stop iterating when the prototype chain ends or a proxy is found.
-    while (obj && !isProxy(obj)) {
+    while (obj) {
+      // Stop iterating when an inaccessible or a proxy object is found.
+      unwrapped = DevToolsUtils.unwrap(obj);
+      if (!unwrapped || unwrapped.isProxy) {
+        break;
+      }
+
       let getters = this._findSafeGetters(obj);
       for (let name of getters) {
         // Avoid overwriting properties from prototypes closer to this.obj. Also
@@ -815,7 +814,11 @@ function PropertyIteratorActor(objectActor, options) {
     } else {
       throw new Error("Unsupported class to enumerate entries from: " + cls);
     }
-  } else if (options.ignoreNonIndexedProperties && !options.query) {
+  } else if (
+    isArray(objectActor.obj)
+    && options.ignoreNonIndexedProperties
+    && !options.query
+  ) {
     this.iterator = enumArrayProperties(objectActor, options);
   } else {
     this.iterator = enumObjectProperties(objectActor, options);
@@ -866,21 +869,8 @@ PropertyIteratorActor.prototype.requestTypes = {
 };
 
 function enumArrayProperties(objectActor, options) {
-  let length = DevToolsUtils.getProperty(objectActor.obj, "length");
-  if (typeof length !== "number") {
-    // Pseudo arrays are flagged as ArrayLike if they have
-    // subsequent indexed properties without having any length attribute.
-    length = 0;
-    let names = objectActor.obj.getOwnPropertyNames();
-    for (let key of names) {
-      if (isNaN(key) || key != length++) {
-        break;
-      }
-    }
-  }
-
   return {
-    size: length,
+    size: getArrayLength(objectActor.obj),
     propertyName(index) {
       return index;
     },
@@ -901,15 +891,32 @@ function enumObjectProperties(objectActor, options) {
 
   if (options.ignoreNonIndexedProperties || options.ignoreIndexedProperties) {
     let length = DevToolsUtils.getProperty(objectActor.obj, "length");
-    if (typeof length !== "number") {
-      // Pseudo arrays are flagged as ArrayLike if they have
-      // subsequent indexed properties without having any length attribute.
-      length = 0;
-      for (let key of names) {
-        if (isNaN(key) || key != length++) {
-          break;
+    let sliceIndex;
+
+    const isLengthTrustworthy =
+      isUint32(length)
+      && (!length || isArrayIndex(names[length - 1]))
+      && !isArrayIndex(names[length]);
+
+    if (!isLengthTrustworthy) {
+      // The length property may not reflect what the object looks like, let's find
+      // where indexed properties end.
+
+      if (!isArrayIndex(names[0])) {
+        // If the first item is not a number, this means there is no indexed properties
+        // in this object.
+        sliceIndex = 0;
+      } else {
+        sliceIndex = names.length;
+        while (sliceIndex > 0) {
+          if (isArrayIndex(names[sliceIndex - 1])) {
+            break;
+          }
+          sliceIndex--;
         }
       }
+    } else {
+      sliceIndex = length;
     }
 
     // It appears that getOwnPropertyNames always returns indexed properties
@@ -917,11 +924,11 @@ function enumObjectProperties(objectActor, options) {
     // We do such clever operation to optimize very large array inspection,
     // like webaudio buffers.
     if (options.ignoreIndexedProperties) {
-      // Keep items after `length` index
-      names = names.slice(length);
+      // Keep items after `sliceIndex` index
+      names = names.slice(sliceIndex);
     } else if (options.ignoreNonIndexedProperties) {
-      // Remove `length` first items
-      names.splice(length);
+      // Keep `sliceIndex` first items
+      names.length = sliceIndex;
     }
   }
 
@@ -1228,6 +1235,10 @@ DebuggerServer.ObjectActorPreviewers = {
     return wrappedPrimitivePreviewer("Number", Number, objectActor, grip, rawObj);
   }],
 
+  Symbol: [function (objectActor, grip, rawObj) {
+    return wrappedPrimitivePreviewer("Symbol", Symbol, objectActor, grip, rawObj);
+  }],
+
   Function: [function ({obj, hooks}, grip) {
     if (obj.name) {
       grip.name = obj.name;
@@ -1294,10 +1305,7 @@ DebuggerServer.ObjectActorPreviewers = {
   }],
 
   Array: [function ({obj, hooks}, grip) {
-    let length = DevToolsUtils.getProperty(obj, "length");
-    if (typeof length != "number") {
-      return false;
-    }
+    let length = getArrayLength(obj);
 
     grip.preview = {
       kind: "ArrayLike",
@@ -1508,10 +1516,6 @@ DebuggerServer.ObjectActorPreviewers = {
 function wrappedPrimitivePreviewer(className, classObj, objectActor, grip, rawObj) {
   let {obj, hooks} = objectActor;
 
-  if (!obj.proto || obj.proto.class != className) {
-    return false;
-  }
-
   let v = null;
   try {
     v = classObj.prototype.valueOf.call(rawObj);
@@ -1611,18 +1615,13 @@ function GenericObject(objectActor, grip, rawObj, specialStringBehavior = false)
 // Preview functions that do not rely on the object class.
 DebuggerServer.ObjectActorPreviewers.Object = [
   function TypedArray({obj, hooks}, grip) {
-    if (TYPED_ARRAY_CLASSES.indexOf(obj.class) == -1) {
-      return false;
-    }
-
-    let length = DevToolsUtils.getProperty(obj, "length");
-    if (typeof length != "number") {
+    if (!isTypedArray(obj)) {
       return false;
     }
 
     grip.preview = {
       kind: "ArrayLike",
-      length: length,
+      length: getArrayLength(obj),
     };
 
     if (hooks.getGripDepth() > 1) {
@@ -2454,39 +2453,83 @@ function arrayBufferGrip(buffer, pool) {
   return actor.grip();
 }
 
+const TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
+                             "Uint32Array", "Int8Array", "Int16Array", "Int32Array",
+                             "Float32Array", "Float64Array"];
+
 /**
- * Determines whether the referent of a debuggee object is a scripted proxy.
- * Non-opaque security wrappers are unwrapped first before the check.
+ * Returns true if a debuggee object is a typed array.
  *
  * @param obj Debugger.Object
- *        The debuggee object to be checked.
+ *        The debuggee object to test.
+ * @return Boolean
  */
-function isProxy(obj) {
-  // Check if the object is a proxy without security wrappers.
-  if (obj.isProxy) {
-    return true;
+function isTypedArray(object) {
+  return TYPED_ARRAY_CLASSES.includes(object.class);
+}
+
+/**
+ * Returns true if a debuggee object is an array, including a typed array.
+ *
+ * @param obj Debugger.Object
+ *        The debuggee object to test.
+ * @return Boolean
+ */
+function isArray(object) {
+  return isTypedArray(object) || object.class === "Array";
+}
+
+/**
+ * Returns the length of an array (or typed array).
+ *
+ * @param obj Debugger.Object
+ *        The debuggee object of the array.
+ * @return Number
+ * @throws if the object is not an array.
+ */
+function getArrayLength(object) {
+  if (!isArray(object)) {
+    throw new Error("Expected an array, got a " + object.class);
   }
 
-  // No need to remove opaque wrappers since they prevent proxy traps from running.
-  if (obj.class === "Opaque") {
-    return false;
+  // Real arrays have a reliable `length` own property.
+  if (object.class === "Array") {
+    return DevToolsUtils.getProperty(object, "length");
   }
 
-  // Attempt to unwrap. If the debugger can't unwrap, then proxy traps won't be
-  // allowed to run either, so the object can be safely assumed to not be a proxy.
-  let unwrapped;
-  try {
-    unwrapped = obj.unwrap();
-  } catch (err) {
-    return false;
-  }
+  // For typed arrays, `DevToolsUtils.getProperty` is not reliable because the `length`
+  // getter could be shadowed by an own property, and `getOwnPropertyNames` is
+  // unnecessarily slow. Obtain the `length` getter safely and call it manually.
+  let typedProto = Object.getPrototypeOf(Uint8Array.prototype);
+  let getter = Object.getOwnPropertyDescriptor(typedProto, "length").get;
+  return getter.call(object.unsafeDereference());
+}
 
-  if (!unwrapped || unwrapped === obj) {
-    return false;
-  }
+/**
+ * Returns true if the parameter can be stored as a 32-bit unsigned integer.
+ * If so, it will be suitable for use as the length of an array object.
+ *
+ * @param num Number
+ *        The number to test.
+ * @return Boolean
+ */
+function isUint32(num) {
+  return num >>> 0 === num;
+}
 
-  // Recursively check whether the unwrapped object is a proxy.
-  return isProxy(unwrapped);
+/**
+ * Returns true if the parameter is suitable to be an array index.
+ *
+ * @param str String
+ * @return Boolean
+ */
+function isArrayIndex(str) {
+  // Transform the parameter to a 32-bit unsigned integer.
+  let num = str >>> 0;
+  // Check that the parameter is a canonical Uint32 index.
+  return num + "" === str &&
+    // Array indices cannot attain the maximum Uint32 value.
+    num != -1 >>> 0;
 }
 
 exports.ObjectActor = ObjectActor;

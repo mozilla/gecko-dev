@@ -180,9 +180,7 @@ private:
   void MarkChanged();
   bool ShouldClipTemporarySurfaceDrawing(CompositionOp aOp, const Pattern& aPattern, bool aClipIsComplex);
   void PrepareForDrawing(CompositionOp aOp, const Pattern &aPattern);
-  // aAffectedRect may be used to supply the bounds of the drawing operations in order to prevent
-  // excessive surface area being operated on
-  void FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern, const Rect* aAffectedRect = nullptr);
+  void FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern);
   void FlushTransformToDC() {
     if (mTransformDirty) {
       mDC->SetTransform(D2DMatrix(mTransform));
@@ -192,11 +190,7 @@ private:
   void AddDependencyOnSource(SourceSurfaceD2D1* aSource);
 
   // Must be called with all clips popped and an identity matrix set.
-  // aBounds can be specified to allow the function to return only part of the layer contents
-  // aOutOffset will return the offset that should be applied to move the ID2D1Image onto the
-  // correct portion of the destination layer. If !aBounds this will always be 0,0 and can be
-  // ignored.
-  already_AddRefed<ID2D1Image> GetImageForLayerContent(bool aShouldPreserveContent = true, const Rect* aBounds = nullptr, Point* aOutOffset = nullptr);
+  already_AddRefed<ID2D1Image> GetImageForLayerContent(bool aShouldPreserveContent = true);
 
   ID2D1Image* CurrentTarget()
   {
@@ -297,7 +291,7 @@ private:
   // this causes an infinite recursion inside D2D as it tries to resolve the bounds.
   // If we resolve the current command list before this happens
   // we can avoid the subsequent hang. (See bug 1293586)
-  bool mDidComplexBlendWithListInList;
+  uint32_t mComplexBlendsWithListInList;
 
   static StaticRefPtr<ID2D1Factory1> mFactory;
   // This value is uesed to verify if the DrawTarget is created by a stale device.

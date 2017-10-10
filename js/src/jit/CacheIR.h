@@ -171,12 +171,11 @@ extern const char* CacheKindNames[];
     _(GuardShape)                         \
     _(GuardGroup)                         \
     _(GuardProto)                         \
-    _(GuardClass)                         /* Guard an object class, per GuardClassKind */ \
-    _(GuardAnyClass)                      /* Guard an arbitrary class for an object */ \
+    _(GuardClass)                         \
     _(GuardCompartment)                   \
     _(GuardIsNativeFunction)              \
     _(GuardIsProxy)                       \
-    _(GuardHasProxyHandler)               \
+    _(GuardIsCrossCompartmentWrapper)     \
     _(GuardNotDOMProxy)                   \
     _(GuardSpecificObject)                \
     _(GuardSpecificAtom)                  \
@@ -192,8 +191,6 @@ extern const char* CacheKindNames[];
     _(GuardAndGetIterator)                \
     _(GuardHasGetterSetter)               \
     _(GuardGroupHasUnanalyzedNewScript)   \
-    _(GuardIndexIsNonNegative)            \
-    _(GuardXrayExpandoShapeAndDefaultProto) \
     _(LoadStackValue)                     \
     _(LoadObject)                         \
     _(LoadProto)                          \
@@ -204,7 +201,7 @@ extern const char* CacheKindNames[];
     _(MegamorphicLoadSlotByValueResult)   \
     _(MegamorphicStoreSlot)               \
     _(MegamorphicSetElement)              \
-    _(MegamorphicHasOwnResult)            \
+    _(MegamorphicHasPropResult)           \
                                           \
     /* See CacheIR.cpp 'DOM proxies' comment. */ \
     _(LoadDOMExpandoValue)                \
@@ -225,8 +222,6 @@ extern const char* CacheKindNames[];
     _(ArrayPush)                          \
     _(ArrayJoinResult)                    \
     _(StoreTypedElement)                  \
-    _(StoreUnboxedArrayElement)           \
-    _(StoreUnboxedArrayElementHole)       \
     _(CallNativeSetter)                   \
     _(CallScriptedSetter)                 \
     _(CallSetArrayLength)                 \
@@ -242,10 +237,8 @@ extern const char* CacheKindNames[];
     _(LoadDenseElementHoleResult)         \
     _(LoadDenseElementExistsResult)       \
     _(LoadDenseElementHoleExistsResult)   \
-    _(LoadUnboxedArrayElementResult)      \
     _(LoadTypedElementResult)             \
     _(LoadInt32ArrayLengthResult)         \
-    _(LoadUnboxedArrayLengthResult)       \
     _(LoadArgumentsObjectArgResult)       \
     _(LoadArgumentsObjectLengthResult)    \
     _(LoadFunctionLengthResult)           \
@@ -261,7 +254,7 @@ extern const char* CacheKindNames[];
     _(CallNativeGetterResult)             \
     _(CallProxyGetResult)                 \
     _(CallProxyGetByValueResult)          \
-    _(CallProxyHasOwnResult)              \
+    _(CallProxyHasPropResult)             \
     _(LoadUndefinedResult)                \
     _(LoadBooleanResult)                  \
     _(LoadStringResult)                   \
@@ -351,20 +344,11 @@ class StubField
 enum class GuardClassKind : uint8_t
 {
     Array,
-    UnboxedArray,
     MappedArguments,
     UnmappedArguments,
     WindowProxy,
     JSFunction,
 };
-
-// Some ops refer to shapes that might be in other zones. Instead of putting
-// cross-zone pointers in the caches themselves (which would complicate tracing
-// enormously), these ops instead contain wrappers for objects in the target
-// zone, which refer to the actual shape via a reserved slot.
-JSObject* NewWrapperWithObjectShape(JSContext* cx, HandleNativeObject obj);
-
-void LoadShapeWrapperContents(MacroAssembler& masm, Register obj, Register dst, Label* failure);
 
 // Class to record CacheIR + some additional metadata for code generation.
 class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
@@ -534,10 +518,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
         writeOpWithOperandId(CacheOp::GuardShape, obj);
         addStubField(uintptr_t(shape), StubField::Type::Shape);
     }
-    void guardXrayExpandoShapeAndDefaultProto(ObjOperandId obj, JSObject* shapeWrapper) {
-        writeOpWithOperandId(CacheOp::GuardXrayExpandoShapeAndDefaultProto, obj);
-        buffer_.writeByte(uint32_t(!!shapeWrapper));        addStubField(uintptr_t(shapeWrapper), StubField::Type::JSObject);
-    }
     void guardGroup(ObjOperandId obj, ObjectGroup* group) {
         writeOpWithOperandId(CacheOp::GuardGroup, obj);
         addStubField(uintptr_t(group), StubField::Type::ObjectGroup);
@@ -552,10 +532,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
         writeOpWithOperandId(CacheOp::GuardClass, obj);
         buffer_.writeByte(uint32_t(kind));
     }
-    void guardAnyClass(ObjOperandId obj, const Class* clasp) {
-        writeOpWithOperandId(CacheOp::GuardAnyClass, obj);
-        addStubField(uintptr_t(clasp), StubField::Type::RawWord);
-    }
     void guardIsNativeFunction(ObjOperandId obj, JSNative nativeFunc) {
         writeOpWithOperandId(CacheOp::GuardIsNativeFunction, obj);
         writePointer(JS_FUNC_TO_DATA_PTR(void*, nativeFunc));
@@ -563,9 +539,8 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
     void guardIsProxy(ObjOperandId obj) {
         writeOpWithOperandId(CacheOp::GuardIsProxy, obj);
     }
-    void guardHasProxyHandler(ObjOperandId obj, const void* handler) {
-        writeOpWithOperandId(CacheOp::GuardHasProxyHandler, obj);
-        addStubField(uintptr_t(handler), StubField::Type::RawWord);
+    void guardIsCrossCompartmentWrapper(ObjOperandId obj) {
+        writeOpWithOperandId(CacheOp::GuardIsCrossCompartmentWrapper, obj);
     }
     void guardNotDOMProxy(ObjOperandId obj) {
         writeOpWithOperandId(CacheOp::GuardNotDOMProxy, obj);
@@ -632,10 +607,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
     void guardGroupHasUnanalyzedNewScript(ObjectGroup* group) {
         writeOp(CacheOp::GuardGroupHasUnanalyzedNewScript);
         addStubField(uintptr_t(group), StubField::Type::ObjectGroup);
-    }
-
-    void guardIndexIsNonNegative(Int32OperandId index) {
-        writeOpWithOperandId(CacheOp::GuardIndexIsNonNegative, index);
     }
 
     void loadFrameCalleeResult() {
@@ -805,22 +776,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
         buffer_.writeByte(uint32_t(elementType));
         buffer_.writeByte(uint32_t(handleOOB));
     }
-    void storeUnboxedArrayElement(ObjOperandId obj, Int32OperandId index, ValOperandId rhs,
-                                  JSValueType elementType)
-    {
-        writeOpWithOperandId(CacheOp::StoreUnboxedArrayElement, obj);
-        writeOperandId(index);
-        writeOperandId(rhs);
-        buffer_.writeByte(uint32_t(elementType));
-    }
-    void storeUnboxedArrayElementHole(ObjOperandId obj, Int32OperandId index, ValOperandId rhs,
-                                      JSValueType elementType)
-    {
-        writeOpWithOperandId(CacheOp::StoreUnboxedArrayElementHole, obj);
-        writeOperandId(index);
-        writeOperandId(rhs);
-        buffer_.writeByte(uint32_t(elementType));
-    }
     void storeDenseElementHole(ObjOperandId obj, Int32OperandId index, ValOperandId rhs,
                                bool handleAdd)
     {
@@ -887,9 +842,10 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
         writeOperandId(rhs);
         buffer_.writeByte(uint32_t(strict));
     }
-    void megamorphicHasOwnResult(ObjOperandId obj, ValOperandId id) {
-        writeOpWithOperandId(CacheOp::MegamorphicHasOwnResult, obj);
+    void megamorphicHasPropResult(ObjOperandId obj, ValOperandId id, bool hasOwn) {
+        writeOpWithOperandId(CacheOp::MegamorphicHasPropResult, obj);
         writeOperandId(id);
+        buffer_.writeByte(uint32_t(hasOwn));
     }
 
     void loadBooleanResult(bool val) {
@@ -928,9 +884,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
     void loadInt32ArrayLengthResult(ObjOperandId obj) {
         writeOpWithOperandId(CacheOp::LoadInt32ArrayLengthResult, obj);
     }
-    void loadUnboxedArrayLengthResult(ObjOperandId obj) {
-        writeOpWithOperandId(CacheOp::LoadUnboxedArrayLengthResult, obj);
-    }
     void loadArgumentsObjectLengthResult(ObjOperandId obj) {
         writeOpWithOperandId(CacheOp::LoadArgumentsObjectLengthResult, obj);
     }
@@ -956,11 +909,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
     void loadDenseElementHoleExistsResult(ObjOperandId obj, Int32OperandId index) {
         writeOpWithOperandId(CacheOp::LoadDenseElementHoleExistsResult, obj);
         writeOperandId(index);
-    }
-    void loadUnboxedArrayElementResult(ObjOperandId obj, Int32OperandId index, JSValueType elementType) {
-        writeOpWithOperandId(CacheOp::LoadUnboxedArrayElementResult, obj);
-        writeOperandId(index);
-        buffer_.writeByte(uint32_t(elementType));
     }
     void loadTypedElementResult(ObjOperandId obj, Int32OperandId index, TypedThingLayout layout,
                                 Scalar::Type elementType) {
@@ -992,9 +940,10 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter
         writeOpWithOperandId(CacheOp::CallProxyGetByValueResult, obj);
         writeOperandId(idVal);
     }
-    void callProxyHasOwnResult(ObjOperandId obj, ValOperandId idVal) {
-        writeOpWithOperandId(CacheOp::CallProxyHasOwnResult, obj);
+    void callProxyHasPropResult(ObjOperandId obj, ValOperandId idVal, bool hasOwn) {
+        writeOpWithOperandId(CacheOp::CallProxyHasPropResult, obj);
         writeOperandId(idVal);
+        buffer_.writeByte(uint32_t(hasOwn));
     }
     void loadEnvironmentFixedSlotResult(ObjOperandId obj, size_t offset) {
         writeOpWithOperandId(CacheOp::LoadEnvironmentFixedSlotResult, obj);
@@ -1217,7 +1166,6 @@ class MOZ_RAII GetPropIRGenerator : public IRGenerator
     bool tryAttachModuleNamespace(HandleObject obj, ObjOperandId objId, HandleId id);
     bool tryAttachWindowProxy(HandleObject obj, ObjOperandId objId, HandleId id);
     bool tryAttachCrossCompartmentWrapper(HandleObject obj, ObjOperandId objId, HandleId id);
-    bool tryAttachXrayCrossCompartmentWrapper(HandleObject obj, ObjOperandId objId, HandleId id);
     bool tryAttachFunction(HandleObject obj, ObjOperandId objId, HandleId id);
 
     bool tryAttachGenericProxy(HandleObject obj, ObjOperandId objId, HandleId id,
@@ -1240,8 +1188,6 @@ class MOZ_RAII GetPropIRGenerator : public IRGenerator
                                uint32_t index, Int32OperandId indexId);
     bool tryAttachDenseElementHole(HandleObject obj, ObjOperandId objId,
                                    uint32_t index, Int32OperandId indexId);
-    bool tryAttachUnboxedArrayElement(HandleObject obj, ObjOperandId objId,
-                                      uint32_t index, Int32OperandId indexId);
     bool tryAttachTypedElement(HandleObject obj, ObjOperandId objId,
                                uint32_t index, Int32OperandId indexId);
 
@@ -1411,15 +1357,11 @@ class MOZ_RAII SetPropIRGenerator : public IRGenerator
 
     bool tryAttachSetDenseElement(HandleObject obj, ObjOperandId objId, uint32_t index,
                                   Int32OperandId indexId, ValOperandId rhsId);
-    bool tryAttachSetUnboxedArrayElement(HandleObject obj, ObjOperandId objId, uint32_t index,
-                                         Int32OperandId indexId, ValOperandId rhsId);    
     bool tryAttachSetTypedElement(HandleObject obj, ObjOperandId objId, uint32_t index,
                                   Int32OperandId indexId, ValOperandId rhsId);
 
     bool tryAttachSetDenseElementHole(HandleObject obj, ObjOperandId objId, uint32_t index,
                                       Int32OperandId indexId, ValOperandId rhsId);
-    bool tryAttachSetUnboxedArrayElementHole(HandleObject obj, ObjOperandId objId, uint32_t index,
-                                             Int32OperandId indexId, ValOperandId rhsId);
 
     bool tryAttachGenericProxy(HandleObject obj, ObjOperandId objId, HandleId id,
                                ValOperandId rhsId, bool handleDOMProxies);
@@ -1472,10 +1414,22 @@ class MOZ_RAII HasPropIRGenerator : public IRGenerator
                         uint32_t index, Int32OperandId indexId);
     bool tryAttachDenseHole(HandleObject obj, ObjOperandId objId,
                             uint32_t index, Int32OperandId indexId);
-    bool tryAttachNative(HandleObject obj, ObjOperandId objId,
-                         HandleId key, ValOperandId keyId);
-    bool tryAttachNativeDoesNotExist(HandleObject obj, ObjOperandId objId,
-                                     HandleId key, ValOperandId keyId);
+    bool tryAttachNamedProp(HandleObject obj, ObjOperandId objId,
+                            HandleId key, ValOperandId keyId);
+    bool tryAttachMegamorphic(ObjOperandId objId, ValOperandId keyId);
+    bool tryAttachNative(JSObject* obj, ObjOperandId objId,
+                         jsid key, ValOperandId keyId,
+                         PropertyResult prop, JSObject* holder);
+    bool tryAttachUnboxed(JSObject* obj, ObjOperandId objId,
+                          jsid key, ValOperandId keyId);
+    bool tryAttachUnboxedExpando(JSObject* obj, ObjOperandId objId,
+                                 jsid key, ValOperandId keyId);
+    bool tryAttachTypedObject(JSObject* obj, ObjOperandId objId,
+                              jsid key, ValOperandId keyId);
+    bool tryAttachSlotDoesNotExist(JSObject* obj, ObjOperandId objId,
+                                   jsid key, ValOperandId keyId);
+    bool tryAttachDoesNotExist(HandleObject obj, ObjOperandId objId,
+                               HandleId key, ValOperandId keyId);
     bool tryAttachProxyElement(HandleObject obj, ObjOperandId objId,
                                ValOperandId keyId);
 

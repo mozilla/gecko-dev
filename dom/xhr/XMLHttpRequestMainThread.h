@@ -189,6 +189,7 @@ public:
     eUnreachable,
     eChannelOpen,
     eRedirect,
+    eTerminated,
     ENUM_MAX
   };
 
@@ -307,6 +308,7 @@ public:
 private:
   virtual ~XMLHttpRequestMainThread();
 
+  nsresult MaybeSilentSendFailure(nsresult aRv);
   nsresult SendInternal(const BodyExtractorBase* aBody);
 
   bool IsCrossSiteCORSRequest() const;
@@ -518,7 +520,8 @@ protected:
   };
 
   nsresult DetectCharset();
-  nsresult AppendToResponseText(const char * aBuffer, uint32_t aBufferLen);
+  nsresult AppendToResponseText(const char* aBuffer, uint32_t aBufferLen,
+                                bool aLast = false);
   static nsresult StreamReaderFunc(nsIInputStream* in,
                                    void* closure,
                                    const char* fromRawSegment,
@@ -526,7 +529,6 @@ protected:
                                    uint32_t count,
                                    uint32_t *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
-  void CreatePartialBlob(ErrorResult& aRv);
   // Change the state of the object with this. The broadcast argument
   // determines if the onreadystatechange listener should be called.
   nsresult ChangeState(State aState, bool aBroadcast = true);
@@ -666,8 +668,6 @@ protected:
   RefPtr<Blob> mResponseBlob;
   // We stream data to mBlobStorage when response type is "blob".
   RefPtr<MutableBlobStorage> mBlobStorage;
-  // We stream data to mBlobSet when response type is "moz-blob".
-  nsAutoPtr<BlobSet> mBlobSet;
 
   nsString mOverrideMimeType;
 
@@ -766,6 +766,8 @@ protected:
    * Close the XMLHttpRequest's channels.
    */
   void CloseRequest();
+
+  void TerminateOngoingFetch();
 
   /**
    * Close the XMLHttpRequest's channels and dispatch appropriate progress

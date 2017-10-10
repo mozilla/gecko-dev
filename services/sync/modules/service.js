@@ -267,7 +267,7 @@ Sync11Service.prototype = {
   async handleFetchedKeys(syncKey, cryptoKeys, skipReset) {
     // Don't want to wipe if we're just starting up!
     let wasBlank = this.collectionKeys.isClear;
-    let keysChanged = this.collectionKeys.updateContents(syncKey, cryptoKeys);
+    let keysChanged = await this.collectionKeys.updateContents(syncKey, cryptoKeys);
 
     if (keysChanged && !wasBlank) {
       this._log.debug("Keys changed: " + JSON.stringify(keysChanged));
@@ -618,6 +618,20 @@ Sync11Service.prototype = {
     }
   },
 
+  getMaxRecordPayloadSize() {
+    let config = this.serverConfiguration;
+    if (!config || !config.max_record_payload_bytes) {
+      this._log.warn("No config or incomplete config in getMaxRecordPayloadSize."
+                     + " Are we running tests?");
+      return 256 * 1024;
+    }
+    let payloadMax = config.max_record_payload_bytes;
+    if (config.max_post_bytes && payloadMax <= config.max_post_bytes) {
+      return config.max_post_bytes - 4096;
+    }
+    return payloadMax;
+  },
+
   async verifyLogin(allow40XRecovery = true) {
     if (!this.identity.username) {
       this._log.warn("No username in verifyLogin.");
@@ -710,9 +724,9 @@ Sync11Service.prototype = {
 
   async generateNewSymmetricKeys() {
     this._log.info("Generating new keys WBO...");
-    let wbo = this.collectionKeys.generateNewKeysWBO();
+    let wbo = await this.collectionKeys.generateNewKeysWBO();
     this._log.info("Encrypting new key bundle.");
-    wbo.encrypt(this.identity.syncKeyBundle);
+    await wbo.encrypt(this.identity.syncKeyBundle);
 
     let uploadRes = await this._uploadCryptoKeys(wbo, 0);
     if (uploadRes.status != 200) {

@@ -6,7 +6,7 @@
 
 /* import-globals-from ../../../content/contentAreaUtils.js */
 /* globals XMLStylesheetProcessingInstruction */
-/* exported UPDATES_RELEASENOTES_TRANSFORMFILE, XMLURI_PARSE_ERROR, loadView */
+/* exported UPDATES_RELEASENOTES_TRANSFORMFILE, XMLURI_PARSE_ERROR, loadView, gBrowser */
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
@@ -1880,7 +1880,8 @@ var gCategories = {
 
     this.node.addEventListener("click", (aEvent) => {
       var selectedItem = this.node.selectedItem;
-      if (aEvent.target.closest("richlistitem") == selectedItem) {
+      if (aEvent.target.localName == "richlistitem" &&
+          aEvent.target == selectedItem) {
         var viewId = selectedItem.value;
 
         if (gViewController.parseViewId(viewId).type == "search") {
@@ -1906,19 +1907,9 @@ var gCategories = {
     category.setAttribute("value", aView);
     category.setAttribute("class", "category");
     category.setAttribute("name", aName);
+    category.setAttribute("tooltiptext", aName);
     category.setAttribute("priority", aPriority);
     category.setAttribute("hidden", aStartHidden);
-    category.setAttribute("align", "center");
-
-    var icon = document.createElement("image");
-    icon.setAttribute("class", "category-icon");
-    category.appendChild(icon);
-
-    var label = document.createElement("label");
-    label.setAttribute("class", "category-name");
-    label.setAttribute("flex", "1");
-    label.textContent = aName;
-    category.appendChild(label);
 
     var node;
     for (node of this.node.children) {
@@ -2092,19 +2083,6 @@ var gHeader = {
 
       gViewController.loadView("addons://search/" + encodeURIComponent(query));
     });
-
-    function updateNavButtonVisibility() {
-      var shouldShow = gHeader.shouldShowNavButtons;
-      document.getElementById("back-btn").hidden = !shouldShow;
-      document.getElementById("forward-btn").hidden = !shouldShow;
-    }
-
-    window.addEventListener("focus", function(aEvent) {
-      if (aEvent.target == window)
-        updateNavButtonVisibility();
-    });
-
-    updateNavButtonVisibility();
   },
 
   focusSearchBox() {
@@ -2850,7 +2828,7 @@ var gLegacyView = {
       this._categoryItem.disabled = false;
       let name = gStrings.ext.GetStringFromName(`type.${haveUnsigned ? "unsupported" : "legacy"}.name`);
       this._categoryItem.setAttribute("name", name);
-      this._categoryItem.querySelector("label").textContent = name;
+      this._categoryItem.tooltiptext = name;
     } else {
       this._categoryItem.disabled = true;
     }
@@ -3673,15 +3651,15 @@ var gDetailView = {
         whenViewLoaded(async () => {
           await this._addon.startupPromise;
 
-          let browser = await this.createOptionsBrowser(rows);
+          const browserContainer = await this.createOptionsBrowser(rows);
 
           // Make sure the browser is unloaded as soon as we change views,
           // rather than waiting for the next detail view to load.
           document.addEventListener("ViewChanged", function() {
-            browser.remove();
+            browserContainer.remove();
           }, {once: true});
 
-          finish(browser);
+          finish(browserContainer);
         });
 
         if (aCallback)
@@ -3756,11 +3734,15 @@ var gDetailView = {
   },
 
   async createOptionsBrowser(parentNode) {
+    let stack = document.createElement("stack");
+    stack.setAttribute("id", "addon-options-prompts-stack");
+
     let browser = document.createElement("browser");
     browser.setAttribute("type", "content");
     browser.setAttribute("disableglobalhistory", "true");
     browser.setAttribute("id", "addon-options");
     browser.setAttribute("class", "inline-options-browser");
+    browser.setAttribute("transparent", "true");
     browser.setAttribute("forcemessagemanager", "true");
     browser.setAttribute("selectmenulist", "ContentSelectDropdown");
 
@@ -3783,7 +3765,8 @@ var gDetailView = {
       readyPromise = promiseEvent("load", browser, true);
     }
 
-    parentNode.appendChild(browser);
+    stack.appendChild(browser);
+    parentNode.appendChild(stack);
 
     // Force bindings to apply synchronously.
     browser.clientTop;
@@ -3797,7 +3780,7 @@ var gDetailView = {
           if (name === "Extension:BrowserResized")
             browser.style.height = `${data.height}px`;
           else if (name === "Extension:BrowserContentLoaded")
-            resolve(browser);
+            resolve(stack);
         },
       };
 
@@ -4151,5 +4134,20 @@ var gDragDrop = {
     }
 
     aEvent.preventDefault();
+  }
+};
+
+// Stub tabbrowser implementation for use by the tab-modal alert code
+// when an alert/prompt/confirm method is called in a WebExtensions options_ui page
+// (See Bug 1385548 for rationale).
+var gBrowser = {
+  getTabModalPromptBox(browser) {
+    const parentWindow = document.docShell.chromeEventHandler.ownerGlobal;
+
+    if (parentWindow.gBrowser) {
+      return parentWindow.gBrowser.getTabModalPromptBox(browser);
+    }
+
+    return null;
   }
 };

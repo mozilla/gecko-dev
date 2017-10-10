@@ -400,8 +400,7 @@ class AliasSet {
         Element           = 1 << 1, // A Value member of obj->elements or
                                     // a typed object.
         UnboxedElement    = 1 << 2, // An unboxed scalar or reference member of
-                                    // a typed array, typed object, or unboxed
-                                    // object.
+                                    // typed object or unboxed object.
         DynamicSlot       = 1 << 3, // A Value member of obj->slots.
         FixedSlot         = 1 << 4, // A Value member of obj->fixedSlots().
         DOMProperty       = 1 << 5, // A DOM property
@@ -459,9 +458,6 @@ class AliasSet {
     static AliasSet Store(uint32_t flags) {
         MOZ_ASSERT(flags && !(flags & Store_));
         return AliasSet(flags | Store_);
-    }
-    static uint32_t BoxedOrUnboxedElements(JSValueType type) {
-        return (type == JSVAL_TYPE_MAGIC) ? Element : UnboxedElement;
     }
 };
 
@@ -1789,8 +1785,8 @@ class MWasmFloatConstant : public MNullaryInstruction
 // Generic constructor of SIMD valuesX4.
 class MSimdValueX4
   : public MQuaternaryInstruction,
-    public Mix4Policy<SimdScalarPolicy<0>, SimdScalarPolicy<1>,
-                      SimdScalarPolicy<2>, SimdScalarPolicy<3> >::Data
+    public MixPolicy<SimdScalarPolicy<0>, SimdScalarPolicy<1>,
+                     SimdScalarPolicy<2>, SimdScalarPolicy<3> >::Data
 {
   protected:
     MSimdValueX4(MIRType type, MDefinition* x, MDefinition* y, MDefinition* z, MDefinition* w)
@@ -3838,9 +3834,9 @@ class MSimdUnbox
 // as dead code.
 class MNewDerivedTypedObject
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>,
-                      ObjectPolicy<1>,
-                      IntPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>,
+                     ObjectPolicy<1>,
+                     IntPolicy<2> >::Data
 {
   private:
     TypedObjectPrediction prediction_;
@@ -4114,7 +4110,7 @@ class MInitPropGetterSetter
 
 class MInitElem
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, BoxPolicy<1>, BoxPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, BoxPolicy<2> >::Data
 {
     MInitElem(MDefinition* obj, MDefinition* id, MDefinition* value)
       : MTernaryInstruction(classOpcode, obj, id, value)
@@ -4134,7 +4130,7 @@ class MInitElem
 
 class MInitElemGetterSetter
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, BoxPolicy<1>, ObjectPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, ObjectPolicy<2> >::Data
 {
     MInitElemGetterSetter(MDefinition* obj, MDefinition* id, MDefinition* value)
       : MTernaryInstruction(classOpcode, obj, id, value)
@@ -4345,7 +4341,7 @@ class MCallDOMNative : public MCall
 // fun.apply(self, arguments)
 class MApplyArgs
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, BoxPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>, IntPolicy<1>, BoxPolicy<2> >::Data
 {
   protected:
     // Monomorphic cache of single target from TI, or nullptr.
@@ -4382,7 +4378,7 @@ class MApplyArgs
 // fun.apply(fn, array)
 class MApplyArray
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, BoxPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1>, BoxPolicy<2> >::Data
 {
   protected:
     // Monomorphic cache of single target from TI, or nullptr.
@@ -4564,9 +4560,9 @@ class MGetDynamicName
 
 class MCallDirectEval
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>,
-                      StringPolicy<1>,
-                      BoxPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>,
+                     StringPolicy<1>,
+                     BoxPolicy<2> >::Data
 {
   protected:
     MCallDirectEval(MDefinition* envChain, MDefinition* string,
@@ -5102,7 +5098,7 @@ class MCreateThisWithTemplate
 // Given a prototype operand, construct |this| for JSOP_NEW.
 class MCreateThisWithProto
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, ObjectPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1>, ObjectPolicy<2> >::Data
 {
     MCreateThisWithProto(MDefinition* callee, MDefinition* newTarget, MDefinition* prototype)
       : MTernaryInstruction(classOpcode, callee, newTarget, prototype)
@@ -8439,9 +8435,9 @@ class MRegExp : public MNullaryInstruction
 
 class MRegExpMatcher
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>,
-                      StringPolicy<1>,
-                      IntPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>,
+                     StringPolicy<1>,
+                     IntPolicy<2> >::Data
 {
   private:
 
@@ -8471,9 +8467,9 @@ class MRegExpMatcher
 
 class MRegExpSearcher
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>,
-                      StringPolicy<1>,
-                      IntPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>,
+                     StringPolicy<1>,
+                     IntPolicy<2> >::Data
 {
   private:
 
@@ -8502,9 +8498,9 @@ class MRegExpSearcher
 
 class MRegExpTester
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>,
-                      StringPolicy<1>,
-                      IntPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>,
+                     StringPolicy<1>,
+                     IntPolicy<2> >::Data
 {
   private:
 
@@ -8595,7 +8591,7 @@ class MGetFirstDollarIndex
 
 class MStringReplace
   : public MTernaryInstruction,
-    public Mix3Policy<StringPolicy<0>, StringPolicy<1>, StringPolicy<2> >::Data
+    public MixPolicy<StringPolicy<0>, StringPolicy<1>, StringPolicy<2> >::Data
 {
   private:
 
@@ -8651,7 +8647,7 @@ class MStringReplace
 
 class MSubstr
   : public MTernaryInstruction,
-    public Mix3Policy<StringPolicy<0>, IntPolicy<1>, IntPolicy<2>>::Data
+    public MixPolicy<StringPolicy<0>, IntPolicy<1>, IntPolicy<2>>::Data
 {
   private:
 
@@ -8770,7 +8766,7 @@ class MLambda
 
 class MLambdaArrow
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, BoxPolicy<1>, ObjectPolicy<2>>::Data
+    public MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, ObjectPolicy<2>>::Data
 {
     const LambdaFunctionInfo info_;
 
@@ -9081,102 +9077,6 @@ class MSetInitializedLength
     }
 
     ALLOW_CLONE(MSetInitializedLength)
-};
-
-// Load the length from an unboxed array.
-class MUnboxedArrayLength
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MUnboxedArrayLength(MDefinition* object)
-      : MUnaryInstruction(classOpcode, object)
-    {
-        setResultType(MIRType::Int32);
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(UnboxedArrayLength)
-    TRIVIAL_NEW_WRAPPERS
-    NAMED_OPERANDS((0, object))
-
-    bool congruentTo(const MDefinition* ins) const override {
-        return congruentIfOperandsEqual(ins);
-    }
-    AliasSet getAliasSet() const override {
-        return AliasSet::Load(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MUnboxedArrayLength)
-};
-
-// Load the initialized length from an unboxed array.
-class MUnboxedArrayInitializedLength
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MUnboxedArrayInitializedLength(MDefinition* object)
-      : MUnaryInstruction(classOpcode, object)
-    {
-        setResultType(MIRType::Int32);
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(UnboxedArrayInitializedLength)
-    TRIVIAL_NEW_WRAPPERS
-    NAMED_OPERANDS((0, object))
-
-    bool congruentTo(const MDefinition* ins) const override {
-        return congruentIfOperandsEqual(ins);
-    }
-    AliasSet getAliasSet() const override {
-        return AliasSet::Load(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MUnboxedArrayInitializedLength)
-};
-
-// Increment the initialized length of an unboxed array object.
-class MIncrementUnboxedArrayInitializedLength
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MIncrementUnboxedArrayInitializedLength(MDefinition* obj)
-      : MUnaryInstruction(classOpcode, obj)
-    {}
-
-  public:
-    INSTRUCTION_HEADER(IncrementUnboxedArrayInitializedLength)
-    TRIVIAL_NEW_WRAPPERS
-    NAMED_OPERANDS((0, object))
-
-    AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MIncrementUnboxedArrayInitializedLength)
-};
-
-// Set the initialized length of an unboxed array object.
-class MSetUnboxedArrayInitializedLength
-  : public MBinaryInstruction,
-    public SingleObjectPolicy::Data
-{
-    explicit MSetUnboxedArrayInitializedLength(MDefinition* obj, MDefinition* length)
-      : MBinaryInstruction(classOpcode, obj, length)
-    {}
-
-  public:
-    INSTRUCTION_HEADER(SetUnboxedArrayInitializedLength)
-    TRIVIAL_NEW_WRAPPERS
-    NAMED_OPERANDS((0, object), (1, length))
-
-    AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::ObjectFields);
-    }
-
-    ALLOW_CLONE(MSetUnboxedArrayInitializedLength)
 };
 
 // Load the array length from an elements header.
@@ -9678,23 +9578,18 @@ class MLoadElement
     ALLOW_CLONE(MLoadElement)
 };
 
-// Load a value from the elements vector for a dense native or unboxed array.
-// If the index is out-of-bounds, or the indexed slot has a hole, undefined is
-// returned instead.
+// Load a value from the elements vector of a native object. If the index is
+// out-of-bounds, or the indexed slot has a hole, undefined is returned instead.
 class MLoadElementHole
   : public MTernaryInstruction,
     public SingleObjectPolicy::Data
 {
-    // Unboxed element type, JSVAL_TYPE_MAGIC for dense native elements.
-    JSValueType unboxedType_;
-
     bool needsNegativeIntCheck_;
     bool needsHoleCheck_;
 
     MLoadElementHole(MDefinition* elements, MDefinition* index, MDefinition* initLength,
-                     JSValueType unboxedType, bool needsHoleCheck)
+                     bool needsHoleCheck)
       : MTernaryInstruction(classOpcode, elements, index, initLength),
-        unboxedType_(unboxedType),
         needsNegativeIntCheck_(true),
         needsHoleCheck_(needsHoleCheck)
     {
@@ -9716,9 +9611,6 @@ class MLoadElementHole
     TRIVIAL_NEW_WRAPPERS
     NAMED_OPERANDS((0, elements), (1, index), (2, initLength))
 
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     bool needsNegativeIntCheck() const {
         return needsNegativeIntCheck_;
     }
@@ -9729,8 +9621,6 @@ class MLoadElementHole
         if (!ins->isLoadElementHole())
             return false;
         const MLoadElementHole* other = ins->toLoadElementHole();
-        if (unboxedType() != other->unboxedType())
-            return false;
         if (needsHoleCheck() != other->needsHoleCheck())
             return false;
         if (needsNegativeIntCheck() != other->needsNegativeIntCheck())
@@ -9738,7 +9628,7 @@ class MLoadElementHole
         return congruentIfOperandsEqual(other);
     }
     AliasSet getAliasSet() const override {
-        return AliasSet::Load(AliasSet::BoxedOrUnboxedElements(unboxedType()));
+        return AliasSet::Load(AliasSet::Element);
     }
     void collectRangeInfoPreTrunc() override;
 
@@ -9940,21 +9830,18 @@ class MStoreElement
     ALLOW_CLONE(MStoreElement)
 };
 
-// Like MStoreElement, but supports indexes >= initialized length, and can
-// handle unboxed arrays. The downside is that we cannot hoist the elements
-// vector and bounds check, since this instruction may update the (initialized)
-// length and reallocate the elements vector.
+// Like MStoreElement, but supports indexes >= initialized length. The downside
+// is that we cannot hoist the elements vector and bounds check, since this
+// instruction may update the (initialized) length and reallocate the elements
+// vector.
 class MStoreElementHole
   : public MQuaternaryInstruction,
     public MStoreElementCommon,
     public MixPolicy<SingleObjectPolicy, NoFloatPolicy<3> >::Data
 {
-    JSValueType unboxedType_;
-
     MStoreElementHole(MDefinition* object, MDefinition* elements,
-                      MDefinition* index, MDefinition* value, JSValueType unboxedType)
-      : MQuaternaryInstruction(classOpcode, object, elements, index, value), 
-        unboxedType_(unboxedType)
+                      MDefinition* index, MDefinition* value)
+      : MQuaternaryInstruction(classOpcode, object, elements, index, value)
     {
         MOZ_ASSERT(elements->type() == MIRType::Elements);
         MOZ_ASSERT(index->type() == MIRType::Int32);
@@ -9965,14 +9852,10 @@ class MStoreElementHole
     TRIVIAL_NEW_WRAPPERS
     NAMED_OPERANDS((0, object), (1, elements), (2, index), (3, value))
 
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     AliasSet getAliasSet() const override {
         // StoreElementHole can update the initialized length, the array length
         // or reallocate obj->elements.
-        return AliasSet::Store(AliasSet::ObjectFields |
-                               AliasSet::BoxedOrUnboxedElements(unboxedType()));
+        return AliasSet::Store(AliasSet::ObjectFields | AliasSet::Element);
     }
 
     ALLOW_CLONE(MStoreElementHole)
@@ -9985,14 +9868,12 @@ class MFallibleStoreElement
     public MStoreElementCommon,
     public MixPolicy<SingleObjectPolicy, NoFloatPolicy<3> >::Data
 {
-    JSValueType unboxedType_;
     bool strict_;
 
     MFallibleStoreElement(MDefinition* object, MDefinition* elements,
                           MDefinition* index, MDefinition* value,
-                          JSValueType unboxedType, bool strict)
+                          bool strict)
       : MQuaternaryInstruction(classOpcode, object, elements, index, value),
-        unboxedType_(unboxedType),
         strict_(strict)
     {
         MOZ_ASSERT(elements->type() == MIRType::Elements);
@@ -10004,12 +9885,8 @@ class MFallibleStoreElement
     TRIVIAL_NEW_WRAPPERS
     NAMED_OPERANDS((0, object), (1, elements), (2, index), (3, value))
 
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::ObjectFields |
-                               AliasSet::BoxedOrUnboxedElements(unboxedType()));
+        return AliasSet::Store(AliasSet::ObjectFields | AliasSet::Element);
     }
     bool strict() const {
         return strict_;
@@ -10164,13 +10041,12 @@ class MArrayPopShift
 
   private:
     Mode mode_;
-    JSValueType unboxedType_;
     bool needsHoleCheck_;
     bool maybeUndefined_;
 
-    MArrayPopShift(MDefinition* object, Mode mode, JSValueType unboxedType,
+    MArrayPopShift(MDefinition* object, Mode mode,
                    bool needsHoleCheck, bool maybeUndefined)
-      : MUnaryInstruction(classOpcode, object), mode_(mode), unboxedType_(unboxedType),
+      : MUnaryInstruction(classOpcode, object), mode_(mode),
         needsHoleCheck_(needsHoleCheck), maybeUndefined_(maybeUndefined)
     { }
 
@@ -10188,12 +10064,8 @@ class MArrayPopShift
     bool mode() const {
         return mode_;
     }
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::ObjectFields |
-                               AliasSet::BoxedOrUnboxedElements(unboxedType()));
+        return AliasSet::Store(AliasSet::ObjectFields | AliasSet::Element);
     }
 
     ALLOW_CLONE(MArrayPopShift)
@@ -10204,11 +10076,8 @@ class MArrayPush
   : public MBinaryInstruction,
     public MixPolicy<SingleObjectPolicy, NoFloatPolicy<1> >::Data
 {
-    JSValueType unboxedType_;
-
-    MArrayPush(MDefinition* object, MDefinition* value, JSValueType unboxedType)
-      : MBinaryInstruction(classOpcode, object, value),
-        unboxedType_(unboxedType)
+    MArrayPush(MDefinition* object, MDefinition* value)
+      : MBinaryInstruction(classOpcode, object, value)
     {
         setResultType(MIRType::Int32);
     }
@@ -10218,12 +10087,8 @@ class MArrayPush
     TRIVIAL_NEW_WRAPPERS
     NAMED_OPERANDS((0, object), (1, value))
 
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::ObjectFields |
-                               AliasSet::BoxedOrUnboxedElements(unboxedType()));
+        return AliasSet::Store(AliasSet::ObjectFields | AliasSet::Element);
     }
     void computeRange(TempAllocator& alloc) override;
 
@@ -10233,19 +10098,17 @@ class MArrayPush
 // Array.prototype.slice on a dense array.
 class MArraySlice
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, IntPolicy<2>>::Data
+    public MixPolicy<ObjectPolicy<0>, IntPolicy<1>, IntPolicy<2>>::Data
 {
     CompilerObject templateObj_;
     gc::InitialHeap initialHeap_;
-    JSValueType unboxedType_;
 
     MArraySlice(CompilerConstraintList* constraints, MDefinition* obj,
                 MDefinition* begin, MDefinition* end,
-                JSObject* templateObj, gc::InitialHeap initialHeap, JSValueType unboxedType)
+                JSObject* templateObj, gc::InitialHeap initialHeap)
       : MTernaryInstruction(classOpcode, obj, begin, end),
         templateObj_(templateObj),
-        initialHeap_(initialHeap),
-        unboxedType_(unboxedType)
+        initialHeap_(initialHeap)
     {
         setResultType(MIRType::Object);
     }
@@ -10263,13 +10126,8 @@ class MArraySlice
         return initialHeap_;
     }
 
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
-
     AliasSet getAliasSet() const override {
-        return AliasSet::Store(AliasSet::BoxedOrUnboxedElements(unboxedType()) |
-                               AliasSet::ObjectFields);
+        return AliasSet::Store(AliasSet::Element | AliasSet::ObjectFields);
     }
     bool possiblyCalls() const override {
         return true;
@@ -12175,7 +12033,7 @@ class MCallSetProperty
 
 class MSetPropertyCache
   : public MTernaryInstruction,
-    public Mix3Policy<SingleObjectPolicy, CacheIdPolicy<1>, NoFloatPolicy<2>>::Data
+    public MixPolicy<SingleObjectPolicy, CacheIdPolicy<1>, NoFloatPolicy<2>>::Data
 {
     bool strict_ : 1;
     bool needsPostBarrier_ : 1;
@@ -12296,7 +12154,7 @@ class MCallSetElement
 
 class MCallInitElementArray
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, BoxPolicy<2> >::Data
+    public MixPolicy<ObjectPolicy<0>, IntPolicy<1>, BoxPolicy<2> >::Data
 {
     MCallInitElementArray(MDefinition* obj, MDefinition* index, MDefinition* val)
       : MTernaryInstruction(classOpcode, obj, index, val)
@@ -12804,15 +12662,13 @@ class MInArray
 {
     bool needsHoleCheck_;
     bool needsNegativeIntCheck_;
-    JSValueType unboxedType_;
 
     MInArray(MDefinition* elements, MDefinition* index,
              MDefinition* initLength, MDefinition* object,
-             bool needsHoleCheck, JSValueType unboxedType)
+             bool needsHoleCheck)
       : MQuaternaryInstruction(classOpcode, elements, index, initLength, object),
         needsHoleCheck_(needsHoleCheck),
-        needsNegativeIntCheck_(true),
-        unboxedType_(unboxedType)
+        needsNegativeIntCheck_(true)
     {
         setResultType(MIRType::Boolean);
         setMovable();
@@ -12832,9 +12688,6 @@ class MInArray
     bool needsNegativeIntCheck() const {
         return needsNegativeIntCheck_;
     }
-    JSValueType unboxedType() const {
-        return unboxedType_;
-    }
     void collectRangeInfoPreTrunc() override;
     AliasSet getAliasSet() const override {
         return AliasSet::Load(AliasSet::Element);
@@ -12846,8 +12699,6 @@ class MInArray
         if (needsHoleCheck() != other->needsHoleCheck())
             return false;
         if (needsNegativeIntCheck() != other->needsNegativeIntCheck())
-            return false;
-        if (unboxedType() != other->unboxedType())
             return false;
         return congruentIfOperandsEqual(other);
     }
@@ -13296,27 +13147,22 @@ class MNewNamedLambdaObject : public MNullaryInstruction
     }
 };
 
-class MNewCallObjectBase : public MNullaryInstruction
+class MNewCallObjectBase : public MUnaryInstruction
+                         , public SingleObjectPolicy::Data
 {
-    CompilerGCPointer<CallObject*> templateObj_;
-
   protected:
-    MNewCallObjectBase(Opcode op, CallObject* templateObj)
-      : MNullaryInstruction(op),
-        templateObj_(templateObj)
+    MNewCallObjectBase(Opcode op, MConstant* templateObj)
+      : MUnaryInstruction(op, templateObj)
     {
         setResultType(MIRType::Object);
     }
 
   public:
-    CallObject* templateObject() {
-        return templateObj_;
+    CallObject* templateObject() const {
+        return &getOperand(0)->toConstant()->toObject().as<CallObject>();
     }
     AliasSet getAliasSet() const override {
         return AliasSet::None();
-    }
-    bool appendRoots(MRootList& roots) const override {
-        return roots.append(templateObj_);
     }
 };
 
@@ -13324,17 +13170,17 @@ class MNewCallObject : public MNewCallObjectBase
 {
   public:
     INSTRUCTION_HEADER(NewCallObject)
+    TRIVIAL_NEW_WRAPPERS
 
-    explicit MNewCallObject(CallObject* templateObj)
+    explicit MNewCallObject(MConstant* templateObj)
       : MNewCallObjectBase(classOpcode, templateObj)
     {
-        MOZ_ASSERT(!templateObj->isSingleton());
+        MOZ_ASSERT(!templateObject()->isSingleton());
     }
 
-    static MNewCallObject*
-    New(TempAllocator& alloc, CallObject* templateObj)
-    {
-        return new(alloc) MNewCallObject(templateObj);
+    MOZ_MUST_USE bool writeRecoverData(CompactBufferWriter& writer) const override;
+    bool canRecoverOnBailout() const override {
+        return true;
     }
 };
 
@@ -13342,16 +13188,11 @@ class MNewSingletonCallObject : public MNewCallObjectBase
 {
   public:
     INSTRUCTION_HEADER(NewSingletonCallObject)
+    TRIVIAL_NEW_WRAPPERS
 
-    explicit MNewSingletonCallObject(CallObject* templateObj)
+    explicit MNewSingletonCallObject(MConstant* templateObj)
       : MNewCallObjectBase(classOpcode, templateObj)
     {}
-
-    static MNewSingletonCallObject*
-    New(TempAllocator& alloc, CallObject* templateObj)
-    {
-        return new(alloc) MNewSingletonCallObject(templateObj);
-    }
 };
 
 class MNewStringObject :
@@ -13873,7 +13714,7 @@ public:
 
 class MCompareExchangeTypedArrayElement
   : public MQuaternaryInstruction,
-    public Mix4Policy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2>, TruncateToInt32Policy<3>>::Data
+    public MixPolicy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2>, TruncateToInt32Policy<3>>::Data
 {
     Scalar::Type arrayType_;
 
@@ -13908,7 +13749,7 @@ class MCompareExchangeTypedArrayElement
 
 class MAtomicExchangeTypedArrayElement
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2>>::Data
+    public MixPolicy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2>>::Data
 {
     Scalar::Type arrayType_;
 
@@ -13940,7 +13781,7 @@ class MAtomicExchangeTypedArrayElement
 
 class MAtomicTypedArrayElementBinop
   : public MTernaryInstruction,
-    public Mix3Policy< ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2> >::Data
+    public MixPolicy< ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2> >::Data
 {
   private:
     AtomicOp op_;
@@ -14080,7 +13921,7 @@ class MDebugCheckSelfHosted
 
 class MFinishBoundFunctionInit
   : public MTernaryInstruction,
-    public Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, IntPolicy<2>>::Data
+    public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1>, IntPolicy<2>>::Data
 {
     MFinishBoundFunctionInit(MDefinition* bound, MDefinition* target, MDefinition* argCount)
       : MTernaryInstruction(classOpcode, bound, target, argCount)
@@ -15066,8 +14907,6 @@ MDefinition::maybeConstantValue()
 
 bool ElementAccessIsDenseNative(CompilerConstraintList* constraints,
                                 MDefinition* obj, MDefinition* id);
-JSValueType UnboxedArrayElementType(CompilerConstraintList* constraints, MDefinition* obj,
-                                    MDefinition* id);
 bool ElementAccessIsTypedArray(CompilerConstraintList* constraints,
                                MDefinition* obj, MDefinition* id,
                                Scalar::Type* arrayType);

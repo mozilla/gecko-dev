@@ -10,15 +10,6 @@
  * designed to be used as input to the C preprocessor *only*.
  */
 
-DEPRECATED_OPERATION(GetAttributeNode)
-DEPRECATED_OPERATION(SetAttributeNode)
-DEPRECATED_OPERATION(GetAttributeNodeNS)
-DEPRECATED_OPERATION(SetAttributeNodeNS)
-DEPRECATED_OPERATION(RemoveAttributeNode)
-DEPRECATED_OPERATION(CreateAttribute)
-DEPRECATED_OPERATION(CreateAttributeNS)
-DEPRECATED_OPERATION(NodeValue)
-DEPRECATED_OPERATION(TextContent)
 DEPRECATED_OPERATION(EnablePrivilege)
 DEPRECATED_OPERATION(DOMExceptionCode)
 DEPRECATED_OPERATION(MutationEvent)
@@ -49,5 +40,4 @@ DEPRECATED_OPERATION(FileLastModifiedDate)
 DEPRECATED_OPERATION(ImageBitmapRenderingContext_TransferImageBitmap)
 DEPRECATED_OPERATION(URLCreateObjectURL_MediaStream)
 DEPRECATED_OPERATION(XMLBaseAttribute)
-DEPRECATED_OPERATION(XMLBaseAttributeForStyleAttr)
 DEPRECATED_OPERATION(WindowContentUntrusted)

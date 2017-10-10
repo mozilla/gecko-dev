@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsString.h"
 #include "jsapi.h"
 #include "nsIContent.h"
@@ -213,7 +213,7 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
       mGetter.SetJSFunction(getterObject);
 
       if (mGetter.GetJSFunction() && NS_SUCCEEDED(rv)) {
-        mJSAttributes |= JSPROP_GETTER | JSPROP_SHARED;
+        mJSAttributes |= JSPROP_GETTER;
       }
       if (NS_FAILED(rv)) {
         mGetter.SetJSFunction(nullptr);
@@ -259,7 +259,7 @@ nsXBLProtoImplProperty::CompileMember(AutoJSAPI& jsapi, const nsString& aClassSt
       mSetter.SetJSFunction(setterObject);
 
       if (mSetter.GetJSFunction() && NS_SUCCEEDED(rv)) {
-        mJSAttributes |= JSPROP_SETTER | JSPROP_SHARED;
+        mJSAttributes |= JSPROP_SETTER;
       }
       if (NS_FAILED(rv)) {
         mSetter.SetJSFunction(nullptr);
@@ -308,7 +308,7 @@ nsXBLProtoImplProperty::Read(nsIObjectInputStream* aStream,
     nsresult rv = XBL_DeserializeFunction(aStream, &getterObject);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mJSAttributes |= JSPROP_GETTER | JSPROP_SHARED;
+    mJSAttributes |= JSPROP_GETTER;
   }
   mGetter.SetJSFunction(getterObject);
 
@@ -318,7 +318,7 @@ nsXBLProtoImplProperty::Read(nsIObjectInputStream* aStream,
     nsresult rv = XBL_DeserializeFunction(aStream, &setterObject);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mJSAttributes |= JSPROP_SETTER | JSPROP_SHARED;
+    mJSAttributes |= JSPROP_SETTER;
   }
   mSetter.SetJSFunction(setterObject);
 

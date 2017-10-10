@@ -1229,7 +1229,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   LazyMarkLinesDirty();
 
-  mState &= ~NS_FRAME_FIRST_REFLOW;
+  RemoveStateBits(NS_FRAME_FIRST_REFLOW);
 
   // Now reflow...
   ReflowDirtyLines(state);
@@ -3060,7 +3060,7 @@ nsBlockFrame::MoveChildFramesOfLine(nsLineBox* aLine, nscoord aDeltaBCoord)
 
 nsresult
 nsBlockFrame::AttributeChanged(int32_t         aNameSpaceID,
-                               nsIAtom*        aAttribute,
+                               nsAtom*        aAttribute,
                                int32_t         aModType)
 {
   nsresult rv = nsContainerFrame::AttributeChanged(aNameSpaceID,
@@ -5268,6 +5268,14 @@ nsBlockFrame::AppendFrames(ChildListID  aListID,
   printf("\n");
 #endif
 
+  if (nsSVGUtils::IsInSVGTextSubtree(this)) {
+    MOZ_ASSERT(GetParent()->IsSVGTextFrame(),
+               "unexpected block frame in SVG text");
+    // Workaround for bug 1399425 in case this bit has been removed from the
+    // SVGTextFrame just before the parser adds more descendant nodes.
+    GetParent()->AddStateBits(NS_STATE_SVG_TEXT_CORRESPONDENCE_DIRTY);
+  }
+
   AddFrames(aFrameList, lastKid);
   if (aListID != kNoReflowPrincipalList) {
     PresContext()->PresShell()->
@@ -7070,7 +7078,7 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
     // the anonymous block in {ib} splits do NOT get first-letter frames.
     // Note that NS_BLOCK_HAS_FIRST_LETTER_STYLE gets set on all continuations
     // of the block.
-    nsIAtom *pseudo = StyleContext()->GetPseudo();
+    nsAtom *pseudo = StyleContext()->GetPseudo();
     bool haveFirstLetterStyle =
       (!pseudo ||
        (pseudo == nsCSSAnonBoxes::cellContent &&
@@ -7573,6 +7581,12 @@ nsBlockFrame::ResolveBidi()
 void
 nsBlockFrame::UpdatePseudoElementStyles(ServoRestyleState& aRestyleState)
 {
+  // first-letter needs to be updated before first-line, because first-line can
+  // change the style of the first-letter.
+  if (HasFirstLetterChild()) {
+    UpdateFirstLetterStyle(aRestyleState);
+  }
+
   if (nsBulletFrame* bullet = GetBullet()) {
     CSSPseudoElementType type = bullet->StyleContext()->GetPseudoType();
     RefPtr<nsStyleContext> newBulletStyle =

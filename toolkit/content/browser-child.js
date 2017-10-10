@@ -186,6 +186,9 @@ var WebProgressListener = {
       json.principal = content.document.nodePrincipal;
       json.synthetic = content.document.mozSyntheticDocument;
       json.inLoadURI = WebNavigation.inLoadURI;
+      json.requestContextID = content.document.documentLoadGroup
+        ? content.document.documentLoadGroup.requestContextID
+        : null;
 
       if (AppConstants.MOZ_CRASHREPORTER && CrashReporter.enabled) {
         let uri = aLocationURI.clone();
@@ -257,6 +260,8 @@ var WebNavigation =  {
     addMessageListener("WebNavigation:SetOriginAttributes", this);
     addMessageListener("WebNavigation:Reload", this);
     addMessageListener("WebNavigation:Stop", this);
+    // This message is used for measuring content process startup performance.
+    sendAsyncMessage("Content:BrowserChildReady", { time: Services.telemetry.msSystemNow() });
   },
 
   get webNavigation() {

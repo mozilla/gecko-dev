@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{BuiltDisplayList, ClipAndScrollInfo, ClipId, ColorF, DeviceIntPoint, ImageKey};
+use api::{ClipAndScrollInfo, ClipId, ColorF, DeviceIntPoint, ImageKey};
 use api::{DeviceIntRect, DeviceIntSize, DeviceUintPoint, DeviceUintSize};
 use api::{ExternalImageType, FilterOp, FontRenderMode, ImageRendering, LayerRect};
 use api::{LayerToWorldTransform, MixBlendMode, PipelineId, PropertyBinding, TransformStyle};
@@ -33,8 +33,6 @@ use util::{TransformedRect, TransformedRectKind};
 const OPAQUE_TASK_ADDRESS: RenderTaskAddress = RenderTaskAddress(i32::MAX as u32);
 const MIN_TARGET_SIZE: u32 = 2048;
 
-pub type DisplayListMap = FastHashMap<PipelineId, BuiltDisplayList>;
-
 trait AlphaBatchHelpers {
     fn get_blend_mode(
         &self,
@@ -57,14 +55,16 @@ impl AlphaBatchHelpers for PrimitiveStore {
                 let text_run_cpu = &self.cpu_text_runs[metadata.cpu_prim_index.0];
                 match text_run_cpu.font.render_mode {
                     FontRenderMode::Subpixel => BlendMode::Subpixel(text_run_cpu.color),
-                    FontRenderMode::Alpha | FontRenderMode::Mono => BlendMode::Alpha,
+                    FontRenderMode::Alpha |
+                    FontRenderMode::Mono |
+                    FontRenderMode::Bitmap => BlendMode::Alpha,
                 }
             }
             PrimitiveKind::Image |
             PrimitiveKind::AlignedGradient |
             PrimitiveKind::AngleGradient |
             PrimitiveKind::RadialGradient |
-            PrimitiveKind::TextShadow => if needs_blending {
+            PrimitiveKind::Shadow => if needs_blending {
                 BlendMode::PremultipliedAlpha
             } else {
                 BlendMode::None
@@ -359,9 +359,7 @@ impl AlphaRenderItem {
                     }
                     None => (TransformedRectKind::AxisAligned, PackedLayerIndex(0)),
                 };
-                let item_bounding_rect = ctx.prim_store.cpu_bounding_rects[prim_index.0]
-                    .as_ref()
-                    .unwrap();
+                let item_bounding_rect = prim_metadata.screen_rect.as_ref().unwrap();
                 let prim_cache_address = gpu_cache.get_address(&prim_metadata.gpu_location);
                 let no_textures = BatchTextures::no_texture();
                 let clip_task_address = prim_metadata
@@ -543,10 +541,10 @@ impl AlphaRenderItem {
                             },
                         );
                     }
-                    PrimitiveKind::TextShadow => {
-                        let text_shadow =
-                            &ctx.prim_store.cpu_text_shadows[prim_metadata.cpu_prim_index.0];
-                        let cache_task_id = text_shadow.render_task_id.expect("no render task!");
+                    PrimitiveKind::Shadow => {
+                        let shadow =
+                            &ctx.prim_store.cpu_shadows[prim_metadata.cpu_prim_index.0];
+                        let cache_task_id = shadow.render_task_id.expect("no render task!");
                         let cache_task_address = render_tasks.get_task_address(cache_task_id);
                         let textures = BatchTextures::render_target_cache();
                         let kind = BatchKind::Transformable(
@@ -1142,8 +1140,8 @@ impl RenderTarget for ColorRenderTarget {
                 let prim_address = prim_metadata.gpu_location.as_int(gpu_cache);
 
                 match prim_metadata.prim_kind {
-                    PrimitiveKind::TextShadow => {
-                        let prim = &ctx.prim_store.cpu_text_shadows[prim_metadata.cpu_prim_index.0];
+                    PrimitiveKind::Shadow => {
+                        let prim = &ctx.prim_store.cpu_shadows[prim_metadata.cpu_prim_index.0];
 
                         let task_index = render_tasks.get_task_address(task_id);
 
@@ -1162,8 +1160,8 @@ impl RenderTarget for ColorRenderTarget {
                             match sub_metadata.prim_kind {
                                 PrimitiveKind::TextRun => {
                                     // Add instances that reference the text run GPU location. Also supply
-                                    // the parent text-shadow prim address as a user data field, allowing
-                                    // the shader to fetch the text-shadow parameters.
+                                    // the parent shadow prim address as a user data field, allowing
+                                    // the shader to fetch the shadow parameters.
                                     let text = &ctx.prim_store.cpu_text_runs
                                         [sub_metadata.cpu_prim_index.0];
                                     let text_run_cache_prims = &mut self.text_run_cache_prims;

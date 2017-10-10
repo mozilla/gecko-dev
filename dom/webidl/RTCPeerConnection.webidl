@@ -8,7 +8,7 @@
  */
 
 callback RTCSessionDescriptionCallback = void (RTCSessionDescriptionInit description);
-callback RTCPeerConnectionErrorCallback = void (DOMError error);
+callback RTCPeerConnectionErrorCallback = void (DOMException error);
 callback RTCStatsCallback = void (RTCStatsReport report);
 
 enum RTCSignalingState {
@@ -35,6 +35,18 @@ enum RTCIceConnectionState {
     "disconnected",
     "closed"
 };
+
+enum mozPacketDumpType {
+  "rtp", // dump unencrypted rtp as the MediaPipeline sees it
+  "srtp", // dump encrypted rtp as the MediaPipeline sees it
+  "rtcp", // dump unencrypted rtcp as the MediaPipeline sees it
+  "srtcp" // dump encrypted rtcp as the MediaPipeline sees it
+};
+
+callback mozPacketCallback = void (unsigned long level,
+                                   mozPacketDumpType type,
+                                   boolean sending,
+                                   ArrayBuffer packet);
 
 dictionary RTCDataChannelInit {
   boolean        ordered = true;
@@ -123,6 +135,16 @@ interface RTCPeerConnection : EventTarget  {
   void mozAddRIDExtension(RTCRtpReceiver receiver, unsigned short extensionId);
   [ChromeOnly]
   void mozAddRIDFilter(RTCRtpReceiver receiver, DOMString rid);
+  [ChromeOnly]
+  void mozSetPacketCallback(mozPacketCallback callback);
+  [ChromeOnly]
+  void mozEnablePacketDump(unsigned long level,
+                           mozPacketDumpType type,
+                           boolean sending);
+  [ChromeOnly]
+  void mozDisablePacketDump(unsigned long level,
+                            mozPacketDumpType type,
+                            boolean sending);
 
   void close ();
   attribute EventHandler onnegotiationneeded;

@@ -3,19 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{ColorU, FontKey, FontRenderMode, GlyphDimensions};
-use api::{FontInstance, NativeFontHandle};
+use api::{FontInstance, FontVariation, NativeFontHandle};
 use api::GlyphKey;
 use app_units::Au;
-use core_graphics::base::{kCGImageAlphaNoneSkipFirst, kCGImageAlphaPremultipliedLast};
+use core_foundation::array::{CFArray, CFArrayRef};
+use core_foundation::base::TCFType;
+use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
+use core_foundation::number::{CFNumber, CFNumberRef};
+use core_foundation::string::{CFString, CFStringRef};
+use core_graphics::base::{kCGImageAlphaNoneSkipFirst, kCGImageAlphaPremultipliedFirst, kCGImageAlphaPremultipliedLast};
 use core_graphics::base::kCGBitmapByteOrder32Little;
 use core_graphics::color_space::CGColorSpace;
 use core_graphics::context::{CGContext, CGTextDrawingMode};
 use core_graphics::data_provider::CGDataProvider;
-use core_graphics::font::{CGFont, CGGlyph};
+use core_graphics::font::{CGFont, CGFontRef, CGGlyph};
 use core_graphics::geometry::{CGPoint, CGRect, CGSize};
 use core_text;
-use core_text::font::CTFont;
-use core_text::font_descriptor::kCTFontDefaultOrientation;
+use core_text::font::{CTFont, CTFontRef};
+use core_text::font_descriptor::{kCTFontDefaultOrientation, kCTFontColorGlyphsTrait};
 use gamma_lut::{Color as ColorLut, GammaLut};
 use internal_types::FastHashMap;
 use std::collections::hash_map::Entry;
@@ -24,7 +29,7 @@ use std::sync::Arc;
 
 pub struct FontContext {
     cg_fonts: FastHashMap<FontKey, CGFont>,
-    ct_fonts: FastHashMap<(FontKey, Au), CTFont>,
+    ct_fonts: FastHashMap<(FontKey, Au, Vec<FontVariation>), CTFont>,
     gamma_lut: GammaLut,
 }
 
@@ -147,6 +152,117 @@ fn get_glyph_metrics(
     metrics
 }
 
+#[link(name = "ApplicationServices", kind = "framework")]
+extern {
+    static kCTFontVariationAxisIdentifierKey: CFStringRef;
+    static kCTFontVariationAxisNameKey: CFStringRef;
+    static kCTFontVariationAxisMinimumValueKey: CFStringRef;
+    static kCTFontVariationAxisMaximumValueKey: CFStringRef;
+    static kCTFontVariationAxisDefaultValueKey: CFStringRef;
+
+    fn CTFontCopyVariationAxes(font: CTFontRef) -> CFArrayRef;
+
+    fn CGFontCreateCopyWithVariations(font: CGFontRef, vars: CFDictionaryRef) -> CGFontRef;
+}
+
+fn new_ct_font_with_variations(cg_font: &CGFont, size: Au, variations: &[FontVariation]) -> CTFont {
+    unsafe {
+        let ct_font = core_text::font::new_from_CGFont(cg_font, size.to_f64_px());
+        if variations.is_empty() {
+            return ct_font;
+        }
+        let axes_ref = CTFontCopyVariationAxes(ct_font.as_concrete_TypeRef());
+        if axes_ref.is_null() {
+            return ct_font;
+        }
+        let axes: CFArray = TCFType::wrap_under_create_rule(axes_ref);
+        let mut vals: Vec<(CFString, CFNumber)> = Vec::with_capacity(variations.len() as usize);
+        for axis_ptr in axes.iter() {
+            let axis: CFDictionary = TCFType::wrap_under_get_rule(axis_ptr as CFDictionaryRef);
+            if !axis.instance_of::<CFDictionaryRef, CFDictionary>() {
+                return ct_font;
+            }
+            let tag_val = match axis.find(kCTFontVariationAxisIdentifierKey as *const _) {
+                Some(tag_ptr) => {
+                    let tag: CFNumber = TCFType::wrap_under_get_rule(tag_ptr as CFNumberRef);
+                    if !tag.instance_of::<CFNumberRef, CFNumber>() {
+                        return ct_font;
+                    }
+                    match tag.to_i64() {
+                        Some(val) => val,
+                        None => return ct_font,
+                    }
+                }
+                None => return ct_font,
+            };
+            let mut val = match variations.iter().find(|variation| (variation.tag as i64) == tag_val) {
+                Some(variation) => variation.value as f64,
+                None => continue,
+            };
+
+            let name: CFString = match axis.find(kCTFontVariationAxisNameKey as *const _) {
+                Some(name_ptr) => TCFType::wrap_under_get_rule(name_ptr as CFStringRef),
+                None => return ct_font,
+            };
+            if !name.instance_of::<CFStringRef, CFString>() {
+                return ct_font;
+            }
+
+            let min_val = match axis.find(kCTFontVariationAxisMinimumValueKey as *const _) {
+                Some(min_ptr) => {
+                    let min: CFNumber = TCFType::wrap_under_get_rule(min_ptr as CFNumberRef);
+                    if !min.instance_of::<CFNumberRef, CFNumber>() {
+                        return ct_font;
+                    }
+                    match min.to_f64() {
+                        Some(val) => val,
+                        None => return ct_font,
+                    }
+                }
+                None => return ct_font,
+            };
+            let max_val = match axis.find(kCTFontVariationAxisMaximumValueKey as *const _) {
+                Some(max_ptr) => {
+                    let max: CFNumber = TCFType::wrap_under_get_rule(max_ptr as CFNumberRef);
+                    if !max.instance_of::<CFNumberRef, CFNumber>() {
+                        return ct_font;
+                    }
+                    match max.to_f64() {
+                        Some(val) => val,
+                        None => return ct_font,
+                    }
+                }
+                None => return ct_font,
+            };
+            let def_val = match axis.find(kCTFontVariationAxisDefaultValueKey as *const _) {
+                Some(def_ptr) => {
+                    let def: CFNumber = TCFType::wrap_under_get_rule(def_ptr as CFNumberRef);
+                    if !def.instance_of::<CFNumberRef, CFNumber>() {
+                        return ct_font;
+                    }
+                    match def.to_f64() {
+                        Some(val) => val,
+                        None => return ct_font,
+                    }
+                }
+                None => return ct_font,
+            };
+
+            val = val.max(min_val).min(max_val);
+            if val != def_val {
+                vals.push((name, CFNumber::from_f64(val)));
+            }
+        }
+        if vals.is_empty() {
+            return ct_font;
+        }
+        let vals_dict = CFDictionary::from_CFType_pairs(&vals);
+        let cg_var_font_ref = CGFontCreateCopyWithVariations(cg_font.as_concrete_TypeRef(), vals_dict.as_concrete_TypeRef());
+        let cg_var_font: CGFont = TCFType::wrap_under_create_rule(cg_var_font_ref);
+        core_text::font::new_from_CGFont(&cg_var_font, size.to_f64_px())
+    }
+}
+
 impl FontContext {
     pub fn new() -> FontContext {
         debug!("Test for subpixel AA support: {}", supports_subpixel_aa());
@@ -204,15 +320,20 @@ impl FontContext {
         }
     }
 
-    fn get_ct_font(&mut self, font_key: FontKey, size: Au) -> Option<CTFont> {
-        match self.ct_fonts.entry(((font_key).clone(), size)) {
+    fn get_ct_font(
+        &mut self,
+        font_key: FontKey,
+        size: Au,
+        variations: &[FontVariation],
+    ) -> Option<CTFont> {
+        match self.ct_fonts.entry((font_key, size, variations.to_vec())) {
             Entry::Occupied(entry) => Some((*entry.get()).clone()),
             Entry::Vacant(entry) => {
                 let cg_font = match self.cg_fonts.get(&font_key) {
                     None => return None,
                     Some(cg_font) => cg_font,
                 };
-                let ct_font = core_text::font::new_from_CGFont(cg_font, size.to_f64_px());
+                let ct_font = new_ct_font_with_variations(cg_font, size, variations);
                 entry.insert(ct_font.clone());
                 Some(ct_font)
             }
@@ -223,7 +344,7 @@ impl FontContext {
         let character = ch as u16;
         let mut glyph = 0;
 
-        self.get_ct_font(font_key, Au(16 * 60))
+        self.get_ct_font(font_key, Au(16 * 60), &[])
             .and_then(|ref ct_font| {
                 let result = ct_font.get_glyphs_for_characters(&character, &mut glyph, 1);
 
@@ -240,7 +361,7 @@ impl FontContext {
         font: &FontInstance,
         key: &GlyphKey,
     ) -> Option<GlyphDimensions> {
-        self.get_ct_font(font.font_key, font.size)
+        self.get_ct_font(font.font_key, font.size, &font.variations)
             .and_then(|ref ct_font| {
                 let glyph = key.index as CGGlyph;
                 let (x_offset, y_offset) = font.get_subpx_offset(key);
@@ -301,12 +422,24 @@ impl FontContext {
         }
     }
 
+    pub fn is_bitmap_font(&mut self, font_key: FontKey) -> bool {
+        match self.get_ct_font(font_key, Au(16 * 60), &[]) {
+            Some(ref ct_font) => {
+                let traits = ct_font.symbolic_traits();
+                (traits & kCTFontColorGlyphsTrait) != 0
+            }
+            None => {
+                false
+            }
+        }
+    }
+
     pub fn rasterize_glyph(
         &mut self,
         font: &FontInstance,
         key: &GlyphKey,
     ) -> Option<RasterizedGlyph> {
-        let ct_font = match self.get_ct_font(font.font_key, font.size) {
+        let ct_font = match self.get_ct_font(font.font_key, font.size, &font.variations) {
             Some(font) => font,
             None => return Some(RasterizedGlyph::blank()),
         };
@@ -319,8 +452,15 @@ impl FontContext {
         }
 
         let context_flags = match font.render_mode {
-            FontRenderMode::Subpixel => kCGBitmapByteOrder32Little | kCGImageAlphaNoneSkipFirst,
-            FontRenderMode::Alpha | FontRenderMode::Mono => kCGImageAlphaPremultipliedLast,
+            FontRenderMode::Subpixel => {
+                kCGBitmapByteOrder32Little | kCGImageAlphaNoneSkipFirst
+            }
+            FontRenderMode::Alpha | FontRenderMode::Mono => {
+                kCGImageAlphaPremultipliedLast
+            }
+            FontRenderMode::Bitmap => {
+                kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst
+            }
         };
 
         let mut cg_context = CGContext::create_bitmap_context(
@@ -355,10 +495,11 @@ impl FontContext {
         // For alpha/mono, WR ignores all channels other than alpha.
         // Also note that WR expects text to be black bg with white text, so invert
         // when we draw the glyphs.
-        let (antialias, smooth) = match font.render_mode {
-            FontRenderMode::Subpixel => (true, true),
-            FontRenderMode::Alpha => (true, false),
-            FontRenderMode::Mono => (false, false),
+        let (antialias, smooth, bg_color) = match font.render_mode {
+            FontRenderMode::Subpixel => (true, true, 1.0),
+            FontRenderMode::Alpha => (true, false, 1.0),
+            FontRenderMode::Bitmap => (true, false, 0.0),
+            FontRenderMode::Mono => (false, false, 1.0),
         };
 
         // These are always true in Gecko, even for non-AA fonts
@@ -382,7 +523,7 @@ impl FontContext {
 
         // Always draw black text on a white background
         // Fill the background
-        cg_context.set_rgb_fill_color(1.0, 1.0, 1.0, 1.0);
+        cg_context.set_rgb_fill_color(bg_color, bg_color, bg_color, bg_color);
         let rect = CGRect {
             origin: CGPoint { x: 0.0, y: 0.0 },
             size: CGSize {
@@ -399,45 +540,45 @@ impl FontContext {
 
         let mut rasterized_pixels = cg_context.data().to_vec();
 
-        // Convert to linear space for subpixel AA.
-        // We explicitly do not do this for grayscale AA
-        if font.render_mode == FontRenderMode::Subpixel {
-            self.gamma_lut.coregraphics_convert_to_linear_bgra(
+        if font.render_mode != FontRenderMode::Bitmap {
+            // Convert to linear space for subpixel AA.
+            // We explicitly do not do this for grayscale AA
+            if font.render_mode == FontRenderMode::Subpixel {
+                self.gamma_lut.coregraphics_convert_to_linear_bgra(
+                    &mut rasterized_pixels,
+                    metrics.rasterized_width as usize,
+                    metrics.rasterized_height as usize,
+                );
+            }
+
+            // We need to invert the pixels back since right now
+            // transparent pixels are actually opaque white.
+            for i in 0 .. metrics.rasterized_height {
+                let current_height = (i * metrics.rasterized_width * 4) as usize;
+                let end_row = current_height + (metrics.rasterized_width as usize * 4);
+
+                for pixel in rasterized_pixels[current_height .. end_row].chunks_mut(4) {
+                    pixel[0] = 255 - pixel[0];
+                    pixel[1] = 255 - pixel[1];
+                    pixel[2] = 255 - pixel[2];
+
+                    pixel[3] = match font.render_mode {
+                        FontRenderMode::Subpixel => 255,
+                        _ => {
+                            pixel[0]
+                        }
+                    }; // end match
+                } // end row
+            } // end height
+
+            self.gamma_correct_pixels(
                 &mut rasterized_pixels,
                 metrics.rasterized_width as usize,
                 metrics.rasterized_height as usize,
+                font.render_mode,
+                font.color,
             );
         }
-
-        // We need to invert the pixels back since right now
-        // transparent pixels are actually opaque white.
-        for i in 0 .. metrics.rasterized_height {
-            let current_height = (i * metrics.rasterized_width * 4) as usize;
-            let end_row = current_height + (metrics.rasterized_width as usize * 4);
-
-            for pixel in rasterized_pixels[current_height .. end_row].chunks_mut(4) {
-                pixel[0] = 255 - pixel[0];
-                pixel[1] = 255 - pixel[1];
-                pixel[2] = 255 - pixel[2];
-
-                pixel[3] = match font.render_mode {
-                    FontRenderMode::Subpixel => 255,
-                    _ => {
-                        assert_eq!(pixel[0], pixel[1]);
-                        assert_eq!(pixel[0], pixel[2]);
-                        pixel[0]
-                    }
-                }; // end match
-            } // end row
-        } // end height
-
-        self.gamma_correct_pixels(
-            &mut rasterized_pixels,
-            metrics.rasterized_width as usize,
-            metrics.rasterized_height as usize,
-            font.render_mode,
-            font.color,
-        );
 
         Some(RasterizedGlyph {
             left: metrics.rasterized_left as f32,

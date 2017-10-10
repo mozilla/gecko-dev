@@ -28,10 +28,17 @@ XPCOMUtils.defineLazyGetter(this, "console", getConsole);
 const appinfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
 
 let nextId = 0;
-const uniqueProcessID = String(appinfo.uniqueProcessID);
+const uniqueProcessID = appinfo.uniqueProcessID;
+// Store the process ID in a 16 bit field left shifted to end of a
+// double's mantissa.
+// Note: We can't use bitwise ops here, since they truncate to a 32 bit
+// integer and we need all 53 mantissa bits.
+const processIDMask = (uniqueProcessID & 0xffff) * (2 ** 37);
 
 function getUniqueId() {
-  return `${nextId++}-${uniqueProcessID}`;
+  // Note: We can't use bitwise ops here, since they truncate to a 32 bit
+  // integer and we need all 53 mantissa bits.
+  return processIDMask + nextId++;
 }
 
 
@@ -67,9 +74,11 @@ function instanceOf(value, type) {
  * constructor if one is not present.
  */
 class DefaultWeakMap extends WeakMap {
-  constructor(defaultConstructor, init) {
+  constructor(defaultConstructor = undefined, init = undefined) {
     super(init);
-    this.defaultConstructor = defaultConstructor;
+    if (defaultConstructor) {
+      this.defaultConstructor = defaultConstructor;
+    }
   }
 
   get(key) {
@@ -83,9 +92,11 @@ class DefaultWeakMap extends WeakMap {
 }
 
 class DefaultMap extends Map {
-  constructor(defaultConstructor, init) {
+  constructor(defaultConstructor = undefined, init = undefined) {
     super(init);
-    this.defaultConstructor = defaultConstructor;
+    if (defaultConstructor) {
+      this.defaultConstructor = defaultConstructor;
+    }
   }
 
   get(key) {

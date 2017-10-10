@@ -64,6 +64,10 @@ const {addDebuggerToGlobal} = require("resource://gre/modules/jsdebugger.jsm");
 const {OS} = require("resource://gre/modules/osfile.jsm");
 const {Reflect} = require("resource://gre/modules/reflect.jsm");
 
+// Use privileged promise in panel documents to prevent having them to freeze
+// during toolbox destruction. See bug 1402779.
+const Promise = require("Promise");
+
 XPCOMUtils.defineConstant(this, "SCRATCHPAD_CONTEXT_CONTENT", SCRATCHPAD_CONTEXT_CONTENT);
 XPCOMUtils.defineConstant(this, "SCRATCHPAD_CONTEXT_BROWSER", SCRATCHPAD_CONTEXT_BROWSER);
 XPCOMUtils.defineConstant(this, "BUTTON_POSITION_SAVE", BUTTON_POSITION_SAVE);
@@ -79,9 +83,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "VariablesViewController",
 
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 
-loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/main", true);
+loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/debugger-client", true);
+loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/environment-client");
+loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/object-client");
 loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice", true);
 
 XPCOMUtils.defineLazyGetter(this, "REMOTE_TIMEOUT", () =>

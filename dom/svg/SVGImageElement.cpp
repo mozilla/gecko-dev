@@ -154,9 +154,11 @@ SVGImageElement::AsyncEventRunning(AsyncEventDispatcher* aEvent)
 // nsIContent methods:
 
 nsresult
-SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                               const nsAttrValue* aValue,
-                              const nsAttrValue* aOldValue, bool aNotify)
+                              const nsAttrValue* aOldValue,
+                              nsIPrincipal* aSubjectPrincipal,
+                              bool aNotify)
 {
   if (aName == nsGkAtoms::href &&
       (aNamespaceID == kNameSpaceID_None ||
@@ -169,7 +171,8 @@ SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
     }
   }
   return SVGImageElementBase::AfterSetAttr(aNamespaceID, aName,
-                                           aValue, aOldValue, aNotify);
+                                           aValue, aOldValue,
+                                           aSubjectPrincipal, aNotify);
 }
 
 void
@@ -226,7 +229,7 @@ SVGImageElement::IntrinsicState() const
 }
 
 NS_IMETHODIMP_(bool)
-SVGImageElement::IsAttributeMapped(const nsIAtom* name) const
+SVGImageElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sViewportsMap,

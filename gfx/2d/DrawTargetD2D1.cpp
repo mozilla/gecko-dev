@@ -45,7 +45,7 @@ RefPtr<ID2D1Factory1> D2DFactory()
 DrawTargetD2D1::DrawTargetD2D1()
   : mPushedLayers(1)
   , mUsedCommandListsSincePurge(0)
-  , mDidComplexBlendWithListInList(false)
+  , mComplexBlendsWithListInList(0)
   , mDeviceSeq(0)
 {
 }
@@ -238,8 +238,7 @@ DrawTargetD2D1::DrawSurface(SourceSurface *aSurface,
     mDC->FillRectangle(D2DRect(aDest), brush);
   }
 
-  Rect destBounds = mTransform.TransformBounds(aDest);
-  FinalizeDrawing(aOptions.mCompositionOp, ColorPattern(Color()), &destBounds);
+  FinalizeDrawing(aOptions.mCompositionOp, ColorPattern(Color()));
 }
 
 void
@@ -951,6 +950,8 @@ DrawTargetD2D1::PopLayer()
   DCCommandSink sink(mDC);
   list->Stream(&sink);
 
+  mComplexBlendsWithListInList = 0;
+
   mDC->PopLayer();
 }
 
@@ -1345,7 +1346,7 @@ DrawTargetD2D1::PrepareForDrawing(CompositionOp aOp, const Pattern &aPattern)
 }
 
 void
-DrawTargetD2D1::FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern, const Rect* aAffectedRect /* = nullptr */)
+DrawTargetD2D1::FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern)
 {
   bool patternSupported = IsPatternSupportedByD2D(aPattern);
 
@@ -1408,35 +1409,20 @@ DrawTargetD2D1::FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern, cons
       return;
     }
 
-    Point outOffset;
-    // We don't need to preserve the current content of this layer if the output
+    // We don't need to preserve the current content of this layer as the output
     // of the blend effect should completely replace it.
-    bool shouldPreserveContent = !!aAffectedRect && !aAffectedRect->Contains(Rect(0, 0, mSize.width, mSize.height));
-    RefPtr<ID2D1Image> tmpImage = GetImageForLayerContent(shouldPreserveContent, aAffectedRect, &outOffset);
+    RefPtr<ID2D1Image> tmpImage = GetImageForLayerContent(false);
     if (!tmpImage) {
       return;
     }
 
     blendEffect->SetInput(0, tmpImage);
     blendEffect->SetInput(1, source);
-
-    if (outOffset != Point()) {
-      RefPtr<ID2D1Effect> transformEffect;
-      mDC->CreateEffect(CLSID_D2D12DAffineTransform, getter_AddRefs(transformEffect));
-      transformEffect->SetInput(0, tmpImage);
-      transformEffect->SetValue(D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX, D2D1::Matrix3x2F::Translation(outOffset.x, outOffset.y));
-      blendEffect->SetInputEffect(0, transformEffect);
-    }
     blendEffect->SetValue(D2D1_BLEND_PROP_MODE, D2DBlendMode(aOp));
 
     mDC->DrawImage(blendEffect, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
 
-    // This may seem a little counter intuitive. If this is false, we go through the regular
-    // codepaths and set it to true. When this was true, GetImageForLayerContent will return
-    // a bitmap for the current command list and we will no longer have a complex blend
-    // with a list for tmpImage. Therefore we can set it to false again.
-    mDidComplexBlendWithListInList = !mDidComplexBlendWithListInList;
-
+    mComplexBlendsWithListInList++;
     return;
   }
 
@@ -1517,14 +1503,12 @@ DrawTargetD2D1::GetDeviceSpaceClipRect(D2D1_RECT_F& aClipRect, bool& aIsPixelAli
   return true;
 }
 
+static const uint32_t sComplexBlendsWithListAllowedInList = 4;
+
 already_AddRefed<ID2D1Image>
-DrawTargetD2D1::GetImageForLayerContent(bool aShouldPreserveContent, const Rect* aBounds /* = nullptr */, Point* aOutOffset /* = nullptr */) 
+DrawTargetD2D1::GetImageForLayerContent(bool aShouldPreserveContent)
 {
   PopAllClips();
-
-  if (aOutOffset) {
-    *aOutOffset = Point();
-  }
 
   if (!CurrentLayer().mCurrentList) {
     RefPtr<ID2D1Bitmap> tmpBitmap;
@@ -1550,26 +1534,17 @@ DrawTargetD2D1::GetImageForLayerContent(bool aShouldPreserveContent, const Rect*
     list->Close();
 
     RefPtr<ID2D1Bitmap1> tmpBitmap;
-    if (mDidComplexBlendWithListInList) {
+    if (mComplexBlendsWithListInList >= sComplexBlendsWithListAllowedInList) {
       D2D1_BITMAP_PROPERTIES1 props =
         D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET,
                                 D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
                                                   D2D1_ALPHA_MODE_PREMULTIPLIED));
-      D2D1_SIZE_U size = mBitmap->GetPixelSize();
-      D2D1_POINT_2F offset = D2D1::Point2F();
-      if (aBounds) {
-        size.width = aBounds->width;
-        size.height = aBounds->height;
-        offset.x = -aBounds->x;
-        offset.y = -aBounds->y;
-        aOutOffset->x = aBounds->x;
-        aOutOffset->y = aBounds->y;
-      }
-      mDC->CreateBitmap(size, nullptr, 0, &props, getter_AddRefs(tmpBitmap));
+      mDC->CreateBitmap(mBitmap->GetPixelSize(), nullptr, 0, &props, getter_AddRefs(tmpBitmap));
       mDC->SetTransform(D2D1::IdentityMatrix());
       mDC->SetTarget(tmpBitmap);
-      mDC->DrawImage(list, offset, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
+      mDC->DrawImage(list, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
       mDC->SetTarget(CurrentTarget());
+      mComplexBlendsWithListInList = 0;
     }
 
     DCCommandSink sink(mDC);
@@ -1579,7 +1554,7 @@ DrawTargetD2D1::GetImageForLayerContent(bool aShouldPreserveContent, const Rect*
       PushAllClips();
     }
 
-    if (mDidComplexBlendWithListInList) {
+    if (tmpBitmap) {
       return tmpBitmap.forget();
     }
 

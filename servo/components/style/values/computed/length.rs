@@ -35,7 +35,7 @@ impl ToComputedValue for specified::NoCalcLength {
             specified::NoCalcLength::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size_for_viewport_unit_resolution()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
-                length.to_computed_value(Au::from(context.style().get_font().clone_font_size())),
+                length.to_computed_value(context.style().get_font().clone_font_size().size()),
             #[cfg(feature = "gecko")]
             specified::NoCalcLength::Physical(length) =>
                 length.to_computed_value(context),
@@ -269,7 +269,7 @@ impl specified::CalcLengthOrPercentage {
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
     pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
-        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs), base_size)
+        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0, base_size)
     }
 }
 
@@ -789,6 +789,16 @@ impl NonNegativeLength {
     #[inline]
     pub fn px(&self) -> CSSFloat {
         self.0.px()
+    }
+
+    #[inline]
+    /// Ensures it is non negative
+    pub fn clamp(self) -> Self {
+        if (self.0).0 < 0. {
+            Self::zero()
+        } else {
+            self
+        }
     }
 
     /// Scale this NonNegativeLength.

@@ -90,12 +90,9 @@ IsUninitializedLexicalSlot(HandleObject obj, Handle<PropertyResult> prop)
         return false;
 
     Shape* shape = prop.shape();
-    if (!shape->hasSlot() ||
-        !shape->hasDefaultGetter() ||
-        !shape->hasDefaultSetter())
-    {
+    if (!shape->isDataProperty())
         return false;
-    }
+
     MOZ_ASSERT(obj->as<NativeObject>().containsPure(shape));
     return IsUninitializedLexical(obj->as<NativeObject>().getSlot(shape->slot()));
 }
@@ -200,7 +197,7 @@ FetchName(JSContext* cx, HandleObject receiver, HandleObject holder, HandlePrope
         RootedShape shape(cx, prop.shape());
         if (shape->isDataDescriptor() && shape->hasDefaultGetter()) {
             /* Fast path for Object instance properties. */
-            MOZ_ASSERT(shape->hasSlot());
+            MOZ_ASSERT(shape->isDataProperty());
             vp.set(holder->as<NativeObject>().getSlot(shape->slot()));
         } else {
             // Unwrap 'with' environments for reasons given in
@@ -656,7 +653,7 @@ InitArrayElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, uint32_t
     JSOp op = JSOp(*pc);
     MOZ_ASSERT(op == JSOP_INITELEM_ARRAY || op == JSOP_INITELEM_INC);
 
-    MOZ_ASSERT(obj->is<ArrayObject>() || obj->is<UnboxedArrayObject>());
+    MOZ_ASSERT(obj->is<ArrayObject>());
 
     if (op == JSOP_INITELEM_INC && index == INT32_MAX) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SPREAD_TOO_LARGE);
@@ -829,90 +826,6 @@ ReportIfNotFunction(JSContext* cx, HandleValue v, MaybeConstruct construct = NO_
     ReportIsNotFunction(cx, v, -1, construct);
     return nullptr;
 }
-
-/*
- * FastCallGuard is used to optimize calls to JS functions from natives written
- * in C++, e.g. Array.prototype.map.  If the callee is not Ion-compiled, this
- * will just call js::Call.  If the callee has a valid IonScript, however, it
- * will enter Ion directly.
- */
-class FastCallGuard
-{
-    InvokeArgs args_;
-    RootedFunction fun_;
-    RootedScript script_;
-
-    // Constructing a JitContext is pretty expensive due to the TLS access,
-    // so only do this if we have to.
-    bool useIon_;
-
-  public:
-    FastCallGuard(JSContext* cx, const Value& fval)
-      : args_(cx)
-      , fun_(cx)
-      , script_(cx)
-      , useIon_(jit::IsIonEnabled(cx))
-    {
-        initFunction(fval);
-    }
-
-    void initFunction(const Value& fval) {
-        if (fval.isObject() && fval.toObject().is<JSFunction>()) {
-            JSFunction* fun = &fval.toObject().as<JSFunction>();
-            if (fun->isInterpreted())
-                fun_ = fun;
-        }
-    }
-
-    InvokeArgs& args() {
-        return args_;
-    }
-
-    bool call(JSContext* cx, HandleValue callee, HandleValue thisv, MutableHandleValue rval) {
-        args_.CallArgs::setCallee(callee);
-        args_.CallArgs::setThis(thisv);
-
-        if (useIon_ && fun_) {
-            if (!script_) {
-                script_ = JSFunction::getOrCreateScript(cx, fun_);
-                if (!script_)
-                    return false;
-            }
-            MOZ_ASSERT(fun_->nonLazyScript() == script_);
-
-            jit::MethodStatus status = jit::CanEnterUsingFastInvoke(cx, script_, args_.length());
-            if (status == jit::Method_Error)
-                return false;
-            if (status == jit::Method_Compiled) {
-                jit::JitExecStatus result = jit::FastInvoke(cx, fun_, args_);
-                if (IsErrorStatus(result))
-                    return false;
-
-                MOZ_ASSERT(result == jit::JitExec_Ok);
-                rval.set(args_.CallArgs::rval());
-                return true;
-            }
-
-            MOZ_ASSERT(status == jit::Method_Skipped);
-
-            if (script_->canIonCompile()) {
-                // This script is not yet hot. Since calling into Ion is much
-                // faster here, bump the warm-up counter a bit to account for this.
-                script_->incWarmUpCounter(5);
-            }
-        }
-
-        if (!InternalCallOrConstruct(cx, args_, NO_CONSTRUCT))
-            return false;
-
-        rval.set(args_.CallArgs::rval());
-        return true;
-    }
-
-  private:
-    FastCallGuard(const FastCallGuard& other) = delete;
-    void operator=(const FastCallGuard& other) = delete;
-};
 
 }  /* namespace js */
 

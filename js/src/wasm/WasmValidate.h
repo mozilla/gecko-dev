@@ -25,6 +25,17 @@
 namespace js {
 namespace wasm {
 
+// This struct captures the bytecode offset of a section's payload (so not
+// including the header) and the size of the payload.
+
+struct SectionRange
+{
+    uint32_t start;
+    uint32_t size;
+};
+
+typedef Maybe<SectionRange> MaybeSectionRange;
+
 // ModuleEnvironment contains all the state necessary to validate, process or
 // render functions. It is created by decoding all the sections before the wasm
 // code section and then used immutably during. When compiling a module using a
@@ -36,14 +47,18 @@ namespace wasm {
 struct ModuleEnvironment
 {
     // Constant parameters for the entire compilation:
-    const CompileMode         mode;
-    const Tier                tier;
     const DebugEnabled        debug;
     const ModuleKind          kind;
 
-    // Module fields filled out incrementally during decoding:
+    // Constant parameters determined no later than at the start of the code
+    // section:
+    CompileMode               mode_;
+    Tier                      tier_;
+
+    // Module fields decoded from the module environment (or initialized while
+    // validating an asm.js module) and immutable during compilation:
     MemoryUsage               memoryUsage;
-    Atomic<uint32_t>          minMemoryLength;
+    uint32_t                  minMemoryLength;
     Maybe<uint32_t>           maxMemoryLength;
     SigWithIdVector           sigs;
     SigWithIdPtrVector        funcSigs;
@@ -54,23 +69,43 @@ struct ModuleEnvironment
     ImportVector              imports;
     ExportVector              exports;
     Maybe<uint32_t>           startFuncIndex;
+    MaybeSectionRange         codeSection;
+
+    // Fields decoded as part of the wasm module tail:
     ElemSegmentVector         elemSegments;
     DataSegmentVector         dataSegments;
     NameInBytecodeVector      funcNames;
     CustomSectionVector       customSections;
 
+    static const CompileMode UnknownMode = (CompileMode)-1;
+    static const Tier        UnknownTier = (Tier)-1;
+
     explicit ModuleEnvironment(CompileMode mode = CompileMode::Once,
                                Tier tier = Tier::Ion,
                                DebugEnabled debug = DebugEnabled::False,
                                ModuleKind kind = ModuleKind::Wasm)
-      : mode(mode),
-        tier(tier),
-        debug(debug),
+      : debug(debug),
         kind(kind),
+        mode_(mode),
+        tier_(tier),
         memoryUsage(MemoryUsage::None),
         minMemoryLength(0)
     {}
 
+    CompileMode mode() const {
+        MOZ_ASSERT(mode_ != UnknownMode);
+        return mode_;
+    }
+    Tier tier() const {
+        MOZ_ASSERT(tier_ != UnknownTier);
+        return tier_;
+    }
+    void setModeAndTier(CompileMode mode, Tier tier) {
+        MOZ_ASSERT(mode_ == UnknownMode);
+        MOZ_ASSERT(tier_ == UnknownTier);
+        mode_ = mode;
+        tier_ = tier;
+    }
     size_t numTables() const {
         return tables.length();
     }
@@ -78,23 +113,13 @@ struct ModuleEnvironment
         return sigs.length();
     }
     size_t numFuncs() const {
-        // asm.js pre-reserves a bunch of function index space which is
-        // incrementally filled in during function-body validation. Thus, there
-        // are a few possible interpretations of numFuncs() (total index space
-        // size vs.  exact number of imports/definitions encountered so far) and
-        // to simplify things we simply only define this quantity for wasm.
-        MOZ_ASSERT(!isAsmJS());
         return funcSigs.length();
     }
-    size_t numFuncDefs() const {
-        // asm.js overallocates the length of funcSigs and in general does not
-        // know the number of function definitions until it's done compiling.
-        MOZ_ASSERT(!isAsmJS());
-        return funcSigs.length() - funcImportGlobalDataOffsets.length();
-    }
     size_t numFuncImports() const {
-        MOZ_ASSERT(!isAsmJS());
         return funcImportGlobalDataOffsets.length();
+    }
+    size_t numFuncDefs() const {
+        return funcSigs.length() - funcImportGlobalDataOffsets.length();
     }
     bool usesMemory() const {
         return UsesMemory(memoryUsage);
@@ -540,15 +565,11 @@ class Decoder
 
     // See "section" description in Encoder.
 
-    static const uint32_t NotStarted = UINT32_MAX;
-
     MOZ_MUST_USE bool startSection(SectionId id,
                                    ModuleEnvironment* env,
-                                   uint32_t* sectionStart,
-                                   uint32_t* sectionSize,
+                                   MaybeSectionRange* range,
                                    const char* sectionName);
-    MOZ_MUST_USE bool finishSection(uint32_t sectionStart,
-                                    uint32_t sectionSize,
+    MOZ_MUST_USE bool finishSection(const SectionRange& range,
                                     const char* sectionName);
 
     // Custom sections do not cause validation errors unless the error is in
@@ -557,24 +578,21 @@ class Decoder
     MOZ_MUST_USE bool startCustomSection(const char* expected,
                                          size_t expectedLength,
                                          ModuleEnvironment* env,
-                                         uint32_t* sectionStart,
-                                         uint32_t* sectionSize);
+                                         MaybeSectionRange* range);
     template <size_t NameSizeWith0>
     MOZ_MUST_USE bool startCustomSection(const char (&name)[NameSizeWith0],
                                          ModuleEnvironment* env,
-                                         uint32_t* sectionStart,
-                                         uint32_t* sectionSize)
+                                         MaybeSectionRange* range)
     {
         MOZ_ASSERT(name[NameSizeWith0 - 1] == '\0');
-        return startCustomSection(name, NameSizeWith0 - 1, env, sectionStart, sectionSize);
+        return startCustomSection(name, NameSizeWith0 - 1, env, range);
     }
-    void finishCustomSection(uint32_t sectionStart, uint32_t sectionSize);
+    void finishCustomSection(const SectionRange& range);
     MOZ_MUST_USE bool skipCustomSection(ModuleEnvironment* env);
 
-    // The Name section has its own subsections. Like startSection, NotStart is
-    // returned as the endOffset if the given name subsection wasn't present.
+    // The Name section has its own optional subsections.
 
-    MOZ_MUST_USE bool startNameSubsection(NameType nameType, uint32_t* endOffset);
+    MOZ_MUST_USE bool startNameSubsection(NameType nameType, Maybe<uint32_t>* endOffset);
     MOZ_MUST_USE bool finishNameSubsection(uint32_t endOffset);
 
     // The infallible "unchecked" decoding functions can be used when we are

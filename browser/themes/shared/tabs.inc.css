@@ -7,9 +7,10 @@
 %define horizontalTabPadding 9px
 
 :root {
+  --tabs-top-border-width: 0px;
   --tab-toolbar-navbar-overlap: 1px;
-  --tab-line-color: highlight;
   --tab-min-height: 33px;
+  --tab-min-width: 76px;
   --tab-loading-fill: #0A84FF;
 }
 
@@ -52,9 +53,6 @@ tabbrowser {
   border-width: 0;
   margin: 0;
   padding: 0;
-}
-
-.tabbrowser-tab {
   -moz-box-align: stretch;
 }
 
@@ -108,9 +106,24 @@ tabbrowser {
   fill: var(--tab-loading-fill);
 }
 
+:root[sessionrestored] .tab-loading-burst[bursting][notselectedsinceload]::before {
+  animation-name: tab-burst-animation-light;
+}
+
 @keyframes tab-burst-animation {
   0% {
     opacity: 0.4;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(40);
+  }
+}
+
+@keyframes tab-burst-animation-light {
+  0% {
+    opacity: 0.2;
     transform: scale(1);
   }
   100% {
@@ -305,6 +318,8 @@ tabbrowser {
 .tab-close-button {
   margin-inline-end: -2px;
   padding: 0;
+  -moz-context-properties: fill, fill-opacity, stroke-opacity;
+  stroke-opacity: var(--toolbarbutton-icon-fill-opacity);
 }
 
 :root[uidensity=touch] .tab-close-button {
@@ -422,25 +437,37 @@ tabbrowser {
 }
 
 %ifdef MENUBAR_CAN_AUTOHIDE
-#toolbar-menubar:not([autohide=true]) ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab > .tab-stack > .tab-background {
+#toolbar-menubar:not([autohide=true]) ~ #TabsToolbar,
+%endif
+:root:not([tabsintitlebar]),
+:root[extradragspace] {
+  --tabs-top-border-width: 1px;
+}
+
+%ifdef MENUBAR_CAN_AUTOHIDE
+#toolbar-menubar:not([autohide=true]) ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab > .tab-stack > .tab-background,
+%endif
+:root:not([tabsintitlebar]) .tab-background,
+:root[extradragspace] .tab-background {
   border-top-style: solid;
 }
-%endif
 
 .tab-background[selected=true] {
-  border-left-style: solid;
-  border-right-style: solid;
-  border-color: var(--tabs-border);
-  border-image: linear-gradient(var(--tabs-border),
-                                var(--tabs-border) calc(100% - 1px - var(--tab-toolbar-navbar-overlap)),
-                                transparent calc(100% - 1px - var(--tab-toolbar-navbar-overlap)));
-  border-image-slice: 1;
+  border-top-color: var(--tabs-border);
   background-color: var(--toolbar-bgcolor);
   background-image: var(--toolbar-bgimage);
   background-repeat: repeat-x;
 }
 
-:root:not([sizemode=normal]) .tabbrowser-tab[first-visible-tab] > .tab-stack > .tab-background[selected=true] {
+/* Hide the selected tab's start border when it's adjacent to the window border
+   or to .titlebar-placeholder[type="pre-tabs"] which has its own border. */
+%ifdef CAN_DRAW_IN_TITLEBAR
+%define tabContainerAsFirstChild .titlebar-placeholder[type="pre-tabs"] + #tabbrowser-tabs
+%else
+%define tabContainerAsFirstChild #tabbrowser-tabs:first-child
+%endif
+@tabContainerAsFirstChild@:not([overflow=true]) > .tabbrowser-tab[first-visible-tab] > .tab-stack > .tab-background[selected=true],
+@tabContainerAsFirstChild@ > .tabbrowser-tab[first-visible-tab][pinned] > .tab-stack > .tab-background[selected=true] {
   border-inline-start-style: none;
 }
 
@@ -519,42 +546,66 @@ tabbrowser {
 
 /* Tab separators */
 
+.titlebar-placeholder[type="pre-tabs"],
+.titlebar-placeholder[type="post-tabs"] {
+  width: 40px;
+}
+
+.titlebar-placeholder[type="pre-tabs"] {
+  border-inline-end: 1px solid;
+  opacity: 0.2;
+}
+
 .tabbrowser-tab::after,
 .tabbrowser-tab::before {
-  margin-inline-start: -1px;
+  border-left: 1px solid;
   /* Vertical margin doesn't work here for positioned pinned tabs, see
      bug 1198236 and bug 1300410. We're using linear-gradient instead
      to cut off the border at the top and at the bottom. */
-  border-left: 1px solid;
   border-image: linear-gradient(transparent 6px,
                                 currentColor 6px,
                                 currentColor calc(100% - 5px),
                                 transparent calc(100% - 5px));
   border-image-slice: 1;
-  /* The 1px border and negative margin may amount to a different number of
-     device pixels (bug 477157), so we also set a width to match the margin. */
-  width: 1px;
-  box-sizing: border-box;
-  opacity: 0.2;
+  opacity: 0.3;
 }
 
 %ifdef CAN_DRAW_IN_TITLEBAR
 %ifdef MENUBAR_CAN_AUTOHIDE
 :root[tabsintitlebar]:not([extradragspace]) #toolbar-menubar[autohide=true] ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab::after,
-:root[tabsintitlebar]:not([extradragspace]) #toolbar-menubar[autohide=true] ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab::before
+:root[tabsintitlebar]:not([extradragspace]) #toolbar-menubar[autohide=true] ~ #TabsToolbar > #tabbrowser-tabs > .tabbrowser-tab::before,
 %else
 :root[tabsintitlebar]:not([extradragspace]) .tabbrowser-tab::after,
-:root[tabsintitlebar]:not([extradragspace]) .tabbrowser-tab::before
+:root[tabsintitlebar]:not([extradragspace]) .tabbrowser-tab::before,
 %endif
-{
-  border-image: none;
+%endif
+/* Show full height tab separators on hover. */
+.tabbrowser-tab:hover::before,
+.tabbrowser-tab[last-visible-tab]:hover::after,
+#tabbrowser-tabs:not([movingtab]) > .tabbrowser-tab[afterhovered]::before {
+  border-image: linear-gradient(transparent calc(1px + var(--tabs-top-border-width)),
+                                currentColor calc(1px + var(--tabs-top-border-width)),
+                                currentColor calc(100% - 1px),
+                                transparent calc(100% - 1px));
+  border-image-slice: 1;
 }
-%endif
 
+/* Show full height tab separators on selected tabs. */
+#tabbrowser-tabs:not([movingtab]) > .tabbrowser-tab[afterselected]::before,
+.tabbrowser-tab[visuallyselected]::before,
+.tabbrowser-tab[visuallyselected]::after {
+  border-color: var(--tabs-border);
+  border-image: linear-gradient(transparent 1px,
+                                var(--tabs-border) 1px,
+                                var(--tabs-border) calc(100% - 1px - var(--tab-toolbar-navbar-overlap)),
+                                transparent calc(100% - 1px - var(--tab-toolbar-navbar-overlap))) 1 !important;
+  opacity: 1;
+}
+
+.tabbrowser-tab:not([first-visible-tab])::before,
+#tabbrowser-tabs:not([overflow]):not([movingtab]) > .tabbrowser-tab[last-visible-tab]::after,
 /* Also show separators beside the selected tab when dragging it. */
-#tabbrowser-tabs[movingtab] > .tabbrowser-tab[beforeselected]:not([last-visible-tab])::after,
-.tabbrowser-tab:not([selected]):not([afterselected-visible]):not([afterhovered]):not([first-visible-tab]):not(:hover)::before,
-#tabbrowser-tabs:not([overflow]) > .tabbrowser-tab[last-visible-tab]:not([selected]):not([beforehovered]):not(:hover)::after {
+#tabbrowser-tabs[movingtab] > .tabbrowser-tab[visuallyselected]::after {
   content: "";
   display: -moz-box;
 }
@@ -566,7 +617,8 @@ tabbrowser {
   list-style-image: url(chrome://browser/skin/arrow-left.svg);
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
-  fill-opacity: .8;
+  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
+  color: inherit;
 }
 
 .tabbrowser-arrowscrollbox > .scrollbutton-up:-moz-locale-dir(rtl),

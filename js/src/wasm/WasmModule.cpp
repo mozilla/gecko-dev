@@ -41,34 +41,6 @@ using namespace js::wasm;
 
 using mozilla::IsNaN;
 
-#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
-// On MIPS, CodeLabels are instruction immediates so InternalLinks only
-// patch instruction immediates.
-LinkDataTier::InternalLink::InternalLink(Kind kind)
-{
-    MOZ_ASSERT(kind == CodeLabel || kind == InstructionImmediate);
-}
-
-bool
-LinkDataTier::InternalLink::isRawPointerPatch()
-{
-    return false;
-}
-#else
-// On the rest, CodeLabels are raw pointers so InternalLinks only patch
-// raw pointers.
-LinkDataTier::InternalLink::InternalLink(Kind kind)
-{
-    MOZ_ASSERT(kind == CodeLabel || kind == RawPointer);
-}
-
-bool
-LinkDataTier::InternalLink::isRawPointerPatch()
-{
-    return true;
-}
-#endif
-
 size_t
 LinkDataTier::SymbolicLinkArray::serializedSize() const
 {
@@ -305,7 +277,7 @@ Module::notifyCompilationListeners()
 
 void
 Module::finishTier2(UniqueLinkDataTier linkData2, UniqueMetadataTier metadata2,
-                    UniqueConstCodeSegment code2, ModuleEnvironment* env2)
+                    UniqueCodeSegment code2, ModuleEnvironment* env2)
 {
     // Install the data in the data structures. They will not be visible yet.
 

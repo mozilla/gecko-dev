@@ -231,8 +231,6 @@ VROculusSession::StartPresentation(const IntSize& aSize)
 {
   if (!mPresenting) {
     mPresenting = true;
-    mPresentationSize = aSize;
-    Refresh();
     mTelemetry.Clear();
     mTelemetry.mPresentationStart = TimeStamp::Now();
 
@@ -243,6 +241,10 @@ VROculusSession::StartPresentation(const IntSize& aSize)
       }
     }
   }
+
+  // Update the size, even when we are already presenting.
+  mPresentationSize = aSize;
+  Refresh();
 }
 
 void
@@ -910,25 +912,12 @@ VRDisplayOculus::GetSensorState(double absTime)
 void
 VRDisplayOculus::StartPresentation()
 {
+  if (!CreateD3DObjects()) {
+    return;
+  }
   mSession->StartPresentation(IntSize(mDisplayInfo.mEyeResolution.width * 2, mDisplayInfo.mEyeResolution.height));
   if (!mSession->IsRenderReady()) {
     return;
-  }
-
-  if (!mDevice) {
-    mDevice = gfx::DeviceManagerDx::Get()->GetCompositorDevice();
-    if (!mDevice) {
-      NS_WARNING("Failed to get a D3D11Device for Oculus");
-      return;
-    }
-  }
-
-  if (!mContext) {
-    mDevice->GetImmediateContext(getter_AddRefs(mContext));
-    if (!mContext) {
-      NS_WARNING("Failed to get immediate context for Oculus");
-      return;
-    }
   }
 
   if (!mQuadVS) {
@@ -1043,12 +1032,21 @@ VRDisplayOculus::UpdateConstantBuffers()
 }
 
 bool
-VRDisplayOculus::SubmitFrame(TextureSourceD3D11* aSource,
-  const IntSize& aSize,
-  const gfx::Rect& aLeftEyeRect,
-  const gfx::Rect& aRightEyeRect)
+VRDisplayOculus::SubmitFrame(ID3D11Texture2D* aSource,
+                             const IntSize& aSize,
+                             const gfx::Rect& aLeftEyeRect,
+                             const gfx::Rect& aRightEyeRect)
 {
-  if (!mSession->IsRenderReady() || !mDevice || !mContext) {
+  if (!CreateD3DObjects()) {
+    return false;
+  }
+
+  AutoRestoreRenderState restoreState(this);
+  if (!restoreState.IsSuccess()) {
+    return false;
+  }
+
+  if (!mSession->IsRenderReady()) {
     return false;
   }
   /**
@@ -1107,12 +1105,15 @@ VRDisplayOculus::SubmitFrame(TextureSourceD3D11* aSource,
   mContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
   mContext->VSSetShader(mQuadVS, nullptr, 0);
   mContext->PSSetShader(mQuadPS, nullptr, 0);
-  ID3D11ShaderResourceView* srView = aSource->GetShaderResourceView();
-  if (!srView) {
-    NS_WARNING("Failed to get SRV for Oculus");
+
+  RefPtr<ID3D11ShaderResourceView> srView;
+  HRESULT hr = mDevice->CreateShaderResourceView(aSource, nullptr, getter_AddRefs(srView));
+  if (FAILED(hr)) {
+    gfxWarning() << "Could not create shader resource view for Oculus: " << hexa(hr);
     return false;
   }
-  mContext->PSSetShaderResources(0 /* 0 == TexSlot::RGB */, 1, &srView);
+  ID3D11ShaderResourceView* viewPtr = srView.get();
+  mContext->PSSetShaderResources(0 /* 0 == TexSlot::RGB */, 1, &viewPtr);
   // XXX Use Constant from TexSlot in CompositorD3D11.cpp?
 
   ID3D11SamplerState *sampler = mLinearSamplerState;

@@ -1429,8 +1429,8 @@ OpenRunnable::MainThreadRunInternal()
 
   ErrorResult rv2;
   mProxy->mXHR->Open(mMethod, mURL, true,
-                     mUser.WasPassed() ? mUser.Value() : NullString(),
-                     mPassword.WasPassed() ? mPassword.Value() : NullString(),
+                     mUser.WasPassed() ? mUser.Value() : VoidString(),
+                     mPassword.WasPassed() ? mPassword.Value() : VoidString(),
                      rv2);
 
   MOZ_ASSERT(mProxy->mInOpen);
@@ -2046,7 +2046,7 @@ XMLHttpRequestWorker::Send(JSContext* aCx,
   RefPtr<SendRunnable> sendRunnable;
 
   if (aData.IsNull()) {
-    sendRunnable = new SendRunnable(mWorkerPrivate, mProxy, NullString());
+    sendRunnable = new SendRunnable(mWorkerPrivate, mProxy, VoidString());
     // Nothing to clone.
   }
 
@@ -2167,6 +2167,17 @@ XMLHttpRequestWorker::Abort(ErrorResult& aRv)
 
   if (!mProxy) {
     return;
+  }
+
+  // Set our status to 0 and statusText to "" if we
+  // will be aborting an ongoing fetch, so the upcoming
+  // abort events we dispatch have the correct info.
+  if ((mStateData.mReadyState == nsIXMLHttpRequest::OPENED && mStateData.mFlagSend) ||
+      mStateData.mReadyState == nsIXMLHttpRequest::HEADERS_RECEIVED ||
+      mStateData.mReadyState == nsIXMLHttpRequest::LOADING ||
+      mStateData.mReadyState == nsIXMLHttpRequest::DONE) {
+    mStateData.mStatus = 0;
+    mStateData.mStatusText.Truncate();
   }
 
   MaybeDispatchPrematureAbortEvents(aRv);

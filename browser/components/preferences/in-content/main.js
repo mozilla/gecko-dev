@@ -6,8 +6,8 @@
 /* import-globals-from ../../../../toolkit/mozapps/preferences/fontbuilder.js */
 /* import-globals-from ../../../base/content/aboutDialog-appUpdater.js */
 
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionPreferencesManager",
-                                  "resource://gre/modules/ExtensionPreferencesManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ExtensionSettingsStore",
+                                  "resource://gre/modules/ExtensionSettingsStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
 
@@ -107,6 +107,10 @@ if (AppConstants.MOZ_DEV_EDITION) {
     "resource://gre/modules/FxAccounts.jsm");
 }
 
+// A promise that resolves when the list of application handlers is loaded.
+// We store this in a global so tests can await it.
+var promiseLoadHandlersList;
+
 var gMainPane = {
   // The set of types the app knows how to handle.  A hash of HandlerInfoWrapper
   // objects, indexed by type.
@@ -130,11 +134,25 @@ var gMainPane = {
 
   // Convenience & Performance Shortcuts
 
-  // These get defined by init().
-  _brandShortName: null,
-  _prefsBundle: null,
-  _list: null,
-  _filter: null,
+  get _brandShortName() {
+    delete this._brandShortName;
+    return this._brandShortName = document.getElementById("bundleBrand").getString("brandShortName");
+  },
+
+  get _prefsBundle() {
+    delete this._prefsBundle;
+    return this._prefsBundle = document.getElementById("bundlePreferences");
+  },
+
+  get _list() {
+    delete this._list;
+    return this._list = document.getElementById("handlersView")
+  },
+
+  get _filter() {
+    delete this._filter;
+    return this._filter = document.getElementById("filter")
+  },
 
   _prefSvc: Cc["@mozilla.org/preferences-service;1"].
     getService(Ci.nsIPrefBranch),
@@ -212,6 +230,17 @@ var gMainPane = {
 
     this.updateBrowserStartupLastSession();
 
+    handleControllingExtension("url_overrides", "newTabURL");
+    let newTabObserver = {
+      observe(subject, topic, data) {
+          handleControllingExtension("url_overrides", "newTabURL");
+      },
+    };
+    Services.obs.addObserver(newTabObserver, "newtab-url-changed");
+    window.addEventListener("unload", () => {
+      Services.obs.removeObserver(newTabObserver, "newtab-url-changed");
+    });
+
     if (AppConstants.platform == "win") {
       // Functionality for "Show tabs in taskbar" on Windows 7 and up.
       try {
@@ -245,9 +274,11 @@ var gMainPane = {
     setEventListener("restoreDefaultHomePage", "command",
       gMainPane.restoreDefaultHomePage);
     setEventListener("disableHomePageExtension", "command",
-                     gMainPane.makeDisableControllingExtension("homepage_override"));
+                     gMainPane.makeDisableControllingExtension("prefs", "homepage_override"));
     setEventListener("disableContainersExtension", "command",
-                     gMainPane.makeDisableControllingExtension("privacy.containers"));
+                     gMainPane.makeDisableControllingExtension("prefs", "privacy.containers"));
+    setEventListener("disableNewTabExtension", "command",
+                     gMainPane.makeDisableControllingExtension("url_overrides", "newTabURL"));
     setEventListener("chooseLanguage", "command",
       gMainPane.showLanguages);
     setEventListener("translationAttributionImage", "click",
@@ -388,12 +419,6 @@ var gMainPane = {
     }
 
     // Initilize Application section.
-    // Initialize shortcuts to some commonly accessed elements & values.
-    this._brandShortName =
-      document.getElementById("bundleBrand").getString("brandShortName");
-    this._prefsBundle = document.getElementById("bundlePreferences");
-    this._list = document.getElementById("handlersView");
-    this._filter = document.getElementById("filter");
 
     // Observe preferences that influence what we display so we can rebuild
     // the view when they change.
@@ -440,16 +465,6 @@ var gMainPane = {
       this._sortColumn = document.getElementById("typeColumn");
     }
 
-    // Load the data and build the list of handlers.
-    // By doing this after pageshow, we ensure it doesn't delay painting
-    // of the preferences page.
-    window.addEventListener("pageshow", () => {
-      this._loadData();
-      this._rebuildVisibleTypes();
-      this._sortVisibleTypes();
-      this._rebuildView();
-    });
-
     let browserBundle = document.getElementById("browserBundle");
     appendSearchKeywords("browserContainersSettings", [
       browserBundle.getString("userContextPersonal.label"),
@@ -462,6 +477,25 @@ var gMainPane = {
     Components.classes["@mozilla.org/observer-service;1"]
       .getService(Components.interfaces.nsIObserverService)
       .notifyObservers(window, "main-pane-loaded");
+  },
+
+  preInit() {
+    promiseLoadHandlersList = new Promise((resolve, reject) => {
+      // Load the data and build the list of handlers for applications pane.
+      // By doing this after pageshow, we ensure it doesn't delay painting
+      // of the preferences page.
+      window.addEventListener("pageshow", async () => {
+        try {
+          this._loadData();
+          await this._rebuildVisibleTypes();
+          this._sortVisibleTypes();
+          this._rebuildView();
+          resolve();
+        } catch (ex) {
+          reject(ex);
+        }
+      }, { once: true });
+    });
   },
 
   // CONTAINERS
@@ -484,7 +518,7 @@ var gMainPane = {
     const containersEnabled = Services.prefs.getBoolPref("privacy.userContext.enabled");
     const containersCheckbox = document.getElementById("browserContainersCheckbox");
     containersCheckbox.checked = containersEnabled;
-    handleControllingExtension("privacy.containers")
+    handleControllingExtension("prefs", "privacy.containers")
       .then((isControlled) => {
         containersCheckbox.disabled = isControlled;
       });
@@ -656,7 +690,7 @@ var gMainPane = {
     this._updateUseCurrentButton();
 
     // This is an async task.
-    handleControllingExtension("homepage_override")
+    handleControllingExtension("prefs", "homepage_override")
       .then((isControlled) => {
         // Disable or enable the inputs based on if this is controlled by an extension.
         document.querySelectorAll("#browserHomePage, .homepage-button")
@@ -750,7 +784,7 @@ var gMainPane = {
       useCurrent.label = useCurrent.getAttribute("label1");
 
     // If the homepage is controlled by an extension then you can't use this.
-    if (await getControllingExtensionId("homepage_override")) {
+    if (await getControllingExtensionId("prefs", "homepage_override")) {
       useCurrent.disabled = true;
       return;
     }
@@ -798,9 +832,9 @@ var gMainPane = {
     homePage.value = homePage.defaultValue;
   },
 
-  makeDisableControllingExtension(pref) {
+  makeDisableControllingExtension(type, settingName) {
     return async function disableExtension() {
-      let id = await getControllingExtensionId(pref);
+      let id = await getControllingExtensionId(type, settingName);
       let addon = await AddonManager.getAddonByID(id);
       addon.userDisabled = true;
     };
@@ -1054,7 +1088,8 @@ var gMainPane = {
     // Force flush:
     preferences.clientHeight;
     var langGroupPref = document.getElementById("font.language.group");
-    this._safelySelectDefaultLanguageGroup(langGroupPref.value);
+    var isSerif = this._readDefaultFontTypeForLanguage(langGroupPref.value) == "serif";
+    this._selectDefaultLanguageGroup(langGroupPref.value, isSerif);
   },
 
   /**
@@ -1078,72 +1113,68 @@ var gMainPane = {
 
   _selectDefaultLanguageGroupPromise: Promise.resolve(),
 
-  async _selectDefaultLanguageGroup(aLanguageGroup, aIsSerif) {
-    // Avoid overlapping language group selections by awaiting the resolution
-    // of the previous one.  We do this because this function is re-entrant,
-    // as inserting <preference> elements into the DOM sometimes triggers a call
-    // back into this function.  And since this function is also asynchronous,
-    // that call can enter this function before the previous run has completed,
-    // which would corrupt the font menulists.  Awaiting the previous call's
-    // resolution avoids that fate.
-    await this._selectDefaultLanguageGroupPromise;
+  _selectDefaultLanguageGroup(aLanguageGroup, aIsSerif) {
+    this._selectDefaultLanguageGroupPromise = (async () => {
+      // Avoid overlapping language group selections by awaiting the resolution
+      // of the previous one.  We do this because this function is re-entrant,
+      // as inserting <preference> elements into the DOM sometimes triggers a call
+      // back into this function.  And since this function is also asynchronous,
+      // that call can enter this function before the previous run has completed,
+      // which would corrupt the font menulists.  Awaiting the previous call's
+      // resolution avoids that fate.
+      await this._selectDefaultLanguageGroupPromise;
 
-    const kFontNameFmtSerif = "font.name.serif.%LANG%";
-    const kFontNameFmtSansSerif = "font.name.sans-serif.%LANG%";
-    const kFontNameListFmtSerif = "font.name-list.serif.%LANG%";
-    const kFontNameListFmtSansSerif = "font.name-list.sans-serif.%LANG%";
-    const kFontSizeFmtVariable = "font.size.variable.%LANG%";
+      const kFontNameFmtSerif = "font.name.serif.%LANG%";
+      const kFontNameFmtSansSerif = "font.name.sans-serif.%LANG%";
+      const kFontNameListFmtSerif = "font.name-list.serif.%LANG%";
+      const kFontNameListFmtSansSerif = "font.name-list.sans-serif.%LANG%";
+      const kFontSizeFmtVariable = "font.size.variable.%LANG%";
 
-    var preferences = document.getElementById("mainPreferences");
-    var prefs = [{
-      format: aIsSerif ? kFontNameFmtSerif : kFontNameFmtSansSerif,
-      type: "fontname",
-      element: "defaultFont",
-      fonttype: aIsSerif ? "serif" : "sans-serif"
-    },
-    {
-      format: aIsSerif ? kFontNameListFmtSerif : kFontNameListFmtSansSerif,
-      type: "unichar",
-      element: null,
-      fonttype: aIsSerif ? "serif" : "sans-serif"
-    },
-    {
-      format: kFontSizeFmtVariable,
-      type: "int",
-      element: "defaultFontSize",
-      fonttype: null
-    }];
-    for (var i = 0; i < prefs.length; ++i) {
-      var preference = document.getElementById(prefs[i].format.replace(/%LANG%/, aLanguageGroup));
-      if (!preference) {
-        preference = document.createElement("preference");
-        var name = prefs[i].format.replace(/%LANG%/, aLanguageGroup);
-        preference.id = name;
-        preference.setAttribute("name", name);
-        preference.setAttribute("type", prefs[i].type);
-        preferences.appendChild(preference);
+      var preferences = document.getElementById("mainPreferences");
+      var prefs = [{
+        format: aIsSerif ? kFontNameFmtSerif : kFontNameFmtSansSerif,
+        type: "fontname",
+        element: "defaultFont",
+        fonttype: aIsSerif ? "serif" : "sans-serif"
+      },
+      {
+        format: aIsSerif ? kFontNameListFmtSerif : kFontNameListFmtSansSerif,
+        type: "unichar",
+        element: null,
+        fonttype: aIsSerif ? "serif" : "sans-serif"
+      },
+      {
+        format: kFontSizeFmtVariable,
+        type: "int",
+        element: "defaultFontSize",
+        fonttype: null
+      }];
+      for (var i = 0; i < prefs.length; ++i) {
+        var preference = document.getElementById(prefs[i].format.replace(/%LANG%/, aLanguageGroup));
+        if (!preference) {
+          preference = document.createElement("preference");
+          var name = prefs[i].format.replace(/%LANG%/, aLanguageGroup);
+          preference.id = name;
+          preference.setAttribute("name", name);
+          preference.setAttribute("type", prefs[i].type);
+          preferences.appendChild(preference);
+        }
+
+        if (!prefs[i].element)
+          continue;
+
+        var element = document.getElementById(prefs[i].element);
+        if (element) {
+          element.setAttribute("preference", preference.id);
+
+          if (prefs[i].fonttype)
+            await FontBuilder.buildFontList(aLanguageGroup, prefs[i].fonttype, element);
+
+          preference.setElementValue(element);
+        }
       }
-
-      if (!prefs[i].element)
-        continue;
-
-      var element = document.getElementById(prefs[i].element);
-      if (element) {
-        element.setAttribute("preference", preference.id);
-
-        if (prefs[i].fonttype)
-          await FontBuilder.buildFontList(aLanguageGroup, prefs[i].fonttype, element);
-
-        preference.setElementValue(element);
-      }
-    }
-  },
-
-  _safelySelectDefaultLanguageGroup(aLanguageGroup) {
-    var isSerif = this._readDefaultFontTypeForLanguage(aLanguageGroup) == "serif";
-    this._selectDefaultLanguageGroupPromise =
-      this._selectDefaultLanguageGroup(aLanguageGroup, isSerif)
-        .catch(Components.utils.reportError);
+    })()
+      .catch(Components.utils.reportError);
   },
 
   /**
@@ -1391,7 +1422,7 @@ var gMainPane = {
 
   // nsIObserver
 
-  observe(aSubject, aTopic, aData) {
+  async observe(aSubject, aTopic, aData) {
     if (aTopic == "nsPref:changed") {
       if (aData == PREF_CONTAINERS_EXTENSION) {
         this.readBrowserContainersCheckbox();
@@ -1404,7 +1435,7 @@ var gMainPane = {
         // that list when they change.
         if (aData == PREF_SHOW_PLUGINS_IN_LIST ||
           aData == PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS) {
-          this._rebuildVisibleTypes();
+          await this._rebuildVisibleTypes();
           this._sortVisibleTypes();
         }
 
@@ -1524,7 +1555,7 @@ var gMainPane = {
 
   // View Construction
 
-  _rebuildVisibleTypes() {
+  async _rebuildVisibleTypes() {
     // Reset the list of visible types and the visible type description counts.
     this._visibleTypes = [];
     this._visibleTypeDescriptionCount = {};
@@ -1535,6 +1566,11 @@ var gMainPane = {
       this._prefSvc.getBoolPref(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS);
 
     for (let type in this._handledTypes) {
+      // Yield before processing each handler info object to avoid monopolizing
+      // the main thread, as the objects are retrieved lazily, and retrieval
+      // can be expensive on Windows.
+      await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
+
       let handlerInfo = this._handledTypes[type];
 
       // Hide plugins without associated extensions if so prefed so we don't
@@ -2637,26 +2673,28 @@ function getLocalHandlerApp(aFile) {
 let extensionControlledContentIds = {
   "privacy.containers": "browserContainersExtensionContent",
   "homepage_override": "browserHomePageExtensionContent",
+  "newTabURL": "browserNewTabExtensionContent",
 };
 
 /**
   * Check if a pref is being managed by an extension.
   */
-function getControllingExtensionId(settingName) {
-  return ExtensionPreferencesManager.getControllingExtensionId(settingName);
+async function getControllingExtensionId(type, settingName) {
+  await ExtensionSettingsStore.initialize();
+  return ExtensionSettingsStore.getTopExtensionId(type, settingName);
 }
 
 function getControllingExtensionEl(settingName) {
   return document.getElementById(extensionControlledContentIds[settingName]);
 }
 
-async function handleControllingExtension(prefName) {
-  let controllingExtensionId = await getControllingExtensionId(prefName);
+async function handleControllingExtension(type, settingName) {
+  let controllingExtensionId = await getControllingExtensionId(type, settingName);
 
   if (controllingExtensionId) {
-    showControllingExtension(prefName, controllingExtensionId);
+    showControllingExtension(settingName, controllingExtensionId);
   } else {
-    hideControllingExtension(prefName);
+    hideControllingExtension(settingName);
   }
 
   return !!controllingExtensionId;

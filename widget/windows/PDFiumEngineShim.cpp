@@ -18,7 +18,7 @@ PDFiumEngineShim::GetInstanceOrNull()
   RefPtr<PDFiumEngineShim> inst = sPDFiumEngineShim;
   if (!inst) {
     inst = new PDFiumEngineShim();
-    if (!inst->Init()) {
+    if (!inst->Init(nsCString("pdfium.dll"))) {
       inst = nullptr;
     }
     sPDFiumEngineShim = inst.get();
@@ -27,8 +27,21 @@ PDFiumEngineShim::GetInstanceOrNull()
   return inst.forget();
 }
 
+/* static */
+already_AddRefed<PDFiumEngineShim>
+PDFiumEngineShim::GetInstanceOrNull(const nsCString& aLibrary)
+{
+  RefPtr<PDFiumEngineShim> shim = new PDFiumEngineShim();
+  if (!shim->Init(aLibrary)) {
+    return nullptr;
+  }
+
+  return shim.forget();
+}
+
 PDFiumEngineShim::PDFiumEngineShim()
-  : mFPDF_InitLibrary(nullptr)
+  : mInitialized(false)
+  , mFPDF_InitLibrary(nullptr)
   , mFPDF_DestroyLibrary(nullptr)
   , mFPDF_CloseDocument(nullptr)
   , mFPDF_GetPageCount(nullptr)
@@ -36,7 +49,6 @@ PDFiumEngineShim::PDFiumEngineShim()
   , mFPDF_ClosePage(nullptr)
   , mFPDF_RenderPage(nullptr)
   , mPRLibrary(nullptr)
-  , mInitialized(false)
 {
 }
 
@@ -54,13 +66,13 @@ PDFiumEngineShim::~PDFiumEngineShim()
 }
 
 bool
-PDFiumEngineShim::Init()
+PDFiumEngineShim::Init(const nsCString& aLibrary)
 {
   if (mInitialized) {
     return true;
   }
 
-  mPRLibrary = PR_LoadLibrary("pdfium.dll");
+  mPRLibrary = PR_LoadLibrary(aLibrary.get());
   NS_ENSURE_TRUE(mPRLibrary, false);
 
   mFPDF_InitLibrary = (FPDF_InitLibrary_Pfn)PR_FindFunctionSymbol(

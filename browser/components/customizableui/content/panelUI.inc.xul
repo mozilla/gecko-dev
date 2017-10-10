@@ -339,8 +339,7 @@
         <vbox id="widget-overflow-list" class="widget-overflow-list"
               overflowfortoolbar="nav-bar"/>
         <toolbarseparator id="widget-overflow-fixed-separator" hidden="true"/>
-        <vbox id="widget-overflow-fixed-list" class="widget-overflow-list" hidden="true"
-              emptylabel="&customizeMode.emptyOverflowList.description;"/>
+        <vbox id="widget-overflow-fixed-list" class="widget-overflow-list" hidden="true" />
       </vbox>
       <toolbarbutton command="cmd_CustomizeToolbars"
                       id="overflowMenu-customize-button"
@@ -377,25 +376,6 @@
               accesskey="&viewCustomizeToolbar.accesskey;"
               label="&viewCustomizeToolbar.label;"/>
   </menupopup>
-</panel>
-
-<panel id="customization-tipPanel"
-       type="arrow"
-       flip="none"
-       side="left"
-       position="leftcenter topright"
-       noautohide="true"
-       hidden="true">
-  <hbox class="customization-tipPanel-wrapper">
-    <vbox class="customization-tipPanel-infoBox"/>
-    <vbox class="customization-tipPanel-content" flex="1">
-      <description class="customization-tipPanel-contentMessage"/>
-      <image class="customization-tipPanel-contentImage"/>
-    </vbox>
-    <vbox pack="start" align="end" class="customization-tipPanel-closeBox">
-      <toolbarbutton oncommand="gCustomizeMode.hideTip()" class="close-icon"/>
-    </vbox>
-  </hbox>
 </panel>
 
 <panel id="panic-button-success-notification"
@@ -440,9 +420,8 @@
                      buttonhighlight="true"
                      hidden="true">
     <popupnotificationcontent id="update-available-notification-content" orient="vertical">
-      <description id="update-available-description">&updateAvailable.message;
-        <label id="update-available-whats-new" class="text-link" value="&updateAvailable.whatsnew.label;" />
-      </description>
+      <description id="update-available-description">&updateAvailable.message;</description>
+      <label id="update-available-whats-new" class="text-link" value="&updateAvailable.whatsnew.label;" />
     </popupnotificationcontent>
   </popupnotification>
 
@@ -459,9 +438,8 @@
                      buttonhighlight="true"
                      hidden="true">
     <popupnotificationcontent id="update-manual-notification-content" orient="vertical">
-      <description id="update-manual-description">&updateManual.message;
-        <label id="update-manual-whats-new" class="text-link" value="&updateManual.whatsnew.label;" />
-      </description>
+      <description id="update-manual-description">&updateManual.message;</description>
+      <label id="update-manual-whats-new" class="text-link" value="&updateManual.whatsnew.label;" />
     </popupnotificationcontent>
   </popupnotification>
 
@@ -483,7 +461,8 @@
   </popupnotification>
 </panel>
 
-<menupopup id="customizationPaletteItemContextMenu">
+<menupopup id="customizationPaletteItemContextMenu"
+           onpopupshowing="gCustomizeMode.onPaletteContextMenuShowing(event)">
   <menuitem oncommand="gCustomizeMode.addToToolbar(document.popupNode)"
             class="customize-context-addToToolbar"
             accesskey="&customizeMenu.addToToolbar.accesskey;"
@@ -645,8 +624,12 @@
         <toolbarbutton id="appMenu-print-button"
                        class="subviewbutton subviewbutton-iconic"
                        label="&printCmd.label;"
+#ifdef XP_MACOSX
                        key="printKb"
                        command="cmd_print"
+#else
+                       command="cmd_printPreview"
+#endif
                        />
         <toolbarseparator/>
         <toolbarbutton id="appMenu-find-button"

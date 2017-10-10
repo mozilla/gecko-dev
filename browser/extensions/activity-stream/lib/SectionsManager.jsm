@@ -4,9 +4,10 @@
 "use strict";
 
 const {utils: Cu} = Components;
+Cu.import("resource://gre/modules/EventEmitter.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 const {actionCreators: ac, actionTypes: at} = Cu.import("resource://activity-stream/common/Actions.jsm", {});
-Cu.import("resource://gre/modules/EventEmitter.jsm");
+const {Dedupe} = Cu.import("resource://activity-stream/common/Dedupe.jsm", {});
 
 /*
  * Generators for built in sections, keyed by the pref name for their feed.
@@ -20,7 +21,7 @@ const BUILT_IN_SECTIONS = {
       titleString: {id: "header_recommended_by", values: {provider: options.provider_name}},
       descString: {id: options.provider_description || "pocket_feedback_body"}
     },
-    shouldHidePref:  options.hidden,
+    shouldHidePref: options.hidden,
     eventSource: "TOP_STORIES",
     icon: options.provider_icon,
     title: {id: "header_recommended_by", values: {provider: options.provider_name}},
@@ -36,7 +37,8 @@ const BUILT_IN_SECTIONS = {
       icon: "check"
     },
     shouldSendImpressionStats: true,
-    order: 0
+    order: 0,
+    dedupeFrom: ["highlights"]
   }),
   "feeds.section.highlights": options => ({
     id: "highlights",
@@ -50,6 +52,10 @@ const BUILT_IN_SECTIONS = {
     title: {id: "header_highlights"},
     maxRows: 3,
     availableContextMenuOptions: ["CheckBookmark", "SaveToPocket", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", "DeleteUrl"],
+    infoOption: {
+      header: {id: "settings_pane_highlights_header"},
+      body: {id: "settings_pane_highlights_body2"}
+    },
     emptyState: {
       message: {id: "highlights_empty_state"},
       icon: "highlights"
@@ -72,6 +78,8 @@ const SectionsManager = {
 
     Object.keys(this.CONTEXT_MENU_PREFS).forEach(k =>
       Services.prefs.addObserver(this.CONTEXT_MENU_PREFS[k], this));
+
+    this.dedupe = new Dedupe(site => site && site.url);
 
     this.initialized = true;
     this.emit(this.INIT);
@@ -123,9 +131,31 @@ const SectionsManager = {
     this.updateSectionContextMenuOptions(options);
 
     if (this.sections.has(id)) {
-      this.sections.set(id, Object.assign(this.sections.get(id), options));
-      this.emit(this.UPDATE_SECTION, id, options, shouldBroadcast);
+      const dedupedOptions = this.dedupeRows(id, options);
+      this.sections.set(id, Object.assign(this.sections.get(id), dedupedOptions));
+      this.emit(this.UPDATE_SECTION, id, dedupedOptions, shouldBroadcast);
+
+      // Update any sections that dedupe from the updated section
+      this.sections.forEach(section => {
+        if (section.dedupeFrom && section.dedupeFrom.includes(id)) {
+          this.updateSection(section.id, section, shouldBroadcast);
+        }
+      });
     }
+  },
+  dedupeRows(id, options) {
+    const newOptions = Object.assign({}, options);
+    const dedupeFrom = this.sections.get(id).dedupeFrom;
+    if (dedupeFrom && dedupeFrom.length > 0 && options.rows) {
+      for (const sectionId of dedupeFrom) {
+        const section = this.sections.get(sectionId);
+        if (section && section.rows) {
+          const [, newRows] = this.dedupe.group(section.rows, options.rows);
+          newOptions.rows = newRows;
+        }
+      }
+    }
+    return newOptions;
   },
 
   /**
@@ -252,11 +282,16 @@ class SectionsFeed {
       case at.PREFS_INITIAL_VALUES:
         SectionsManager.init(action.data);
         break;
-      case at.PREF_CHANGED:
-        if (action.data && action.data.name.match(/^feeds.section.(\S+).options$/i)) {
-          SectionsManager.addBuiltInSection(action.data.name.slice(0, -8), action.data.value);
+      case at.PREF_CHANGED: {
+        if (action.data) {
+          const matched = action.data.name.match(/^(feeds.section.(\S+)).options$/i);
+          if (matched) {
+            SectionsManager.addBuiltInSection(matched[1], action.data.value);
+            this.store.dispatch({type: at.SECTION_OPTIONS_CHANGED, data: matched[2]});
+          }
         }
         break;
+      }
       case at.SECTION_DISABLE:
         SectionsManager.disableSection(action.data);
         break;

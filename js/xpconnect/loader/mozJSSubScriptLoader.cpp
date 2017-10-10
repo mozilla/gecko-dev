@@ -46,7 +46,7 @@ public:
                                   JSObject* options = nullptr)
         : OptionsBase(cx, options)
         , target(cx)
-        , charset(NullString())
+        , charset(VoidString())
         , ignoreCache(false)
         , async(false)
         , wantReturnValue(false)
@@ -126,10 +126,10 @@ ReportError(JSContext* cx, const char* origMsg, nsIURI* uri)
     nsAutoCString spec;
     nsresult rv = uri->GetSpec(spec);
     if (NS_FAILED(rv))
-        spec.Assign("(unknown)");
+        spec.AssignLiteral("(unknown)");
 
     nsAutoCString msg(origMsg);
-    msg.Append(": ");
+    msg.AppendLiteral(": ");
     msg.Append(spec);
     ReportError(cx, msg);
 }

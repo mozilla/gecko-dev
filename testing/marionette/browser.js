@@ -7,6 +7,7 @@
 
 const {utils: Cu} = Components;
 
+const {WebElementEventTarget} = Cu.import("chrome://marionette/content/dom.js", {});
 Cu.import("chrome://marionette/content/element.js");
 const {
   NoSuchWindowError,
@@ -137,6 +138,10 @@ browser.Context = class {
     return null;
   }
 
+  get messageManager() {
+    return this.contentBrowser.messageManager;
+  }
+
   /**
    * The current frame ID is managed per browser element on desktop in
    * case the ID needs to be refreshed. The currently selected window is
@@ -229,9 +234,7 @@ browser.Context = class {
    */
   closeWindow() {
     return new Promise(resolve => {
-      this.window.addEventListener("unload", ev => {
-        resolve();
-      }, {once: true});
+      this.window.addEventListener("unload", resolve, {once: true});
       this.window.close();
     });
   }
@@ -258,16 +261,12 @@ browser.Context = class {
     return new Promise((resolve, reject) => {
       if (this.tabBrowser.closeTab) {
         // Fennec
-        this.tabBrowser.deck.addEventListener("TabClose", ev => {
-          resolve();
-        }, {once: true});
+        this.tabBrowser.deck.addEventListener("TabClose", resolve, {once: true});
         this.tabBrowser.closeTab(this.tab);
 
       } else if (this.tabBrowser.removeTab) {
         // Firefox
-        this.tab.addEventListener("TabClose", ev => {
-          resolve();
-        }, {once: true});
+        this.tab.addEventListener("TabClose", resolve, {once: true});
         this.tabBrowser.removeTab(this.tab);
 
       } else {
@@ -331,6 +330,10 @@ browser.Context = class {
         }
       }
     }
+
+    // TODO(ato): Currently tied to curBrowser, but should be moved to
+    // WebElement when introduced by https://bugzil.la/1400256.
+    this.eventObserver = new WebElementEventTarget(this.messageManager);
   }
 
   /**

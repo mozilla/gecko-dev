@@ -24,6 +24,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsIUUIDGenerator.h"
 #include "nsIThread.h"
+#include "mozilla/Mutex.h"
 
 #include "signaling/src/jsep/JsepSession.h"
 #include "signaling/src/jsep/JsepSessionImpl.h"
@@ -31,6 +32,7 @@
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/PeerConnectionImplEnumsBinding.h"
+#include "mozilla/dom/RTCPeerConnectionBinding.h" // mozPacketDumpType, maybe move?
 #include "PrincipalChangeObserver.h"
 #include "StreamTracks.h"
 
@@ -466,6 +468,24 @@ public:
     rv = AddRIDFilter(aRecvTrack, aRid);
   }
 
+  // test-only
+  NS_IMETHODIMP_TO_ERRORRESULT(EnablePacketDump, ErrorResult& rv,
+                               unsigned long level,
+                               dom::mozPacketDumpType type,
+                               bool sending)
+  {
+    rv = EnablePacketDump(level, type, sending);
+  }
+
+  // test-only
+  NS_IMETHODIMP_TO_ERRORRESULT(DisablePacketDump, ErrorResult& rv,
+                               unsigned long level,
+                               dom::mozPacketDumpType type,
+                               bool sending)
+  {
+    rv = DisablePacketDump(level, type, sending);
+  }
+
   nsresult GetPeerIdentity(nsAString& peerIdentity)
   {
     if (mPeerIdentity) {
@@ -626,6 +646,12 @@ public:
 
   void OnMediaError(const std::string& aError);
 
+  bool ShouldDumpPacket(size_t level, dom::mozPacketDumpType type,
+                        bool sending) const;
+
+  void DumpPacket_m(size_t level, dom::mozPacketDumpType type, bool sending,
+                    UniquePtr<uint8_t[]>& packet, size_t size);
+
 private:
   virtual ~PeerConnectionImpl();
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
@@ -771,6 +797,8 @@ private:
   mozilla::UniquePtr<mozilla::JsepSession> mJsepSession;
   std::string mPreviousIceUfrag; // used during rollback of ice restart
   std::string mPreviousIcePwd; // used during rollback of ice restart
+  unsigned long mIceRestartCount;
+  unsigned long mIceRollbackCount;
 
   // Start time of ICE, used for telemetry
   mozilla::TimeStamp mIceStartTime;
@@ -811,6 +839,11 @@ private:
   DTMFSendTimerCallback_m(nsITimer* timer, void*);
 
   nsTArray<DTMFState> mDTMFStates;
+
+  std::vector<unsigned> mSendPacketDumpFlags;
+  std::vector<unsigned> mRecvPacketDumpFlags;
+  Atomic<bool> mPacketDumpEnabled;
+  mutable Mutex mPacketDumpFlagsMutex;
 
 public:
   //these are temporary until the DataChannel Listen/Connect API is removed

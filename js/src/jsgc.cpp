@@ -976,7 +976,6 @@ const char* gc::ZealModeHelpText =
     "    3: (FrameGC) Collect when the window paints (browser only)\n"
     "    4: (VerifierPre) Verify pre write barriers between instructions\n"
     "    5: (FrameVerifierPre) Verify pre write barriers between paints\n"
-    "    6: (StackRooting) Verify stack rooting\n"
     "    7: (GenerationalGC) Collect the nursery every N nursery allocations\n"
     "    8: (IncrementalRootsThenFinish) Incremental GC in two slices: 1) mark roots 2) finish collection\n"
     "    9: (IncrementalMarkAllThenFinish) Incremental GC in two slices: 1) mark all 2) new marking and finish\n"
@@ -1166,7 +1165,7 @@ GCRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
          */
         MOZ_ALWAYS_TRUE(tunables.setParameter(JSGC_MAX_BYTES, maxbytes, lock));
         MOZ_ALWAYS_TRUE(tunables.setParameter(JSGC_MAX_NURSERY_BYTES, maxNurseryBytes, lock));
-        setMaxMallocBytes(maxbytes);
+        setMaxMallocBytes(maxbytes, lock);
 
         const char* size = getenv("JSGC_MARK_STACK_LIMIT");
         if (size)
@@ -1248,9 +1247,7 @@ GCRuntime::setParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock)
 {
     switch (key) {
       case JSGC_MAX_MALLOC_BYTES:
-        setMaxMallocBytes(value);
-        for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next())
-            zone->setGCMaxMallocBytes(maxMallocBytesAllocated() * 0.9);
+        setMaxMallocBytes(value, lock);
         break;
       case JSGC_SLICE_TIME_BUDGET:
         defaultTimeBudget_ = value ? value : SliceBudget::UnlimitedTimeBudget;
@@ -1439,9 +1436,7 @@ GCRuntime::resetParameter(JSGCParamKey key, AutoLockGC& lock)
 {
     switch (key) {
       case JSGC_MAX_MALLOC_BYTES:
-        setMaxMallocBytes(0xffffffff);
-        for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next())
-            zone->setGCMaxMallocBytes(maxMallocBytesAllocated() * 0.9);
+        setMaxMallocBytes(0xffffffff, lock);
         break;
       case JSGC_SLICE_TIME_BUDGET:
         defaultTimeBudget_ = TuningDefaults::DefaultTimeBudget;
@@ -1817,19 +1812,11 @@ js::RemoveRawValueRoot(JSContext* cx, Value* vp)
 }
 
 void
-GCRuntime::setMaxMallocBytes(size_t value)
+GCRuntime::setMaxMallocBytes(size_t value, const AutoLockGC& lock)
 {
-    mallocCounter.setMax(value);
+    mallocCounter.setMax(value, lock);
     for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next())
-        zone->setGCMaxMallocBytes(value);
-}
-
-void
-GCRuntime::updateMallocCounter(JS::Zone* zone, size_t nbytes)
-{
-    bool triggered = mallocCounter.update(this, nbytes);
-    if (!triggered && zone)
-        zone->updateMallocCounter(nbytes);
+        zone->setGCMaxMallocBytes(value * 0.9, lock);
 }
 
 double
@@ -4031,7 +4018,7 @@ static bool
 ShouldCollectZone(Zone* zone, JS::gcreason::Reason reason)
 {
     // If we are repeating a GC because we noticed dead compartments haven't
-    // been collected, then only collect zones contianing those compartments.
+    // been collected, then only collect zones containing those compartments.
     if (reason == JS::gcreason::COMPARTMENT_REVIVED) {
         for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
             if (comp->scheduledForDestruction)
@@ -4063,7 +4050,7 @@ ShouldCollectZone(Zone* zone, JS::gcreason::Reason reason)
     if (zone->isAtomsZone())
         return TlsContext.get()->canCollectAtoms();
 
-    return true;
+    return zone->canCollect();
 }
 
 bool
@@ -4266,6 +4253,8 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason, AutoLockForExclusiveAcces
     if (isIncremental)
         markCompartments();
 
+    updateMallocCountersOnGC();
+
     /*
      * Process any queued source compressions during the start of a major
      * GC.
@@ -4344,6 +4333,28 @@ GCRuntime::markCompartments()
         if (!comp->maybeAlive && !rt->isAtomsCompartment(comp))
             comp->scheduledForDestruction = true;
     }
+}
+
+void
+GCRuntime::updateMallocCountersOnGC()
+{
+    AutoLockGC lock(rt);
+
+    size_t totalBytesInCollectedZones = 0;
+    for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
+        if (zone->isCollecting()) {
+            totalBytesInCollectedZones += zone->GCMallocBytes();
+            zone->updateGCMallocBytesOnGC(lock);
+        }
+    }
+
+    // Update the runtime malloc counter. If we are doing a full GC then clear
+    // it, otherwise decrement it by the previous malloc bytes count for the
+    // zones we did collect.
+    if (isFull)
+        mallocCounter.updateOnGC(lock);
+    else
+        mallocCounter.decrement(totalBytesInCollectedZones);
 }
 
 template <class ZoneIterT>
@@ -6706,9 +6717,8 @@ AutoGCSlice::AutoGCSlice(JSRuntime* rt)
         if (zone->isGCMarking()) {
             MOZ_ASSERT(zone->needsIncrementalBarrier());
             zone->setNeedsIncrementalBarrier(false);
-        } else {
-            MOZ_ASSERT(!zone->needsIncrementalBarrier());
         }
+        MOZ_ASSERT(!zone->needsIncrementalBarrier());
     }
 }
 
@@ -6716,11 +6726,10 @@ AutoGCSlice::~AutoGCSlice()
 {
     /* We can't use GCZonesIter if this is the end of the last slice. */
     for (ZonesIter zone(runtime, WithAtoms); !zone.done(); zone.next()) {
+        MOZ_ASSERT(!zone->needsIncrementalBarrier());
         if (zone->isGCMarking()) {
             zone->setNeedsIncrementalBarrier(true);
             zone->arenas.purge();
-        } else {
-            zone->setNeedsIncrementalBarrier(false);
         }
     }
 }
@@ -7148,12 +7157,6 @@ GCRuntime::gcCycle(bool nonincrementalByAPI, SliceBudget& budget, JS::gcreason::
     clearSelectedForMarking();
 #endif
 
-    /* Clear gcMallocBytes for all zones. */
-    for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next())
-        zone->resetAllMallocBytes();
-
-    resetMallocBytes();
-
     TraceMajorGCEnd();
 
     return IncrementalResult::Ok;
@@ -7187,14 +7190,14 @@ GCRuntime::scanZonesBeforeGC()
     gcstats::ZoneGCStats zoneStats;
     for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
         zoneStats.zoneCount++;
+        zoneStats.compartmentCount += zone->compartments().length();
+        if (zone->canCollect())
+            zoneStats.collectableZoneCount++;
         if (zone->isGCScheduled()) {
             zoneStats.collectedZoneCount++;
             zoneStats.collectedCompartmentCount += zone->compartments().length();
         }
     }
-
-    for (CompartmentsIter c(rt, WithAtoms); !c.done(); c.next())
-        zoneStats.compartmentCount++;
 
     return zoneStats;
 }
@@ -7726,6 +7729,9 @@ gc::MergeCompartments(JSCompartment* source, JSCompartment* target)
 {
     JSRuntime* rt = source->runtimeFromActiveCooperatingThread();
     rt->gc.mergeCompartments(source, target);
+
+    AutoLockGC lock(rt);
+    rt->gc.maybeAllocTriggerZoneGC(target->zone(), lock);
 }
 
 void
@@ -7813,6 +7819,7 @@ GCRuntime::mergeCompartments(JSCompartment* source, JSCompartment* target)
     target->zone()->arenas.adoptArenas(rt, &source->zone()->arenas, targetZoneIsCollecting);
     target->zone()->usage.adopt(source->zone()->usage);
     target->zone()->adoptUniqueIds(source->zone());
+    target->zone()->adoptMallocBytes(source->zone());
 
     // Merge other info in source's zone into target's zone.
     target->zone()->types.typeLifoAlloc().transferFrom(&source->zone()->types.typeLifoAlloc());
@@ -8083,13 +8090,19 @@ JS::AssertGCThingIsNotAnObjectSubclass(Cell* cell)
 JS_FRIEND_API(void)
 js::gc::AssertGCThingHasType(js::gc::Cell* cell, JS::TraceKind kind)
 {
-    MOZ_ASSERT(IsCellPointerValid(cell));
-    if (!cell)
+    if (!cell) {
         MOZ_ASSERT(kind == JS::TraceKind::Null);
-    else if (IsInsideNursery(cell))
+        return;
+    }
+
+    MOZ_ASSERT(IsCellPointerValid(cell));
+
+    if (IsInsideNursery(cell)) {
         MOZ_ASSERT(kind == JS::TraceKind::Object);
-    else
-        MOZ_ASSERT(MapAllocToTraceKind(cell->asTenured().getAllocKind()) == kind);
+        return;
+    }
+
+    MOZ_ASSERT(MapAllocToTraceKind(cell->asTenured().getAllocKind()) == kind);
 }
 #endif
 
@@ -8653,7 +8666,7 @@ NewMemoryInfoObject(JSContext* cx)
 #endif
         if (!JS_DefineProperty(cx, obj, pair.name,
                                getter, nullptr,
-                               JSPROP_ENUMERATE | JSPROP_SHARED))
+                               JSPROP_ENUMERATE))
         {
             return nullptr;
         }
@@ -8688,7 +8701,7 @@ NewMemoryInfoObject(JSContext* cx)
 #endif
         if (!JS_DefineProperty(cx, zoneObj, pair.name,
                                getter, nullptr,
-                               JSPROP_ENUMERATE | JSPROP_SHARED))
+                               JSPROP_ENUMERATE))
         {
             return nullptr;
         }

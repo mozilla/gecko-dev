@@ -15,7 +15,7 @@
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/layers/LayersMessages.h"
 #include "mozilla/layers/StackingContextHelper.h"
-#include "mozilla/layers/WebRenderDisplayItemLayer.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/layers/WebRenderMessages.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Move.h"
@@ -229,7 +229,6 @@ public:
                           wr::DisplayListBuilder& aBuilder,
                           wr::IpcResourceUpdateQueue& aResources,
                           const layers::StackingContextHelper& aSc,
-                          nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                           mozilla::layers::WebRenderLayerManager* aManager,
                           nsDisplayListBuilder* aDisplayListBuilder);
 
@@ -279,7 +278,6 @@ private:
                                   wr::DisplayListBuilder& aBuilder,
                                   wr::IpcResourceUpdateQueue& aResources,
                                   const layers::StackingContextHelper& aSc,
-                                  nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                   mozilla::layers::WebRenderLayerManager* aManager,
                                   nsDisplayListBuilder* aDisplayListBuilder);
 
@@ -288,7 +286,6 @@ private:
                                  wr::DisplayListBuilder& aBuilder,
                                  wr::IpcResourceUpdateQueue& aResources,
                                  const layers::StackingContextHelper& aSc,
-                                 nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                  mozilla::layers::WebRenderLayerManager* aManager,
                                  nsDisplayListBuilder* aDisplayListBuilder);
 
@@ -330,18 +327,15 @@ BulletRenderer::CreateWebRenderCommands(nsDisplayItem* aItem,
                                         wr::DisplayListBuilder& aBuilder,
                                         wr::IpcResourceUpdateQueue& aResources,
                                         const layers::StackingContextHelper& aSc,
-                                        nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                         mozilla::layers::WebRenderLayerManager* aManager,
                                         nsDisplayListBuilder* aDisplayListBuilder)
 {
   if (IsImageType()) {
     CreateWebRenderCommandsForImage(aItem, aBuilder, aResources,
-                                    aSc, aParentCommands,
-                                    aManager, aDisplayListBuilder);
+                                    aSc, aManager, aDisplayListBuilder);
   } else if (IsPathType()) {
     CreateWebRenderCommandsForPath(aItem, aBuilder, aResources,
-                                   aSc, aParentCommands,
-                                   aManager, aDisplayListBuilder);
+                                   aSc, aManager, aDisplayListBuilder);
   } else {
     MOZ_ASSERT(IsTextType());
     CreateWebRenderCommandsForText(aItem, aBuilder, aResources, aSc,
@@ -458,7 +452,6 @@ BulletRenderer::CreateWebRenderCommandsForImage(nsDisplayItem* aItem,
                                                 wr::DisplayListBuilder& aBuilder,
                                                 wr::IpcResourceUpdateQueue& aResources,
                                                 const layers::StackingContextHelper& aSc,
-                                                nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                                 mozilla::layers::WebRenderLayerManager* aManager,
                                                 nsDisplayListBuilder* aDisplayListBuilder)
 {
@@ -479,7 +472,7 @@ BulletRenderer::CreateWebRenderCommandsForImage(nsDisplayItem* aItem,
   }
 
   gfx::IntSize size;
-  Maybe<wr::ImageKey> key = aManager->CreateImageKey(aItem, container, aBuilder, aSc, size);
+  Maybe<wr::ImageKey> key = aManager->CommandBuilder().CreateImageKey(aItem, container, aBuilder, aResources, aSc, size);
   if (key.isNothing()) {
     return;
   }
@@ -490,6 +483,7 @@ BulletRenderer::CreateWebRenderCommandsForImage(nsDisplayItem* aItem,
 
   aBuilder.PushImage(dest,
                      dest,
+                     !aItem->BackfaceIsHidden(),
                      wr::ImageRendering::Auto,
                      key.value());
 }
@@ -499,13 +493,12 @@ BulletRenderer::CreateWebRenderCommandsForPath(nsDisplayItem* aItem,
                                                wr::DisplayListBuilder& aBuilder,
                                                wr::IpcResourceUpdateQueue& aResources,
                                                const layers::StackingContextHelper& aSc,
-                                               nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                                mozilla::layers::WebRenderLayerManager* aManager,
                                                nsDisplayListBuilder* aDisplayListBuilder)
 {
   MOZ_ASSERT(IsPathType());
 
-  if (!aManager->PushItemAsImage(aItem, aBuilder, aResources, aSc, aDisplayListBuilder)) {
+  if (!aManager->CommandBuilder().PushItemAsImage(aItem, aBuilder, aResources, aSc, aDisplayListBuilder)) {
     NS_WARNING("Fail to create WebRender commands for Bullet path.");
   }
 }
@@ -528,11 +521,24 @@ BulletRenderer::CreateWebRenderCommandsForText(nsDisplayItem* aItem,
       LayoutDeviceRect::FromAppUnits(
           aItem->GetBounds(aDisplayListBuilder, &dummy), appUnitsPerDevPixel),
       PixelCastJustification::WebRenderHasUnitResolution);
+  wr::LayoutRect wrDestRect = aSc.ToRelativeLayoutRect(destRect);
 
-  for (layers::GlyphArray& glyphs : mGlyphs) {
-    aManager->WrBridge()->PushGlyphs(aBuilder, glyphs.glyphs(), mFont,
-                                     glyphs.color().value(),
-                                     aSc, destRect, destRect);
+  nsTArray<wr::GlyphInstance> wrGlyphs;
+
+  for (layers::GlyphArray& glyphArray : mGlyphs) {
+    const auto& glyphs = glyphArray.glyphs();
+    wrGlyphs.SetLength(glyphs.Length());
+
+    for (size_t j = 0; j < glyphs.Length(); j++) {
+      wrGlyphs[j].index = glyphs[j].mIndex;
+      wrGlyphs[j].point = aSc.ToRelativeLayoutPoint(
+              LayerPoint::FromUnknownPoint(glyphs[j].mPosition));
+    }
+
+    aManager->WrBridge()->PushGlyphs(aBuilder, wrGlyphs, mFont,
+                                     wr::ToColorF(glyphArray.color().value()),
+                                     aSc, wrDestRect, wrDestRect,
+                                     !aItem->BackfaceIsHidden());
   }
 }
 
@@ -567,7 +573,6 @@ public:
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        mozilla::wr::IpcResourceUpdateQueue&,
                                        const StackingContextHelper& aSc,
-                                       nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
                                        nsDisplayListBuilder* aDisplayListBuilder) override;
 
@@ -672,21 +677,18 @@ bool
 nsDisplayBullet::CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
                                          wr::IpcResourceUpdateQueue& aResources,
                                          const StackingContextHelper& aSc,
-                                         nsTArray<layers::WebRenderParentCommand>& aParentCommands,
                                          mozilla::layers::WebRenderLayerManager* aManager,
                                          nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   if (!mBulletRenderer)
     return false;
 
-  mBulletRenderer->CreateWebRenderCommands(this, aBuilder, aResources, aSc, aParentCommands,
+  mBulletRenderer->CreateWebRenderCommands(this, aBuilder, aResources, aSc,
                                            aManager, aDisplayListBuilder);
   return true;
 }

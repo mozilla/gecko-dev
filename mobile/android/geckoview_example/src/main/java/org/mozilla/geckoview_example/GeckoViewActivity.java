@@ -26,6 +26,7 @@ public class GeckoViewActivity extends Activity {
     private static final String LOGTAG = "GeckoViewActivity";
     private static final String DEFAULT_URL = "https://mozilla.org";
     private static final String USE_MULTIPROCESS_EXTRA = "use_multiprocess";
+    private static final String USE_REMOTE_DEBUGGER_EXTRA = "use_remote_debugger";
 
     /* package */ static final int REQUEST_FILE_PICKER = 1;
     private static final int REQUEST_PERMISSIONS = 2;
@@ -54,13 +55,16 @@ public class GeckoViewActivity extends Activity {
             }
         }
 
-        GeckoView.preload(this, geckoArgs);
+        final boolean useMultiprocess = getIntent().getBooleanExtra(USE_MULTIPROCESS_EXTRA,
+                                                                    true);
+        GeckoView.preload(this, geckoArgs, useMultiprocess);
 
         setContentView(R.layout.geckoview_activity);
 
         mGeckoView = (GeckoView) findViewById(R.id.gecko_view);
         mGeckoView.setContentListener(new MyGeckoViewContent());
         mGeckoView.setProgressListener(new MyGeckoViewProgress());
+        mGeckoView.setNavigationListener(new Navigation());
 
         final BasicGeckoViewPrompt prompt = new BasicGeckoViewPrompt();
         prompt.filePickerRequestCode = REQUEST_FILE_PICKER;
@@ -70,6 +74,9 @@ public class GeckoViewActivity extends Activity {
         permission.androidPermissionRequestCode = REQUEST_PERMISSIONS;
         mGeckoView.setPermissionDelegate(permission);
 
+        mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS,
+                                            useMultiprocess);
+        loadSettings(getIntent());
         loadFromIntent(getIntent());
     }
 
@@ -78,18 +85,21 @@ public class GeckoViewActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
 
+        loadSettings(intent);
         if (intent.getData() != null) {
             loadFromIntent(intent);
         }
     }
 
     private void loadFromIntent(final Intent intent) {
-        mGeckoView.getSettings().setBoolean(
-            GeckoViewSettings.USE_MULTIPROCESS,
-            intent.getBooleanExtra(USE_MULTIPROCESS_EXTRA, true));
-
         final Uri uri = intent.getData();
         mGeckoView.loadUri(uri != null ? uri.toString() : DEFAULT_URL);
+    }
+
+    private void loadSettings(final Intent intent) {
+        mGeckoView.getSettings().setBoolean(
+            GeckoViewSettings.USE_REMOTE_DEBUGGER,
+            intent.getBooleanExtra(USE_REMOTE_DEBUGGER_EXTRA, false));
     }
 
     @Override

@@ -1074,7 +1074,7 @@ gfxUserFontSet::LookupFamily(const nsAString& aFamilyName) const
 bool
 gfxUserFontSet::ContainsUserFontSetFonts(const FontFamilyList& aFontList) const
 {
-    for (const FontFamilyName& name : aFontList.GetFontlist()) {
+    for (const FontFamilyName& name : aFontList.GetFontlist()->mNames) {
         if (name.mType != eFamily_named &&
             name.mType != eFamily_named_quoted) {
             continue;
@@ -1453,7 +1453,7 @@ gfxUserFontSet::UserFontCache::Entry::ReportMemory(
             if (NS_SUCCEEDED(mURI->get()->SchemeIs("data", &isData)) && isData &&
                 spec.Length() > 255) {
                 spec.Truncate(252);
-                spec.Append("...");
+                spec.AppendLiteral("...");
             }
             path.AppendPrintf(", url=%s", spec.get());
         }

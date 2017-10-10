@@ -79,6 +79,22 @@ Tree Information
    associated with this tree.  This dictates the names of resources used in the
    generated tasks, and those tasks will fail if it is incorrect.
 
+Try Configuration
+-----------------
+
+``try_mode``
+    The mode in which a try push is operating.  This can be one of
+    ``"try_task_config"``, ``"try_option_syntax"``, or ``None`` meaning no try
+    input was provided.
+
+``try_options``
+    The arguments given as try syntax (as a dictionary), or ``None`` if
+    ``try_mode`` is not ``try_option_syntax``.
+
+``try_task_config``
+    The contents of the ``try_task_config.json`` file, or ``None`` if
+    ``try_mode`` is not ``try_task_config``.
+
 Target Set
 ----------
 
@@ -92,10 +108,6 @@ syntax or reading a project-specific configuration file).
     List of filter functions (from ``taskcluster/taskgraph/filter_tasks.py``) to
     apply. This is usually defined internally, as filters are typically
     global.
-
-``target_task_labels``
-    List of task labels to select. Labels not listed will be filtered out.
-    Enabled on try only.
 
 ``target_tasks_method``
     The method to use to determine the target task set.  This is the suffix of
@@ -113,11 +125,15 @@ syntax or reading a project-specific configuration file).
    Suitable contents can be generated with ``mach release-history``,
    which will print to the console by default.
 
-Morphed Set
------------
+Comm Push Information
+---------------------
 
-``morph_templates``
-    Dict of JSON-e templates to apply to each task, keyed by template name.
-    Values are extra context that will be available to the template under the
-    ``input.<template>`` key. Available templates live in
-    ``taskcluster/taskgraph/templates``. Enabled on try only.
+These parameters correspond to the repository and revision of the comm-central
+repository to checkout. Their meaning is the same as the corresponding
+parameters for the gecko repository above. They are optional, but if any of
+them are specified, they must all be specified.
+
+``comm_base_repository``
+``comm_head_repository``
+``comm_head_rev``
+``comm_head_ref``

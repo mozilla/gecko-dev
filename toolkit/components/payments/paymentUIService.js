@@ -2,11 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * Singleton service acting as glue between the DOM APIs and the payment dialog UI.
+ *
+ * Communication from the DOM to the UI happens via the nsIPaymentUIService interface.
+ * The UI talks to the DOM code via the nsIPaymentRequestService interface.
+ * PaymentUIService is started by the DOM code lazily.
+ *
+ * For now the UI is shown in a native dialog but that is likely to change.
+ * Tests should try to avoid relying on that implementation detail.
+ */
+
 "use strict";
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
-// eslint-disable-next-line no-unused-vars
-const DIALOG_URL = "chrome://payments/content/paymentRequest.xhtml";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -27,29 +36,32 @@ function defineLazyLogGetter(scope, logPrefix) {
 }
 
 function PaymentUIService() {
+  this.wrappedJSObject = this;
   defineLazyLogGetter(this, "Payment UI Service");
-  paymentSrv.setTestingUIService(this);
   this.log.debug("constructor");
 }
 
 PaymentUIService.prototype = {
   classID: Components.ID("{01f8bd55-9017-438b-85ec-7c15d2b35cdc}"),
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIPaymentUIService]),
+  DIALOG_URL: "chrome://payments/content/paymentDialog.xhtml",
   REQUEST_ID_PREFIX: "paymentRequest-",
 
+  // nsIPaymentUIService implementation:
+
   showPayment(requestId) {
-    this.log.debug("showPayment");
+    this.log.debug(`showPayment: ${requestId}`);
     let chromeWindow = Services.wm.getMostRecentWindow("navigator:browser");
-    chromeWindow.openDialog(DIALOG_URL,
+    chromeWindow.openDialog(this.DIALOG_URL,
                             `${this.REQUEST_ID_PREFIX}${requestId}`,
-                            "modal,dialog,centerscreen");
+                            "modal,dialog,centerscreen",
+                            {requestId});
   },
 
   abortPayment(requestId) {
     this.log.debug(`abortPayment: ${requestId}`);
     let abortResponse = Cc["@mozilla.org/dom/payments/payment-abort-action-response;1"]
                           .createInstance(Ci.nsIPaymentAbortActionResponse);
-    abortResponse.init(requestId, Ci.nsIPaymentActionResponse.ABORT_SUCCEEDED);
 
     let enu = Services.wm.getEnumerator(null);
     let win;
@@ -60,10 +72,19 @@ PaymentUIService.prototype = {
         break;
       }
     }
-    paymentSrv.respondPayment(abortResponse.QueryInterface(Ci.nsIPaymentActionResponse));
+
+    // if `win` is falsy, then we haven't found the dialog, so the abort fails
+    // otherwise, the abort is successful
+    let response = win ?
+      Ci.nsIPaymentActionResponse.ABORT_SUCCEEDED :
+      Ci.nsIPaymentActionResponse.ABORT_FAILED;
+
+    abortResponse.init(requestId, response);
+    paymentSrv.respondPayment(abortResponse);
   },
 
   completePayment(requestId) {
+    this.log.debug(`completePayment: ${requestId}`);
     let completeResponse = Cc["@mozilla.org/dom/payments/payment-complete-action-response;1"]
                              .createInstance(Ci.nsIPaymentCompleteActionResponse);
     completeResponse.init(requestId, Ci.nsIPaymentActionResponse.COMPLTETE_SUCCEEDED);
@@ -71,6 +92,17 @@ PaymentUIService.prototype = {
   },
 
   updatePayment(requestId) {
+    this.log.debug(`updatePayment: ${requestId}`);
+  },
+
+  // other helper methods
+
+  requestIdForWindow(window) {
+    let windowName = window.name;
+
+    return windowName.startsWith(this.REQUEST_ID_PREFIX) ?
+      windowName.replace(this.REQUEST_ID_PREFIX, "") : // returns suffix, which is the requestId
+      null;
   },
 };
 

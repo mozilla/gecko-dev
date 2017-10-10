@@ -7,7 +7,7 @@
 #include "nsContentUtils.h"
 
 #include "mozilla/dom/SVGUseElement.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 
 using namespace mozilla::dom;
 
@@ -48,7 +48,7 @@ nsSVGUseFrame::Init(nsIContent*       aContent,
 
 nsresult
 nsSVGUseFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                nsIAtom*        aAttribute,
+                                nsAtom*        aAttribute,
                                 int32_t         aModType)
 {
   SVGUseElement *useElement = static_cast<SVGUseElement*>(GetContent());

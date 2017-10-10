@@ -78,7 +78,6 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLButtonElement,
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLButtonElement,
                                              nsGenericHTMLFormElementWithState,
-                                             nsIDOMHTMLButtonElement,
                                              nsIConstraintValidation)
 
 void
@@ -110,32 +109,25 @@ HTMLButtonElement::FieldSetDisabledChanged(bool aNotify)
   UpdateState(aNotify);
 }
 
-// nsIDOMHTMLButtonElement
-
 NS_IMPL_ELEMENT_CLONE(HTMLButtonElement)
 
-
-// nsIDOMHTMLButtonElement
-
-NS_IMETHODIMP
-HTMLButtonElement::GetForm(nsIDOMHTMLFormElement** aForm)
+void
+HTMLButtonElement::GetFormEnctype(nsAString& aFormEncType)
 {
-  return nsGenericHTMLFormElementWithState::GetForm(aForm);
+  GetEnumAttr(nsGkAtoms::formenctype, "", kFormDefaultEnctype->tag, aFormEncType);
 }
 
-NS_IMPL_BOOL_ATTR(HTMLButtonElement, Autofocus, autofocus)
-NS_IMPL_BOOL_ATTR(HTMLButtonElement, Disabled, disabled)
-NS_IMPL_ACTION_ATTR(HTMLButtonElement, FormAction, formaction)
-NS_IMPL_ENUM_ATTR_DEFAULT_MISSING_INVALID_VALUES(HTMLButtonElement, FormEnctype, formenctype,
-                                                 "", kFormDefaultEnctype->tag)
-NS_IMPL_ENUM_ATTR_DEFAULT_MISSING_INVALID_VALUES(HTMLButtonElement, FormMethod, formmethod,
-                                                 "", kFormDefaultMethod->tag)
-NS_IMPL_BOOL_ATTR(HTMLButtonElement, FormNoValidate, formnovalidate)
-NS_IMPL_STRING_ATTR(HTMLButtonElement, FormTarget, formtarget)
-NS_IMPL_STRING_ATTR(HTMLButtonElement, Name, name)
-NS_IMPL_STRING_ATTR(HTMLButtonElement, Value, value)
-NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(HTMLButtonElement, Type, type,
-                                kButtonDefaultType->tag)
+void
+HTMLButtonElement::GetFormMethod(nsAString& aFormMethod)
+{
+  GetEnumAttr(nsGkAtoms::formmethod, "", kFormDefaultMethod->tag, aFormMethod);
+}
+
+void
+HTMLButtonElement::GetType(nsAString& aType)
+{
+  GetEnumAttr(nsGkAtoms::type, kButtonDefaultType->tag, aType);
+}
 
 int32_t
 HTMLButtonElement::TabIndexDefault()
@@ -161,7 +153,7 @@ HTMLButtonElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t 
 
 bool
 HTMLButtonElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   const nsAString& aValue,
                                   nsAttrValue& aResult)
 {
@@ -375,7 +367,7 @@ HTMLButtonElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission)
   // Get the name (if no name, no submit)
   //
   nsAutoString name;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
+  GetHTMLAttr(nsGkAtoms::name, name);
   if (name.IsEmpty()) {
     return NS_OK;
   }
@@ -384,10 +376,7 @@ HTMLButtonElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission)
   // Get the value
   //
   nsAutoString value;
-  nsresult rv = GetValue(value);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  GetHTMLAttr(nsGkAtoms::value, value);
 
   //
   // Submit
@@ -407,7 +396,7 @@ HTMLButtonElement::DoneCreatingElement()
 }
 
 nsresult
-HTMLButtonElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLButtonElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify)
 {
@@ -421,9 +410,11 @@ HTMLButtonElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-HTMLButtonElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+HTMLButtonElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue, bool aNotify)
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::type) {
@@ -447,7 +438,7 @@ HTMLButtonElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
   return nsGenericHTMLFormElementWithState::AfterSetAttr(aNameSpaceID, aName,
                                                          aValue, aOldValue,
-                                                         aNotify);
+                                                         aSubjectPrincipal, aNotify);
 }
 
 NS_IMETHODIMP
@@ -471,7 +462,8 @@ bool
 HTMLButtonElement::RestoreState(nsPresState* aState)
 {
   if (aState && aState->IsDisabledSet() && !aState->GetDisabled()) {
-    SetDisabled(false);
+    IgnoredErrorResult rv;
+    SetDisabled(false, rv);
   }
 
   return false;

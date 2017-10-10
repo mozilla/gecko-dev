@@ -11,7 +11,7 @@
 #include "nsGkAtoms.h"
 #include "nsButtonFrameRenderer.h"
 #include "nsCSSAnonBoxes.h"
-#include "nsFormControlFrame.h"
+#include "nsCheckboxRadioFrame.h"
 #include "nsNameSpaceManager.h"
 #include "nsDisplayList.h"
 #include <algorithm>
@@ -39,7 +39,7 @@ nsHTMLButtonControlFrame::~nsHTMLButtonControlFrame()
 void
 nsHTMLButtonControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
+  nsCheckboxRadioFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -113,7 +113,7 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsDisplayListCollection set;
 
   // Do not allow the child subtree to receive events.
-  if (!isForEventDelivery) {
+  if (!isForEventDelivery || aBuilder->HitTestShouldStopAtFirstOpaque()) {
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
     if (ShouldClipPaintingToBorderBox()) {
@@ -180,7 +180,7 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
+    nsCheckboxRadioFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
   }
 
   // Reflow the child
@@ -372,7 +372,7 @@ nsHTMLButtonControlFrame::GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
   return true;
 }
 
-nsresult nsHTMLButtonControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aValue)
+nsresult nsHTMLButtonControlFrame::SetFormProperty(nsAtom* aName, const nsAString& aValue)
 {
   if (nsGkAtoms::value == aName) {
     return mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::value,

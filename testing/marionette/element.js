@@ -7,25 +7,20 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-Cu.import("resource://gre/modules/Log.jsm");
-
 Cu.import("chrome://marionette/content/assert.js");
 Cu.import("chrome://marionette/content/atom.js");
 const {
   InvalidSelectorError,
-  JavaScriptError,
   NoSuchElementError,
   pprint,
   StaleElementReferenceError,
 } = Cu.import("chrome://marionette/content/error.js", {});
-Cu.import("chrome://marionette/content/wait.js");
-
-const logger = Log.repository.getLogger("Marionette");
+const {PollPromise} = Cu.import("chrome://marionette/content/sync.js", {});
 
 this.EXPORTED_SYMBOLS = ["element"];
 
-const DOCUMENT_POSITION_DISCONNECTED = 1;
 const XMLNS = "http://www.w3.org/1999/xhtml";
+const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 const uuidGen = Cc["@mozilla.org/uuid-generator;1"]
     .getService(Ci.nsIUUIDGenerator);
@@ -243,8 +238,9 @@ element.Store = class {
  *     element is not found.
  */
 element.find = function(container, strategy, selector, opts = {}) {
-  opts.all = !!opts.all;
-  opts.timeout = opts.timeout || 0;
+  let all = !!opts.all;
+  let timeout = opts.timeout || 0;
+  let startNode = opts.startNode;
 
   let searchFn;
   if (opts.all) {
@@ -254,14 +250,15 @@ element.find = function(container, strategy, selector, opts = {}) {
   }
 
   return new Promise((resolve, reject) => {
-    let findElements = wait.until((resolve, reject) => {
-      let res = find_(container, strategy, selector, searchFn, opts);
+    let findElements = new PollPromise((resolve, reject) => {
+      let res = find_(container, strategy, selector, searchFn,
+          {all, startNode});
       if (res.length > 0) {
         resolve(Array.from(res));
       } else {
         reject([]);
       }
-    }, opts.timeout);
+    }, {timeout});
 
     findElements.then(foundEls => {
       // the following code ought to be moved into findElement
@@ -289,13 +286,11 @@ element.find = function(container, strategy, selector, opts = {}) {
   });
 };
 
-function find_(container, strategy, selector, searchFn, opts) {
+function find_(container, strategy, selector, searchFn,
+    {startNode = null, all = false} = {}) {
   let rootNode = container.shadowRoot || container.frame.document;
-  let startNode;
 
-  if (opts.startNode) {
-    startNode = opts.startNode;
-  } else {
+  if (!startNode) {
     switch (strategy) {
       // For anonymous nodes the start node needs to be of type
       // DOMElement, which will refer to :root in case of a DOMDocument.
@@ -320,7 +315,7 @@ function find_(container, strategy, selector, searchFn, opts) {
   }
 
   if (res) {
-    if (opts.all) {
+    if (all) {
       return res;
     }
     return [res];
@@ -929,9 +924,7 @@ element.getPointerInteractablePaintTree = function(el) {
 
 // TODO(ato): Not implemented.
 // In fact, it's not defined in the spec.
-element.isKeyboardInteractable = function(el) {
-  return true;
-};
+element.isKeyboardInteractable = () => true;
 
 /**
  * Attempts to scroll into view |el|.
@@ -946,8 +939,7 @@ element.scrollIntoView = function(el) {
 };
 
 element.isXULElement = function(el) {
-  let ns = atom.getElementAttribute(el, "namespaceURI");
-  return ns.indexOf("there.is.only.xul") >= 0;
+  return el.namespaceURI === XULNS;
 };
 
 const boolEls = {

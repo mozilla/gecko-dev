@@ -7,6 +7,8 @@
    there are overrides for each platform in their compacttheme.css files. */
 
 :root:-moz-lwtheme {
+  text-shadow: none;
+
   --toolbar-bgcolor: var(--chrome-secondary-background-color);
   --toolbar-gbimage: none;
   --toolbar-non-lwt-bgcolor: var(--toolbar-bgcolor);
@@ -15,7 +17,7 @@
 
   --toolbarbutton-icon-fill-opacity: .7;
 
-  --tab-line-color: highlight;
+  --tab-line-color: #0a84ff;
 }
 
 :root:-moz-lwtheme-brighttext {
@@ -83,19 +85,9 @@ toolbar[brighttext] .toolbarbutton-1 {
 
 /* Default findbar text color doesn't look good - Bug 1125677 */
 .browserContainer > findbar .findbar-find-status,
-.browserContainer > findbar .found-matches {
+.browserContainer > findbar .found-matches,
+.browserContainer > findbar .findbar-button {
   color: inherit;
-}
-
-#navigator-toolbox .toolbarbutton-1,
-.browserContainer > findbar .findbar-button,
-#PlacesToolbar toolbarbutton.bookmark-item {
-  color: var(--chrome-color);
-  text-shadow: none;
-}
-
-#TabsToolbar {
-  text-shadow: none !important;
 }
 
 /* URL bar and search bar*/

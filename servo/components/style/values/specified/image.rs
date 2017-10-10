@@ -626,6 +626,32 @@ impl GenericsLineDirection for LineDirection {
                 if compat_mode == CompatMode::Modern => true,
             LineDirection::Vertical(Y::Top)
                 if compat_mode != CompatMode::Modern => true,
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(Some(LegacyPosition {
+                horizontal: ref x,
+                vertical: ref y,
+            }), None) => {
+                use values::computed::Percentage as ComputedPercentage;
+                use values::specified::transform::OriginComponent;
+
+                // `50% 0%` is the default value for line direction.
+                // These percentage values can also be keywords.
+                let x = match *x {
+                    OriginComponent::Center => true,
+                    OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage(val))) => {
+                        val == 0.5
+                    },
+                    _ => false,
+                };
+                let y = match *y {
+                    OriginComponent::Side(Y::Top) => true,
+                    OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage(val))) => {
+                        val == 0.0
+                    },
+                    _ => false,
+                };
+                x && y
+            },
             _ => false,
         }
     }
@@ -882,18 +908,18 @@ impl Parse for ColorStop {
 }
 
 impl Parse for PaintWorklet {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("paint")?;
         input.parse_nested_block(|input| {
             let name = Atom::from(&**input.expect_ident()?);
             let arguments = input.try(|input| {
                 input.expect_comma()?;
-                input.parse_comma_separated(|input| Ok(*SpecifiedValue::parse(context, input)?))
+                input.parse_comma_separated(|input| SpecifiedValue::parse(input))
             }).unwrap_or(vec![]);
-            Ok(PaintWorklet {
-                name: name,
-                arguments: arguments,
-            })
+            Ok(PaintWorklet { name, arguments })
         })
     }
 }

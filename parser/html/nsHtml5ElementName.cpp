@@ -27,7 +27,7 @@
 
 #define nsHtml5ElementName_cpp__
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5String.h"
 #include "nsNameSpaceManager.h"
@@ -55,8 +55,8 @@
 #include "nsHtml5ElementName.h"
 
 nsHtml5ElementName::nsHtml5ElementName(
-  nsIAtom* name,
-  nsIAtom* camelCaseName,
+  nsAtom* name,
+  nsAtom* camelCaseName,
   mozilla::dom::HTMLContentCreatorFunction htmlCreator,
   mozilla::dom::SVGContentCreatorFunction svgCreator,
   int32_t flags)
@@ -279,12 +279,12 @@ nsHtml5ElementName* nsHtml5ElementName::ELT_TT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_RECT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_RADIALGRADIENT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SELECT = nullptr;
+nsHtml5ElementName* nsHtml5ElementName::ELT_SLOT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SCRIPT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_TFOOT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_TEXT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_MENU = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_FEDROPSHADOW = nullptr;
-nsHtml5ElementName* nsHtml5ElementName::ELT_SHADOW = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_VIEW = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_FECOLORMATRIX = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_FECONVOLVEMATRIX = nullptr;
@@ -299,13 +299,13 @@ static int32_t const ELEMENT_HASHES_DATA[] = {
   2007781534, 59821379,   1732381397, 1756600614, 1870135298, 1939219752,
   1990037800, 2005324101, 2060065124, 55104723,   62450211,   1686489160,
   1747048757, 1749932347, 1782357526, 1818755074, 1881669634, 1907959605,
-  1967760215, 1983533124, 1999917383, 2001392798, 2006329158, 2008994116,
+  1967760215, 1983533124, 1999917383, 2001392798, 2006329158, 2008851557,
   2085266636, 52485715,   57733651,   60354131,   67633153,   960495618,
   1703936002, 1736200310, 1747838298, 1749723735, 1753362711, 1757157700,
   1786534215, 1805647874, 1854245076, 1874102998, 1898223949, 1906087319,
   1932928296, 1965115924, 1968053806, 1982173479, 1986527234, 1998724870,
-  2001309869, 2001392795, 2003183333, 2005925890, 2006974466, 2008340774,
-  2051837468, 2068523856, 2092255447, 51438659,   52488851,   56151587,
+  2001309869, 2001392795, 2003183333, 2005925890, 2006974466, 2008325940,
+  2021937364, 2068523856, 2092255447, 51438659,   52488851,   56151587,
   59244545,   60347747,   61925907,   63438849,   69730305,   926941186,
   1681770564, 1689922072, 1730150402, 1733076167, 1738539010, 1747306711,
   1748225318, 1749673195, 1749813541, 1751386406, 1755148615, 1757137429,
@@ -315,7 +315,7 @@ static int32_t const ELEMENT_HASHES_DATA[] = {
   1971461414, 1973420034, 1982935782, 1983633431, 1988763672, 1998585858,
   1999397992, 2000525512, 2001349704, 2001349736, 2001392796, 2001495140,
   2004635806, 2005719336, 2006028454, 2006896969, 2007601444, 2008125638,
-  2008851557, 2021937364, 2058653206, 2068523853, 2083120164, 2091479332,
+  2008340774, 2008994116, 2051837468, 2068523853, 2083120164, 2091479332,
   2092557349, 51434643,   51961587,   52486755,   52490899,   55110883,
   57206291,   58773795,   59768833,   60345171,   60352339,   61395251,
   62390273,   62973651,   67108865,   68681729,   876609538,  910163970,
@@ -1430,6 +1430,11 @@ nsHtml5ElementName::initializeStatics()
                                       NS_NewHTMLSelectElement,
                                       NS_NewSVGUnknownElement,
                                       nsHtml5TreeBuilder::SELECT | SPECIAL);
+  ELT_SLOT = new nsHtml5ElementName(nsGkAtoms::slot,
+                                    nsGkAtoms::slot,
+                                    NS_NewHTMLSlotElement,
+                                    NS_NewSVGUnknownElement,
+                                    nsHtml5TreeBuilder::OTHER);
   ELT_SCRIPT = new nsHtml5ElementName(nsGkAtoms::script,
                                       nsGkAtoms::script,
                                       NS_NewHTMLScriptElement,
@@ -1458,11 +1463,6 @@ nsHtml5ElementName::initializeStatics()
                                             NS_NewHTMLUnknownElement,
                                             NS_NewSVGFEDropShadowElement,
                                             nsHtml5TreeBuilder::OTHER);
-  ELT_SHADOW = new nsHtml5ElementName(nsGkAtoms::shadow,
-                                      nsGkAtoms::shadow,
-                                      NS_NewHTMLShadowElement,
-                                      NS_NewSVGUnknownElement,
-                                      nsHtml5TreeBuilder::OTHER);
   ELT_VIEW = new nsHtml5ElementName(nsGkAtoms::view,
                                     nsGkAtoms::view,
                                     NS_NewHTMLUnknownElement,
@@ -1541,7 +1541,7 @@ nsHtml5ElementName::initializeStatics()
   ELEMENT_NAMES[26] = ELT_CONTENT;
   ELEMENT_NAMES[27] = ELT_FEDISTANTLIGHT;
   ELEMENT_NAMES[28] = ELT_OUTPUT;
-  ELEMENT_NAMES[29] = ELT_TEXT;
+  ELEMENT_NAMES[29] = ELT_TFOOT;
   ELEMENT_NAMES[30] = ELT_FEMORPHOLOGY;
   ELEMENT_NAMES[31] = ELT_DEL;
   ELEMENT_NAMES[32] = ELT_NAV;
@@ -1571,8 +1571,8 @@ nsHtml5ElementName::initializeStatics()
   ELEMENT_NAMES[56] = ELT_INPUT;
   ELEMENT_NAMES[57] = ELT_RT;
   ELEMENT_NAMES[58] = ELT_TT;
-  ELEMENT_NAMES[59] = ELT_SCRIPT;
-  ELEMENT_NAMES[60] = ELT_FEDROPSHADOW;
+  ELEMENT_NAMES[59] = ELT_SLOT;
+  ELEMENT_NAMES[60] = ELT_MENU;
   ELEMENT_NAMES[61] = ELT_FECONVOLVEMATRIX;
   ELEMENT_NAMES[62] = ELT_SUMMARY;
   ELEMENT_NAMES[63] = ELT_BDO;
@@ -1632,9 +1632,9 @@ nsHtml5ElementName::initializeStatics()
   ELEMENT_NAMES[117] = ELT_PLAINTEXT;
   ELEMENT_NAMES[118] = ELT_RECT;
   ELEMENT_NAMES[119] = ELT_SELECT;
-  ELEMENT_NAMES[120] = ELT_TFOOT;
-  ELEMENT_NAMES[121] = ELT_MENU;
-  ELEMENT_NAMES[122] = ELT_SHADOW;
+  ELEMENT_NAMES[120] = ELT_SCRIPT;
+  ELEMENT_NAMES[121] = ELT_TEXT;
+  ELEMENT_NAMES[122] = ELT_FEDROPSHADOW;
   ELEMENT_NAMES[123] = ELT_FECOLORMATRIX;
   ELEMENT_NAMES[124] = ELT_BODY;
   ELEMENT_NAMES[125] = ELT_RUBY;
@@ -1918,12 +1918,12 @@ nsHtml5ElementName::releaseStatics()
   delete ELT_RECT;
   delete ELT_RADIALGRADIENT;
   delete ELT_SELECT;
+  delete ELT_SLOT;
   delete ELT_SCRIPT;
   delete ELT_TFOOT;
   delete ELT_TEXT;
   delete ELT_MENU;
   delete ELT_FEDROPSHADOW;
-  delete ELT_SHADOW;
   delete ELT_VIEW;
   delete ELT_FECOLORMATRIX;
   delete ELT_FECONVOLVEMATRIX;

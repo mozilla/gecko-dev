@@ -14,6 +14,7 @@ this.startBackground = (function() {
     "log.js",
     "makeUuid.js",
     "catcher.js",
+    "blobConverters.js",
     "background/selectorLoader.js",
     "background/communication.js",
     "background/auth.js",
@@ -134,7 +135,9 @@ this.startBackground = (function() {
       switch (message.type) {
       case "click":
         loadIfNecessary().then(() => {
-          main.onClicked(message.tab);
+          return browser.tabs.get(message.tab.id);
+        }).then((tab) => {
+          main.onClicked(tab);
         }).catch((error) => {
           console.error("Error loading Screenshots:", error);
         });

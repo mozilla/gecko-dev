@@ -808,7 +808,9 @@ PlacesController.prototype = {
     }
 
     if (transactions.length) {
-      await PlacesTransactions.batch(transactions);
+      await PlacesUIUtils.batchUpdatesForNode(this._view.result, transactions.length, async () => {
+        await PlacesTransactions.batch(transactions);
+      });
     }
   },
 
@@ -890,10 +892,10 @@ PlacesController.prototype = {
         if (PlacesUIUtils.useAsyncTransactions) {
           let tag = node.parent.title;
           if (!tag) {
-            let tagGuid = PlacesUtils.getConcreteItemGuid(node.parent);
+            let tagGuid = await PlacesUtils.promiseItemGuid(tagItemId);
             tag = (await PlacesUtils.bookmarks.fetch(tagGuid)).title;
           }
-          transactions.push(PlacesTransactions.Untag({ uri, tag }));
+          transactions.push(PlacesTransactions.Untag({ urls: [uri], tag }));
         } else {
           let txn = new PlacesUntagURITransaction(uri, [tagItemId]);
           transactions.push(txn);
@@ -966,7 +968,9 @@ PlacesController.prototype = {
 
     if (transactions.length > 0) {
       if (PlacesUIUtils.useAsyncTransactions) {
-        await PlacesTransactions.batch(transactions);
+        await PlacesUIUtils.batchUpdatesForNode(this._view.result, transactions.length, async () => {
+          await PlacesTransactions.batch(transactions);
+        });
       } else {
         var txn = new PlacesAggregatedTransaction(txnName, transactions);
         PlacesUtils.transactionManager.doTransaction(txn);
@@ -1006,7 +1010,7 @@ PlacesController.prototype = {
   _removeHistoryContainer: function PC__removeHistoryContainer(aContainerNode) {
     if (PlacesUtils.nodeIsHost(aContainerNode)) {
       // Site container.
-      PlacesUtils.bhistory.removePagesFromHost(aContainerNode.title, true);
+      PlacesUtils.history.removePagesFromHost(aContainerNode.title, true);
     } else if (PlacesUtils.nodeIsDay(aContainerNode)) {
       // Day container.
       let query = aContainerNode.getQueries()[0];
@@ -1018,7 +1022,7 @@ PlacesController.prototype = {
       // removePagesByTimeframe includes both extremes, while date containers
       // exclude the lower extreme.  So, if we would not exclude it, we would
       // end up removing more history than requested.
-      PlacesUtils.bhistory.removePagesByTimeframe(beginTime + 1, endTime);
+      PlacesUtils.history.removePagesByTimeframe(beginTime + 1, endTime);
     }
   },
 
@@ -1304,30 +1308,39 @@ PlacesController.prototype = {
         let urls = items.filter(item => "uri" in item).map(item => Services.io.newURI(item.uri));
         await PlacesTransactions.Tag({ urls, tag: ip.tagName }).transact();
       } else {
-        await PlacesTransactions.batch(async function() {
-          let insertionIndex = await ip.getIndex();
-          let parent = ip.guid;
+        let transactionData = [];
 
-          for (let item of items) {
-            let doCopy = action == "copy";
+        let insertionIndex = await ip.getIndex();
+        let parent = ip.guid;
 
-            // If this is not a copy, check for safety that we can move the
-            // source, otherwise report an error and fallback to a copy.
-            if (!doCopy &&
-                !PlacesControllerDragHelper.canMoveUnwrappedNode(item)) {
-              Components.utils.reportError("Tried to move an unmovable " +
-                             "Places node, reverting to a copy operation.");
-              doCopy = true;
-            }
-            let guid = await PlacesUIUtils.getTransactionForData(
-              item, type, parent, insertionIndex, doCopy).transact();
-            itemsToSelect.push(await PlacesUtils.promiseItemId(guid));
+        for (let item of items) {
+          let doCopy = action == "copy";
 
-            // Adjust index to make sure items are pasted in the correct
-            // position.  If index is DEFAULT_INDEX, items are just appended.
-            if (insertionIndex != PlacesUtils.bookmarks.DEFAULT_INDEX)
-              insertionIndex++;
+          // If this is not a copy, check for safety that we can move the
+          // source, otherwise report an error and fallback to a copy.
+          if (!doCopy &&
+              !PlacesControllerDragHelper.canMoveUnwrappedNode(item)) {
+            Components.utils.reportError("Tried to move an unmovable " +
+                           "Places node, reverting to a copy operation.");
+            doCopy = true;
           }
+
+          transactionData.push([item, type, parent, insertionIndex, doCopy]);
+
+          // Adjust index to make sure items are pasted in the correct
+          // position.  If index is DEFAULT_INDEX, items are just appended.
+          if (insertionIndex != PlacesUtils.bookmarks.DEFAULT_INDEX)
+            insertionIndex++;
+        }
+
+        await PlacesUIUtils.batchUpdatesForNode(this._view.result, transactionData.length, async () => {
+          await PlacesTransactions.batch(async () => {
+            for (let item of transactionData) {
+              let guid = await PlacesUIUtils.getTransactionForData(
+                ...item).transact();
+              itemsToSelect.push(await PlacesUtils.promiseItemId(guid));
+            }
+          });
         });
       }
     } else {
@@ -1581,10 +1594,15 @@ var PlacesControllerDragHelper = {
 
   /**
    * Handles the drop of one or more items onto a view.
-   * @param   insertionPoint
-   *          The insertion point where the items should be dropped
+   *
+   * @param {Object} insertionPoint The insertion point where the items should
+   *                                be dropped.
+   * @param {Object} dt             The dataTransfer information for the drop.
+   * @param {Object} view           The tree view where this object is being
+   *                                dropped to. This allows batching to take
+   *                                place.
    */
-  async onDrop(insertionPoint, dt) {
+  async onDrop(insertionPoint, dt, view) {
     let doCopy = ["copy", "link"].includes(dt.dropEffect);
 
     let transactions = [];
@@ -1634,28 +1652,39 @@ var PlacesControllerDragHelper = {
       for (let unwrapped of nodes) {
         let index = await insertionPoint.getIndex();
 
-        // Adjust insertion index to prevent reversal of dragged items. When you
-        // drag multiple elts upward: need to increment index or each successive
-        // elt will be inserted at the same index, each above the previous.
         if (index != -1 && unwrapped.itemGuid) {
           // Note: we use the parent from the existing bookmark as the sidebar
           // gives us an unwrapped.parent that is actually a query and not the real
           // parent.
           let existingBookmark = await PlacesUtils.bookmarks.fetch(unwrapped.itemGuid);
-          let dragginUp = parentGuid == existingBookmark.parentGuid &&
-                          index < existingBookmark.index;
 
-          if (dragginUp) {
-            index += movedCount++;
-          } else if (PlacesUIUtils.useAsyncTransactions) {
-            if (index == existingBookmark.index) {
-              // We're moving to the same index, so there's nothing for us to do.
-              continue;
+          // If we're dropping on the same folder, then we may need to adjust
+          // the index to insert at the correct place.
+          if (existingBookmark && parentGuid == existingBookmark.parentGuid) {
+            if (PlacesUIUtils.useAsyncTransactions) {
+              if (index < existingBookmark.index) {
+                // When you drag multiple elts upward: need to increment index or
+                // each successive elt will be inserted at the same index, each
+                // above the previous.
+                index += movedCount++;
+              } else if (index > existingBookmark.index) {
+                // If we're dragging down, we need to go one lower to insert at
+                // the real point as moving the element changes the index of
+                // everything below by 1.
+                index--;
+              } else {
+                // This isn't moving so we skip it.
+                continue;
+              }
+            } else {
+              // Sync Transactions. Adjust insertion index to prevent reversal
+              // of dragged items. When you drag multiple elts upward: need to
+              // increment index or each successive elt will be inserted at the
+              // same index, each above the previous.
+              if (index < existingBookmark.index) { // eslint-disable-line no-lonely-if
+                index += movedCount++;
+              }
             }
-            // If we're dragging down, we need to go one lower to insert at
-            // the real point as moving the element changes the index of
-            // everything below by 1.
-            index--;
           }
         }
 
@@ -1696,7 +1725,9 @@ var PlacesControllerDragHelper = {
       return;
     }
     if (PlacesUIUtils.useAsyncTransactions) {
-      await PlacesTransactions.batch(transactions);
+      await PlacesUIUtils.batchUpdatesForNode(view && view.result, transactions.length, async () => {
+        await PlacesTransactions.batch(transactions);
+      });
     } else {
       let txn = new PlacesAggregatedTransaction("DropItems", transactions);
       PlacesUtils.transactionManager.doTransaction(txn);

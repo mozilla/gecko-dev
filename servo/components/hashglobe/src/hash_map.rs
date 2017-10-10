@@ -534,7 +534,7 @@ impl<K, V, S> HashMap<K, V, S>
     where K: Eq + Hash,
           S: BuildHasher
 {
-    fn make_hash<X: ?Sized>(&self, x: &X) -> SafeHash
+    pub fn make_hash<X: ?Sized>(&self, x: &X) -> SafeHash
         where X: Hash
     {
         table::make_hash(&self.hash_builder, x)
@@ -580,42 +580,6 @@ impl<K, V, S> HashMap<K, V, S>
             buckets.next();
             debug_assert!(buckets.index() != start_index);
         }
-    }
-}
-
-impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
-    /// Creates an empty `HashMap`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// let mut map: HashMap<&str, isize> = HashMap::new();
-    /// ```
-    #[inline]
-    pub fn new() -> HashMap<K, V, RandomState> {
-        Default::default()
-    }
-
-    /// Creates an empty `HashMap` with the specified capacity.
-    ///
-    /// The hash map will be able to hold at least `capacity` elements without
-    /// reallocating. If `capacity` is 0, the hash map will not allocate.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// let mut map: HashMap<&str, isize> = HashMap::with_capacity(10);
-    /// ```
-    #[inline]
-    pub fn with_capacity(capacity: usize) -> HashMap<K, V, RandomState> {
-        HashMap::with_capacity_and_hasher(capacity, Default::default())
-    }
-
-    #[inline]
-    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, FailedAllocationError> {
-        HashMap::try_with_capacity_and_hasher(capacity, Default::default())
     }
 }
 
@@ -719,8 +683,15 @@ impl<K, V, S> HashMap<K, V, S>
 
     /// Returns the hash map's raw capacity.
     #[inline]
-    fn raw_capacity(&self) -> usize {
+    pub fn raw_capacity(&self) -> usize {
         self.table.capacity()
+    }
+
+    /// Returns a raw pointer to the table's buffer.
+    #[inline]
+    pub fn raw_buffer(&self) -> *const u8 {
+        assert!(self.len() != 0);
+        self.table.raw_buffer()
     }
 
     /// Reserves capacity for at least `additional` more elements to be inserted

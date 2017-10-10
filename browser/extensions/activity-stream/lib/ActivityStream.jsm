@@ -41,6 +41,10 @@ const REASON_ADDON_UNINSTALL = 6;
 // Configure default Activity Stream prefs with a plain `value` or a `getValue`
 // that computes a value. A `value_local_dev` is used for development defaults.
 const PREFS_CONFIG = new Map([
+  ["aboutHome.autoFocus", {
+    title: "Focus the about:home search box on load",
+    value: false
+  }],
   ["default.sites", {
     title: "Comma-separated list of default top sites to fill in behind visited sites",
     getValue: ({geo}) => DEFAULT_SITES.get(DEFAULT_SITES.has(geo) ? geo : "")
@@ -86,12 +90,16 @@ const PREFS_CONFIG = new Map([
     value: true
   }],
   ["showSearch", {
-    title: "Show the Search bar on the New Tab page",
+    title: "Show the Search bar",
     value: true
   }],
   ["showTopSites", {
-    title: "Show the Top Sites section on the New Tab page",
+    title: "Show the Top Sites section",
     value: true
+  }],
+  ["collapseTopSites", {
+    title: "Collapse the Top Sites section",
+    value: false
   }],
   ["topSitesCount", {
     title: "Number of Top Sites to display",
@@ -118,9 +126,13 @@ const PREFS_CONFIG = new Map([
     title: "Telemetry server endpoint",
     value: "https://tiles.services.mozilla.com/v4/links/activity-stream"
   }],
-  ["aboutHome.autoFocus", {
-    title: "Focus the about:home search box on load",
-    value: true
+  ["section.highlights.collapsed", {
+    title: "Collapse the Highlights section",
+    value: false
+  }],
+  ["section.topstories.collapsed", {
+    title: "Collapse the Top Stories section",
+    value: false
   }]
 ]);
 
@@ -233,16 +245,26 @@ this.ActivityStream = class ActivityStream {
     this._defaultPrefs = new DefaultPrefs(PREFS_CONFIG);
   }
   init() {
-    this._updateDynamicPrefs();
-    this._defaultPrefs.init();
+    try {
+      this._updateDynamicPrefs();
+      this._defaultPrefs.init();
 
-    // Hook up the store and let all feeds and pages initialize
-    this.store.init(this.feeds, ac.BroadcastToContent({
-      type: at.INIT,
-      data: {version: this.options.version}
-    }), {type: at.UNINIT});
+      // Hook up the store and let all feeds and pages initialize
+      this.store.init(this.feeds, ac.BroadcastToContent({
+        type: at.INIT,
+        data: {version: this.options.version}
+      }), {type: at.UNINIT});
 
-    this.initialized = true;
+      this.initialized = true;
+    } catch (e) {
+      // TelemetryFeed could be unavailable if the telemetry is disabled, or
+      // the telemetry feed is not yet initialized.
+      const telemetryFeed = this.store.feeds.get("feeds.telemetry");
+      if (telemetryFeed) {
+        telemetryFeed.handleUndesiredEvent({data: {event: "ADDON_INIT_FAILED"}});
+      }
+      throw e;
+    }
   }
   uninit() {
     if (this.geo === "") {

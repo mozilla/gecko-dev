@@ -110,6 +110,7 @@
 
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
 #include "mozilla/a11y/AccessibleWrap.h"
+#include "mozilla/a11y/Compatibility.h"
 #include "mozilla/a11y/nsWinUtils.h"
 #endif
 
@@ -972,9 +973,11 @@ TabParent::RecvPDocAccessibleConstructor(PDocAccessibleParent* aDoc,
 #ifdef XP_WIN
     a11y::WrapperFor(doc)->SetID(aMsaaID);
     MOZ_ASSERT(!aDocCOMProxy.IsNull());
+#ifdef NIGHTLY_BUILD
     if (aDocCOMProxy.IsNull()) {
       return IPC_FAIL(this, "Constructing a top-level PDocAccessible with null COM proxy");
     }
+#endif
 
     RefPtr<IAccessible> proxy(aDocCOMProxy.Get());
     doc->SetCOMInterface(proxy);
@@ -2304,7 +2307,12 @@ TabParent::SendCompositionEvent(WidgetCompositionEvent& aEvent)
   if (!mContentCache.OnCompositionEvent(aEvent)) {
     return true;
   }
-  if (NS_WARN_IF(!PBrowserParent::SendCompositionEvent(aEvent))) {
+
+  bool ret =
+    Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+      ? PBrowserParent::SendCompositionEvent(aEvent)
+      : PBrowserParent::SendNormalPriorityCompositionEvent(aEvent);
+  if (NS_WARN_IF(!ret)) {
     return false;
   }
   MOZ_ASSERT(aEvent.HasBeenPostedToRemoteProcess());
@@ -2322,7 +2330,11 @@ TabParent::SendSelectionEvent(WidgetSelectionEvent& aEvent)
     return true;
   }
   mContentCache.OnSelectionEvent(aEvent);
-  if (NS_WARN_IF(!PBrowserParent::SendSelectionEvent(aEvent))) {
+  bool ret =
+    Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+      ? PBrowserParent::SendSelectionEvent(aEvent)
+      : PBrowserParent::SendNormalPrioritySelectionEvent(aEvent);
+  if (NS_WARN_IF(!ret)) {
     return false;
   }
   MOZ_ASSERT(aEvent.HasBeenPostedToRemoteProcess());
@@ -2893,6 +2905,23 @@ TabParent::SetDocShellIsActive(bool isActive)
   mIsPrerendered &= !isActive;
   mDocShellIsActive = isActive;
   Unused << SendSetDocShellIsActive(isActive, mPreserveLayers, mLayerTreeEpoch);
+
+  // update active accessible documents on windows
+#if defined(XP_WIN) && defined(ACCESSIBILITY)
+  if (a11y::Compatibility::IsDolphin()) {
+    if (a11y::DocAccessibleParent* tabDoc = GetTopLevelDocAccessible()) {
+      HWND window = tabDoc->GetEmulatedWindowHandle();
+      MOZ_ASSERT(window);
+      if (window) {
+        if (isActive) {
+          a11y::nsWinUtils::ShowNativeWindow(window);
+        } else {
+          a11y::nsWinUtils::HideNativeWindow(window);
+        }
+      }
+    }
+  }
+#endif
 
   // Let's inform the priority manager. This operation can end up with the
   // changing of the process priority.

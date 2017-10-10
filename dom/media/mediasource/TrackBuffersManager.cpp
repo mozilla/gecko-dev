@@ -145,6 +145,17 @@ TrackBuffersManager::DoAppendData(already_AddRefed<MediaByteBuffer> aData,
 void
 TrackBuffersManager::QueueTask(SourceBufferTask* aTask)
 {
+  // The source buffer is a wrapped native, it would be unlinked twice and so
+  // the TrackBuffersManager::Detach() would also be called twice. Since the
+  // detach task has been done before, we could ignore this task.
+  if (!GetTaskQueue()) {
+    MOZ_ASSERT(aTask->GetType() == SourceBufferTask::Type::Detach,
+               "only detach task could happen here!");
+    MSE_DEBUG("Could not queue the task '%s' without task queue",
+              aTask->GetTypeName());
+    return;
+  }
+
   if (!OnTaskQueue()) {
     GetTaskQueue()->Dispatch(NewRunnableMethod<RefPtr<SourceBufferTask>>(
       "TrackBuffersManager::QueueTask",
@@ -174,6 +185,8 @@ TrackBuffersManager::ProcessTasks()
     // nothing to do.
     return;
   }
+
+  MSE_DEBUG("Process task '%s'", task->GetTypeName());
   switch (task->GetType()) {
     case Type::AppendBuffer:
       mCurrentTask = task;
@@ -211,6 +224,9 @@ TrackBuffersManager::ProcessTasks()
       mTaskQueue = nullptr;
       MOZ_DIAGNOSTIC_ASSERT(mQueue.Length() == 0,
                             "Detach task must be the last");
+      mVideoTracks.Reset();
+      mAudioTracks.Reset();
+      ShutdownDemuxers();
       return;
     default:
       NS_WARNING("Invalid Task");
@@ -1236,9 +1252,9 @@ TrackBuffersManager::OnDemuxFailed(TrackType aTrack,
                                    const MediaResult& aError)
 {
   MOZ_ASSERT(OnTaskQueue());
-  MSE_DEBUG("Failed to demux %s, failure:%" PRIu32,
+  MSE_DEBUG("Failed to demux %s, failure:%s",
             aTrack == TrackType::kVideoTrack ? "video" : "audio",
-            static_cast<uint32_t>(aError.Code()));
+            aError.ErrorName().get());
   switch (aError.Code()) {
     case NS_ERROR_DOM_MEDIA_END_OF_STREAM:
     case NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA:

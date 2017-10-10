@@ -27,55 +27,79 @@
 namespace js {
 namespace wasm {
 
-struct CompileArgs;
-struct ModuleEnvironment;
+struct CompileTask;
+typedef Vector<CompileTask*, 0, SystemAllocPolicy> CompileTaskPtrVector;
 
-// FuncCompileUnit contains all the data necessary to produce and store the
-// results of a single function's compilation.
+// FuncCompileInput contains the input for compiling a single function.
 
-class FuncCompileUnit
+struct FuncCompileInput
 {
-    // Input:
-    Bytes bytesToDelete_;
-    const uint8_t* begin_;
-    const uint8_t* end_;
-    uint32_t index_;
-    uint32_t lineOrBytecode_;
-    Uint32Vector callSiteLineNums_;
+    const uint8_t* begin;
+    const uint8_t* end;
+    uint32_t       index;
+    uint32_t       lineOrBytecode;
+    Uint32Vector   callSiteLineNums;
 
-    // Output:
-    FuncOffsets offsets_;
-    DebugOnly<bool> finished_;
-
-  public:
-    explicit FuncCompileUnit(uint32_t index, uint32_t lineOrBytecode,
-                             Bytes&& bytesToDelete, const uint8_t* begin, const uint8_t* end,
-                             Uint32Vector&& callSiteLineNums)
-      : bytesToDelete_(Move(bytesToDelete)),
-        begin_(begin),
-        end_(end),
-        index_(index),
-        lineOrBytecode_(lineOrBytecode),
-        callSiteLineNums_(Move(callSiteLineNums)),
-        finished_(false)
+    FuncCompileInput(uint32_t index,
+                     uint32_t lineOrBytecode,
+                     const uint8_t* begin,
+                     const uint8_t* end,
+                     Uint32Vector&& callSiteLineNums)
+      : begin(begin),
+        end(end),
+        index(index),
+        lineOrBytecode(lineOrBytecode),
+        callSiteLineNums(Move(callSiteLineNums))
     {}
-
-    const uint8_t* begin() const { return begin_; }
-    const uint8_t* end() const { return end_; }
-    uint32_t index() const { return index_; }
-    uint32_t lineOrBytecode() const { return lineOrBytecode_; }
-    const Uint32Vector& callSiteLineNums() const { return callSiteLineNums_; }
-
-    FuncOffsets offsets() const { MOZ_ASSERT(finished_); return offsets_; }
-
-    void finish(FuncOffsets offsets) {
-        MOZ_ASSERT(!finished_);
-        offsets_ = offsets;
-        finished_ = true;
-    }
 };
 
-typedef Vector<FuncCompileUnit, 8, SystemAllocPolicy> FuncCompileUnitVector;
+typedef Vector<FuncCompileInput, 8, SystemAllocPolicy> FuncCompileInputVector;
+
+// CompiledCode contains the resulting code and metadata for a set of compiled
+// input functions or stubs.
+
+struct CompiledCode
+{
+    Bytes                bytes;
+    CodeRangeVector      codeRanges;
+    CallSiteVector       callSites;
+    CallSiteTargetVector callSiteTargets;
+    TrapSiteVector       trapSites;
+    TrapFarJumpVector    trapFarJumps;
+    CallFarJumpVector    callFarJumps;
+    MemoryAccessVector   memoryAccesses;
+    SymbolicAccessVector symbolicAccesses;
+    jit::CodeLabelVector codeLabels;
+
+    MOZ_MUST_USE bool swap(jit::MacroAssembler& masm);
+
+    void clear() {
+        bytes.clear();
+        codeRanges.clear();
+        callSites.clear();
+        callSiteTargets.clear();
+        trapSites.clear();
+        trapFarJumps.clear();
+        callFarJumps.clear();
+        memoryAccesses.clear();
+        symbolicAccesses.clear();
+        codeLabels.clear();
+        MOZ_ASSERT(empty());
+    }
+
+    bool empty() {
+        return bytes.empty() &&
+               codeRanges.empty() &&
+               callSites.empty() &&
+               callSiteTargets.empty() &&
+               trapSites.empty() &&
+               trapFarJumps.empty() &&
+               callFarJumps.empty() &&
+               memoryAccesses.empty() &&
+               symbolicAccesses.empty() &&
+               codeLabels.empty();
+    }
+};
 
 // The CompileTaskState of a ModuleGenerator contains the mutable state shared
 // between helper threads executing CompileTasks. Each CompileTask started on a
@@ -95,71 +119,22 @@ struct CompileTaskState
 
 typedef ExclusiveData<CompileTaskState> ExclusiveCompileTaskState;
 
-// A CompileTask represents the task of compiling a batch of functions. It is
-// filled with a certain number of function's bodies that are sent off to a
-// compilation helper thread, which fills in the resulting code offsets, and
-// finally sent back to the validation thread.
+// A CompileTask holds a batch of input functions that are to be compiled on a
+// helper thread as well as, eventually, the results of compilation.
 
-class CompileTask
+struct CompileTask
 {
-    const ModuleEnvironment&   env_;
-    ExclusiveCompileTaskState& state_;
-    LifoAlloc                  lifo_;
-    Maybe<jit::TempAllocator>  alloc_;
-    Maybe<jit::MacroAssembler> masm_;
-    FuncCompileUnitVector      units_;
+    const ModuleEnvironment&   env;
+    ExclusiveCompileTaskState& state;
+    LifoAlloc                  lifo;
+    FuncCompileInputVector     inputs;
+    CompiledCode               output;
 
-    CompileTask(const CompileTask&) = delete;
-    CompileTask& operator=(const CompileTask&) = delete;
-
-    void init() {
-        alloc_.emplace(&lifo_);
-        masm_.emplace(jit::MacroAssembler::WasmToken(), *alloc_);
-    }
-
-  public:
     CompileTask(const ModuleEnvironment& env, ExclusiveCompileTaskState& state, size_t defaultChunkSize)
-      : env_(env),
-        state_(state),
-        lifo_(defaultChunkSize)
-    {
-        init();
-    }
-    LifoAlloc& lifo() {
-        return lifo_;
-    }
-    jit::TempAllocator& alloc() {
-        return *alloc_;
-    }
-    const ModuleEnvironment& env() const {
-        return env_;
-    }
-    const ExclusiveCompileTaskState& state() const {
-        return state_;
-    }
-    jit::MacroAssembler& masm() {
-        return *masm_;
-    }
-    FuncCompileUnitVector& units() {
-        return units_;
-    }
-    Tier tier() const {
-        return env_.tier;
-    }
-    CompileMode mode() const {
-        return env_.mode;
-    }
-    bool debugEnabled() const {
-        return env_.debug == DebugEnabled::True;
-    }
-    bool reset() {
-        units_.clear();
-        masm_.reset();
-        alloc_.reset();
-        lifo_.releaseAll();
-        init();
-        return true;
-    }
+      : env(env),
+        state(state),
+        lifo(defaultChunkSize)
+    {}
 };
 
 // A ModuleGenerator encapsulates the creation of a wasm module. During the
@@ -170,10 +145,9 @@ class CompileTask
 
 class MOZ_STACK_CLASS ModuleGenerator
 {
-    typedef HashSet<uint32_t, DefaultHasher<uint32_t>, SystemAllocPolicy> Uint32Set;
     typedef Vector<CompileTask, 0, SystemAllocPolicy> CompileTaskVector;
-    typedef Vector<CompileTask*, 0, SystemAllocPolicy> CompileTaskPtrVector;
-    typedef EnumeratedArray<Trap, Trap::Limit, CallableOffsets> TrapExitOffsetArray;
+    typedef EnumeratedArray<Trap, Trap::Limit, uint32_t> Uint32TrapArray;
+    typedef Vector<jit::CodeOffset, 0, SystemAllocPolicy> CodeOffsetVector;
 
     // Constant parameters
     SharedCompileArgs const         compileArgs_;
@@ -191,17 +165,19 @@ class MOZ_STACK_CLASS ModuleGenerator
 
     // Data scoped to the ModuleGenerator's lifetime
     ExclusiveCompileTaskState       taskState_;
-    uint32_t                        numSigs_;
-    uint32_t                        numTables_;
     LifoAlloc                       lifo_;
     jit::JitContext                 jcx_;
     jit::TempAllocator              masmAlloc_;
     jit::MacroAssembler             masm_;
     Uint32Vector                    funcToCodeRange_;
-    Uint32Set                       exportedFuncs_;
-    uint32_t                        lastPatchedCallsite_;
+    Uint32TrapArray                 trapCodeOffsets_;
+    uint32_t                        debugTrapCodeOffset_;
+    TrapFarJumpVector               trapFarJumps_;
+    CallFarJumpVector               callFarJumps_;
+    CallSiteTargetVector            callSiteTargets_;
+    uint32_t                        lastPatchedCallSite_;
     uint32_t                        startOfUnpatchedCallsites_;
-    Uint32Vector                    debugTrapFarJumps_;
+    CodeOffsetVector                debugTrapFarJumps_;
 
     // Parallel compilation
     bool                            parallel_;
@@ -214,76 +190,49 @@ class MOZ_STACK_CLASS ModuleGenerator
     // Assertions
     DebugOnly<bool>                 startedFuncDefs_;
     DebugOnly<bool>                 finishedFuncDefs_;
-    DebugOnly<uint32_t>             numFinishedFuncDefs_;
+
+    bool allocateGlobalBytes(uint32_t bytes, uint32_t align, uint32_t* globalDataOff);
 
     bool funcIsCompiled(uint32_t funcIndex) const;
     const CodeRange& funcCodeRange(uint32_t funcIndex) const;
-    uint32_t numFuncImports() const;
-    MOZ_MUST_USE bool patchCallSites();
-    MOZ_MUST_USE bool patchFarJumps(const TrapExitOffsetArray& trapExits, const Offsets& debugTrapStub);
-    MOZ_MUST_USE bool finishTask(CompileTask* task);
-    MOZ_MUST_USE bool finishOutstandingTask();
-    MOZ_MUST_USE bool finishFuncExports();
-    MOZ_MUST_USE bool finishCodegen();
-    MOZ_MUST_USE bool finishLinkData();
-    void generateBytecodeHash(const ShareableBytes& bytecode);
-    MOZ_MUST_USE bool finishMetadata(const ShareableBytes& bytecode);
-    MOZ_MUST_USE UniqueConstCodeSegment finishCodeSegment(const ShareableBytes& bytecode);
+
+    bool linkCallSites();
+    void noteCodeRange(uint32_t codeRangeIndex, const CodeRange& codeRange);
+    bool linkCompiledCode(const CompiledCode& code);
+    bool finishTask(CompileTask* task);
+    bool launchBatchCompile();
+    bool finishOutstandingTask();
+
+    bool finishLinking();
+    bool finishMetadata(const ShareableBytes& bytecode);
+    UniqueCodeSegment finishCodeSegment(const ShareableBytes& bytecode);
     UniqueJumpTable createJumpTable(const CodeSegment& codeSegment);
-    MOZ_MUST_USE bool addFuncImport(const Sig& sig, uint32_t globalDataOffset);
-    MOZ_MUST_USE bool allocateGlobalBytes(uint32_t bytes, uint32_t align, uint32_t* globalDataOff);
-    MOZ_MUST_USE bool allocateGlobal(GlobalDesc* global);
-
-    MOZ_MUST_USE bool launchBatchCompile();
-    MOZ_MUST_USE bool compileFuncDef(uint32_t funcIndex, uint32_t lineOrBytecode,
-                                     Bytes&& bytes, const uint8_t* begin, const uint8_t* end,
-                                     Uint32Vector&& lineNums);
-
-    MOZ_MUST_USE bool initAsmJS(Metadata* asmJSMetadata);
-    MOZ_MUST_USE bool initWasm();
 
     bool isAsmJS() const { return env_->isAsmJS(); }
-    Tier tier() const { return env_->tier; }
-    CompileMode mode() const { return env_->mode; }
+    Tier tier() const { return env_->tier(); }
+    CompileMode mode() const { return env_->mode(); }
     bool debugEnabled() const { return env_->debugEnabled(); }
 
   public:
     ModuleGenerator(const CompileArgs& args, ModuleEnvironment* env,
                     Atomic<bool>* cancelled, UniqueChars* error);
     ~ModuleGenerator();
+    MOZ_MUST_USE bool init(size_t codeSectionSize, Metadata* maybeAsmJSMetadata = nullptr);
 
-    MOZ_MUST_USE bool init(Metadata* maybeAsmJSMetadata = nullptr);
+    // After initialization, startFuncDefs() shall be called before one call to
+    // compileFuncDef() for each funcIndex in the range [0, env->numFuncDefs),
+    // followed by finishFuncDefs().
 
-    // Function definitions:
     MOZ_MUST_USE bool startFuncDefs();
     MOZ_MUST_USE bool compileFuncDef(uint32_t funcIndex, uint32_t lineOrBytecode,
-                                     const uint8_t* begin, const uint8_t* end);
-    MOZ_MUST_USE bool compileFuncDef(uint32_t funcIndex, uint32_t lineOrBytecode,
-                                     Bytes&& bytes, Uint32Vector&& callSiteLineNums);
+                                     const uint8_t* begin, const uint8_t* end,
+                                     Uint32Vector&& callSiteLineNums = Uint32Vector());
     MOZ_MUST_USE bool finishFuncDefs();
 
-    // asm.js accessors:
-    uint32_t minMemoryLength() const { return env_->minMemoryLength; }
-    uint32_t numSigs() const { return numSigs_; }
-    const SigWithId& sig(uint32_t sigIndex) const;
-    const SigWithId& funcSig(uint32_t funcIndex) const;
+    // After finishFuncDefs(), one of the following is called, depending on the
+    // CompileMode: finishModule for Once or Tier1, finishTier2 for Tier2.
 
-    // asm.js lazy initialization:
-    void initSig(uint32_t sigIndex, Sig&& sig);
-    void initFuncSig(uint32_t funcIndex, uint32_t sigIndex);
-    MOZ_MUST_USE bool initImport(uint32_t funcIndex, uint32_t sigIndex);
-    MOZ_MUST_USE bool initSigTableLength(uint32_t sigIndex, uint32_t length);
-    MOZ_MUST_USE bool initSigTableElems(uint32_t sigIndex, Uint32Vector&& elemFuncIndices);
-    void initMemoryUsage(MemoryUsage memoryUsage);
-    void bumpMinMemoryLength(uint32_t newMinMemoryLength);
-    MOZ_MUST_USE bool addGlobal(ValType type, bool isConst, uint32_t* index);
-    MOZ_MUST_USE bool addExport(CacheableChars&& fieldChars, uint32_t funcIndex);
-
-    // Finish compilation of the given bytecode.
     SharedModule finishModule(const ShareableBytes& bytecode);
-
-    // Finish compilation of the given bytecode, installing tier-variant parts
-    // for Tier 2 into module.
     MOZ_MUST_USE bool finishTier2(Module& module);
 };
 

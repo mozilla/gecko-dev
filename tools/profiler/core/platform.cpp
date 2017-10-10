@@ -2115,7 +2115,7 @@ static ThreadInfo*
 FindLiveThreadInfo(PSLockRef aLock, int* aIndexOut = nullptr)
 {
   ThreadInfo* ret = nullptr;
-  Thread::tid_t id = Thread::GetCurrentId();
+  int id = Thread::GetCurrentId();
   const CorePS::ThreadVector& liveThreads = CorePS::LiveThreads(aLock);
   for (uint32_t i = 0; i < liveThreads.size(); i++) {
     ThreadInfo* info = liveThreads.at(i);
@@ -2729,7 +2729,7 @@ locked_profiler_start(PSLockRef aLock, int aEntries, double aInterval,
   ActivePS::Create(aLock, entries, interval, aFeatures, aFilters, aFilterCount);
 
   // Set up profiling for each registered thread, if appropriate.
-  Thread::tid_t tid = Thread::GetCurrentId();
+  int tid = Thread::GetCurrentId();
   const CorePS::ThreadVector& liveThreads = CorePS::LiveThreads(aLock);
   for (uint32_t i = 0; i < liveThreads.size(); i++) {
     ThreadInfo* info = liveThreads.at(i);
@@ -2878,7 +2878,7 @@ locked_profiler_stop(PSLockRef aLock)
 #endif
 
   // Stop sampling live threads.
-  Thread::tid_t tid = Thread::GetCurrentId();
+  int tid = Thread::GetCurrentId();
   CorePS::ThreadVector& liveThreads = CorePS::LiveThreads(aLock);
   for (uint32_t i = 0; i < liveThreads.size(); i++) {
     ThreadInfo* info = liveThreads.at(i);
@@ -3163,7 +3163,7 @@ profiler_get_backtrace()
     return nullptr;
   }
 
-  Thread::tid_t tid = Thread::GetCurrentId();
+  int tid = Thread::GetCurrentId();
 
   TimeStamp now = TimeStamp::Now();
 
@@ -3187,66 +3187,6 @@ void
 ProfilerBacktraceDestructor::operator()(ProfilerBacktrace* aBacktrace)
 {
   delete aBacktrace;
-}
-
-// Fill the output buffer with the following pattern:
-// "Label 1" "\0" "Label 2" "\0" ... "Label N" "\0" "\0"
-// TODO: use the unwinder instead of pseudo stack.
-void
-profiler_get_backtrace_noalloc(char *output, size_t outputSize)
-{
-  MOZ_RELEASE_ASSERT(CorePS::Exists());
-
-  MOZ_ASSERT(outputSize >= 2);
-  char *bound = output + outputSize - 2;
-  output[0] = output[1] = '\0';
-
-  PSAutoLock lock(gPSMutex);
-
-  if (!ActivePS::Exists(lock)) {
-    return;
-  }
-
-  PseudoStack* pseudoStack = TLSInfo::Stack();
-  if (!pseudoStack) {
-    return;
-  }
-
-  bool includeDynamicString = !ActivePS::FeaturePrivacy(lock);
-
-  js::ProfileEntry* pseudoEntries = pseudoStack->entries;
-  uint32_t pseudoCount = pseudoStack->stackSize();
-
-  for (uint32_t i = 0; i < pseudoCount; i++) {
-    const char* label = pseudoEntries[i].label();
-    const char* dynamicString =
-      includeDynamicString ? pseudoEntries[i].dynamicString() : nullptr;
-    size_t labelLength = strlen(label);
-    if (dynamicString) {
-      // Put the label, maybe a space, and the dynamic string into output.
-      size_t spaceLength = label[0] == '\0' ? 0 : 1;
-      size_t dynamicStringLength = strlen(dynamicString);
-      if (output + labelLength + spaceLength + dynamicStringLength >= bound) {
-        break;
-      }
-      strcpy(output, label);
-      output += labelLength;
-      if (spaceLength != 0) {
-        *output++ = ' ';
-      }
-      strcpy(output, dynamicString);
-      output += dynamicStringLength;
-    } else {
-      // Only put the label into output.
-      if (output + labelLength >= bound) {
-        break;
-      }
-      strcpy(output, label);
-      output += labelLength;
-    }
-    *output++ = '\0';
-    *output = '\0';
-  }
 }
 
 static void
@@ -3312,7 +3252,7 @@ profiler_tracing(const char* aCategory, const char* aMarkerName,
 
 void
 profiler_tracing(const char* aCategory, const char* aMarkerName,
-                 UniqueProfilerBacktrace aCause, TracingKind aKind)
+                 TracingKind aKind, UniqueProfilerBacktrace aCause)
 {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 

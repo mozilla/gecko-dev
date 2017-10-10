@@ -305,8 +305,8 @@ txIdPattern::txIdPattern(const nsAString& aString)
     nsWhitespaceTokenizer tokenizer(aString);
     while (tokenizer.hasMoreTokens()) {
         // this can fail, XXX move to a Init(aString) method
-        nsCOMPtr<nsIAtom> atom = NS_Atomize(tokenizer.nextToken());
-        mIds.AppendObject(atom);
+        RefPtr<nsAtom> atom = NS_Atomize(tokenizer.nextToken());
+        mIds.AppendElement(atom);
     }
 }
 
@@ -324,8 +324,8 @@ txIdPattern::matches(const txXPathNode& aNode, txIMatchContext* aContext,
     nsIContent* content = txXPathNativeNode::getContent(aNode);
     NS_ASSERTION(content, "a Element without nsIContent");
 
-    nsIAtom* id = content->GetID();
-    aMatched = id && mIds.IndexOf(id) > -1;
+    nsAtom* id = content->GetID();
+    aMatched = id && mIds.IndexOf(id) != mIds.NoIndex;
 
     return NS_OK;
 }
@@ -346,7 +346,7 @@ txIdPattern::toString(nsAString& aDest)
     aDest.AppendLiteral("txIdPattern{");
 #endif
     aDest.AppendLiteral("id('");
-    uint32_t k, count = mIds.Count() - 1;
+    uint32_t k, count = mIds.Length() - 1;
     for (k = 0; k < count; ++k) {
         nsAutoString str;
         mIds[k]->ToString(str);

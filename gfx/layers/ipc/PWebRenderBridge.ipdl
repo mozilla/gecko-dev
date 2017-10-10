@@ -29,6 +29,7 @@ using mozilla::wr::PipelineId from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::BuiltDisplayListDescriptor from "mozilla/webrender/webrender_ffi.h";
 using mozilla::wr::IdNamespace from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::layers::WebRenderScrollData from "mozilla/layers/WebRenderScrollData.h";
+using mozilla::layers::FocusTarget from "mozilla/layers/FocusTarget.h";
 
 namespace mozilla {
 namespace layers {
@@ -51,14 +52,15 @@ parent:
   async SetDisplayList(IntSize aSize, WebRenderParentCommand[] commands, OpDestroy[] toDestroy, uint64_t fwdTransactionId, uint64_t transactionId,
                        LayoutSize aContentSize, ByteBuffer aDL, BuiltDisplayListDescriptor aDLDesc,
                        WebRenderScrollData aScrollData,
-                       OpUpdateResource[] aResourceUpdates, Shmem[] aResourceData,
+                       OpUpdateResource[] aResourceUpdates, Shmem[] aSmallShmems, Shmem[] aLargeShmems,
                        IdNamespace aIdNamespace, TimeStamp txnStartTime, TimeStamp fwdTime);
   sync SetDisplayListSync(IntSize aSize, WebRenderParentCommand[] commands, OpDestroy[] toDestroy, uint64_t fwdTransactionId, uint64_t transactionId,
                           LayoutSize aContentSize, ByteBuffer aDL, BuiltDisplayListDescriptor aDLDesc,
                           WebRenderScrollData aScrollData,
-                          OpUpdateResource[] aResourceUpdates, Shmem[] aResourceData,
+                          OpUpdateResource[] aResourceUpdates, Shmem[] aSmallShmems, Shmem[] aLargeShmems,
                           IdNamespace aIdNamespace, TimeStamp txnStartTime, TimeStamp fwdTime);
-  async UpdateResources(OpUpdateResource[] aResourceUpdates, Shmem[] aResourceData);
+  async SetFocusTarget(FocusTarget focusTarget);
+  async UpdateResources(OpUpdateResource[] aResourceUpdates, Shmem[] aSmallShmems, Shmem[] aLargeShmems);
   async ParentCommands(WebRenderParentCommand[] commands);
   sync GetSnapshot(PTexture texture);
   async AddPipelineIdForCompositable(PipelineId aImageId, CompositableHandle aHandle, bool aAsync);

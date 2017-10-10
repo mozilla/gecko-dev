@@ -49,6 +49,7 @@ import android.support.v4.view.MenuItemCompat;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.HapticFeedbackConstants;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -73,7 +74,6 @@ import org.mozilla.gecko.DynamicToolbar.VisibilityTransition;
 import org.mozilla.gecko.Tabs.TabEvents;
 import org.mozilla.gecko.activitystream.ActivityStream;
 import org.mozilla.gecko.activitystream.ActivityStreamTelemetry;
-import org.mozilla.gecko.activitystream.homepanel.stream.StreamOverridablePageIconLayout;
 import org.mozilla.gecko.adjust.AdjustBrowserAppDelegate;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.annotation.RobocopTarget;
@@ -351,23 +351,15 @@ public class BrowserApp extends GeckoApp
     @NonNull
     private SearchEngineManager mSearchEngineManager; // Contains reference to Context - DO NOT LEAK!
 
-    // Ideally, we would set this cache from the specific places it is used in Activity Stream. However, given that
-    // it's unlikely that StreamOverridablePageIconLayout will be used elsewhere and how messy it is to pass references
-    // from an object with the application lifecycle to the individual views using the cache in activity stream, we settle
-    // for storing it here and setting it on all new instances.
-    private final Set<String> mStreamIconLayoutFailedRequestCache = StreamOverridablePageIconLayout.newFailedRequestCache();
-
     private boolean mHasResumed;
 
     @Override
-    public View onCreateView(final String name, final Context context, final AttributeSet attrs) {
+    public View onCreateView(final View parent, final String name, final Context context, final AttributeSet attrs) {
         final View view;
         if (BrowserToolbar.class.getName().equals(name)) {
             view = BrowserToolbar.create(context, attrs);
         } else if (TabsPanel.TabsLayout.class.getName().equals(name)) {
             view = TabsPanel.createTabsLayout(context, attrs);
-        } else if (StreamOverridablePageIconLayout.class.getName().equals(name)) {
-            view = new StreamOverridablePageIconLayout(context, attrs, mStreamIconLayoutFailedRequestCache);
         } else {
             view = super.onCreateView(name, context, attrs);
         }
@@ -685,6 +677,7 @@ public class BrowserApp extends GeckoApp
         });
 
         mProgressView = (AnimatedProgressBar) findViewById(R.id.page_progress);
+        mDynamicToolbar.setLayerView(mLayerView);
         mProgressView.setDynamicToolbar(mDynamicToolbar);
         mBrowserToolbar.setProgressBar(mProgressView);
 
@@ -707,7 +700,7 @@ public class BrowserApp extends GeckoApp
 
                         final TabHistoryFragment fragment = TabHistoryFragment.newInstance(historyPageList, toIndex);
                         final FragmentManager fragmentManager = getSupportFragmentManager();
-                        GeckoAppShell.vibrateOnHapticFeedbackEnabled(getResources().getIntArray(R.array.long_press_vibrate_msec));
+                        GeckoAppShell.getHapticFeedbackDelegate().performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                         fragment.show(R.id.tab_history_panel, fragmentManager.beginTransaction(), TAB_HISTORY_FRAGMENT_TAG);
                     }
                 });
@@ -1667,7 +1660,6 @@ public class BrowserApp extends GeckoApp
             mLayerView.getDynamicToolbarAnimator().addMetricsListener(this);
             mLayerView.getDynamicToolbarAnimator().setToolbarChromeProxy(this);
         }
-        mDynamicToolbar.setLayerView(mLayerView);
         setDynamicToolbarEnabled(mDynamicToolbar.isEnabled());
 
         // Intercept key events for gamepad shortcuts
@@ -2773,6 +2765,12 @@ public class BrowserApp extends GeckoApp
         // URL, but the reverse doesn't apply: manually switching panels doesn't update the URL.)
         // Hence we need to restore the panel, in addition to panel state, here.
         if (isAboutHome(tab)) {
+            // For some reason(e.g. from SearchWidget) we are showing the splash schreen. We should hide it now.
+            if (splashScreen != null && splashScreen.getVisibility() == View.VISIBLE) {
+                // Below line will be run when LOCATION_CHANGE. Which means the page load is almost completed.
+                splashScreen.hide();
+            }
+
             String panelId = AboutPages.getPanelIdFromAboutHomeUrl(tab.getURL());
             Bundle panelRestoreData = null;
             if (panelId == null) {
@@ -2808,7 +2806,7 @@ public class BrowserApp extends GeckoApp
             // In that case, we don't want to show the SlashScreen/
             if (showSplashScreen && !GeckoThread.isRunning()) {
 
-                final ViewGroup main = (ViewGroup) findViewById(R.id.main_layout);
+                final ViewGroup main = (ViewGroup) findViewById(R.id.gecko_layout);
                 final View splashLayout = LayoutInflater.from(this).inflate(R.layout.splash_screen, main);
                 splashScreen = (SplashScreen) splashLayout.findViewById(R.id.splash_root);
 

@@ -33,7 +33,7 @@
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsGkAtoms.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIContent.h"
 #include "nsIContentIterator.h"
 #include "nsID.h"
@@ -110,7 +110,7 @@ IsStyleCachePreservingAction(EditAction action)
          action == EditAction::insertQuotation;
 }
 
-static nsIAtom&
+static nsAtom&
 ParagraphSeparatorElement(ParagraphSeparator separator)
 {
   switch (separator) {
@@ -946,7 +946,7 @@ HTMLEditRules::GetAlignment(bool* aMixed,
   return NS_OK;
 }
 
-static nsIAtom& MarginPropertyAtomForIndent(CSSEditUtils& aHTMLCSSUtils,
+static nsAtom& MarginPropertyAtomForIndent(CSSEditUtils& aHTMLCSSUtils,
                                             nsINode& aNode)
 {
   nsAutoString direction;
@@ -988,7 +988,7 @@ HTMLEditRules::GetIndentState(bool* aCanIndent,
     } else if (useCSS) {
       // we are in CSS mode, indentation is done using the margin-left (or margin-right) property
       NS_ENSURE_STATE(mHTMLEditor);
-      nsIAtom& marginProperty =
+      nsAtom& marginProperty =
         MarginPropertyAtomForIndent(*mHTMLEditor->mCSSEditUtils, curNode);
       nsAutoString value;
       // retrieve its specified value
@@ -996,7 +996,7 @@ HTMLEditRules::GetIndentState(bool* aCanIndent,
       mHTMLEditor->mCSSEditUtils->GetSpecifiedProperty(*curNode,
                                                        marginProperty, value);
       float f;
-      nsCOMPtr<nsIAtom> unit;
+      RefPtr<nsAtom> unit;
       // get its number part and its unit
       NS_ENSURE_STATE(mHTMLEditor);
       mHTMLEditor->mCSSEditUtils->ParseLength(value, &f, getter_AddRefs(unit));
@@ -1186,7 +1186,7 @@ HTMLEditRules::GetFormatString(nsIDOMNode* aNode,
   NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
 
   if (HTMLEditUtils::IsFormatNode(aNode)) {
-    nsCOMPtr<nsIAtom> atom = EditorBase::GetTag(aNode);
+    RefPtr<nsAtom> atom = EditorBase::GetTag(aNode);
     atom->ToString(outFormat);
   } else {
     outFormat.Truncate();
@@ -1624,7 +1624,18 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
     ReturnInHeader(aSelection, *blockParent, node, offset);
     *aHandled = true;
     return NS_OK;
-  } else if (blockParent->IsAnyOfHTMLElements(nsGkAtoms::p, nsGkAtoms::div)) {
+  }
+  // XXX Ideally, we should take same behavior with both <p> container and
+  //     <div> container.  However, we are still using <br> as default
+  //     paragraph separator (non-standard) and we've split only <p> container
+  //     long time.  Therefore, some web apps may depend on this behavior like
+  //     Gmail.  So, let's use traditional odd behavior only when the default
+  //     paragraph separator is <br>.  Otherwise, take consistent behavior
+  //     between <p> container and <div> container.
+  else if ((separator == ParagraphSeparator::br &&
+            blockParent->IsHTMLElement(nsGkAtoms::p)) ||
+           (separator != ParagraphSeparator::br &&
+            blockParent->IsAnyOfHTMLElements(nsGkAtoms::p, nsGkAtoms::div))) {
     // Paragraphs: special rules to look for <br>s
     nsresult rv =
       ReturnInParagraph(&aSelection, GetAsDOMNode(blockParent),
@@ -2734,7 +2745,7 @@ HTMLEditRules::TryToJoinBlocks(nsIContent& aLeftNode,
   // Special rule here: if we are trying to join list items, and they are in
   // different lists, join the lists instead.
   bool mergeLists = false;
-  nsIAtom* existingList = nsGkAtoms::_empty;
+  nsAtom* existingList = nsGkAtoms::_empty;
   nsIContent* childInBlock = nullptr;
   nsCOMPtr<Element> leftList, rightList;
   if (HTMLEditUtils::IsListItem(leftBlock) &&
@@ -2960,9 +2971,8 @@ HTMLEditRules::TryToJoinBlocks(nsIContent& aLeftNode,
     // Nodes are same type.  merge them.
     EditorDOMPoint pt = JoinNodesSmart(*leftBlock, *rightBlock);
     if (pt.node && mergeLists) {
-      nsCOMPtr<Element> newBlock;
-      ConvertListType(rightBlock, getter_AddRefs(newBlock),
-                      existingList, nsGkAtoms::li);
+      RefPtr<Element> newBlock =
+        ConvertListType(rightBlock, existingList, nsGkAtoms::li);
     }
     ret.MarkAsHandled();
   } else {
@@ -3174,7 +3184,7 @@ HTMLEditRules::WillMakeList(Selection* aSelection,
   if (!aSelection || !aListType || !aCancel || !aHandled) {
     return NS_ERROR_NULL_POINTER;
   }
-  OwningNonNull<nsIAtom> listType = NS_Atomize(*aListType);
+  OwningNonNull<nsAtom> listType = NS_Atomize(*aListType);
 
   WillInsert(*aSelection, aCancel);
 
@@ -3184,7 +3194,7 @@ HTMLEditRules::WillMakeList(Selection* aSelection,
   *aHandled = false;
 
   // deduce what tag to use for list items
-  nsCOMPtr<nsIAtom> itemType;
+  RefPtr<nsAtom> itemType;
   if (aItemType) {
     itemType = NS_Atomize(*aItemType);
     NS_ENSURE_TRUE(itemType, NS_ERROR_OUT_OF_MEMORY);
@@ -3320,18 +3330,19 @@ HTMLEditRules::WillMakeList(Selection* aSelection,
         NS_ENSURE_STATE(mHTMLEditor);
         rv = mHTMLEditor->MoveNode(curNode, curList, -1);
         NS_ENSURE_SUCCESS(rv, rv);
-        rv = ConvertListType(curNode->AsElement(), getter_AddRefs(newBlock),
-                             listType, itemType);
-        NS_ENSURE_SUCCESS(rv, rv);
+        newBlock = ConvertListType(curNode->AsElement(), listType, itemType);
+        if (NS_WARN_IF(!newBlock)) {
+          return NS_ERROR_FAILURE;
+        }
         NS_ENSURE_STATE(mHTMLEditor);
         rv = mHTMLEditor->RemoveBlockContainer(*newBlock);
         NS_ENSURE_SUCCESS(rv, rv);
       } else {
         // replace list with new list type
-        rv = ConvertListType(curNode->AsElement(), getter_AddRefs(newBlock),
-                             listType, itemType);
-        NS_ENSURE_SUCCESS(rv, rv);
-        curList = newBlock;
+        curList = ConvertListType(curNode->AsElement(), listType, itemType);
+        if (NS_WARN_IF(!curList)) {
+          return NS_ERROR_FAILURE;
+        }
       }
       prevListItem = nullptr;
       continue;
@@ -3549,7 +3560,7 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
 {
   MOZ_ASSERT(aCancel && aHandled);
 
-  OwningNonNull<nsIAtom> blockType = NS_Atomize(aBlockType);
+  OwningNonNull<nsAtom> blockType = NS_Atomize(aBlockType);
 
   WillInsert(aSelection, aCancel);
   // We want to ignore result of WillInsert()
@@ -3562,7 +3573,7 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
 }
 
 nsresult
-HTMLEditRules::MakeBasicBlock(Selection& aSelection, nsIAtom& blockType)
+HTMLEditRules::MakeBasicBlock(Selection& aSelection, nsAtom& blockType)
 {
   NS_ENSURE_STATE(mHTMLEditor);
   RefPtr<HTMLEditor> htmlEditor(mHTMLEditor);
@@ -4210,14 +4221,14 @@ HTMLEditRules::WillOutdent(Selection& aSelection,
       }
       // Is it a block with a 'margin' property?
       if (useCSS && IsBlockNode(curNode)) {
-        nsIAtom& marginProperty =
+        nsAtom& marginProperty =
           MarginPropertyAtomForIndent(*htmlEditor->mCSSEditUtils, curNode);
         nsAutoString value;
         htmlEditor->mCSSEditUtils->GetSpecifiedProperty(curNode,
                                                          marginProperty,
                                                          value);
         float f;
-        nsCOMPtr<nsIAtom> unit;
+        RefPtr<nsAtom> unit;
         NS_ENSURE_STATE(htmlEditor);
         htmlEditor->mCSSEditUtils->ParseLength(value, &f,
                                                getter_AddRefs(unit));
@@ -4289,13 +4300,13 @@ HTMLEditRules::WillOutdent(Selection& aSelection,
           lastBQChild = curNode;
           break;
         } else if (useCSS) {
-          nsIAtom& marginProperty =
+          nsAtom& marginProperty =
             MarginPropertyAtomForIndent(*htmlEditor->mCSSEditUtils, curNode);
           nsAutoString value;
           htmlEditor->mCSSEditUtils->GetSpecifiedProperty(*n, marginProperty,
                                                            value);
           float f;
-          nsCOMPtr<nsIAtom> unit;
+          RefPtr<nsAtom> unit;
           htmlEditor->mCSSEditUtils->ParseLength(value, &f, getter_AddRefs(unit));
           if (f > 0 && !(HTMLEditUtils::IsList(curParent) &&
                          HTMLEditUtils::IsList(curNode))) {
@@ -4495,14 +4506,12 @@ HTMLEditRules::OutdentPartOfBlock(Element& aBlock,
 /**
  * ConvertListType() converts list type and list item type.
  */
-nsresult
+already_AddRefed<Element>
 HTMLEditRules::ConvertListType(Element* aList,
-                               Element** aOutList,
-                               nsIAtom* aListType,
-                               nsIAtom* aItemType)
+                               nsAtom* aListType,
+                               nsAtom* aItemType)
 {
   MOZ_ASSERT(aList);
-  MOZ_ASSERT(aOutList);
   MOZ_ASSERT(aListType);
   MOZ_ASSERT(aItemType);
 
@@ -4513,29 +4522,26 @@ HTMLEditRules::ConvertListType(Element* aList,
       if (HTMLEditUtils::IsListItem(element) &&
           !element->IsHTMLElement(aItemType)) {
         child = mHTMLEditor->ReplaceContainer(element, aItemType);
-        NS_ENSURE_STATE(child);
+        if (NS_WARN_IF(!child)) {
+          return nullptr;
+        }
       } else if (HTMLEditUtils::IsList(element) &&
                  !element->IsHTMLElement(aListType)) {
-        nsCOMPtr<dom::Element> temp;
-        nsresult rv = ConvertListType(child->AsElement(), getter_AddRefs(temp),
-                                      aListType, aItemType);
-        NS_ENSURE_SUCCESS(rv, rv);
-        child = temp.forget();
+        child = ConvertListType(child->AsElement(), aListType, aItemType);
+        if (NS_WARN_IF(!child)) {
+          return nullptr;
+        }
       }
     }
     child = child->GetNextSibling();
   }
 
   if (aList->IsHTMLElement(aListType)) {
-    nsCOMPtr<dom::Element> list = aList->AsElement();
-    list.forget(aOutList);
-    return NS_OK;
+    RefPtr<dom::Element> list = aList->AsElement();
+    return list.forget();
   }
 
-  *aOutList = mHTMLEditor->ReplaceContainer(aList, aListType).take();
-  NS_ENSURE_STATE(aOutList);
-
-  return NS_OK;
+  return mHTMLEditor->ReplaceContainer(aList, aListType);
 }
 
 
@@ -4720,6 +4726,7 @@ HTMLEditRules::WillAlign(Selection& aSelection,
                                : nullptr;
     NS_ENSURE_STATE(parent);
     int32_t offset = aSelection.GetRangeAt(0)->StartOffset();
+    nsIContent* child = aSelection.GetRangeAt(0)->GetChildAtStartOffset();
 
     rv = SplitAsNeeded(*nsGkAtoms::div, parent, offset);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -4731,8 +4738,10 @@ HTMLEditRules::WillAlign(Selection& aSelection,
       // Making use of html structure... if next node after where we are
       // putting our div is not a block, then the br we found is in same block
       // we are, so it's safe to consume it.
-      nsCOMPtr<nsIContent> sibling = htmlEditor->GetNextHTMLSibling(parent,
-                                                                    offset);
+      nsCOMPtr<nsIContent> sibling;
+      if (child) {
+        sibling = htmlEditor->GetNextHTMLSibling(child);
+      }
       if (sibling && !IsBlockNode(*sibling)) {
         rv = htmlEditor->DeleteNode(brContent);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -6318,7 +6327,7 @@ HTMLEditRules::IsInListItem(nsINode* aNode)
   return nullptr;
 }
 
-nsIAtom&
+nsAtom&
 HTMLEditRules::DefaultParagraphSeparator()
 {
   MOZ_ASSERT(mHTMLEditor);
@@ -6376,14 +6385,16 @@ HTMLEditRules::ReturnInHeader(Selection& aSelection,
     NS_ENSURE_SUCCESS(rv, rv);
     // Layout tells the caret to blink in a weird place if we don't place a
     // break after the header.
-    nsCOMPtr<nsIContent> sibling =
-      htmlEditor->GetNextHTMLSibling(headerParent, offset + 1);
+    nsCOMPtr<nsIContent> sibling;
+    if (aHeader.GetNextSibling()) {
+      sibling = htmlEditor->GetNextHTMLSibling(aHeader.GetNextSibling());
+    }
     if (!sibling || !sibling->IsHTMLElement(nsGkAtoms::br)) {
       ClearCachedStyles();
       htmlEditor->mTypeInState->ClearAllProps();
 
       // Create a paragraph
-      nsIAtom& paraAtom = DefaultParagraphSeparator();
+      nsAtom& paraAtom = DefaultParagraphSeparator();
       // We want a wrapper element even if we separate with <br>
       nsCOMPtr<Element> pNode =
         htmlEditor->CreateNode(&paraAtom == nsGkAtoms::br ? nsGkAtoms::p
@@ -6662,7 +6673,7 @@ HTMLEditRules::ReturnInListItem(Selection& aSelection,
       NS_ENSURE_SUCCESS(rv, rv);
 
       // Time to insert a paragraph
-      nsIAtom& paraAtom = DefaultParagraphSeparator();
+      nsAtom& paraAtom = DefaultParagraphSeparator();
       // We want a wrapper even if we separate with <br>
       nsCOMPtr<Element> pNode =
         htmlEditor->CreateNode(&paraAtom == nsGkAtoms::br ? nsGkAtoms::p
@@ -6706,12 +6717,12 @@ HTMLEditRules::ReturnInListItem(Selection& aSelection,
       rv = htmlEditor->IsEmptyNode(&aListItem, &isEmptyNode, true);
       NS_ENSURE_SUCCESS(rv, rv);
       if (isEmptyNode) {
-        nsCOMPtr<nsIAtom> nodeAtom = aListItem.NodeInfo()->NameAtom();
+        RefPtr<nsAtom> nodeAtom = aListItem.NodeInfo()->NameAtom();
         if (nodeAtom == nsGkAtoms::dd || nodeAtom == nsGkAtoms::dt) {
           nsCOMPtr<nsINode> list = aListItem.GetParentNode();
           int32_t itemOffset = list ? list->IndexOf(&aListItem) : -1;
 
-          nsIAtom* listAtom = nodeAtom == nsGkAtoms::dt ? nsGkAtoms::dd
+          nsAtom* listAtom = nodeAtom == nsGkAtoms::dt ? nsGkAtoms::dd
                                                         : nsGkAtoms::dt;
           nsCOMPtr<Element> newListItem =
             htmlEditor->CreateNode(listAtom, list, itemOffset + 1);
@@ -6924,7 +6935,7 @@ HTMLEditRules::RemoveBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray)
  */
 nsresult
 HTMLEditRules::ApplyBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
-                               nsIAtom& aBlockTag)
+                               nsAtom& aBlockTag)
 {
   // Intent of this routine is to be used for converting to/from headers,
   // paragraphs, pre, and address.  Those blocks that pretty much just contain
@@ -7051,7 +7062,7 @@ HTMLEditRules::ApplyBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
  * tag.  Adjust inOutParent and inOutOffset to point to new location for tag.
  */
 nsresult
-HTMLEditRules::SplitAsNeeded(nsIAtom& aTag,
+HTMLEditRules::SplitAsNeeded(nsAtom& aTag,
                              OwningNonNull<nsINode>& aInOutParent,
                              int32_t& aInOutOffset)
 {
@@ -7063,7 +7074,7 @@ HTMLEditRules::SplitAsNeeded(nsIAtom& aTag,
 }
 
 nsresult
-HTMLEditRules::SplitAsNeeded(nsIAtom& aTag,
+HTMLEditRules::SplitAsNeeded(nsAtom& aTag,
                              nsCOMPtr<nsINode>& inOutParent,
                              int32_t& inOutOffset)
 {
@@ -7464,6 +7475,7 @@ HTMLEditRules::CheckInterlinePosition(Selection& aSelection)
   OwningNonNull<nsINode> selNode =
     *aSelection.GetRangeAt(0)->GetStartContainer();
   int32_t selOffset = aSelection.GetRangeAt(0)->StartOffset();
+  nsIContent* child = aSelection.GetRangeAt(0)->GetChildAtStartOffset();
 
   // First, let's check to see if we are after a <br>.  We take care of this
   // special-case first so that we don't accidentally fall through into one of
@@ -7476,14 +7488,22 @@ HTMLEditRules::CheckInterlinePosition(Selection& aSelection)
   }
 
   // Are we after a block?  If so try set caret to following content
-  node = htmlEditor->GetPriorHTMLSibling(selNode, selOffset);
+  if (child) {
+    node = htmlEditor->GetPriorHTMLSibling(child);
+  } else {
+    node = nullptr;
+  }
   if (node && IsBlockNode(*node)) {
     aSelection.SetInterlinePosition(true);
     return;
   }
 
   // Are we before a block?  If so try set caret to prior content
-  node = htmlEditor->GetNextHTMLSibling(selNode, selOffset);
+  if (child) {
+    node = htmlEditor->GetNextHTMLSibling(child);
+  } else {
+    node = nullptr;
+  }
   if (node && IsBlockNode(*node)) {
     aSelection.SetInterlinePosition(false);
   }
@@ -8620,13 +8640,13 @@ HTMLEditRules::ChangeIndentation(Element& aElement,
   NS_ENSURE_STATE(mHTMLEditor);
   RefPtr<HTMLEditor> htmlEditor(mHTMLEditor);
 
-  nsIAtom& marginProperty =
+  nsAtom& marginProperty =
     MarginPropertyAtomForIndent(*htmlEditor->mCSSEditUtils, aElement);
   nsAutoString value;
   htmlEditor->mCSSEditUtils->GetSpecifiedProperty(aElement, marginProperty,
                                                   value);
   float f;
-  nsCOMPtr<nsIAtom> unit;
+  RefPtr<nsAtom> unit;
   htmlEditor->mCSSEditUtils->ParseLength(value, &f, getter_AddRefs(unit));
   if (!f) {
     nsAutoString defaultLengthUnit;

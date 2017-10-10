@@ -263,6 +263,11 @@ body {
   height: var(--detail-animation-height);
 }
 
+.time-body.track-container {
+  height: 0;
+  pointer-events: none;
+}
+
 .animation-timeline .scrubber-wrapper {
   position: absolute;
   z-index: 5;
@@ -343,7 +348,6 @@ body {
 .animation-timeline .time-body .time-tick {
   -moz-user-select: none;
   position: absolute;
-  height: 100%;
 }
 
 .progress-tick-container .progress-tick::before,
@@ -691,6 +695,24 @@ body {
 .keyframes svg path.color {
   stroke: none;
   height: 100%;
+}
+
+.keyframes svg .hint {
+  stroke-opacity: 0;
+  stroke-linecap: round;
+  stroke-width: 5;
+}
+
+.keyframes svg path.hint {
+  fill: none;
+}
+
+.keyframes svg path.hint:hover {
+  stroke-opacity: 1;
+}
+
+.keyframes svg rect.hint {
+  fill-opacity: .1;
 }
 
 .animation-detail {

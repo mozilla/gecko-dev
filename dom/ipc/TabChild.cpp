@@ -88,8 +88,10 @@
 #include "nsIXULRuntime.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
+#include "nsPointerHashKeys.h"
 #include "nsLayoutUtils.h"
 #include "nsPrintfCString.h"
+#include "nsTHashtable.h"
 #include "nsThreadManager.h"
 #include "nsThreadUtils.h"
 #include "nsViewManager.h"
@@ -164,7 +166,7 @@ NS_IMPL_ISUPPORTS(TabChildSHistoryListener,
 
 static const char BEFORE_FIRST_PAINT[] = "before-first-paint";
 
-nsTArray<TabChild*>* TabChild::sActiveTabs;
+nsTHashtable<nsPtrHashKey<TabChild>>* TabChild::sActiveTabs;
 
 typedef nsDataHashtable<nsUint64HashKey, TabChild*> TabChildMap;
 static TabChildMap* sTabChildren;
@@ -414,7 +416,7 @@ TabChild::TabChild(nsIContentChild* aManager,
   , mActiveSuppressDisplayport(0)
   , mLayersId(0)
   , mBeforeUnloadListeners(0)
-  , mLayersConnected(true)
+  , mLayersConnected(false)
   , mDidFakeShow(false)
   , mNotified(false)
   , mTriedBrowserInit(false)
@@ -941,7 +943,7 @@ TabChild::SetVisibility(bool aVisibility)
 }
 
 NS_IMETHODIMP
-TabChild::GetTitle(char16_t** aTitle)
+TabChild::GetTitle(nsAString& aTitle)
 {
   NS_WARNING("TabChild::GetTitle not supported in TabChild");
 
@@ -949,7 +951,7 @@ TabChild::GetTitle(char16_t** aTitle)
 }
 
 NS_IMETHODIMP
-TabChild::SetTitle(const char16_t* aTitle)
+TabChild::SetTitle(const nsAString& aTitle)
 {
   // JavaScript sends the "DOMTitleChanged" event to the parent
   // via the message manager.
@@ -1120,7 +1122,7 @@ TabChild::ActorDestroy(ActorDestroyReason why)
 TabChild::~TabChild()
 {
   if (sActiveTabs) {
-    sActiveTabs->RemoveElement(this);
+    sActiveTabs->RemoveEntry(this);
     if (sActiveTabs->IsEmpty()) {
       delete sActiveTabs;
       sActiveTabs = nullptr;
@@ -1174,6 +1176,7 @@ TabChild::DoFakeShow(const TextureFactoryIdentifier& aTextureFactoryIdentifier,
                      const CompositorOptions& aCompositorOptions,
                      PRenderFrameChild* aRenderFrame, const ShowInfo& aShowInfo)
 {
+  mLayersConnected = aRenderFrame ? true : false;
   InitRenderingState(aTextureFactoryIdentifier, aLayersId, aCompositorOptions, aRenderFrame);
   RecvShow(ScreenIntSize(0, 0), aShowInfo, mParentIsActive, nsSizeMode_Normal);
   mDidFakeShow = true;
@@ -1591,18 +1594,24 @@ TabChild::RecvMouseEvent(const nsString& aType,
 void
 TabChild::MaybeDispatchCoalescedMouseMoveEvents()
 {
-  if (!mCoalesceMouseMoveEvents || mCoalescedMouseData.IsEmpty()) {
+  if (!mCoalesceMouseMoveEvents) {
     return;
   }
-  const WidgetMouseEvent* event = mCoalescedMouseData.GetCoalescedEvent();
-  MOZ_ASSERT(event);
-  // Dispatch the coalesced mousemove event. Using RecvRealMouseButtonEvent to
-  // bypass the coalesce handling in RecvRealMouseMoveEvent.
-  RecvRealMouseButtonEvent(*event,
-                           mCoalescedWheelData.GetScrollableLayerGuid(),
-                           mCoalescedWheelData.GetInputBlockId());
+  for (auto iter = mCoalescedMouseData.Iter(); !iter.Done(); iter.Next()) {
+    CoalescedMouseData* data = iter.UserData();
+    if (!data || data->IsEmpty()) {
+      continue;
+    }
+    const WidgetMouseEvent* event = data->GetCoalescedEvent();
+    MOZ_ASSERT(event);
+    // Dispatch the coalesced mousemove event. Using RecvRealMouseButtonEvent to
+    // bypass the coalesce handling in RecvRealMouseMoveEvent.
+    RecvRealMouseButtonEvent(*event,
+                             data->GetScrollableLayerGuid(),
+                             data->GetInputBlockId());
+    data->Reset();
+  }
   if (mCoalescedMouseEventFlusher) {
-    mCoalescedMouseData.Reset();
     mCoalescedMouseEventFlusher->RemoveObserver();
   }
 }
@@ -1613,15 +1622,21 @@ TabChild::RecvRealMouseMoveEvent(const WidgetMouseEvent& aEvent,
                                  const uint64_t& aInputBlockId)
 {
   if (mCoalesceMouseMoveEvents && mCoalescedMouseEventFlusher) {
-    if (mCoalescedMouseData.CanCoalesce(aEvent, aGuid, aInputBlockId)) {
-      mCoalescedMouseData.Coalesce(aEvent, aGuid, aInputBlockId);
+    CoalescedMouseData* data = nullptr;
+    mCoalescedMouseData.Get(aEvent.pointerId, &data);
+    if (!data) {
+      data = new CoalescedMouseData();
+      mCoalescedMouseData.Put(aEvent.pointerId, data);
+    }
+    if (data->CanCoalesce(aEvent, aGuid, aInputBlockId)) {
+      data->Coalesce(aEvent, aGuid, aInputBlockId);
       mCoalescedMouseEventFlusher->StartObserver();
       return IPC_OK();
     }
     // Can't coalesce current mousemove event. Dispatch the coalesced mousemove
     // event and coalesce the current one.
     MaybeDispatchCoalescedMouseMoveEvents();
-    mCoalescedMouseData.Coalesce(aEvent, aGuid, aInputBlockId);
+    data->Coalesce(aEvent, aGuid, aInputBlockId);
     mCoalescedMouseEventFlusher->StartObserver();
   } else if (!RecvRealMouseButtonEvent(aEvent, aGuid, aInputBlockId)) {
     return IPC_FAIL_NO_REASON(this);
@@ -1665,6 +1680,11 @@ TabChild::RecvRealMouseButtonEvent(const WidgetMouseEvent& aEvent,
     // Flush the coalesced mousemove event before dispatching other mouse
     // events.
     MaybeDispatchCoalescedMouseMoveEvents();
+    if (aEvent.mMessage == eMouseEnterIntoWidget) {
+      mCoalescedMouseData.Put(aEvent.pointerId, new CoalescedMouseData());
+    } else if (aEvent.mMessage == eMouseExitFromWidget) {
+      mCoalescedMouseData.Remove(aEvent.pointerId);
+    }
   }
   // Mouse events like eMouseEnterIntoWidget, that are created in the parent
   // process EventStateManager code, have an input block id which they get from
@@ -1681,8 +1701,7 @@ TabChild::RecvRealMouseButtonEvent(const WidgetMouseEvent& aEvent,
                                                         aInputBlockId);
   }
 
-  nsEventStatus unused;
-  InputAPZContext context(aGuid, aInputBlockId, unused);
+  InputAPZContext context(aGuid, aInputBlockId, nsEventStatus_eIgnore);
   if (pendingLayerization) {
     context.SetPendingLayerization();
   }
@@ -2113,6 +2132,13 @@ TabChild::RecvCompositionEvent(const WidgetCompositionEvent& aEvent)
 }
 
 mozilla::ipc::IPCResult
+TabChild::RecvNormalPriorityCompositionEvent(
+            const WidgetCompositionEvent& aEvent)
+{
+  return RecvCompositionEvent(aEvent);
+}
+
+mozilla::ipc::IPCResult
 TabChild::RecvSelectionEvent(const WidgetSelectionEvent& aEvent)
 {
   WidgetSelectionEvent localEvent(aEvent);
@@ -2120,6 +2146,12 @@ TabChild::RecvSelectionEvent(const WidgetSelectionEvent& aEvent)
   DispatchWidgetEventViaAPZ(localEvent);
   Unused << SendOnEventNeedingAckHandled(aEvent.mMessage);
   return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+TabChild::RecvNormalPrioritySelectionEvent(const WidgetSelectionEvent& aEvent)
+{
+  return RecvSelectionEvent(aEvent);
 }
 
 mozilla::ipc::IPCResult
@@ -2588,12 +2620,12 @@ TabChild::InternalSetDocShellIsActive(bool aIsActive, bool aPreserveLayers)
 
   if (aIsActive) {
     if (!sActiveTabs) {
-      sActiveTabs = new nsTArray<TabChild*>();
+      sActiveTabs = new nsTHashtable<nsPtrHashKey<TabChild>>();
     }
-    sActiveTabs->AppendElement(this);
+    sActiveTabs->PutEntry(this);
   } else {
     if (sActiveTabs) {
-      sActiveTabs->RemoveElement(this);
+      sActiveTabs->RemoveEntry(this);
       // We don't delete sActiveTabs here when it's empty since that
       // could cause a lot of churn. Instead, we wait until ~TabChild.
     }
@@ -2797,11 +2829,6 @@ TabChild::InitRenderingState(const TextureFactoryIdentifier& aTextureFactoryIden
       mLayersId = aLayersId;
     }
 
-    ShadowLayerForwarder* lf =
-        mPuppetWidget->GetLayerManager(
-            nullptr, mTextureFactoryIdentifier.mParentBackend)
-                ->AsShadowForwarder();
-
     LayerManager* lm = mPuppetWidget->GetLayerManager();
     if (lm->AsWebRenderLayerManager()) {
       lm->AsWebRenderLayerManager()->Initialize(compositorChild,
@@ -2812,6 +2839,10 @@ TabChild::InitRenderingState(const TextureFactoryIdentifier& aTextureFactoryIden
       InitAPZState();
     }
 
+    ShadowLayerForwarder* lf =
+        mPuppetWidget->GetLayerManager(
+            nullptr, mTextureFactoryIdentifier.mParentBackend)
+                ->AsShadowForwarder();
     if (lf) {
       nsTArray<LayersBackend> backends;
       backends.AppendElement(mTextureFactoryIdentifier.mParentBackend);
@@ -3167,6 +3198,7 @@ TabChild::ReinitRendering()
     return;
   }
 
+  mLayersConnected = true;
   ImageBridgeChild::IdentifyCompositorTextureHost(mTextureFactoryIdentifier);
   gfx::VRManagerChild::IdentifyTextureHost(mTextureFactoryIdentifier);
 

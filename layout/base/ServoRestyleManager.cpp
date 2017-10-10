@@ -78,6 +78,21 @@ ExpectedOwnerForChild(const nsIFrame& aFrame)
     return parent;
   }
 
+  if (aFrame.IsLetterFrame()) {
+    // Ditto for ::first-letter. A first-letter always arrives here via its
+    // direct parent, except when it's parented to a ::first-line.
+    if (parent->IsLineFrame()) {
+      parent = parent->GetParent();
+    }
+    return FirstContinuationOrPartOfIBSplit(parent);
+  }
+
+  if (parent->IsLetterFrame()) {
+    // Things never have ::first-letter as their expected parent.  Go
+    // on up to the ::first-letter's parent.
+    parent = parent->GetParent();
+  }
+
   parent = FirstContinuationOrPartOfIBSplit(parent);
 
   // We've handled already anon boxes and bullet frames, so now we're looking at
@@ -105,9 +120,26 @@ ServoRestyleState::AssertOwner(const ServoRestyleState& aParent) const
   MOZ_ASSERT(mOwner);
   MOZ_ASSERT(!mOwner->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
   // We allow aParent.mOwner to be null, for cases when we're not starting at
-  // the root of the tree.
-  MOZ_ASSERT_IF(aParent.mOwner,
-                ExpectedOwnerForChild(*mOwner) == aParent.mOwner);
+  // the root of the tree.  We also allow aParent.mOwner to be somewhere up our
+  // expected owner chain not our immediate owner, which allows us creating long
+  // chains of ServoRestyleStates in some cases where it's just not worth it.
+#ifdef DEBUG
+  if (aParent.mOwner) {
+    const nsIFrame* owner = ExpectedOwnerForChild(*mOwner);
+    if (owner != aParent.mOwner) {
+      MOZ_ASSERT(IsAnonBox(*owner),
+                 "Should only have expected owner weirdness when anon boxes are involved");
+      bool found = false;
+      for (; owner; owner = ExpectedOwnerForChild(*owner)) {
+        if (owner == aParent.mOwner) {
+          found = true;
+          break;
+        }
+      }
+      MOZ_ASSERT(found, "Must have aParent.mOwner on our expected owner chain");
+    }
+  }
+#endif
 }
 
 nsChangeHint
@@ -208,15 +240,15 @@ ServoRestyleState::ProcessMaybeNestedWrapperRestyle(nsIFrame* aParent,
              (parent->StyleContext()->IsInheritingAnonBox() &&
               parent->GetContent() == aParent->GetContent()));
 
-  // Now "this" is a ServoRestyleState for aParent, so if parent is not a prev
+  // Now "this" is a ServoRestyleState for aParent, so if parent is not a next
   // continuation (possibly across ib splits) of aParent we need a new
   // ServoRestyleState for the kid.
   Maybe<ServoRestyleState> parentRestyleState;
-  nsIFrame* parentForRestyle = aParent;
-  if (nsLayoutUtils::FirstContinuationOrIBSplitSibling(parent) != aParent) {
-    parentRestyleState.emplace(*parent, *this, nsChangeHint_Empty,
+  nsIFrame* parentForRestyle =
+    nsLayoutUtils::FirstContinuationOrIBSplitSibling(parent);
+  if (parentForRestyle != aParent) {
+    parentRestyleState.emplace(*parentForRestyle, *this, nsChangeHint_Empty,
                                Type::InFlow);
-    parentForRestyle = parent;
   }
   ServoRestyleState& curRestyleState =
     parentRestyleState ? *parentRestyleState : *this;
@@ -415,8 +447,7 @@ ServoRestyleManager::ClearServoDataFromSubtree(Element* aElement)
 /* static */ void
 ServoRestyleManager::ClearRestyleStateFromSubtree(Element* aElement)
 {
-  if (aElement->HasDirtyDescendantsForServo() ||
-      aElement->HasAnimationOnlyDirtyDescendantsForServo()) {
+  if (aElement->HasAnyOfFlags(Element::kAllServoDescendantBits)) {
     StyleChildrenIterator it(aElement);
     for (nsIContent* n = it.GetNextChild(); n; n = it.GetNextChild()) {
       if (n->IsElement()) {
@@ -568,6 +599,8 @@ UpdateBackdropIfNeeded(nsIFrame* aFrame,
 static void
 UpdateFirstLetterIfNeeded(nsIFrame* aFrame, ServoRestyleState& aRestyleState)
 {
+  MOZ_ASSERT(!aFrame->IsFrameOfType(nsIFrame::eBlockFrame),
+             "You're probably duplicating work with UpdatePseudoElementStyles!");
   if (!aFrame->HasFirstLetterChild()) {
     return;
   }
@@ -575,10 +608,11 @@ UpdateFirstLetterIfNeeded(nsIFrame* aFrame, ServoRestyleState& aRestyleState)
   // We need to find the block the first-letter is associated with so we can
   // find the right element for the first-letter's style resolution.  Might as
   // well just delegate the whole thing to that block.
-  nsIFrame* block = aFrame;
+  nsIFrame* block = aFrame->GetParent();
   while (!block->IsFrameOfType(nsIFrame::eBlockFrame)) {
     block = block->GetParent();
   }
+
   static_cast<nsBlockFrame*>(block->FirstContinuation())->
     UpdateFirstLetterStyle(aRestyleState);
 }
@@ -639,12 +673,10 @@ static void
 UpdateFramePseudoElementStyles(nsIFrame* aFrame,
                                ServoRestyleState& aRestyleState)
 {
-  // first-letter needs to be updated before first-line, because first-line can
-  // change the style of the first-letter.
-  UpdateFirstLetterIfNeeded(aFrame, aRestyleState);
-
   if (aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
     static_cast<nsBlockFrame*>(aFrame)->UpdatePseudoElementStyles(aRestyleState);
+  } else {
+    UpdateFirstLetterIfNeeded(aFrame, aRestyleState);
   }
 
   UpdateBackdropIfNeeded(
@@ -1046,19 +1078,7 @@ ServoRestyleManager::SnapshotFor(Element* aElement)
   aElement->SetFlags(ELEMENT_HAS_SNAPSHOT);
 
   // Now that we have a snapshot, make sure a restyle is triggered.
-  //
-  // If we have any later siblings, we need to flag the restyle on the parent,
-  // so that a traversal from the restyle root is guaranteed to reach those
-  // siblings (since the snapshot may generate hints for later siblings).
-  if (aElement->GetNextElementSibling()) {
-    Element* parent = aElement->GetFlattenedTreeParentElementForStyle();
-    MOZ_ASSERT(parent);
-    parent->NoteDirtyForServo();
-    parent->SetHasDirtyDescendantsForServo();
-  } else {
-    aElement->NoteDirtyForServo();
-  }
-
+  aElement->NoteDirtyForServo();
   return *snapshot;
 }
 
@@ -1196,10 +1216,15 @@ ServoRestyleManager::ProcessPendingRestyles()
 void
 ServoRestyleManager::ProcessAllPendingAttributeAndStateInvalidations()
 {
-  AutoTimelineMarker marker(mPresContext->GetDocShell(),
-                            "ProcessAllPendingAttributeAndStateInvalidations");
+  if (mSnapshots.IsEmpty()) {
+    return;
+  }
   for (auto iter = mSnapshots.Iter(); !iter.Done(); iter.Next()) {
-    Servo_ProcessInvalidations(StyleSet()->RawSet(), iter.Key(), &mSnapshots);
+    // Servo data for the element might have been dropped. (e.g. by removing
+    // from its document)
+    if (iter.Key()->HasFlag(ELEMENT_HAS_SNAPSHOT)) {
+      Servo_ProcessInvalidations(StyleSet()->RawSet(), iter.Key(), &mSnapshots);
+    }
   }
   ClearSnapshots();
 }
@@ -1264,7 +1289,7 @@ ServoRestyleManager::ContentStateChanged(nsIContent* aContent,
 
 static inline bool
 AttributeInfluencesOtherPseudoClassState(const Element& aElement,
-                                         const nsIAtom* aAttribute)
+                                         const nsAtom* aAttribute)
 {
   // We must record some state for :-moz-browser-frame and
   // :-moz-table-border-nonzero.
@@ -1283,7 +1308,7 @@ static inline bool
 NeedToRecordAttrChange(const ServoStyleSet& aStyleSet,
                        const Element& aElement,
                        int32_t aNameSpaceID,
-                       nsIAtom* aAttribute,
+                       nsAtom* aAttribute,
                        bool* aInfluencesOtherPseudoClassState)
 {
   *aInfluencesOtherPseudoClassState =
@@ -1321,7 +1346,7 @@ NeedToRecordAttrChange(const ServoStyleSet& aStyleSet,
 void
 ServoRestyleManager::AttributeWillChange(Element* aElement,
                                          int32_t aNameSpaceID,
-                                         nsIAtom* aAttribute, int32_t aModType,
+                                         nsAtom* aAttribute, int32_t aModType,
                                          const nsAttrValue* aNewValue)
 {
   TakeSnapshotForAttributeChange(aElement, aNameSpaceID, aAttribute);
@@ -1337,7 +1362,7 @@ ServoRestyleManager::ClassAttributeWillBeChangedBySMIL(Element* aElement)
 void
 ServoRestyleManager::TakeSnapshotForAttributeChange(Element* aElement,
                                                     int32_t aNameSpaceID,
-                                                    nsIAtom* aAttribute)
+                                                    nsAtom* aAttribute)
 {
   MOZ_ASSERT(!mInStyleRefresh);
 
@@ -1378,7 +1403,7 @@ ServoRestyleManager::TakeSnapshotForAttributeChange(Element* aElement,
 // * lang="" and xml:lang="" can affect all descendants due to :lang()
 //
 static inline bool
-AttributeChangeRequiresSubtreeRestyle(const Element& aElement, nsIAtom* aAttr)
+AttributeChangeRequiresSubtreeRestyle(const Element& aElement, nsAtom* aAttr)
 {
   if (aAttr == nsGkAtoms::cellpadding) {
     return aElement.IsHTMLElement(nsGkAtoms::table);
@@ -1389,7 +1414,7 @@ AttributeChangeRequiresSubtreeRestyle(const Element& aElement, nsIAtom* aAttr)
 
 void
 ServoRestyleManager::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
-                                      nsIAtom* aAttribute, int32_t aModType,
+                                      nsAtom* aAttribute, int32_t aModType,
                                       const nsAttrValue* aOldValue)
 {
   MOZ_ASSERT(!mInStyleRefresh);

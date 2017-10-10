@@ -365,14 +365,14 @@ CallJSGetterOp(JSContext* cx, GetterOp op, HandleObject obj, HandleId id,
 }
 
 MOZ_ALWAYS_INLINE bool
-CallJSSetterOp(JSContext* cx, SetterOp op, HandleObject obj, HandleId id, MutableHandleValue vp,
+CallJSSetterOp(JSContext* cx, SetterOp op, HandleObject obj, HandleId id, HandleValue v,
                ObjectOpResult& result)
 {
     if (!CheckRecursionLimit(cx))
         return false;
 
-    assertSameCompartment(cx, obj, id, vp);
-    return op(cx, obj, id, vp, result);
+    assertSameCompartment(cx, obj, id, v);
+    return op(cx, obj, id, v, result);
 }
 
 inline bool
@@ -407,6 +407,9 @@ CheckForInterrupt(JSContext* cx)
     // C++ loops of library builtins.
     if (MOZ_UNLIKELY(cx->hasPendingInterrupt()))
         return cx->handleInterrupt();
+
+    JS_INTERRUPT_POSSIBLY_FAIL();
+
     return true;
 }
 
@@ -555,9 +558,6 @@ JSContext::currentScript(jsbytecode** ppc,
         *ppc = nullptr;
 
     js::Activation* act = activation();
-    while (act && act->isJit() && !act->asJit()->isActive())
-        act = act->prev();
-
     if (!act)
         return nullptr;
 
@@ -567,14 +567,13 @@ JSContext::currentScript(jsbytecode** ppc,
         return nullptr;
 
     if (act->isJit()) {
+        if (act->hasWasmExitFP())
+            return nullptr;
         JSScript* script = nullptr;
         js::jit::GetPcScript(const_cast<JSContext*>(this), &script, ppc);
         MOZ_ASSERT(allowCrossCompartment || script->compartment() == compartment());
         return script;
     }
-
-    if (act->isWasm())
-        return nullptr;
 
     MOZ_ASSERT(act->isInterpreter());
 

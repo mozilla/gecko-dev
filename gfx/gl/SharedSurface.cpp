@@ -316,22 +316,15 @@ SurfaceFactory::~SurfaceFactory()
 }
 
 already_AddRefed<layers::SharedSurfaceTextureClient>
-SurfaceFactory::NewTexClient(const gfx::IntSize& size, const layers::LayersIPCChannel* aLayersChannel)
+SurfaceFactory::NewTexClient(const gfx::IntSize& size)
 {
     while (!mRecycleFreePool.empty()) {
         RefPtr<layers::SharedSurfaceTextureClient> cur = mRecycleFreePool.front();
         mRecycleFreePool.pop();
 
-        if (cur->Surf()->mSize == size){
-            // In the general case, textureClients transit textures through
-            // CompositorForwarder. But, the textureClient created by VRManagerChild
-            // has a different LayerIPCChannel, PVRManager. Therefore, textureClients
-            // need to be separated into different cases.
-            if ((aLayersChannel && aLayersChannel == cur->GetAllocator()) ||
-                (cur->GetAllocator() != gfx::VRManagerChild::Get())) {
-                cur->Surf()->WaitForBufferOwnership();
-                return cur.forget();
-            }
+        if (cur->Surf()->mSize == size) {
+            cur->Surf()->WaitForBufferOwnership();
+            return cur.forget();
         }
 
         StopRecycling(cur);

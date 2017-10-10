@@ -659,15 +659,31 @@ Assembler::finish()
 }
 
 bool
-Assembler::asmMergeWith(Assembler& other)
+Assembler::appendRawCode(const uint8_t* code, size_t numBytes)
 {
     flush();
-    other.flush();
-    if (other.oom())
+    return m_buffer.appendRawCode(code, numBytes);
+}
+
+bool
+Assembler::reserve(size_t size)
+{
+    // This buffer uses fixed-size chunks so there's no point in reserving
+    // now vs. on-demand.
+    return !oom();
+}
+
+bool
+Assembler::swapBuffer(wasm::Bytes& bytes)
+{
+    // For now, specialize to the one use case. As long as wasm::Bytes is a
+    // Vector, not a linked-list of chunks, there's not much we can do other
+    // than copy.
+    MOZ_ASSERT(bytes.empty());
+    if (!bytes.resize(bytesNeeded()))
         return false;
-    if (!AssemblerShared::asmMergeWith(size(), other))
-        return false;
-    return m_buffer.appendBuffer(other.m_buffer);
+    m_buffer.executableCopy(bytes.begin());
+    return true;
 }
 
 void
@@ -948,7 +964,7 @@ Assembler::processCodeLabels(uint8_t* rawCode)
 {
     for (size_t i = 0; i < codeLabels_.length(); i++) {
         CodeLabel label = codeLabels_[i];
-        Bind(rawCode, label.patchAt(), rawCode + label.target()->offset());
+        Bind(rawCode, *label.patchAt(), *label.target());
     }
 }
 
@@ -960,9 +976,9 @@ Assembler::writeCodePointer(CodeOffset* label)
 }
 
 void
-Assembler::Bind(uint8_t* rawCode, CodeOffset* label, const void* address)
+Assembler::Bind(uint8_t* rawCode, CodeOffset label, CodeOffset target)
 {
-    *reinterpret_cast<const void**>(rawCode + label->offset()) = address;
+    *reinterpret_cast<const void**>(rawCode + label.offset()) = rawCode + target.offset();
 }
 
 Assembler::Condition
@@ -2257,21 +2273,41 @@ Assembler::PatchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
 // Atomic instruction stuff:
 
 BufferOffset
+Assembler::as_ldrexd(Register rt, Register rt2, Register rn, Condition c)
+{
+    MOZ_ASSERT(!(rt.code() & 1) && rt2.code() == rt.code()+1);
+    MOZ_ASSERT(rt.code() != 14 && rn.code() != 15);
+    return writeInst(0x01b00f9f | (int)c | RT(rt) | RN(rn));
+}
+
+BufferOffset
 Assembler::as_ldrex(Register rt, Register rn, Condition c)
 {
+    MOZ_ASSERT(rt.code() != 15 && rn.code() != 15);
     return writeInst(0x01900f9f | (int)c | RT(rt) | RN(rn));
 }
 
 BufferOffset
 Assembler::as_ldrexh(Register rt, Register rn, Condition c)
 {
+    MOZ_ASSERT(rt.code() != 15 && rn.code() != 15);
     return writeInst(0x01f00f9f | (int)c | RT(rt) | RN(rn));
 }
 
 BufferOffset
 Assembler::as_ldrexb(Register rt, Register rn, Condition c)
 {
+    MOZ_ASSERT(rt.code() != 15 && rn.code() != 15);
     return writeInst(0x01d00f9f | (int)c | RT(rt) | RN(rn));
+}
+
+BufferOffset
+Assembler::as_strexd(Register rd, Register rt, Register rt2, Register rn, Condition c)
+{
+    MOZ_ASSERT(!(rt.code() & 1) && rt2.code() == rt.code()+1);
+    MOZ_ASSERT(rt.code() != 14 && rn.code() != 15 && rd.code() != 15);
+    MOZ_ASSERT(rd != rn && rd != rt && rd != rt2);
+    return writeInst(0x01a00f90 | (int)c | RD(rd) | RN(rn) | rt.code());
 }
 
 BufferOffset
@@ -2293,6 +2329,12 @@ Assembler::as_strexb(Register rd, Register rt, Register rn, Condition c)
 {
     MOZ_ASSERT(rd != rn && rd != rt); // True restriction on Cortex-A7 (RPi2)
     return writeInst(0x01c00f90 | (int)c | RD(rd) | RN(rn) | rt.code());
+}
+
+BufferOffset
+Assembler::as_clrex()
+{
+    return writeInst(0xf57ff01f);
 }
 
 // Memory barrier stuff:

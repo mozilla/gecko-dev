@@ -8,9 +8,9 @@ use dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::Response
 use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
@@ -77,7 +77,7 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
     // Step 2
     let request = match Request::Constructor(global, input, init) {
         Err(e) => {
-            promise.reject_error(promise.global().get_cx(), e);
+            promise.reject_error(e);
             return promise;
         },
         Ok(r) => r.get_request(),
@@ -135,9 +135,7 @@ impl FetchResponseListener for FetchContext {
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
-                promise.reject_error(
-                    promise.global().get_cx(),
-                    Error::Type("Network error occurred".to_string()));
+                promise.reject_error(Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 self.response_object.root().set_type(DOMResponseType::Error);
                 return;
@@ -167,9 +165,7 @@ impl FetchResponseListener for FetchContext {
             }
         }
         // Step 4.3
-        promise.resolve_native(
-            promise_cx,
-            &self.response_object.root());
+        promise.resolve_native(&self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
@@ -188,7 +184,7 @@ impl FetchResponseListener for FetchContext {
     }
 }
 
-fn fill_headers_with_metadata(r: Root<Response>, m: Metadata) {
+fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
     r.set_headers(m.headers);
     r.set_raw_status(m.status);
     r.set_final_url(m.final_url);

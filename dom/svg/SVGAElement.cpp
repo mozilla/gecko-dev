@@ -162,7 +162,7 @@ SVGAElement::GetHrefURI() const
 
 
 NS_IMETHODIMP_(bool)
-SVGAElement::IsAttributeMapped(const nsIAtom* name) const
+SVGAElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sFEFloodMap,
@@ -333,12 +333,13 @@ SVGAElement::IntrinsicState() const
 }
 
 nsresult
-SVGAElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                     nsIAtom* aPrefix, const nsAString& aValue,
+SVGAElement::SetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                     nsAtom* aPrefix, const nsAString& aValue,
+                     nsIPrincipal* aSubjectPrincipal,
                      bool aNotify)
 {
   nsresult rv = SVGAElementBase::SetAttr(aNameSpaceID, aName, aPrefix,
-                                         aValue, aNotify);
+                                         aValue, aSubjectPrincipal, aNotify);
 
   // The ordering of the parent class's SetAttr call and Link::ResetLinkState
   // is important here!  The attribute is not set until SetAttr returns, and
@@ -355,7 +356,7 @@ SVGAElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-SVGAElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
+SVGAElement::UnsetAttr(int32_t aNameSpaceID, nsAtom* aAttr,
                        bool aNotify)
 {
   nsresult rv = nsSVGElement::UnsetAttr(aNameSpaceID, aAttr, aNotify);

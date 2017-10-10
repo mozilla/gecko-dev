@@ -4,6 +4,7 @@
 
 use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
 use bloom::{BLOOM_HASH_MASK, BloomFilter};
+use nth_index_cache::NthIndexCacheInner;
 use parser::{AncestorHashes, Combinator, Component, LocalName};
 use parser::{Selector, SelectorImpl, SelectorIter, SelectorList};
 use std::borrow::Borrow;
@@ -724,26 +725,26 @@ fn matches_simple_selector<E, F>(
             element.is_empty()
         }
         Component::NthChild(a, b) => {
-            matches_generic_nth_child(element, a, b, false, false, flags_setter)
+            matches_generic_nth_child(element, context, a, b, false, false, flags_setter)
         }
         Component::NthLastChild(a, b) => {
-            matches_generic_nth_child(element, a, b, false, true, flags_setter)
+            matches_generic_nth_child(element, context, a, b, false, true, flags_setter)
         }
         Component::NthOfType(a, b) => {
-            matches_generic_nth_child(element, a, b, true, false, flags_setter)
+            matches_generic_nth_child(element, context, a, b, true, false, flags_setter)
         }
         Component::NthLastOfType(a, b) => {
-            matches_generic_nth_child(element, a, b, true, true, flags_setter)
+            matches_generic_nth_child(element, context, a, b, true, true, flags_setter)
         }
         Component::FirstOfType => {
-            matches_generic_nth_child(element, 0, 1, true, false, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter)
         }
         Component::LastOfType => {
-            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::OnlyOfType => {
-            matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
-            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter) &&
+            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
             context.nesting_level += 1;
@@ -767,6 +768,7 @@ fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T)
 
 #[inline]
 fn matches_generic_nth_child<E, F>(element: &E,
+                                   context: &mut LocalMatchingContext<E::Impl>,
                                    a: i32,
                                    b: i32,
                                    is_of_type: bool,
@@ -786,33 +788,20 @@ fn matches_generic_nth_child<E, F>(element: &E,
         HAS_SLOW_SELECTOR_LATER_SIBLINGS
     });
 
-    let mut index: i32 = 1;
-    let mut next_sibling = if is_from_end {
-        element.next_sibling_element()
+    // Grab a reference to the appropriate cache.
+    let mut cache = context.shared.nth_index_cache.as_mut().map(|c| {
+        c.get(is_of_type, is_from_end)
+    });
+
+    // Lookup or compute the index.
+    let index = if let Some(i) = cache.as_mut().and_then(|c| c.lookup(element.opaque())) {
+        i
     } else {
-        element.prev_sibling_element()
+        let i = nth_child_index(element, is_of_type, is_from_end, cache.as_mut().map(|s| &mut **s));
+        cache.as_mut().map(|c| c.insert(element.opaque(), i));
+        i
     };
-
-    loop {
-        let sibling = match next_sibling {
-            None => break,
-            Some(next_sibling) => next_sibling
-        };
-
-        if is_of_type {
-            if element.get_local_name() == sibling.get_local_name() &&
-                element.get_namespace() == sibling.get_namespace() {
-                index += 1;
-            }
-        } else {
-          index += 1;
-        }
-        next_sibling = if is_from_end {
-            sibling.next_sibling_element()
-        } else {
-            sibling.prev_sibling_element()
-        };
-    }
+    debug_assert_eq!(index, nth_child_index(element, is_of_type, is_from_end, None), "invalid cache");
 
     // Is there a non-negative integer n such that An+B=index?
     match index.checked_sub(b) {
@@ -822,6 +811,65 @@ fn matches_generic_nth_child<E, F>(element: &E,
             None /* a == 0 */ => an == 0,
         },
     }
+}
+
+#[inline]
+fn same_type<E: Element>(a: &E, b: &E) -> bool {
+    a.get_local_name() == b.get_local_name() &&
+    a.get_namespace() == b.get_namespace()
+}
+
+#[inline]
+fn nth_child_index<E>(
+    element: &E,
+    is_of_type: bool,
+    is_from_end: bool,
+    mut cache: Option<&mut NthIndexCacheInner>,
+) -> i32
+where
+    E: Element,
+{
+    // The traversal mostly processes siblings left to right. So when we walk
+    // siblings to the right when computing NthLast/NthLastOfType we're unlikely
+    // to get cache hits along the way. As such, we take the hit of walking the
+    // siblings to the left checking the cache in the is_from_end case (this
+    // matches what Gecko does). The indices-from-the-left is handled during the
+    // regular look further below.
+    if let Some(ref mut c) = cache {
+        if is_from_end && !c.is_empty() {
+            let mut index: i32 = 1;
+            let mut curr = element.clone();
+            while let Some(e) = curr.prev_sibling_element() {
+                curr = e;
+                if !is_of_type || same_type(element, &curr) {
+                    if let Some(i) = c.lookup(curr.opaque()) {
+                        return i - index;
+                    }
+                    index += 1;
+                }
+            }
+        }
+    }
+
+    let mut index: i32 = 1;
+    let mut curr = element.clone();
+    let next = |e: E| if is_from_end { e.next_sibling_element() } else { e.prev_sibling_element() };
+    while let Some(e) = next(curr) {
+        curr = e;
+        if !is_of_type || same_type(element, &curr) {
+            // If we're computing indices from the left, check each element in the
+            // cache. We handle the indices-from-the-right case at the top of this
+            // function.
+            if !is_from_end {
+                if let Some(i) = cache.as_mut().and_then(|c| c.lookup(curr.opaque())) {
+                    return i + index
+                }
+            }
+            index += 1;
+        }
+    }
+
+    index
 }
 
 #[inline]

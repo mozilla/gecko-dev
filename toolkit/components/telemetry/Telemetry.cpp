@@ -1540,7 +1540,7 @@ TelemetryImpl::DoStackCapture(const nsACString& aKey) {
 
 nsresult
 TelemetryImpl::CaptureStack(const nsACString& aKey) {
-#if defined(MOZ_GECKO_PROFILER)
+#ifdef MOZ_GECKO_PROFILER
   TelemetryImpl::DoStackCapture(aKey);
 #endif
   return NS_OK;
@@ -1691,6 +1691,14 @@ TelemetryImpl::SnapshotKeyedScalars(unsigned int aDataset, bool aClearScalars, J
 {
   return TelemetryScalar::CreateKeyedSnapshots(aDataset, aClearScalars, aCx, optional_argc,
                                                aResult);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::RegisterScalars(const nsACString& aCategoryName,
+                               JS::Handle<JS::Value> aScalarData,
+                               JSContext* cx)
+{
+  return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, cx);
 }
 
 NS_IMETHODIMP
@@ -1983,7 +1991,7 @@ void RecordChromeHang(uint32_t duration,
 
 void CaptureStack(const nsACString& aKey)
 {
-#if defined(MOZ_GECKO_PROFILER)
+#ifdef MOZ_GECKO_PROFILER
   TelemetryImpl::DoStackCapture(aKey);
 #endif
 }

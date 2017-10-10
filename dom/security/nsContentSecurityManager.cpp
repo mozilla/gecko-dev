@@ -26,7 +26,8 @@ nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   nsIURI* aURI,
   nsContentPolicyType aContentPolicyType,
   nsIPrincipal* aTriggeringPrincipal,
-  bool aLoadFromExternal)
+  bool aLoadFromExternal,
+  bool aIsDownLoad)
 {
   // Let's block all toplevel document navigations to a data: URI.
   // In all cases where the toplevel document is navigated to a
@@ -39,7 +40,7 @@ nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   if (!mozilla::net::nsIOService::BlockToplevelDataUriNavigations()) {
     return true;
   }
-  if (aContentPolicyType != nsIContentPolicy::TYPE_DOCUMENT) {
+  if (aContentPolicyType != nsIContentPolicy::TYPE_DOCUMENT || aIsDownLoad) {
     return true;
   }
   bool isDataURI =
@@ -97,16 +98,6 @@ ValidateSecurityFlags(nsILoadInfo* aLoadInfo)
   // all good, found the right security flags
   return NS_OK;
 }
-
-static bool SchemeIs(nsIURI* aURI, const char* aScheme)
-{
-  nsCOMPtr<nsIURI> baseURI = NS_GetInnermostURI(aURI);
-  NS_ENSURE_TRUE(baseURI, false);
-
-  bool isScheme = false;
-  return NS_SUCCEEDED(baseURI->SchemeIs(aScheme, &isScheme)) && isScheme;
-}
-
 
 static bool IsImageLoadInEditorAppType(nsILoadInfo* aLoadInfo)
 {
@@ -190,7 +181,7 @@ DoSOPChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo, nsIChannel* aChannel)
 {
   if (aLoadInfo->GetAllowChrome() &&
       (URIHasFlags(aURI, nsIProtocolHandler::URI_IS_UI_RESOURCE) ||
-       SchemeIs(aURI, "moz-safe-about"))) {
+       nsContentUtils::SchemeIs(aURI, "moz-safe-about"))) {
     // UI resources are allowed.
     return DoCheckLoadURIChecks(aURI, aLoadInfo);
   }
@@ -600,6 +591,7 @@ nsContentSecurityManager::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
           uri,
           newLoadInfo->GetExternalContentPolicyType(),
           nullTriggeringPrincipal,
+          false,
           false)) {
         // logging to console happens within AllowTopLevelNavigationToDataURI
       aOldChannel->Cancel(NS_ERROR_DOM_BAD_URI);
@@ -808,9 +800,9 @@ nsContentSecurityManager::IsOriginPotentiallyTrustworthy(nsIPrincipal* aPrincipa
     return NS_OK;
   }
 
-  if (host.Equals("127.0.0.1") ||
-      host.Equals("localhost") ||
-      host.Equals("::1")) {
+  if (host.EqualsLiteral("127.0.0.1") ||
+      host.EqualsLiteral("localhost") ||
+      host.EqualsLiteral("::1")) {
     *aIsTrustWorthy = true;
     return NS_OK;
   }

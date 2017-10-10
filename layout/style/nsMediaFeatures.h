@@ -11,7 +11,7 @@
 
 #include "nsCSSProps.h"
 
-class nsIAtom;
+class nsAtom;
 class nsPresContext;
 class nsCSSValue;
 
@@ -22,7 +22,7 @@ typedef void (*nsMediaFeatureValueGetter)(nsPresContext* aPresContext,
 
 struct nsMediaFeature
 {
-  nsIAtom **mName; // extra indirection to point to nsGkAtoms members
+  nsAtom **mName; // extra indirection to point to nsGkAtoms members
 
   enum RangeType { eMinMaxAllowed, eMinMaxNotAllowed };
   RangeType mRangeType;
@@ -57,7 +57,9 @@ struct nsMediaFeature
     // Feature is only supported if the pref
     // "layout.css.prefixes.device-pixel-ratio-webkit" is enabled.
     // (Should only be used for -webkit-device-pixel-ratio.)
-    eWebkitDevicePixelRatioPrefEnabled = 1 << 1
+    eWebkitDevicePixelRatioPrefEnabled = 1 << 1,
+    // Feature is only usable from UA sheets and chrome:// urls.
+    eUserAgentAndChromeOnly = 1 << 2,
   };
   uint8_t mReqFlags;
 
@@ -70,8 +72,8 @@ struct nsMediaFeature
     //   the same format as the keyword tables in nsCSSProps.
     const nsCSSProps::KTableEntry* mKeywordTable;
     // If mGetter == GetSystemMetric (which implies mValueType ==
-    //   eBoolInteger): nsIAtom * const *, for the system metric.
-    nsIAtom * const * mMetric;
+    //   eBoolInteger): nsAtom * const *, for the system metric.
+    nsAtom * const * mMetric;
   } mData;
 
   // A function that returns the current value for this feature for a

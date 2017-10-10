@@ -66,6 +66,7 @@ from .data import (
     RustLibrary,
     HostRustLibrary,
     RustProgram,
+    RustTest,
     SharedLibrary,
     SimpleProgram,
     Sources,
@@ -130,6 +131,7 @@ class TreeMetadataEmitter(LoggingMixin):
         self._libs = OrderedDefaultDict(list)
         self._binaries = OrderedDict()
         self._compile_dirs = set()
+        self._compile_flags = dict()
         self._linkage = []
         self._static_linking_shared = set()
         self._crate_verified_local = set()
@@ -263,6 +265,16 @@ class TreeMetadataEmitter(LoggingMixin):
             if isinstance(lib, Library):
                 propagate_defines(lib, lib.lib_defines)
             yield lib
+
+
+        for lib in (l for libs in self._libs.values() for l in libs):
+            lib_defines = list(lib.lib_defines.get_defines())
+            if lib_defines:
+                objdir_flags = self._compile_flags[lib.objdir]
+                objdir_flags.resolve_flags('LIBRARY_DEFINES', lib_defines)
+
+        for flags_obj in self._compile_flags.values():
+            yield flags_obj
 
         for obj in self._binaries.values():
             yield obj
@@ -759,7 +771,12 @@ class TreeMetadataEmitter(LoggingMixin):
         if not (linkables or host_linkables):
             return
 
-        self._compile_dirs.add(context.objdir)
+        # Avoid emitting compile flags for directories only containing rust
+        # libraries. Emitted compile flags are only relevant to C/C++ sources
+        # for the time being.
+        if not all(isinstance(l, (RustLibrary, HostRustLibrary))
+                   for l in linkables + host_linkables):
+            self._compile_dirs.add(context.objdir)
 
         sources = defaultdict(list)
         gen_sources = defaultdict(list)
@@ -935,9 +952,6 @@ class TreeMetadataEmitter(LoggingMixin):
             if v in context and context[v]:
                 passthru.variables['MOZBUILD_' + v] = context[v]
 
-        if isinstance(context, TemplateContext) and context.template == 'Gyp':
-            passthru.variables['IS_GYP_DIR'] = True
-
         dist_install = context['DIST_INSTALL']
         if dist_install is True:
             passthru.variables['DIST_INSTALL'] = True
@@ -971,13 +985,25 @@ class TreeMetadataEmitter(LoggingMixin):
             generated_files.add(str(sub.relpath))
             yield sub
 
-        defines = context.get('DEFINES')
-        if defines:
-            yield Defines(context, defines)
+        computed_flags = ComputedFlags(context, context['COMPILE_FLAGS'])
 
-        host_defines = context.get('HOST_DEFINES')
-        if host_defines:
-            yield HostDefines(context, host_defines)
+        for defines_var, cls in (('DEFINES', Defines),
+                                 ('HOST_DEFINES', HostDefines)):
+            defines = context.get(defines_var)
+            if defines:
+                defines_obj = cls(context, defines)
+                yield defines_obj
+            else:
+                # If we don't have explicitly set defines we need to make sure
+                # initialized values if present end up in computed flags.
+                defines_obj = cls(context, context[defines_var])
+
+            if isinstance(defines_obj, Defines):
+                defines_from_obj = list(defines_obj.get_defines())
+                if defines_from_obj:
+                    computed_flags.resolve_flags('DEFINES',
+                                                 defines_from_obj)
+
 
         simple_lists = [
             ('GENERATED_EVENTS_WEBIDL_FILES', GeneratedEventWebIDLFile),
@@ -993,13 +1019,18 @@ class TreeMetadataEmitter(LoggingMixin):
             for name in context.get(context_var, []):
                 yield klass(context, name)
 
+        local_includes = []
         for local_include in context.get('LOCAL_INCLUDES', []):
             if (not isinstance(local_include, ObjDirPath) and
                     not os.path.exists(local_include.full_path)):
                 raise SandboxValidationError('Path specified in LOCAL_INCLUDES '
                     'does not exist: %s (resolved to %s)' % (local_include,
                     local_include.full_path), context)
-            yield LocalInclude(context, local_include)
+            include_obj = LocalInclude(context, local_include)
+            local_includes.append(include_obj.path.full_path)
+            yield include_obj
+
+        computed_flags.resolve_flags('LOCAL_INCLUDES', ['-I%s' % p for p in local_includes])
 
         for obj in self._handle_linkables(context, passthru, generated_files):
             yield obj
@@ -1094,6 +1125,15 @@ class TreeMetadataEmitter(LoggingMixin):
                                           Manifest('components',
                                                    mozpath.basename(c)))
 
+        if self.config.substs.get('MOZ_RUST_TESTS', None):
+            rust_test = context.get('RUST_TEST', None)
+            if rust_test:
+                # TODO: more sophisticated checking of the declared name vs.
+                # contents of the Cargo.toml file.
+                features = context.get('RUST_TEST_FEATURES', [])
+
+                yield RustTest(context, rust_test, features)
+
         for obj in self._process_test_manifests(context):
             yield obj
 
@@ -1133,7 +1173,8 @@ class TreeMetadataEmitter(LoggingMixin):
             yield passthru
 
         if context.objdir in self._compile_dirs:
-            yield ComputedFlags(context, context['COMPILE_FLAGS'])
+            self._compile_flags[context.objdir] = computed_flags
+
 
     def _create_substitution(self, cls, context, path):
         sub = cls(context)

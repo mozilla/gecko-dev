@@ -174,7 +174,6 @@ protected:
 
 /* Forward declarations for Image derivatives. */
 class GLImage;
-class EGLImageImage;
 class SharedRGBImage;
 #ifdef MOZ_WIDGET_ANDROID
 class SurfaceTextureImage;
@@ -233,7 +232,6 @@ public:
   virtual TextureClient* GetTextureClient(KnowsCompositor* aForwarder) { return nullptr; }
 
   /* Access to derived classes. */
-  virtual EGLImageImage* AsEGLImageImage() { return nullptr; }
   virtual GLImage* AsGLImage() { return nullptr; }
 #ifdef MOZ_WIDGET_ANDROID
   virtual SurfaceTextureImage* AsSurfaceTextureImage() { return nullptr; }
@@ -344,6 +342,7 @@ public:
 
   void NotifyComposite(const ImageCompositeNotification& aNotification);
   void ClearImageContainer();
+  void DropImageClient();
 private:
   typedef mozilla::Mutex Mutex;
 
@@ -618,6 +617,8 @@ public:
    */
   static ProducerID AllocateProducerID();
 
+  void DropImageClient();
+
 private:
   typedef mozilla::RecursiveMutex RecursiveMutex;
 
@@ -743,6 +744,7 @@ struct PlanarYCbCrData {
   gfx::IntSize mPicSize;
   StereoMode mStereoMode;
   YUVColorSpace mYUVColorSpace;
+  uint32_t mBitDepth;
 
   gfx::IntRect GetPictureRect() const {
     return gfx::IntRect(mPicX, mPicY,
@@ -756,6 +758,7 @@ struct PlanarYCbCrData {
     , mCbCrStride(0), mCbCrSize(0, 0) , mCbSkip(0), mCrSkip(0)
     , mPicX(0), mPicY(0), mPicSize(0, 0), mStereoMode(StereoMode::MONO)
     , mYUVColorSpace(YUVColorSpace::BT601)
+    , mBitDepth(8)
   {}
 };
 
@@ -812,18 +815,9 @@ public:
   virtual bool CopyData(const Data& aData) = 0;
 
   /**
-   * This doesn't make a copy of the data buffers. Can be used when mBuffer is
-   * pre allocated with AllocateAndGetNewBuffer(size) and then AdoptData is
-   * called to only update the picture size, planes etc. fields in mData.
-   * The GStreamer media backend uses this to decode into PlanarYCbCrImage(s)
-   * directly.
+   * This doesn't make a copy of the data buffers.
    */
-  virtual bool AdoptData(const Data &aData);
-
-  /**
-   * This allocates and returns a new buffer
-   */
-  virtual uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) = 0;
+  virtual bool AdoptData(const Data& aData);
 
   /**
    * Ask this Image to not convert YUV to RGB during SetData, and make
@@ -879,7 +873,6 @@ public:
   explicit RecyclingPlanarYCbCrImage(BufferRecycleBin *aRecycleBin) : mRecycleBin(aRecycleBin) {}
   virtual ~RecyclingPlanarYCbCrImage() override;
   virtual bool CopyData(const Data& aData) override;
-  virtual uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) override;
   virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
 protected:
 

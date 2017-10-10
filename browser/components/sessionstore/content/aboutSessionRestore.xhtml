@@ -25,23 +25,28 @@
     <script type="application/javascript" src="chrome://browser/content/aboutSessionRestore.js"/>
   </head>
 
-  <body dir="&locale.dir;">
+  <body dir="&locale.dir;" class="illustrated">
 
     <div class="container restore-chosen">
-
-      <div class="title">
-        <h1 class="title-text">&restorepage.errorTitle;</h1>
-      </div>
-      <div class="description">
-        <p>&restorepage.problemDesc;</p>
-
-        <div id="errorLongDesc">
-          <p>&restorepage.tryThis;</p>
-          <ul>
-            <li>&restorepage.restoreSome;</li>
-            <li>&restorepage.startNew;</li>
-          </ul>
+      <div class="description-wrapper">
+        <div class="title">
+          <h1 class="title-text">&restorepage.errorTitle2;</h1>
         </div>
+        <div class="description">
+          <p>&restorepage.problemDesc2;</p>
+
+          <div id="errorLongDesc">
+            <p>&restorepage.tryThis2;</p>
+          </div>
+        </div>
+        <button id="tabsToggle" class="show-tabs">
+          <span id="showTabs">
+            &restorepage.showTabs;
+          </span>
+          <span id="hideTabs">
+            &restorepage.hideTabs;
+          </span>
+        </button>
       </div>
       <div class="tree-container" available="true">
         <xul:tree id="tabList" seltype="single" hidecolumnpicker="true"
@@ -58,23 +63,23 @@
       <div class="button-container">
 #ifdef XP_UNIX
         <xul:button id="errorCancel"
-                label="&restorepage.closeButton;"
-                accesskey="&restorepage.close.access;"
+                label="&restorepage.closeButton2;"
+                accesskey="&restorepage.close.access2;"
                 oncommand="startNewSession();"/>
         <xul:button class="primary"
                 id="errorTryAgain"
-                label="&restorepage.tryagainButton;"
-                accesskey="&restorepage.restore.access;"
+                label="&restorepage.tryagainButton2;"
+                accesskey="&restorepage.restore.access2;"
                 oncommand="restoreSession();"/>
 #else
         <xul:button class="primary"
                 id="errorTryAgain"
-                label="&restorepage.tryagainButton;"
-                accesskey="&restorepage.restore.access;"
+                label="&restorepage.tryagainButton2;"
+                accesskey="&restorepage.restore.access2;"
                 oncommand="restoreSession();"/>
         <xul:button id="errorCancel"
-                label="&restorepage.closeButton;"
-                accesskey="&restorepage.close.access;"
+                label="&restorepage.closeButton2;"
+                accesskey="&restorepage.close.access2;"
                 oncommand="startNewSession();"/>
 #endif
       </div>

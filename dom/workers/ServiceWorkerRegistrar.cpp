@@ -17,6 +17,8 @@
 
 #include "MainThreadUtils.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/ErrorNames.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -1061,6 +1063,34 @@ ServiceWorkerRegistrar::ProfileStopped()
 
   PBackgroundChild* child = BackgroundChild::GetForCurrentThread();
   if (!child) {
+    // Mutations to the ServiceWorkerRegistrar happen on the PBackground thread,
+    // issued by the ServiceWorkerManagerService, so the appropriate place to
+    // trigger shutdown is on that thread.
+    //
+    // However, it's quite possible that the PBackground thread was not brought
+    // into existence for xpcshell tests.  We don't cause it to be created
+    // ourselves for any reason, for example.
+    //
+    // In this scenario, we know that:
+    // - We will receive exactly one call to ourself from BlockShutdown() and
+    //   BlockShutdown() will be called (at most) once.
+    // - The only way our Shutdown() method gets called is via
+    //   BackgroundParentImpl::RecvShutdownServiceWorkerRegistrar() being
+    //   invoked, which only happens if we get to that send below here that we
+    //   can't get to.
+    // - All Shutdown() does is set mShuttingDown=true (essential for
+    //   invariants) and invoke MaybeScheduleShutdownCompleted().
+    // - Since there is no PBackground thread, mRunnableCounter must be 0
+    //   because only ScheduleSaveData() increments it and it only runs on the
+    //   background thread, so it cannot have run.  And so we would expect
+    //   MaybeScheduleShutdownCompleted() to schedule an invocation of
+    //   ShutdownCompleted on the main thread.
+    //
+    // So it's appropriate for us to set mShuttingDown=true (as Shutdown would
+    // do) and directly invoke ShutdownCompleted() (as Shutdown would indirectly
+    // do via MaybeScheduleShutdownCompleted).
+    mShuttingDown = true;
+    ShutdownCompleted();
     return;
   }
 
@@ -1096,7 +1126,29 @@ ServiceWorkerRegistrar::GetShutdownPhase() const
   MOZ_RELEASE_ASSERT(svc);
 
   nsCOMPtr<nsIAsyncShutdownClient> client;
-  Unused << svc->GetProfileBeforeChange(getter_AddRefs(client));
+  nsresult rv = svc->GetProfileBeforeChange(getter_AddRefs(client));
+  // If this fails, something is very wrong on the JS side (or we're out of
+  // memory), and there's no point in continuing startup. Include as much
+  // information as possible in the crash report.
+  if (NS_FAILED(rv)) {
+    if (rv == NS_ERROR_XPC_JAVASCRIPT_ERROR_WITH_DETAILS) {
+      if (auto* context = CycleCollectedJSContext::Get()) {
+        if (nsCOMPtr<nsIException> exn = context->GetPendingException()) {
+          nsAutoCString msg;
+          if (NS_SUCCEEDED(exn->GetMessageMoz(msg))) {
+            MOZ_CRASH_UNSAFE_PRINTF("Failed to get profileBeforeChange shutdown blocker: %s",
+                                    msg.get());
+
+          }
+        }
+      }
+    }
+
+    nsAutoCString errorName;
+    GetErrorName(rv, errorName);
+    MOZ_CRASH_UNSAFE_PRINTF("Failed to get profileBeforeChange shutdown blocker: %s",
+                            errorName.get());
+  }
   MOZ_RELEASE_ASSERT(client);
   return Move(client);
 }

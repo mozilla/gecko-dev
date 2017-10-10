@@ -83,7 +83,7 @@ public:
     }
     mInfo.mBitDepth = FlacSampleSizeTable[bps_code];
 
-    // Reserved bit, most be 1.
+    // Reserved bit, must be 0.
     if (br.ReadBit()) {
       // Broken stream, invalid padding.
       return false;
@@ -576,12 +576,6 @@ FlacDemuxer::Init()
 
   LOG("Init() successful");
   return InitPromise::CreateAndResolve(NS_OK, __func__);
-}
-
-bool
-FlacDemuxer::HasTrackType(TrackInfo::TrackType aType) const
-{
-  return aType == TrackInfo::kAudioTrack;
 }
 
 uint32_t

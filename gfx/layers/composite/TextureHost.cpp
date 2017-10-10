@@ -411,7 +411,7 @@ TextureHost::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   AppendToString(aStream, mFlags, " [flags=", "]");
 #ifdef MOZ_DUMP_PAINTING
   if (gfxPrefs::LayersDumpTexture() ||
-      profiler_feature_active(ProfilerFeature::LayersDump)) {
+      PROFILER_FEATURE_ACTIVE(ProfilerFeature::LayersDump)) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
 
@@ -446,7 +446,7 @@ TextureSource::Name() const
   MOZ_CRASH("GFX: TextureSource without class name");
   return "TextureSource";
 }
-  
+
 BufferTextureHost::BufferTextureHost(const BufferDescriptor& aDesc,
                                      TextureFlags aFlags)
 : TextureHost(aFlags)
@@ -566,75 +566,60 @@ BufferTextureHost::CreateRenderTexture(const wr::ExternalImageId& aExternalImage
   wr::RenderThread::Get()->RegisterExternalImage(wr::AsUint64(aExternalImageId), texture.forget());
 }
 
-void
-BufferTextureHost::GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
-                                  const std::function<wr::ImageKey()>& aImageKeyAllocator)
+uint32_t
+BufferTextureHost::NumSubTextures() const
 {
-  MOZ_ASSERT(aImageKeys.IsEmpty());
-
-  if (GetFormat() != gfx::SurfaceFormat::YUV) {
-    // 1 image key
-    aImageKeys.AppendElement(aImageKeyAllocator());
-    MOZ_ASSERT(aImageKeys.Length() == 1);
-  } else {
-    // 3 image key
-    aImageKeys.AppendElement(aImageKeyAllocator());
-    aImageKeys.AppendElement(aImageKeyAllocator());
-    aImageKeys.AppendElement(aImageKeyAllocator());
-    MOZ_ASSERT(aImageKeys.Length() == 3);
+  if (GetFormat() == gfx::SurfaceFormat::YUV) {
+    return 3;
   }
+
+  return 1;
 }
 
 void
-BufferTextureHost::AddWRImage(wr::ResourceUpdateQueue& aResources,
-                              Range<const wr::ImageKey>& aImageKeys,
-                              const wr::ExternalImageId& aExtID)
+BufferTextureHost::PushResourceUpdates(wr::ResourceUpdateQueue& aResources,
+                                       ResourceUpdateOp aOp,
+                                       const Range<wr::ImageKey>& aImageKeys,
+                                       const wr::ExternalImageId& aExtID)
 {
+  auto method = aOp == TextureHost::ADD_IMAGE ? &wr::ResourceUpdateQueue::AddExternalImage
+                                              : &wr::ResourceUpdateQueue::UpdateExternalImage;
+  auto bufferType = wr::WrExternalImageBufferType::ExternalBuffer;
+
   if (GetFormat() != gfx::SurfaceFormat::YUV) {
     MOZ_ASSERT(aImageKeys.length() == 1);
 
     wr::ImageDescriptor descriptor(GetSize(),
                                    ImageDataSerializer::ComputeRGBStride(GetFormat(), GetSize().width),
                                    GetFormat());
-    aResources.AddExternalImageBuffer(aImageKeys[0], descriptor, aExtID);
+    (aResources.*method)(aImageKeys[0], descriptor, aExtID, bufferType, 0);
   } else {
     MOZ_ASSERT(aImageKeys.length() == 3);
 
     const layers::YCbCrDescriptor& desc = mDescriptor.get_YCbCrDescriptor();
-    wr::ImageDescriptor yDescriptor(desc.ySize(), desc.ySize().width, gfx::SurfaceFormat::A8);
-    wr::ImageDescriptor cbcrDescriptor(desc.cbCrSize(), desc.cbCrSize().width, gfx::SurfaceFormat::A8);
-    aResources.AddExternalImage(aImageKeys[0],
-                                yDescriptor,
-                                aExtID,
-                                wr::WrExternalImageBufferType::ExternalBuffer,
-                                0);
-    aResources.AddExternalImage(aImageKeys[1],
-                                cbcrDescriptor,
-                                aExtID,
-                                wr::WrExternalImageBufferType::ExternalBuffer,
-                                1);
-    aResources.AddExternalImage(aImageKeys[2],
-                                cbcrDescriptor,
-                                aExtID,
-                                wr::WrExternalImageBufferType::ExternalBuffer,
-                                2);
+    wr::ImageDescriptor yDescriptor(desc.ySize(), desc.yStride(), gfx::SurfaceFormat::A8);
+    wr::ImageDescriptor cbcrDescriptor(desc.cbCrSize(), desc.cbCrStride(), gfx::SurfaceFormat::A8);
+    (aResources.*method)(aImageKeys[0], yDescriptor, aExtID, bufferType, 0);
+    (aResources.*method)(aImageKeys[1], cbcrDescriptor, aExtID, bufferType, 1);
+    (aResources.*method)(aImageKeys[2], cbcrDescriptor, aExtID, bufferType, 2);
   }
 }
 
 void
-BufferTextureHost::PushExternalImage(wr::DisplayListBuilder& aBuilder,
-                                     const wr::LayoutRect& aBounds,
-                                     const wr::LayoutRect& aClip,
-                                     wr::ImageRendering aFilter,
-                                     Range<const wr::ImageKey>& aImageKeys)
+BufferTextureHost::PushDisplayItems(wr::DisplayListBuilder& aBuilder,
+                                    const wr::LayoutRect& aBounds,
+                                    const wr::LayoutRect& aClip,
+                                    wr::ImageRendering aFilter,
+                                    const Range<wr::ImageKey>& aImageKeys)
 {
   if (GetFormat() != gfx::SurfaceFormat::YUV) {
     MOZ_ASSERT(aImageKeys.length() == 1);
-    aBuilder.PushImage(aBounds, aClip, aFilter, aImageKeys[0]);
+    aBuilder.PushImage(aBounds, aClip, true, aFilter, aImageKeys[0]);
   } else {
     MOZ_ASSERT(aImageKeys.length() == 3);
     aBuilder.PushYCbCrPlanarImage(aBounds,
                                   aClip,
+                                  true,
                                   aImageKeys[0],
                                   aImageKeys[1],
                                   aImageKeys[2],
@@ -895,6 +880,16 @@ BufferTextureHost::GetYUVColorSpace() const
   return YUVColorSpace::UNKNOWN;
 }
 
+uint32_t
+BufferTextureHost::GetBitDepth() const
+{
+  if (mFormat == gfx::SurfaceFormat::YUV) {
+    const YCbCrDescriptor& desc = mDescriptor.get_YCbCrDescriptor();
+    return desc.bitDepth();
+  }
+  return 8;
+}
+
 bool
 BufferTextureHost::UploadIfNeeded()
 {
@@ -1001,19 +996,19 @@ BufferTextureHost::Upload(nsIntRegion *aRegion)
 
     RefPtr<gfx::DataSourceSurface> tempY =
       gfx::Factory::CreateWrappingDataSourceSurface(ImageDataSerializer::GetYChannel(buf, desc),
-                                                    desc.ySize().width,
+                                                    desc.yStride(),
                                                     desc.ySize(),
-                                                    gfx::SurfaceFormat::A8);
+                                                    SurfaceFormatForAlphaBitDepth(desc.bitDepth()));
     RefPtr<gfx::DataSourceSurface> tempCb =
       gfx::Factory::CreateWrappingDataSourceSurface(ImageDataSerializer::GetCbChannel(buf, desc),
-                                                    desc.cbCrSize().width,
+                                                    desc.cbCrStride(),
                                                     desc.cbCrSize(),
-                                                    gfx::SurfaceFormat::A8);
+                                                    SurfaceFormatForAlphaBitDepth(desc.bitDepth()));
     RefPtr<gfx::DataSourceSurface> tempCr =
       gfx::Factory::CreateWrappingDataSourceSurface(ImageDataSerializer::GetCrChannel(buf, desc),
-                                                    desc.cbCrSize().width,
+                                                    desc.cbCrStride(),
                                                     desc.cbCrSize(),
-                                                    gfx::SurfaceFormat::A8);
+                                                    SurfaceFormatForAlphaBitDepth(desc.bitDepth()));
     // We don't support partial updates for Y U V textures
     NS_ASSERTION(!aRegion, "Unsupported partial updates for YCbCr textures");
     if (!tempY ||

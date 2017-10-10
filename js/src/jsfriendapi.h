@@ -1052,6 +1052,9 @@ MOZ_ALWAYS_INLINE bool
 CheckRecursionLimit(JSContext* cx, uintptr_t limit)
 {
     int stackDummy;
+
+    JS_STACK_OOM_POSSIBLY_FAIL_REPORT();
+
     if (!JS_CHECK_STACK_SIZE(limit, &stackDummy)) {
         ReportOverRecursed(cx);
         return false;
@@ -1063,12 +1066,17 @@ MOZ_ALWAYS_INLINE bool
 CheckRecursionLimitDontReport(JSContext* cx, uintptr_t limit)
 {
     int stackDummy;
+
+    JS_STACK_OOM_POSSIBLY_FAIL();
+
     return JS_CHECK_STACK_SIZE(limit, &stackDummy);
 }
 
 MOZ_ALWAYS_INLINE bool
 CheckRecursionLimit(JSContext* cx)
 {
+    JS_STACK_OOM_POSSIBLY_FAIL_REPORT();
+
     // GetNativeStackLimit(cx) is pretty slow because it has to do an uninlined
     // call to RunningWithTrustedPrincipals to determine which stack limit to
     // use. To work around this, check the untrusted limit first to avoid the
@@ -1088,12 +1096,16 @@ CheckRecursionLimitDontReport(JSContext* cx)
 MOZ_ALWAYS_INLINE bool
 CheckRecursionLimitWithStackPointerDontReport(JSContext* cx, void* sp)
 {
+    JS_STACK_OOM_POSSIBLY_FAIL();
+
     return JS_CHECK_STACK_SIZE(GetNativeStackLimit(cx), sp);
 }
 
 MOZ_ALWAYS_INLINE bool
 CheckRecursionLimitWithStackPointer(JSContext* cx, void* sp)
 {
+    JS_STACK_OOM_POSSIBLY_FAIL_REPORT();
+
     if (!JS_CHECK_STACK_SIZE(GetNativeStackLimit(cx), sp)) {
         ReportOverRecursed(cx);
         return false;
@@ -1333,34 +1345,6 @@ inline bool DOMProxyIsShadowing(DOMProxyShadowsResult result) {
            result == ShadowsViaDirectExpando ||
            result == ShadowsViaIndirectExpando;
 }
-
-// Callbacks and other information for use by the JITs when optimizing accesses
-// on xray wrappers.
-struct XrayJitInfo {
-    // Test whether a proxy handler is a cross compartment xray with no
-    // security checks.
-    bool (*isCrossCompartmentXray)(const BaseProxyHandler* handler);
-
-    // Test whether xrays with a global object's compartment have expandos of
-    // their own, instead of sharing them with Xrays from other compartments.
-    bool (*globalHasExclusiveExpandos)(JSObject* obj);
-
-    // Proxy reserved slot used by xrays in sandboxes to store their holder
-    // object.
-    size_t xrayHolderSlot;
-
-    // Reserved slot used by xray holders to store the xray's expando object.
-    size_t holderExpandoSlot;
-
-    // Reserved slot used by xray expandos to store a custom prototype.
-    size_t expandoProtoSlot;
-};
-
-JS_FRIEND_API(void)
-SetXrayJitInfo(XrayJitInfo* info);
-
-XrayJitInfo*
-GetXrayJitInfo();
 
 /* Implemented in jsdate.cpp. */
 
@@ -3078,12 +3062,6 @@ ToWindowProxyIfWindow(JSObject* obj)
 extern JS_FRIEND_API(JSObject*)
 ToWindowIfWindowProxy(JSObject* obj);
 
-// Create and add the Intl.PluralRules constructor function to the provided
-// object.  This function throws if called more than once per realm/global
-// object.
-extern bool
-AddPluralRulesConstructor(JSContext* cx, JS::Handle<JSObject*> intl);
-
 // Create and add the Intl.MozDateTimeFormat constructor function to the provided
 // object.
 //
@@ -3098,6 +3076,12 @@ AddPluralRulesConstructor(JSContext* cx, JS::Handle<JSObject*> intl);
 // standardize, that will also need to be resolved to ship this.)
 extern bool
 AddMozDateTimeFormatConstructor(JSContext* cx, JS::Handle<JSObject*> intl);
+
+// Create and add the Intl.RelativeTimeFormat constructor function to the provided
+// object.  This function throws if called more than once per realm/global
+// object.
+extern bool
+AddRelativeTimeFormatConstructor(JSContext* cx, JS::Handle<JSObject*> intl);
 
 class MOZ_STACK_CLASS JS_FRIEND_API(AutoAssertNoContentJS)
 {

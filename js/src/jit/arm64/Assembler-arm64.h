@@ -43,7 +43,6 @@ static constexpr Register InvalidReg { Registers::invalid_reg };
 static constexpr FloatRegister InvalidFloatReg = { FloatRegisters::invalid_fpreg, FloatRegisters::Single };
 
 static constexpr Register OsrFrameReg { Registers::x3 };
-static constexpr Register ArgumentsRectifierReg { Registers::x8 };
 static constexpr Register CallTempReg0 { Registers::x9 };
 static constexpr Register CallTempReg1 { Registers::x10 };
 static constexpr Register CallTempReg2 { Registers::x11 };
@@ -189,7 +188,13 @@ class Assembler : public vixl::Assembler
     typedef vixl::Condition Condition;
 
     void finish();
-    bool asmMergeWith(const Assembler& other) {
+    bool appendRawCode(const uint8_t* code, size_t numBytes) {
+        MOZ_CRASH("NYI");
+    }
+    bool reserve(size_t size) {
+        MOZ_CRASH("NYI");
+    }
+    bool swapBuffer(wasm::Bytes& bytes) {
         MOZ_CRASH("NYI");
     }
     void trace(JSTracer* trc);
@@ -245,12 +250,12 @@ class Assembler : public vixl::Assembler
     void processCodeLabels(uint8_t* rawCode) {
         for (size_t i = 0; i < codeLabels_.length(); i++) {
             CodeLabel label = codeLabels_[i];
-            Bind(rawCode, label.patchAt(), rawCode + label.target()->offset());
+            Bind(rawCode, *label.patchAt(), *label.target());
         }
     }
 
-    void Bind(uint8_t* rawCode, CodeOffset* label, const void* address) {
-        *reinterpret_cast<const void**>(rawCode + label->offset()) = address;
+    static void Bind(uint8_t* rawCode, CodeOffset label, CodeOffset address) {
+        *reinterpret_cast<const void**>(rawCode + label.offset()) = rawCode + address.offset();
     }
 
     void retarget(Label* cur, Label* next);
@@ -269,9 +274,6 @@ class Assembler : public vixl::Assembler
     int actualIndex(int curOffset) {
         ARMBuffer::PoolEntry pe(curOffset);
         return armbuffer_.poolEntryOffset(pe);
-    }
-    size_t labelToPatchOffset(CodeOffset label) {
-        return label.offset();
     }
     static uint8_t* PatchableJumpAddress(JitCode* code, uint32_t index) {
         return code->raw() + index;
@@ -343,8 +345,6 @@ class Assembler : public vixl::Assembler
 
     static void TraceJumpRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader);
     static void TraceDataRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader);
-
-    static void PatchInstructionImmediate(uint8_t* code, PatchedImmPtr imm);
 
     static void FixupNurseryObjects(JSContext* cx, JitCode* code, CompactBufferReader& reader,
                                     const ObjectVector& nurseryObjects);
@@ -442,11 +442,19 @@ class ABIArgGenerator
     ABIArg current_;
 };
 
+// These registers may be volatile or nonvolatile.
 static constexpr Register ABINonArgReg0 = r8;
 static constexpr Register ABINonArgReg1 = r9;
 static constexpr Register ABINonArgReg2 = r10;
+
+// These registers may be volatile or nonvolatile.
+// Note: these three registers are all guaranteed to be different
 static constexpr Register ABINonArgReturnReg0 = r8;
 static constexpr Register ABINonArgReturnReg1 = r9;
+
+// This register is guaranteed to be clobberable during the prologue of an ABI
+// call which must preserve both ABI argument and non-volatile registers.
+static constexpr Register NativeABIPrologueClobberable = lr;
 
 // TLS pointer argument register for WebAssembly functions. This must not alias
 // any other register used for passing function arguments or return values.

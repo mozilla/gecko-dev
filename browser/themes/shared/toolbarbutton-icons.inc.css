@@ -23,7 +23,8 @@ toolbar[brighttext] {
 #reload-button:-moz-locale-dir(rtl) > .toolbarbutton-icon,
 #nav-bar-overflow-button:-moz-locale-dir(rtl) > .toolbarbutton-icon,
 #PlacesChevron:-moz-locale-dir(rtl) > .toolbarbutton-icon,
-#panic-button:-moz-locale-dir(rtl) > .toolbarbutton-icon {
+#panic-button:-moz-locale-dir(rtl) > .toolbarbutton-icon,
+#PanelUI-menu-button:-moz-locale-dir(rtl) > .toolbarbutton-badge-stack > .toolbarbutton-icon {
   transform: scaleX(-1);
 }
 
@@ -185,7 +186,7 @@ toolbar[brighttext] {
 
 #bookmarks-toolbar-button,
 #bookmarks-toolbar-placeholder {
-  list-style-image: url("chrome://browser/skin/bookmark-hollow.svg");
+  list-style-image: url("chrome://browser/skin/bookmarks-toolbar.svg");
 }
 
 #bookmarks-menu-button {
@@ -214,10 +215,6 @@ toolbar[brighttext] {
 
 #sync-button {
   list-style-image: url("chrome://browser/skin/synced-tabs.svg");
-}
-
-#containers-panelmenu {
-  list-style-image: url("chrome://browser/skin/containers.svg");
 }
 
 #feed-button {
@@ -249,7 +246,7 @@ toolbar[brighttext] {
 }
 
 #find-button {
-  list-style-image: url("chrome://browser/skin/find.svg");
+  list-style-image: url("chrome://browser/skin/search-glass.svg");
 }
 
 #print-button {
@@ -524,3 +521,55 @@ toolbar[brighttext] {
   animation-duration: 2s;
   animation-timing-function: ease-out;
 }
+
+/* ----- BOOKMARK BUTTONS ----- */
+
+.bookmark-item {
+  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
+}
+
+.bookmark-item[container] {
+  list-style-image: url("chrome://browser/skin/places/folder.svg");
+}
+
+.bookmark-item[container][livemark] {
+  list-style-image: url("chrome://browser/skin/places/folder-live.svg");
+}
+
+.bookmark-item[container][livemark] .bookmark-item {
+  list-style-image: url("chrome://browser/skin/places/livemark-item.png");
+  -moz-image-region: rect(0px, 16px, 16px, 0px);
+}
+
+.bookmark-item[container][livemark] .bookmark-item[visited] {
+  -moz-image-region: rect(0px, 32px, 16px, 16px);
+}
+
+.bookmark-item[container][query] {
+  list-style-image: url("chrome://browser/skin/places/folder-smart.svg");
+}
+
+.bookmark-item[query][tagContainer] {
+  list-style-image: url("chrome://browser/skin/places/tag.png");
+  -moz-image-region: auto;
+}
+
+.bookmark-item[query][dayContainer] {
+  list-style-image: url("chrome://browser/skin/places/history.svg");
+  -moz-image-region: auto;
+}
+
+.bookmark-item[query][hostContainer] {
+  list-style-image: url("chrome://browser/skin/places/folder.svg");
+}
+
+%ifdef XP_MACOSX
+@media (min-resolution: 2dppx) {
+  .bookmark-item[query][tagContainer] {
+    list-style-image: url("chrome://browser/skin/places/tag@2x.png");
+  }
+}
+%endif

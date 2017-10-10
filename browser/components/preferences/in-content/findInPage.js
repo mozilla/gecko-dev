@@ -292,6 +292,7 @@ var gSearchResultsPane = {
 
       if (!resultsFound) {
         let noResultsEl = document.querySelector(".no-results-message");
+        noResultsEl.setAttribute("query", this.query);
         noResultsEl.hidden = false;
 
         let strings = this.strings;
@@ -461,8 +462,10 @@ var gSearchResultsPane = {
       return;
     }
     let searchTooltip = anchorNode.ownerDocument.createElement("span");
+    let searchTooltipText = anchorNode.ownerDocument.createElement("span");
     searchTooltip.setAttribute("class", "search-tooltip");
-    searchTooltip.textContent = query;
+    searchTooltipText.textContent = query;
+    searchTooltip.appendChild(searchTooltipText);
 
     // Set tooltipNode property to track corresponded tooltip node.
     anchorNode.tooltipNode = searchTooltip;

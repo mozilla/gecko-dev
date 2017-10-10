@@ -118,12 +118,12 @@ GMPParent::Init(GeckoMediaPluginServiceParent* aService, nsIFile* aPluginDir)
   // where <gmp-plugin-id> should be gmp-gmpopenh264
   nsCOMPtr<nsIFile> parent;
   nsresult rv = aPluginDir->GetParent(getter_AddRefs(parent));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return GenericPromise::CreateAndReject(rv, __func__);
   }
   nsAutoString parentLeafName;
   rv = parent->GetLeafName(parentLeafName);
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return GenericPromise::CreateAndReject(rv, __func__);
   }
   LOGD("%s: for %s", __FUNCTION__, NS_LossyConvertUTF16toASCII(parentLeafName).get());
@@ -150,7 +150,7 @@ GMPParent::LoadProcess()
   MOZ_ASSERT(mState == GMPStateNotLoaded);
 
   nsAutoString path;
-  if (NS_FAILED(mDirectory->GetPath(path))) {
+  if (NS_WARN_IF(NS_FAILED(mDirectory->GetPath(path)))) {
     return NS_ERROR_FAILURE;
   }
   LOGD("%s: for %s", __FUNCTION__, NS_ConvertUTF16toUTF8(path).get());
@@ -618,7 +618,7 @@ GMPParent::ReadGMPMetaData()
 
   nsCOMPtr<nsIFile> infoFile;
   nsresult rv = mDirectory->Clone(getter_AddRefs(infoFile));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return GenericPromise::CreateAndReject(rv, __func__);
   }
   infoFile->AppendRelativePath(mName + NS_LITERAL_STRING(".info"));
@@ -630,7 +630,7 @@ GMPParent::ReadGMPMetaData()
   // Maybe this is the Widevine adapted plugin?
   nsCOMPtr<nsIFile> manifestFile;
   rv = mDirectory->Clone(getter_AddRefs(manifestFile));
-  if (NS_FAILED(rv)) {
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return GenericPromise::CreateAndReject(rv, __func__);
   }
   manifestFile->AppendRelativePath(NS_LITERAL_STRING("manifest.json"));
@@ -689,22 +689,6 @@ GMPParent::ReadGMPInfoFile(nsIFile* aFile)
           cap.mAPITags.AppendElement(tag);
         }
       }
-    }
-
-    if (cap.mAPIName.EqualsLiteral(GMP_API_DECRYPTOR)) {
-      mCanDecrypt = true;
-
-#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
-      if (!mozilla::SandboxInfo::Get().CanSandboxMedia()) {
-        nsPrintfCString msg(
-          "GMPParent::ReadGMPMetaData: Plugin \"%s\" is an EME CDM"
-          " but this system can't sandbox it; not loading.",
-          mDisplayName.get());
-        printf_stderr("%s\n", msg.get());
-        LOGD("%s", msg.get());
-        return GenericPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
-      }
-#endif
     }
 
     mCapabilities.AppendElement(Move(cap));
@@ -789,6 +773,11 @@ GMPParent::ParseChromiumManifest(const nsAString& aJSON)
     // psapi.dll added for GetMappedFileNameW, which could possibly be avoided
     // in future versions, see bug 1383611 for details.
     mLibs = NS_LITERAL_CSTRING("dxva2.dll, psapi.dll");
+#endif
+  } else if (mDisplayName.EqualsASCII("fake")) {
+    kEMEKeySystem = NS_LITERAL_CSTRING("fake");
+#if XP_WIN
+    mLibs = NS_LITERAL_CSTRING("dxva2.dll");
 #endif
   } else {
     return GenericPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
@@ -887,8 +876,8 @@ GMPParent::OpenPGMPContent()
 
   Endpoint<PGMPContentParent> parent;
   Endpoint<PGMPContentChild> child;
-  if (NS_FAILED(PGMPContent::CreateEndpoints(base::GetCurrentProcId(),
-                                             OtherPid(), &parent, &child))) {
+  if (NS_WARN_IF(NS_FAILED(PGMPContent::CreateEndpoints(
+        base::GetCurrentProcId(), OtherPid(), &parent, &child)))) {
     return false;
   }
 

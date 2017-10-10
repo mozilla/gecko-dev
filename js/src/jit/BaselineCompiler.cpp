@@ -1022,6 +1022,7 @@ BaselineCompiler::emitBody()
             // Intentionally not implemented.
           case JSOP_SETINTRINSIC:
             // Run-once opcode during self-hosting initialization.
+          case JSOP_UNUSED126:
           case JSOP_UNUSED223:
           case JSOP_LIMIT:
             // === !! WARNING WARNING WARNING !! ===
@@ -1693,7 +1694,7 @@ bool
 BaselineCompiler::emit_JSOP_CALLSITEOBJ()
 {
     RootedObject cso(cx, script->getObject(pc));
-    RootedObject raw(cx, script->getObject(GET_UINT32_INDEX(pc) + 1));
+    RootedArrayObject raw(cx, &script->getObject(GET_UINT32_INDEX(pc) + 1)->as<ArrayObject>());
     if (!cso || !raw)
         return false;
 
@@ -2087,13 +2088,7 @@ BaselineCompiler::emit_JSOP_NEWARRAY()
     return true;
 }
 
-bool
-BaselineCompiler::emit_JSOP_SPREADCALLARRAY()
-{
-    return emit_JSOP_NEWARRAY();
-}
-
-typedef JSObject* (*NewArrayCopyOnWriteFn)(JSContext*, HandleArrayObject, gc::InitialHeap);
+typedef ArrayObject* (*NewArrayCopyOnWriteFn)(JSContext*, HandleArrayObject, gc::InitialHeap);
 const VMFunction jit::NewArrayCopyOnWriteInfo =
     FunctionInfo<NewArrayCopyOnWriteFn>(js::NewDenseCopyOnWriteArray, "NewDenseCopyOnWriteArray");
 
@@ -4492,14 +4487,14 @@ BaselineCompiler::emit_JSOP_REST()
 {
     frame.syncStack(0);
 
-    JSObject* templateObject =
+    ArrayObject* templateObject =
         ObjectGroup::newArrayObject(cx, nullptr, 0, TenuredObject,
                                     ObjectGroup::NewArrayKind::UnknownIndex);
     if (!templateObject)
         return false;
 
     // Call IC.
-    ICRest_Fallback::Compiler compiler(cx, &templateObject->as<ArrayObject>());
+    ICRest_Fallback::Compiler compiler(cx, templateObject);
     if (!emitOpIC(compiler.getStub(&stubSpace_)))
         return false;
 

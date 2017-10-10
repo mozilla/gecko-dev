@@ -348,7 +348,7 @@ PopulateReportBlame(JSContext* cx, JSErrorReport* report)
  * Furthermore, callers of ReportOutOfMemory (viz., malloc) assume a GC does
  * not occur, so GC must be avoided or suppressed.
  */
-void
+JS_FRIEND_API(void)
 js::ReportOutOfMemory(JSContext* cx)
 {
 #ifdef JS_MORE_DETERMINISTIC
@@ -1150,7 +1150,7 @@ js::UseInternalJobQueues(JSContext* cx)
     MOZ_RELEASE_ASSERT(!cx->runtime()->hasInitializedSelfHosting(),
                        "js::UseInternalJobQueues must be called early during runtime startup.");
     MOZ_ASSERT(!cx->jobQueue);
-    auto* queue = cx->new_<PersistentRooted<JobQueue>>(cx, JobQueue(SystemAllocPolicy()));
+    auto* queue = js_new<PersistentRooted<JobQueue>>(cx, JobQueue(SystemAllocPolicy()));
     if (!queue)
         return false;
 
@@ -1327,7 +1327,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
     suppressProfilerSampling(false),
     tempLifoAlloc_((size_t)TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
     debuggerMutations(0),
-    propertyRemovals(0),
     ionPcScriptCache(nullptr),
     throwing(false),
     overRecursed_(false),
@@ -1608,6 +1607,17 @@ JSContext::findVersion()
         return JSVERSION_DEFAULT;
 
     return runtime()->defaultVersion();
+}
+
+void
+JSContext::updateMallocCounter(size_t nbytes)
+{
+    if (!zone()) {
+        runtime()->updateMallocCounter(nbytes);
+        return;
+    }
+
+    zone()->updateMallocCounter(nbytes);
 }
 
 #ifdef DEBUG

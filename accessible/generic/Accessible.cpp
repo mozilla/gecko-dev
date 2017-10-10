@@ -61,7 +61,7 @@
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 #include "prdtoa.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIURI.h"
 #include "nsArrayUtils.h"
 #include "nsIMutableArray.h"
@@ -845,6 +845,7 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
 {
   NS_ENSURE_ARG_POINTER(aEvent);
 
+#ifdef MOZ_GECKO_PROFILER
   if (profiler_is_active()) {
     nsAutoCString strEventType;
     GetAccService()->GetStringEventType(aEvent->GetEventType(), strEventType);
@@ -853,6 +854,7 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
     strMarker.Append(strEventType);
     profiler_add_marker(strMarker.get());
   }
+#endif
 
   if (IPCAccessibilityActive() && Document()) {
     DocAccessibleChild* ipcDoc = mDoc->IPCDoc();
@@ -933,7 +935,7 @@ Accessible::Attributes()
     return attributes.forget();
 
   // 'xml-roles' attribute for landmark.
-  nsIAtom* landmark = LandmarkRole();
+  nsAtom* landmark = LandmarkRole();
   if (landmark) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles, landmark);
 
@@ -1483,7 +1485,7 @@ Accessible::ARIATransformRole(role aRole)
   return aRole;
 }
 
-nsIAtom*
+nsAtom*
 Accessible::LandmarkRole() const
 {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
@@ -2564,7 +2566,7 @@ Accessible::CurrentItem()
 void
 Accessible::SetCurrentItem(Accessible* aItem)
 {
-  nsIAtom* id = aItem->GetContent()->GetID();
+  nsAtom* id = aItem->GetContent()->GetID();
   if (id) {
     nsAutoString idStr;
     id->ToString(idStr);
@@ -2647,7 +2649,7 @@ Accessible::GetSiblingAtOffset(int32_t aOffset, nsresult* aError) const
 }
 
 double
-Accessible::AttrNumericValue(nsIAtom* aAttr) const
+Accessible::AttrNumericValue(nsAtom* aAttr) const
 {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
   if (!roleMapEntry || roleMapEntry->valueRule == eNoValue)

@@ -140,7 +140,9 @@ public:
    *                  affect the return value.
    */
   bool SetContentState(nsIContent* aContent, EventStates aState);
-  void ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
+  void ContentRemoved(nsIDocument* aDocument, nsIContent* aMaybeContainer,
+                      nsIContent* aContent);
+
   bool EventStatusOK(WidgetGUIEvent* aEvent);
 
   /**
@@ -970,6 +972,20 @@ private:
   static void ResetLastOverForContent(const uint32_t& aIdx,
                                       RefPtr<OverOutElementsWrapper>& aChunk,
                                       nsIContent* aClosure);
+
+  /**
+   * Update the attribute mLastRefPoint of the mouse event. It should be
+   *     the center of the window while the pointer is locked.
+   *     the same value as mRefPoint while there is no known last ref point.
+   *     the same value as the last known mRefPoint.
+   */
+  static void UpdateLastRefPointOfMouseEvent(WidgetMouseEvent* aMouseEvent);
+
+  static void ResetPointerToWindowCenterWhilePointerLocked(
+                WidgetMouseEvent* aMouseEvent);
+
+  // Update the last known ref point to the current event's mRefPoint.
+  static void UpdateLastPointerPosition(WidgetMouseEvent* aMouseEvent);
 
   int32_t     mLockCursor;
   bool mLastFrameConsumedSetCursor;

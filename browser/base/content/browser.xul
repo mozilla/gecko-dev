@@ -393,25 +393,7 @@
 #include browser-context.inc
     </menupopup>
 
-    <menupopup id="placesContext">
-      <menuseparator id="placesContext_recentlyBookmarkedSeparator"
-                     ignoreitem="true"
-                     hidden="true"/>
-      <menuitem id="placesContext_hideRecentlyBookmarked"
-                label="&hideRecentlyBookmarked.label;"
-                accesskey="&hideRecentlyBookmarked.accesskey;"
-                oncommand="RecentBookmarksMenuUI.visible = false;"
-                closemenu="single"
-                ignoreitem="true"
-                hidden="true"/>
-      <menuitem id="placesContext_showRecentlyBookmarked"
-                label="&showRecentlyBookmarked.label;"
-                accesskey="&showRecentlyBookmarked.accesskey;"
-                oncommand="RecentBookmarksMenuUI.visible = true;"
-                closemenu="single"
-                ignoreitem="true"
-                hidden="true"/>
-    </menupopup>
+    <menupopup id="placesContext"/>
 
     <panel id="ctrlTab-panel" hidden="true" norestorefocus="true" level="top">
       <hbox>
@@ -590,11 +572,6 @@
   <hbox id="titlebar-content">
     <spacer id="titlebar-spacer" flex="1"/>
     <hbox id="titlebar-buttonbox-container">
-#ifdef XP_WIN
-      <hbox id="private-browsing-indicator-titlebar">
-        <hbox class="private-browsing-indicator"/>
-      </hbox>
-#endif
       <hbox id="titlebar-buttonbox">
         <toolbarbutton class="titlebar-button" id="titlebar-min" oncommand="window.minimize();"/>
         <toolbarbutton class="titlebar-button" id="titlebar-max" oncommand="onTitlebarMaxClick();"/>
@@ -605,6 +582,7 @@
     <!-- OS X does not natively support RTL for its titlebar items, so we prevent this secondary
          buttonbox from reversing order in RTL by forcing an LTR direction. -->
     <hbox id="titlebar-secondary-buttonbox" dir="ltr">
+      <button class="accessibility-indicator" tooltiptext="&accessibilityIndicator.tooltip;" aria-live="polite"/>
       <hbox class="private-browsing-indicator"/>
       <hbox id="titlebar-fullscreen-button"/>
     </hbox>
@@ -635,7 +613,7 @@
 #ifdef CAN_DRAW_IN_TITLEBAR
 #ifndef XP_MACOSX
       <hbox class="titlebar-placeholder" type="caption-buttons" ordinal="1000"
-            id="titlebar-placeholder-on-menubar-for-caption-buttons" persist="width"
+            persist="width"
             skipintoolbarset="true"/>
 #endif
 #endif
@@ -650,8 +628,8 @@
              context="toolbar-context-menu"
              collapsed="true">
 
-#if defined(MOZ_WIDGET_GTK)
-      <hbox id="private-browsing-indicator"
+#ifdef CAN_DRAW_IN_TITLEBAR
+      <hbox class="titlebar-placeholder" type="pre-tabs"
             skipintoolbarset="true"/>
 #endif
 
@@ -699,12 +677,20 @@
         </menupopup>
       </toolbarbutton>
 
-#if !defined(MOZ_WIDGET_GTK)
-      <hbox class="private-browsing-indicator" skipintoolbarset="true"/>
+#ifdef CAN_DRAW_IN_TITLEBAR
+      <hbox class="titlebar-placeholder" type="post-tabs"
+            ordinal="1000"
+            skipintoolbarset="true"/>
 #endif
+
+      <button class="accessibility-indicator" tooltiptext="&accessibilityIndicator.tooltip;"
+              ordinal="1000"
+              aria-live="polite" skipintoolbarset="true"/>
+      <hbox class="private-browsing-indicator" skipintoolbarset="true"
+            ordinal="1000"/>
 #ifdef CAN_DRAW_IN_TITLEBAR
       <hbox class="titlebar-placeholder" type="caption-buttons"
-            id="titlebar-placeholder-on-TabsToolbar-for-captions-buttons" persist="width"
+            persist="width"
 #ifndef XP_MACOSX
             ordinal="1000"
 #endif
@@ -712,7 +698,7 @@
 
 #ifdef XP_MACOSX
       <hbox class="titlebar-placeholder" type="fullscreen-button"
-            id="titlebar-placeholder-on-TabsToolbar-for-fullscreen-button" persist="width"
+            persist="width"
             skipintoolbarset="true"/>
 #endif
 #endif
@@ -910,7 +896,7 @@
                       class="urlbar-icon-wrapper urlbar-page-action"
                       context="pageActionPanelContextMenu"
                       oncontextmenu="BrowserPageActions.onContextMenu(event);"
-                      onclick="BrowserPageActions.bookmark.onUrlbarNodeClicked(event);">
+                      onclick="BrowserPageActions.doCommandForAction(PageActions.actionForID('bookmark'), event, this);">
                   <image id="star-button"
                          class="urlbar-icon"
                          role="button"
@@ -944,7 +930,7 @@
                        hidden="true"
                        tooltip="dynamic-shortcut-tooltip"/>
 
-        <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
+        <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"
                        removable="true"
                        onmousedown="PanelUI.showSubView('appMenu-libraryView', this, null, event);"
                        closemenu="none"
@@ -1078,7 +1064,7 @@
                      tooltip="dynamic-shortcut-tooltip"/>
 
       <toolbarbutton id="bookmarks-menu-button"
-                     class="toolbarbutton-1 chromeclass-toolbar-additional"
+                     class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"
                      type="menu"
                      label="&bookmarksMenuButton2.label;"
                      tooltip="dynamic-shortcut-tooltip"
@@ -1114,11 +1100,6 @@
                     label="&showAllBookmarks2.label;"
                     command="Browser:ShowAllBookmarks"
                     key="manBookmarkKb"/>
-          <menuseparator/>
-          <menuitem label="&recentBookmarks.label;"
-                    id="BMB_recentBookmarks"
-                    disabled="true"
-                    class="menuitem-iconic subviewbutton"/>
           <menuseparator/>
           <menu id="BMB_bookmarksToolbar"
                 class="menu-iconic bookmark-item subviewbutton"

@@ -25,8 +25,8 @@ tinyfiledialogs = "2.5.9"
 
 [dependencies]
 app_units = "0.5"
-audio-video-metadata = "0.1.2"
-base64 = "0.5.2"
+audio-video-metadata = "0.1.4"
+base64 = "0.6"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
@@ -45,10 +45,10 @@ gleam = "0.4"
 half = "1.0"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-html5ever = {version = "0.19", features = ["heap_size"]}
+html5ever = {version = "0.20", features = ["heap_size"]}
 hyper = "0.10"
 hyper_serde = "0.7"
-image = "0.12"
+image = "0.16"
 ipc-channel = "0.8"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
@@ -56,6 +56,7 @@ lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
 metrics = {path = "../metrics"}
+mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
@@ -89,7 +90,7 @@ unicode-segmentation = "1.1.0"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 utf-8 = "0.7"
 uuid = {version = "0.5", features = ["v4"]}
-xml5ever = {version = "0.9"}
+xml5ever = {version = "0.10"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 

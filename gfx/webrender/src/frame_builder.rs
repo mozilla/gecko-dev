@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{BorderDetails, BorderDisplayItem, BorderRadius, BoxShadowClipMode, ClipAndScrollInfo,
-          ClipId, ColorF};
+use api::{BorderDetails, BorderDisplayItem, BorderRadius, BoxShadowClipMode, BuiltDisplayList};
+use api::{ClipAndScrollInfo, ClipId, ColorF};
 use api::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DeviceUintRect, DeviceUintSize};
-use api::{device_length, ExtendMode, FilterOp, FontInstance, FontRenderMode};
-use api::{GlyphInstance, GlyphOptions, GradientStop};
-use api::{ImageKey, ImageRendering, ItemRange, LayerPoint, LayerPrimitiveInfo, LayerRect,
-          LayerSize};
-use api::{LayerToScrollTransform, LayerVector2D, LayoutVector2D, LineOrientation, LineStyle};
-use api::{LocalClip, PipelineId, RepeatMode, ScrollSensitivity, SubpixelDirection, TextShadow};
-use api::{TileOffset, TransformStyle, WorldPixel, YuvColorSpace, YuvData};
+use api::{ExtendMode, FIND_ALL, FilterOp, FontInstance, FontRenderMode};
+use api::{GlyphInstance, GlyphOptions, GradientStop, HitTestFlags, HitTestItem, HitTestResult};
+use api::{ImageKey, ImageRendering, ItemRange, ItemTag, LayerPoint, LayerPrimitiveInfo, LayerRect};
+use api::{LayerSize, LayerToScrollTransform, LayerVector2D, LayoutVector2D, LineOrientation};
+use api::{LineStyle, LocalClip, POINT_RELATIVE_TO_PIPELINE_VIEWPORT, PipelineId, RepeatMode};
+use api::{ScrollSensitivity, SubpixelDirection, Shadow, TileOffset, TransformStyle};
+use api::{WorldPixel, WorldPoint, YuvColorSpace, YuvData, device_length};
 use app_units::Au;
-use clip::{ClipMode, ClipRegion, ClipSource, ClipSources, ClipStore};
+use border::ImageBorderSegment;
+use clip::{ClipMode, ClipRegion, ClipSource, ClipSources, ClipStore, Contains};
 use clip_scroll_node::{ClipInfo, ClipScrollNode, NodeType};
 use clip_scroll_tree::ClipScrollTree;
 use euclid::{SideOffsets2D, vec2, vec3};
@@ -24,71 +25,20 @@ use plane_split::{BspSplitter, Polygon, Splitter};
 use prim_store::{BoxShadowPrimitiveCpu, TexelRect, YuvImagePrimitiveCpu};
 use prim_store::{GradientPrimitiveCpu, ImagePrimitiveCpu, LinePrimitive, PrimitiveKind};
 use prim_store::{PrimitiveContainer, PrimitiveIndex};
-use prim_store::{PrimitiveStore, RadialGradientPrimitiveCpu, TextRunMode};
-use prim_store::{RectanglePrimitive, TextRunPrimitiveCpu, TextShadowPrimitiveCpu};
+use prim_store::{PrimitiveStore, RadialGradientPrimitiveCpu};
+use prim_store::{RectanglePrimitive, TextRunPrimitiveCpu, ShadowPrimitiveCpu};
 use profiler::{FrameProfileCounters, GpuCacheProfileCounters, TextureCacheProfileCounters};
 use render_task::{AlphaRenderItem, ClipWorkItem, RenderTask};
 use render_task::{RenderTaskId, RenderTaskLocation, RenderTaskTree};
 use resource_cache::ResourceCache;
+use scene::ScenePipeline;
 use std::{mem, usize, f32, i32};
-use tiling::{ClipScrollGroup, ClipScrollGroupIndex, CompositeOps, DisplayListMap, Frame};
+use tiling::{ClipScrollGroup, ClipScrollGroupIndex, CompositeOps, Frame};
 use tiling::{ContextIsolation, StackingContextIndex};
 use tiling::{PackedLayer, PackedLayerIndex, PrimitiveFlags, PrimitiveRunCmd, RenderPass};
 use tiling::{RenderTargetContext, ScrollbarPrimitive, StackingContext};
 use util::{self, pack_as_float, recycle_vec, subtract_rect};
 use util::{MatrixHelpers, RectHelpers};
-
-#[derive(Debug, Clone)]
-struct ImageBorderSegment {
-    geom_rect: LayerRect,
-    sub_rect: TexelRect,
-    stretch_size: LayerSize,
-    tile_spacing: LayerSize,
-}
-
-impl ImageBorderSegment {
-    fn new(
-        rect: LayerRect,
-        sub_rect: TexelRect,
-        repeat_horizontal: RepeatMode,
-        repeat_vertical: RepeatMode,
-    ) -> ImageBorderSegment {
-        let tile_spacing = LayerSize::zero();
-
-        debug_assert!(sub_rect.uv1.x >= sub_rect.uv0.x);
-        debug_assert!(sub_rect.uv1.y >= sub_rect.uv0.y);
-
-        let image_size = LayerSize::new(
-            sub_rect.uv1.x - sub_rect.uv0.x,
-            sub_rect.uv1.y - sub_rect.uv0.y,
-        );
-
-        let stretch_size_x = match repeat_horizontal {
-            RepeatMode::Stretch => rect.size.width,
-            RepeatMode::Repeat => image_size.width,
-            RepeatMode::Round | RepeatMode::Space => {
-                error!("Round/Space not supported yet!");
-                rect.size.width
-            }
-        };
-
-        let stretch_size_y = match repeat_vertical {
-            RepeatMode::Stretch => rect.size.height,
-            RepeatMode::Repeat => image_size.height,
-            RepeatMode::Round | RepeatMode::Space => {
-                error!("Round/Space not supported yet!");
-                rect.size.height
-            }
-        };
-
-        ImageBorderSegment {
-            geom_rect: rect,
-            sub_rect,
-            stretch_size: LayerSize::new(stretch_size_x, stretch_size_y),
-            tile_spacing,
-        }
-    }
-}
 
 /// Construct a polygon from stacking context boundaries.
 /// `anchor` here is an index that's going to be preserved in all the
@@ -115,20 +65,42 @@ pub struct FrameBuilderConfig {
     pub debug: bool,
 }
 
+#[derive(Debug)]
+pub struct HitTestingItem {
+    rect: LayerRect,
+    clip: LocalClip,
+    tag: ItemTag,
+}
+
+impl HitTestingItem {
+    fn new(tag: ItemTag, info: &LayerPrimitiveInfo) -> HitTestingItem {
+        HitTestingItem {
+            rect: info.rect,
+            clip: info.local_clip,
+            tag: tag,
+        }
+    }
+}
+
+pub struct HitTestingRun(Vec<HitTestingItem>, ClipAndScrollInfo);
+
 pub struct FrameBuilder {
     screen_size: DeviceUintSize,
     background_color: Option<ColorF>,
     prim_store: PrimitiveStore,
     pub clip_store: ClipStore,
     cmds: Vec<PrimitiveRunCmd>,
+    hit_testing_runs: Vec<HitTestingRun>,
     config: FrameBuilderConfig,
 
     stacking_context_store: Vec<StackingContext>,
     clip_scroll_group_store: Vec<ClipScrollGroup>,
-    clip_scroll_group_indices: FastHashMap<ClipAndScrollInfo, ClipScrollGroupIndex>,
+    // Note: value here is meant to be `ClipScrollGroupIndex`,
+    // but we already have `ClipAndScrollInfo` in the key
+    clip_scroll_group_indices: FastHashMap<ClipAndScrollInfo, usize>,
     packed_layers: Vec<PackedLayer>,
 
-    // A stack of the current text-shadow primitives.
+    // A stack of the current shadow primitives.
     shadow_prim_stack: Vec<PrimitiveIndex>,
 
     scrollbar_prims: Vec<ScrollbarPrimitive>,
@@ -145,6 +117,92 @@ pub struct FrameBuilder {
     has_root_stacking_context: bool,
 }
 
+pub struct PrimitiveContext<'a> {
+    pub packed_layer_index: PackedLayerIndex,
+    pub packed_layer: &'a PackedLayer,
+    pub device_pixel_ratio: f32,
+
+    // Clip items that apply for this primitive run.
+    // In the future, we'll build these once at the
+    // start of the frame when updating the
+    // clip-scroll tree.
+    pub current_clip_stack: Vec<ClipWorkItem>,
+    pub clip_bounds: DeviceIntRect,
+    pub clip_id: ClipId,
+
+    pub display_list: &'a BuiltDisplayList,
+}
+
+impl<'a> PrimitiveContext<'a> {
+    fn new(
+        packed_layer_index: PackedLayerIndex,
+        packed_layer: &'a PackedLayer,
+        clip_id: ClipId,
+        screen_rect: &DeviceIntRect,
+        clip_scroll_tree: &ClipScrollTree,
+        clip_store: &ClipStore,
+        device_pixel_ratio: f32,
+        display_list: &'a BuiltDisplayList,
+    ) -> Option<Self> {
+
+        let mut current_clip_stack = Vec::new();
+        let mut clip_bounds = *screen_rect;
+        let mut current_id = Some(clip_id);
+        // Indicates if the next non-reference-frame that we encounter needs to have its
+        // local combined clip rectangle backed into the clip mask.
+        let mut next_node_needs_region_mask = false;
+        while let Some(id) = current_id {
+            let node = &clip_scroll_tree.nodes.get(&id).unwrap();
+            current_id = node.parent;
+
+            let clip = match node.node_type {
+                NodeType::ReferenceFrame(ref info) => {
+                    // if the transform is non-aligned, bake the next LCCR into the clip mask
+                    next_node_needs_region_mask |= !info.transform.preserves_2d_axis_alignment();
+                    continue;
+                }
+                NodeType::Clip(ref clip) => clip,
+                NodeType::StickyFrame(..) | NodeType::ScrollFrame(..) => {
+                    continue;
+                }
+            };
+
+            let clip_sources = clip_store.get(&clip.clip_sources);
+            if !clip_sources.is_masking() {
+                continue;
+            }
+
+            // apply the outer device bounds of the clip stack
+            if let Some(ref outer) = clip_sources.bounds.outer {
+                clip_bounds = match clip_bounds.intersection(&outer.device_rect) {
+                    Some(rect) => rect,
+                    None => return None,
+                }
+            }
+
+            //TODO-LCCR: bake a single LCCR instead of all aligned rects?
+            current_clip_stack.push(ClipWorkItem {
+                layer_index: clip.packed_layer_index,
+                clip_sources: clip.clip_sources.weak(),
+                apply_rectangles: next_node_needs_region_mask,
+            });
+            next_node_needs_region_mask = false;
+        }
+
+        current_clip_stack.reverse();
+
+        Some(PrimitiveContext {
+            packed_layer_index,
+            packed_layer,
+            current_clip_stack,
+            clip_bounds,
+            device_pixel_ratio,
+            clip_id,
+            display_list,
+        })
+    }
+}
+
 impl FrameBuilder {
     pub fn new(
         previous: Option<FrameBuilder>,
@@ -158,6 +216,7 @@ impl FrameBuilder {
                 clip_scroll_group_store: recycle_vec(prev.clip_scroll_group_store),
                 clip_scroll_group_indices: FastHashMap::default(),
                 cmds: recycle_vec(prev.cmds),
+                hit_testing_runs: recycle_vec(prev.hit_testing_runs),
                 packed_layers: recycle_vec(prev.packed_layers),
                 shadow_prim_stack: recycle_vec(prev.shadow_prim_stack),
                 scrollbar_prims: recycle_vec(prev.scrollbar_prims),
@@ -175,6 +234,7 @@ impl FrameBuilder {
                 clip_scroll_group_store: Vec::new(),
                 clip_scroll_group_indices: FastHashMap::default(),
                 cmds: Vec::new(),
+                hit_testing_runs: Vec::new(),
                 packed_layers: Vec::new(),
                 shadow_prim_stack: Vec::new(),
                 scrollbar_prims: Vec::new(),
@@ -190,15 +250,6 @@ impl FrameBuilder {
         }
     }
 
-    pub fn create_clip_scroll_group_if_necessary(&mut self, info: ClipAndScrollInfo) {
-        if self.clip_scroll_group_indices.contains_key(&info) {
-            return;
-        }
-
-        let group_index = self.create_clip_scroll_group(info);
-        self.clip_scroll_group_indices.insert(info, group_index);
-    }
-
     /// Create a primitive and add it to the prim store. This method doesn't
     /// add the primitive to the draw list, so can be used for creating
     /// sub-primitives.
@@ -209,7 +260,10 @@ impl FrameBuilder {
         mut clip_sources: Vec<ClipSource>,
         container: PrimitiveContainer,
     ) -> PrimitiveIndex {
-        self.create_clip_scroll_group_if_necessary(clip_and_scroll);
+        if !self.clip_scroll_group_indices.contains_key(&clip_and_scroll) {
+            let group_id = self.create_clip_scroll_group(&clip_and_scroll);
+            self.clip_scroll_group_indices.insert(clip_and_scroll, group_id);
+        }
 
         if let &LocalClip::RoundedRect(main, region) = &info.local_clip {
             clip_sources.push(ClipSource::Rectangle(main));
@@ -226,10 +280,34 @@ impl FrameBuilder {
             &info.local_clip.clip_rect(),
             info.is_backface_visible,
             clip_sources,
+            info.tag,
             container,
         );
 
         prim_index
+    }
+
+    pub fn add_primitive_to_hit_testing_list(
+        &mut self,
+        info: &LayerPrimitiveInfo,
+        clip_and_scroll: ClipAndScrollInfo
+    ) {
+        let tag = match info.tag {
+            Some(tag) => tag,
+            None => return,
+        };
+
+        let new_item = HitTestingItem::new(tag, info);
+        match self.hit_testing_runs.last_mut() {
+            Some(&mut HitTestingRun(ref mut items, prev_clip_and_scroll))
+                if prev_clip_and_scroll == clip_and_scroll => {
+                items.push(new_item);
+                return;
+            }
+            _ => {}
+        }
+
+        self.hit_testing_runs.push(HitTestingRun(vec![new_item], clip_and_scroll));
     }
 
     /// Add an already created primitive to the draw lists.
@@ -269,17 +347,18 @@ impl FrameBuilder {
         clip_sources: Vec<ClipSource>,
         container: PrimitiveContainer,
     ) -> PrimitiveIndex {
+        self.add_primitive_to_hit_testing_list(info, clip_and_scroll);
         let prim_index = self.create_primitive(clip_and_scroll, info, clip_sources, container);
 
         self.add_primitive_to_draw_list(prim_index, clip_and_scroll);
-
         prim_index
     }
 
-    pub fn create_clip_scroll_group(&mut self, info: ClipAndScrollInfo) -> ClipScrollGroupIndex {
+    fn create_clip_scroll_group(&mut self, info: &ClipAndScrollInfo) -> usize {
         let packed_layer_index = PackedLayerIndex(self.packed_layers.len());
         self.packed_layers.push(PackedLayer::empty());
 
+        let group_id = self.clip_scroll_group_store.len();
         self.clip_scroll_group_store.push(ClipScrollGroup {
             scroll_node_id: info.scroll_node_id,
             clip_node_id: info.clip_node_id(),
@@ -287,7 +366,7 @@ impl FrameBuilder {
             screen_bounding_rect: None,
         });
 
-        ClipScrollGroupIndex(self.clip_scroll_group_store.len() - 1, info)
+        group_id
     }
 
     pub fn notify_waiting_for_root_stacking_context(&mut self) {
@@ -356,6 +435,7 @@ impl FrameBuilder {
         rect: &LayerRect,
         transform: &LayerToScrollTransform,
         origin_in_parent_reference_frame: LayerVector2D,
+        root_for_pipeline: bool,
         clip_scroll_tree: &mut ClipScrollTree,
     ) -> ClipId {
         let new_id = clip_scroll_tree.add_reference_frame(
@@ -364,6 +444,7 @@ impl FrameBuilder {
             origin_in_parent_reference_frame,
             pipeline_id,
             parent_id,
+            root_for_pipeline,
         );
         self.reference_frame_stack.push(new_id);
         new_id
@@ -433,6 +514,7 @@ impl FrameBuilder {
             &viewport_rect,
             identity,
             LayerVector2D::zero(),
+            true,
             clip_scroll_tree,
         );
 
@@ -460,12 +542,13 @@ impl FrameBuilder {
         clip_region: ClipRegion,
         clip_scroll_tree: &mut ClipScrollTree,
     ) {
+        let clip_rect = LayerRect::new(clip_region.origin, clip_region.main.size);
         let clip_info = ClipInfo::new(
             clip_region,
             PackedLayerIndex(self.packed_layers.len()),
             &mut self.clip_store,
         );
-        let node = ClipScrollNode::new(pipeline_id, parent_id, clip_info);
+        let node = ClipScrollNode::new_clip_node(pipeline_id, parent_id, clip_info, clip_rect);
         clip_scroll_tree.add_node(node, new_node_id);
         self.packed_layers.push(PackedLayer::empty());
     }
@@ -495,33 +578,33 @@ impl FrameBuilder {
         self.reference_frame_stack.pop();
     }
 
-    pub fn push_text_shadow(
+    pub fn push_shadow(
         &mut self,
-        shadow: TextShadow,
+        shadow: Shadow,
         clip_and_scroll: ClipAndScrollInfo,
         info: &LayerPrimitiveInfo,
     ) {
-        let prim = TextShadowPrimitiveCpu {
+        let prim = ShadowPrimitiveCpu {
             shadow,
             primitives: Vec::new(),
             render_task_id: None,
         };
 
-        // Create an empty text-shadow primitive. Insert it into
+        // Create an empty shadow primitive. Insert it into
         // the draw lists immediately so that it will be drawn
         // before any visual text elements that are added as
-        // part of this text-shadow context.
+        // part of this shadow context.
         let prim_index = self.add_primitive(
             clip_and_scroll,
             info,
             Vec::new(),
-            PrimitiveContainer::TextShadow(prim),
+            PrimitiveContainer::Shadow(prim),
         );
 
         self.shadow_prim_stack.push(prim_index);
     }
 
-    pub fn pop_text_shadow(&mut self) {
+    pub fn pop_shadow(&mut self) {
         let prim_index = self.shadow_prim_stack
             .pop()
             .expect("invalid shadow push/pop count");
@@ -531,7 +614,7 @@ impl FrameBuilder {
         // safe to offset the local rect by the offset of the shadow, which
         // is then used when blitting the shadow to the final location.
         let metadata = &mut self.prim_store.cpu_metadata[prim_index.0];
-        let prim = &self.prim_store.cpu_text_shadows[metadata.cpu_prim_index.0];
+        let prim = &self.prim_store.cpu_shadows[metadata.cpu_prim_index.0];
 
         metadata.local_rect = metadata.local_rect.translate(&prim.shadow.offset);
     }
@@ -544,6 +627,13 @@ impl FrameBuilder {
         flags: PrimitiveFlags,
     ) {
         let prim = RectanglePrimitive { color: *color };
+
+        // Don't add transparent rectangles to the draw list, but do consider them for hit
+        // testing. This allows specifying invisible hit testing areas.
+        if color.a == 0.0 {
+            self.add_primitive_to_hit_testing_list(info, clip_and_scroll);
+            return;
+        }
 
         let prim_index = self.add_primitive(
             clip_and_scroll,
@@ -593,15 +683,15 @@ impl FrameBuilder {
             orientation: orientation,
         };
 
-        let mut fast_text_shadow_prims = Vec::new();
+        let mut fast_shadow_prims = Vec::new();
         for shadow_prim_index in &self.shadow_prim_stack {
             let shadow_metadata = &self.prim_store.cpu_metadata[shadow_prim_index.0];
-            let shadow_prim = &self.prim_store.cpu_text_shadows[shadow_metadata.cpu_prim_index.0];
+            let shadow_prim = &self.prim_store.cpu_shadows[shadow_metadata.cpu_prim_index.0];
             if shadow_prim.shadow.blur_radius == 0.0 {
-                fast_text_shadow_prims.push(shadow_prim.shadow);
+                fast_shadow_prims.push(shadow_prim.shadow);
             }
         }
-        for shadow in fast_text_shadow_prims {
+        for shadow in fast_shadow_prims {
             let mut line = line.clone();
             line.color = shadow.color;
             let mut info = info.clone();
@@ -624,14 +714,15 @@ impl FrameBuilder {
         );
 
         if color.a > 0.0 {
+            self.add_primitive_to_hit_testing_list(&info, clip_and_scroll);
             self.add_primitive_to_draw_list(prim_index, clip_and_scroll);
         }
 
         for shadow_prim_index in &self.shadow_prim_stack {
             let shadow_metadata = &mut self.prim_store.cpu_metadata[shadow_prim_index.0];
-            debug_assert_eq!(shadow_metadata.prim_kind, PrimitiveKind::TextShadow);
+            debug_assert_eq!(shadow_metadata.prim_kind, PrimitiveKind::Shadow);
             let shadow_prim =
-                &mut self.prim_store.cpu_text_shadows[shadow_metadata.cpu_prim_index.0];
+                &mut self.prim_store.cpu_shadows[shadow_metadata.cpu_prim_index.0];
 
             // Only run real blurs here (fast path zero blurs are handled above).
             if shadow_prim.shadow.blur_radius > 0.0 {
@@ -713,15 +804,15 @@ impl FrameBuilder {
                 let rect = LayerRect::new(origin, size);
 
                 // Calculate the local texel coords of the slices.
-                let px0 = 0;
-                let px1 = border.patch.slice.left;
-                let px2 = border.patch.width - border.patch.slice.right;
-                let px3 = border.patch.width;
+                let px0 = 0.0;
+                let px1 = border.patch.slice.left as f32;
+                let px2 = border.patch.width as f32 - border.patch.slice.right as f32;
+                let px3 = border.patch.width as f32;
 
-                let py0 = 0;
-                let py1 = border.patch.slice.top;
-                let py2 = border.patch.height - border.patch.slice.bottom;
-                let py3 = border.patch.height;
+                let py0 = 0.0;
+                let py1 = border.patch.slice.top as f32;
+                let py2 = border.patch.height as f32 - border.patch.slice.bottom as f32;
+                let py3 = border.patch.height as f32;
 
                 let tl_outer = LayerPoint::new(rect.origin.x, rect.origin.y);
                 let tl_inner = tl_outer + vec2(border_item.widths.left, border_item.widths.top);
@@ -738,81 +829,104 @@ impl FrameBuilder {
                 );
                 let br_inner = br_outer - vec2(border_item.widths.right, border_item.widths.bottom);
 
+                fn add_segment(
+                    segments: &mut Vec<ImageBorderSegment>,
+                    rect: LayerRect,
+                    uv_rect: TexelRect,
+                    repeat_horizontal: RepeatMode,
+                    repeat_vertical: RepeatMode) {
+                    if uv_rect.uv1.x > uv_rect.uv0.x &&
+                       uv_rect.uv1.y > uv_rect.uv0.y {
+                        segments.push(ImageBorderSegment::new(
+                            rect,
+                            uv_rect,
+                            repeat_horizontal,
+                            repeat_vertical,
+                        ));
+                    }
+                }
+
                 // Build the list of image segments
-                let mut segments = vec![
-                    // Top left
-                    ImageBorderSegment::new(
-                        LayerRect::from_floats(tl_outer.x, tl_outer.y, tl_inner.x, tl_inner.y),
-                        TexelRect::new(px0, py0, px1, py1),
-                        RepeatMode::Stretch,
-                        RepeatMode::Stretch,
-                    ),
-                    // Top right
-                    ImageBorderSegment::new(
-                        LayerRect::from_floats(tr_inner.x, tr_outer.y, tr_outer.x, tr_inner.y),
-                        TexelRect::new(px2, py0, px3, py1),
-                        RepeatMode::Stretch,
-                        RepeatMode::Stretch,
-                    ),
-                    // Bottom right
-                    ImageBorderSegment::new(
-                        LayerRect::from_floats(br_inner.x, br_inner.y, br_outer.x, br_outer.y),
-                        TexelRect::new(px2, py2, px3, py3),
-                        RepeatMode::Stretch,
-                        RepeatMode::Stretch,
-                    ),
-                    // Bottom left
-                    ImageBorderSegment::new(
-                        LayerRect::from_floats(bl_outer.x, bl_inner.y, bl_inner.x, bl_outer.y),
-                        TexelRect::new(px0, py2, px1, py3),
-                        RepeatMode::Stretch,
-                        RepeatMode::Stretch,
-                    ),
-                ];
+                let mut segments = vec![];
+
+                // Top left
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(tl_outer.x, tl_outer.y, tl_inner.x, tl_inner.y),
+                    TexelRect::new(px0, py0, px1, py1),
+                    RepeatMode::Stretch,
+                    RepeatMode::Stretch
+                );
+                // Top right
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(tr_inner.x, tr_outer.y, tr_outer.x, tr_inner.y),
+                    TexelRect::new(px2, py0, px3, py1),
+                    RepeatMode::Stretch,
+                    RepeatMode::Stretch
+                );
+                // Bottom right
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(br_inner.x, br_inner.y, br_outer.x, br_outer.y),
+                    TexelRect::new(px2, py2, px3, py3),
+                    RepeatMode::Stretch,
+                    RepeatMode::Stretch
+                );
+                // Bottom left
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(bl_outer.x, bl_inner.y, bl_inner.x, bl_outer.y),
+                    TexelRect::new(px0, py2, px1, py3),
+                    RepeatMode::Stretch,
+                    RepeatMode::Stretch
+                );
 
                 // Center
                 if border.fill {
-                    segments.push(ImageBorderSegment::new(
+                    add_segment(
+                        &mut segments,
                         LayerRect::from_floats(tl_inner.x, tl_inner.y, tr_inner.x, bl_inner.y),
                         TexelRect::new(px1, py1, px2, py2),
                         border.repeat_horizontal,
-                        border.repeat_vertical,
-                    ))
+                        border.repeat_vertical
+                    );
                 }
 
-                // Add edge segments if valid size.
-                if px1 < px2 && py1 < py2 {
-                    segments.extend_from_slice(&[
-                        // Top
-                        ImageBorderSegment::new(
-                            LayerRect::from_floats(tl_inner.x, tl_outer.y, tr_inner.x, tl_inner.y),
-                            TexelRect::new(px1, py0, px2, py1),
-                            border.repeat_horizontal,
-                            RepeatMode::Stretch,
-                        ),
-                        // Bottom
-                        ImageBorderSegment::new(
-                            LayerRect::from_floats(bl_inner.x, bl_inner.y, br_inner.x, bl_outer.y),
-                            TexelRect::new(px1, py2, px2, py3),
-                            border.repeat_horizontal,
-                            RepeatMode::Stretch,
-                        ),
-                        // Left
-                        ImageBorderSegment::new(
-                            LayerRect::from_floats(tl_outer.x, tl_inner.y, tl_inner.x, bl_inner.y),
-                            TexelRect::new(px0, py1, px1, py2),
-                            RepeatMode::Stretch,
-                            border.repeat_vertical,
-                        ),
-                        // Right
-                        ImageBorderSegment::new(
-                            LayerRect::from_floats(tr_inner.x, tr_inner.y, br_outer.x, br_inner.y),
-                            TexelRect::new(px2, py1, px3, py2),
-                            RepeatMode::Stretch,
-                            border.repeat_vertical,
-                        ),
-                    ]);
-                }
+                // Add edge segments.
+
+                // Top
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(tl_inner.x, tl_outer.y, tr_inner.x, tl_inner.y),
+                    TexelRect::new(px1, py0, px2, py1),
+                    border.repeat_horizontal,
+                    RepeatMode::Stretch,
+                );
+                // Bottom
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(bl_inner.x, bl_inner.y, br_inner.x, bl_outer.y),
+                    TexelRect::new(px1, py2, px2, py3),
+                    border.repeat_horizontal,
+                    RepeatMode::Stretch,
+                );
+                // Left
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(tl_outer.x, tl_inner.y, tl_inner.x, bl_inner.y),
+                    TexelRect::new(px0, py1, px1, py2),
+                    RepeatMode::Stretch,
+                    border.repeat_vertical,
+                );
+                // Right
+                add_segment(
+                    &mut segments,
+                    LayerRect::from_floats(tr_inner.x, tr_inner.y, br_outer.x, br_inner.y),
+                    TexelRect::new(px2, py1, px3, py2),
+                    RepeatMode::Stretch,
+                    border.repeat_vertical,
+                );
 
                 for segment in segments {
                     let mut info = info.clone();
@@ -1046,6 +1160,13 @@ impl FrameBuilder {
             }
         }
 
+        let color = match font.render_mode {
+            FontRenderMode::Bitmap => ColorF::new(1.0, 1.0, 1.0, 1.0),
+            FontRenderMode::Subpixel |
+            FontRenderMode::Alpha |
+            FontRenderMode::Mono => *color,
+        };
+
         // Shadows never use subpixel AA, but need to respect the alpha/mono flag
         // for reftests.
         let (shadow_render_mode, subpx_dir) = match default_render_mode {
@@ -1055,15 +1176,18 @@ impl FrameBuilder {
                 (FontRenderMode::Alpha, font.subpx_dir)
             }
             FontRenderMode::Mono => (FontRenderMode::Mono, SubpixelDirection::None),
+            FontRenderMode::Bitmap => (FontRenderMode::Bitmap, font.subpx_dir),
         };
 
         let prim_font = FontInstance::new(
             font.font_key,
             font.size,
-            *color,
+            color,
             normal_render_mode,
             subpx_dir,
             font.platform_options,
+            font.variations.clone(),
+            font.synthetic_italics,
         );
         let prim = TextRunPrimitiveCpu {
             font: prim_font,
@@ -1073,7 +1197,7 @@ impl FrameBuilder {
             glyph_keys: Vec::new(),
             shadow_render_mode,
             offset: run_offset,
-            color: *color,
+            color: color,
         };
 
         // Text shadows that have a blur radius of 0 need to be rendered as normal
@@ -1084,19 +1208,27 @@ impl FrameBuilder {
         // *before* the visual text primitive in order to get the correct paint
         // order. Store them in a Vec first to work around borrowck issues.
         // TODO(gw): Refactor to avoid having to store them in a Vec first.
-        let mut fast_text_shadow_prims = Vec::new();
+        let mut fast_shadow_prims = Vec::new();
         for shadow_prim_index in &self.shadow_prim_stack {
             let shadow_metadata = &self.prim_store.cpu_metadata[shadow_prim_index.0];
-            let shadow_prim = &self.prim_store.cpu_text_shadows[shadow_metadata.cpu_prim_index.0];
+            let shadow_prim = &self.prim_store.cpu_shadows[shadow_metadata.cpu_prim_index.0];
             if shadow_prim.shadow.blur_radius == 0.0 {
                 let mut text_prim = prim.clone();
-                text_prim.font.color = shadow_prim.shadow.color.into();
+                if font.render_mode != FontRenderMode::Bitmap {
+                    text_prim.font.color = shadow_prim.shadow.color.into();
+                }
+                // If we have translucent text, we need to ensure it won't go
+                // through the subpixel blend mode, which doesn't work with
+                // traditional alpha blending.
+                if shadow_prim.shadow.color.a != 1.0 {
+                    text_prim.font.render_mode = text_prim.font.render_mode.limit_by(FontRenderMode::Alpha);
+                }
                 text_prim.color = shadow_prim.shadow.color;
                 text_prim.offset += shadow_prim.shadow.offset;
-                fast_text_shadow_prims.push(text_prim);
+                fast_shadow_prims.push(text_prim);
             }
         }
-        for text_prim in fast_text_shadow_prims {
+        for text_prim in fast_shadow_prims {
             let rect = info.rect;
             let mut info = info.clone();
             info.rect = rect.translate(&text_prim.offset);
@@ -1119,21 +1251,22 @@ impl FrameBuilder {
 
         // Only add a visual element if it can contribute to the scene.
         if color.a > 0.0 {
+            self.add_primitive_to_hit_testing_list(info, clip_and_scroll);
             self.add_primitive_to_draw_list(prim_index, clip_and_scroll);
         }
 
         // Now add this primitive index to all the currently active text shadow
         // primitives. Although we're adding the indices *after* the visual
         // primitive here, they will still draw before the visual text, since
-        // the text-shadow primitive itself has been added to the draw cmd
-        // list *before* the visual element, during push_text_shadow. We need
+        // the shadow primitive itself has been added to the draw cmd
+        // list *before* the visual element, during push_shadow. We need
         // the primitive index of the visual element here before we can add
         // the indices as sub-primitives to the shadow primitives.
         for shadow_prim_index in &self.shadow_prim_stack {
             let shadow_metadata = &mut self.prim_store.cpu_metadata[shadow_prim_index.0];
-            debug_assert_eq!(shadow_metadata.prim_kind, PrimitiveKind::TextShadow);
+            debug_assert_eq!(shadow_metadata.prim_kind, PrimitiveKind::Shadow);
             let shadow_prim =
-                &mut self.prim_store.cpu_text_shadows[shadow_metadata.cpu_prim_index.0];
+                &mut self.prim_store.cpu_shadows[shadow_metadata.cpu_prim_index.0];
 
             // Only run real blurs here (fast path zero blurs are handled above).
             if shadow_prim.shadow.blur_radius > 0.0 {
@@ -1426,13 +1559,343 @@ impl FrameBuilder {
         );
     }
 
+    fn handle_push_stacking_context(&mut self, stacking_context_index: StackingContextIndex) {
+        self.stacking_context_stack.push(stacking_context_index);
+
+        // Reset bounding rect to zero. We will calculate it as we collect primitives
+        // from various scroll layers. In handle_pop_stacking_context , we use this to
+        // calculate the device bounding rect. In the future, we could cache this during
+        // the initial adding of items for the common case (where there is only a single
+        // scroll layer for items in a stacking context).
+        let stacking_context =
+            &mut self.stacking_context_store[stacking_context_index.0];
+        stacking_context.screen_bounds = DeviceIntRect::zero();
+        stacking_context.isolated_items_bounds = LayerRect::zero();
+    }
+
+    pub fn get_packed_layer_index_if_visible(
+        &self,
+        clip_and_scroll: &ClipAndScrollInfo
+    ) -> Option<PackedLayerIndex> {
+        let group_id = self.clip_scroll_group_indices[&clip_and_scroll];
+        let clip_scroll_group = &self.clip_scroll_group_store[group_id];
+        if clip_scroll_group.is_visible() {
+            Some(clip_scroll_group.packed_layer_index)
+        } else {
+            None
+        }
+    }
+
+    pub fn hit_test(
+        &self,
+        clip_scroll_tree: &ClipScrollTree,
+        pipeline_id: Option<PipelineId>,
+        point: WorldPoint,
+        flags: HitTestFlags
+    ) -> HitTestResult {
+        let point = if flags.contains(POINT_RELATIVE_TO_PIPELINE_VIEWPORT) {
+            let point = LayerPoint::new(point.x, point.y);
+            clip_scroll_tree.make_node_relative_point_absolute(pipeline_id, &point)
+        } else {
+            point
+        };
+
+        let mut node_cache = FastHashMap::default();
+        let mut result = HitTestResult::default();
+        for &HitTestingRun(ref items, ref clip_and_scroll) in self.hit_testing_runs.iter().rev() {
+            let scroll_node = &clip_scroll_tree.nodes[&clip_and_scroll.scroll_node_id];
+            match (pipeline_id, scroll_node.pipeline_id) {
+                (Some(id), node_id) if node_id != id => continue,
+                _ => {},
+            }
+
+            let transform = scroll_node.world_content_transform;
+            let point_in_layer = match transform.inverse() {
+                Some(inverted) => inverted.transform_point2d(&point),
+                None => continue,
+            };
+
+            let mut clipped_in = false;
+            for item in items.iter().rev() {
+                if !item.rect.contains(&point_in_layer) || !item.clip.contains(&point_in_layer) {
+                    continue;
+                }
+
+                let clip_id = &clip_and_scroll.clip_node_id();
+                if !clipped_in {
+                    clipped_in = clip_scroll_tree.is_point_clipped_in_for_node(point,
+                                                                               clip_id,
+                                                                               &mut node_cache,
+                                                                               &self.clip_store);
+                    if !clipped_in {
+                        break;
+                    }
+                }
+
+                let root_pipeline_reference_frame_id =
+                    ClipId::root_reference_frame(clip_id.pipeline_id());
+                let point_in_viewport = match node_cache.get(&root_pipeline_reference_frame_id) {
+                    Some(&Some(point)) => point,
+                    _ => unreachable!("Hittest target's root reference frame not hit."),
+                };
+
+                result.items.push(HitTestItem {
+                    pipeline: clip_and_scroll.clip_node_id().pipeline_id(),
+                    tag: item.tag,
+                    point_in_viewport,
+                });
+                if !flags.contains(FIND_ALL) {
+                    return result;
+                }
+            }
+        }
+
+        result.items.dedup();
+        return result;
+    }
+
+
+    fn handle_primitive_run(
+        &mut self,
+        base_prim_index: PrimitiveIndex,
+        prim_count: usize,
+        clip_and_scroll: ClipAndScrollInfo,
+        render_tasks: &mut RenderTaskTree,
+        gpu_cache: &mut GpuCache,
+        resource_cache: &mut ResourceCache,
+        pipelines: &FastHashMap<PipelineId, ScenePipeline>,
+        clip_scroll_tree: &ClipScrollTree,
+        screen_rect: &DeviceIntRect,
+        device_pixel_ratio: f32,
+        profile_counters: &mut FrameProfileCounters,
+    ) -> bool {
+        let stacking_context_index = *self.stacking_context_stack.last().unwrap();
+        let packed_layer_index =
+            match self.get_packed_layer_index_if_visible(&clip_and_scroll) {
+            Some(index) => index,
+            None => {
+                debug!("{:?} of invisible {:?}", base_prim_index, stacking_context_index);
+                return false;
+            }
+        };
+
+        let pipeline_id = {
+            let stacking_context =
+                &mut self.stacking_context_store[stacking_context_index.0];
+            if !stacking_context.can_contribute_to_scene() {
+                return false;
+            }
+
+            // At least one primitive in this stacking context is visible, so the stacking
+            // context is visible.
+            stacking_context.is_visible = true;
+            stacking_context.pipeline_id
+        };
+
+        debug!(
+            "\t{:?} of {:?} at {:?}",
+            base_prim_index,
+            stacking_context_index,
+            packed_layer_index
+        );
+
+        let stacking_context =
+            &mut self.stacking_context_store[stacking_context_index.0];
+        let packed_layer = &self.packed_layers[packed_layer_index.0];
+        let display_list = &pipelines
+            .get(&pipeline_id)
+            .expect("No display list?")
+            .display_list;
+
+        if !stacking_context.is_backface_visible && packed_layer.transform.is_backface_visible() {
+            return false;
+        }
+
+        let prim_context = PrimitiveContext::new(
+            packed_layer_index,
+            packed_layer,
+            clip_and_scroll.clip_node_id(),
+            screen_rect,
+            clip_scroll_tree,
+            &self.clip_store,
+            device_pixel_ratio,
+            display_list,
+        );
+
+        let prim_context = match prim_context {
+            Some(prim_context) => prim_context,
+            None => {
+                let group_id = self.clip_scroll_group_indices[&clip_and_scroll];
+                self.clip_scroll_group_store[group_id].screen_bounding_rect = None;
+                return false
+            },
+        };
+
+        debug!(
+            "\tclip_bounds {:?}, layer_local_clip {:?}",
+            prim_context.clip_bounds,
+            packed_layer.local_clip_rect
+        );
+
+        for i in 0 .. prim_count {
+            let prim_index = PrimitiveIndex(base_prim_index.0 + i);
+
+            if let Some(prim_geom) = self.prim_store.prepare_prim_for_render(
+                prim_index,
+                &prim_context,
+                resource_cache,
+                gpu_cache,
+                render_tasks,
+                &mut self.clip_store,
+            ) {
+                stacking_context.screen_bounds = stacking_context
+                    .screen_bounds
+                    .union(&prim_geom.device_rect);
+                stacking_context.isolated_items_bounds = stacking_context
+                    .isolated_items_bounds
+                    .union(&prim_geom.local_rect);
+
+                profile_counters.visible_primitives.inc();
+            }
+        }
+
+        true //visible
+    }
+
+    fn handle_pop_stacking_context(&mut self, screen_rect: &DeviceIntRect) {
+        let stacking_context_index = self.stacking_context_stack.pop().unwrap();
+
+        let (bounding_rect, is_visible, is_preserve_3d, reference_id, reference_bounds) = {
+            let stacking_context =
+                &mut self.stacking_context_store[stacking_context_index.0];
+            stacking_context.screen_bounds = stacking_context
+                .screen_bounds
+                .intersection(screen_rect)
+                .unwrap_or(DeviceIntRect::zero());
+            (
+                stacking_context.screen_bounds.clone(),
+                stacking_context.is_visible,
+                stacking_context.isolation == ContextIsolation::Items,
+                stacking_context.reference_frame_id,
+                stacking_context
+                    .isolated_items_bounds
+                    .translate(&stacking_context.reference_frame_offset),
+            )
+        };
+
+        if let Some(ref mut parent_index) = self.stacking_context_stack.last_mut() {
+            let parent = &mut self.stacking_context_store[parent_index.0];
+            parent.screen_bounds = parent.screen_bounds.union(&bounding_rect);
+            // add children local bounds only for non-item-isolated contexts
+            if !is_preserve_3d && parent.reference_frame_id == reference_id {
+                let child_bounds = reference_bounds.translate(&-parent.reference_frame_offset);
+                parent.isolated_items_bounds = parent.isolated_items_bounds.union(&child_bounds);
+            }
+            // Per-primitive stacking context visibility checks do not take into account
+            // visibility of child stacking contexts, so do that now.
+            parent.is_visible = parent.is_visible || is_visible;
+        }
+    }
+
+    fn recalculate_clip_scroll_nodes(
+        &mut self,
+        clip_scroll_tree: &mut ClipScrollTree,
+        gpu_cache: &mut GpuCache,
+        resource_cache: &mut ResourceCache,
+        screen_rect: &DeviceIntRect,
+        device_pixel_ratio: f32
+    ) {
+        for (_, ref mut node) in clip_scroll_tree.nodes.iter_mut() {
+            let node_clip_info = match node.node_type {
+                NodeType::Clip(ref mut clip_info) => clip_info,
+                _ => continue,
+            };
+
+            let packed_layer_index = node_clip_info.packed_layer_index;
+            let packed_layer = &mut self.packed_layers[packed_layer_index.0];
+
+            // The coordinates of the mask are relative to the origin of the node itself,
+            // so we need to account for that origin in the transformation we assign to
+            // the packed layer.
+            let transform = node.world_viewport_transform
+                .pre_translate(node.local_viewport_rect.origin.to_vector().to_3d());
+
+            if packed_layer.set_transform(transform) {
+                // Meanwhile, the combined viewport rect is relative to the reference frame, so
+                // we move it into the local coordinate system of the node.
+                let local_viewport_rect = node.combined_local_viewport_rect
+                    .translate(&-node.local_viewport_rect.origin.to_vector());
+
+                packed_layer.set_rect(
+                    &local_viewport_rect,
+                    screen_rect,
+                    device_pixel_ratio,
+                );
+            }
+
+            let clip_sources = self.clip_store.get_mut(&node_clip_info.clip_sources);
+            clip_sources.update(
+                &transform,
+                gpu_cache,
+                resource_cache,
+                device_pixel_ratio,
+            );
+        }
+    }
+
+    fn recalculate_clip_scroll_groups(
+        &mut self,
+        clip_scroll_tree: &ClipScrollTree,
+        screen_rect: &DeviceIntRect,
+        device_pixel_ratio: f32
+    ) {
+        debug!("recalculate_clip_scroll_groups");
+        for ref mut group in &mut self.clip_scroll_group_store {
+            let scroll_node = &clip_scroll_tree.nodes[&group.scroll_node_id];
+            let clip_node = &clip_scroll_tree.nodes[&group.clip_node_id];
+            let packed_layer = &mut self.packed_layers[group.packed_layer_index.0];
+
+            debug!(
+                "\tProcessing group scroll={:?}, clip={:?}",
+                group.scroll_node_id,
+                group.clip_node_id
+            );
+
+            let transform = scroll_node.world_content_transform;
+            if !packed_layer.set_transform(transform) {
+                debug!("\t\tUnable to set transform {:?}", transform);
+                return;
+            }
+
+            // Here we move the viewport rectangle into the coordinate system
+            // of the stacking context content.
+            let local_viewport_rect = clip_node
+                .combined_local_viewport_rect
+                .translate(&clip_node.reference_frame_relative_scroll_offset)
+                .translate(&-scroll_node.reference_frame_relative_scroll_offset)
+                .translate(&-scroll_node.scroll_offset());
+
+            group.screen_bounding_rect = packed_layer.set_rect(
+                &local_viewport_rect,
+                screen_rect,
+                device_pixel_ratio,
+            );
+
+            debug!(
+                "\t\tlocal viewport {:?} screen bound {:?}",
+                local_viewport_rect,
+                group.screen_bounding_rect
+            );
+        }
+    }
+
     /// Compute the contribution (bounding rectangles, and resources) of layers and their
     /// primitives in screen space.
     fn build_layer_screen_rects_and_cull_layers(
         &mut self,
         screen_rect: &DeviceIntRect,
         clip_scroll_tree: &mut ClipScrollTree,
-        display_lists: &DisplayListMap,
+        pipelines: &FastHashMap<PipelineId, ScenePipeline>,
         resource_cache: &mut ResourceCache,
         gpu_cache: &mut GpuCache,
         render_tasks: &mut RenderTaskTree,
@@ -1440,17 +1903,49 @@ impl FrameBuilder {
         device_pixel_ratio: f32,
     ) {
         profile_scope!("cull");
-        LayerRectCalculationAndCullingPass::create_and_run(
-            self,
-            screen_rect,
+
+        self.recalculate_clip_scroll_nodes(
             clip_scroll_tree,
-            display_lists,
-            resource_cache,
             gpu_cache,
-            render_tasks,
-            profile_counters,
-            device_pixel_ratio,
+            resource_cache,
+            screen_rect,
+            device_pixel_ratio
         );
+        self.recalculate_clip_scroll_groups(
+            clip_scroll_tree,
+            screen_rect,
+            device_pixel_ratio
+        );
+
+        debug!("processing commands...");
+        let commands = mem::replace(&mut self.cmds, Vec::new());
+        for cmd in &commands {
+            match *cmd {
+                PrimitiveRunCmd::PushStackingContext(stacking_context_index) => {
+                    self.handle_push_stacking_context(stacking_context_index)
+                }
+                PrimitiveRunCmd::PrimitiveRun(prim_index, prim_count, clip_and_scroll) => {
+                    self.handle_primitive_run(
+                        prim_index,
+                        prim_count,
+                        clip_and_scroll,
+                        render_tasks,
+                        gpu_cache,
+                        resource_cache,
+                        pipelines,
+                        clip_scroll_tree,
+                        screen_rect,
+                        device_pixel_ratio,
+                        profile_counters,
+                    );
+                }
+                PrimitiveRunCmd::PopStackingContext => {
+                    self.handle_pop_stacking_context(screen_rect);
+                }
+            }
+        }
+
+        mem::replace(&mut self.cmds, commands);
     }
 
     fn update_scroll_bars(&mut self, clip_scroll_tree: &ClipScrollTree, gpu_cache: &mut GpuCache) {
@@ -1463,7 +1958,7 @@ impl FrameBuilder {
             // Invalidate what's in the cache so it will get rebuilt.
             gpu_cache.invalidate(&metadata.gpu_location);
 
-            let scrollable_distance = clip_scroll_node.scrollable_height();
+            let scrollable_distance = clip_scroll_node.scrollable_size().height;
 
             if scrollable_distance <= 0.0 {
                 metadata.local_clip_rect.size = LayerSize::zero();
@@ -1767,10 +2262,10 @@ impl FrameBuilder {
                         continue;
                     }
 
-                    let group_index = *self.clip_scroll_group_indices
-                        .get(&clip_and_scroll)
-                        .unwrap();
-                    if self.clip_scroll_group_store[group_index.0]
+                    let group_id = self.clip_scroll_group_indices[&clip_and_scroll];
+                    let group_index = ClipScrollGroupIndex(group_id, clip_and_scroll);
+
+                    if self.clip_scroll_group_store[group_id]
                         .screen_bounding_rect
                         .is_none()
                     {
@@ -1783,7 +2278,7 @@ impl FrameBuilder {
                     for i in 0 .. prim_count {
                         let prim_index = PrimitiveIndex(first_prim_index.0 + i);
 
-                        if self.prim_store.cpu_bounding_rects[prim_index.0].is_some() {
+                        if self.prim_store.cpu_metadata[prim_index.0].screen_rect.is_some() {
                             self.prim_store
                                 .add_render_tasks_for_prim(prim_index, &mut current_task);
                             let item =
@@ -1807,7 +2302,7 @@ impl FrameBuilder {
         gpu_cache: &mut GpuCache,
         frame_id: FrameId,
         clip_scroll_tree: &mut ClipScrollTree,
-        display_lists: &DisplayListMap,
+        pipelines: &FastHashMap<PipelineId, ScenePipeline>,
         device_pixel_ratio: f32,
         output_pipelines: &FastHashSet<PipelineId>,
         texture_cache_profile: &mut TextureCacheProfileCounters,
@@ -1838,7 +2333,7 @@ impl FrameBuilder {
         self.build_layer_screen_rects_and_cull_layers(
             &screen_rect,
             clip_scroll_tree,
-            display_lists,
+            pipelines,
             resource_cache,
             gpu_cache,
             &mut render_tasks,
@@ -1913,445 +2408,6 @@ impl FrameBuilder {
             render_tasks,
             deferred_resolves,
             gpu_cache_updates: Some(gpu_cache_updates),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct LayerClipBounds {
-    outer: DeviceIntRect,
-    inner: DeviceIntRect,
-}
-
-struct LayerRectCalculationAndCullingPass<'a> {
-    frame_builder: &'a mut FrameBuilder,
-    screen_rect: &'a DeviceIntRect,
-    clip_scroll_tree: &'a mut ClipScrollTree,
-    display_lists: &'a DisplayListMap,
-    resource_cache: &'a mut ResourceCache,
-    gpu_cache: &'a mut GpuCache,
-    profile_counters: &'a mut FrameProfileCounters,
-    device_pixel_ratio: f32,
-    stacking_context_stack: Vec<StackingContextIndex>,
-    render_tasks: &'a mut RenderTaskTree,
-
-    /// A cached clip info stack, which should handle the most common situation,
-    /// which is that we are using the same clip info stack that we were using
-    /// previously.
-    current_clip_stack: Vec<ClipWorkItem>,
-
-    /// Information about the cached clip stack, which is used to avoid having
-    /// to recalculate it for every primitive.
-    current_clip_info: Option<(ClipId, Option<DeviceIntRect>)>,
-}
-
-impl<'a> LayerRectCalculationAndCullingPass<'a> {
-    fn create_and_run(
-        frame_builder: &'a mut FrameBuilder,
-        screen_rect: &'a DeviceIntRect,
-        clip_scroll_tree: &'a mut ClipScrollTree,
-        display_lists: &'a DisplayListMap,
-        resource_cache: &'a mut ResourceCache,
-        gpu_cache: &'a mut GpuCache,
-        render_tasks: &'a mut RenderTaskTree,
-        profile_counters: &'a mut FrameProfileCounters,
-        device_pixel_ratio: f32,
-    ) {
-        let mut pass = LayerRectCalculationAndCullingPass {
-            frame_builder,
-            screen_rect,
-            clip_scroll_tree,
-            display_lists,
-            resource_cache,
-            gpu_cache,
-            profile_counters,
-            device_pixel_ratio,
-            stacking_context_stack: Vec::new(),
-            current_clip_stack: Vec::new(),
-            current_clip_info: None,
-            render_tasks,
-        };
-        pass.run();
-    }
-
-    fn run(&mut self) {
-        self.recalculate_clip_scroll_nodes();
-        self.recalculate_clip_scroll_groups();
-
-        debug!("processing commands...");
-        let commands = mem::replace(&mut self.frame_builder.cmds, Vec::new());
-        for cmd in &commands {
-            match *cmd {
-                PrimitiveRunCmd::PushStackingContext(stacking_context_index) => {
-                    self.handle_push_stacking_context(stacking_context_index)
-                }
-                PrimitiveRunCmd::PrimitiveRun(prim_index, prim_count, clip_and_scroll) => {
-                    self.handle_primitive_run(prim_index, prim_count, clip_and_scroll)
-                }
-                PrimitiveRunCmd::PopStackingContext => self.handle_pop_stacking_context(),
-            }
-        }
-
-        mem::replace(&mut self.frame_builder.cmds, commands);
-    }
-
-    fn recalculate_clip_scroll_nodes(&mut self) {
-        for (_, ref mut node) in self.clip_scroll_tree.nodes.iter_mut() {
-            let node_clip_info = match node.node_type {
-                NodeType::Clip(ref mut clip_info) => clip_info,
-                _ => continue,
-            };
-
-            let packed_layer_index = node_clip_info.packed_layer_index;
-            let packed_layer = &mut self.frame_builder.packed_layers[packed_layer_index.0];
-
-            // The coordinates of the mask are relative to the origin of the node itself,
-            // so we need to account for that origin in the transformation we assign to
-            // the packed layer.
-            let transform = node.world_viewport_transform
-                .pre_translate(node.local_viewport_rect.origin.to_vector().to_3d());
-
-            node_clip_info.screen_bounding_rect = if packed_layer.set_transform(transform) {
-                // Meanwhile, the combined viewport rect is relative to the reference frame, so
-                // we move it into the local coordinate system of the node.
-                let local_viewport_rect = node.combined_local_viewport_rect
-                    .translate(&-node.local_viewport_rect.origin.to_vector());
-
-                packed_layer.set_rect(
-                    &local_viewport_rect,
-                    self.screen_rect,
-                    self.device_pixel_ratio,
-                )
-            } else {
-                None
-            };
-
-            let clip_sources = self.frame_builder
-                .clip_store
-                .get_mut(&node_clip_info.clip_sources);
-            clip_sources.update(
-                &transform,
-                self.gpu_cache,
-                self.resource_cache,
-                self.device_pixel_ratio,
-            );
-        }
-    }
-
-    fn recalculate_clip_scroll_groups(&mut self) {
-        debug!("recalculate_clip_scroll_groups");
-        for ref mut group in &mut self.frame_builder.clip_scroll_group_store {
-            let scroll_node = &self.clip_scroll_tree.nodes[&group.scroll_node_id];
-            let clip_node = &self.clip_scroll_tree.nodes[&group.clip_node_id];
-            let packed_layer = &mut self.frame_builder.packed_layers[group.packed_layer_index.0];
-
-            debug!(
-                "\tProcessing group scroll={:?}, clip={:?}",
-                group.scroll_node_id,
-                group.clip_node_id
-            );
-
-            let transform = scroll_node.world_content_transform;
-            if !packed_layer.set_transform(transform) {
-                debug!("\t\tUnable to set transform {:?}", transform);
-                return;
-            }
-
-            // Here we move the viewport rectangle into the coordinate system
-            // of the stacking context content.
-            let local_viewport_rect = clip_node
-                .combined_local_viewport_rect
-                .translate(&clip_node.reference_frame_relative_scroll_offset)
-                .translate(&-scroll_node.reference_frame_relative_scroll_offset)
-                .translate(&-scroll_node.scroll_offset());
-
-            group.screen_bounding_rect = packed_layer.set_rect(
-                &local_viewport_rect,
-                self.screen_rect,
-                self.device_pixel_ratio,
-            );
-
-            debug!(
-                "\t\tlocal viewport {:?} screen bound {:?}",
-                local_viewport_rect,
-                group.screen_bounding_rect
-            );
-        }
-    }
-
-    fn handle_pop_stacking_context(&mut self) {
-        let stacking_context_index = self.stacking_context_stack.pop().unwrap();
-
-        let (bounding_rect, is_visible, is_preserve_3d, reference_id, reference_bounds) = {
-            let stacking_context =
-                &mut self.frame_builder.stacking_context_store[stacking_context_index.0];
-            stacking_context.screen_bounds = stacking_context
-                .screen_bounds
-                .intersection(self.screen_rect)
-                .unwrap_or(DeviceIntRect::zero());
-            (
-                stacking_context.screen_bounds.clone(),
-                stacking_context.is_visible,
-                stacking_context.isolation == ContextIsolation::Items,
-                stacking_context.reference_frame_id,
-                stacking_context
-                    .isolated_items_bounds
-                    .translate(&stacking_context.reference_frame_offset),
-            )
-        };
-
-        if let Some(ref mut parent_index) = self.stacking_context_stack.last_mut() {
-            let parent = &mut self.frame_builder.stacking_context_store[parent_index.0];
-            parent.screen_bounds = parent.screen_bounds.union(&bounding_rect);
-            // add children local bounds only for non-item-isolated contexts
-            if !is_preserve_3d && parent.reference_frame_id == reference_id {
-                let child_bounds = reference_bounds.translate(&-parent.reference_frame_offset);
-                parent.isolated_items_bounds = parent.isolated_items_bounds.union(&child_bounds);
-            }
-            // Per-primitive stacking context visibility checks do not take into account
-            // visibility of child stacking contexts, so do that now.
-            parent.is_visible = parent.is_visible || is_visible;
-        }
-    }
-
-    fn handle_push_stacking_context(&mut self, stacking_context_index: StackingContextIndex) {
-        self.stacking_context_stack.push(stacking_context_index);
-
-        // Reset bounding rect to zero. We will calculate it as we collect primitives
-        // from various scroll layers. In handle_pop_stacking_context , we use this to
-        // calculate the device bounding rect. In the future, we could cache this during
-        // the initial adding of items for the common case (where there is only a single
-        // scroll layer for items in a stacking context).
-        let stacking_context =
-            &mut self.frame_builder.stacking_context_store[stacking_context_index.0];
-        stacking_context.screen_bounds = DeviceIntRect::zero();
-        stacking_context.isolated_items_bounds = LayerRect::zero();
-    }
-
-    fn rebuild_clip_info_stack_if_necessary(&mut self, clip_id: ClipId) -> Option<DeviceIntRect> {
-        if let Some((current_id, bounding_rect)) = self.current_clip_info {
-            if current_id == clip_id {
-                return bounding_rect;
-            }
-        }
-
-        // TODO(mrobinson): If we notice that this process is expensive, we can special-case
-        // more common situations, such as moving from a child or a parent.
-        self.current_clip_stack.clear();
-        self.current_clip_info = Some((clip_id, None));
-
-        let mut bounding_rect = *self.screen_rect;
-        let mut current_id = Some(clip_id);
-        // Indicates if the next non-reference-frame that we encounter needs to have its
-        // local combined clip rectangle backed into the clip mask.
-        let mut next_node_needs_region_mask = false;
-        while let Some(id) = current_id {
-            let node = &self.clip_scroll_tree.nodes.get(&id).unwrap();
-            current_id = node.parent;
-
-            let clip = match node.node_type {
-                NodeType::ReferenceFrame(ref info) => {
-                    // if the transform is non-aligned, bake the next LCCR into the clip mask
-                    next_node_needs_region_mask |= !info.transform.preserves_2d_axis_alignment();
-                    continue;
-                }
-                NodeType::Clip(ref clip) => clip,
-                NodeType::StickyFrame(..) | NodeType::ScrollFrame(..) => {
-                    continue;
-                }
-            };
-
-            let clip_sources = self.frame_builder.clip_store.get(&clip.clip_sources);
-            if !clip_sources.is_masking() {
-                continue;
-            }
-
-            // apply the screen bounds of the clip node
-            //Note: these are based on the local combined viewport, so can be tighter
-            if let Some((_kind, ref screen_rect)) = clip.screen_bounding_rect {
-                bounding_rect = match bounding_rect.intersection(screen_rect) {
-                    Some(rect) => rect,
-                    None => return None,
-                }
-            }
-
-            // apply the outer device bounds of the clip stack
-            if let Some(ref outer) = clip_sources.bounds.outer {
-                bounding_rect = match bounding_rect.intersection(&outer.device_rect) {
-                    Some(rect) => rect,
-                    None => return None,
-                }
-            }
-
-            //TODO-LCCR: bake a single LCCR instead of all aligned rects?
-            self.current_clip_stack.push(ClipWorkItem {
-                layer_index: clip.packed_layer_index,
-                clip_sources: self.frame_builder
-                    .clip_store
-                    .create_weak_handle(&clip.clip_sources),
-                apply_rectangles: next_node_needs_region_mask,
-            });
-            next_node_needs_region_mask = false;
-        }
-
-        self.current_clip_stack.reverse();
-        self.current_clip_info = Some((clip_id, Some(bounding_rect)));
-        Some(bounding_rect)
-    }
-
-    fn handle_primitive_run(
-        &mut self,
-        base_prim_index: PrimitiveIndex,
-        prim_count: usize,
-        clip_and_scroll: ClipAndScrollInfo,
-    ) {
-        let stacking_context_index = *self.stacking_context_stack.last().unwrap();
-        let (packed_layer_index, pipeline_id) = {
-            let stacking_context =
-                &mut self.frame_builder.stacking_context_store[stacking_context_index.0];
-            if !stacking_context.can_contribute_to_scene() {
-                return;
-            }
-
-            let group_index = self.frame_builder
-                .clip_scroll_group_indices
-                .get(&clip_and_scroll)
-                .unwrap();
-            let clip_scroll_group = &self.frame_builder.clip_scroll_group_store[group_index.0];
-            if !clip_scroll_group.is_visible() {
-                debug!(
-                    "{:?} of invisible {:?}",
-                    base_prim_index,
-                    stacking_context_index
-                );
-                return;
-            }
-
-            // At least one primitive in this stacking context is visible, so the stacking
-            // context is visible.
-            stacking_context.is_visible = true;
-
-            (
-                clip_scroll_group.packed_layer_index,
-                stacking_context.pipeline_id,
-            )
-        };
-
-
-        debug!(
-            "\t{:?} of {:?} at {:?}",
-            base_prim_index,
-            stacking_context_index,
-            packed_layer_index
-        );
-        let clip_bounds =
-            match self.rebuild_clip_info_stack_if_necessary(clip_and_scroll.clip_node_id()) {
-                Some(rect) => rect,
-                None => return,
-            };
-
-        let stacking_context =
-            &mut self.frame_builder.stacking_context_store[stacking_context_index.0];
-        let packed_layer = &self.frame_builder.packed_layers[packed_layer_index.0];
-        let display_list = self.display_lists
-            .get(&pipeline_id)
-            .expect("No display list?");
-        debug!(
-            "\tclip_bounds {:?}, layer_local_clip {:?}",
-            clip_bounds,
-            packed_layer.local_clip_rect
-        );
-
-        if !stacking_context.is_backface_visible && packed_layer.transform.is_backface_visible() {
-            return;
-        }
-
-        for i in 0 .. prim_count {
-            let prim_index = PrimitiveIndex(base_prim_index.0 + i);
-            let prim_store = &mut self.frame_builder.prim_store;
-            let (prim_local_rect, prim_screen_rect) = match prim_store.build_bounding_rect(
-                prim_index,
-                &clip_bounds,
-                &packed_layer.transform,
-                &packed_layer.local_clip_rect,
-                self.device_pixel_ratio,
-            ) {
-                Some(rects) => rects,
-                None => continue,
-            };
-
-            debug!("\t\t{:?} bound is {:?}", prim_index, prim_screen_rect);
-
-            let prim_metadata = prim_store.prepare_prim_for_render(
-                prim_index,
-                self.resource_cache,
-                self.gpu_cache,
-                &packed_layer.transform,
-                self.device_pixel_ratio,
-                display_list,
-                TextRunMode::Normal,
-                &mut self.render_tasks,
-                &mut self.frame_builder.clip_store,
-            );
-
-            stacking_context.screen_bounds =
-                stacking_context.screen_bounds.union(&prim_screen_rect);
-            stacking_context.isolated_items_bounds = stacking_context
-                .isolated_items_bounds
-                .union(&prim_local_rect);
-
-            // Try to create a mask if we may need to.
-            let prim_clips = self.frame_builder
-                .clip_store
-                .get(&prim_metadata.clip_sources);
-            let clip_task = if prim_clips.is_masking() {
-                // Take into account the actual clip info of the primitive, and
-                // mutate the current bounds accordingly.
-                let mask_rect = match prim_clips.bounds.outer {
-                    Some(ref outer) => match prim_screen_rect.intersection(&outer.device_rect) {
-                        Some(rect) => rect,
-                        None => continue,
-                    },
-                    _ => prim_screen_rect,
-                };
-
-                let extra = ClipWorkItem {
-                    layer_index: packed_layer_index,
-                    clip_sources: self.frame_builder
-                        .clip_store
-                        .create_weak_handle(&prim_metadata.clip_sources),
-                    apply_rectangles: false,
-                };
-
-                RenderTask::new_mask(
-                    None,
-                    mask_rect,
-                    &self.current_clip_stack,
-                    Some(extra),
-                    prim_screen_rect,
-                    &self.frame_builder.clip_store,
-                )
-            } else if !self.current_clip_stack.is_empty() {
-                // If the primitive doesn't have a specific clip, key the task ID off the
-                // stacking context. This means that two primitives which are only clipped
-                // by the stacking context stack can share clip masks during render task
-                // assignment to targets.
-                RenderTask::new_mask(
-                    Some(clip_and_scroll.clip_node_id()),
-                    clip_bounds,
-                    &self.current_clip_stack,
-                    None,
-                    prim_screen_rect,
-                    &self.frame_builder.clip_store,
-                )
-            } else {
-                None
-            };
-
-            let render_tasks = &mut self.render_tasks;
-            prim_metadata.clip_task_id = clip_task.map(|clip_task| render_tasks.add(clip_task));
-
-            self.profile_counters.visible_primitives.inc();
         }
     }
 }

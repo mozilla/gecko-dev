@@ -12,7 +12,6 @@
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "mozilla/layers/WebRenderCanvasRenderer.h"
-#include "mozilla/layers/WebRenderLayer.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
@@ -127,7 +126,6 @@ public:
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc,
-                                       nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
                                        nsDisplayListBuilder* aDisplayListBuilder) override
   {
@@ -139,7 +137,7 @@ public:
       {
         bool isRecycled;
         RefPtr<WebRenderCanvasData> canvasData =
-          aManager->CreateOrRecycleWebRenderUserData<WebRenderCanvasData>(this, &isRecycled);
+          aManager->CommandBuilder().CreateOrRecycleWebRenderUserData<WebRenderCanvasData>(this, &isRecycled);
         WebRenderCanvasRendererAsync* data =
           static_cast<WebRenderCanvasRendererAsync*>(canvasData->GetCanvasRenderer());
 
@@ -155,7 +153,7 @@ public:
         // Push IFrame for async image pipeline.
         // XXX Remove this once partial display list update is supported.
 
-        /* ScrollingLayersHelper scroller(this, aBuilder, aSc); */
+        /* ScrollingLayersHelper scroller(this, aBuilder, aResources, aSc); */
         nsIntSize canvasSizeInPx = data->GetSize();
         IntrinsicSize intrinsicSize = IntrinsicSizeFromCanvasSize(canvasSizeInPx);
         nsSize intrinsicRatio = IntrinsicRatioFromCanvasSize(canvasSizeInPx);
@@ -176,16 +174,15 @@ public:
         // That happens in WebRenderCompositableHolder.
 
         wr::LayoutRect r = aSc.ToRelativeLayoutRect(bounds);
-        aBuilder.PushIFrame(r, data->GetPipelineId().ref());
+        aBuilder.PushIFrame(r, !BackfaceIsHidden(), data->GetPipelineId().ref());
 
         gfx::Matrix4x4 scTransform;
-        if (data->NeedsYFlip()) {
-          scTransform = scTransform.PreTranslate(0, data->GetSize().height, 0).PreScale(1, -1, 1);
-        }
-
         gfxRect destGFXRect = mFrame->PresContext()->AppUnitsToGfxUnits(dest);
         scTransform.PreScale(destGFXRect.Width() / canvasSizeInPx.width,
                              destGFXRect.Height() / canvasSizeInPx.height, 1.0f);
+        if (data->NeedsYFlip()) {
+          scTransform = scTransform.PreTranslate(0, data->GetSize().height, 0).PreScale(1, -1, 1);
+        }
 
         MaybeIntSize scaleToSize;
         LayerRect scBounds(0, 0, bounds.width, bounds.height);

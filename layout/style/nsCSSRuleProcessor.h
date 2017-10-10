@@ -86,7 +86,7 @@ public:
   static void InitSystemMetrics();
   static void Shutdown();
   static void FreeSystemMetrics();
-  static bool HasSystemMetric(nsIAtom* aMetric);
+  static bool HasSystemMetric(nsAtom* aMetric);
 
   /*
    * Returns true if the given aElement matches one of the
@@ -154,12 +154,8 @@ public:
    * @param aPseudo The name of the pseudoselector
    * @param aString The identifier inside the pseudoselector (cannot be null)
    * @param aDocument The document
-   * @param aForStyling Is this matching operation for the creation of a style context?
-   *                    (For setting the slow selector flag)
    * @param aStateMask Mask containing states which we should exclude.
    *                   Ignored if aDependence is null
-   * @param aSetSlowSelectorFlag Outparam, set if the caller is
-   *                             supposed to set the slow selector flag.
    * @param aDependence Pointer to be set to true if we ignored a state due to
    *                    aStateMask. Can be null.
    */
@@ -167,13 +163,11 @@ public:
                                   mozilla::CSSPseudoClassType aPseudo,
                                   const char16_t* aString,
                                   const nsIDocument* aDocument,
-                                  bool aForStyling,
                                   mozilla::EventStates aStateMask,
-                                  bool* aSetSlowSelectorFlag,
                                   bool* const aDependence = nullptr);
 
   static bool LangPseudoMatches(const mozilla::dom::Element* aElement,
-                                const nsIAtom* aOverrideLang,
+                                const nsAtom* aOverrideLang,
                                 bool aHasOverrideLang,
                                 const char16_t* aString,
                                 const nsIDocument* aDocument);
@@ -221,7 +215,7 @@ public:
                                            const nsString& aName);
 
   nsCSSCounterStyleRule* CounterStyleRuleForName(nsPresContext* aPresContext,
-                                                 nsIAtom* aName);
+                                                 nsAtom* aName);
 
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);

@@ -8,9 +8,12 @@
 #include "SandboxInfo.h"
 #include "SandboxLogging.h"
 
+#include "mozilla/Array.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/SandboxSettings.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -28,6 +31,11 @@
 #include <glib.h>
 #endif
 
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+#include <sys/types.h>
+
 namespace mozilla {
 
 #if defined(MOZ_CONTENT_SANDBOX)
@@ -38,6 +46,44 @@ static const int rdwr = rdonly | wronly;
 static const int rdwrcr = rdwr | SandboxBroker::MAY_CREATE;
 }
 #endif
+
+static void
+AddMesaSysfsPaths(SandboxBroker::Policy* aPolicy)
+{
+  // Bug 1384178: Mesa driver loader
+  aPolicy->AddPrefix(rdonly, "/sys/dev/char/226:");
+
+  // Bug 1401666: Mesa driver loader part 2: Mesa <= 12 using libudev
+  if (auto dir = opendir("/dev/dri")) {
+    while (auto entry = readdir(dir)) {
+      if (entry->d_name[0] != '.') {
+        nsPrintfCString devPath("/dev/dri/%s", entry->d_name);
+        struct stat sb;
+        if (stat(devPath.get(), &sb) == 0 && S_ISCHR(sb.st_mode)) {
+          // For both the DRI node and its parent (the physical
+          // device), allow reading the "uevent" file.
+          static const Array<const char*, 2> kSuffixes = { "", "/device" };
+          for (const auto suffix : kSuffixes) {
+            nsPrintfCString sysPath("/sys/dev/char/%u:%u%s",
+                                    major(sb.st_rdev),
+                                    minor(sb.st_rdev),
+                                    suffix);
+            // libudev will expand the symlink but not do full
+            // canonicalization, so it will leave in ".." path
+            // components that will be realpath()ed in the
+            // broker.  To match this, allow the canonical paths.
+            UniqueFreePtr<char[]> realSysPath(realpath(sysPath.get(), nullptr));
+            if (realSysPath) {
+              nsPrintfCString ueventPath("%s/uevent", realSysPath.get());
+              aPolicy->AddPath(rdonly, ueventPath.get());
+            }
+          }
+        }
+      }
+    }
+    closedir(dir);
+  }
+}
 
 SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory()
 {
@@ -107,6 +153,9 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory()
   policy->AddDir(rdonly, "/usr/lib32");
   policy->AddDir(rdonly, "/usr/lib64");
   policy->AddDir(rdonly, "/etc");
+#ifdef MOZ_PULSEAUDIO
+  policy->AddPath(rdonly, "/var/lib/dbus/machine-id");
+#endif
   policy->AddDir(rdonly, "/usr/share");
   policy->AddDir(rdonly, "/usr/local/share");
   policy->AddDir(rdonly, "/usr/tmp");
@@ -117,8 +166,7 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory()
   policy->AddDir(rdonly, "/run/host/fonts");
   policy->AddDir(rdonly, "/run/host/user-fonts");
 
-  // Bug 1384178: Mesa driver loader
-  policy->AddPrefix(rdonly, "/sys/dev/char/226:");
+  AddMesaSysfsPaths(policy);
 
   // Bug 1385715: NVIDIA PRIME support
   policy->AddPath(rdonly, "/proc/modules");
@@ -213,13 +261,25 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory()
   // Firefox binary dir.
   // Note that unlike the previous cases, we use NS_GetSpecialDirectory
   // instead of GetSpecialSystemDirectory. The former requires a working XPCOM
-  // system, which may not be the case for some tests. For quering for the
+  // system, which may not be the case for some tests. For querying for the
   // location of XPCOM things, we can use it anyway.
   nsCOMPtr<nsIFile> ffDir;
   rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(ffDir));
   if (NS_SUCCEEDED(rv)) {
     nsAutoCString tmpPath;
     rv = ffDir->GetNativePath(tmpPath);
+    if (NS_SUCCEEDED(rv)) {
+      policy->AddDir(rdonly, tmpPath.get());
+    }
+  }
+
+  // ~/.mozilla/systemextensionsdev (bug 1393805)
+  nsCOMPtr<nsIFile> sysExtDevDir;
+  rv = NS_GetSpecialDirectory(XRE_USER_SYS_EXTENSION_DEV_DIR,
+                              getter_AddRefs(sysExtDevDir));
+  if (NS_SUCCEEDED(rv)) {
+    nsAutoCString tmpPath;
+    rv = sysExtDevDir->GetNativePath(tmpPath);
     if (NS_SUCCEEDED(rv)) {
       policy->AddDir(rdonly, tmpPath.get());
     }
@@ -244,7 +304,9 @@ UniquePtr<SandboxBroker::Policy>
 SandboxBrokerPolicyFactory::GetContentPolicy(int aPid, bool aFileProcess)
 {
   // Policy entries that vary per-process (currently the only reason
-  // that can happen is because they contain the pid) are added here.
+  // that can happen is because they contain the pid) are added here,
+  // as well as entries that depend on preferences or paths not available
+  // in early startup.
 
   MOZ_ASSERT(NS_IsMainThread());
   // File broker usage is controlled through a pref.
@@ -284,6 +346,11 @@ SandboxBrokerPolicyFactory::GetContentPolicy(int aPid, bool aFileProcess)
   // Bug 1198552: memory reporting.
   policy->AddPath(rdonly, nsPrintfCString("/proc/%d/statm", aPid).get());
   policy->AddPath(rdonly, nsPrintfCString("/proc/%d/smaps", aPid).get());
+
+  // Bug 1384804, notably comment 15
+  // Used by libnuma, included by x265/ffmpeg, who falls back
+  // to get_mempolicy if this fails
+  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/status", aPid).get());
 
   // userContent.css and the extensions dir sit in the profile, which is
   // normally blocked and we can't get the profile dir earlier in startup,

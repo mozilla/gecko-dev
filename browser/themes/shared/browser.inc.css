@@ -2,20 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%ifdef CAN_DRAW_IN_TITLEBAR
-/* Add space for dragging the window */
-%ifdef MOZ_WIDGET_COCOA
-:root[tabsintitlebar]:not([sizemode=fullscreen]) #TabsToolbar
-%elifdef MENUBAR_CAN_AUTOHIDE
-:root[tabsintitlebar][sizemode=normal] #toolbar-menubar[autohide=true] ~ #TabsToolbar
-%else
-:root[tabsintitlebar][sizemode=normal] #TabsToolbar
-%endif
-{
-  padding-inline-start: 40px;
-}
-%endif
-
 %include downloads/indicator.inc.css
 
 :root {
@@ -36,7 +22,7 @@
 }
 
 :root[customizing] #navigator-toolbox::after {
-  display: none;
+  border-bottom-style: none;
 }
 
 /* Bookmark toolbar */
@@ -79,3 +65,63 @@
   display: -moz-box;
 }
 
+/* Back / Forward context menu */
+
+.unified-nav-back[_moz-menuactive]:-moz-locale-dir(ltr),
+.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(rtl) {
+  list-style-image: url("chrome://browser/skin/back.svg") !important;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(ltr),
+.unified-nav-back[_moz-menuactive]:-moz-locale-dir(rtl) {
+  list-style-image: url("chrome://browser/skin/forward.svg") !important;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+/* Private browsing and accessibility indicators */
+
+.accessibility-indicator,
+.private-browsing-indicator {
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+  background-position: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  margin-right: 8px;
+  position: relative;
+  /* Need to ensure this gets positioned on top of the position:relative #navigator-toolbox
+   * in case the dark/light themes give that item a background. */
+  z-index: 1;
+}
+
+.accessibility-indicator {
+  background-image: url("chrome://browser/skin/accessibility.svg");
+  -moz-user-focus: normal;
+  /* Clear default button styling */
+  -moz-appearance: none;
+  margin-top: unset;
+  margin-bottom: unset;
+  min-width: unset;
+  color: unset;
+  text-shadow: unset;
+}
+
+.accessibility-indicator:-moz-any(:hover, :active, :focus, :-moz-focusring) {
+  background-image: url("chrome://browser/skin/accessibility-active.svg");
+  outline: 0;
+}
+
+.private-browsing-indicator {
+  background-image: url("chrome://browser/skin/private-browsing.svg");
+}
+
+:root:not([accessibilitymode]) .accessibility-indicator,
+:root:not([privatebrowsingmode=temporary]) .private-browsing-indicator {
+  display: none;
+}
+
+/* End private browsing and accessibility indicators */

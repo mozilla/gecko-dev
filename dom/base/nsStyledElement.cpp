@@ -37,7 +37,7 @@ NS_IMPL_QUERY_INTERFACE_CYCLE_COLLECTION_INHERITED(nsStyledElement,
 
 bool
 nsStyledElement::ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult)
 {
@@ -51,7 +51,7 @@ nsStyledElement::ParseAttribute(int32_t aNamespaceID,
 }
 
 nsresult
-nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                const nsAttrValueOrString* aValue, bool aNotify)
 {
   if (aNamespaceID == kNameSpaceID_None) {
@@ -109,7 +109,8 @@ nsStyledElement::SetInlineStyleDeclaration(DeclarationBlock* aDeclaration,
   nsIDocument* document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
   return SetAttrAndNotify(kNameSpaceID_None, nsGkAtoms::style, nullptr,
-                          oldValueSet ? &oldValue : nullptr, attrValue, modType,
+                          oldValueSet ? &oldValue : nullptr, attrValue,
+                          nullptr, modType,
                           hasListeners, aNotify, kDontCallAfterSetAttr,
                           document, updateBatch);
 }

@@ -15,7 +15,7 @@ caption > label:not(.dialogTitle) {
 }
 
 .tip-caption,
-.help-button {
+.help-label {
   font-size: 1rem;
 }
 
@@ -45,7 +45,6 @@ menulist.actionsMenu > .menulist-dropmarker {
   margin-bottom: 11px;
 }
 
-textbox + button,
 filefield + button {
   margin-inline-start: -4px;
 }

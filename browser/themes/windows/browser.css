@@ -8,11 +8,14 @@
 @namespace html url("http://www.w3.org/1999/xhtml");
 
 %include ../shared/browser.inc.css
+%filter substitution
+%define glassShadowColor hsla(209,67%,12%,0.35)
 
 :root {
   --titlebar-text-color: currentColor;
 
   --tabs-border: threedshadow;
+  --tab-line-color: highlight;
 
   --toolbar-non-lwt-bgcolor: -moz-dialog;
   --toolbar-non-lwt-textcolor: -moz-dialogtext;
@@ -37,6 +40,7 @@
 @media (-moz-windows-default-theme) {
   :root {
     --tabs-border: rgba(0,0,0,.3);
+    --tab-line-color: #0a84ff;
 
     --toolbar-non-lwt-bgcolor: #f9f9fa;
     --toolbar-non-lwt-textcolor: #0c0c0d;
@@ -75,14 +79,14 @@
 
 :root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar,
 :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
-  margin-top: var(--space-above-tabbar);
+  padding-top: var(--space-above-tabbar);
 }
 
 /* Add 4px extra margin on top of the tabs toolbar on Windows 7. */
 @media (-moz-os-version: windows-win7) {
   :root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar,
   :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
-    margin-top: calc(var(--space-above-tabbar) + 4px);
+    padding-top: calc(var(--space-above-tabbar) + 4px);
   }
 }
 
@@ -101,6 +105,52 @@
 #toolbar-menubar,
 #TabsToolbar {
   color: var(--titlebar-text-color);
+}
+
+/*
+ * Windows 7 draws the chrome background color as the tab background
+ * instead of in the tabs toolbar.
+ */
+@media (-moz-os-version: windows-win7) {
+  @media (-moz-windows-default-theme) {
+    :root:not(:-moz-lwtheme) {
+      --tabs-border: @glassShadowColor@;
+    }
+
+    #TabsToolbar:not(:-moz-lwtheme) {
+      color: hsl(240,9%,98%);
+    }
+
+    /* Always show full-height tab separators on tabs with borders. */
+    .tabbrowser-tab:not(:-moz-lwtheme)::before,
+    .tabbrowser-tab:not(:-moz-lwtheme)::after {
+      border-image: none !important;
+    }
+
+    /* Show border on tabs with background colors and
+     * show the tabs toolbar background color inside tabs. */
+    .tabbrowser-tab:not(:-moz-lwtheme) {
+      background-color: hsl(235,33%,19%) !important;
+      border-top: 1px solid var(--tabs-border);
+      background-clip: padding-box;
+    }
+
+    /* The top border on top of the tab background is replaced
+     * by the slightly transparent outside tabs-border. */
+    .tab-background:not(:-moz-lwtheme) {
+      border-top-style: none !important;
+    }
+
+    /* The border at the end of the tab strip is replaced
+     * by the slightly transparent outside tabs-border. */
+    .tabbrowser-tab[last-visible-tab]:not(:-moz-lwtheme) {
+      border-inline-end: 1px solid var(--tabs-border);
+    }
+
+    .tabbrowser-tab[last-visible-tab]:not(:-moz-lwtheme)::after {
+      display: none !important;
+    }
+  }
 }
 
 @media (-moz-windows-compositor: 0),
@@ -251,8 +301,15 @@
   z-index: 1;
 }
 
-.titlebar-placeholder[type="caption-buttons"] {
-  margin-left: 22px; /* space needed for Aero Snap */
+#titlebar-buttonbox-container {
+  -moz-box-align: center;
+}
+
+@media (-moz-os-version: windows-win7) {
+  /* Preserve window control buttons position at the top of the button box. */
+  #titlebar-buttonbox-container {
+    -moz-box-align: start;
+  }
 }
 
 /* titlebar command buttons */
@@ -296,60 +353,6 @@ menuitem.bookmark-item {
   padding-inline-start: 0px;
 }
 
-/* ::::: bookmark items ::::: */
-
-.bookmark-item  {
-  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
-}
-
-.bookmark-item[container] {
-  list-style-image: url("chrome://global/skin/icons/folder-item.png");
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
-}
-
-.bookmark-item[container][open] {
-  -moz-image-region: rect(16px, 32px, 32px, 16px);
-}
-
-.bookmark-item[container][livemark] {
-  list-style-image: url("chrome://browser/skin/livemark-folder.png");
-  -moz-image-region: auto;
-}
-
-.bookmark-item[container][livemark] .bookmark-item {
-  list-style-image: url("chrome://browser/skin/places/livemark-item.png");
-  -moz-image-region: rect(0px, 16px, 16px, 0px);
-}
-
-.bookmark-item[container][livemark] .bookmark-item[visited] {
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
-}
-
-.bookmark-item[container][query] {
-  list-style-image: url("chrome://browser/skin/places/query.png");
-  -moz-image-region: auto;
-}
-
-.bookmark-item[query][tagContainer] {
-  list-style-image: url("chrome://browser/skin/places/tag.png");
-  -moz-image-region: auto;
-}
-
-.bookmark-item[query][dayContainer] {
-  list-style-image: url("chrome://browser/skin/places/calendar.png");
-  -moz-image-region: auto;
-}
-
-.bookmark-item[query][hostContainer] {
-  list-style-image: url("chrome://global/skin/icons/folder-item.png");
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
-}
-
-.bookmark-item[query][hostContainer][open] {
-  list-style-image: url("chrome://global/skin/icons/folder-item.png");
-  -moz-image-region: rect(16px, 32px, 32px, 16px);
-}
-
 .bookmark-item[cutting] > .toolbarbutton-icon,
 .bookmark-item[cutting] > .menu-iconic-left > .menu-iconic-icon {
   opacity: 0.5;
@@ -365,16 +368,6 @@ menuitem.bookmark-item {
 %include ../shared/toolbarbuttons.inc.css
 %include ../shared/toolbarbutton-icons.inc.css
 %include ../shared/menupanel.inc.css
-
-.unified-nav-back[_moz-menuactive]:-moz-locale-dir(ltr),
-.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/menu-back.png") !important;
-}
-
-.unified-nav-forward[_moz-menuactive]:-moz-locale-dir(ltr),
-.unified-nav-back[_moz-menuactive]:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/menu-forward.png") !important;
-}
 
 /* ::::: fullscreen window controls ::::: */
 
@@ -540,9 +533,6 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 .urlbar-textbox-container {
   -moz-box-align: stretch;
 }
-.urlbar-input-box {
-  margin: 0;
-}
 
 /* ::::: URL Bar Zoom Reset Button ::::: */
 @keyframes urlbar-zoom-reset-pulse {
@@ -700,7 +690,7 @@ html|span.ac-emphasize-text-url {
 
 .ac-type-icon[type=keyword],
 .ac-site-icon[type=searchengine] {
-  list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg);
+  list-style-image: url(chrome://browser/skin/search-glass.svg);
   -moz-context-properties: fill;
   fill: GrayText;
 }
@@ -1082,102 +1072,38 @@ notification[value="translation"] {
   transform: perspective(0.01px);
 }
 
-#customization-tipPanel > .panel-arrowcontainer > .panel-arrowbox > .panel-arrow[side="left"] {
-  margin-right: -2px;
-}
-
-#customization-tipPanel > .panel-arrowcontainer > .panel-arrowbox > .panel-arrow[side="right"] {
-  margin-left: -2px;
-}
-
 /* End customization mode */
 
-/* Private browsing indicators */
+/* Private browsing and accessibility indicators */
 
-/**
- * Currently, we have two places where we put private browsing indicators on
- * Windows. When tabsintitlebar is enabled, we draw the indicator in the titlebar.
- * When tabsintitlebar is disabled, we draw the indicator at the end of the
- * tabstrip. The titlebar indicator is the fiddliest of the bunch, since we
- * want the bottom border of the image to line up with the bottom of the window
- * caption buttons. That's why there's so much special-casing going on in here.
- */
-.private-browsing-indicator {
-  display: none;
-  pointer-events: none;
+:root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar > .private-browsing-indicator,
+:root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar > .accessibility-indicator,
+:root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar > .private-browsing-indicator,
+:root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar > .accessibility-indicator {
+  margin-top: calc(-1 * var(--space-above-tabbar));
 }
 
-#private-browsing-indicator-titlebar {
-  display: block;
-  position: absolute;
-  /* Need to ensure this gets positioned on top of the position:relative #navigator-toolbox
-   * in case the dark/light themes give that item a background. */
-  z-index: 1;
-}
-
-#main-window[privatebrowsingmode=temporary][tabsintitlebar] #private-browsing-indicator-titlebar > .private-browsing-indicator {
-  display: block;
-}
-
-#main-window[privatebrowsingmode=temporary]:-moz-any([inFullscreen],:not([tabsintitlebar])) #TabsToolbar > .private-browsing-indicator {
-  display: -moz-box;
-}
-
-#TabsToolbar > .private-browsing-indicator {
-  background: url("chrome://browser/skin/privatebrowsing-mask-tabstrip.png") no-repeat center -3px;
-  margin-inline-start: 4px;
-  width: 48px;
-}
-
-/* Bug 1008183: We're intentionally using the titlebar asset here for fullscreen
- * mode, since the tabstrip "mimics" the titlebar in that case with its own
- * min/max/close window buttons.
- */
-#private-browsing-indicator-titlebar > .private-browsing-indicator,
-#main-window[inFullscreen] #TabsToolbar > .private-browsing-indicator {
-  background: url("chrome://browser/skin/privatebrowsing-mask-titlebar.png") no-repeat center 0px;
-  margin-inline-end: 4px;
-  width: 40px;
-  height: 20px;
-  position: relative;
-}
-
-@media (-moz-windows-classic) {
-  /**
-   * We have to use top instead of background-position in this case, otherwise
-   * the bottom of the indicator would get cut off by the bounds of the
-   * private-browsing-indicator element.
-   */
-  #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-    top: 4px;
-  }
-}
-
+/* Compensate for 4px extra margin on top of the tabs toolbar on Windows 7. */
 @media (-moz-os-version: windows-win7) {
-  @media (-moz-windows-glass) {
-    #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-      top: 1px;
-    }
-    #main-window[sizemode="maximized"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-      top: -1px;
-    }
-  }
-
-  /**
-   * This next block targets Aero Basic, which has different positioning for the
-   * window caption buttons, and therefore needs to be special-cased.
-   */
-  @media (-moz-windows-default-theme) {
-    @media (-moz-windows-compositor: 0) {
-      #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-        background-image: url("chrome://browser/skin/privatebrowsing-mask-titlebar-win7-tall.png");
-        height: 28px;
-      }
-    }
+  :root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar > .private-browsing-indicator,
+  :root[sizemode="normal"][chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar > .accessibility-indicator,
+  :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar > .private-browsing-indicator,
+  :root[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar > .accessibility-indicator {
+    margin-top: calc(-1 * (var(--space-above-tabbar) + 4px));
   }
 }
 
-/* End private browsing indicators */
+:root:not([privatebrowsingmode=temporary]) .accessibility-indicator,
+.private-browsing-indicator {
+  margin-inline-end: 12px;
+}
+
+:root:not([accessibilitymode]) .private-browsing-indicator,
+.accessibility-indicator {
+  margin-inline-start: 12px;
+}
+
+/* End private browsing and accessibility indicators */
 
 %include ../shared/UITour.inc.css
 

@@ -1,203 +1,214 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=78: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-#include "nsIAtom.h"
 #include "nsElementTable.h"
 
-/***************************************************************************** 
-  Now it's time to list all the html elements all with their capabilities...
-******************************************************************************/
-
-// The Element Table (sung to the tune of Modern Major General)
+struct HTMLElement
+{
+#ifdef DEBUG
+  nsHTMLTag mTagID;
+#endif
+  bool mIsBlock;
+  bool mIsContainer;
+};
 
 #ifdef DEBUG
-#define ELEM(tag, parent, leaf) { eHTMLTag_##tag, parent, leaf },
+#define ELEM(tag, block, container) { eHTMLTag_##tag, block, container },
 #else
-#define ELEM(tag, parent, leaf) { parent, leaf },
+#define ELEM(tag, block, container) { block, container },
 #endif
 
-const nsHTMLElement gHTMLElements[] = {
-  ELEM(unknown,     kNone,                       true)
-  ELEM(a,           kSpecial,                    false)
-  ELEM(abbr,        kPhrase,                     false)
-  ELEM(acronym,     kPhrase,                     false)
-  ELEM(address,     kBlock,                      false)
-  ELEM(applet,      kSpecial,                    false)
-  ELEM(area,        kNone,                       true)
-  ELEM(article,     kBlock,                      false)
-  ELEM(aside,       kBlock,                      false)
-  ELEM(audio,       kSpecial,                    false)
-  ELEM(b,           kFontStyle,                  false)
-  ELEM(base,        kHeadContent,                true)
-  ELEM(basefont,    kSpecial,                    true)
-  ELEM(bdo,         kSpecial,                    false)
-  ELEM(bgsound,     (kFlowEntity|kHeadMisc),     true)
-  ELEM(big,         kFontStyle,                  false)
-  ELEM(blockquote,  kBlock,                      false)
-  ELEM(body,        kHTMLContent,                false)
-  ELEM(br,          kSpecial,                    true)
-  ELEM(button,      kFormControl,                false)
-  ELEM(canvas,      kSpecial,                    false)
-  ELEM(caption,     kNone,                       false)
-  ELEM(center,      kBlock,                      false)
-  ELEM(cite,        kPhrase,                     false)
-  ELEM(code,        kPhrase,                     false)
-  ELEM(col,         kNone,                       true)
-  ELEM(colgroup,    kNone,                       false)
-  ELEM(content,     kNone,                       false)
-  ELEM(data,        kPhrase,                     false)
-  ELEM(datalist,    kSpecial,                    false)
-  ELEM(dd,          kInlineEntity,               false)
-  ELEM(del,         kFlowEntity,                 false)
-  ELEM(details,     kBlock,                      false)
-  ELEM(dfn,         kPhrase,                     false)
-  ELEM(dialog,      kBlock,                      false)
-  ELEM(dir,         kList,                       false)
-  ELEM(div,         kBlock,                      false)
-  ELEM(dl,          kBlock,                      false)
-  ELEM(dt,          kInlineEntity,               false)
-  ELEM(em,          kPhrase,                     false)
-  ELEM(embed,       kSpecial,                    true)
-  ELEM(fieldset,    kBlock,                      false)
-  ELEM(figcaption,  kPhrase,                     false)
-  ELEM(figure,      kBlock,                      false)
-  ELEM(font,        kFontStyle,                  false)
-  ELEM(footer,      kBlock,                      false)
-  ELEM(form,        kBlock,                      false)
-  ELEM(frame,       kNone,                       true)
-  ELEM(frameset,    kHTMLContent,                false)
-  ELEM(h1,          kHeading,                    false)
-  ELEM(h2,          kHeading,                    false)
-  ELEM(h3,          kHeading,                    false)
-  ELEM(h4,          kHeading,                    false)
-  ELEM(h5,          kHeading,                    false)
-  ELEM(h6,          kHeading,                    false)
-  ELEM(head,        kHTMLContent,                false)
-  ELEM(header,      kBlock,                      false)
-  ELEM(hgroup,      kBlock,                      false)
-  ELEM(hr,          kBlock,                      true)
-  ELEM(html,        kNone,                       false)
-  ELEM(i,           kFontStyle,                  false)
-  ELEM(iframe,      kSpecial,                    false)
-  ELEM(image,       kSpecial,                    true)
-  ELEM(img,         kSpecial,                    true)
-  ELEM(input,       kFormControl,                true)
-  ELEM(ins,         kFlowEntity,                 false)
-  ELEM(kbd,         kPhrase,                     false)
-  ELEM(keygen,      kFlowEntity,                 true)
-  ELEM(label,       kFormControl,                false)
-  ELEM(legend,      kNone,                       false)
-  ELEM(li,          kBlockEntity,                false)
-  ELEM(link,        kAllTags - kHeadContent,     true)
-  ELEM(listing,     kPreformatted,               false)
-  ELEM(main,        kBlock,                      false)
-  ELEM(map,         kSpecial,                    false)
-  ELEM(mark,        kSpecial,                    false)
-  ELEM(marquee,     kSpecial,                    false)
-  ELEM(menu,        kList,                       false)
-  ELEM(menuitem,    kFlowEntity,                 false)
-  ELEM(meta,        kHeadContent,                true)
-  ELEM(meter,       kFormControl,                false)
-  ELEM(multicol,    kBlock,                      false)
-  ELEM(nav,         kBlock,                      false)
-  ELEM(nobr,        kExtensions,                 false)
-  ELEM(noembed,     kFlowEntity,                 false)
-  ELEM(noframes,    kFlowEntity,                 false)
-  ELEM(noscript,    kFlowEntity|kHeadMisc,       false)
-  ELEM(object,      kSpecial,                    false)
-  ELEM(ol,          kList,                       false)
-  ELEM(optgroup,    kNone,                       false)
-  ELEM(option,      kNone,                       false)
-  ELEM(output,      kSpecial,                    false)
-  ELEM(p,           kBlock,                      false)
-  ELEM(param,       kSpecial,                    true)
-  ELEM(picture,     kSpecial,                    false)
-  ELEM(plaintext,   kExtensions,                 false)
-  ELEM(pre,         kBlock|kPreformatted,        false)
-  ELEM(progress,    kFormControl,                false)
-  ELEM(q,           kSpecial,                    false)
-  ELEM(rb,          kPhrase,                     false)
-  ELEM(rp,          kPhrase,                     false)
-  ELEM(rt,          kPhrase,                     false)
-  ELEM(rtc,         kPhrase,                     false)
-  ELEM(ruby,        kPhrase,                     false)
-  ELEM(s,           kFontStyle,                  false)
-  ELEM(samp,        kPhrase,                     false)
-  ELEM(script,      (kSpecial|kHeadContent),     false)
-  ELEM(section,     kBlock,                      false)
-  ELEM(select,      kFormControl,                false)
-  ELEM(shadow,      kFlowEntity,                 false)
-  ELEM(small,       kFontStyle,                  false)
-  ELEM(source,      kSpecial,                    true)
-  ELEM(span,        kSpecial,                    false)
-  ELEM(strike,      kFontStyle,                  false)
-  ELEM(strong,      kPhrase,                     false)
-  ELEM(style,       kAllTags - kHeadContent,     false)
-  ELEM(sub,         kSpecial,                    false)
-  ELEM(summary,     kBlock,                      false)
-  ELEM(sup,         kSpecial,                    false)
-  ELEM(table,       kBlock,                      false)
-  ELEM(tbody,       kNone,                       false)
-  ELEM(td,          kNone,                       false)
-  ELEM(textarea,    kFormControl,                false)
-  ELEM(tfoot,       kNone,                       false)
-  ELEM(th,          kNone,                       false)
-  ELEM(thead,       kNone,                       false)
-  ELEM(template,    kNone,                       false)
-  ELEM(time,        kPhrase,                     false)
-  ELEM(title,       kHeadContent,                false)
-  ELEM(tr,          kNone,                       false)
-  ELEM(track,       kSpecial,                    true)
-  ELEM(tt,          kFontStyle,                  false)
-  ELEM(u,           kFontStyle,                  false)
-  ELEM(ul,          kList,                       false)
-  ELEM(var,         kPhrase,                     false)
-  ELEM(video,       kSpecial,                    false)
-  ELEM(wbr,         kExtensions,                 true)
-  ELEM(xmp,         kInlineEntity|kPreformatted, false)
-  ELEM(text,        kFlowEntity,                 true)
-  ELEM(whitespace,  kFlowEntity|kHeadMisc,       true)
-  ELEM(newline,     kFlowEntity|kHeadMisc,       true)
-  ELEM(comment,     kFlowEntity|kHeadMisc,       false)
-  ELEM(entity,      kFlowEntity,                 false)
-  ELEM(doctypeDecl, kFlowEntity,                 false)
-  ELEM(markupDecl,  kFlowEntity,                 false)
-  ELEM(instruction, kFlowEntity,                 false)
-  ELEM(userdefined, (kFlowEntity|kHeadMisc),     false)
+#define ____ false    // This makes the table easier to read.
+
+// Note that the mIsBlock field disagrees with
+// https://developer.mozilla.org/en-US/docs/Web/HTML/Block-level_elements for
+// the following elements: center, details, dialog, dir, dt, figcaption,
+// listing, menu, multicol, noscript, output, summary, tfoot, video.
+//
+// mrbkap thinks that the field values were pulled from the old HTML4 DTD and
+// then got modified in mostly random ways to make the old parser's behavior
+// compatible with the web. So it might make sense to change the mIsBlock
+// values for the abovementioned tags at some point.
+//
+static const HTMLElement gHTMLElements[] = {
+  // clang-format off
+  ELEM(unknown,     ____, ____)
+  ELEM(a,           ____, true)
+  ELEM(abbr,        ____, true)
+  ELEM(acronym,     ____, true)
+  ELEM(address,     true, true)
+  ELEM(applet,      ____, true)
+  ELEM(area,        ____, ____)
+  ELEM(article,     true, true)
+  ELEM(aside,       true, true)
+  ELEM(audio,       ____, true)
+  ELEM(b,           ____, true)
+  ELEM(base,        ____, ____)
+  ELEM(basefont,    ____, ____)
+  ELEM(bdo,         ____, true)
+  ELEM(bgsound,     ____, ____)
+  ELEM(big,         ____, true)
+  ELEM(blockquote,  true, true)
+  ELEM(body,        ____, true)
+  ELEM(br,          ____, ____)
+  ELEM(button,      ____, true)
+  ELEM(canvas,      ____, true)
+  ELEM(caption,     ____, true)
+  ELEM(center,      true, true)
+  ELEM(cite,        ____, true)
+  ELEM(code,        ____, true)
+  ELEM(col,         ____, ____)
+  ELEM(colgroup,    ____, true)
+  ELEM(content,     ____, true)
+  ELEM(data,        ____, true)
+  ELEM(datalist,    ____, true)
+  ELEM(dd,          ____, true)
+  ELEM(del,         ____, true)
+  ELEM(details,     true, true)
+  ELEM(dfn,         ____, true)
+  ELEM(dialog,      true, true)
+  ELEM(dir,         true, true)
+  ELEM(div,         true, true)
+  ELEM(dl,          true, true)
+  ELEM(dt,          ____, true)
+  ELEM(em,          ____, true)
+  ELEM(embed,       ____, ____)
+  ELEM(fieldset,    true, true)
+  ELEM(figcaption,  ____, true)
+  ELEM(figure,      true, true)
+  ELEM(font,        ____, true)
+  ELEM(footer,      true, true)
+  ELEM(form,        true, true)
+  ELEM(frame,       ____, ____)
+  ELEM(frameset,    ____, true)
+  ELEM(h1,          true, true)
+  ELEM(h2,          true, true)
+  ELEM(h3,          true, true)
+  ELEM(h4,          true, true)
+  ELEM(h5,          true, true)
+  ELEM(h6,          true, true)
+  ELEM(head,        ____, true)
+  ELEM(header,      true, true)
+  ELEM(hgroup,      true, true)
+  ELEM(hr,          true, ____)
+  ELEM(html,        ____, true)
+  ELEM(i,           ____, true)
+  ELEM(iframe,      ____, true)
+  ELEM(image,       ____, ____)
+  ELEM(img,         ____, ____)
+  ELEM(input,       ____, ____)
+  ELEM(ins,         ____, true)
+  ELEM(kbd,         ____, true)
+  ELEM(keygen,      ____, ____)
+  ELEM(label,       ____, true)
+  ELEM(legend,      ____, true)
+  ELEM(li,          true, true)
+  ELEM(link,        ____, ____)
+  ELEM(listing,     true, true)
+  ELEM(main,        true, true)
+  ELEM(map,         ____, true)
+  ELEM(mark,        ____, true)
+  ELEM(marquee,     ____, true)
+  ELEM(menu,        true, true)
+  ELEM(menuitem,    ____, true)
+  ELEM(meta,        ____, ____)
+  ELEM(meter,       ____, true)
+  ELEM(multicol,    true, true)
+  ELEM(nav,         true, true)
+  ELEM(nobr,        ____, true)
+  ELEM(noembed,     ____, true)
+  ELEM(noframes,    ____, true)
+  ELEM(noscript,    ____, true)
+  ELEM(object,      ____, true)
+  ELEM(ol,          true, true)
+  ELEM(optgroup,    ____, true)
+  ELEM(option,      ____, true)
+  ELEM(output,      ____, true)
+  ELEM(p,           true, true)
+  ELEM(param,       ____, ____)
+  ELEM(picture,     ____, true)
+  ELEM(plaintext,   ____, true)
+  ELEM(pre,         true, true)
+  ELEM(progress,    ____, true)
+  ELEM(q,           ____, true)
+  ELEM(rb,          ____, true)
+  ELEM(rp,          ____, true)
+  ELEM(rt,          ____, true)
+  ELEM(rtc,         ____, true)
+  ELEM(ruby,        ____, true)
+  ELEM(s,           ____, true)
+  ELEM(samp,        ____, true)
+  ELEM(script,      ____, true)
+  ELEM(section,     true, true)
+  ELEM(select,      ____, true)
+  ELEM(small,       ____, true)
+  ELEM(slot,        ____, true)
+  ELEM(source,      ____, ____)
+  ELEM(span,        ____, true)
+  ELEM(strike,      ____, true)
+  ELEM(strong,      ____, true)
+  ELEM(style,       ____, true)
+  ELEM(sub,         ____, true)
+  ELEM(summary,     true, true)
+  ELEM(sup,         ____, true)
+  ELEM(table,       true, true)
+  ELEM(tbody,       ____, true)
+  ELEM(td,          ____, true)
+  ELEM(textarea,    ____, true)
+  ELEM(tfoot,       ____, true)
+  ELEM(th,          ____, true)
+  ELEM(thead,       ____, true)
+  ELEM(template,    ____, true)
+  ELEM(time,        ____, true)
+  ELEM(title,       ____, true)
+  ELEM(tr,          ____, true)
+  ELEM(track,       ____, ____)
+  ELEM(tt,          ____, true)
+  ELEM(u,           ____, true)
+  ELEM(ul,          true, true)
+  ELEM(var,         ____, true)
+  ELEM(video,       ____, true)
+  ELEM(wbr,         ____, ____)
+  ELEM(xmp,         ____, true)
+  ELEM(text,        ____, ____)
+  ELEM(whitespace,  ____, ____)
+  ELEM(newline,     ____, ____)
+  ELEM(comment,     ____, true)
+  ELEM(entity,      ____, true)
+  ELEM(doctypeDecl, ____, true)
+  ELEM(markupDecl,  ____, true)
+  ELEM(instruction, ____, true)
+  ELEM(userdefined, ____, true)
+  // clang-format on
 };
 
 #undef ELEM
+#undef ____
 
-/*********************************************************************************************/
-
-bool nsHTMLElement::IsMemberOf(int32_t aSet) const
+bool
+nsHTMLElement::IsContainer(nsHTMLTag aId)
 {
-  return TestBits(aSet, mParentBits);
+  return gHTMLElements[aId].mIsContainer;
 }
 
-bool nsHTMLElement::IsContainer(eHTMLTags aId)
+bool
+nsHTMLElement::IsBlock(nsHTMLTag aId)
 {
-  return !gHTMLElements[aId].mLeaf;
-}
-
-bool nsHTMLElement::IsBlock(eHTMLTags aId)
-{
-  return gHTMLElements[aId].IsMemberOf(kBlock)       ||
-         gHTMLElements[aId].IsMemberOf(kBlockEntity) ||
-         gHTMLElements[aId].IsMemberOf(kHeading)     ||
-         gHTMLElements[aId].IsMemberOf(kPreformatted)||
-         gHTMLElements[aId].IsMemberOf(kList);
+  return gHTMLElements[aId].mIsBlock;
 }
 
 #ifdef DEBUG
-void CheckElementTable()
+void
+CheckElementTable()
 {
-  for (eHTMLTags t = eHTMLTag_unknown; t <= eHTMLTag_userdefined; t = eHTMLTags(t + 1)) {
-    NS_ASSERTION(gHTMLElements[t].mTagID == t, "gHTMLElements entries does match tag list.");
+  for (nsHTMLTag t = eHTMLTag_unknown;
+       t <= eHTMLTag_userdefined;
+       t = nsHTMLTag(t + 1)) {
+    MOZ_ASSERT(gHTMLElements[t].mTagID == t,
+               "gHTMLElements entries does match tag list.");
   }
 }
 #endif

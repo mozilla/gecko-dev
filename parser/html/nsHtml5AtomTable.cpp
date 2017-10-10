@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsHtml5AtomTable.h"
-#include "nsHtml5Atom.h"
 #include "nsThreadUtils.h"
 
 nsHtml5AtomEntry::nsHtml5AtomEntry(KeyTypePointer aStr)
   : nsStringHashKey(aStr)
-  , mAtom(new nsHtml5Atom(*aStr))
+  , mAtom(new nsAtom(nsAtom::AtomKind::HTML5Atom, *aStr, 0))
 {
 }
 
@@ -21,6 +20,7 @@ nsHtml5AtomEntry::nsHtml5AtomEntry(const nsHtml5AtomEntry& aOther)
 
 nsHtml5AtomEntry::~nsHtml5AtomEntry()
 {
+  delete mAtom;
 }
 
 nsHtml5AtomTable::nsHtml5AtomTable()
@@ -35,7 +35,7 @@ nsHtml5AtomTable::~nsHtml5AtomTable()
 {
 }
 
-nsIAtom*
+nsAtom*
 nsHtml5AtomTable::GetAtom(const nsAString& aKey)
 {
 #ifdef DEBUG
@@ -45,12 +45,12 @@ nsHtml5AtomTable::GetAtom(const nsAString& aKey)
 #endif
 
   uint32_t index = mozilla::HashString(aKey) % RECENTLY_USED_PARSER_ATOMS_SIZE;
-  nsIAtom* cachedAtom = mRecentlyUsedParserAtoms[index];
+  nsAtom* cachedAtom = mRecentlyUsedParserAtoms[index];
   if (cachedAtom && cachedAtom->Equals(aKey)) {
     return cachedAtom;
   }
 
-  nsIAtom* atom = NS_GetStaticAtom(aKey);
+  nsAtom* atom = NS_GetStaticAtom(aKey);
   if (atom) {
     mRecentlyUsedParserAtoms[index] = atom;
     return atom;

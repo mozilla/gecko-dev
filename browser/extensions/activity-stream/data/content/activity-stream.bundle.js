@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 10);
+/******/ 	return __webpack_require__(__webpack_require__.s = 11);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -94,7 +94,7 @@ const globalImportContext = typeof Window === "undefined" ? BACKGROUND_PROCESS :
 //   UNINIT: "UNINIT"
 // }
 const actionTypes = {};
-for (const type of ["BLOCK_URL", "BOOKMARK_URL", "DELETE_BOOKMARK_BY_ID", "DELETE_HISTORY_URL", "DELETE_HISTORY_URL_CONFIRM", "DIALOG_CANCEL", "DIALOG_OPEN", "INIT", "LOCALE_UPDATED", "MIGRATION_CANCEL", "MIGRATION_COMPLETED", "MIGRATION_START", "NEW_TAB_INIT", "NEW_TAB_INITIAL_STATE", "NEW_TAB_LOAD", "NEW_TAB_REHYDRATED", "NEW_TAB_STATE_REQUEST", "NEW_TAB_UNLOAD", "OPEN_LINK", "OPEN_NEW_WINDOW", "OPEN_PRIVATE_WINDOW", "PLACES_BOOKMARK_ADDED", "PLACES_BOOKMARK_CHANGED", "PLACES_BOOKMARK_REMOVED", "PLACES_HISTORY_CLEARED", "PLACES_LINK_BLOCKED", "PLACES_LINK_DELETED", "PREFS_INITIAL_VALUES", "PREF_CHANGED", "SAVE_SESSION_PERF_DATA", "SAVE_TO_POCKET", "SCREENSHOT_UPDATED", "SEARCH_BOX_FOCUSED", "SECTION_DEREGISTER", "SECTION_DISABLE", "SECTION_ENABLE", "SECTION_REGISTER", "SECTION_UPDATE", "SECTION_UPDATE_CARD", "SET_PREF", "SHOW_FIREFOX_ACCOUNTS", "SNIPPETS_DATA", "SNIPPETS_RESET", "SYSTEM_TICK", "TELEMETRY_IMPRESSION_STATS", "TELEMETRY_PERFORMANCE_EVENT", "TELEMETRY_UNDESIRED_EVENT", "TELEMETRY_USER_EVENT", "TOP_SITES_ADD", "TOP_SITES_PIN", "TOP_SITES_UNPIN", "TOP_SITES_UPDATED", "UNINIT"]) {
+for (const type of ["BLOCK_URL", "BOOKMARK_URL", "DELETE_BOOKMARK_BY_ID", "DELETE_HISTORY_URL", "DELETE_HISTORY_URL_CONFIRM", "DIALOG_CANCEL", "DIALOG_OPEN", "DISABLE_ONBOARDING", "INIT", "LOCALE_UPDATED", "MIGRATION_CANCEL", "MIGRATION_COMPLETED", "MIGRATION_START", "NEW_TAB_INIT", "NEW_TAB_INITIAL_STATE", "NEW_TAB_LOAD", "NEW_TAB_REHYDRATED", "NEW_TAB_STATE_REQUEST", "NEW_TAB_UNLOAD", "OPEN_LINK", "OPEN_NEW_WINDOW", "OPEN_PRIVATE_WINDOW", "PLACES_BOOKMARK_ADDED", "PLACES_BOOKMARK_CHANGED", "PLACES_BOOKMARK_REMOVED", "PLACES_HISTORY_CLEARED", "PLACES_LINKS_DELETED", "PLACES_LINK_BLOCKED", "PREFS_INITIAL_VALUES", "PREF_CHANGED", "SAVE_SESSION_PERF_DATA", "SAVE_TO_POCKET", "SCREENSHOT_UPDATED", "SECTION_DEREGISTER", "SECTION_DISABLE", "SECTION_ENABLE", "SECTION_OPTIONS_CHANGED", "SECTION_REGISTER", "SECTION_UPDATE", "SECTION_UPDATE_CARD", "SETTINGS_CLOSE", "SETTINGS_OPEN", "SET_PREF", "SHOW_FIREFOX_ACCOUNTS", "SNIPPETS_DATA", "SNIPPETS_RESET", "SYSTEM_TICK", "TELEMETRY_IMPRESSION_STATS", "TELEMETRY_PERFORMANCE_EVENT", "TELEMETRY_UNDESIRED_EVENT", "TELEMETRY_USER_EVENT", "TOP_SITES_ADD", "TOP_SITES_CANCEL_EDIT", "TOP_SITES_EDIT", "TOP_SITES_PIN", "TOP_SITES_UNPIN", "TOP_SITES_UPDATED", "UNINIT"]) {
   actionTypes[type] = type;
 }
 
@@ -333,7 +333,7 @@ module.exports = g;
 
 module.exports = {
   TOP_SITES_SOURCE: "TOP_SITES",
-  TOP_SITES_CONTEXT_MENU_OPTIONS: ["CheckPinTopSite", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", "DeleteUrl"],
+  TOP_SITES_CONTEXT_MENU_OPTIONS: ["CheckPinTopSite", "EditTopSite", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", "DeleteUrl"],
   // minimum size necessary to show a rich icon instead of a screenshot
   MIN_RICH_FAVICON_SIZE: 96,
   // minimum size necessary to show any icon in the top left corner with a screenshot
@@ -376,7 +376,13 @@ const INITIAL_STATE = {
     // Have we received real data from history yet?
     initialized: false,
     // The history (and possibly default) links
-    rows: []
+    rows: [],
+    // Used in content only to dispatch action from
+    // context menu to TopSitesEdit.
+    editForm: {
+      visible: false,
+      site: null
+    }
   },
   Prefs: {
     initialized: false,
@@ -386,7 +392,8 @@ const INITIAL_STATE = {
     visible: false,
     data: {}
   },
-  Sections: []
+  Sections: [],
+  PreferencesPane: { visible: false }
 };
 
 function App(prevState = INITIAL_STATE.App, action) {
@@ -454,6 +461,10 @@ function TopSites(prevState = INITIAL_STATE.TopSites, action) {
         return prevState;
       }
       return Object.assign({}, prevState, { initialized: true, rows: action.data });
+    case at.TOP_SITES_EDIT:
+      return Object.assign({}, prevState, { editForm: { visible: true, site: action.data } });
+    case at.TOP_SITES_CANCEL_EDIT:
+      return Object.assign({}, prevState, { editForm: { visible: false } });
     case at.SCREENSHOT_UPDATED:
       newRows = prevState.rows.map(row => {
         if (row && row.url === action.data.url) {
@@ -628,7 +639,8 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
           return item;
         })
       }));
-    case at.PLACES_LINK_DELETED:
+    case at.PLACES_LINKS_DELETED:
+      return prevState.map(section => Object.assign({}, section, { rows: section.rows.filter(site => !action.data.includes(site.url)) }));
     case at.PLACES_LINK_BLOCKED:
       return prevState.map(section => Object.assign({}, section, { rows: section.rows.filter(site => site.url !== action.data.url) }));
     default:
@@ -647,7 +659,18 @@ function Snippets(prevState = INITIAL_STATE.Snippets, action) {
   }
 }
 
-var reducers = { TopSites, App, Snippets, Prefs, Dialog, Sections };
+function PreferencesPane(prevState = INITIAL_STATE.PreferencesPane, action) {
+  switch (action.type) {
+    case at.SETTINGS_OPEN:
+      return Object.assign({}, prevState, { visible: true });
+    case at.SETTINGS_CLOSE:
+      return Object.assign({}, prevState, { visible: false });
+    default:
+      return prevState;
+  }
+}
+
+var reducers = { TopSites, App, Snippets, Prefs, Dialog, Sections, PreferencesPane };
 module.exports = {
   reducers,
   INITIAL_STATE,
@@ -731,6 +754,14 @@ _PerfService.prototype = {
    * Used to ensure that timestamps from the add-on code and the content code
    * are comparable.
    *
+   * @note If this is called from a context without a window
+   * (eg a JSM in chrome), it will return the timeOrigin of the XUL hidden
+   * window, which appears to be the first created window (and thus
+   * timeOrigin) in the browser.  Note also, however, there is also a private
+   * hidden window, presumably for private browsing, which appears to be
+   * created dynamically later.  Exactly how/when that shows up needs to be
+   * investigated.
+   *
    * @return {Number} A double of milliseconds with a precision of 0.5us.
    */
   get timeOrigin() {
@@ -739,7 +770,8 @@ _PerfService.prototype = {
 
   /**
    * Returns the "absolute" version of performance.now(), i.e. one that
-   * based on the timeOrigin of the XUL hiddenwindow.
+   * should ([bug 1401406](https://bugzilla.mozilla.org/show_bug.cgi?id=1401406)
+   * be comparable across both chrome and content.
    *
    * @return {Number}
    */
@@ -1006,9 +1038,9 @@ module.exports.TopSitePlaceholder = TopSitePlaceholder;
 
 const React = __webpack_require__(1);
 const { injectIntl } = __webpack_require__(2);
-const ContextMenu = __webpack_require__(17);
+const ContextMenu = __webpack_require__(18);
 const { actionCreators: ac } = __webpack_require__(0);
-const linkMenuOptions = __webpack_require__(18);
+const linkMenuOptions = __webpack_require__(19);
 const DEFAULT_SITE_MENU_OPTIONS = ["CheckPinTopSite", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
 
 class LinkMenu extends React.PureComponent {
@@ -1032,7 +1064,7 @@ class LinkMenu extends React.PureComponent {
               action_position: index
             }));
           }
-          if (impression) {
+          if (impression && props.shouldSendImpressionStats) {
             props.dispatch(impression);
           }
         };
@@ -1062,14 +1094,204 @@ module.exports._unconnected = LinkMenu;
 /* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+const React = __webpack_require__(1);
+const { actionCreators: ac, actionTypes: at } = __webpack_require__(0);
+const { injectIntl, FormattedMessage } = __webpack_require__(2);
+
+function getFormattedMessage(message) {
+  return typeof message === "string" ? React.createElement(
+    "span",
+    null,
+    message
+  ) : React.createElement(FormattedMessage, message);
+}
+
+class Info extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.onInfoEnter = this.onInfoEnter.bind(this);
+    this.onInfoLeave = this.onInfoLeave.bind(this);
+    this.onManageClick = this.onManageClick.bind(this);
+    this.state = { infoActive: false };
+  }
+
+  /**
+   * Take a truthy value to conditionally change the infoActive state.
+   */
+  _setInfoState(nextActive) {
+    const infoActive = !!nextActive;
+    if (infoActive !== this.state.infoActive) {
+      this.setState({ infoActive });
+    }
+  }
+  onInfoEnter() {
+    // We're getting focus or hover, so info state should be true if not yet.
+    this._setInfoState(true);
+  }
+  onInfoLeave(event) {
+    // We currently have an active (true) info state, so keep it true only if we
+    // have a related event target that is contained "within" the current target
+    // (section-info-option) as itself or a descendant. Set to false otherwise.
+    this._setInfoState(event && event.relatedTarget && (event.relatedTarget === event.currentTarget || event.relatedTarget.compareDocumentPosition(event.currentTarget) & Node.DOCUMENT_POSITION_CONTAINS));
+  }
+  onManageClick() {
+    this.props.dispatch({ type: at.SETTINGS_OPEN });
+    this.props.dispatch(ac.UserEvent({ event: "OPEN_NEWTAB_PREFS" }));
+  }
+  render() {
+    const { infoOption, intl } = this.props;
+    const infoOptionIconA11yAttrs = {
+      "aria-haspopup": "true",
+      "aria-controls": "info-option",
+      "aria-expanded": this.state.infoActive ? "true" : "false",
+      "role": "note",
+      "tabIndex": 0
+    };
+    const sectionInfoTitle = intl.formatMessage({ id: "section_info_option" });
+
+    return React.createElement(
+      "span",
+      { className: "section-info-option",
+        onBlur: this.onInfoLeave,
+        onFocus: this.onInfoEnter,
+        onMouseOut: this.onInfoLeave,
+        onMouseOver: this.onInfoEnter },
+      React.createElement("img", _extends({ className: "info-option-icon", title: sectionInfoTitle
+      }, infoOptionIconA11yAttrs)),
+      React.createElement(
+        "div",
+        { className: "info-option" },
+        infoOption.header && React.createElement(
+          "div",
+          { className: "info-option-header", role: "heading" },
+          getFormattedMessage(infoOption.header)
+        ),
+        React.createElement(
+          "p",
+          { className: "info-option-body" },
+          infoOption.body && getFormattedMessage(infoOption.body),
+          infoOption.link && React.createElement(
+            "a",
+            { href: infoOption.link.href, target: "_blank", rel: "noopener noreferrer", className: "info-option-link" },
+            getFormattedMessage(infoOption.link.title || infoOption.link)
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "info-option-manage" },
+          React.createElement(
+            "button",
+            { onClick: this.onManageClick },
+            React.createElement(FormattedMessage, { id: "settings_pane_header" })
+          )
+        )
+      )
+    );
+  }
+}
+
+const InfoIntl = injectIntl(Info);
+
+class CollapsibleSection extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.onInfoEnter = this.onInfoEnter.bind(this);
+    this.onInfoLeave = this.onInfoLeave.bind(this);
+    this.onHeaderClick = this.onHeaderClick.bind(this);
+    this.onTransitionEnd = this.onTransitionEnd.bind(this);
+    this.state = { enableAnimation: false, isAnimating: false, infoActive: false };
+  }
+  componentDidUpdate(prevProps, prevState) {
+    // Enable animations once we get prefs loaded in to avoid animations running during loading.
+    if (prevProps.Prefs.values[this.props.prefName] === undefined && this.props.Prefs.values[this.props.prefName] !== undefined) {
+      setTimeout(() => this.setState({ enableAnimation: true }), 0);
+    }
+  }
+  _setInfoState(nextActive) {
+    // Take a truthy value to conditionally change the infoActive state.
+    const infoActive = !!nextActive;
+    if (infoActive !== this.state.infoActive) {
+      this.setState({ infoActive });
+    }
+  }
+  onInfoEnter() {
+    // We're getting focus or hover, so info state should be true if not yet.
+    this._setInfoState(true);
+  }
+  onInfoLeave(event) {
+    // We currently have an active (true) info state, so keep it true only if we
+    // have a related event target that is contained "within" the current target
+    // (section-info-option) as itself or a descendant. Set to false otherwise.
+    this._setInfoState(event && event.relatedTarget && (event.relatedTarget === event.currentTarget || event.relatedTarget.compareDocumentPosition(event.currentTarget) & Node.DOCUMENT_POSITION_CONTAINS));
+  }
+  onHeaderClick() {
+    this.setState({ isAnimating: true });
+    this.props.dispatch(ac.SetPref(this.props.prefName, !this.props.Prefs.values[this.props.prefName]));
+  }
+  onTransitionEnd() {
+    this.setState({ isAnimating: false });
+  }
+  renderIcon() {
+    const icon = this.props.icon;
+    if (icon && icon.startsWith("moz-extension://")) {
+      return React.createElement("span", { className: "icon icon-small-spacer", style: { "background-image": `url('${icon}')` } });
+    }
+    return React.createElement("span", { className: `icon icon-small-spacer icon-${icon || "webextension"}` });
+  }
+  render() {
+    const isCollapsed = this.props.Prefs.values[this.props.prefName];
+    const { enableAnimation, isAnimating } = this.state;
+    const infoOption = this.props.infoOption;
+
+    return React.createElement(
+      "section",
+      { className: `collapsible-section ${this.props.className}${isCollapsed ? " collapsed" : ""}` },
+      React.createElement(
+        "div",
+        { className: "section-top-bar" },
+        React.createElement(
+          "h3",
+          { className: "section-title" },
+          React.createElement(
+            "span",
+            { className: "click-target", onClick: this.onHeaderClick },
+            this.renderIcon(),
+            this.props.title,
+            React.createElement("span", { className: `icon ${isCollapsed ? "icon-arrowhead-forward" : "icon-arrowhead-down"}` })
+          )
+        ),
+        infoOption && React.createElement(InfoIntl, { infoOption: infoOption, dispatch: this.props.dispatch })
+      ),
+      React.createElement(
+        "div",
+        { className: `section-body${enableAnimation ? " animation-enabled" : ""}${isAnimating ? " animating" : ""}`, onTransitionEnd: this.onTransitionEnd },
+        this.props.children
+      )
+    );
+  }
+}
+
+CollapsibleSection.defaultProps = { Prefs: { values: {} } };
+
+module.exports = injectIntl(CollapsibleSection);
+module.exports._unconnected = CollapsibleSection;
+module.exports.Info = Info;
+module.exports.InfoIntl = InfoIntl;
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
 /* WEBPACK VAR INJECTION */(function(global) {const React = __webpack_require__(1);
-const ReactDOM = __webpack_require__(11);
-const Base = __webpack_require__(12);
+const ReactDOM = __webpack_require__(12);
+const Base = __webpack_require__(13);
 const { Provider } = __webpack_require__(3);
-const initStore = __webpack_require__(29);
+const initStore = __webpack_require__(30);
 const { reducers } = __webpack_require__(6);
-const DetectUserSessionStart = __webpack_require__(31);
-const { addSnippetsSubscriber } = __webpack_require__(32);
+const DetectUserSessionStart = __webpack_require__(32);
+const { addSnippetsSubscriber } = __webpack_require__(33);
 const { actionTypes: at, actionCreators: ac } = __webpack_require__(0);
 
 new DetectUserSessionStart().sendEventOrAddListener();
@@ -1093,26 +1315,26 @@ addSnippetsSubscriber(store);
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports) {
 
 module.exports = ReactDOM;
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
 const { connect } = __webpack_require__(3);
 const { addLocaleData, IntlProvider } = __webpack_require__(2);
-const TopSites = __webpack_require__(13);
-const Search = __webpack_require__(19);
-const ConfirmDialog = __webpack_require__(21);
-const ManualMigration = __webpack_require__(22);
-const PreferencesPane = __webpack_require__(23);
-const Sections = __webpack_require__(24);
+const TopSites = __webpack_require__(14);
+const Search = __webpack_require__(20);
+const ConfirmDialog = __webpack_require__(22);
+const ManualMigration = __webpack_require__(23);
+const PreferencesPane = __webpack_require__(24);
+const Sections = __webpack_require__(25);
 const { actionTypes: at, actionCreators: ac } = __webpack_require__(0);
-const { PrerenderData } = __webpack_require__(28);
+const { PrerenderData } = __webpack_require__(29);
 
 // Add the locale data for pluralization and relative-time formatting for now,
 // this just uses english locale data. We can make this more sophisticated if
@@ -1195,9 +1417,13 @@ class Base extends React.PureComponent {
           "main",
           null,
           prefs.showSearch && React.createElement(Search, null),
-          !prefs.migrationExpired && React.createElement(ManualMigration, null),
-          prefs.showTopSites && React.createElement(TopSites, null),
-          React.createElement(Sections, null),
+          React.createElement(
+            "div",
+            { className: `body-wrapper${initialized ? " on" : ""}` },
+            !prefs.migrationExpired && React.createElement(ManualMigration, null),
+            prefs.showTopSites && React.createElement(TopSites, null),
+            React.createElement(Sections, null)
+          ),
           React.createElement(ConfirmDialog, null)
         ),
         initialized && React.createElement(PreferencesPane, null)
@@ -1210,32 +1436,31 @@ module.exports = connect(state => ({ App: state.App, Prefs: state.Prefs }))(Base
 module.exports._unconnected = Base;
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
 const { connect } = __webpack_require__(3);
 const { FormattedMessage } = __webpack_require__(2);
 
-const TopSitesPerfTimer = __webpack_require__(14);
-const TopSitesEdit = __webpack_require__(15);
+const TopSitesPerfTimer = __webpack_require__(15);
+const TopSitesEdit = __webpack_require__(16);
 const { TopSite, TopSitePlaceholder } = __webpack_require__(8);
+const CollapsibleSection = __webpack_require__(10);
 
 const TopSites = props => {
   const realTopSites = props.TopSites.rows.slice(0, props.TopSitesCount);
   const placeholderCount = props.TopSitesCount - realTopSites.length;
+  const infoOption = {
+    header: { id: "settings_pane_topsites_header" },
+    body: { id: "settings_pane_topsites_body" }
+  };
   return React.createElement(
     TopSitesPerfTimer,
     null,
     React.createElement(
-      "section",
-      { className: "top-sites" },
-      React.createElement(
-        "h3",
-        { className: "section-title" },
-        React.createElement("span", { className: `icon icon-small-spacer icon-topsites` }),
-        React.createElement(FormattedMessage, { id: "header_top_sites" })
-      ),
+      CollapsibleSection,
+      { className: "top-sites", icon: "topsites", title: React.createElement(FormattedMessage, { id: "header_top_sites" }), infoOption: infoOption, prefName: "collapseTopSites", Prefs: props.Prefs, dispatch: props.dispatch },
       React.createElement(
         "ul",
         { className: "top-sites-list" },
@@ -1252,11 +1477,11 @@ const TopSites = props => {
   );
 };
 
-module.exports = connect(state => ({ TopSites: state.TopSites, TopSitesCount: state.Prefs.values.topSitesCount }))(TopSites);
+module.exports = connect(state => ({ TopSites: state.TopSites, Prefs: state.Prefs, TopSitesCount: state.Prefs.values.topSitesCount }))(TopSites);
 module.exports._unconnected = TopSites;
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -1375,14 +1600,14 @@ module.exports = connect(state => ({ TopSites: state.TopSites }))(TopSitesPerfTi
 module.exports._unconnected = TopSitesPerfTimer;
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
 const { FormattedMessage, injectIntl } = __webpack_require__(2);
 const { actionCreators: ac, actionTypes: at } = __webpack_require__(0);
 
-const TopSiteForm = __webpack_require__(16);
+const TopSiteForm = __webpack_require__(17);
 const { TopSite, TopSitePlaceholder } = __webpack_require__(8);
 
 const { TOP_SITES_DEFAULT_LENGTH, TOP_SITES_SHOWMORE_LENGTH } = __webpack_require__(6);
@@ -1418,6 +1643,7 @@ class TopSitesEdit extends React.PureComponent {
       source: TOP_SITES_SOURCE,
       event: "TOP_SITES_EDIT_CLOSE"
     }));
+    this.props.dispatch({ type: at.TOP_SITES_CANCEL_EDIT });
   }
   onShowMoreLessClick() {
     const prefIsSetToDefault = this.props.TopSitesCount === TOP_SITES_DEFAULT_LENGTH;
@@ -1439,6 +1665,7 @@ class TopSitesEdit extends React.PureComponent {
   }
   onFormClose() {
     this.setState({ showAddForm: false, showEditForm: false });
+    this.props.dispatch({ type: at.TOP_SITES_CANCEL_EDIT });
   }
   onEdit(index) {
     this.setState({ showEditForm: true, editIndex: index });
@@ -1450,6 +1677,12 @@ class TopSitesEdit extends React.PureComponent {
   render() {
     const realTopSites = this.props.TopSites.rows.slice(0, this.props.TopSitesCount);
     const placeholderCount = this.props.TopSitesCount - realTopSites.length;
+    const showEditForm = this.props.TopSites.editForm && this.props.TopSites.editForm.visible || this.state.showEditModal && this.state.showEditForm;
+    let editIndex = this.state.editIndex;
+    if (showEditForm && this.props.TopSites.editForm.visible) {
+      const targetURL = this.props.TopSites.editForm.site.url;
+      editIndex = this.props.TopSites.rows.findIndex(s => s.url === targetURL);
+    }
     return React.createElement(
       "div",
       { className: "edit-topsites-wrapper" },
@@ -1476,10 +1709,14 @@ class TopSitesEdit extends React.PureComponent {
             "section",
             { className: "edit-topsites-inner-wrapper" },
             React.createElement(
-              "h3",
-              { className: "section-title" },
-              React.createElement("span", { className: `icon icon-small-spacer icon-topsites` }),
-              React.createElement(FormattedMessage, { id: "header_top_sites" })
+              "div",
+              { className: "section-top-bar" },
+              React.createElement(
+                "h3",
+                { className: "section-title" },
+                React.createElement("span", { className: `icon icon-small-spacer icon-topsites` }),
+                React.createElement(FormattedMessage, { id: "header_top_sites" })
+              )
             ),
             React.createElement(
               "ul",
@@ -1526,7 +1763,7 @@ class TopSitesEdit extends React.PureComponent {
           React.createElement(TopSiteForm, { onClose: this.onFormClose, dispatch: this.props.dispatch, intl: this.props.intl })
         )
       ),
-      this.state.showEditModal && this.state.showEditForm && React.createElement(
+      showEditForm && React.createElement(
         "div",
         { className: "edit-topsites" },
         React.createElement("div", { className: "modal-overlay", onClick: this.onModalOverlayClick }),
@@ -1534,9 +1771,9 @@ class TopSitesEdit extends React.PureComponent {
           "div",
           { className: "modal" },
           React.createElement(TopSiteForm, {
-            label: this.props.TopSites.rows[this.state.editIndex].label || this.props.TopSites.rows[this.state.editIndex].hostname,
-            url: this.props.TopSites.rows[this.state.editIndex].url,
-            index: this.state.editIndex,
+            label: this.props.TopSites.rows[editIndex].label || this.props.TopSites.rows[editIndex].hostname,
+            url: this.props.TopSites.rows[editIndex].url,
+            index: editIndex,
             editMode: true,
             onClose: this.onFormClose,
             dispatch: this.props.dispatch,
@@ -1551,7 +1788,7 @@ module.exports = injectIntl(TopSitesEdit);
 module.exports._unconnected = TopSitesEdit;
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -1731,7 +1968,7 @@ TopSiteForm.defaultProps = {
 module.exports = TopSiteForm;
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -1820,7 +2057,7 @@ module.exports.ContextMenu = ContextMenu;
 module.exports.ContextMenuItem = ContextMenuItem;
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const { actionTypes: at, actionCreators: ac } = __webpack_require__(0);
@@ -1928,6 +2165,14 @@ module.exports = {
       tiles: [{ id: site.guid, pos: index }]
     }),
     userEvent: "SAVE_TO_POCKET"
+  }),
+  EditTopSite: site => ({
+    id: "edit_topsites_button_text",
+    icon: "edit",
+    action: {
+      type: at.TOP_SITES_EDIT,
+      data: { url: site.url, label: site.label }
+    }
   })
 };
 
@@ -1935,7 +2180,7 @@ module.exports.CheckBookmark = site => site.bookmarkGuid ? module.exports.Remove
 module.exports.CheckPinTopSite = (site, index) => site.isPinned ? module.exports.UnpinTopSite(site) : module.exports.PinTopSite(site, index);
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1945,8 +2190,8 @@ module.exports.CheckPinTopSite = (site, index) => site.isPinned ? module.exports
 const React = __webpack_require__(1);
 const { connect } = __webpack_require__(3);
 const { FormattedMessage, injectIntl } = __webpack_require__(2);
-const { actionCreators: ac, actionTypes: at } = __webpack_require__(0);
-const { IS_NEWTAB } = __webpack_require__(20);
+const { actionCreators: ac } = __webpack_require__(0);
+const { IS_NEWTAB } = __webpack_require__(21);
 
 class Search extends React.PureComponent {
   constructor(props) {
@@ -1992,9 +2237,6 @@ class Search extends React.PureComponent {
       // Focus the search box if we are on about:home
       if (!IS_NEWTAB) {
         input.focus();
-        // Tell the addon side that search box is focused in case the browser
-        // needs to be focused too.
-        this.props.dispatch(ac.SendToMain({ type: at.SEARCH_BOX_FOCUSED }));
       }
     } else {
       window.gContentSearchController = null;
@@ -2049,7 +2291,7 @@ module.exports = connect(state => ({ locale: state.App.locale }))(injectIntl(Sea
 module.exports._unconnected = Search;
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {module.exports = {
@@ -2059,7 +2301,7 @@ module.exports._unconnected = Search;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -2164,7 +2406,7 @@ module.exports._unconnected = ConfirmDialog;
 module.exports.Dialog = ConfirmDialog;
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -2228,7 +2470,7 @@ module.exports = connect()(ManualMigration);
 module.exports._unconnected = ManualMigration;
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -2256,28 +2498,39 @@ const PreferencesInput = props => React.createElement(
     "p",
     { className: "prefs-input-description" },
     getFormattedMessage(props.descString)
-  )
+  ),
+  React.Children.map(props.children, child => React.createElement(
+    "div",
+    { className: `options${child.props.disabled ? " disabled" : ""}` },
+    child
+  ))
 );
 
 class PreferencesPane extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { visible: false };
     this.handleClickOutside = this.handleClickOutside.bind(this);
     this.handlePrefChange = this.handlePrefChange.bind(this);
     this.handleSectionChange = this.handleSectionChange.bind(this);
     this.togglePane = this.togglePane.bind(this);
     this.onWrapperMount = this.onWrapperMount.bind(this);
   }
-  componentDidMount() {
-    document.addEventListener("click", this.handleClickOutside);
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.PreferencesPane.visible !== this.props.PreferencesPane.visible) {
+      // While the sidebar is open, listen for all document clicks.
+      if (this.isSidebarOpen()) {
+        document.addEventListener("click", this.handleClickOutside);
+      } else {
+        document.removeEventListener("click", this.handleClickOutside);
+      }
+    }
   }
-  componentWillUnmount() {
-    document.removeEventListener("click", this.handleClickOutside);
+  isSidebarOpen() {
+    return this.props.PreferencesPane.visible;
   }
   handleClickOutside(event) {
     // if we are showing the sidebar and there is a click outside, close it.
-    if (this.state.visible && !this.wrapper.contains(event.target)) {
+    if (this.isSidebarOpen() && !this.wrapper.contains(event.target)) {
       this.togglePane();
     }
   }
@@ -2297,9 +2550,13 @@ class PreferencesPane extends React.PureComponent {
     this.props.dispatch(ac.SendToMain({ type, data: id }));
   }
   togglePane() {
-    this.setState({ visible: !this.state.visible });
-    const event = this.state.visible ? "CLOSE_NEWTAB_PREFS" : "OPEN_NEWTAB_PREFS";
-    this.props.dispatch(ac.UserEvent({ event }));
+    if (this.isSidebarOpen()) {
+      this.props.dispatch({ type: at.SETTINGS_CLOSE });
+      this.props.dispatch(ac.UserEvent({ event: "CLOSE_NEWTAB_PREFS" }));
+    } else {
+      this.props.dispatch({ type: at.SETTINGS_OPEN });
+      this.props.dispatch(ac.UserEvent({ event: "OPEN_NEWTAB_PREFS" }));
+    }
   }
   onWrapperMount(wrapper) {
     this.wrapper = wrapper;
@@ -2308,7 +2565,7 @@ class PreferencesPane extends React.PureComponent {
     const props = this.props;
     const prefs = props.Prefs.values;
     const sections = props.Sections;
-    const isVisible = this.state.visible;
+    const isVisible = this.isSidebarOpen();
     return React.createElement(
       "div",
       { className: "prefs-pane-wrapper", ref: this.onWrapperMount },
@@ -2339,21 +2596,51 @@ class PreferencesPane extends React.PureComponent {
               null,
               React.createElement(FormattedMessage, { id: "settings_pane_body2" })
             ),
-            React.createElement(PreferencesInput, { className: "showSearch", prefName: "showSearch", value: prefs.showSearch, onChange: this.handlePrefChange,
-              titleString: { id: "settings_pane_search_header" }, descString: { id: "settings_pane_search_body" } }),
+            React.createElement(PreferencesInput, {
+              className: "showSearch",
+              prefName: "showSearch",
+              value: prefs.showSearch,
+              onChange: this.handlePrefChange,
+              titleString: { id: "settings_pane_search_header" },
+              descString: { id: "settings_pane_search_body" } }),
             React.createElement("hr", null),
-            React.createElement(PreferencesInput, { className: "showTopSites", prefName: "showTopSites", value: prefs.showTopSites, onChange: this.handlePrefChange,
-              titleString: { id: "settings_pane_topsites_header" }, descString: { id: "settings_pane_topsites_body" } }),
             React.createElement(
-              "div",
-              { className: `options${prefs.showTopSites ? "" : " disabled"}` },
-              React.createElement(PreferencesInput, { className: "showMoreTopSites", prefName: "topSitesCount", disabled: !prefs.showTopSites,
-                value: prefs.topSitesCount !== TOP_SITES_DEFAULT_LENGTH, onChange: this.handlePrefChange,
-                titleString: { id: "settings_pane_topsites_options_showmore" }, labelClassName: "icon icon-topsites" })
+              PreferencesInput,
+              {
+                className: "showTopSites",
+                prefName: "showTopSites",
+                value: prefs.showTopSites,
+                onChange: this.handlePrefChange,
+                titleString: { id: "settings_pane_topsites_header" },
+                descString: { id: "settings_pane_topsites_body" } },
+              React.createElement(PreferencesInput, {
+                className: "showMoreTopSites",
+                prefName: "topSitesCount",
+                disabled: !prefs.showTopSites,
+                value: prefs.topSitesCount !== TOP_SITES_DEFAULT_LENGTH,
+                onChange: this.handlePrefChange,
+                titleString: { id: "settings_pane_topsites_options_showmore" },
+                labelClassName: "icon icon-topsites" })
             ),
-            sections.filter(section => !section.shouldHidePref).map(({ id, title, enabled, pref }) => React.createElement(PreferencesInput, { key: id, className: "showSection", prefName: pref && pref.feed || id,
-              value: enabled, onChange: pref && pref.feed ? this.handlePrefChange : this.handleSectionChange,
-              titleString: pref && pref.titleString || title, descString: pref && pref.descString })),
+            sections.filter(section => !section.shouldHidePref).map(({ id, title, enabled, pref }) => React.createElement(
+              PreferencesInput,
+              {
+                key: id,
+                className: "showSection",
+                prefName: pref && pref.feed || id,
+                value: enabled,
+                onChange: pref && pref.feed ? this.handlePrefChange : this.handleSectionChange,
+                titleString: pref && pref.titleString || title,
+                descString: pref && pref.descString },
+              pref.nestedPrefs && pref.nestedPrefs.map(nestedPref => React.createElement(PreferencesInput, {
+                key: nestedPref.name,
+                prefName: nestedPref.name,
+                disabled: !enabled,
+                value: prefs[nestedPref.name],
+                onChange: this.handlePrefChange,
+                titleString: nestedPref.titleString,
+                labelClassName: `icon ${nestedPref.icon}` }))
+            )),
             React.createElement("hr", null),
             React.createElement(PreferencesInput, { className: "showSnippets", prefName: "feeds.snippets",
               value: prefs["feeds.snippets"], onChange: this.handlePrefChange,
@@ -2375,12 +2662,12 @@ class PreferencesPane extends React.PureComponent {
   }
 }
 
-module.exports = connect(state => ({ Prefs: state.Prefs, Sections: state.Sections }))(injectIntl(PreferencesPane));
+module.exports = connect(state => ({ Prefs: state.Prefs, PreferencesPane: state.PreferencesPane, Sections: state.Sections }))(injectIntl(PreferencesPane));
 module.exports.PreferencesPane = PreferencesPane;
 module.exports.PreferencesInput = PreferencesInput;
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
@@ -2388,61 +2675,38 @@ module.exports.PreferencesInput = PreferencesInput;
 const React = __webpack_require__(1);
 const { connect } = __webpack_require__(3);
 const { injectIntl, FormattedMessage } = __webpack_require__(2);
-const Card = __webpack_require__(25);
+const Card = __webpack_require__(26);
 const { PlaceholderCard } = Card;
-const Topics = __webpack_require__(27);
+const Topics = __webpack_require__(28);
 const { actionCreators: ac } = __webpack_require__(0);
+const CollapsibleSection = __webpack_require__(10);
 
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const CARDS_PER_ROW = 3;
 
+function getFormattedMessage(message) {
+  return typeof message === "string" ? React.createElement(
+    "span",
+    null,
+    message
+  ) : React.createElement(FormattedMessage, message);
+}
+
 class Section extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.onInfoEnter = this.onInfoEnter.bind(this);
-    this.onInfoLeave = this.onInfoLeave.bind(this);
-    this.state = { infoActive: false };
-  }
-
-  /**
-   * Take a truthy value to conditionally change the infoActive state.
-   */
-  _setInfoState(nextActive) {
-    const infoActive = !!nextActive;
-    if (infoActive !== this.state.infoActive) {
-      this.setState({ infoActive });
-    }
-  }
-
-  onInfoEnter() {
-    // We're getting focus or hover, so info state should be true if not yet.
-    this._setInfoState(true);
-  }
-
-  onInfoLeave(event) {
-    // We currently have an active (true) info state, so keep it true only if we
-    // have a related event target that is contained "within" the current target
-    // (section-info-option) as itself or a descendant. Set to false otherwise.
-    this._setInfoState(event && event.relatedTarget && (event.relatedTarget === event.currentTarget || event.relatedTarget.compareDocumentPosition(event.currentTarget) & Node.DOCUMENT_POSITION_CONTAINS));
-  }
-
-  getFormattedMessage(message) {
-    return typeof message === "string" ? React.createElement(
-      "span",
-      null,
-      message
-    ) : React.createElement(FormattedMessage, message);
-  }
-
   _dispatchImpressionStats() {
     const { props } = this;
     const maxCards = 3 * props.maxRows;
-    props.dispatch(ac.ImpressionStats({
-      source: props.eventSource,
-      tiles: props.rows.slice(0, maxCards).map(link => ({ id: link.guid })),
-      incognito: props.options && props.options.personalized
-    }));
+    const cards = props.rows.slice(0, maxCards);
+
+    if (this.needsImpressionStats(cards)) {
+      props.dispatch(ac.ImpressionStats({
+        source: props.eventSource,
+        tiles: cards.map(link => ({ id: link.guid })),
+        incognito: props.options && props.options.personalized
+      }));
+      this.impressionCardGuids = cards.map(link => link.guid);
+    }
   }
 
   // This sends an event when a user sees a set of new content. If content
@@ -2464,10 +2728,14 @@ class Section extends React.PureComponent {
         props.document.removeEventListener(VISIBILITY_CHANGE_EVENT, this._onVisibilityChange);
       }
 
-      // When the page becoems visible, send the impression stats ping.
+      // When the page becoems visible, send the impression stats ping if the section isn't collapsed.
       this._onVisibilityChange = () => {
         if (props.document.visibilityState === VISIBLE) {
-          this._dispatchImpressionStats();
+          const { id, Prefs } = this.props;
+          const isCollapsed = Prefs.values[`section.${id}.collapsed`];
+          if (!isCollapsed) {
+            this._dispatchImpressionStats();
+          }
           props.document.removeEventListener(VISIBILITY_CHANGE_EVENT, this._onVisibilityChange);
         }
       };
@@ -2476,20 +2744,43 @@ class Section extends React.PureComponent {
   }
 
   componentDidMount() {
-    if (this.props.rows.length) {
+    const { id, rows, Prefs } = this.props;
+    const isCollapsed = Prefs.values[`section.${id}.collapsed`];
+    if (rows.length && !isCollapsed) {
       this.sendImpressionStatsOrAddListener();
     }
   }
 
   componentDidUpdate(prevProps) {
     const { props } = this;
+    const { id, Prefs } = props;
+    const isCollapsedPref = `section.${id}.collapsed`;
+    const isCollapsed = Prefs.values[isCollapsedPref];
+    const wasCollapsed = prevProps.Prefs.values[isCollapsedPref];
     if (
     // Don't send impression stats for the empty state
-    props.rows.length &&
+    props.rows.length && (
     // We only want to send impression stats if the content of the cards has changed
-    props.rows !== prevProps.rows) {
+    // and the section is not collapsed...
+    props.rows !== prevProps.rows && !isCollapsed ||
+    // or if we are expanding a section that was collapsed.
+    wasCollapsed && !isCollapsed)) {
       this.sendImpressionStatsOrAddListener();
     }
+  }
+
+  needsImpressionStats(cards) {
+    if (!this.impressionCardGuids || this.impressionCardGuids.length !== cards.length) {
+      return true;
+    }
+
+    for (let i = 0; i < cards.length; i++) {
+      if (cards[i].guid !== this.impressionCardGuids[i]) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   numberOfPlaceholders(items) {
@@ -2507,20 +2798,13 @@ class Section extends React.PureComponent {
     const {
       id, eventSource, title, icon, rows,
       infoOption, emptyState, dispatch, maxRows,
-      contextMenuOptions, intl, initialized
+      contextMenuOptions, initialized
     } = this.props;
     const maxCards = CARDS_PER_ROW * maxRows;
-    const shouldShowTopics = id === "topstories" && this.props.topics && this.props.topics.length > 0;
 
-    const infoOptionIconA11yAttrs = {
-      "aria-haspopup": "true",
-      "aria-controls": "info-option",
-      "aria-expanded": this.state.infoActive ? "true" : "false",
-      "role": "note",
-      "tabIndex": 0
-    };
-
-    const sectionInfoTitle = intl.formatMessage({ id: "section_info_option" });
+    // Show topics only for top stories and if it's not initialized yet (so
+    // content doesn't shift when it is loaded) or has loaded with topics
+    const shouldShowTopics = id === "topstories" && (!this.props.topics || this.props.topics.length > 0);
 
     const realRows = rows.slice(0, maxCards);
     const placeholders = this.numberOfPlaceholders(realRows.length);
@@ -2532,51 +2816,13 @@ class Section extends React.PureComponent {
     // <Section> <-- React component
     // <section> <-- HTML5 element
     return React.createElement(
-      "section",
-      null,
-      React.createElement(
-        "div",
-        { className: "section-top-bar" },
-        React.createElement(
-          "h3",
-          { className: "section-title" },
-          icon && icon.startsWith("moz-extension://") ? React.createElement("span", { className: "icon icon-small-spacer", style: { "background-image": `url('${icon}')` } }) : React.createElement("span", { className: `icon icon-small-spacer icon-${icon || "webextension"}` }),
-          this.getFormattedMessage(title)
-        ),
-        infoOption && React.createElement(
-          "span",
-          { className: "section-info-option",
-            onBlur: this.onInfoLeave,
-            onFocus: this.onInfoEnter,
-            onMouseOut: this.onInfoLeave,
-            onMouseOver: this.onInfoEnter },
-          React.createElement("img", _extends({ className: "info-option-icon", title: sectionInfoTitle
-          }, infoOptionIconA11yAttrs)),
-          React.createElement(
-            "div",
-            { className: "info-option" },
-            infoOption.header && React.createElement(
-              "div",
-              { className: "info-option-header", role: "heading" },
-              this.getFormattedMessage(infoOption.header)
-            ),
-            infoOption.body && React.createElement(
-              "p",
-              { className: "info-option-body" },
-              this.getFormattedMessage(infoOption.body)
-            ),
-            infoOption.link && React.createElement(
-              "a",
-              { href: infoOption.link.href, target: "_blank", rel: "noopener noreferrer", className: "info-option-link" },
-              this.getFormattedMessage(infoOption.link.title || infoOption.link)
-            )
-          )
-        )
-      ),
+      CollapsibleSection,
+      { className: "section", icon: icon, title: getFormattedMessage(title), infoOption: infoOption, prefName: `section.${id}.collapsed`, Prefs: this.props.Prefs, dispatch: this.props.dispatch },
       !shouldShowEmptyState && React.createElement(
         "ul",
         { className: "section-list", style: { padding: 0 } },
-        realRows.map((link, index) => link && React.createElement(Card, { key: index, index: index, dispatch: dispatch, link: link, contextMenuOptions: contextMenuOptions, eventSource: eventSource })),
+        realRows.map((link, index) => link && React.createElement(Card, { key: index, index: index, dispatch: dispatch, link: link, contextMenuOptions: contextMenuOptions,
+          eventSource: eventSource, shouldSendImpressionStats: this.props.shouldSendImpressionStats })),
         placeholders > 0 && [...new Array(placeholders)].map((_, i) => React.createElement(PlaceholderCard, { key: i }))
       ),
       shouldShowEmptyState && React.createElement(
@@ -2589,7 +2835,7 @@ class Section extends React.PureComponent {
           React.createElement(
             "p",
             { className: "empty-state-message" },
-            this.getFormattedMessage(emptyState.message)
+            getFormattedMessage(emptyState.message)
           )
         )
       ),
@@ -2613,26 +2859,29 @@ class Sections extends React.PureComponent {
     return React.createElement(
       "div",
       { className: "sections-list" },
-      sections.filter(section => section.enabled).map(section => React.createElement(SectionIntl, _extends({ key: section.id }, section, { dispatch: this.props.dispatch })))
+      sections.filter(section => section.enabled).map(section => React.createElement(SectionIntl, _extends({ key: section.id }, section, { Prefs: this.props.Prefs, dispatch: this.props.dispatch })))
     );
   }
 }
 
-module.exports = connect(state => ({ Sections: state.Sections }))(Sections);
+module.exports = connect(state => ({ Sections: state.Sections, Prefs: state.Prefs }))(Sections);
 module.exports._unconnected = Sections;
 module.exports.SectionIntl = SectionIntl;
 module.exports._unconnectedSection = Section;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
 const LinkMenu = __webpack_require__(9);
 const { FormattedMessage } = __webpack_require__(2);
-const cardContextTypes = __webpack_require__(26);
+const cardContextTypes = __webpack_require__(27);
 const { actionCreators: ac, actionTypes: at } = __webpack_require__(0);
+
+// Keep track of pending image loads to only request once
+const gImageLoading = new Map();
 
 /**
  * Card component.
@@ -2646,11 +2895,47 @@ const { actionCreators: ac, actionTypes: at } = __webpack_require__(0);
 class Card extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { showContextMenu: false, activeCard: null };
+    this.state = {
+      activeCard: null,
+      imageLoaded: false,
+      showContextMenu: false
+    };
     this.onMenuButtonClick = this.onMenuButtonClick.bind(this);
     this.onMenuUpdate = this.onMenuUpdate.bind(this);
     this.onLinkClick = this.onLinkClick.bind(this);
   }
+
+  /**
+   * Helper to conditionally load an image and update state when it loads.
+   */
+  async maybeLoadImage() {
+    // No need to load if it's already loaded or no image
+    const { image } = this.props.link;
+    if (!this.state.imageLoaded && image) {
+      // Initialize a promise to share a load across multiple card updates
+      if (!gImageLoading.has(image)) {
+        const loaderPromise = new Promise((resolve, reject) => {
+          const loader = new Image();
+          loader.addEventListener("load", resolve);
+          loader.addEventListener("error", reject);
+          loader.src = image;
+        });
+
+        // Save and remove the promise only while it's pending
+        gImageLoading.set(image, loaderPromise);
+        loaderPromise.catch(ex => ex).then(() => gImageLoading.delete(image)).catch();
+      }
+
+      // Wait for the image whether just started loading or reused promise
+      await gImageLoading.get(image);
+
+      // Only update state if we're still waiting to load the original image
+      if (this.props.link.image === image && !this.state.imageLoaded) {
+        this.setState({ imageLoaded: true });
+      }
+    }
+  }
+
   onMenuButtonClick(event) {
     event.preventDefault();
     this.setState({
@@ -2670,18 +2955,32 @@ class Card extends React.PureComponent {
       source: this.props.eventSource,
       action_position: this.props.index
     }));
-    this.props.dispatch(ac.ImpressionStats({
-      source: this.props.eventSource,
-      click: 0,
-      incognito: true,
-      tiles: [{ id: this.props.link.guid, pos: this.props.index }]
-    }));
+    if (this.props.shouldSendImpressionStats) {
+      this.props.dispatch(ac.ImpressionStats({
+        source: this.props.eventSource,
+        click: 0,
+        incognito: true,
+        tiles: [{ id: this.props.link.guid, pos: this.props.index }]
+      }));
+    }
   }
   onMenuUpdate(showContextMenu) {
     this.setState({ showContextMenu });
   }
+  componentDidMount() {
+    this.maybeLoadImage();
+  }
+  componentDidUpdate() {
+    this.maybeLoadImage();
+  }
+  componentWillReceiveProps(nextProps) {
+    // Clear the image state if changing images
+    if (nextProps.link.image !== this.props.link.image) {
+      this.setState({ imageLoaded: false });
+    }
+  }
   render() {
-    const { index, link, dispatch, contextMenuOptions, eventSource } = this.props;
+    const { index, link, dispatch, contextMenuOptions, eventSource, shouldSendImpressionStats } = this.props;
     const { props } = this;
     const isContextMenuOpen = this.state.showContextMenu && this.state.activeCard === index;
     // Display "now" as "trending" until we have new strings #3402
@@ -2701,7 +3000,7 @@ class Card extends React.PureComponent {
           hasImage && React.createElement(
             "div",
             { className: "card-preview-image-outer" },
-            React.createElement("div", { className: `card-preview-image${link.image ? " loaded" : ""}`, style: imageStyle })
+            React.createElement("div", { className: `card-preview-image${this.state.imageLoaded ? " loaded" : ""}`, style: imageStyle })
           ),
           React.createElement(
             "div",
@@ -2761,7 +3060,8 @@ class Card extends React.PureComponent {
         onUpdate: this.onMenuUpdate,
         options: link.contextMenuOptions || contextMenuOptions,
         site: link,
-        visible: isContextMenuOpen })
+        visible: isContextMenuOpen,
+        shouldSendImpressionStats: shouldSendImpressionStats })
     );
   }
 }
@@ -2773,7 +3073,7 @@ module.exports = Card;
 module.exports.PlaceholderCard = PlaceholderCard;
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ (function(module, exports) {
 
 module.exports = {
@@ -2796,7 +3096,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(1);
@@ -2831,7 +3131,7 @@ class Topics extends React.PureComponent {
       React.createElement(
         "ul",
         null,
-        topics.map(t => React.createElement(Topic, { key: t.name, url: t.url, name: t.name }))
+        topics && topics.map(t => React.createElement(Topic, { key: t.name, url: t.url, name: t.name }))
       ),
       read_more_endpoint && React.createElement(
         "a",
@@ -2847,7 +3147,7 @@ module.exports._unconnected = Topics;
 module.exports.Topic = Topic;
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(module, exports) {
 
 class _PrerenderData {
@@ -2922,8 +3222,7 @@ var PrerenderData = new _PrerenderData({
     icon: "pocket",
     id: "topstories",
     order: 1,
-    title: { id: "header_recommended_by", values: { provider: "Pocket" } },
-    topics: [{}]
+    title: { id: "header_recommended_by", values: { provider: "Pocket" } }
   }, {
     enabled: true,
     id: "highlights",
@@ -2938,12 +3237,12 @@ module.exports = {
 };
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/* eslint-env mozilla/frame-script */
 
-const { createStore, combineReducers, applyMiddleware } = __webpack_require__(30);
+const { createStore, combineReducers, applyMiddleware } = __webpack_require__(31);
 const { actionTypes: at, actionCreators: ac, actionUtils: au } = __webpack_require__(0);
 
 const MERGE_STORE_ACTION = "NEW_TAB_INITIAL_STATE";
@@ -3053,13 +3352,13 @@ module.exports.INCOMING_MESSAGE_NAME = INCOMING_MESSAGE_NAME;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ (function(module, exports) {
 
 module.exports = Redux;
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {const { actionTypes: at } = __webpack_require__(0);
@@ -3129,7 +3428,7 @@ module.exports = class DetectUserSessionStart {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {const DATABASE_NAME = "snippets_db";
@@ -3192,6 +3491,10 @@ class SnippetsMap extends Map {
       blockList.push(id);
     }
     await this.set("blockList", blockList);
+  }
+
+  disableOnboarding() {
+    this._dispatch(ac.SendToMain({ type: at.DISABLE_ONBOARDING }));
   }
 
   showFirefoxAccounts() {
@@ -3332,7 +3635,6 @@ class SnippetsProvider {
     if (needsUpdate && this.appData.snippetsURL) {
       this.snippetsMap.set("snippets-last-update", Date.now());
       try {
-        // TODO: timeout?
         const response = await fetch(this.appData.snippetsURL);
         if (response.status === 200) {
           const payload = await response.text();
@@ -3346,8 +3648,16 @@ class SnippetsProvider {
     }
   }
 
-  _showDefaultSnippets() {
+  _noSnippetFallback() {
     // TODO
+  }
+
+  _forceOnboardingVisibility(shouldBeVisible) {
+    const onboardingEl = document.getElementById("onboarding-notification-bar");
+
+    if (onboardingEl) {
+      onboardingEl.style.display = shouldBeVisible ? "" : "none";
+    }
   }
 
   _showRemoteSnippets() {
@@ -3417,15 +3727,18 @@ class SnippetsProvider {
     try {
       this._showRemoteSnippets();
     } catch (e) {
-      this._showDefaultSnippets(e);
+      this._noSnippetFallback(e);
     }
 
     window.dispatchEvent(new Event(SNIPPETS_ENABLED_EVENT));
+
+    this._forceOnboardingVisibility(true);
     this.initialized = true;
   }
 
   uninit() {
     window.dispatchEvent(new Event(SNIPPETS_DISABLED_EVENT));
+    this._forceOnboardingVisibility(false);
     this.initialized = false;
   }
 }
@@ -3445,16 +3758,16 @@ function addSnippetsSubscriber(store) {
 
   store.subscribe(async () => {
     const state = store.getState();
-    // state.Snippets.initialized:  Should snippets be initialised?
-    // snippets.initialized:        Is SnippetsProvider currently initialised?
-    if (state.Snippets.initialized && !snippets.initialized && state.Snippets.onboardingFinished) {
-      // Don't call init multiple times
-      if (!initializing) {
-        initializing = true;
-        await snippets.init({ appData: state.Snippets });
-        initializing = false;
-      }
-    } else if (state.Snippets.initialized === false && snippets.initialized) {
+    // state.Prefs.values["feeds.snippets"]:  Should snippets be shown?
+    // state.Snippets.initialized             Is the snippets data initialized?
+    // snippets.initialized:                  Is SnippetsProvider currently initialised?
+    if (state.Prefs.values["feeds.snippets"] && state.Snippets.initialized && !snippets.initialized &&
+    // Don't call init multiple times
+    !initializing) {
+      initializing = true;
+      await snippets.init({ appData: state.Snippets });
+      initializing = false;
+    } else if (state.Prefs.values["feeds.snippets"] === false && snippets.initialized) {
       snippets.uninit();
     }
   });

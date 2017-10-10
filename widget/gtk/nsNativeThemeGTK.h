@@ -9,7 +9,7 @@
 #include "X11UndefineNone.h"
 #include "nsITheme.h"
 #include "nsCOMPtr.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIObserver.h"
 #include "nsNativeTheme.h"
 #include "nsThemeConstants.h"
@@ -51,7 +51,7 @@ public:
                                   bool* aIsOverridable) override;
 
   NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType, 
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 bool* aShouldRepaint,
                                 const nsAttrValue* aOldValue) override;
 

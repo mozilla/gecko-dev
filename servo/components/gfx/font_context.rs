@@ -118,7 +118,7 @@ impl FontContext {
 
         let layout_font_group_cache_key = LayoutFontGroupCacheKey {
             pointer: style.clone(),
-            size: Au::from(style.font_size),
+            size: style.font_size.size(),
         };
         if let Some(ref cached_font_group) = self.layout_font_group_cache.get(
                 &layout_font_group_cache_key) {
@@ -135,7 +135,7 @@ impl FontContext {
 
         let mut fonts: SmallVec<[Rc<RefCell<Font>>; 8]> = SmallVec::new();
 
-        for family in &style.font_family.0 {
+        for family in style.font_family.0.iter() {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
             let mut cache_hit = false;
             for cached_font_entry in &self.layout_font_cache {
@@ -148,7 +148,7 @@ impl FontContext {
                         Some(ref cached_font_ref) => {
                             let cached_font = (*cached_font_ref).borrow();
                             if cached_font.descriptor == desc &&
-                               cached_font.requested_pt_size == Au::from(style.font_size) &&
+                               cached_font.requested_pt_size == style.font_size.size() &&
                                cached_font.variant == style.font_variant_caps {
                                 fonts.push((*cached_font_ref).clone());
                                 cache_hit = true;
@@ -166,7 +166,7 @@ impl FontContext {
                     Some(template_info) => {
                         let layout_font = self.create_layout_font(template_info.font_template,
                                                                   desc.clone(),
-                                                                  Au::from(style.font_size),
+                                                                  style.font_size.size(),
                                                                   style.font_variant_caps,
                                                                   template_info.font_key);
                         let font = match layout_font {
@@ -199,7 +199,7 @@ impl FontContext {
         for cached_font_entry in &self.fallback_font_cache {
             let cached_font = cached_font_entry.font.borrow();
             if cached_font.descriptor == desc &&
-                        cached_font.requested_pt_size == Au::from(style.font_size) &&
+                        cached_font.requested_pt_size == style.font_size.size() &&
                         cached_font.variant == style.font_variant_caps {
                 fonts.push(cached_font_entry.font.clone());
                 cache_hit = true;
@@ -211,7 +211,7 @@ impl FontContext {
             let template_info = self.font_cache_thread.last_resort_font_template(desc.clone());
             let layout_font = self.create_layout_font(template_info.font_template,
                                                       desc.clone(),
-                                                      Au::from(style.font_size),
+                                                      style.font_size.size(),
                                                       style.font_variant_caps,
                                                       template_info.font_key);
             match layout_font {

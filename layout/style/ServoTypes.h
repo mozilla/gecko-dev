@@ -135,34 +135,6 @@ struct ServoWritingMode {
   uint8_t mBits;
 };
 
-// Don't attempt to read from this
-// (see comment on ServoFontComputationData
-enum ServoKeywordSize {
-  Empty, // when the Option is None
-  XXSmall,
-  XSmall,
-  Small,
-  Medium,
-  Large,
-  XLarge,
-  XXLarge,
-  XXXLarge,
-};
-
-// Don't attempt to read from this. We can't
-// always guarantee that the interior representation
-// of this is correct (the mKeyword field may have a different padding),
-// but the entire struct should
-// have the same size and alignment as the Rust version.
-// Ensure layout tests get run if touching either side.
-struct ServoFontComputationData {
-  ServoKeywordSize mKeyword;
-  float/*32_t*/ mRatio;
-  int32_t mAbsolute;
-
-  static_assert(sizeof(float) == 4, "float should be 32 bit");
-};
-
 struct ServoCustomPropertiesMap {
   uintptr_t mPtr;
 };
@@ -199,24 +171,24 @@ struct ServoComputedValueFlags {
 #undef STYLE_STRUCT
 #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
 
+// These measurements are obtained for both the UA cache and the Stylist, but
+// not all the fields are used in both cases.
 class ServoStyleSetSizes
 {
 public:
-  size_t mStylistRuleTree;
-  size_t mStylistPrecomputedPseudos;
-  size_t mStylistElementAndPseudosMaps;
-  size_t mStylistInvalidationMap;
-  size_t mStylistRevalidationSelectors;
-  size_t mStylistOther;
-  size_t mOther;
+  size_t mRuleTree;                // Stylist-only
+  size_t mPrecomputedPseudos;      // UA cache-only
+  size_t mElementAndPseudosMaps;   // Used for both
+  size_t mInvalidationMap;         // Used for both
+  size_t mRevalidationSelectors;   // Used for both
+  size_t mOther;                   // Used for both
 
   ServoStyleSetSizes()
-    : mStylistRuleTree(0)
-    , mStylistPrecomputedPseudos(0)
-    , mStylistElementAndPseudosMaps(0)
-    , mStylistInvalidationMap(0)
-    , mStylistRevalidationSelectors(0)
-    , mStylistOther(0)
+    : mRuleTree(0)
+    , mPrecomputedPseudos(0)
+    , mElementAndPseudosMaps(0)
+    , mInvalidationMap(0)
+    , mRevalidationSelectors(0)
     , mOther(0)
   {}
 };
@@ -269,14 +241,6 @@ private:
   /// relevant link for this element. A element's "relevant link" is the
   /// element being matched if it is a link or the nearest ancestor link.
   mozilla::ServoVisitedStyle visited_style;
-
-  // this is the last member because most of the other members
-  // are pointer sized. This makes it easier to deal with the
-  // alignment of the fields when replacing things via bindgen
-  //
-  // This is opaque, please don't read from it from C++
-  // (see comment on ServoFontComputationData)
-  mozilla::ServoFontComputationData font_computation_data;
 
   // C++ just sees this struct as a bucket of bits, and will
   // do the wrong thing if we let it use the default copy ctor/assignment

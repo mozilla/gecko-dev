@@ -11,6 +11,10 @@
 #include "mozilla/Move.h"
 #include "mozilla/Result.h"
 
+#if defined(MOZILLA_INTERNAL_API)
+#include "nsString.h"
+#endif // defined(MOZILLA_INTERNAL_API)
+
 #include <windows.h>
 
 namespace mozilla {
@@ -19,6 +23,11 @@ namespace mscom {
 class ActivationContext final
 {
 public:
+  ActivationContext()
+    : mActCtx(INVALID_HANDLE_VALUE)
+  {
+  }
+
   explicit ActivationContext(WORD aResourceId);
   explicit ActivationContext(HMODULE aLoadFromModule, WORD aResourceId = 2);
 
@@ -35,7 +44,10 @@ public:
     return mActCtx != INVALID_HANDLE_VALUE;
   }
 
+#if defined(MOZILLA_INTERNAL_API)
   static Result<uintptr_t,HRESULT> GetCurrent();
+  static HRESULT GetCurrentManifestPath(nsAString& aOutManifestPath);
+#endif // defined(MOZILLA_INTERNAL_API)
 
 private:
   void Init(ACTCTX& aActCtx);
@@ -59,14 +71,28 @@ public:
     Activate();
   }
 
+  ActivationContextRegion();
+
   explicit ActivationContextRegion(const ActivationContext& aActCtx);
+  ActivationContextRegion& operator=(const ActivationContext& aActCtx);
+
   explicit ActivationContextRegion(ActivationContext&& aActCtx);
+  ActivationContextRegion& operator=(ActivationContext&& aActCtx);
+
+  ActivationContextRegion(ActivationContextRegion&& aRgn);
+  ActivationContextRegion& operator=(ActivationContextRegion&& aRgn);
+
   ~ActivationContextRegion();
 
+  explicit operator bool() const
+  {
+    return !!mActCookie;
+  }
+
   ActivationContextRegion(const ActivationContextRegion&) = delete;
-  ActivationContextRegion(ActivationContextRegion&&) = delete;
   ActivationContextRegion& operator=(const ActivationContextRegion&) = delete;
-  ActivationContextRegion& operator=(ActivationContextRegion&&) = delete;
+
+  bool Deactivate();
 
 private:
   void Activate();

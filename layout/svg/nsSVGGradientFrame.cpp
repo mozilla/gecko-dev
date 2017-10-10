@@ -13,7 +13,7 @@
 #include "mozilla/dom/SVGGradientElement.h"
 #include "mozilla/dom/SVGStopElement.h"
 #include "nsContentUtils.h"
-#include "nsSVGEffects.h"
+#include "SVGObserverUtils.h"
 #include "nsSVGAnimatedTransformList.h"
 
 // XXX Tight coupling with content classes ahead!
@@ -39,22 +39,22 @@ nsSVGGradientFrame::nsSVGGradientFrame(nsStyleContext* aContext,
 
 nsresult
 nsSVGGradientFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                     nsIAtom*        aAttribute,
+                                     nsAtom*        aAttribute,
                                      int32_t         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       (aAttribute == nsGkAtoms::gradientUnits ||
        aAttribute == nsGkAtoms::gradientTransform ||
        aAttribute == nsGkAtoms::spreadMethod)) {
-    nsSVGEffects::InvalidateDirectRenderingObservers(this);
+    SVGObserverUtils::InvalidateDirectRenderingObservers(this);
   } else if ((aNameSpaceID == kNameSpaceID_XLink ||
               aNameSpaceID == kNameSpaceID_None) &&
              aAttribute == nsGkAtoms::href) {
     // Blow away our reference, if any
-    DeleteProperty(nsSVGEffects::HrefAsPaintingProperty());
+    DeleteProperty(SVGObserverUtils::HrefAsPaintingProperty());
     mNoHRefURI = false;
     // And update whoever references us
-    nsSVGEffects::InvalidateDirectRenderingObservers(this);
+    SVGObserverUtils::InvalidateDirectRenderingObservers(this);
   }
 
   return nsSVGPaintServerFrame::AttributeChanged(aNameSpaceID,
@@ -335,7 +335,7 @@ nsSVGGradientFrame::GetReferencedGradient()
     return nullptr;
 
   nsSVGPaintingProperty *property =
-    GetProperty(nsSVGEffects::HrefAsPaintingProperty());
+    GetProperty(SVGObserverUtils::HrefAsPaintingProperty());
 
   if (!property) {
     // Fetch our gradient element's href or xlink:href attribute
@@ -363,8 +363,8 @@ nsSVGGradientFrame::GetReferencedGradient()
                                               mContent->GetUncomposedDoc(), base);
 
     property =
-      nsSVGEffects::GetPaintingProperty(targetURI, this,
-                                        nsSVGEffects::HrefAsPaintingProperty());
+      SVGObserverUtils::GetPaintingProperty(targetURI, this,
+                          SVGObserverUtils::HrefAsPaintingProperty());
     if (!property)
       return nullptr;
   }
@@ -432,7 +432,7 @@ nsSVGLinearGradientFrame::Init(nsIContent*       aContent,
 
 nsresult
 nsSVGLinearGradientFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                           nsIAtom*        aAttribute,
+                                           nsAtom*        aAttribute,
                                            int32_t         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
@@ -440,7 +440,7 @@ nsSVGLinearGradientFrame::AttributeChanged(int32_t         aNameSpaceID,
        aAttribute == nsGkAtoms::y1 ||
        aAttribute == nsGkAtoms::x2 ||
        aAttribute == nsGkAtoms::y2)) {
-    nsSVGEffects::InvalidateDirectRenderingObservers(this);
+    SVGObserverUtils::InvalidateDirectRenderingObservers(this);
   }
 
   return nsSVGGradientFrame::AttributeChanged(aNameSpaceID,
@@ -534,7 +534,7 @@ nsSVGRadialGradientFrame::Init(nsIContent*       aContent,
 
 nsresult
 nsSVGRadialGradientFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                           nsIAtom*        aAttribute,
+                                           nsAtom*        aAttribute,
                                            int32_t         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
@@ -543,7 +543,7 @@ nsSVGRadialGradientFrame::AttributeChanged(int32_t         aNameSpaceID,
        aAttribute == nsGkAtoms::cy ||
        aAttribute == nsGkAtoms::fx ||
        aAttribute == nsGkAtoms::fy)) {
-    nsSVGEffects::InvalidateDirectRenderingObservers(this);
+    SVGObserverUtils::InvalidateDirectRenderingObservers(this);
   }
 
   return nsSVGGradientFrame::AttributeChanged(aNameSpaceID,

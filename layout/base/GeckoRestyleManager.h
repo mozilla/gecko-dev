@@ -60,14 +60,14 @@ public:
   // Forwarded nsIMutationObserver method, to handle restyling.
   void AttributeWillChange(Element* aElement,
                            int32_t  aNameSpaceID,
-                           nsIAtom* aAttribute,
+                           nsAtom* aAttribute,
                            int32_t  aModType,
                            const nsAttrValue* aNewValue);
   // Forwarded nsIMutationObserver method, to handle restyling (and
   // passing the notification to the frame).
   void AttributeChanged(Element* aElement,
                         int32_t  aNameSpaceID,
-                        nsIAtom* aAttribute,
+                        nsAtom* aAttribute,
                         int32_t  aModType,
                         const nsAttrValue* aOldValue);
 
@@ -345,6 +345,7 @@ public:
 #endif
 
   bool IsProcessingRestyles() { return mIsProcessingRestyles; }
+  bool HasPendingRestyles() const;
 
 private:
   inline nsStyleSet* StyleSet() const {

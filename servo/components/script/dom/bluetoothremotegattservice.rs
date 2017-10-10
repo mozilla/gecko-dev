@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
 use dom::bluetoothdevice::BluetoothDevice;
@@ -17,14 +17,13 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
 use std::rc::Rc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
 pub struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
-    device: JS<BluetoothDevice>,
+    device: Dom<BluetoothDevice>,
     uuid: DOMString,
     is_primary: bool,
     instance_id: String,
@@ -38,7 +37,7 @@ impl BluetoothRemoteGATTService {
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             eventtarget: EventTarget::new_inherited(),
-            device: JS::from_ref(device),
+            device: Dom::from_ref(device),
             uuid: uuid,
             is_primary: is_primary,
             instance_id: instance_id,
@@ -50,7 +49,7 @@ impl BluetoothRemoteGATTService {
                uuid: DOMString,
                isPrimary: bool,
                instanceID: String)
-               -> Root<BluetoothRemoteGATTService> {
+               -> DomRoot<BluetoothRemoteGATTService> {
         reflect_dom_object(box BluetoothRemoteGATTService::new_inherited(device,
                                                                          uuid,
                                                                          isPrimary,
@@ -66,8 +65,8 @@ impl BluetoothRemoteGATTService {
 
 impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device
-    fn Device(&self) -> Root<BluetoothDevice> {
-        Root::from_ref(&self.device)
+    fn Device(&self) -> DomRoot<BluetoothDevice> {
+        DomRoot::from_ref(&self.device)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary
@@ -128,15 +127,14 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec, single) => {
                 if single {
-                    promise.resolve_native(promise_cx,
-                                           &device.get_or_create_characteristic(&characteristics_vec[0], &self));
+                    promise.resolve_native(&device.get_or_create_characteristic(&characteristics_vec[0], &self));
                     return;
                 }
                 let mut characteristics = vec!();
@@ -144,23 +142,22 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                     let bt_characteristic = device.get_or_create_characteristic(&characteristic, &self);
                     characteristics.push(bt_characteristic);
                 }
-                promise.resolve_native(promise_cx, &characteristics);
+                promise.resolve_native(&characteristics);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec, single) => {
                 if single {
-                    return promise.resolve_native(promise_cx,
-                                                  &device.get_or_create_service(&services_vec[0], &device.get_gatt()));
+                    return promise.resolve_native(&device.get_or_create_service(&services_vec[0], &device.get_gatt()));
                 }
                 let mut services = vec!();
                 for service in services_vec {
                     let bt_service = device.get_or_create_service(&service, &device.get_gatt());
                     services.push(bt_service);
                 }
-                promise.resolve_native(promise_cx, &services);
+                promise.resolve_native(&services);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

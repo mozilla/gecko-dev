@@ -4,11 +4,11 @@
 
 import json
 import os
-import pytest
 from argparse import Namespace
 from cStringIO import StringIO
 
 import mozinfo
+import pytest
 from manifestparser import expression
 from moztest.selftest.fixtures import binary, setup_test_harness  # noqa
 
@@ -37,22 +37,21 @@ def runtests(setup_test_harness, binary, parser):
         'focusFilterMode': 'non-needs-focus',
         'log_raw': [buf],
         'suite': 'reftest',
+        'specialPowersExtensionPath': os.path.join(harness_root, 'specialpowers'),
     })
 
     if not os.path.isdir(build.bindir):
         package_root = os.path.dirname(harness_root)
         options.update({
             'extraProfileFiles': [os.path.join(package_root, 'bin', 'plugins')],
-            'objPath': os.environ['PYTHON_TEST_TMP'],
             'reftestExtensionPath': os.path.join(harness_root, 'reftest'),
+            'sandboxReadWhitelist': [here, os.environ['PYTHON_TEST_TMP']],
             'utilityPath': os.path.join(package_root, 'bin'),
-            'workPath': here,
         })
     else:
         options.update({
             'extraProfileFiles': [os.path.join(build.topobjdir, 'dist', 'plugins')],
-            'objPath': build.topobjdir,
-            'workPath': build.topsrcdir,
+            'sandboxReadWhitelist': [build.topobjdir, build.topsrcdir],
         })
 
     def normalize(test):

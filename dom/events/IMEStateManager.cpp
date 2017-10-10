@@ -193,6 +193,9 @@ IMEStateManager::Shutdown()
   MOZ_ASSERT(!sTextCompositions || !sTextCompositions->Length());
   delete sTextCompositions;
   sTextCompositions = nullptr;
+  // All string instances in the global space need to be empty after XPCOM
+  // shutdown.
+  sActiveChildInputContext.ShutDown();
 }
 
 // static
@@ -1307,6 +1310,11 @@ IMEStateManager::SetIMEState(const IMEState& aState,
         nsContentUtils::IsChromeDoc(aContent->OwnerDoc())) {
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::inputmode,
                         context.mHTMLInputInputmode);
+      if (context.mHTMLInputInputmode.EqualsLiteral("mozAwesomebar") &&
+          !nsContentUtils::IsChromeDoc(aContent->OwnerDoc())) {
+        // mozAwesomebar should be allowed only in chrome
+        context.mHTMLInputInputmode.Truncate();
+      }
     }
 
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::moz_action_hint,
@@ -1330,11 +1338,16 @@ IMEStateManager::SetIMEState(const IMEState& aState,
         if ((form = do_QueryInterface(formElement)) &&
             form->GetDefaultSubmitElement()) {
           willSubmit = true;
-        // is this an html form and does it only have a single text input element?
-        } else if (formElement && formElement->IsHTMLElement(nsGkAtoms::form) &&
-                   !static_cast<dom::HTMLFormElement*>(formElement)->
-                     ImplicitSubmissionIsDisabled()) {
-          willSubmit = true;
+        // is this an html form...
+        } else if (formElement && formElement->IsHTMLElement(nsGkAtoms::form)) {
+          dom::HTMLFormElement* htmlForm =
+            static_cast<dom::HTMLFormElement*>(formElement);
+          // ... and does it only have a single text input element ?
+          if (!htmlForm->ImplicitSubmissionIsDisabled() ||
+              // ... or is this the last non-disabled element?
+              htmlForm->IsLastActiveElement(control)) {
+            willSubmit = true;
+          }
         }
       }
       context.mActionHint.Assign(

@@ -130,7 +130,7 @@ nsCSSValue::nsCSSValue(mozilla::css::GridTemplateAreasValue* aValue)
   mValue.mGridTemplateAreas->AddRef();
 }
 
-nsCSSValue::nsCSSValue(css::FontFamilyListRefCnt* aValue)
+nsCSSValue::nsCSSValue(SharedFontList* aValue)
   : mUnit(eCSSUnit_FontFamilyList)
 {
   mValue.mFontFamilyList = aValue;
@@ -320,7 +320,8 @@ bool nsCSSValue::operator==(const nsCSSValue& aOther) const
       return *mValue.mGridTemplateAreas == *aOther.mValue.mGridTemplateAreas;
     }
     else if (eCSSUnit_FontFamilyList == mUnit) {
-      return *mValue.mFontFamilyList == *aOther.mValue.mFontFamilyList;
+      return mValue.mFontFamilyList->mNames ==
+             aOther.mValue.mFontFamilyList->mNames;
     }
     else if (eCSSUnit_AtomIdent == mUnit) {
       return mValue.mAtom == aOther.mValue.mAtom;
@@ -417,10 +418,11 @@ nscoord nsCSSValue::GetPixelLength() const
 // traversal, since the refcounts aren't thread-safe.
 // Note that the caller might be an OMTA thread, which is allowed to operate off
 // main thread because it owns all of the corresponding nsCSSValues and any that
-// they might be sharing members with.
-#define DO_RELEASE(member) {                                                     \
-  MOZ_ASSERT(NS_IsInCompositorThread() || !ServoStyleSet::IsInServoTraversal()); \
-  mValue.member->Release();                                                      \
+// they might be sharing members with. Since this can happen concurrently with
+// the servo traversal, we have to use a more-precise (but slower) test.
+#define DO_RELEASE(member) {                                     \
+  MOZ_ASSERT(!ServoStyleSet::IsCurrentThreadInServoTraversal()); \
+  mValue.member->Release();                                      \
 }
 
 void nsCSSValue::DoReset()
@@ -510,7 +512,7 @@ void nsCSSValue::SetStringValue(const nsString& aValue,
 }
 
 void
-nsCSSValue::SetAtomIdentValue(already_AddRefed<nsIAtom> aValue)
+nsCSSValue::SetAtomIdentValue(already_AddRefed<nsAtom> aValue)
 {
   Reset();
   mUnit = eCSSUnit_AtomIdent;
@@ -616,12 +618,11 @@ void nsCSSValue::SetGridTemplateAreas(mozilla::css::GridTemplateAreasValue* aVal
   mValue.mGridTemplateAreas->AddRef();
 }
 
-void nsCSSValue::SetFontFamilyListValue(css::FontFamilyListRefCnt* aValue)
+void nsCSSValue::SetFontFamilyListValue(already_AddRefed<SharedFontList> aValue)
 {
   Reset();
   mUnit = eCSSUnit_FontFamilyList;
-  mValue.mFontFamilyList = aValue;
-  mValue.mFontFamilyList->AddRef();
+  mValue.mFontFamilyList = aValue.take();
 }
 
 void nsCSSValue::SetPairValue(const nsCSSValuePair* aValue)
@@ -988,7 +989,7 @@ void
 nsCSSValue::AtomizeIdentValue()
 {
   MOZ_ASSERT(mUnit == eCSSUnit_Ident);
-  nsCOMPtr<nsIAtom> atom = NS_Atomize(GetStringBufferValue());
+  RefPtr<nsAtom> atom = NS_Atomize(GetStringBufferValue());
   Reset();
   mUnit = eCSSUnit_AtomIdent;
   mValue.mAtom = atom.forget().take();
@@ -1988,7 +1989,7 @@ nsCSSValue::AppendToString(nsCSSPropertyID aProperty,
       nsStyleUtil::AppendEscapedCSSString(areas->mTemplates[i], aResult);
     }
   } else if (eCSSUnit_FontFamilyList == unit) {
-    nsStyleUtil::AppendEscapedCSSFontFamilyList(*mValue.mFontFamilyList,
+    nsStyleUtil::AppendEscapedCSSFontFamilyList(mValue.mFontFamilyList,
                                                 aResult);
   } else if (eCSSUnit_AtomIdent == unit) {
     nsDependentAtomString buffer(GetAtomValue());
@@ -2207,6 +2208,9 @@ nsCSSValue::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
       break;
 
     case eCSSUnit_FontFamilyList:
+      // The SharedFontList is a refcounted object, but is unique per
+      // declaration. We don't measure the references from computed
+      // values.
       n += mValue.mFontFamilyList->SizeOfIncludingThis(aMallocSizeOf);
       break;
 
@@ -2890,7 +2894,7 @@ css::URLValueData::DefinitelyEqualURIsAndPrincipal(
 nsDependentCSubstring
 css::URLValueData::GetRustString() const
 {
-  uint8_t* chars;
+  const uint8_t* chars;
   uint32_t len;
   Servo_GetArcStringData(mStrings.mRustString.mPtr, &chars, &len);
   return nsDependentCSubstring(reinterpret_cast<const char*>(chars), len);

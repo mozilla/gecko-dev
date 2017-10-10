@@ -141,7 +141,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsImageBoxFrame)
 
 nsresult
 nsImageBoxFrame::AttributeChanged(int32_t aNameSpaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   int32_t aModType)
 {
   nsresult rv = nsLeafBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,
@@ -241,9 +241,11 @@ nsImageBoxFrame::UpdateImage()
     if (doc) {
       nsContentPolicyType contentPolicyType;
       nsCOMPtr<nsIPrincipal> loadingPrincipal;
+      uint64_t requestContextID = 0;
       nsContentUtils::GetContentPolicyTypeForUIImageLoading(mContent,
                                                             getter_AddRefs(loadingPrincipal),
-                                                            contentPolicyType);
+                                                            contentPolicyType,
+                                                            &requestContextID);
 
       nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
       nsCOMPtr<nsIURI> uri;
@@ -252,7 +254,7 @@ nsImageBoxFrame::UpdateImage()
                                                 doc,
                                                 baseURI);
       if (uri) {
-        nsresult rv = nsContentUtils::LoadImage(uri, mContent, doc, loadingPrincipal,
+        nsresult rv = nsContentUtils::LoadImage(uri, mContent, doc, loadingPrincipal, requestContextID,
                                                 doc->GetDocumentURI(), doc->GetReferrerPolicy(),
                                                 mListener, mLoadFlags,
                                                 EmptyString(), getter_AddRefs(mImageRequest),
@@ -447,7 +449,9 @@ nsImageBoxFrame::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuild
   }
 
   gfx::IntSize size;
-  Maybe<wr::ImageKey> key = aManager->CreateImageKey(aItem, container, aBuilder, aSc, size);
+  Maybe<wr::ImageKey> key = aManager->CommandBuilder().CreateImageKey(aItem, container,
+                                                                      aBuilder, aResources,
+                                                                      aSc, size);
   if (key.isNothing()) {
     return DrawResult::BAD_IMAGE;
   }
@@ -458,7 +462,7 @@ nsImageBoxFrame::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuild
 
   LayoutDeviceSize gapSize(0, 0);
   SamplingFilter sampleFilter = nsLayoutUtils::GetSamplingFilterForFrame(aItem->Frame());
-  aBuilder.PushImage(fill, fill,
+  aBuilder.PushImage(fill, fill, !BackfaceIsHidden(),
                      wr::ToLayoutSize(fillRect.Size()), wr::ToLayoutSize(gapSize),
                      wr::ToImageRendering(sampleFilter), key.value());
 
@@ -553,15 +557,12 @@ bool
 nsDisplayXULImage::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                            mozilla::wr::IpcResourceUpdateQueue& aResources,
                                            const StackingContextHelper& aSc,
-                                           nsTArray<WebRenderParentCommand>& aParentCommands,
                                            mozilla::layers::WebRenderLayerManager* aManager,
                                            nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    ContainerLayerParameters parameter;
-    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-      return false;
-    }
+  ContainerLayerParameters parameter;
+  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+    return false;
   }
 
   uint32_t flags = imgIContainer::FLAG_SYNC_DECODE_IF_FAST;

@@ -401,15 +401,18 @@ protected:
 
     MOZ_ASSERT(!wp->GetWindow());
 
-    AutoSafeJSContext cx;
+    AutoJSAPI jsapi;
+    jsapi.Init();
+
+    JSContext* cx = jsapi.cx();
 
     JS::Rooted<JSObject*> global(cx, mConsole->GetOrCreateSandbox(cx, wp->GetPrincipal()));
     if (NS_WARN_IF(!global)) {
       return;
     }
 
-    // The CreateSandbox call returns a proxy to the actual sandbox object. We
-    // don't need a proxy here.
+    // The GetOrCreateSandbox call returns a proxy to the actual sandbox object.
+    // We don't need a proxy here.
     global = js::UncheckedUnwrap(global);
 
     JSAutoCompartment ac(cx, global);
@@ -1660,7 +1663,7 @@ Console::PopulateConsoleNotificationInTheTargetScope(JSContext* aCx,
       if (NS_WARN_IF(!JS_DefineProperty(aCx, eventObj, "stacktrace",
                                         JS_DATA_TO_FUNC_PTR(JSNative, funObj.get()),
                                         nullptr,
-                                        JSPROP_ENUMERATE | JSPROP_SHARED |
+                                        JSPROP_ENUMERATE |
                                         JSPROP_GETTER | JSPROP_SETTER))) {
         return false;
       }
@@ -1844,7 +1847,7 @@ Console::ProcessArguments(JSContext* aCx,
           int32_t diff = aSequence.Length() - aStyles.Length();
           if (diff > 0) {
             for (int32_t i = 0; i < diff; i++) {
-              if (NS_WARN_IF(!aStyles.AppendElement(NullString(), fallible))) {
+              if (NS_WARN_IF(!aStyles.AppendElement(VoidString(), fallible))) {
                 return false;
               }
             }

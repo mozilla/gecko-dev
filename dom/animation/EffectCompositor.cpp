@@ -28,7 +28,7 @@
 #include "nsCSSPseudoElements.h"
 #include "nsCSSPropertyIDSet.h"
 #include "nsCSSProps.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIPresShell.h"
 #include "nsIPresShellInlines.h"
 #include "nsLayoutUtils.h"
@@ -561,6 +561,20 @@ EffectCompositor::HasThrottledStyleUpdates() const
   for (auto& elementSet : mElementsToRestyle) {
     for (auto iter = elementSet.ConstIter(); !iter.Done(); iter.Next()) {
       if (!iter.Data()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool
+EffectCompositor::HasPendingStyleUpdatesFor(Element* aElement) const
+{
+  for (auto& elementSet : mElementsToRestyle) {
+    for (auto iter = elementSet.ConstIter(); !iter.Done(); iter.Next()) {
+      if (iter.Key().mElement->Contains(aElement)) {
         return true;
       }
     }

@@ -368,6 +368,8 @@ class BuildOptionParser(object):
         'api-16-debug-artifact': 'builds/releng_sub_%s_configs/%s_api_16_debug_artifact.py',
         'api-16-gradle': 'builds/releng_sub_%s_configs/%s_api_16_gradle.py',
         'api-16-gradle-artifact': 'builds/releng_sub_%s_configs/%s_api_16_gradle_artifact.py',
+        'rusttests': 'builds/releng_sub_%s_configs/%s_rusttests.py',
+        'rusttests-debug': 'builds/releng_sub_%s_configs/%s_rusttests_debug.py',
         'x86': 'builds/releng_sub_%s_configs/%s_x86.py',
         'x86-old-id': 'builds/releng_sub_%s_configs/%s_x86_old_id.py',
         'x86-artifact': 'builds/releng_sub_%s_configs/%s_x86_artifact.py',
@@ -1114,13 +1116,12 @@ or run without that action (ie: --no-{action})"
         )
         c = self.config
         dirs = self.query_abs_dirs()
+        toolchains = os.environ.get('MOZ_TOOLCHAINS')
         manifest_src = os.environ.get('TOOLTOOL_MANIFEST')
         if not manifest_src:
             manifest_src = c.get('tooltool_manifest_src')
-        if not manifest_src:
+        if not manifest_src and not toolchains:
             return self.warning(ERROR_MSGS['tooltool_manifest_undetermined'])
-        tooltool_manifest_path = os.path.join(dirs['abs_src_dir'],
-                                              manifest_src)
         cmd = [
             sys.executable, '-u',
             os.path.join(dirs['abs_src_dir'], 'mach'),
@@ -1128,20 +1129,22 @@ or run without that action (ie: --no-{action})"
             'toolchain',
             '-v',
             '--retry', '4',
-            '--tooltool-manifest',
-            tooltool_manifest_path,
             '--artifact-manifest',
             os.path.join(dirs['abs_src_dir'], 'toolchains.json'),
-            '--tooltool-url',
-            c['tooltool_url'],
         ]
-        auth_file = self._get_tooltool_auth_file()
-        if auth_file:
-            cmd.extend(['--authentication-file', auth_file])
+        if manifest_src:
+            cmd.extend([
+                '--tooltool-manifest',
+                os.path.join(dirs['abs_src_dir'], manifest_src),
+                '--tooltool-url',
+                c['tooltool_url'],
+            ])
+            auth_file = self._get_tooltool_auth_file()
+            if auth_file:
+                cmd.extend(['--authentication-file', auth_file])
         cache = c['env'].get('TOOLTOOL_CACHE')
         if cache:
             cmd.extend(['--cache-dir', cache])
-        toolchains = os.environ.get('MOZ_TOOLCHAINS')
         if toolchains:
             cmd.extend(toolchains.split())
         self.info(str(cmd))

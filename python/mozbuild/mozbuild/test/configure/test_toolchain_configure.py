@@ -37,6 +37,10 @@ DEFAULT_CXX_11 = {
     '__cplusplus': '201103L',
 }
 
+DRAFT_CXX_14 = {
+    '__cplusplus': '201300L',
+}
+
 DEFAULT_CXX_14 = {
     '__cplusplus': '201402L',
 }
@@ -47,6 +51,10 @@ SUPPORTS_GNU99 = {
 
 SUPPORTS_GNUXX11 = {
     '-std=gnu++11': DEFAULT_CXX_11,
+}
+
+SUPPORTS_GNUXX14 = {
+    '-std=gnu++14': DEFAULT_CXX_14,
 }
 
 SUPPORTS_CXX14 = {
@@ -76,13 +84,16 @@ def GCC(version):
 def GXX(version):
     return GCC_BASE(version) + DEFAULT_CXX_97 + SUPPORTS_GNUXX11
 
+SUPPORTS_DRAFT_CXX14_VERSION = {
+    '-std=gnu++14': DRAFT_CXX_14,
+}
 
 GCC_4_7 = GCC('4.7.3')
 GXX_4_7 = GXX('4.7.3')
 GCC_4_9 = GCC('4.9.3')
-GXX_4_9 = GXX('4.9.3')
+GXX_4_9 = GXX('4.9.3') + SUPPORTS_DRAFT_CXX14_VERSION
 GCC_5 = GCC('5.2.1') + DEFAULT_C11
-GXX_5 = GXX('5.2.1')
+GXX_5 = GXX('5.2.1') + SUPPORTS_GNUXX14
 
 GCC_PLATFORM_LITTLE_ENDIAN = {
     '__BYTE_ORDER__': 1234,
@@ -163,7 +174,7 @@ def CLANG(version):
 @memoize
 def CLANGXX(version):
     return (GCC_BASE('4.2.1') + CLANG_BASE(version) + DEFAULT_CXX_97 +
-            SUPPORTS_GNUXX11)
+            SUPPORTS_GNUXX11 + SUPPORTS_GNUXX14)
 
 
 CLANG_3_3 = CLANG('3.3.0') + DEFAULT_C99
@@ -171,6 +182,9 @@ CLANGXX_3_3 = CLANGXX('3.3.0')
 CLANG_3_6 = CLANG('3.6.2') + DEFAULT_C11
 CLANGXX_3_6 = CLANGXX('3.6.2') + {
     '-std=gnu++11': {
+        '__has_feature(cxx_alignof)': '1',
+    },
+    '-std=gnu++14': {
         '__has_feature(cxx_alignof)': '1',
     },
 }
@@ -901,9 +915,21 @@ class WindowsToolchainTest(BaseToolchainTest):
     CLANGXX_3_6_RESULT = LinuxToolchainTest.CLANGXX_3_6_RESULT
     GCC_4_7_RESULT = LinuxToolchainTest.GCC_4_7_RESULT
     GCC_4_9_RESULT = LinuxToolchainTest.GCC_4_9_RESULT
-    GXX_4_9_RESULT = LinuxToolchainTest.GXX_4_9_RESULT
+    GXX_4_9_RESULT = CompilerResult(
+        flags=['-std=gnu++14'],
+        version='4.9.3',
+        type='gcc',
+        compiler='/usr/bin/g++',
+        language='C++',
+    )
     GCC_5_RESULT = LinuxToolchainTest.GCC_5_RESULT
-    GXX_5_RESULT = LinuxToolchainTest.GXX_5_RESULT
+    GXX_5_RESULT = CompilerResult(
+        flags=['-std=gnu++14'],
+        version='5.2.1',
+        type='gcc',
+        compiler='/usr/bin/g++-5',
+        language='C++',
+    )
 
     # VS2015u3 or greater is required.
     def test_msvc(self):
@@ -1380,6 +1406,166 @@ class OpenBSDToolchainTest(BaseToolchainTest):
             'c_compiler': self.GCC_4_9_RESULT,
             'cxx_compiler': self.GXX_4_9_RESULT,
         })
+
+
+class RustTest(BaseConfigureTest):
+    def invoke_cargo(self, stdin, args):
+        if args == ('--version', '--verbose'):
+            return 0, 'cargo 2.0\nrelease: 2.0', ''
+        raise NotImplementedError('unsupported arguments')
+
+    def invoke_rustc(self, stdin, args):
+        if args == ('--version', '--verbose'):
+            return 0, 'rustc 2.0\nrelease: 2.0', ''
+        if args == ('--print', 'target-list'):
+            # Raw list returned by rustc version 1.19, + ios, which somehow
+            # don't appear in the default list.
+            # https://github.com/rust-lang/rust/issues/36156
+            rust_targets = [
+                'aarch64-apple-ios',
+                'aarch64-linux-android',
+                'aarch64-unknown-freebsd',
+                'aarch64-unknown-fuchsia',
+                'aarch64-unknown-linux-gnu',
+                'arm-linux-androideabi',
+                'arm-unknown-linux-gnueabi',
+                'arm-unknown-linux-gnueabihf',
+                'arm-unknown-linux-musleabi',
+                'arm-unknown-linux-musleabihf',
+                'armv5te-unknown-linux-gnueabi',
+                'armv7-linux-androideabi',
+                'armv7-unknown-linux-gnueabihf',
+                'armv7-unknown-linux-musleabihf',
+                'armv7s-apple-ios',
+                'asmjs-unknown-emscripten',
+                'i386-apple-ios',
+                'i586-pc-windows-msvc',
+                'i586-unknown-linux-gnu',
+                'i686-apple-darwin',
+                'i686-linux-android',
+                'i686-pc-windows-gnu',
+                'i686-pc-windows-msvc',
+                'i686-unknown-dragonfly',
+                'i686-unknown-freebsd',
+                'i686-unknown-haiku',
+                'i686-unknown-linux-gnu',
+                'i686-unknown-linux-musl',
+                'i686-unknown-netbsd',
+                'i686-unknown-openbsd',
+                'le32-unknown-nacl',
+                'mips-unknown-linux-gnu',
+                'mips-unknown-linux-musl',
+                'mips-unknown-linux-uclibc',
+                'mips64-unknown-linux-gnuabi64',
+                'mips64el-unknown-linux-gnuabi64',
+                'mipsel-unknown-linux-gnu',
+                'mipsel-unknown-linux-musl',
+                'mipsel-unknown-linux-uclibc',
+                'powerpc-unknown-linux-gnu',
+                'powerpc64-unknown-linux-gnu',
+                'powerpc64le-unknown-linux-gnu',
+                's390x-unknown-linux-gnu',
+                'sparc64-unknown-linux-gnu',
+                'sparc64-unknown-netbsd',
+                'sparcv9-sun-solaris',
+                'thumbv6m-none-eabi',
+                'thumbv7em-none-eabi',
+                'thumbv7em-none-eabihf',
+                'thumbv7m-none-eabi',
+                'wasm32-unknown-emscripten',
+                'x86_64-apple-darwin',
+                'x86_64-apple-ios',
+                'x86_64-linux-android',
+                'x86_64-pc-windows-gnu',
+                'x86_64-pc-windows-msvc',
+                'x86_64-rumprun-netbsd',
+                'x86_64-sun-solaris',
+                'x86_64-unknown-bitrig',
+                'x86_64-unknown-dragonfly',
+                'x86_64-unknown-freebsd',
+                'x86_64-unknown-fuchsia',
+                'x86_64-unknown-haiku',
+                'x86_64-unknown-linux-gnu',
+                'x86_64-unknown-linux-musl',
+                'x86_64-unknown-netbsd',
+                'x86_64-unknown-openbsd',
+                'x86_64-unknown-redox',
+            ]
+            return 0, '\n'.join(rust_targets), ''
+        if (len(args) == 6 and args[:2] == ('--crate-type', 'staticlib') and
+            args[2].startswith('--target=') and args[3] == '-o'):
+            with open(args[4], 'w') as fh:
+                fh.write('foo')
+            return 0, '', ''
+        raise NotImplementedError('unsupported arguments')
+
+    def get_rust_target(self, target, building_with_gcc=True):
+        environ = {
+            'PATH': os.pathsep.join(
+                mozpath.abspath(p) for p in ('/bin', '/usr/bin')),
+        }
+
+        paths = {
+            mozpath.abspath('/usr/bin/cargo'): self.invoke_cargo,
+            mozpath.abspath('/usr/bin/rustc'): self.invoke_rustc,
+        }
+
+        self.TARGET = target
+        sandbox = self.get_sandbox(paths, {}, [], environ)
+
+        # Trick the sandbox into not running the target compiler check
+        dep = sandbox._depends[sandbox['building_with_gcc']]
+        getattr(sandbox, '__value_for_depends')[(dep, False)] = \
+            building_with_gcc
+        return sandbox._value_for(sandbox['rust_target_triple'])
+
+    def test_rust_target(self):
+        # Cases where the output of config.sub matches a rust target
+        for straightforward in (
+            'x86_64-unknown-dragonfly',
+            'aarch64-unknown-freebsd',
+            'i686-unknown-freebsd',
+            'x86_64-unknown-freebsd',
+            'sparc64-unknown-netbsd',
+            'i686-unknown-netbsd',
+            'x86_64-unknown-netbsd',
+            'i686-unknown-openbsd',
+            'x86_64-unknown-openbsd',
+            'aarch64-unknown-linux-gnu',
+            'armv7-unknown-linux-gnueabihf',
+            'sparc64-unknown-linux-gnu',
+            'i686-unknown-linux-gnu',
+            'i686-apple-darwin',
+            'x86_64-apple-darwin',
+            'aarch64-apple-ios',
+            'armv7s-apple-ios',
+            'i386-apple-ios',
+            'x86_64-apple-ios',
+        ):
+            self.assertEqual(self.get_rust_target(straightforward), straightforward)
+
+        # Cases where the output of config.sub is different
+        for autoconf, rust in (
+            ('aarch64-unknown-linux-android', 'aarch64-linux-android'),
+            ('arm-unknown-linux-androideabi', 'armv7-linux-androideabi'),
+            ('armv7-unknown-linux-androideabi', 'armv7-linux-androideabi'),
+            ('i386-unknown-linux-android', 'i686-linux-android'),
+            ('i686-unknown-linux-android', 'i686-linux-android'),
+            ('x86_64-unknown-linux-android', 'x86_64-linux-android'),
+            ('x86_64-pc-linux-gnu', 'x86_64-unknown-linux-gnu'),
+            ('sparcv9-sun-solaris2', 'sparcv9-sun-solaris'),
+            ('x86_64-sun-solaris2', 'x86_64-sun-solaris'),
+        ):
+            self.assertEqual(self.get_rust_target(autoconf), rust)
+
+        # Windows
+        for autoconf, building_with_gcc, rust in (
+            ('i686-pc-mingw32', False, 'i686-pc-windows-msvc'),
+            ('x86_64-pc-mingw32', False, 'x86_64-pc-windows-msvc'),
+            ('i686-pc-mingw32', True, 'i686-pc-windows-gnu'),
+            ('x86_64-pc-mingw32', True, 'x86_64-pc-windows-gnu'),
+        ):
+            self.assertEqual(self.get_rust_target(autoconf, building_with_gcc), rust)
 
 
 if __name__ == '__main__':

@@ -12,7 +12,8 @@
   fill: transparent;
 }
 
-#pocket-button-box[open="true"] > #pocket-button {
+#pocket-button-box[open="true"] > #pocket-button,
+#pocket-button-box[pocketed="true"] > #pocket-button {
   fill: #ef4056;
   fill-opacity: 1;
 }
@@ -207,16 +208,12 @@
   list-style-image: url("chrome://pocket-shared/skin/pocket.svg");
 }
 
-#panelMenu_pocket,
-#menu_pocket,
-#BMB_pocket {
+#panelMenu_pocket {
   list-style-image: url("chrome://pocket/content/panels/img/pocketmenuitem16.png");
 }
 
 @media (min-resolution: 2dppx) {
-  #panelMenu_pocket,
-  #menu_pocket,
-  #BMB_pocket {
+  #panelMenu_pocket {
     list-style-image: url("chrome://pocket/content/panels/img/pocketmenuitem16@2x.png");
   }
 

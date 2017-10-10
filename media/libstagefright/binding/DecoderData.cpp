@@ -11,7 +11,9 @@
 #include "media/stagefright/MediaDefs.h"
 #include "media/stagefright/Utils.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/EndianUtils.h"
 #include "include/ESDS.h"
+#include "VideoUtils.h"
 
 // OpusDecoder header is really needed only by MP4 in rust
 #include "OpusDecoder.h"
@@ -203,8 +205,8 @@ MP4AudioInfo::Update(const mp4parse_track_info* track,
     MOZ_ASSERT(audio->extra_data.data);
     MOZ_ASSERT(audio->extra_data.length >= 12);
     uint16_t preskip =
-      LittleEndian::readUint16(audio->extra_data.data + 10);
-    OpusDataDecoder::AppendCodecDelay(mCodecSpecificConfig,
+      mozilla::LittleEndian::readUint16(audio->extra_data.data + 10);
+    mozilla::OpusDataDecoder::AppendCodecDelay(mCodecSpecificConfig,
         mozilla::FramesToUsecs(preskip, 48000).value());
   } else if (track->codec == mp4parse_codec_AAC) {
     mMimeType = MEDIA_MIMETYPE_AUDIO_AAC;

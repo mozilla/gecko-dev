@@ -13,7 +13,7 @@
 #include "nsIDOMDocumentFragment.h"
 #include "nsStringFwd.h"
 
-class nsIAtom;
+class nsAtom;
 class nsIDocument;
 class nsIContent;
 
@@ -43,8 +43,7 @@ public:
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocumentFragment,
-                                           FragmentOrElement)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocumentFragment, FragmentOrElement)
 
   // interface nsIDOMNode
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
@@ -71,18 +70,15 @@ public:
   virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // nsIContent
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
-  {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
-  }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
+  using nsIContent::SetAttr;
+  virtual nsresult SetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                           nsAtom* aPrefix, const nsAString& aValue,
+                           nsIPrincipal* aSubjectPrincipal,
                            bool aNotify) override
   {
     return NS_OK;
   }
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsAtom* aAttribute,
                              bool aNotify) override
   {
     return NS_OK;
@@ -122,15 +118,9 @@ public:
     return nullptr;
   }
 
-  Element* GetHost() const
-  {
-    return mHost;
-  }
+  Element* GetHost() const { return mHost; }
 
-  void SetHost(Element* aHost)
-  {
-    mHost = aHost;
-  }
+  void SetHost(Element* aHost) { mHost = aHost; }
 
   static already_AddRefed<DocumentFragment>
   Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);

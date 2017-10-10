@@ -78,13 +78,10 @@ const uint32_t nsStyleContext::sDependencyTable[] = {
 
 #endif
 
-nsStyleContext::nsStyleContext(nsIAtom* aPseudoTag,
+nsStyleContext::nsStyleContext(nsAtom* aPseudoTag,
                                CSSPseudoElementType aPseudoType)
   : mPseudoTag(aPseudoTag)
   , mBits(((uint64_t)aPseudoType) << NS_STYLE_CONTEXT_TYPE_SHIFT)
-#ifdef DEBUG
-  , mFrameRefCnt(0)
-#endif
 {
   // This check has to be done "backward", because if it were written the
   // more natural way it wouldn't fail even when it needed to.
@@ -440,7 +437,7 @@ void nsStyleContext::List(FILE* out, int32_t aIndent, bool aListDescendants)
 
 already_AddRefed<GeckoStyleContext>
 NS_NewStyleContext(GeckoStyleContext* aParentContext,
-                   nsIAtom* aPseudoTag,
+                   nsAtom* aPseudoTag,
                    CSSPseudoElementType aPseudoType,
                    nsRuleNode* aRuleNode,
                    bool aSkipParentDisplayBasedStyleFixup)
@@ -566,5 +563,21 @@ nsStyleContext::LookupStruct(const nsACString& aName, nsStyleStructID& aResult)
   else
     return false;
   return true;
+}
+
+void
+nsStyleContext::FrameAddRef()
+{
+  if (auto gecko = GetAsGecko()) {
+    gecko->FrameAddRef();
+  }
+}
+
+void
+nsStyleContext::FrameRelease()
+{
+  if (auto gecko = GetAsGecko()) {
+    gecko->FrameRelease();
+  }
 }
 #endif

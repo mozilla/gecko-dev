@@ -654,41 +654,46 @@ using AllocKinds = mozilla::EnumSet<AllocKind>;
 template <typename T>
 class MemoryCounter
 {
-    // Bytes counter to measure memory pressure for GC scheduling. It runs
-    // from maxBytes down to zero.
-    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> bytes_;
+    // Bytes counter to measure memory pressure for GC scheduling. It counts
+    // upwards from zero.
+    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> bytes_;
 
     // GC trigger threshold for memory allocations.
-    js::ActiveThreadData<size_t> maxBytes_;
+    size_t maxBytes_;
 
-    // Whether a GC has been triggered as a result of bytes falling below
-    // zero.
-    //
-    // This should be a bool, but Atomic only supports 32-bit and pointer-sized
-    // types.
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> triggered_;
+    // Initial GC trigger threshold.
+    GCLockData<size_t> initialMaxBytes_;
+
+    // Whether a GC has been triggered as a result of bytes_ exceeding
+    // maxBytes_.
+    mozilla::Atomic<bool, mozilla::ReleaseAcquire> triggered_;
 
   public:
     MemoryCounter()
       : bytes_(0),
         maxBytes_(0),
+        initialMaxBytes_(0),
         triggered_(false)
     { }
 
-    void reset() {
-        bytes_ = maxBytes_;
-        triggered_ = false;
+    void updateOnGC(const AutoLockGC& lock) {
+        if (isTooMuchMalloc())
+            maxBytes_ *= 2;
+        else
+            maxBytes_ = std::max(initialMaxBytes_.ref(), size_t(maxBytes_ * 0.9));
+        reset();
     }
 
-    void setMax(size_t newMax) {
+    void setMax(size_t newMax, const AutoLockGC& lock) {
         // For compatibility treat any value that exceeds PTRDIFF_T_MAX to
         // mean that value.
-        maxBytes_ = (ptrdiff_t(newMax) >= 0) ? newMax : size_t(-1) >> 1;
+        initialMaxBytes_ = (ptrdiff_t(newMax) >= 0) ? newMax : size_t(-1) >> 1;
+        maxBytes_ = initialMaxBytes_;
         reset();
     }
 
     bool update(T* owner, size_t bytes) {
-        bytes_ -= ptrdiff_t(bytes);
+        bytes_ += ptrdiff_t(bytes);
         if (MOZ_UNLIKELY(isTooMuchMalloc())) {
             if (!triggered_)
                 triggered_ = owner->triggerGCForTooMuchMalloc();
@@ -696,9 +701,26 @@ class MemoryCounter
         return triggered_;
     }
 
+    void decrement(size_t bytes) {
+        MOZ_ASSERT(bytes <= bytes_);
+        bytes_ -= bytes;
+    }
+
+    void adopt(MemoryCounter<T>& other) {
+        bytes_ += other.bytes();
+        other.reset();
+    }
+
     ptrdiff_t bytes() const { return bytes_; }
     size_t maxBytes() const { return maxBytes_; }
-    bool isTooMuchMalloc() const { return bytes_ <= 0; }
+    size_t initialMaxBytes(const AutoLockGC& lock) const { return initialMaxBytes_; }
+    bool isTooMuchMalloc() const { return bytes_ >= maxBytes_; }
+
+  private:
+    void reset() {
+        bytes_ = 0;
+        triggered_ = false;
+    }
 };
 
 class GCRuntime
@@ -844,9 +866,9 @@ class GCRuntime
     int32_t getMallocBytes() const { return mallocCounter.bytes(); }
     size_t maxMallocBytesAllocated() const { return mallocCounter.maxBytes(); }
     bool isTooMuchMalloc() const { return mallocCounter.isTooMuchMalloc(); }
-    void resetMallocBytes() { mallocCounter.reset(); }
-    void setMaxMallocBytes(size_t value);
-    void updateMallocCounter(JS::Zone* zone, size_t nbytes);
+    void setMaxMallocBytes(size_t value, const AutoLockGC& lock);
+    bool updateMallocCounter(size_t nbytes) { return mallocCounter.update(this, nbytes); }
+    void updateMallocCountersOnGC();
 
     void setGCCallback(JSGCCallback callback, void* data);
     void callGCCallback(JSGCStatus status) const;

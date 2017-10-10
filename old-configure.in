@@ -46,7 +46,7 @@ _SUBDIR_CONFIG_ARGS="$ac_configure_args"
 dnl Set the version number of the libs included with mozilla
 dnl ========================================================
 MOZJPEG=62
-MOZPNG=10631
+MOZPNG=10634
 NSPR_VERSION=4
 NSPR_MINVER=4.17
 NSS_VERSION=3
@@ -1903,7 +1903,7 @@ MOZ_ARG_WITH_BOOL(system-nss,
     _USE_SYSTEM_NSS=1 )
 
 if test -n "$_USE_SYSTEM_NSS"; then
-    AM_PATH_NSS(3.33, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
+    AM_PATH_NSS(3.34, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
 fi
 
 if test -n "$MOZ_SYSTEM_NSS"; then
@@ -2067,11 +2067,7 @@ MOZ_VORBIS=
 MOZ_TREMOR=
 MOZ_SAMPLE_TYPE_FLOAT32=
 MOZ_SAMPLE_TYPE_S16=
-MOZ_WEBRTC=1
-MOZ_PEERCONNECTION=
 MOZ_SRTP=
-MOZ_WEBRTC_SIGNALING=
-MOZ_WEBRTC_ASSERT_ALWAYS=1
 MOZ_WEBRTC_HARDWARE_AEC_NS=
 MOZ_SCTP=
 VPX_USE_YASM=
@@ -2535,60 +2531,14 @@ if test "${MOZ_WIDGET_TOOLKIT}" = "linuxgl" -a "$ACCESSIBILITY" != "1"; then
     AC_MSG_ERROR(["Accessibility is required for the linuxgl widget backend"])
 fi
 
-dnl Turn off webrtc for OS's we don't handle yet, but allow
-dnl --enable-webrtc to override.  Can disable for everything in
-dnl the master list above.
-if test -n "$MOZ_WEBRTC"; then
-    case "$target" in
-    *-linux*|*-mingw*|*-darwin*|*-android*|*-linuxandroid*|*-dragonfly*|*-freebsd*|*-netbsd*|*-openbsd*)
-        dnl Leave enabled
-        ;;
-    *)
-        dnl default to disabled for all others
-        MOZ_WEBRTC=
-        ;;
-    esac
-fi
-
 AC_TRY_COMPILE([#include <linux/ethtool.h>],
                [ struct ethtool_cmd cmd; cmd.speed_hi = 0; ],
                MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI=1)
 
 AC_SUBST(MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI)
 
-# target_arch is from {ia32|x64|arm|ppc}
-case "$CPU_ARCH" in
-x86_64 | arm | aarch64 | x86 | ppc* | ia64)
-    :
-    ;;
-*)
-# unsupported arch for webrtc
-    MOZ_WEBRTC=
-    ;;
-
-esac
-
-dnl ========================================================
-dnl = Disable WebRTC code
-dnl ========================================================
-MOZ_ARG_DISABLE_BOOL(webrtc,
-[  --disable-webrtc        Disable support for WebRTC],
-    MOZ_WEBRTC=,
-    MOZ_WEBRTC=1)
-
 if test -n "$MOZ_WEBRTC"; then
-    AC_DEFINE(MOZ_WEBRTC)
-    dnl MOZ_WEBRTC_ASSERT_ALWAYS turns on a number of safety asserts in
-    dnl opt/production builds (via MOZ_CRASH())
-    AC_DEFINE(MOZ_WEBRTC_ASSERT_ALWAYS)
     MOZ_RAW=1
-
-dnl enable once Signaling lands
-    MOZ_WEBRTC_SIGNALING=1
-    AC_DEFINE(MOZ_WEBRTC_SIGNALING)
-dnl enable once PeerConnection lands
-    MOZ_PEERCONNECTION=1
-    AC_DEFINE(MOZ_PEERCONNECTION)
     MOZ_SCTP=1
     MOZ_SRTP=1
     AC_DEFINE(MOZ_SCTP)
@@ -2612,10 +2562,6 @@ if test -n "$MOZ_WEBRTC_HARDWARE_AEC_NS"; then
     AC_DEFINE(MOZ_WEBRTC_HARDWARE_AEC_NS)
 fi
 
-AC_SUBST(MOZ_WEBRTC)
-AC_SUBST(MOZ_WEBRTC_SIGNALING)
-AC_SUBST(MOZ_PEERCONNECTION)
-AC_SUBST(MOZ_WEBRTC_ASSERT_ALWAYS)
 AC_SUBST(MOZ_WEBRTC_HARDWARE_AEC_NS)
 AC_SUBST(MOZ_SCTP)
 AC_SUBST(MOZ_SRTP)
@@ -4112,15 +4058,6 @@ dnl ========================================================
 MOZ_ARG_HEADER(Misc. Options)
 
 dnl ========================================================
-dnl = Define default location for MOZILLA_FIVE_HOME
-dnl ========================================================
-MOZ_ARG_WITH_STRING(default-mozilla-five-home,
-[  --with-default-mozilla-five-home
-                          Set the default value for MOZILLA_FIVE_HOME],
-[ val=`echo $withval`
-  AC_DEFINE_UNQUOTED(MOZ_DEFAULT_MOZILLA_FIVE_HOME,"$val") ])
-
-dnl ========================================================
 dnl = Location of the mozilla user directory (default is ~/.mozilla).],
 dnl ========================================================
 MOZ_ARG_WITH_STRING(user-appdir,
@@ -5023,7 +4960,6 @@ dnl The following defines are used by xpcom
 _NON_GLOBAL_ACDEFINES="$_NON_GLOBAL_ACDEFINES
 CPP_THROW_NEW
 HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR
-HAVE_CPP_PARTIAL_SPECIALIZATION
 HAVE_GETPAGESIZE
 HAVE_ICONV
 HAVE_ICONV_WITH_CONST_INPUT
@@ -5050,16 +4986,6 @@ else
 fi
 
 AC_SUBST(PREPROCESS_OPTION)
-
-dnl ========================================================
-dnl mask as shorthand property
-dnl ========================================================
-
-# The control structure code will be removed as soon as the feature is stable
-# Refer to bug 1281101 for more details.
-MOZ_ENABLE_MASK_AS_SHORTHAND=1
-AC_DEFINE(MOZ_ENABLE_MASK_AS_SHORTHAND)
-AC_SUBST(MOZ_ENABLE_MASK_AS_SHORTHAND)
 
 # Avoid using obsolete NSPR features
 AC_DEFINE(NO_NSPR_10_SUPPORT)

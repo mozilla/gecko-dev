@@ -46,7 +46,6 @@ public:
   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        mozilla::wr::IpcResourceUpdateQueue& aResources,
                                        const StackingContextHelper& aSc,
-                                       nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderLayerManager* aManager,
                                        nsDisplayListBuilder* aDisplayListBuilder) override;
   virtual void Paint(nsDisplayListBuilder* aBuilder,
@@ -108,25 +107,22 @@ bool
 nsDisplayColumnRule::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                              mozilla::wr::IpcResourceUpdateQueue& aResources,
                                              const StackingContextHelper& aSc,
-                                             nsTArray<WebRenderParentCommand>& aParentCommands,
                                              mozilla::layers::WebRenderLayerManager* aManager,
                                              nsDisplayListBuilder* aDisplayListBuilder)
 {
-  if (aManager->IsLayersFreeTransaction()) {
-    RefPtr<gfxContext> screenRefCtx = gfxContext::CreateOrNull(
-      gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
+  RefPtr<gfxContext> screenRefCtx = gfxContext::CreateOrNull(
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
 
-    static_cast<nsColumnSetFrame*>(mFrame)->
-      CreateBorderRenderers(mBorderRenderers, screenRefCtx, mVisibleRect, ToReferenceFrame());
+  static_cast<nsColumnSetFrame*>(mFrame)->
+    CreateBorderRenderers(mBorderRenderers, screenRefCtx, mVisibleRect, ToReferenceFrame());
 
-    if (mBorderRenderers.IsEmpty()) {
+  if (mBorderRenderers.IsEmpty()) {
+    return false;
+  }
+
+  for (auto iter = mBorderRenderers.begin(); iter != mBorderRenderers.end(); iter++) {
+    if (!iter->CanCreateWebRenderCommands()) {
       return false;
-    }
-
-    for (auto iter = mBorderRenderers.begin(); iter != mBorderRenderers.end(); iter++) {
-      if (!iter->CanCreateWebRenderCommands()) {
-        return false;
-      }
     }
   }
 

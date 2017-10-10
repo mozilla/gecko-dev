@@ -50,6 +50,8 @@ function runMinidumpAnalyzer(minidumpPath) {
                       .createInstance(Ci.nsIProcess);
       process.init(exe);
       process.startHidden = true;
+      process.noShell = true;
+
       process.runAsync(args, args.length, (subject, topic, data) => {
         switch (topic) {
           case "process-finished":
@@ -116,8 +118,17 @@ function processExtraFile(extraPath) {
     try {
       let decoder = new TextDecoder();
       let extraData = await OS.File.read(extraPath);
+      let keyValuePairs = parseKeyValuePairs(decoder.decode(extraData));
 
-      return parseKeyValuePairs(decoder.decode(extraData));
+      // When reading from an .extra file literal '\\n' sequences are
+      // automatically unescaped to two backslashes plus a newline, so we need
+      // to re-escape them into '\\n' again so that the fields holding JSON
+      // strings are valid.
+      [ "TelemetryEnvironment", "StackTraces" ].forEach(field => {
+        keyValuePairs[field] = keyValuePairs[field].replace(/\n/g, "n");
+      });
+
+      return keyValuePairs;
     } catch (e) {
       Cu.reportError(e);
       return {};

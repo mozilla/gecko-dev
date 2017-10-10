@@ -98,7 +98,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLObjectElement,
                                              nsGenericHTMLFormElement,
-                                             nsIDOMHTMLObjectElement,
                                              imgINotificationObserver,
                                              nsIRequestObserver,
                                              nsIStreamListener,
@@ -234,12 +233,6 @@ HTMLObjectElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 
 #endif // #ifdef XP_MACOSX
 
-NS_IMETHODIMP
-HTMLObjectElement::GetForm(nsIDOMHTMLFormElement **aForm)
-{
-  return nsGenericHTMLFormElement::GetForm(aForm);
-}
-
 nsresult
 HTMLObjectElement::BindToTree(nsIDocument *aDocument,
                               nsIContent *aParent,
@@ -288,19 +281,21 @@ HTMLObjectElement::UnbindFromTree(bool aDeep,
 }
 
 nsresult
-HTMLObjectElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+HTMLObjectElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue, bool aNotify)
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify)
 {
   nsresult rv = AfterMaybeChangeAttr(aNamespaceID, aName, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return nsGenericHTMLFormElement::AfterSetAttr(aNamespaceID, aName, aValue,
-                                                aOldValue, aNotify);
+                                                aOldValue, aSubjectPrincipal, aNotify);
 }
 
 nsresult
-HTMLObjectElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsIAtom* aName,
+HTMLObjectElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
                                           const nsAttrValueOrString& aValue,
                                           bool aNotify)
 {
@@ -312,7 +307,7 @@ HTMLObjectElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsIAtom* aName,
 }
 
 nsresult
-HTMLObjectElement::AfterMaybeChangeAttr(int32_t aNamespaceID, nsIAtom* aName,
+HTMLObjectElement::AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName,
                                         bool aNotify)
 {
   if (aNamespaceID == kNameSpaceID_None) {
@@ -438,38 +433,10 @@ HTMLObjectElement::SubmitNamesValues(HTMLFormSubmission *aFormSubmission)
   return aFormSubmission->AddNameValuePair(name, value);
 }
 
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Align, align)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Archive, archive)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Border, border)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Code, code)
-NS_IMPL_URI_ATTR(HTMLObjectElement, CodeBase, codebase)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, CodeType, codetype)
-NS_IMPL_URI_ATTR_WITH_BASE(HTMLObjectElement, Data, data, codebase)
-NS_IMPL_BOOL_ATTR(HTMLObjectElement, Declare, declare)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Height, height)
-NS_IMPL_INT_ATTR(HTMLObjectElement, Hspace, hspace)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Name, name)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Standby, standby)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Type, type)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, UseMap, usemap)
-NS_IMPL_INT_ATTR(HTMLObjectElement, Vspace, vspace)
-NS_IMPL_STRING_ATTR(HTMLObjectElement, Width, width)
-
 int32_t
 HTMLObjectElement::TabIndexDefault()
 {
   return IsFocusableForTabIndex() ? 0 : -1;
-}
-
-NS_IMETHODIMP
-HTMLObjectElement::GetContentDocument(nsIDOMDocument **aContentDocument)
-{
-  NS_ENSURE_ARG_POINTER(aContentDocument);
-
-  nsCOMPtr<nsIDOMDocument> domDoc =
-    do_QueryInterface(GetContentDocument(*nsContentUtils::SubjectPrincipal()));
-  domDoc.forget(aContentDocument);
-  return NS_OK;
 }
 
 nsPIDOMWindowOuter*
@@ -485,7 +452,7 @@ HTMLObjectElement::GetContentWindow(nsIPrincipal& aSubjectPrincipal)
 
 bool
 HTMLObjectElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsIAtom *aAttribute,
+                                  nsAtom *aAttribute,
                                   const nsAString &aValue,
                                   nsAttrValue &aResult)
 {
@@ -514,7 +481,7 @@ HTMLObjectElement::MapAttributesIntoRule(const nsMappedAttributes *aAttributes,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLObjectElement::IsAttributeMapped(const nsIAtom *aAttribute) const
+HTMLObjectElement::IsAttributeMapped(const nsAtom *aAttribute) const
 {
   static const MappedAttributeEntry* const map[] = {
     sCommonAttributeMap,

@@ -193,6 +193,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mHttpHandler(gHttpHandler)
   , mReferrerPolicy(NS_GetDefaultReferrerPolicy())
   , mRedirectCount(0)
+  , mInternalRedirectCount(0)
   , mForcePending(false)
   , mCorsIncludeCredentials(false)
   , mCorsMode(nsIHttpChannelInternal::CORS_MODE_NO_CORS)
@@ -1234,11 +1235,11 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
       LOG(("converter removed '%s' content-encoding\n", val));
       if (gHttpHandler->IsTelemetryEnabled()) {
         int mode = 0;
-        if (from.Equals("gzip") || from.Equals("x-gzip")) {
+        if (from.EqualsLiteral("gzip") || from.EqualsLiteral("x-gzip")) {
           mode = 1;
-        } else if (from.Equals("deflate") || from.Equals("x-deflate")) {
+        } else if (from.EqualsLiteral("deflate") || from.EqualsLiteral("x-deflate")) {
           mode = 2;
-        } else if (from.Equals("br")) {
+        } else if (from.EqualsLiteral("br")) {
           mode = 3;
         }
         Telemetry::Accumulate(Telemetry::HTTP_CONTENT_ENCODING, mode);
@@ -3488,13 +3489,6 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   // convey the mAllowSTS flags
   rv = httpChannel->SetAllowSTS(mAllowSTS);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
-  // convey the new redirection limit
-  // make sure we don't underflow
-  uint32_t redirectionLimit = mRedirectionLimit
-    ? mRedirectionLimit - 1
-    : 0;
-  rv = httpChannel->SetRedirectionLimit(redirectionLimit);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   // convey the Accept header value
   {
@@ -3602,23 +3596,40 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
       do_QueryInterface(static_cast<nsIHttpChannel*>(this)));
   if (oldTimedChannel && newTimedChannel) {
     newTimedChannel->SetTimingEnabled(mTimingEnabled);
-    newTimedChannel->SetRedirectCount(mRedirectCount + 1);
+
+    if (redirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL) {
+      int8_t newCount = mInternalRedirectCount + 1;
+      newTimedChannel->SetInternalRedirectCount(
+        std::max(newCount, mInternalRedirectCount));
+    } else {
+      int8_t newCount = mRedirectCount + 1;
+      newTimedChannel->SetRedirectCount(
+        std::max(newCount, mRedirectCount));
+    }
 
     // If the RedirectStart is null, we will use the AsyncOpen value of the
     // previous channel (this is the first redirect in the redirects chain).
     if (mRedirectStartTimeStamp.IsNull()) {
-      TimeStamp asyncOpen;
-      oldTimedChannel->GetAsyncOpen(&asyncOpen);
-      newTimedChannel->SetRedirectStart(asyncOpen);
-    }
-    else {
+      // Only do this for real redirects.  Internal redirects should be hidden.
+      if (!(redirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL)) {
+        TimeStamp asyncOpen;
+        oldTimedChannel->GetAsyncOpen(&asyncOpen);
+        newTimedChannel->SetRedirectStart(asyncOpen);
+      }
+    } else {
       newTimedChannel->SetRedirectStart(mRedirectStartTimeStamp);
     }
 
-    // The RedirectEnd timestamp is equal to the previous channel response end.
-    TimeStamp prevResponseEnd;
-    oldTimedChannel->GetResponseEnd(&prevResponseEnd);
-    newTimedChannel->SetRedirectEnd(prevResponseEnd);
+    // For internal redirects just propagate the last redirect end time
+    // forward.  Otherwise the new redirect end time is the last response
+    // end time.
+    TimeStamp newRedirectEnd;
+    if (redirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL) {
+      oldTimedChannel->GetRedirectEnd(&newRedirectEnd);
+    } else {
+      oldTimedChannel->GetResponseEnd(&newRedirectEnd);
+    }
+    newTimedChannel->SetRedirectEnd(newRedirectEnd);
 
     nsAutoString initiatorType;
     oldTimedChannel->GetInitiatorType(initiatorType);
@@ -3640,6 +3651,16 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
         mAllRedirectsPassTimingAllowCheck &&
         oldTimedChannel->TimingAllowCheck(principal));
     }
+
+    // Propagate service worker measurements across redirects.  The
+    // PeformanceResourceTiming.workerStart API expects to see the
+    // worker start time after a redirect.
+    newTimedChannel->SetLaunchServiceWorkerStart(mLaunchServiceWorkerStart);
+    newTimedChannel->SetLaunchServiceWorkerEnd(mLaunchServiceWorkerEnd);
+    newTimedChannel->SetDispatchFetchEventStart(mDispatchFetchEventStart);
+    newTimedChannel->SetDispatchFetchEventEnd(mDispatchFetchEventEnd);
+    newTimedChannel->SetHandleFetchEventStart(mHandleFetchEventStart);
+    newTimedChannel->SetHandleFetchEventEnd(mHandleFetchEventEnd);
   }
 
   // Pass the preferred alt-data type on to the new channel.
@@ -3690,21 +3711,21 @@ HttpBaseChannel::GetMatchedProvider(nsACString& aProvider)
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::GetMatchedPrefix(nsACString& aPrefix)
+HttpBaseChannel::GetMatchedFullHash(nsACString& aFullHash)
 {
-  aPrefix = mMatchedPrefix;
+  aFullHash = mMatchedFullHash;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 HttpBaseChannel::SetMatchedInfo(const nsACString& aList,
                                 const nsACString& aProvider,
-                                const nsACString& aPrefix) {
+                                const nsACString& aFullHash) {
   NS_ENSURE_ARG(!aList.IsEmpty());
 
   mMatchedList = aList;
   mMatchedProvider = aProvider;
-  mMatchedPrefix = aPrefix;
+  mMatchedFullHash = aFullHash;
   return NS_OK;
 }
 
@@ -3741,16 +3762,30 @@ HttpBaseChannel::GetAsyncOpen(TimeStamp* _retval) {
  * redirects. This check must be done by the consumers.
  */
 NS_IMETHODIMP
-HttpBaseChannel::GetRedirectCount(uint16_t *aRedirectCount)
+HttpBaseChannel::GetRedirectCount(uint8_t *aRedirectCount)
 {
   *aRedirectCount = mRedirectCount;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetRedirectCount(uint16_t aRedirectCount)
+HttpBaseChannel::SetRedirectCount(uint8_t aRedirectCount)
 {
   mRedirectCount = aRedirectCount;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetInternalRedirectCount(uint8_t *aRedirectCount)
+{
+  *aRedirectCount = mInternalRedirectCount;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetInternalRedirectCount(uint8_t aRedirectCount)
+{
+  mInternalRedirectCount = aRedirectCount;
   return NS_OK;
 }
 

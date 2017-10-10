@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
@@ -13,8 +13,8 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethod
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domexception::{DOMErrorName, DOMException};
@@ -45,29 +45,29 @@ use std::rc::Rc;
 pub struct CustomElementRegistry {
     reflector_: Reflector,
 
-    window: JS<Window>,
+    window: Dom<Window>,
 
     #[ignore_heap_size_of = "Rc"]
-    when_defined: DOMRefCell<HashMap<LocalName, Rc<Promise>>>,
+    when_defined: DomRefCell<HashMap<LocalName, Rc<Promise>>>,
 
     element_definition_is_running: Cell<bool>,
 
     #[ignore_heap_size_of = "Rc"]
-    definitions: DOMRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
+    definitions: DomRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
 }
 
 impl CustomElementRegistry {
     fn new_inherited(window: &Window) -> CustomElementRegistry {
         CustomElementRegistry {
             reflector_: Reflector::new(),
-            window: JS::from_ref(window),
-            when_defined: DOMRefCell::new(HashMap::new()),
+            window: Dom::from_ref(window),
+            when_defined: DomRefCell::new(HashMap::new()),
             element_definition_is_running: Cell::new(false),
-            definitions: DOMRefCell::new(HashMap::new()),
+            definitions: DomRefCell::new(HashMap::new()),
         }
     }
 
-    pub fn new(window: &Window) -> Root<CustomElementRegistry> {
+    pub fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
         reflect_dom_object(box CustomElementRegistry::new_inherited(window),
                            window,
                            CustomElementRegistryBinding::Wrap)
@@ -304,7 +304,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         let document = self.window.Document();
 
         // Steps 14-15
-        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(Root::downcast::<Element>) {
+        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(DomRoot::downcast::<Element>) {
             let is = candidate.get_is();
             if *candidate.local_name() == local_name &&
                 *candidate.namespace() == ns!(html) &&
@@ -316,10 +316,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 16, 16.3
         if let Some(promise) = self.when_defined.borrow_mut().remove(&name) {
-            // 16.1
-            let cx = promise.global().get_cx();
-            // 16.2
-            promise.resolve_native(cx, &UndefinedValue());
+            promise.resolve_native(&UndefinedValue());
         }
         Ok(())
     }
@@ -346,14 +343,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new(global_scope);
-            promise.reject_native(global_scope.get_cx(), &DOMException::new(global_scope, DOMErrorName::SyntaxError));
+            promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
             return promise
         }
 
         // Step 2
         if self.definitions.borrow().contains_key(&name) {
             let promise = Promise::new(global_scope);
-            promise.resolve_native(global_scope.get_cx(), &UndefinedValue());
+            promise.resolve_native(&UndefinedValue());
             return promise
         }
 
@@ -389,7 +386,7 @@ pub struct LifecycleCallbacks {
 
 #[derive(Clone, HeapSizeOf, JSTraceable)]
 pub enum ConstructionStackEntry {
-    Element(Root<Element>),
+    Element(DomRoot<Element>),
     AlreadyConstructedMarker,
 }
 
@@ -407,7 +404,7 @@ pub struct CustomElementDefinition {
 
     pub callbacks: LifecycleCallbacks,
 
-    pub construction_stack: DOMRefCell<Vec<ConstructionStackEntry>>,
+    pub construction_stack: DomRefCell<Vec<ConstructionStackEntry>>,
 }
 
 impl CustomElementDefinition {
@@ -434,7 +431,7 @@ impl CustomElementDefinition {
 
     /// https://dom.spec.whatwg.org/#concept-create-element Step 6.1
     #[allow(unsafe_code)]
-    pub fn create_element(&self, document: &Document, prefix: Option<Prefix>) -> Fallible<Root<Element>> {
+    pub fn create_element(&self, document: &Document, prefix: Option<Prefix>) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = window.get_cx();
         // Step 2
@@ -450,7 +447,7 @@ impl CustomElementDefinition {
         }
 
         rooted!(in(cx) let element_val = ObjectValue(element.get()));
-        let element: Root<Element> = match unsafe { Root::from_jsval(cx, element_val.handle(), ()) } {
+        let element: DomRoot<Element> = match unsafe { DomRoot::from_jsval(cx, element_val.handle(), ()) } {
             Ok(ConversionResult::Success(element)) => element,
             Ok(ConversionResult::Failure(..)) =>
                 return Err(Error::Type("Constructor did not return a DOM node".to_owned())),
@@ -507,7 +504,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
     }
 
     // Step 5
-    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(Root::from_ref(element)));
+    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Step 7
     let result = run_upgrade_constructor(&definition.constructor, element);
@@ -615,7 +612,7 @@ impl CustomElementReaction {
 pub enum CallbackReaction {
     Connected,
     Disconnected,
-    Adopted(Root<Document>, Root<Document>),
+    Adopted(DomRoot<Document>, DomRoot<Document>),
     AttributeChanged(LocalName, Option<DOMString>, Option<DOMString>, Namespace),
 }
 
@@ -630,7 +627,7 @@ enum BackupElementQueueFlag {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct CustomElementReactionStack {
-    stack: DOMRefCell<Vec<ElementQueue>>,
+    stack: DomRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,
     processing_backup_element_queue: Cell<BackupElementQueueFlag>,
 }
@@ -638,7 +635,7 @@ pub struct CustomElementReactionStack {
 impl CustomElementReactionStack {
     pub fn new() -> CustomElementReactionStack {
         CustomElementReactionStack {
-            stack: DOMRefCell::new(Vec::new()),
+            stack: DomRefCell::new(Vec::new()),
             backup_queue: ElementQueue::new(),
             processing_backup_element_queue: Cell::new(BackupElementQueueFlag::NotProcessing),
         }
@@ -779,7 +776,7 @@ impl CustomElementReactionStack {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct ElementQueue {
-    queue: DOMRefCell<VecDeque<JS<Element>>>,
+    queue: DomRefCell<VecDeque<Dom<Element>>>,
 }
 
 impl ElementQueue {
@@ -798,12 +795,12 @@ impl ElementQueue {
         self.queue.borrow_mut().clear();
     }
 
-    fn next_element(&self) -> Option<Root<Element>> {
-        self.queue.borrow_mut().pop_front().as_ref().map(JS::deref).map(Root::from_ref)
+    fn next_element(&self) -> Option<DomRoot<Element>> {
+        self.queue.borrow_mut().pop_front().as_ref().map(Dom::deref).map(DomRoot::from_ref)
     }
 
     fn append_element(&self, element: &Element) {
-        self.queue.borrow_mut().push_back(JS::from_ref(element));
+        self.queue.borrow_mut().push_back(Dom::from_ref(element));
     }
 }
 

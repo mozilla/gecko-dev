@@ -1654,30 +1654,49 @@ toolbar#nav-bar {
 
         return browserEnv
 
-    def killNamedProc(self, pname):
+    def killNamedProc(self, pname, orphans=True):
         """ Kill processes matching the given command name """
         self.log.info("Checking for %s processes..." % pname)
 
-        def _psInfo(line):
-            if pname in line:
-                self.log.info(line)
+        if HAVE_PSUTIL:
+            for proc in psutil.process_iter():
+                try:
+                    if proc.name() == pname:
+                        procd = proc.as_dict(attrs=['pid', 'ppid', 'name', 'username'])
+                        if proc.ppid() == 1 or not orphans:
+                            self.log.info("killing %s" % procd)
+                            killPid(proc.pid, self.log)
+                        else:
+                            self.log.info("NOT killing %s (not an orphan?)" % procd)
+                except:
+                    # may not be able to access process info for all processes
+                    continue
+        else:
+            def _psInfo(line):
+                if pname in line:
+                    self.log.info(line)
 
-        process = mozprocess.ProcessHandler(['ps', '-f'],
-                                            processOutputLine=_psInfo)
-        process.run()
-        process.wait()
+            process = mozprocess.ProcessHandler(['ps', '-f'],
+                                                processOutputLine=_psInfo)
+            process.run()
+            process.wait()
 
-        def _psKill(line):
-            parts = line.split()
-            if len(parts) == 3 and parts[0].isdigit():
-                pid = int(parts[0])
-                if parts[2] == pname:
-                    self.log.info("killing %s with pid %d" % (pname, pid))
-                    killPid(pid, self.log)
-        process = mozprocess.ProcessHandler(['ps', '-o', 'pid,ppid,comm'],
-                                            processOutputLine=_psKill)
-        process.run()
-        process.wait()
+            def _psKill(line):
+                parts = line.split()
+                if len(parts) == 3 and parts[0].isdigit():
+                    pid = int(parts[0])
+                    ppid = int(parts[1])
+                    if parts[2] == pname:
+                        if ppid == 1 or not orphans:
+                            self.log.info("killing %s (pid %d)" % (pname, pid))
+                            killPid(pid, self.log)
+                        else:
+                            self.log.info("NOT killing %s (pid %d) (not an orphan?)" %
+                                          (pname, pid))
+            process = mozprocess.ProcessHandler(['ps', '-o', 'pid,ppid,comm'],
+                                                processOutputLine=_psKill)
+            process.run()
+            process.wait()
 
     def execute_start_script(self):
         if not self.start_script or not self.marionette:
@@ -1778,6 +1797,10 @@ toolbar#nav-bar {
             "dom.ipc.tabs.nested.enabled=%s" %
             ('true' if options.nested_oop else 'false'))
 
+        options.extraPrefs.append(
+            "idle.lastDailyNotification=%d" %
+            (int(time.time()) * 1000))
+
         # get extensions to install
         extensions = self.getExtensionsToInstall(options)
 
@@ -1799,17 +1822,7 @@ toolbar#nav-bar {
            '5.1' in platform.version() and options.e10s:
             prefs['layers.acceleration.disabled'] = True
 
-        sandbox_whitelist_paths = [SCRIPT_DIR]
-        try:
-            if options.workPath:
-                sandbox_whitelist_paths.append(options.workPath)
-        except AttributeError:
-            pass
-        try:
-            if options.objPath:
-                sandbox_whitelist_paths.append(options.objPath)
-        except AttributeError:
-            pass
+        sandbox_whitelist_paths = [SCRIPT_DIR] + options.sandboxReadWhitelist
         if (platform.system() == "Linux" or
             platform.system() in ("Windows", "Microsoft")):
             # Trailing slashes are needed to indicate directories on Linux and Windows
@@ -2066,6 +2079,9 @@ toolbar#nav-bar {
         # copy env so we don't munge the caller's environment
         env = env.copy()
 
+        # Used to defer a possible IOError exception from Marionette
+        marionette_exception = None
+
         # make sure we clean up after ourselves.
         try:
             # set process log environment variable
@@ -2150,25 +2166,34 @@ toolbar#nav-bar {
             self.log.process_start(gecko_id)
             self.message_logger.gecko_id = gecko_id
 
-            # start marionette and kick off the tests
-            marionette_args = marionette_args or {}
-            self.marionette = Marionette(**marionette_args)
-            self.marionette.start_session()
+            try:
+                # start marionette and kick off the tests
+                marionette_args = marionette_args or {}
+                self.marionette = Marionette(**marionette_args)
+                self.marionette.start_session()
 
-            # install specialpowers and mochikit addons
-            addons = Addons(self.marionette)
+                # install specialpowers and mochikit addons
+                addons = Addons(self.marionette)
 
-            addons.install(create_zip(
-                os.path.join(here, 'extensions', 'specialpowers')
-            ))
-            addons.install(create_zip(self.mochijar))
+                addons.install(create_zip(
+                    os.path.join(here, 'extensions', 'specialpowers')
+                ))
+                addons.install(create_zip(self.mochijar))
 
-            self.execute_start_script()
+                self.execute_start_script()
 
-            # an open marionette session interacts badly with mochitest,
-            # delete it until we figure out why.
-            self.marionette.delete_session()
-            del self.marionette
+                # an open marionette session interacts badly with mochitest,
+                # delete it until we figure out why.
+                self.marionette.delete_session()
+                del self.marionette
+
+            except IOError:
+                # Any IOError as thrown by Marionette means that something is
+                # wrong with the process, like a crash or the socket is no
+                # longer open. We defer raising this specific error so that
+                # post-test checks for leaks and crashes are performed and
+                # reported first.
+                marionette_exception = sys.exc_info()
 
             # wait until app is finished
             # XXX copy functionality from
@@ -2217,6 +2242,10 @@ toolbar#nav-bar {
             if os.path.exists(processLog):
                 os.remove(processLog)
             self.urlOpts = []
+
+        if marionette_exception is not None:
+            exc, value, tb = marionette_exception
+            raise exc, value, tb
 
         return status, self.lastTestSeen
 
@@ -2326,15 +2355,16 @@ toolbar#nav-bar {
         """
 
         # Number of times to repeat test(s) when running with --repeat
-        VERIFY_REPEAT = 20
+        VERIFY_REPEAT = 10
         # Number of times to repeat test(s) when running test in
-        VERIFY_REPEAT_SINGLE_BROWSER = 10
+        VERIFY_REPEAT_SINGLE_BROWSER = 5
 
         def step1():
             stepOptions = copy.deepcopy(options)
             stepOptions.repeat = VERIFY_REPEAT
             stepOptions.keep_open = False
             stepOptions.runUntilFailure = True
+            stepOptions.profilePath = None
             result = self.runTests(stepOptions)
             result = result or (-2 if self.countfail > 0 else 0)
             self.message_logger.finish()
@@ -2345,6 +2375,32 @@ toolbar#nav-bar {
             stepOptions.repeat = 0
             stepOptions.keep_open = False
             for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
+                stepOptions.profilePath = None
+                result = self.runTests(stepOptions)
+                result = result or (-2 if self.countfail > 0 else 0)
+                self.message_logger.finish()
+                if result != 0:
+                    break
+            return result
+
+        def step3():
+            stepOptions = copy.deepcopy(options)
+            stepOptions.repeat = VERIFY_REPEAT
+            stepOptions.keep_open = False
+            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            stepOptions.profilePath = None
+            result = self.runTests(stepOptions)
+            result = result or (-2 if self.countfail > 0 else 0)
+            self.message_logger.finish()
+            return result
+
+        def step4():
+            stepOptions = copy.deepcopy(options)
+            stepOptions.repeat = 0
+            stepOptions.keep_open = False
+            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
+                stepOptions.profilePath = None
                 result = self.runTests(stepOptions)
                 result = result or (-2 if self.countfail > 0 else 0)
                 self.message_logger.finish()
@@ -2358,6 +2414,12 @@ toolbar#nav-bar {
             ("2. Run each test %d times in a new browser each time." %
              VERIFY_REPEAT_SINGLE_BROWSER,
              step2),
+            ("3. Run each test %d times in one browser, in chaos mode." %
+             VERIFY_REPEAT,
+             step3),
+            ("4. Run each test %d times in a new browser each time, "
+             "in chaos mode." % VERIFY_REPEAT_SINGLE_BROWSER,
+             step4),
         ]
 
         stepResults = {}

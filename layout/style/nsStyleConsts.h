@@ -230,67 +230,6 @@ enum class StyleOrient : uint8_t {
   Vertical,
 };
 
-// Azimuth - See nsStyleAural
-#define NS_STYLE_AZIMUTH_LEFT_SIDE        0x00
-#define NS_STYLE_AZIMUTH_FAR_LEFT         0x01
-#define NS_STYLE_AZIMUTH_LEFT             0x02
-#define NS_STYLE_AZIMUTH_CENTER_LEFT      0x03
-#define NS_STYLE_AZIMUTH_CENTER           0x04
-#define NS_STYLE_AZIMUTH_CENTER_RIGHT     0x05
-#define NS_STYLE_AZIMUTH_RIGHT            0x06
-#define NS_STYLE_AZIMUTH_FAR_RIGHT        0x07
-#define NS_STYLE_AZIMUTH_RIGHT_SIDE       0x08
-#define NS_STYLE_AZIMUTH_BEHIND           0x80  // bits
-#define NS_STYLE_AZIMUTH_LEFTWARDS        0x10  // bits
-#define NS_STYLE_AZIMUTH_RIGHTWARDS       0x20  // bits
-
-// See nsStyleAural
-#define NS_STYLE_ELEVATION_BELOW          1
-#define NS_STYLE_ELEVATION_LEVEL          2
-#define NS_STYLE_ELEVATION_ABOVE          3
-#define NS_STYLE_ELEVATION_HIGHER         4
-#define NS_STYLE_ELEVATION_LOWER          5
-
-// See nsStyleAural
-#define NS_STYLE_PITCH_X_LOW              1
-#define NS_STYLE_PITCH_LOW                2
-#define NS_STYLE_PITCH_MEDIUM             3
-#define NS_STYLE_PITCH_HIGH               4
-#define NS_STYLE_PITCH_X_HIGH             5
-
-// See nsStyleAural
-#define NS_STYLE_SPEAK_NONE               0
-#define NS_STYLE_SPEAK_NORMAL             1
-#define NS_STYLE_SPEAK_SPELL_OUT          2
-
-// See nsStyleAural
-#define NS_STYLE_SPEAK_HEADER_ONCE        0
-#define NS_STYLE_SPEAK_HEADER_ALWAYS      1
-
-// See nsStyleAural
-#define NS_STYLE_SPEAK_NUMERAL_DIGITS     0
-#define NS_STYLE_SPEAK_NUMERAL_CONTINUOUS 1
-
-// See nsStyleAural
-#define NS_STYLE_SPEAK_PUNCTUATION_NONE   0
-#define NS_STYLE_SPEAK_PUNCTUATION_CODE   1
-
-// See nsStyleAural
-#define NS_STYLE_SPEECH_RATE_X_SLOW       0
-#define NS_STYLE_SPEECH_RATE_SLOW         1
-#define NS_STYLE_SPEECH_RATE_MEDIUM       2
-#define NS_STYLE_SPEECH_RATE_FAST         3
-#define NS_STYLE_SPEECH_RATE_X_FAST       4
-#define NS_STYLE_SPEECH_RATE_FASTER       10
-#define NS_STYLE_SPEECH_RATE_SLOWER       11
-
-// See nsStyleAural
-#define NS_STYLE_VOLUME_SILENT            0
-#define NS_STYLE_VOLUME_X_SOFT            1
-#define NS_STYLE_VOLUME_SOFT              2
-#define NS_STYLE_VOLUME_MEDIUM            3
-#define NS_STYLE_VOLUME_LOUD              4
-#define NS_STYLE_VOLUME_X_LOUD            5
 
 // See nsStyleColor
 #define NS_STYLE_COLOR_INHERIT_FROM_BODY  2  /* Can't come from CSS directly */
@@ -649,6 +588,7 @@ enum class StyleDisplay : uint8_t {
 #define NS_STYLE_FONT_SIZE_XXXLARGE             7  // Only used by <font size="7">. Not specifiable in CSS.
 #define NS_STYLE_FONT_SIZE_LARGER               8
 #define NS_STYLE_FONT_SIZE_SMALLER              9
+#define NS_STYLE_FONT_SIZE_NO_KEYWORD          10 // Used by Servo to track the "no keyword" case
 
 // See nsStyleFont
 // We should eventually stop using the NS_STYLE_* variants here.

@@ -147,9 +147,8 @@ class IonBuilder
 
     MConstant* constant(const Value& v);
     MConstant* constantInt(int32_t i);
-    MInstruction* initializedLength(MDefinition* obj, MDefinition* elements,
-                                    JSValueType unboxedType);
-    MInstruction* setInitializedLength(MDefinition* obj, JSValueType unboxedType, size_t count);
+    MInstruction* initializedLength(MDefinition* obj, MDefinition* elements);
+    MInstruction* setInitializedLength(MDefinition* obj, size_t count);
 
     // Improve the type information at tests
     AbortReasonOr<Ok> improveTypesAtTest(MDefinition* ins, bool trueBranch, MTest* test);
@@ -283,11 +282,22 @@ class IonBuilder
                                                            int32_t fieldOffset, MDefinition* value,
                                                            TypedObjectPrediction fieldPrediction,
                                                            PropertyName* name);
+    AbortReasonOr<Ok> setPropTryReferenceTypedObjectValue(bool* emitted,
+                                                          MDefinition* typedObj,
+                                                          const LinearSum& byteOffset,
+                                                          ReferenceTypeDescr::Type type,
+                                                          MDefinition* value,
+                                                          PropertyName* name);
     AbortReasonOr<Ok> setPropTryScalarPropOfTypedObject(bool* emitted,
                                                         MDefinition* obj,
                                                         int32_t fieldOffset,
                                                         MDefinition* value,
                                                         TypedObjectPrediction fieldTypeReprs);
+    AbortReasonOr<Ok> setPropTryScalarTypedObjectValue(bool* emitted,
+                                                       MDefinition* typedObj,
+                                                       const LinearSum& byteOffset,
+                                                       ScalarTypeDescr::Type type,
+                                                       MDefinition* value);
     AbortReasonOr<Ok> setPropTryCache(bool* emitted, MDefinition* obj,
                                       PropertyName* name, MDefinition* value,
                                       bool barrier, TemporaryTypeSet* objTypes);
@@ -336,6 +346,7 @@ class IonBuilder
     // jsop_in/jsop_hasown helpers.
     AbortReasonOr<Ok> inTryDense(bool* emitted, MDefinition* obj, MDefinition* id);
     AbortReasonOr<Ok> hasTryNotDefined(bool* emitted, MDefinition* obj, MDefinition* id, bool ownProperty);
+    AbortReasonOr<Ok> hasTryDefiniteSlotOrUnboxed(bool* emitted, MDefinition* obj, MDefinition* id);
 
     // binary data lookup helpers.
     TypedObjectPrediction typedObjectPrediction(MDefinition* typedObj);
@@ -358,15 +369,6 @@ class IonBuilder
     MDefinition* typeObjectForElementFromArrayStructType(MDefinition* typedObj);
     MDefinition* typeObjectForFieldFromStructType(MDefinition* type,
                                                   size_t fieldIndex);
-    AbortReasonOr<bool> storeReferenceTypedObjectValue(MDefinition* typedObj,
-                                                       const LinearSum& byteOffset,
-                                                       ReferenceTypeDescr::Type type,
-                                                       MDefinition* value,
-                                                       PropertyName* name);
-    AbortReasonOr<Ok> storeScalarTypedObjectValue(MDefinition* typedObj,
-                                                  const LinearSum& byteOffset,
-                                                  ScalarTypeDescr::Type type,
-                                                  MDefinition* value);
     bool checkTypedObjectIndexInBounds(uint32_t elemSize,
                                        MDefinition* obj,
                                        MDefinition* index,
@@ -414,7 +416,6 @@ class IonBuilder
                                                         TypedObjectPrediction elemTypeReprs,
                                                         uint32_t elemSize);
     AbortReasonOr<Ok> initializeArrayElement(MDefinition* obj, size_t index, MDefinition* value,
-                                             JSValueType unboxedType,
                                              bool addResumePointAndIncrementInitializedLength);
 
     // jsop_getelem() helpers.
@@ -525,15 +526,13 @@ class IonBuilder
     AbortReasonOr<Ok> jsop_bindname(PropertyName* name);
     AbortReasonOr<Ok> jsop_bindvar();
     AbortReasonOr<Ok> jsop_getelem();
-    AbortReasonOr<Ok> jsop_getelem_dense(MDefinition* obj, MDefinition* index,
-                                         JSValueType unboxedType);
+    AbortReasonOr<Ok> jsop_getelem_dense(MDefinition* obj, MDefinition* index);
     AbortReasonOr<Ok> jsop_getelem_typed(MDefinition* obj, MDefinition* index,
                                          ScalarTypeDescr::Type arrayType);
     AbortReasonOr<Ok> jsop_setelem();
     AbortReasonOr<Ok> initOrSetElemDense(TemporaryTypeSet::DoubleConversion conversion,
                                          MDefinition* object, MDefinition* index,
-                                         MDefinition* value, JSValueType unboxedType,
-                                         bool writeHole, bool* emitted);
+                                         MDefinition* value, bool writeHole, bool* emitted);
     AbortReasonOr<Ok> jsop_setelem_typed(ScalarTypeDescr::Type arrayType,
                                          MDefinition* object, MDefinition* index,
                                          MDefinition* value);
@@ -872,11 +871,11 @@ class IonBuilder
 
     AbortReasonOr<bool> testNotDefinedProperty(MDefinition* obj, jsid id, bool ownProperty = false);
 
-    uint32_t getDefiniteSlot(TemporaryTypeSet* types, PropertyName* name, uint32_t* pnfixed);
+    uint32_t getDefiniteSlot(TemporaryTypeSet* types, jsid id, uint32_t* pnfixed);
     MDefinition* convertUnboxedObjects(MDefinition* obj);
     MDefinition* convertUnboxedObjects(MDefinition* obj,
                                        const BaselineInspector::ObjectGroupVector& list);
-    uint32_t getUnboxedOffset(TemporaryTypeSet* types, PropertyName* name,
+    uint32_t getUnboxedOffset(TemporaryTypeSet* types, jsid id,
                               JSValueType* punboxedType);
     MInstruction* loadUnboxedProperty(MDefinition* obj, size_t offset, JSValueType unboxedType,
                                       BarrierKind barrier, TemporaryTypeSet* types);

@@ -2263,6 +2263,9 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
 
   DataStorage::GetAllChildProcessData(xpcomInit.dataStorage());
 
+  // Send the dynamic scalar definitions to the new process.
+  TelemetryIPC::GetDynamicScalarDefinitions(xpcomInit.dynamicScalarDefs());
+
   // Must send screen info before send initialData
   ScreenManager& screenManager = ScreenManager::GetSingleton();
   screenManager.CopyScreensToRemote(this);
@@ -4487,7 +4490,8 @@ ContentParent::CommonCreateWindow(PBrowserParent* aThisTab,
                                   nsresult& aResult,
                                   nsCOMPtr<nsITabParent>& aNewTabParent,
                                   bool* aWindowIsNew,
-                                  nsIPrincipal* aTriggeringPrincipal)
+                                  nsIPrincipal* aTriggeringPrincipal,
+                                  bool aLoadURI)
 
 {
   // The content process should never be in charge of computing whether or
@@ -4571,10 +4575,19 @@ ContentParent::CommonCreateWindow(PBrowserParent* aThisTab,
     params->SetTriggeringPrincipal(aTriggeringPrincipal);
 
     nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner;
-    aResult = browserDOMWin->OpenURIInFrame(aURIToLoad, params, openLocation,
-                                            nsIBrowserDOMWindow::OPEN_NEW,
-                                            aNextTabParentId, aName,
-                                            getter_AddRefs(frameLoaderOwner));
+    if (aLoadURI) {
+      aResult = browserDOMWin->OpenURIInFrame(aURIToLoad,
+                                              params, openLocation,
+                                              nsIBrowserDOMWindow::OPEN_NEW,
+                                              aNextTabParentId, aName,
+                                              getter_AddRefs(frameLoaderOwner));
+    } else {
+      aResult = browserDOMWin->CreateContentWindowInFrame(aURIToLoad,
+                                              params, openLocation,
+                                              nsIBrowserDOMWindow::OPEN_NEW,
+                                              aNextTabParentId, aName,
+                                              getter_AddRefs(frameLoaderOwner));
+    }
     if (NS_SUCCEEDED(aResult) && frameLoaderOwner) {
       RefPtr<nsFrameLoader> frameLoader = frameLoaderOwner->GetFrameLoader();
       if (frameLoader) {
@@ -4619,7 +4632,7 @@ ContentParent::CommonCreateWindow(PBrowserParent* aThisTab,
       ->SendSetOriginAttributes(openerOriginAttributes);
   }
 
-  if (aURIToLoad) {
+  if (aURIToLoad && aLoadURI) {
     nsCOMPtr<mozIDOMWindowProxy> openerWindow;
     if (aSetOpener && thisTabParent) {
       openerWindow = thisTabParent->GetParentWindowOuter();
@@ -4649,6 +4662,7 @@ ContentParent::RecvCreateWindow(PBrowserParent* aThisTab,
                                 const bool& aCalledFromJS,
                                 const bool& aPositionSpecified,
                                 const bool& aSizeSpecified,
+                                const OptionalURIParams& aURIToLoad,
                                 const nsCString& aFeatures,
                                 const nsCString& aBaseURI,
                                 const float& aFullZoom,
@@ -4691,19 +4705,21 @@ ContentParent::RecvCreateWindow(PBrowserParent* aThisTab,
   const uint64_t nextTabParentId = ++sNextTabParentId;
   sNextTabParents.Put(nextTabParentId, newTab);
 
+  const nsCOMPtr<nsIURI> uriToLoad = DeserializeURI(aURIToLoad);
+
   nsCOMPtr<nsITabParent> newRemoteTab;
   mozilla::ipc::IPCResult ipcResult =
     CommonCreateWindow(aThisTab, /* aSetOpener = */ true, aChromeFlags,
                        aCalledFromJS, aPositionSpecified, aSizeSpecified,
-                       nullptr, aFeatures, aBaseURI, aFullZoom,
-                       nextTabParentId, NullString(), rv,
+                       uriToLoad, aFeatures, aBaseURI, aFullZoom,
+                       nextTabParentId, VoidString(), rv,
                        newRemoteTab, &cwi.windowOpened(),
-                       aTriggeringPrincipal);
+                       aTriggeringPrincipal, /* aLoadUri = */ false);
   if (!ipcResult) {
     return ipcResult;
   }
 
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_WARN_IF(NS_FAILED(rv)) || !newRemoteTab) {
     return IPC_OK();
   }
 
@@ -4753,7 +4769,8 @@ ContentParent::RecvCreateWindowInDifferentProcess(
                        aCalledFromJS, aPositionSpecified, aSizeSpecified,
                        uriToLoad, aFeatures, aBaseURI, aFullZoom,
                        /* aNextTabParentId = */ 0, aName, rv,
-                       newRemoteTab, &windowIsNew, aTriggeringPrincipal);
+                       newRemoteTab, &windowIsNew, aTriggeringPrincipal,
+                       /* aLoadUri = */ true);
   if (!ipcResult) {
     return ipcResult;
   }

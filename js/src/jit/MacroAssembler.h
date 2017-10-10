@@ -724,8 +724,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     inline void leaveExitFrame(size_t extraFrame = 0);
 
   private:
-    // Save the top of the stack into JitActivation::exitFP of the current
-    // thread, which should be the location of the latest exit frame.
+    // Save the top of the stack into JitActivation::packedExitFP of the
+    // current thread, which should be the location of the latest exit frame.
     void linkExitFrame(Register cxreg, Register scratch);
 
     // Patch the value of PushStubCode with the pointer to the finalized code.
@@ -1503,9 +1503,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     // including "normal" OutOfLineCode.
     void wasmEmitTrapOutOfLineCode();
 
-    // Assert invariants that should be true within any non-exit-stub wasm code.
-    void wasmAssertNonExitInvariants(Register activation);
-
     // Perform a stack-overflow test, branching to the given Label on overflow.
     void wasmEmitStackCheck(Register sp, Register scratch, Label* onOverflow);
 
@@ -1741,9 +1738,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     void storeUnboxedProperty(T address, JSValueType type,
                               const ConstantOrRegister& value, Label* failure);
 
-    void checkUnboxedArrayCapacity(Register obj, const RegisterOrInt32Constant& index,
-                                   Register temp, Label* failure);
-
     template <typename T>
     Register extractString(const T& source, Register scratch) {
         return extractObject(source, scratch);
@@ -1842,6 +1836,8 @@ class MacroAssembler : public MacroAssemblerSpecific
   public:
     // Generates code used to complete a bailout.
     void generateBailoutTail(Register scratch, Register bailoutInfo);
+
+    void assertRectifierFrameParentType(Register frameType);
 
   public:
 #ifndef JS_CODEGEN_ARM64
@@ -2329,7 +2325,7 @@ ToMIRType(MIRType t)
 static inline MIRType
 ToMIRType(ABIArgType argType)
 {
-    switch (argType & ArgType_Mask) {
+    switch (argType) {
       case ArgType_General: return MIRType::Int32;
       case ArgType_Double:  return MIRType::Double;
       case ArgType_Float32: return MIRType::Float32;

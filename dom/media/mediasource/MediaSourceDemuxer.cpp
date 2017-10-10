@@ -58,7 +58,7 @@ MediaSourceDemuxer::AddSizeOfResources(
   RefPtr<MediaSourceDecoder::ResourceSizes> sizes = aSizes;
   nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
     "MediaSourceDemuxer::AddSizeOfResources", [self, sizes]() {
-      for (TrackBuffersManager* manager : self->mSourceBuffers) {
+      for (const RefPtr<TrackBuffersManager>& manager : self->mSourceBuffers) {
         manager->AddSizeOfResources(sizes);
       }
     });
@@ -117,25 +117,19 @@ MediaSourceDemuxer::ScanSourceBuffersForContent()
   return !haveEmptySourceBuffer;
 }
 
-bool
-MediaSourceDemuxer::HasTrackType(TrackType aType) const
+uint32_t
+MediaSourceDemuxer::GetNumberTracks(TrackType aType) const
 {
   MonitorAutoLock mon(mMonitor);
 
   switch (aType) {
     case TrackType::kAudioTrack:
-      return mInfo.HasAudio();
+      return mInfo.HasAudio() ? 1u : 0;
     case TrackType::kVideoTrack:
-      return mInfo.HasVideo();
+      return mInfo.HasVideo() ? 1u : 0;
     default:
-      return false;
+      return 0;
   }
-}
-
-uint32_t
-MediaSourceDemuxer::GetNumberTracks(TrackType aType) const
-{
-  return HasTrackType(aType) ? 1u : 0;
 }
 
 already_AddRefed<MediaTrackDemuxer>
@@ -167,9 +161,10 @@ MediaSourceDemuxer::GetCrypto()
 }
 
 void
-MediaSourceDemuxer::AttachSourceBuffer(TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::AttachSourceBuffer(
+  RefPtr<TrackBuffersManager>& aSourceBuffer)
 {
-  nsCOMPtr<nsIRunnable> task = NewRunnableMethod<TrackBuffersManager*>(
+  nsCOMPtr<nsIRunnable> task = NewRunnableMethod<RefPtr<TrackBuffersManager>&&>(
     "MediaSourceDemuxer::DoAttachSourceBuffer",
     this,
     &MediaSourceDemuxer::DoAttachSourceBuffer,
@@ -178,17 +173,19 @@ MediaSourceDemuxer::AttachSourceBuffer(TrackBuffersManager* aSourceBuffer)
 }
 
 void
-MediaSourceDemuxer::DoAttachSourceBuffer(mozilla::TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::DoAttachSourceBuffer(
+  RefPtr<mozilla::TrackBuffersManager>&& aSourceBuffer)
 {
   MOZ_ASSERT(OnTaskQueue());
-  mSourceBuffers.AppendElement(aSourceBuffer);
+  mSourceBuffers.AppendElement(Move(aSourceBuffer));
   ScanSourceBuffersForContent();
 }
 
 void
-MediaSourceDemuxer::DetachSourceBuffer(TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::DetachSourceBuffer(
+  RefPtr<TrackBuffersManager>& aSourceBuffer)
 {
-  nsCOMPtr<nsIRunnable> task = NewRunnableMethod<TrackBuffersManager*>(
+  nsCOMPtr<nsIRunnable> task = NewRunnableMethod<RefPtr<TrackBuffersManager>&&>(
     "MediaSourceDemuxer::DoDetachSourceBuffer",
     this,
     &MediaSourceDemuxer::DoDetachSourceBuffer,
@@ -197,14 +194,14 @@ MediaSourceDemuxer::DetachSourceBuffer(TrackBuffersManager* aSourceBuffer)
 }
 
 void
-MediaSourceDemuxer::DoDetachSourceBuffer(TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::DoDetachSourceBuffer(
+  RefPtr<TrackBuffersManager>&& aSourceBuffer)
 {
   MOZ_ASSERT(OnTaskQueue());
-  for (uint32_t i = 0; i < mSourceBuffers.Length(); i++) {
-    if (mSourceBuffers[i].get() == aSourceBuffer) {
-      mSourceBuffers.RemoveElementAt(i);
-    }
-  }
+  mSourceBuffers.RemoveElementsBy(
+    [&aSourceBuffer](const RefPtr<TrackBuffersManager> aLinkedSourceBuffer) {
+      return aLinkedSourceBuffer == aSourceBuffer;
+    });
   {
     MonitorAutoLock mon(mMonitor);
     if (aSourceBuffer == mAudioTrack) {
@@ -231,7 +228,7 @@ MediaSourceDemuxer::GetTrackInfo(TrackType aTrack)
   }
 }
 
-TrackBuffersManager*
+RefPtr<TrackBuffersManager>
 MediaSourceDemuxer::GetManager(TrackType aTrack)
 {
   MonitorAutoLock mon(mMonitor);

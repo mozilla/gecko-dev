@@ -205,7 +205,7 @@ ifdef NIGHTLY_BUILD
 	fi
 endif
 	$(RM) -rf $(REAL_LOCALE_MERGEDIR)
-	$(MOZILLA_DIR)/mach compare-locales --l10n-base $(L10NBASEDIR) --merge-dir $(REAL_LOCALE_MERGEDIR) $*
+	-$(MOZILLA_DIR)/mach compare-locales --merge $(BASE_MERGE) $(srcdir)/l10n.toml $(L10NBASEDIR) $*
 
 langpack-%: LANGPACK_FILE=$(ABS_DIST)/$(PKG_LANGPACK_PATH)$(PKG_LANGPACK_BASENAME).xpi
 langpack-%: AB_CD=$*
@@ -217,7 +217,7 @@ langpack-%: libs-%
 	$(NSINSTALL) -D $(DIST)/$(PKG_LANGPACK_PATH)
 	$(call py_action,preprocessor,$(DEFINES) $(ACDEFINES) \
 	  -DTK_DEFINES=$(TK_DEFINES) -DAPP_DEFINES=$(APP_DEFINES) $(MOZILLA_DIR)/toolkit/locales/generic/install.rdf -o $(DIST)/xpi-stage/$(XPI_NAME)/install.rdf)
-	$(call py_action,zip,-C $(DIST)/xpi-stage/locale-$(AB_CD) $(LANGPACK_FILE) install.rdf $(PKG_ZIP_DIRS) chrome.manifest)
+	$(call py_action,zip,-C $(DIST)/xpi-stage/locale-$(AB_CD) -x **/*.js $(LANGPACK_FILE) install.rdf $(PKG_ZIP_DIRS) chrome.manifest)
 
 langpack-webext-%: LANGPACK_FILE=$(ABS_DIST)/$(PKG_LANGPACK_PATH)$(PKG_LANGPACK_BASENAME).xpi
 langpack-webext-%: AB_CD=$*
@@ -225,7 +225,7 @@ langpack-webext-%: XPI_NAME=locale-$*
 langpack-webext-%: libs-%
 	@echo 'Making new-langpack $(LANGPACK_FILE)'
 	$(NSINSTALL) -D $(DIST)/$(PKG_LANGPACK_PATH)
-	$(call py_action,langpack_manifest,--locales $(AB_CD) --appver $(MOZ_APP_VERSION) --defines $(NEW_APP_DEFINES) --input $(DIST)/xpi-stage/locale-$(AB_CD))
+	$(call py_action,langpack_manifest,--locales $(AB_CD) --min-app-ver $(MOZ_APP_VERSION) --max-app-ver $(MOZ_APP_MAXVERSION) --app-name "$(MOZ_APP_DISPLAYNAME)" --l10n-basedir "$(L10NBASEDIR)" --defines $(NEW_APP_DEFINES) --input $(DIST)/xpi-stage/locale-$(AB_CD))
 	$(call py_action,zip,-C $(DIST)/xpi-stage/locale-$(AB_CD) -x **/*.manifest -x **/*.js -x **/*.ini $(LANGPACK_FILE) $(PKG_ZIP_DIRS) manifest.json)
 
 # This variable is to allow the wget-en-US target to know which ftp server to download from

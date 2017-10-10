@@ -33,14 +33,9 @@ class VRLayerChild;
 class VRDisplayClient;
 
 class VRManagerChild : public PVRManagerChild
-                     , public layers::TextureForwarder
-                     , public layers::KnowsCompositor
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRManagerChild, override);
-
-  TextureForwarder* GetTextureForwarder() override { return this; }
-  LayersIPCActor* GetLayersIPCActor() override { return this; }
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRManagerChild);
 
   static VRManagerChild* Get();
 
@@ -64,27 +59,13 @@ public:
 
   static bool IsCreated();
 
-  virtual PTextureChild* CreateTexture(
-    const SurfaceDescriptor& aSharedData,
-    layers::LayersBackend aLayersBackend,
-    TextureFlags aFlags,
-    uint64_t aSerial,
-    wr::MaybeExternalImageId& aExternalImageId,
-    nsIEventTarget* aTarget = nullptr) override;
-  virtual void CancelWaitForRecycle(uint64_t aTextureId) override;
-
   PVRLayerChild* CreateVRLayer(uint32_t aDisplayID,
-                               const Rect& aLeftEyeRect,
-                               const Rect& aRightEyeRect,
                                nsIEventTarget* aTarget,
                                uint32_t aGroup);
 
   static void IdentifyTextureHost(const layers::TextureFactoryIdentifier& aIdentifier);
   layers::LayersBackend GetBackendType() const;
   layers::SyncObjectClient* GetSyncObject() { return mSyncObject; }
-
-  virtual MessageLoop* GetMessageLoop() const override { return mMessageLoop; }
-  virtual base::ProcessId GetParentPid() const override { return OtherPid(); }
 
   nsresult ScheduleFrameRequestCallback(mozilla::dom::FrameRequestCallback& aCallback,
     int32_t *aHandle);
@@ -106,21 +87,7 @@ protected:
   void Destroy();
   static void DeferredDestroy(RefPtr<VRManagerChild> aVRManagerChild);
 
-  virtual PTextureChild* AllocPTextureChild(const SurfaceDescriptor& aSharedData,
-                                            const layers::LayersBackend& aLayersBackend,
-                                            const TextureFlags& aFlags,
-                                            const uint64_t& aSerial) override;
-  virtual bool DeallocPTextureChild(PTextureChild* actor) override;
-
   virtual PVRLayerChild* AllocPVRLayerChild(const uint32_t& aDisplayID,
-                                            const float& aLeftEyeX,
-                                            const float& aLeftEyeY,
-                                            const float& aLeftEyeWidth,
-                                            const float& aLeftEyeHeight,
-                                            const float& aRightEyeX,
-                                            const float& aRightEyeY,
-                                            const float& aRightEyeWidth,
-                                            const float& aRightEyeHeight,
                                             const uint32_t& aGroup) override;
   virtual bool DeallocPVRLayerChild(PVRLayerChild* actor) override;
 
@@ -138,26 +105,10 @@ protected:
   virtual mozilla::ipc::IPCResult RecvReplyCreateVRServiceTestController(const nsCString& aID,
                                                                          const uint32_t& aPromiseID,
                                                                          const uint32_t& aDeviceID) override;
-
-  // ShmemAllocator
-
-  virtual bool AllocShmem(size_t aSize,
-                          ipc::SharedMemory::SharedMemoryType aType,
-                          ipc::Shmem* aShmem) override;
-
-  virtual bool AllocUnsafeShmem(size_t aSize,
-                                ipc::SharedMemory::SharedMemoryType aType,
-                                ipc::Shmem* aShmem) override;
-
-  virtual bool DeallocShmem(ipc::Shmem& aShmem) override;
-
-  virtual bool IsSameProcess() const override
+  bool IsSameProcess() const
   {
     return OtherPid() == base::GetCurrentProcId();
   }
-
-  friend class layers::CompositorBridgeChild;
-
 private:
 
   void FireDOMVRDisplayMountedEventInternal(uint32_t aDisplayID);

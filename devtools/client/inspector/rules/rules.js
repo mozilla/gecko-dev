@@ -30,7 +30,8 @@ const {
 } = require("devtools/client/inspector/shared/node-types");
 const StyleInspectorMenu = require("devtools/client/inspector/shared/style-inspector-menu");
 const TooltipsOverlay = require("devtools/client/inspector/shared/tooltips-overlay");
-const {createChild, promiseWarn, debounce} = require("devtools/client/inspector/shared/utils");
+const {createChild, promiseWarn} = require("devtools/client/inspector/shared/utils");
+const {debounce} = require("devtools/shared/debounce");
 const EventEmitter = require("devtools/shared/old-event-emitter");
 const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const clipboardHelper = require("devtools/shared/platform/clipboard");
@@ -39,8 +40,6 @@ const AutocompletePopup = require("devtools/client/shared/autocomplete-popup");
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const PREF_UA_STYLES = "devtools.inspector.showUserAgentStyles";
 const PREF_DEFAULT_COLOR_UNIT = "devtools.defaultColorUnit";
-const PREF_ENABLE_MDN_DOCS_TOOLTIP =
-      "devtools.inspector.mdnDocsTooltip.enabled";
 const FILTER_CHANGED_TIMEOUT = 150;
 const PREF_ORIG_SOURCES = "devtools.source-map.client-service.enabled";
 
@@ -164,11 +163,8 @@ function CssRuleView(inspector, document, store, pageStyle) {
   this._prefObserver.on(PREF_ORIG_SOURCES, this._onSourcePrefChanged);
   this._prefObserver.on(PREF_UA_STYLES, this._handlePrefChange);
   this._prefObserver.on(PREF_DEFAULT_COLOR_UNIT, this._handlePrefChange);
-  this._prefObserver.on(PREF_ENABLE_MDN_DOCS_TOOLTIP, this._handlePrefChange);
 
   this.showUserAgentStyles = Services.prefs.getBoolPref(PREF_UA_STYLES);
-  this.enableMdnDocsTooltip =
-    Services.prefs.getBoolPref(PREF_ENABLE_MDN_DOCS_TOOLTIP);
 
   // The popup will be attached to the toolbox document.
   this.popup = new AutocompletePopup(inspector._toolbox.doc, {
@@ -397,6 +393,15 @@ CssRuleView.prototype = {
    * Context menu handler.
    */
   _onContextMenu: function (event) {
+    if (event.originalTarget.closest("input[type=text]") ||
+        event.originalTarget.closest("input:not([type])") ||
+        event.originalTarget.closest("textarea")) {
+      return;
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+
     this._contextmenu.show(event);
   },
 

@@ -112,7 +112,7 @@ MustBeAccessible(nsIContent* aContent, DocAccessible* aDocument)
   for (uint32_t attrIdx = 0; attrIdx < attrCount; attrIdx++) {
     const nsAttrName* attr = aContent->GetAttrNameAt(attrIdx);
     if (attr->NamespaceEquals(kNameSpaceID_None)) {
-      nsIAtom* attrAtom = attr->Atom();
+      nsAtom* attrAtom = attr->Atom();
       nsDependentAtomString attrStr(attrAtom);
       if (!StringBeginsWith(attrStr, NS_LITERAL_STRING("aria-")))
         continue; // not ARIA
@@ -313,24 +313,12 @@ nsAccessibilityService::ListenersChanged(nsIArray* aEventChanges)
     if (!node || !node->IsHTMLElement()) {
       continue;
     }
-    nsCOMPtr<nsIArray> listenerNames;
-    change->GetChangedListenerNames(getter_AddRefs(listenerNames));
 
     uint32_t changeCount;
-    rv = listenerNames->GetLength(&changeCount);
+    change->GetCountOfEventListenerChangesAffectingAccessibility(&changeCount);
     NS_ENSURE_SUCCESS(rv, rv);
 
     for (uint32_t i = 0 ; i < changeCount ; i++) {
-      nsCOMPtr<nsIAtom> listenerName = do_QueryElementAt(listenerNames, i);
-
-      // We are only interested in event listener changes which may
-      // make an element accessible or inaccessible.
-      if (listenerName != nsGkAtoms::onclick &&
-          listenerName != nsGkAtoms::onmousedown &&
-          listenerName != nsGkAtoms::onmouseup) {
-        continue;
-      }
-
       nsIDocument* ownerDoc = node->OwnerDoc();
       DocAccessible* document = GetExistingDocAccessible(ownerDoc);
 
@@ -1307,9 +1295,11 @@ nsAccessibilityService::Init()
       // obtain a MSAA content process id.
       contentChild->SendGetA11yContentId();
     }
-#endif // defined(XP_WIN)
 
+    gApplicationAccessible = new ApplicationAccessibleWrap();
+#else
     gApplicationAccessible = new ApplicationAccessible();
+#endif // defined(XP_WIN)
   }
 
   NS_ADDREF(gApplicationAccessible); // will release in Shutdown()

@@ -255,7 +255,7 @@ caption {
 
 /******** draggable elements *********/
 
-%ifdef XP_MACOSX
+%ifndef MOZ_WIDGET_GTK
 titlebar,
 toolbar:not([nowindowdrag="true"]):not([customizing="true"]),
 statusbar:not([nowindowdrag="true"]),
@@ -267,6 +267,7 @@ windowdragbox {
 /* The list below is non-comprehensive and will probably need some tweaking. */
 toolbaritem,
 toolbarbutton,
+toolbarseparator,
 button,
 textbox,
 tab,

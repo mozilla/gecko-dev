@@ -18,7 +18,6 @@ const PREF_BRANCH = "browser.ping-centre.";
 
 const TELEMETRY_PREF = `${PREF_BRANCH}telemetry`;
 const LOGGING_PREF = `${PREF_BRANCH}log`;
-const STAGING_ENDPOINT_PREF = `${PREF_BRANCH}staging.endpoint`;
 const PRODUCTION_ENDPOINT_PREF = `${PREF_BRANCH}production.endpoint`;
 
 const FHR_UPLOAD_ENABLED_PREF = "datareporting.healthreport.uploadEnabled";
@@ -38,7 +37,6 @@ class PingCentre {
     }
 
     this._topic = options.topic;
-    this._filter = options.filter;
     this._prefs = Services.prefs.getBranch("");
 
     this._setPingEndpoint(options.topic, options.overrideEndpointPref);
@@ -73,10 +71,8 @@ class PingCentre {
       this._prefs.getStringPref(overrideEndpointPref);
     if (overrideValue) {
       this._pingEndpoint = overrideValue;
-    } else if (AppConstants.MOZ_UPDATE_CHANNEL === "release") {
-      this._pingEndpoint = this._prefs.getStringPref(PRODUCTION_ENDPOINT_PREF);
     } else {
-      this._pingEndpoint = this._prefs.getStringPref(STAGING_ENDPOINT_PREF);
+      this._pingEndpoint = this._prefs.getStringPref(PRODUCTION_ENDPOINT_PREF);
     }
   }
 
@@ -92,12 +88,12 @@ class PingCentre {
     this._fhrEnabled = this._prefs.getBoolPref(prefKey);
   }
 
-  _createExperimentsString(activeExperiments) {
+  _createExperimentsString(activeExperiments, filter) {
     let experimentsString = "";
     for (let experimentID in activeExperiments) {
       if (!activeExperiments[experimentID] ||
           !activeExperiments[experimentID].branch ||
-          (this._filter && !experimentID.includes(this._filter))) {
+          (filter && !experimentID.includes(filter))) {
         continue;
       }
       let expString = `${experimentID}:${activeExperiments[experimentID].branch}`;
@@ -106,20 +102,26 @@ class PingCentre {
     return experimentsString;
   }
 
-  async sendPing(data) {
+  async sendPing(data, options) {
+    let filter = options && options.filter;
     let experiments = TelemetryEnvironment.getActiveExperiments();
-    let experimentsString = this._createExperimentsString(experiments);
+    let experimentsString = this._createExperimentsString(experiments, filter);
     if (!this.enabled) {
       return Promise.resolve();
     }
 
     let clientID = data.client_id || await this.telemetryClientId;
+    let locale = data.locale || Services.locale.getAppLocalesAsLangTags().pop();
     const payload = Object.assign({
+      locale,
       topic: this._topic,
       client_id: clientID,
-      shield_id: experimentsString,
+      version: AppConstants.MOZ_APP_VERSION,
       release_channel: AppConstants.MOZ_UPDATE_CHANNEL
     }, data);
+    if (experimentsString) {
+      payload.shield_id = experimentsString;
+    }
 
     if (this.logging) {
       // performance related pings cause a lot of logging, so we mute them

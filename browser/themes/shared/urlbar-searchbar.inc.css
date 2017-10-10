@@ -12,7 +12,7 @@
   border-radius: var(--toolbarbutton-border-radius);
   box-shadow: 0 1px 4px rgba(0,0,0,.05);
   padding: 0;
-  margin: 0 5px;
+  margin: 3px 5px;
   min-height: 30px;
   overflow: -moz-hidden-unscrollable;
 }
@@ -48,8 +48,18 @@
   min-height: 32px;
 }
 
+:root[chromehidden~="toolbar"] #urlbar {
+  /* Remove excess space between the address bar and the menu button in popups. */
+  margin-inline-end: 0;
+}
+
 #urlbar-container {
   -moz-box-align: center;
+}
+
+.urlbar-input-box,
+.searchbar-textbox > .autocomplete-textbox-container > .textbox-input-box {
+  margin: 0;
 }
 
 #urlbar-search-splitter {
@@ -186,11 +196,14 @@
   background-color: hsla(0,0%,80%,.4);
 }
 
+.urlbar-icon[open],
+.urlbar-icon-wrapper[open],
 .urlbar-icon:hover:active,
 .urlbar-icon-wrapper:hover:active {
-  background-color: hsla(0,0%,80%,.45);
+  background-color: hsla(0,0%,80%,.6);
 }
 
+.urlbar-icon-wrapper[open] > .urlbar-icon,
 .urlbar-icon-wrapper > .urlbar-icon:hover,
 .urlbar-icon-wrapper > .urlbar-icon:hover:active {
   background-color: transparent;
@@ -198,12 +211,11 @@
 
 .urlbar-go-button,
 .search-go-button {
-  list-style-image: url("chrome://browser/skin/back.svg");
-  width: 26px;
+  list-style-image: url("chrome://browser/skin/forward.svg");
 }
 
-.urlbar-go-button:-moz-locale-dir(ltr),
-.search-go-button:-moz-locale-dir(ltr) {
+.urlbar-go-button:-moz-locale-dir(rtl),
+.search-go-button:-moz-locale-dir(rtl) {
   transform: scaleX(-1);
 }
 
@@ -217,7 +229,7 @@
   transition: none;
 }
 
-#navigator-toolbox:not(:hover) > #nav-bar:not([customizing="true"]) > #nav-bar-customization-target > #urlbar-container > #urlbar:not([focused]) > .urlbar-textbox-container > .urlbar-history-dropmarker {
+#nav-bar:not([customizing="true"]) > #nav-bar-customization-target > #urlbar-container:not(:hover) > #urlbar:not([focused]) > .urlbar-textbox-container > .urlbar-history-dropmarker {
   opacity: 0;
 }
 
@@ -351,4 +363,50 @@
 
 #urlbar-zoom-button > .toolbarbutton-icon {
   display: none;
+}
+
+/* Search bar */
+
+.searchbar-search-button {
+  -moz-box-align: center;
+  fill: currentColor;
+}
+
+.searchbar-search-icon {
+  list-style-image: url(chrome://browser/skin/search-glass.svg);
+  -moz-context-properties: fill, fill-opacity;
+  pointer-events: none;
+  margin-inline-start: 8px;
+  margin-inline-end: 6px;
+  fill-opacity: .4;
+}
+
+.searchbar-search-button:hover > .searchbar-search-icon {
+  fill-opacity: .6;
+}
+
+.searchbar-search-button:hover:active > .searchbar-search-icon {
+  fill-opacity: .8;
+}
+
+.searchbar-search-icon-overlay {
+  pointer-events: none;
+}
+
+.searchbar-search-button[addengines=true] > .searchbar-search-icon-overlay {
+  list-style-image: url(chrome://browser/skin/search-indicator-badge-add.svg);
+  margin-inline-start: -15px;
+  margin-inline-end: 4px;
+  margin-top: -10px;
+  width: 11px;
+  height: 11px;
+}
+
+.searchbar-search-button:hover:not([addengines=true]) > .searchbar-search-icon-overlay {
+  list-style-image: url(chrome://global/skin/icons/arrow-dropdown-12.svg);
+  -moz-context-properties: fill;
+  margin-inline-start: -8px;
+  margin-inline-end: 2px;
+  width: 6px;
+  height: 6px;
 }

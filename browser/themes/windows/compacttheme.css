@@ -18,53 +18,87 @@
   #main-window[tabsintitlebar] #titlebar:-moz-lwtheme {
     visibility: visible;
   }
-
-  #main-window {
-    background: var(--chrome-background-color) !important;
-  }
-}
-
-@media (-moz-windows-compositor) {
-  #main-window {
-    background: transparent !important;
-  }
 }
 
 #toolbar-menubar {
   text-shadow: none !important;
 }
 
+@media (-moz-os-version: windows-win7) {
+  @media (-moz-windows-default-theme) {
+    /* Always show light toolbar elements on aero surface. */
+    #TabsToolbar {
+      color: hsl(240,9%,98%);
+    }
+
+    /* Keep showing the correct color inside the tabs. */
+    .tabbrowser-tab {
+      color: var(--chrome-color) !important;
+    }
+  }
+}
+
 @media (-moz-windows-glass) {
-  .tabbrowser-tab {
-    background-color: var(--chrome-background-color);
+  /* Set to full fill-opacity to improve visibility of toolbar buttons on aero glass. */
+  #TabsToolbar {
+    --toolbarbutton-icon-fill-opacity: 1;
+  }
+
+  /* Make the menubar text readable on aero glass (copied from browser-aero.css). */
+  #toolbar-menubar {
+    text-shadow: 0 0 .5em white, 0 0 .5em white, 0 1px 0 rgba(255,255,255,.4);
+  }
+
+  #main-menubar:not(:-moz-window-inactive) {
+    background-color: rgba(255,255,255,.5);
+    color: black;
+    border-radius: 4px;
   }
 }
 
 @media (-moz-os-version: windows-win7),
        (-moz-os-version: windows-win8) {
-  /* It'd be nice if there was an element in the scrollbox's inner content
-     that collapsed to the current width of the tabs. Since there isn't we
-     need to handle overflowing and non-overflowing tabs separately.
+  @media (-moz-windows-compositor) {
+    #main-window {
+      background: transparent !important;
+    }
 
-     In the case of overflowing tabs, set a border-top on the entire container,
-     otherwise we need to set it on each element individually */
-  #main-window[sizemode=normal] .tabbrowser-tabs[overflow="true"] {
-    background-clip: padding-box;
-    border-top: 1px solid var(--chrome-nav-bar-separator-color);
-    border-inline-end: 1px solid var(--chrome-nav-bar-separator-color);
+    /* Remove lwtheme borders from toolbars in non-maximized windows. */
+    #toolbar-menubar,
+    #TabsToolbar {
+      border-left-style: none !important;
+      border-right-style: none !important;
+    }
   }
 
-  /* Add a border to the left of the first tab (or scroll arrow).  Using .tabbrowser-tabs
-     instead of #TabsToolbar because it will work even in customize mode. */
-  #main-window[sizemode=normal] .tabbrowser-tabs {
-    background-clip: padding-box;
-    border-inline-start: 1px solid var(--chrome-nav-bar-separator-color);
-    border-inline-end: 1px solid transparent;
+  /* Always show full-height tab separators on tabs with borders. */
+  .tabbrowser-tab::before,
+  .tabbrowser-tab::after {
+    border-image: none !important;
   }
 
-  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .closing-tabs-spacer {
+  /* Show border on tabs with background colors and
+   * show the tabs toolbar background color inside tabs. */
+  .tabbrowser-tab {
+    background-color: var(--chrome-background-color) !important;
+    border-top: 1px solid var(--tabs-border);
     background-clip: padding-box;
-    border-inline-start: 1px solid var(--chrome-nav-bar-separator-color);
+  }
+
+  /* The top border on top of the tab background is replaced
+   * by the slightly transparent outside tabs-border. */
+  .tab-background {
+    border-top-style: none !important;
+  }
+
+  /* The border at the end of the tab strip is replaced
+   * by the slightly transparent outside tabs-border. */
+  .tabbrowser-tab[last-visible-tab] {
+    border-inline-end: 1px solid var(--tabs-border);
+  }
+
+  .tabbrowser-tab[last-visible-tab]::after {
+    display: none !important;
   }
 
   /* Use default window colors when in non-maximized mode */
@@ -73,21 +107,6 @@
   #browser-panel,
   #titlebar-content {
     background: transparent;
-  }
-
-  /* Ensure that the entire background is styled when maximized/fullscreen */
-  #main-window:not([sizemode="normal"]):not([customizing]) #browser-panel {
-    background: var(--chrome-background-color) !important;
-  }
-
-  /* The menu items need to be visible when the entire background is styled */
-  #main-window:not([sizemode="normal"]) #main-menubar {
-    color: var(--chrome-color);
-    background-color: transparent;
-  }
-
-  #main-window[sizemode="maximized"] #main-menubar > menu:not(:-moz-window-inactive) {
-    color: inherit;
   }
 
   /* Use proper menu text styling in Win7 classic mode (copied from browser.css) */
@@ -114,18 +133,6 @@
   /* These are !important to avoid specificity-wars with the selectors that add borders here. */
   background-image: none !important;
   border-top: none !important;
-}
-
-#navigator-toolbox {
-  /* The side borders on the toolbox also look out-of-place because we don't paint over
-   * the native background color at all, and these are !important for the same reason as above. */
-  border-left: none !important;
-  border-right: none !important;
-}
-
-/* Disable dragging like in the default theme: */
-#main-window[tabsintitlebar] #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):-moz-lwtheme {
-  -moz-window-dragging: no-drag;
 }
 
 @media (-moz-os-version: windows-win10) {

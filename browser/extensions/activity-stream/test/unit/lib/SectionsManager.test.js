@@ -146,6 +146,7 @@ describe("SectionsManager", () => {
     });
     it("should update all sections", () => {
       SectionsManager.sections.clear();
+      const updateSectionOrig = SectionsManager.updateSection;
       SectionsManager.updateSection = sinon.spy();
 
       SectionsManager.addSection("ID1", {title: "FAKE_TITLE_1"});
@@ -155,6 +156,7 @@ describe("SectionsManager", () => {
       assert.calledTwice(SectionsManager.updateSection);
       assert.calledWith(SectionsManager.updateSection, "ID1", {title: "FAKE_TITLE_1"}, true);
       assert.calledWith(SectionsManager.updateSection, "ID2", {title: "FAKE_TITLE_2"}, true);
+      SectionsManager.updateSection = updateSectionOrig;
     });
     it("context menu pref change should update sections", () => {
       let observer;
@@ -201,6 +203,27 @@ describe("SectionsManager", () => {
       SectionsManager.on(SectionsManager.UPDATE_SECTION_CARD, spy);
       SectionsManager.updateSectionCard(FAKE_ID, FAKE_URL, FAKE_CARD_OPTIONS, true);
       assert.notCalled(spy);
+    });
+  });
+  describe("#dedupe", () => {
+    it("should dedupe stories from highlights", () => {
+      SectionsManager.init();
+      // Add some rows to highlights
+      SectionsManager.updateSection("highlights", {rows: [{url: "https://highlight.com/abc"}, {url: "https://shared.com/def"}]});
+      // Add some rows to top stories
+      SectionsManager.updateSection("topstories", {rows: [{url: "https://topstory.com/ghi"}, {url: "https://shared.com/def"}]});
+      // Verify deduping
+      assert.deepEqual(SectionsManager.sections.get("topstories").rows, [{url: "https://topstory.com/ghi"}]);
+    });
+    it("should dedupe stories from highlights when updating highlights", () => {
+      SectionsManager.init();
+      // Add some rows to top stories
+      SectionsManager.updateSection("topstories", {rows: [{url: "https://topstory.com/ghi"}, {url: "https://shared.com/def"}]});
+      assert.deepEqual(SectionsManager.sections.get("topstories").rows, [{url: "https://topstory.com/ghi"}, {url: "https://shared.com/def"}]);
+      // Add some rows to highlights
+      SectionsManager.updateSection("highlights", {rows: [{url: "https://highlight.com/abc"}, {url: "https://shared.com/def"}]});
+      // Verify deduping
+      assert.deepEqual(SectionsManager.sections.get("topstories").rows, [{url: "https://topstory.com/ghi"}]);
     });
   });
 });
@@ -352,6 +375,13 @@ describe("SectionsFeed", () => {
       feed.onAction({type: "PREF_CHANGED", data: {name: "feeds.section.topstories.options", value: "foo"}});
       assert.calledOnce(SectionsManager.addBuiltInSection);
       assert.calledWith(SectionsManager.addBuiltInSection, "feeds.section.topstories", "foo");
+    });
+    it("should fire SECTION_OPTIONS_UPDATED on suitable PREF_CHANGED events", () => {
+      feed.onAction({type: "PREF_CHANGED", data: {name: "feeds.section.topstories.options", value: "foo"}});
+      assert.calledOnce(feed.store.dispatch);
+      const action = feed.store.dispatch.firstCall.args[0];
+      assert.equal(action.type, "SECTION_OPTIONS_CHANGED");
+      assert.equal(action.data, "topstories");
     });
     it("should call SectionsManager.disableSection on SECTION_DISABLE", () => {
       sinon.spy(SectionsManager, "disableSection");

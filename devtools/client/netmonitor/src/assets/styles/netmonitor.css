@@ -4,10 +4,10 @@
 
 @import "chrome://devtools/skin/widgets.css";
 @import "resource://devtools/client/themes/light-theme.css";
-@import "resource://devtools/client/shared/components/splitter/split-box.css";
-@import "resource://devtools/client/shared/components/tree/tree-view.css";
-@import "resource://devtools/client/shared/components/tabs/tabs.css";
-@import "resource://devtools/client/shared/components/tabs/tabbar.css";
+@import "resource://devtools/client/shared/components/splitter/SplitBox.css";
+@import "resource://devtools/client/shared/components/tree/TreeView.css";
+@import "resource://devtools/client/shared/components/tabs/Tabs.css";
+@import "resource://devtools/client/shared/components/tabs/TabBar.css";
 @import "chrome://devtools/skin/components-frame.css";
 @import "chrome://devtools/content/sourceeditor/codemirror/lib/codemirror.css";
 @import "chrome://devtools/content/sourceeditor/codemirror/addon/dialog/dialog.css";
@@ -903,7 +903,7 @@ body,
 .tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel,
 .tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel:hover,
 .tree-container .treeTable .treeRow.tree-section > .treeValueCell:not(:hover) * {
-  color: var(--theme-body-color-alt);
+  color: var(--theme-toolbar-color);
 }
 
 .tree-container .treeTable .treeValueCell {
@@ -1187,7 +1187,8 @@ body,
 
 .requests-list-network-summary-button > .summary-info-icon {
   background: url(chrome://devtools/skin/images/profiler-stopwatch.svg) no-repeat;
-  filter: var(--theme-icon-filter);
+  -moz-context-properties: fill;
+  fill: var(--theme-toolbar-color);
   width: 16px;
   height: 16px;
   opacity: 0.8;

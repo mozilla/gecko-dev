@@ -235,12 +235,12 @@ Assembler::trace(JSTracer* trc)
 }
 
 void
-Assembler::Bind(uint8_t* rawCode, CodeOffset* label, const void* address)
+Assembler::Bind(uint8_t* rawCode, CodeOffset label, CodeOffset target)
 {
-    if (label->bound()) {
-        intptr_t offset = label->offset();
+    if (label.bound()) {
+        intptr_t offset = label.offset();
         Instruction* inst = (Instruction*) (rawCode + offset);
-        Assembler::UpdateLoad64Value(inst, (uint64_t)address);
+        Assembler::UpdateLoad64Value(inst, (uint64_t)(rawCode + target.offset()));
     }
 }
 
@@ -367,6 +367,15 @@ Assembler::bind(RepatchLabel* label)
     label->bind(dest.getOffset());
 }
 
+void
+Assembler::processCodeLabels(uint8_t* rawCode)
+{
+    for (size_t i = 0; i < codeLabels_.length(); i++) {
+        CodeLabel label = codeLabels_[i];
+        Bind(rawCode, *label.patchAt(), *label.target());
+    }
+}
+
 uint32_t
 Assembler::PatchWrite_NearCallSize()
 {
@@ -488,13 +497,6 @@ Assembler::PatchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newVal
     Assembler::UpdateLoad64Value(inst, uint64_t(newValue.value));
 
     AutoFlushICache::flush(uintptr_t(inst), 6 * sizeof(uint32_t));
-}
-
-void
-Assembler::PatchInstructionImmediate(uint8_t* code, PatchedImmPtr imm)
-{
-    InstImm* inst = (InstImm*)code;
-    Assembler::UpdateLoad64Value(inst, (uint64_t)imm.value);
 }
 
 uint64_t

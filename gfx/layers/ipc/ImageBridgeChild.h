@@ -41,6 +41,7 @@ namespace layers {
 class AsyncCanvasRenderer;
 class ImageClient;
 class ImageContainer;
+class ImageContainerListener;
 class ImageBridgeParent;
 class CompositableClient;
 struct CompositableTransaction;
@@ -250,6 +251,8 @@ private:
   void ProxyAllocShmemNow(SynchronousTask* aTask, AllocShmemParams* aParams);
   void ProxyDeallocShmemNow(SynchronousTask* aTask, Shmem* aShmem, bool* aResult);
 
+  void UpdateTextureFactoryIdentifier(const TextureFactoryIdentifier& aIdentifier);
+
 public:
   // CompositableForwarder
 
@@ -396,7 +399,7 @@ private:
    * Mapping from async compositable IDs to image containers.
    */
   Mutex mContainerMapLock;
-  nsDataHashtable<nsUint64HashKey, ImageContainer*> mImageContainers;
+  nsRefPtrHashtable<nsUint64HashKey, ImageContainerListener> mImageContainerListeners;
 };
 
 } // namespace layers

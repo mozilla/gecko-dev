@@ -231,12 +231,6 @@
 extern uint32_t gRestartMode;
 extern void InstallSignalHandlers(const char *ProgramName);
 
-// This workaround is fixed in Rust 1.19. For details, see bug 1358151.
-// Implementation in toolkit/library/rust/shared/lib.rs
-extern "C" {
-  void rust_init_please_remove_this_after_updating_rust_1_19();
-}
-
 #define FILE_COMPATIBILITY_INFO NS_LITERAL_CSTRING("compatibility.ini")
 #define FILE_INVALIDATE_CACHES NS_LITERAL_CSTRING(".purgecaches")
 
@@ -1523,7 +1517,7 @@ ScopedXPCOMStartup::~ScopedXPCOMStartup()
       appStartup->DestroyHiddenWindow();
 
     gDirServiceProvider->DoShutdown();
-    profiler_add_marker("Shutdown early");
+    PROFILER_ADD_MARKER("Shutdown early");
 
     WriteConsoleLog();
 
@@ -1878,9 +1872,9 @@ XRE_InitOmnijar(nsIFile* greOmni, nsIFile* appOmni)
 }
 
 nsresult
-XRE_GetBinaryPath(const char* argv0, nsIFile* *aResult)
+XRE_GetBinaryPath(nsIFile* *aResult)
 {
-  return mozilla::BinaryPath::GetFile(argv0, aResult);
+  return mozilla::BinaryPath::GetFile(aResult);
 }
 
 #ifdef XP_WIN
@@ -1919,7 +1913,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   LaunchChildMac(gRestartArgc, gRestartArgv);
 #else
   nsCOMPtr<nsIFile> lf;
-  nsresult rv = XRE_GetBinaryPath(gArgv[0], getter_AddRefs(lf));
+  nsresult rv = XRE_GetBinaryPath(getter_AddRefs(lf));
   if (NS_FAILED(rv))
     return rv;
 
@@ -2593,7 +2587,9 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
 #endif
 
   if (!count) {
-    gDoMigration = true;
+    // For a fresh install, we would like to let users decide
+    // to do profile migration on their own later after using.
+    gDoMigration = false;
     gDoProfileReset = false;
 
     // create a default profile
@@ -3199,9 +3195,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   if (!aExitFlag)
     return 1;
   *aExitFlag = false;
-
-  // This workaround is fixed in Rust 1.19. For details, see bug 1358151.
-  rust_init_please_remove_this_after_updating_rust_1_19();
 
   atexit(UnexpectedExit);
   auto expectedShutdown = mozilla::MakeScopeExit([&] {
@@ -4760,9 +4753,7 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
   CodeCoverageHandler::Init();
 #endif
 
-  char aLocal;
-  AutoProfilerInit profilerInit(&aLocal);
-
+  AUTO_PROFILER_INIT;
   AUTO_PROFILER_LABEL("XREMain::XRE_main", OTHER);
 
   nsresult rv = NS_OK;
@@ -4798,7 +4789,7 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
   gAppData = mAppData.get();
 
   nsCOMPtr<nsIFile> binFile;
-  rv = XRE_GetBinaryPath(argv[0], getter_AddRefs(binFile));
+  rv = XRE_GetBinaryPath(getter_AddRefs(binFile));
   NS_ENSURE_SUCCESS(rv, 1);
 
   rv = binFile->GetPath(gAbsoluteArgv0Path);
@@ -4806,7 +4797,7 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
 
   if (!mAppData->xreDirectory) {
     nsCOMPtr<nsIFile> lf;
-    rv = XRE_GetBinaryPath(gArgv[0], getter_AddRefs(lf));
+    rv = XRE_GetBinaryPath(getter_AddRefs(lf));
     if (NS_FAILED(rv))
       return 2;
 
@@ -4989,7 +4980,7 @@ XRE_InitCommandLine(int aArgc, char* aArgv[])
 
   // get the canonical version of the binary's path
   nsCOMPtr<nsIFile> binFile;
-  rv = XRE_GetBinaryPath(aArgv[0], getter_AddRefs(binFile));
+  rv = XRE_GetBinaryPath(getter_AddRefs(binFile));
   if (NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 

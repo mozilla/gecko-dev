@@ -6,6 +6,7 @@
 
 #include "SystemGroup.h"
 
+#include "mozilla/AbstractThread.h"
 #include "mozilla/Move.h"
 #include "mozilla/UniquePtr.h"
 #include "nsINamed.h"
@@ -16,7 +17,7 @@ class SystemGroupImpl final : public SchedulerGroup
 {
 public:
   SystemGroupImpl();
-  ~SystemGroupImpl() {}
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SystemGroupImpl)
 
   static void InitStatic();
   static void ShutdownStatic();
@@ -24,20 +25,12 @@ public:
 
   static bool Initialized() { return !!sSingleton; }
 
-  NS_METHOD_(MozExternalRefCountType) AddRef(void)
-  {
-    return 2;
-  }
-  NS_METHOD_(MozExternalRefCountType) Release(void)
-  {
-    return 1;
-  }
-
 private:
-  static UniquePtr<SystemGroupImpl> sSingleton;
+  ~SystemGroupImpl() = default;
+  static StaticRefPtr<SystemGroupImpl> sSingleton;
 };
 
-UniquePtr<SystemGroupImpl> SystemGroupImpl::sSingleton;
+StaticRefPtr<SystemGroupImpl> SystemGroupImpl::sSingleton;
 
 SystemGroupImpl::SystemGroupImpl()
 {
@@ -49,7 +42,7 @@ SystemGroupImpl::InitStatic()
 {
   MOZ_ASSERT(!sSingleton);
   MOZ_ASSERT(NS_IsMainThread());
-  sSingleton = MakeUnique<SystemGroupImpl>();
+  sSingleton = new SystemGroupImpl();
 }
 
 /* static */ void

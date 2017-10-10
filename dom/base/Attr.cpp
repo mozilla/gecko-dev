@@ -164,7 +164,7 @@ Attr::GetValue(nsAString& aValue)
 {
   Element* element = GetElement();
   if (element) {
-    nsCOMPtr<nsIAtom> nameAtom = mNodeInfo->NameAtom();
+    RefPtr<nsAtom> nameAtom = mNodeInfo->NameAtom();
     element->GetAttr(mNodeInfo->NamespaceID(), nameAtom, aValue);
   }
   else {
@@ -175,7 +175,7 @@ Attr::GetValue(nsAString& aValue)
 }
 
 void
-Attr::SetValue(const nsAString& aValue, ErrorResult& aRv)
+Attr::SetValue(const nsAString& aValue, nsIPrincipal* aTriggeringPrincipal, ErrorResult& aRv)
 {
   Element* element = GetElement();
   if (!element) {
@@ -183,11 +183,12 @@ Attr::SetValue(const nsAString& aValue, ErrorResult& aRv)
     return;
   }
 
-  nsCOMPtr<nsIAtom> nameAtom = mNodeInfo->NameAtom();
+  RefPtr<nsAtom> nameAtom = mNodeInfo->NameAtom();
   aRv = element->SetAttr(mNodeInfo->NamespaceID(),
                          nameAtom,
                          mNodeInfo->GetPrefixAtom(),
                          aValue,
+                         aTriggeringPrincipal,
                          true);
 }
 
@@ -195,7 +196,7 @@ NS_IMETHODIMP
 Attr::SetValue(const nsAString& aValue)
 {
   ErrorResult rv;
-  SetValue(aValue, rv);
+  SetValue(aValue, nullptr, rv);
   return rv.StealNSResult();
 }
 
@@ -237,16 +238,12 @@ Attr::GetOwnerElement(nsIDOMElement** aOwnerElement)
 void
 Attr::GetNodeValueInternal(nsAString& aNodeValue)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eNodeValue);
-
   GetValue(aNodeValue);
 }
 
 void
 Attr::SetNodeValueInternal(const nsAString& aNodeValue, ErrorResult& aError)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eNodeValue);
-
   aError = SetValue(aNodeValue);
 }
 
@@ -280,8 +277,6 @@ void
 Attr::GetTextContentInternal(nsAString& aTextContent,
                              OOMReporter& aError)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eTextContent);
-
   GetValue(aTextContent);
 }
 
@@ -289,8 +284,6 @@ void
 Attr::SetTextContentInternal(const nsAString& aTextContent,
                              ErrorResult& aError)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eTextContent);
-
   SetNodeValueInternal(aTextContent, aError);
 }
 

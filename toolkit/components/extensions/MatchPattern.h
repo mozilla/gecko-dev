@@ -19,7 +19,7 @@
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsICookie2.h"
 #include "nsISupports.h"
 #include "nsIURI.h"
@@ -36,7 +36,7 @@ using dom::MatchPatternOptions;
 // and infrequent updates.
 class AtomSet final : public RefCounted<AtomSet>
 {
-  using ArrayType = AutoTArray<RefPtr<nsIAtom>, 1>;
+  using ArrayType = AutoTArray<RefPtr<nsAtom>, 1>;
 
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(AtomSet)
@@ -45,21 +45,21 @@ public:
 
   explicit AtomSet(const char** aElems);
 
-  MOZ_IMPLICIT AtomSet(std::initializer_list<nsIAtom*> aIL);
+  MOZ_IMPLICIT AtomSet(std::initializer_list<nsAtom*> aIL);
 
   bool Contains(const nsAString& elem) const
   {
-    nsCOMPtr<nsIAtom> atom = NS_AtomizeMainThread(elem);
+    RefPtr<nsAtom> atom = NS_AtomizeMainThread(elem);
     return Contains(atom);
   }
 
   bool Contains(const nsACString& aElem) const
   {
-    nsCOMPtr<nsIAtom> atom = NS_Atomize(aElem);
+    RefPtr<nsAtom> atom = NS_Atomize(aElem);
     return Contains(atom);
   }
 
-  bool Contains(const nsIAtom* aAtom) const
+  bool Contains(const nsAtom* aAtom) const
   {
     return mElems.BinaryIndexOf(aAtom) != mElems.NoIndex;
   }
@@ -67,18 +67,18 @@ public:
   bool Intersects(const AtomSet& aOther) const;
 
 
-  void Add(nsIAtom* aElem);
-  void Remove(nsIAtom* aElem);
+  void Add(nsAtom* aElem);
+  void Remove(nsAtom* aElem);
 
   void Add(const nsAString& aElem)
   {
-    nsCOMPtr<nsIAtom> atom = NS_AtomizeMainThread(aElem);
+    RefPtr<nsAtom> atom = NS_AtomizeMainThread(aElem);
     return Add(atom);
   }
 
   void Remove(const nsAString& aElem)
   {
-    nsCOMPtr<nsIAtom> atom = NS_AtomizeMainThread(aElem);
+    RefPtr<nsAtom> atom = NS_AtomizeMainThread(aElem);
     return Remove(atom);
   }
 
@@ -130,7 +130,7 @@ private:
 // A helper class to lazily retrieve, transcode, and atomize certain URI
 // properties the first time they're used, and cache the results, so that they
 // can be used across multiple match operations.
-class MOZ_STACK_CLASS URLInfo final
+class URLInfo final
 {
 public:
   MOZ_IMPLICIT URLInfo(nsIURI* aURI)
@@ -139,17 +139,26 @@ public:
     mHost.SetIsVoid(true);
   }
 
+  URLInfo(nsIURI* aURI, bool aNoRef)
+    : URLInfo(aURI)
+  {
+    if (aNoRef) {
+      mURINoRef = mURI;
+    }
+  }
+
   URLInfo(const URLInfo& aOther)
     : URLInfo(aOther.mURI.get())
   {}
 
   nsIURI* URI() const { return mURI; }
 
-  nsIAtom* Scheme() const;
+  nsAtom* Scheme() const;
   const nsCString& Host() const;
   const nsString& Path() const;
   const nsString& FilePath() const;
   const nsString& Spec() const;
+  const nsCString& CSpec() const;
 
   bool InheritsPrincipal() const;
 
@@ -159,12 +168,13 @@ private:
   nsCOMPtr<nsIURI> mURI;
   mutable nsCOMPtr<nsIURI> mURINoRef;
 
-  mutable nsCOMPtr<nsIAtom> mScheme;
+  mutable RefPtr<nsAtom> mScheme;
   mutable nsCString mHost;
 
-  mutable nsAutoString mPath;
-  mutable nsAutoString mFilePath;
-  mutable nsAutoString mSpec;
+  mutable nsString mPath;
+  mutable nsString mFilePath;
+  mutable nsString mSpec;
+  mutable nsCString mCSpec;
 
   mutable Maybe<bool> mInheritsPrincipal;
 };

@@ -112,7 +112,11 @@ function getLinkIconURI(aLink) {
 function setIconForLink(aIconInfo, aChromeGlobal) {
   aChromeGlobal.sendAsyncMessage(
     "Link:SetIcon",
-    { url: aIconInfo.iconUri.spec, loadingPrincipal: aIconInfo.loadingPrincipal });
+    { url: aIconInfo.iconUri.spec,
+      loadingPrincipal: aIconInfo.loadingPrincipal,
+      requestContextID: aIconInfo.requestContextID,
+      canUseForTab: !aIconInfo.isRichIcon,
+    });
 }
 
 /*
@@ -147,29 +151,48 @@ function faviconTimeoutCallback(aFaviconLoads, aPageUrl, aChromeGlobal) {
       continue;
     }
 
-    if (icon.isRichIcon) {
+    // Note that some sites use hi-res icons without specifying them as
+    // apple-touch or fluid icons.
+    if (icon.isRichIcon || icon.width >= FAVICON_RICH_ICON_MIN_WIDTH) {
       if (!largestRichIcon || largestRichIcon.width < icon.width) {
         largestRichIcon = icon;
       }
-    } else if (!defaultIcon) {
+    } else {
       defaultIcon = icon;
     }
   }
 
   // Now set the favicons for the page in the following order:
-  // 1. Set the preferred one if any, otherwise use the default one.
-  // 2. Set the best rich icon if any.
+  // 1. Set the best rich icon if any.
+  // 2. Set the preferred one if any, otherwise use the default one.
+  // This order allows smaller icon frames to eventually override rich icon
+  // frames.
+  if (largestRichIcon) {
+    setIconForLink(largestRichIcon, aChromeGlobal);
+  }
   if (preferredIcon) {
     setIconForLink(preferredIcon, aChromeGlobal);
   } else if (defaultIcon) {
     setIconForLink(defaultIcon, aChromeGlobal);
   }
 
-  if (largestRichIcon) {
-    setIconForLink(largestRichIcon, aChromeGlobal);
-  }
   load.timer = null;
   aFaviconLoads.delete(aPageUrl);
+}
+
+/*
+ * Get request context ID of the link dom node's document.
+ *
+ * @param {DOMNode} aLink A link dom node.
+ * @return {Number} The request context ID.
+ *                  Return null when document's load group is not available.
+ */
+function getLinkRequestContextID(aLink) {
+  try {
+    return aLink.ownerDocument.documentLoadGroup.requestContextID;
+  } catch (e) {
+    return null;
+  }
 }
 
 /*
@@ -187,18 +210,15 @@ function handleFaviconLink(aLink, aIsRichIcon, aChromeGlobal, aFaviconLoads) {
   if (!iconUri)
     return false;
 
-  // Extract the size type and width. Note that some sites use hi-res icons
-  // without specifying them as apple-touch or fluid icons.
+  // Extract the size type and width.
   let width = extractIconSize(aLink.sizes);
-  if (width >= FAVICON_RICH_ICON_MIN_WIDTH)
-    aIsRichIcon = true;
-
   let iconInfo = {
     iconUri,
     width,
     isRichIcon: aIsRichIcon,
     type: aLink.type,
-    loadingPrincipal: aLink.ownerDocument.nodePrincipal
+    loadingPrincipal: aLink.ownerDocument.nodePrincipal,
+    requestContextID: getLinkRequestContextID(aLink)
   };
 
   if (aFaviconLoads.has(pageUrl)) {
@@ -278,8 +298,11 @@ this.ContentLinkHandler = {
         case "apple-touch-icon":
         case "apple-touch-icon-precomposed":
         case "fluid-icon":
-          if (iconAdded || !Services.prefs.getBoolPref("browser.chrome.site_icons"))
+          if (link.hasAttribute("mask") || // Masked icons are not supported yet.
+              iconAdded ||
+              !Services.prefs.getBoolPref("browser.chrome.site_icons")) {
             break;
+          }
 
           iconAdded = handleFaviconLink(link, isRichIcon, chromeGlobal, faviconLoads);
           break;

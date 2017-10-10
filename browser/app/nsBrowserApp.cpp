@@ -23,11 +23,6 @@
 #include "nsIFile.h"
 
 #ifdef XP_WIN
-#ifdef MOZ_ASAN
-// ASAN requires firefox.exe to be built with -MD, and it's OK if we don't
-// support Windows XP SP2 in ASAN builds.
-#define XRE_DONT_SUPPORT_XPSP2
-#endif
 #define XRE_WANT_ENVIRON
 #define strcasecmp _stricmp
 #ifdef MOZ_SANDBOX
@@ -237,9 +232,9 @@ static int do_main(int argc, char* argv[], char* envp[])
 }
 
 static nsresult
-InitXPCOMGlue(const char *argv0)
+InitXPCOMGlue()
 {
-  UniqueFreePtr<char> exePath = BinaryPath::Get(argv0);
+  UniqueFreePtr<char> exePath = BinaryPath::Get();
   if (!exePath) {
     Output("Couldn't find the application directory.\n");
     return NS_ERROR_FAILURE;
@@ -277,7 +272,7 @@ int main(int argc, char* argv[], char* envp[])
     }
 #endif
 
-    nsresult rv = InitXPCOMGlue(argv[0]);
+    nsresult rv = InitXPCOMGlue();
     if (NS_FAILED(rv)) {
       return 255;
     }
@@ -295,7 +290,7 @@ int main(int argc, char* argv[], char* envp[])
   DllBlocklist_Initialize();
 #endif
 
-  nsresult rv = InitXPCOMGlue(argv[0]);
+  nsresult rv = InitXPCOMGlue();
   if (NS_FAILED(rv)) {
     return 255;
   }

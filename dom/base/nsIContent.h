@@ -13,7 +13,7 @@
 #include "nsStringFwd.h"
 
 // Forward declarations
-class nsIAtom;
+class nsAtom;
 class nsIURI;
 class nsRuleWalker;
 class nsAttrValue;
@@ -279,7 +279,7 @@ public:
     return IsInNamespace(kNameSpaceID_XHTML);
   }
 
-  inline bool IsHTMLElement(nsIAtom* aTag) const
+  inline bool IsHTMLElement(nsAtom* aTag) const
   {
     return mNodeInfo->Equals(aTag, kNameSpaceID_XHTML);
   }
@@ -295,7 +295,7 @@ public:
     return IsInNamespace(kNameSpaceID_SVG);
   }
 
-  inline bool IsSVGElement(nsIAtom* aTag) const
+  inline bool IsSVGElement(nsAtom* aTag) const
   {
     return mNodeInfo->Equals(aTag, kNameSpaceID_SVG);
   }
@@ -311,7 +311,7 @@ public:
     return IsInNamespace(kNameSpaceID_XUL);
   }
 
-  inline bool IsXULElement(nsIAtom* aTag) const
+  inline bool IsXULElement(nsAtom* aTag) const
   {
     return mNodeInfo->Equals(aTag, kNameSpaceID_XUL);
   }
@@ -327,7 +327,7 @@ public:
     return IsInNamespace(kNameSpaceID_MathML);
   }
 
-  inline bool IsMathMLElement(nsIAtom* aTag) const
+  inline bool IsMathMLElement(nsAtom* aTag) const
   {
     return mNodeInfo->Equals(aTag, kNameSpaceID_MathML);
   }
@@ -368,10 +368,20 @@ public:
    * @param aNotify specifies how whether or not the document should be
    *        notified of the attribute change.
    */
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(int32_t aNameSpaceID, nsAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
+  }
+  nsresult SetAttr(int32_t aNameSpaceID, nsAtom* aName, nsAtom* aPrefix,
+                   const nsAString& aValue, bool aNotify)
+  {
+    return SetAttr(aNameSpaceID, aName, aPrefix, aValue, nullptr, aNotify);
+  }
+  nsresult SetAttr(int32_t aNameSpaceID, nsAtom* aName, const nsAString& aValue,
+                   nsIPrincipal* aTriggeringPrincipal, bool aNotify)
+  {
+    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aTriggeringPrincipal, aNotify);
   }
 
   /**
@@ -385,11 +395,18 @@ public:
    * @param aName the name of the attribute
    * @param aPrefix the prefix of the attribute
    * @param aValue the value to set
+   * @param aMaybeScriptedPrincipal the principal of the scripted caller responsible
+   *        for setting the attribute, or null if no scripted caller can be
+   *        determined. A null value here does not guarantee that there is no
+   *        scripted caller, but a non-null value does guarantee that a scripted
+   *        caller with the given principal is directly responsible for the
+   *        attribute change.
    * @param aNotify specifies how whether or not the document should be
    *        notified of the attribute change.
    */
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
+  virtual nsresult SetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                           nsAtom* aPrefix, const nsAString& aValue,
+                           nsIPrincipal* aMaybeScriptedPrincipal,
                            bool aNotify) = 0;
 
   /**
@@ -402,7 +419,7 @@ public:
    * @returns true if the attribute was set (even when set to empty string)
    *          false when not set.
    */
-  bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+  bool GetAttr(int32_t aNameSpaceID, nsAtom* aName,
                nsAString& aResult) const;
 
   /**
@@ -412,7 +429,7 @@ public:
    * @param aAttr the attribute name
    * @return whether an attribute exists
    */
-  bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
+  bool HasAttr(int32_t aNameSpaceID, nsAtom* aName) const;
 
   /**
    * Test whether this content node's given attribute has the given value.  If
@@ -425,7 +442,7 @@ public:
    * @param aCaseSensitive Whether to do a case-sensitive compare on the value.
    */
   bool AttrValueIs(int32_t aNameSpaceID,
-                   nsIAtom* aName,
+                   nsAtom* aName,
                    const nsAString& aValue,
                    nsCaseTreatment aCaseSensitive) const;
 
@@ -440,8 +457,8 @@ public:
    * @param aCaseSensitive Whether to do a case-sensitive compare on the value.
    */
   bool AttrValueIs(int32_t aNameSpaceID,
-                   nsIAtom* aName,
-                   nsIAtom* aValue,
+                   nsAtom* aName,
+                   nsAtom* aValue,
                    nsCaseTreatment aCaseSensitive) const;
 
   enum {
@@ -465,9 +482,9 @@ public:
    * @return ATTR_MISSING, ATTR_VALUE_NO_MATCH or the non-negative index
    * indicating the first value of aValues that matched
    */
-  typedef nsIAtom* const* const AttrValuesArray;
+  typedef nsAtom* const* const AttrValuesArray;
   virtual int32_t FindAttrValueIn(int32_t aNameSpaceID,
-                                  nsIAtom* aName,
+                                  nsAtom* aName,
                                   AttrValuesArray* aValues,
                                   nsCaseTreatment aCaseSensitive) const
   {
@@ -482,7 +499,7 @@ public:
    * @param aNotify specifies whether or not the document should be
    * notified of the attribute change
    */
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
+  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsAtom* aAttr,
                              bool aNotify) = 0;
 
 
@@ -531,9 +548,9 @@ public:
    * @note *Internal is overridden by subclasses as needed
    * @param aName the event name to look up
    */
-  bool IsEventAttributeName(nsIAtom* aName);
+  bool IsEventAttributeName(nsAtom* aName);
 
-  virtual bool IsEventAttributeNameInternal(nsIAtom* aName)
+  virtual bool IsEventAttributeNameInternal(nsAtom* aName)
   {
     return false;
   }
@@ -862,7 +879,7 @@ public:
    * Get the ID of this content node (the atom corresponding to the
    * value of the id attribute).  This may be null if there is no ID.
    */
-  nsIAtom* GetID() const {
+  nsAtom* GetID() const {
     if (HasID()) {
       return DoGetID();
     }
@@ -942,7 +959,7 @@ public:
    *
    * Returns null if no language was specified. Can return the empty atom.
    */
-  nsIAtom* GetLang() const;
+  nsAtom* GetLang() const;
 
   bool GetLang(nsAString& aResult) const {
     if (auto* lang = GetLang()) {
@@ -965,7 +982,7 @@ public:
   virtual already_AddRefed<nsIURI> GetBaseURI(bool aTryUseXHRDocBaseURI = false) const override;
 
   // Returns base URI for style attribute.
-  already_AddRefed<nsIURI> GetBaseURIForStyleAttr() const;
+  nsIURI* GetBaseURIForStyleAttr() const;
 
   // Returns the URL data for style attribute.
   mozilla::URLExtraData* GetURLDataForStyleAttr() const;
@@ -988,10 +1005,7 @@ protected:
    * Hook for implementing GetID.  This is guaranteed to only be
    * called if HasID() is true.
    */
-  nsIAtom* DoGetID() const;
-
-  // Returns base URI without considering xml:base.
-  inline nsIURI* GetBaseURIWithoutXMLBase() const;
+  nsAtom* DoGetID() const;
 
 public:
 #ifdef DEBUG

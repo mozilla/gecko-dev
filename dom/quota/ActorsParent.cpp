@@ -515,7 +515,7 @@ private:
   {
     MOZ_COUNT_DTOR(OriginInfo);
 
-    MOZ_ASSERT(!mQuotaObjects.Count());
+    MOZ_DIAGNOSTIC_ASSERT(!mQuotaObjects.Count());
   }
 
   void
@@ -3116,9 +3116,10 @@ QuotaObject::LockedMaybeUpdateSize(int64_t aSize, bool aTruncate)
       MOZ_ASSERT(!lock->GetGroup().IsEmpty());
       MOZ_ASSERT(lock->GetOriginScope().IsOrigin());
       MOZ_ASSERT(!lock->GetOriginScope().GetOrigin().IsEmpty());
-      MOZ_ASSERT(!(lock->GetOriginScope().GetOrigin() == mOriginInfo->mOrigin &&
-                   lock->GetPersistenceType().Value() == groupInfo->mPersistenceType),
-                 "Deleted itself!");
+      MOZ_DIAGNOSTIC_ASSERT(
+             !(lock->GetOriginScope().GetOrigin() == mOriginInfo->mOrigin &&
+             lock->GetPersistenceType().Value() == groupInfo->mPersistenceType),
+             "Deleted itself!");
 
       quotaManager->LockedRemoveQuotaForOrigin(
                                              lock->GetPersistenceType().Value(),
@@ -3461,8 +3462,8 @@ QuotaManager::CollectOriginsForEviction(
         }
 
         if (!match) {
-          MOZ_ASSERT(!originInfo->mQuotaObjects.Count(),
-                     "Inactive origin shouldn't have open files!");
+          MOZ_DIAGNOSTIC_ASSERT(!originInfo->mQuotaObjects.Count(),
+                                "Inactive origin shouldn't have open files!");
           aInactiveOriginInfos.InsertElementSorted(originInfo,
                                                    OriginInfoLRUComparator());
         }
@@ -5843,7 +5844,7 @@ QuotaManager::ShutdownTimerCallback(nsITimer* aTimer, void* aClosure)
 
   // Abort all operations.
   for (RefPtr<Client>& client : quotaManager->mClients) {
-    client->AbortOperations(NullCString());
+    client->AbortOperations(VoidCString());
   }
 }
 
@@ -8237,7 +8238,7 @@ OriginParser::Parse(nsACString& aSpec, OriginAttributes* aAttrs) -> ResultType
     }
 
     if (!mHandledTokens.IsEmpty()) {
-      mHandledTokens.Append(NS_LITERAL_CSTRING(", "));
+      mHandledTokens.AppendLiteral(", ");
     }
     mHandledTokens.Append('\'');
     mHandledTokens.Append(token);
