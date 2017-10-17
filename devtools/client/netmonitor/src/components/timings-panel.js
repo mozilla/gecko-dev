@@ -63,7 +63,7 @@ function TimingsPanel({ request }) {
   });
 
   return (
-    div({ className: "panel-container" },
+    div({ className: "panel-container, timings-label" },
       timelines,
       MDNLink({
         url: getNetMonitorTimingsURL(),
