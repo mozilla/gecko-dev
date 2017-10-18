@@ -10,13 +10,11 @@
 //! It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
 //! so if those types are ever exported, we should be able to replace this implemtation.
 
-#![feature(nonzero)]
-
-extern crate core;
+extern crate nonzero;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 
-use core::nonzero::NonZero;
+use nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::ops::Deref;
 use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};

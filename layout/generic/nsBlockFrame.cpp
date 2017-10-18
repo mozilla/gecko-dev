@@ -1510,51 +1510,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   }
 #endif
 
-#ifdef EARLY_BETA_OR_EARLIER
-  // Bug 1358299 START: Remove this code after the 56 merge date.
-  static bool sIsTelemetryEnabled;
-  static bool sTelemetryPrefCached = false;
-
-  if (!sTelemetryPrefCached) {
-    sTelemetryPrefCached = true;
-    Preferences::AddBoolVarCache(&sIsTelemetryEnabled,
-                                 "toolkit.telemetry.enabled");
-  }
-
-  if (sIsTelemetryEnabled) {
-    // Collect data for the BOX_ALIGN_PROPS_IN_BLOCKS_FLAG probe.
-    auto IsStyleNormalOrAuto = [](uint16_t value)->bool {
-      return ((value == NS_STYLE_ALIGN_NORMAL) ||
-              (value == NS_STYLE_ALIGN_AUTO));
-    };
-
-    // First check this frame for non-default values of the css-align properties
-    // that apply to block containers.
-    // Note: we check here for non-default "justify-items", though technically
-    // that'd only affect rendering if some child has "justify-self:auto".
-    // (It's safe to assume that's likely, since it's the default value that
-    // a child would have.)
-    const nsStylePosition* stylePosition = reflowInput->mStylePosition;
-    if (!IsStyleNormalOrAuto(stylePosition->mJustifyContent) ||
-        !IsStyleNormalOrAuto(stylePosition->mAlignContent) ||
-        !IsStyleNormalOrAuto(stylePosition->mJustifyItems)) {
-      Telemetry::Accumulate(Telemetry::BOX_ALIGN_PROPS_IN_BLOCKS_FLAG, true);
-    } else {
-      // If not already flagged by the parent, now check justify-self of the
-      // block-level child frames.
-      for (nsBlockFrame::LineIterator line = LinesBegin();
-           line != LinesEnd(); ++line) {
-        if (line->IsBlock() &&
-            !IsStyleNormalOrAuto(line->mFirstChild->StylePosition()->mJustifySelf)) {
-          Telemetry::Accumulate(Telemetry::BOX_ALIGN_PROPS_IN_BLOCKS_FLAG, true);
-          break;
-        }
-      }
-    }
-  }
-  // Bug 1358299 END
-#endif
-
   NS_FRAME_SET_TRUNCATION(aStatus, (*reflowInput), aMetrics);
 }
 
@@ -6701,7 +6656,7 @@ DisplayLine(nsDisplayListBuilder* aBuilder, const nsRect& aLineArea,
   // Collect our line's display items in a temporary nsDisplayListCollection,
   // so that we can apply any "text-overflow" clipping to the entire collection
   // without affecting previous lines.
-  nsDisplayListCollection collection;
+  nsDisplayListCollection collection(aBuilder);
 
   // Block-level child backgrounds go on the blockBorderBackgrounds list ...
   // Inline-level child backgrounds go on the regular child content list.
@@ -6767,7 +6722,7 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     TextOverflow::WillProcessLines(aBuilder, this);
 
   // We'll collect our lines' display items here, & then append this to aLists.
-  nsDisplayListCollection linesDisplayListCollection;
+  nsDisplayListCollection linesDisplayListCollection(aBuilder);
 
   // Don't use the line cursor if we might have a descendant placeholder ...
   // it might skip lines that contain placeholders but don't themselves

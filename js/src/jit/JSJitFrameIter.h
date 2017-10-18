@@ -297,12 +297,13 @@ class JSJitProfilingFrameIterator
                                        bool forLastCallSite);
     void fixBaselineReturnAddress();
 
+    void moveToCppEntryFrame();
     void moveToWasmFrame(CommonFrameLayout* frame);
     void moveToNextFrame(CommonFrameLayout* frame);
 
   public:
     JSJitProfilingFrameIterator(JSContext* cx,
-                              const JS::ProfilingFrameIterator::RegisterState& state);
+                                const JS::ProfilingFrameIterator::RegisterState& state);
     explicit JSJitProfilingFrameIterator(void* exitFrame);
 
     void operator++();

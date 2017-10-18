@@ -83,7 +83,7 @@ var gTabsProgressListener = {
 
     unregisterGlobalTab();
   },
-}
+};
 
 function unregisterGlobalTab() {
   gTab.removeEventListener("TabClose", unregisterGlobalTab);
@@ -587,20 +587,33 @@ CustomizeMode.prototype = {
         (aNode.id == "downloads-button" && aNode.hidden)) {
       return null;
     }
+
     let animationNode;
-    if (aNode.parentNode.id.startsWith("wrapper-")) {
+    if (aNode.parentNode && aNode.parentNode.id.startsWith("wrapper-")) {
       animationNode = aNode.parentNode;
     } else {
       animationNode = aNode;
     }
     return new Promise(resolve => {
-      animationNode.classList.add("animate-out");
-      animationNode.addEventListener("animationend", function cleanupWidgetAnimationEnd(e) {
+      function cleanupCustomizationExit() {
+        resolveAnimationPromise();
+      }
+
+      function cleanupWidgetAnimationEnd(e) {
         if (e.animationName == "widget-animate-out" && e.target.id == animationNode.id) {
-          animationNode.removeEventListener("animationend", cleanupWidgetAnimationEnd);
-          resolve();
+          resolveAnimationPromise();
         }
-      });
+      }
+
+      function resolveAnimationPromise() {
+        animationNode.removeEventListener("animationend", cleanupWidgetAnimationEnd);
+        animationNode.removeEventListener("customizationending", cleanupCustomizationExit);
+        resolve();
+      }
+
+      animationNode.classList.add("animate-out");
+      animationNode.ownerGlobal.gNavToolbox.addEventListener("customizationending", cleanupCustomizationExit);
+      animationNode.addEventListener("animationend", cleanupWidgetAnimationEnd);
     });
   },
 
@@ -633,10 +646,10 @@ CustomizeMode.prototype = {
     }
 
     if (widgetAnimationPromise) {
-      if (aNode.parentNode.id.startsWith("wrapper-")) {
+      if (aNode.parentNode && aNode.parentNode.id.startsWith("wrapper-")) {
         aNode.parentNode.classList.remove("animate-out");
       } else {
-        aNode.classList.remove("animate-out")
+        aNode.classList.remove("animate-out");
       }
     }
   },
@@ -666,10 +679,10 @@ CustomizeMode.prototype = {
     }
 
     if (widgetAnimationPromise) {
-      if (aNode.parentNode.id.startsWith("wrapper-")) {
+      if (aNode.parentNode && aNode.parentNode.id.startsWith("wrapper-")) {
         aNode.parentNode.classList.remove("animate-out");
       } else {
-        aNode.classList.remove("animate-out")
+        aNode.classList.remove("animate-out");
       }
     }
     if (gCosmeticAnimationsEnabled) {
@@ -712,10 +725,10 @@ CustomizeMode.prototype = {
       }
     }
     if (widgetAnimationPromise) {
-      if (aNode.parentNode.id.startsWith("wrapper-")) {
+      if (aNode.parentNode && aNode.parentNode.id.startsWith("wrapper-")) {
         aNode.parentNode.classList.remove("animate-out");
       } else {
-        aNode.classList.remove("animate-out")
+        aNode.classList.remove("animate-out");
       }
     }
   },
@@ -911,7 +924,7 @@ CustomizeMode.prototype = {
     if (currentContextMenu &&
         currentContextMenu != contextMenuForPlace) {
       aNode.setAttribute("wrapped-context", currentContextMenu);
-      aNode.setAttribute("wrapped-contextAttrName", contextMenuAttrName)
+      aNode.setAttribute("wrapped-contextAttrName", contextMenuAttrName);
       aNode.removeAttribute(contextMenuAttrName);
     } else if (currentContextMenu == contextMenuForPlace) {
       aNode.removeAttribute(contextMenuAttrName);

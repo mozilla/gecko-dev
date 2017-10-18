@@ -1565,6 +1565,9 @@ Simulator::startWasmInterrupt(JitActivation* activation)
 void
 Simulator::handleWasmInterrupt()
 {
+    if (!wasm::CodeExists)
+        return;
+
     uint8_t* pc = (uint8_t*)get_pc();
     uint8_t* fp = (uint8_t*)get_register(r11);
 
@@ -1589,6 +1592,8 @@ Simulator::handleWasmInterrupt()
 bool
 Simulator::handleWasmFault(int32_t addr, unsigned numBytes)
 {
+    if (!wasm::CodeExists)
+        return false;
     if (!cx_->activation() || !cx_->activation()->isJit())
         return false;
     JitActivation* act = cx_->activation()->asJit();
@@ -1596,7 +1601,7 @@ Simulator::handleWasmFault(int32_t addr, unsigned numBytes)
     void* pc = reinterpret_cast<void*>(get_pc());
     uint8_t* fp = reinterpret_cast<uint8_t*>(get_register(r11));
 
-    const wasm::CodeSegment* segment = act->compartment()->wasm.lookupCodeSegment(pc);
+    const wasm::CodeSegment* segment = wasm::LookupCodeSegment(pc);
     if (!segment)
         return false;
 

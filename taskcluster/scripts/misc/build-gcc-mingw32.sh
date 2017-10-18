@@ -18,7 +18,7 @@ gcc_ext=xz
 binutils_version=2.27
 binutils_ext=bz2
 binutils_configure_flags="--target=i686-w64-mingw32"
-mingw_version=cf626ef8965e062e29d4665590aa2920dcd54e75
+mingw_version=aa6ab47929a9cac6897f38e630ce0bb88458e288
 
 # GPG keys used to sign GCC (collected from 5.1.0, 5.4.0, 6.4.0)
 $GPG --import $data_dir/33C235A34C46AA3FFB293709A328C3A2C3C45C06.key
@@ -42,6 +42,7 @@ ca498c1c7a74dd37a576f353312d1e68d490978de4395fa28f1cbd46a364e658  mpfr-3.1.5.tar
 EOF
 
 prepare
+prepare_mingw
 build_binutils
 build_gcc_and_mingw
 

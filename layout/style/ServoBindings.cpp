@@ -401,7 +401,7 @@ Gecko_CalcStyleDifference(ServoStyleContextBorrowed aOldStyle,
       const_cast<ServoStyleContext*>(aNewStyle),
       &equalStructs,
       &samePointerStructs,
-      NS_STYLE_INHERIT_MASK);
+      /* aIgnoreVariables = */ true);
 
   *aAnyStyleChanged = equalStructs != NS_STYLE_INHERIT_MASK;
 
@@ -643,6 +643,27 @@ Gecko_StyleAnimationsEquals(RawGeckoStyleAnimationListBorrowed aA,
                             RawGeckoStyleAnimationListBorrowed aB)
 {
   return *aA == *aB;
+}
+
+void
+Gecko_CopyAnimationNames(RawGeckoStyleAnimationListBorrowedMut aDest,
+                         RawGeckoStyleAnimationListBorrowed aSrc)
+{
+  size_t srcLength = aSrc->Length();
+  aDest->EnsureLengthAtLeast(srcLength);
+
+  for (size_t index = 0; index < srcLength; index++) {
+    (*aDest)[index].SetName((*aSrc)[index].GetName());
+  }
+}
+
+void
+Gecko_SetAnimationName(StyleAnimation* aStyleAnimation,
+                       nsAtom* aAtom)
+{
+  MOZ_ASSERT(aStyleAnimation);
+
+  aStyleAnimation->SetName(already_AddRefed<nsAtom>(aAtom));
 }
 
 void
@@ -2818,5 +2839,17 @@ Gecko_AddBufferToCrashReport(const void* addr, size_t len)
   nsCOMPtr<nsICrashReporter> cr = do_GetService("@mozilla.org/toolkit/crash-reporter;1");
   NS_ENSURE_TRUE_VOID(cr);
   cr->RegisterAppMemory((uint64_t) addr, len);
+#endif
+}
+
+void Gecko_AnnotateCrashReport(const char* key_str, const char* value_str)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  nsDependentCString key(key_str);
+  nsDependentCString value(value_str);
+#ifdef MOZ_CRASHREPORTER
+  nsCOMPtr<nsICrashReporter> cr = do_GetService("@mozilla.org/toolkit/crash-reporter;1");
+  NS_ENSURE_TRUE_VOID(cr);
+  cr->AnnotateCrashReport(key, value);
 #endif
 }

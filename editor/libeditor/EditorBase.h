@@ -287,6 +287,7 @@ public:
 
   virtual nsresult InsertTextImpl(const nsAString& aStringToInsert,
                                   nsCOMPtr<nsINode>* aInOutNode,
+                                  nsCOMPtr<nsIContent>* aInOutChildAtOffset,
                                   int32_t* aInOutOffset,
                                   nsIDocument* aDoc);
   nsresult InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
@@ -397,10 +398,12 @@ protected:
   already_AddRefed<CreateElementTransaction>
     CreateTxnForCreateElement(nsAtom& aTag,
                               nsINode& aParent,
-                              int32_t aPosition);
+                              int32_t aPosition,
+                              nsIContent* aChildAtPosition);
 
   already_AddRefed<Element> CreateNode(nsAtom* aTag, nsINode* aParent,
-                                       int32_t aPosition);
+                                       int32_t aPosition,
+                                       nsIContent* aChildAtPosition = nullptr);
 
   /**
    * Create a transaction for inserting aNode as a child of aParent.
@@ -708,6 +711,7 @@ public:
    */
   nsIContent* GetPriorNode(nsINode* aParentNode,
                            int32_t aOffset,
+                           nsINode* aChildAtOffset,
                            bool aEditableNode,
                            bool aNoBlockCrossing = false);
 
@@ -730,6 +734,7 @@ public:
    */
   nsIContent* GetNextNode(nsINode* aParentNode,
                           int32_t aOffset,
+                          nsINode* aChildAtOffset,
                           bool aEditableNode,
                           bool aNoBlockCrossing = false);
 
@@ -870,7 +875,6 @@ public:
   /**
    * From html rules code - migration in progress.
    */
-  static nsresult GetTagString(nsIDOMNode* aNode, nsAString& outString);
   static nsAtom* GetTag(nsIDOMNode* aNode);
 
   bool NodesSameType(nsIDOMNode* aNode1, nsIDOMNode* aNode2);
@@ -882,7 +886,6 @@ public:
     return aNode->NodeType() == nsIDOMNode::TEXT_NODE;
   }
 
-  static nsCOMPtr<nsIDOMNode> GetChildAt(nsIDOMNode* aParent, int32_t aOffset);
   static nsIContent* GetNodeAtRangeOffsetPoint(nsINode* aParentOrNode,
                                                int32_t aOffset);
 
@@ -949,7 +952,9 @@ public:
                         EmptyContainers aEmptyContainers =
                           EmptyContainers::yes,
                         nsIContent** outLeftNode = nullptr,
-                        nsIContent** outRightNode = nullptr);
+                        nsIContent** outRightNode = nullptr,
+                        nsCOMPtr<nsIContent>* ioChildAtSplitPointOffset =
+                          nullptr);
   EditorDOMPoint JoinNodeDeep(nsIContent& aLeftNode,
                               nsIContent& aRightNode);
 
@@ -1220,11 +1225,23 @@ public:
   /**
    * FindBetterInsertionPoint() tries to look for better insertion point which
    * is typically the nearest text node and offset in it.
+   *
+   * @param aNode in/out param, on input set to the node to use to start the search,
+   *              on output set to the node found as the better insertion point.
+   * @param aOffset in/out param, on input set to the offset to use to start the
+   *                search, on putput set to the offset found as the better insertion
+   *                point.
+   * @param aSelChild in/out param, on input, can be set to nullptr if the caller
+   *                  doesn't want to pass this in, or set to a pointer to an nsCOMPtr
+   *                  pointing to the child at the input node and offset, and on output
+   *                  the method will make it point to the child at the output node and
+   *                  offset returned in aNode and aOffset.
    */
   void FindBetterInsertionPoint(nsCOMPtr<nsIDOMNode>& aNode,
                                 int32_t& aOffset);
   void FindBetterInsertionPoint(nsCOMPtr<nsINode>& aNode,
-                                int32_t& aOffset);
+                                int32_t& aOffset,
+                                nsCOMPtr<nsIContent>* aSelChild);
 
   /**
    * HideCaret() hides caret with nsCaret::AddForceHide() or may show carent

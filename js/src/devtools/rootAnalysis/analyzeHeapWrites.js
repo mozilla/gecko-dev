@@ -153,7 +153,9 @@ function treatAsSafeArgument(entry, varName, csuName)
         // Various Servo binding out parameters. This is a mess and there needs
         // to be a way to indicate which params are out parameters, either using
         // an attribute or a naming convention.
+        ["Gecko_CopyAnimationNames", "aDest", null],
         ["Gecko_CopyFontFamilyFrom", "dst", null],
+        ["Gecko_SetAnimationName", "aStyleAnimation", null],
         ["Gecko_SetCounterStyleToName", "aPtr", null],
         ["Gecko_SetCounterStyleToSymbols", "aPtr", null],
         ["Gecko_SetCounterStyleToString", "aPtr", null],
@@ -446,8 +448,18 @@ function ignoreContents(entry)
         /imgRequestProxy::GetProgressTracker/, // Uses an AutoLock
         /Smprintf/,
         "malloc",
+        "calloc",
         "free",
         "realloc",
+        "memalign",
+        "strdup",
+        "strndup",
+        "moz_xmalloc",
+        "moz_xcalloc",
+        "moz_xrealloc",
+        "moz_xmemalign",
+        "moz_xstrdup",
+        "moz_xstrndup",
         "jemalloc_thread_local_arena",
 
         // These all create static strings in local storage, which is threadsafe

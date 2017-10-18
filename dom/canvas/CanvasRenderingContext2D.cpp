@@ -127,6 +127,7 @@
 #include "mozilla/StyleSetHandle.h"
 #include "mozilla/StyleSetHandleInlines.h"
 #include "mozilla/layers/CanvasClient.h"
+#include "mozilla/ServoCSSParser.h"
 
 #undef free // apparently defined by some windows header, clashing with a free()
             // method in SkTypes.h
@@ -745,17 +746,28 @@ CanvasGradient::AddColorStop(float aOffset, const nsAString& aColorstr, ErrorRes
     return;
   }
 
-  nsCSSValue value;
-  nsCSSParser parser;
-  if (!parser.ParseColorString(aColorstr, nullptr, 0, value)) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-    return;
+  nscolor color;
+  bool ok;
+
+  nsIPresShell* shell = mContext ? mContext->GetPresShell() : nullptr;
+  ServoStyleSet* servoStyleSet = shell && shell->StyleSet()
+    ? shell->StyleSet()->GetAsServo()
+    : nullptr;
+
+  if (servoStyleSet) {
+    ok = ServoCSSParser::ComputeColor(servoStyleSet, NS_RGB(0, 0, 0), aColorstr,
+                                      &color);
+  } else {
+    nsCSSValue value;
+    nsCSSParser parser;
+
+    nsPresContext* presContext = shell ? shell->GetPresContext() : nullptr;
+
+    ok = parser.ParseColorString(aColorstr, nullptr, 0, value) &&
+         nsRuleNode::ComputeColor(value, presContext, nullptr, color);
   }
 
-  nscolor color;
-  nsCOMPtr<nsIPresShell> presShell = mContext ? mContext->GetPresShell() : nullptr;
-  if (!nsRuleNode::ComputeColor(value, presShell ? presShell->GetPresContext() : nullptr,
-                                nullptr, color)) {
+  if (!ok) {
     aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
     return;
   }
@@ -2877,9 +2889,7 @@ GetFontStyleForServo(Element* aElement, const nsAString& aFont,
     // instead of ResolvestyleFor() because we need up-to-date style even if
     // the canvas element is display:none.
     parentStyle =
-      styleSet->ResolveStyleLazily(aElement,
-                                   CSSPseudoElementType::NotPseudo,
-                                   nullptr);
+      styleSet->ResolveStyleLazily(aElement, CSSPseudoElementType::NotPseudo);
   } else {
     RefPtr<RawServoDeclarationBlock> declarations =
       CreateFontDeclarationForServo(NS_LITERAL_STRING("10px sans-serif"),
@@ -4907,10 +4917,17 @@ CanvasRenderingContext2D::LineDashOffset() const {
 }
 
 bool
-CanvasRenderingContext2D::IsPointInPath(double aX, double aY, const CanvasWindingRule& aWinding)
+CanvasRenderingContext2D::IsPointInPath(JSContext* aCx, double aX, double aY, const CanvasWindingRule& aWinding)
 {
   if (!FloatValidate(aX, aY)) {
     return false;
+  }
+
+  // Check for site-specific permission and return false if no permission.
+  if (mCanvasElement) {
+    nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
+    if (!ownerDoc || !CanvasUtils::IsImageExtractionAllowed(ownerDoc, aCx))
+      return false;
   }
 
   EnsureUserSpacePath(aWinding);
@@ -4925,7 +4942,7 @@ CanvasRenderingContext2D::IsPointInPath(double aX, double aY, const CanvasWindin
   return mPath->ContainsPoint(Point(aX, aY), mTarget->GetTransform());
 }
 
-bool CanvasRenderingContext2D::IsPointInPath(const CanvasPath& aPath, double aX, double aY, const CanvasWindingRule& aWinding)
+bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx, const CanvasPath& aPath, double aX, double aY, const CanvasWindingRule& aWinding)
 {
   if (!FloatValidate(aX, aY)) {
     return false;
@@ -4942,10 +4959,17 @@ bool CanvasRenderingContext2D::IsPointInPath(const CanvasPath& aPath, double aX,
 }
 
 bool
-CanvasRenderingContext2D::IsPointInStroke(double aX, double aY)
+CanvasRenderingContext2D::IsPointInStroke(JSContext* aCx, double aX, double aY)
 {
   if (!FloatValidate(aX, aY)) {
     return false;
+  }
+
+  // Check for site-specific permission and return false if no permission.
+  if (mCanvasElement) {
+    nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
+    if (!ownerDoc || !CanvasUtils::IsImageExtractionAllowed(ownerDoc, aCx))
+      return false;
   }
 
   EnsureUserSpacePath();
@@ -4969,7 +4993,7 @@ CanvasRenderingContext2D::IsPointInStroke(double aX, double aY)
   return mPath->StrokeContainsPoint(strokeOptions, Point(aX, aY), mTarget->GetTransform());
 }
 
-bool CanvasRenderingContext2D::IsPointInStroke(const CanvasPath& aPath, double aX, double aY)
+bool CanvasRenderingContext2D::IsPointInStroke(JSContext* aCx, const CanvasPath& aPath, double aX, double aY)
 {
   if (!FloatValidate(aX, aY)) {
     return false;
@@ -5810,7 +5834,17 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
   IntRect dstWriteRect = srcReadRect;
   dstWriteRect.MoveBy(-aX, -aY);
 
-  {
+  // Check for site-specific permission.  This check is not needed if the
+  // canvas was created with a docshell (that is only done for special
+  // internal uses).
+  bool usePlaceholder = false;
+  if (mCanvasElement) {
+    nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
+    usePlaceholder = !ownerDoc ||
+      !CanvasUtils::IsImageExtractionAllowed(ownerDoc, aCx);
+  }
+
+  do {
     JS::AutoCheckCannotGC nogc;
     bool isShared;
     uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
@@ -5818,6 +5852,13 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
 
     uint32_t srcStride = rawData.mStride;
     uint8_t* src = rawData.mData + srcReadRect.y * srcStride + srcReadRect.x * 4;
+
+    // Return all-white, opaque pixel data if no permission.
+    if (usePlaceholder) {
+      memset(data, 0xFF, len.value());
+      break;
+    }
+
     uint8_t* dst = data + dstWriteRect.y * (aWidth * 4) + dstWriteRect.x * 4;
 
     if (mOpaque) {
@@ -5829,7 +5870,7 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
                         dst, aWidth * 4, SurfaceFormat::R8G8B8A8,
                         dstWriteRect.Size());
     }
-  }
+  } while (false);
 
   readback->Unmap();
   *aRetval = darray;

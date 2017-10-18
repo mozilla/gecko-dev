@@ -5,13 +5,10 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#![feature(box_syntax)]
 #![feature(mpsc_select)]
-#![feature(nonzero)]
 
 extern crate app_units;
 extern crate atomic_refcell;
-extern crate core;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
@@ -30,6 +27,7 @@ extern crate log;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
+extern crate nonzero;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
@@ -689,8 +687,9 @@ impl LayoutThread {
             }
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
             Msg::GetRPC(response_chan) => {
-                response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
-                                   Box<LayoutRPC + Send>).unwrap();
+                response_chan.send(
+                    Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<LayoutRPC + Send>
+                ).unwrap();
             },
             Msg::Reflow(data) => {
                 let mut data = ScriptReflowResult::new(data);
@@ -1068,7 +1067,7 @@ impl LayoutThread {
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
-        let element: ServoLayoutElement = match document.root_node() {
+        let element = match document.root_element() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
@@ -1113,7 +1112,7 @@ impl LayoutThread {
                 }
                 return;
             },
-            Some(x) => x.as_element().unwrap(),
+            Some(x) => x,
         };
 
         debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",

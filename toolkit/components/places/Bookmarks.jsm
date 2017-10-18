@@ -478,13 +478,13 @@ var Bookmarks = Object.freeze({
                                            PlacesUtils.toPRTime(item.dateAdded), item.guid,
                                            item.parentGuid, item.source ],
                                          { isTagging: false });
-        // Remove non-enumerable properties.
-        delete item.source;
-
         // Note, annotations for livemark data are deleted from insertInfo
         // within appendInsertionInfoForInfoArray, so we won't be duplicating
         // the insertions here.
         await handleBookmarkItemSpecialData(itemId, item);
+
+        // Remove non-enumerable properties.
+        delete item.source;
 
         insertInfos[i] = Object.assign({}, item);
       }
@@ -1407,7 +1407,8 @@ function insertBookmark(item, parent) {
  * @returns {Boolean} True if the node is a Livemark, false otherwise.
  */
 function isLivemark(node) {
-  return node.annos && node.annos.some(anno => anno.name == PlacesUtils.LMANNO_FEEDURI);
+  return node.type == Bookmarks.TYPE_FOLDER && node.annos &&
+         node.annos.some(anno => anno.name == PlacesUtils.LMANNO_FEEDURI);
 }
 
 function insertBookmarkTree(items, source, parent, urls, lastAddedForParent) {
@@ -1526,7 +1527,7 @@ async function handleBookmarkItemSpecialData(itemId, item) {
   if (item.annos && item.annos.length) {
     // Note: for annotations, we intentionally skip updating the last modified
     // value for the bookmark, to avoid a second update of the added bookmark.
-    PlacesUtils.setAnnotationsForItem(itemId, item.annos, item.source, true)
+    PlacesUtils.setAnnotationsForItem(itemId, item.annos, item.source, true);
   }
   if ("keyword" in item && item.keyword) {
     // POST data could be set in 2 ways:
@@ -1548,7 +1549,7 @@ async function handleBookmarkItemSpecialData(itemId, item) {
   }
   if ("tags" in item) {
     try {
-      PlacesUtils.tagging.tagURI(NetUtil.newURI(item.url), item.tags, item._source);
+      PlacesUtils.tagging.tagURI(NetUtil.newURI(item.url), item.tags, item.source);
     } catch (ex) {
       // Invalid tag child, skip it.
       Cu.reportError(`Unable to set tags "${item.tags.join(", ")}" for ${item.url}: ${ex}`);

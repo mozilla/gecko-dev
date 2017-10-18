@@ -36,7 +36,7 @@ atomic_refcell = "0.1"
 bitflags = "0.7"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.21.2"
+cssparser = "0.22.0"
 encoding = {version = "0.2", optional = true}
 euclid = "0.15"
 fallible = { path = "../fallible" }
@@ -60,7 +60,6 @@ num-traits = "0.1.32"
 ordered-float = "0.4"
 owning_ref = "0.3.3"
 parking_lot = "0.4"
-pdqsort = "0.1.0"
 precomputed-hash = "0.1.1"
 rayon = "0.8.2"
 selectors = { path = "../selectors" }
@@ -83,7 +82,7 @@ kernel32-sys = "0.2"
 [build-dependencies]
 lazy_static = "0.2"
 log = "0.3"
-bindgen = { version = "0.29", optional = true }
+bindgen = { version = "0.29.1", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
 toml = {version = "0.2.1", optional = true, default-features = false}

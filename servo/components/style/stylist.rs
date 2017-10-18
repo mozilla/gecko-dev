@@ -25,6 +25,7 @@ use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use properties::IS_LINK;
+use properties::VISITED_DEPENDENT_ONLY;
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
@@ -924,7 +925,7 @@ impl Stylist {
                 Some(layout_parent_style_for_visited),
                 None,
                 font_metrics,
-                cascade_flags,
+                cascade_flags | VISITED_DEPENDENT_ONLY,
                 self.quirks_mode,
                 /* rule_cache = */ None,
                 &mut Default::default(),
@@ -2308,12 +2309,12 @@ impl Rule {
     }
 
     /// Creates a new Rule.
-    pub fn new(selector: Selector<SelectorImpl>,
-               hashes: AncestorHashes,
-               style_rule: Arc<Locked<StyleRule>>,
-               source_order: u32)
-               -> Self
-    {
+    pub fn new(
+        selector: Selector<SelectorImpl>,
+        hashes: AncestorHashes,
+        style_rule: Arc<Locked<StyleRule>>,
+        source_order: u32,
+    ) -> Self {
         Rule {
             selector: selector,
             hashes: hashes,

@@ -146,12 +146,12 @@ var gMainPane = {
 
   get _list() {
     delete this._list;
-    return this._list = document.getElementById("handlersView")
+    return this._list = document.getElementById("handlersView");
   },
 
   get _filter() {
     delete this._filter;
-    return this._filter = document.getElementById("filter")
+    return this._filter = document.getElementById("filter");
   },
 
   _prefSvc: Cc["@mozilla.org/preferences-service;1"].
@@ -299,6 +299,8 @@ var gMainPane = {
       gMainPane.checkBrowserContainers);
     setEventListener("browserContainersSettings", "command",
       gMainPane.showContainerSettings);
+    setEventListener("browserHomePage", "input",
+      gMainPane.onBrowserHomePageChange);
 
     // Initializes the fonts dropdowns displayed in this pane.
     this._rebuildFonts();
@@ -689,15 +691,24 @@ var gMainPane = {
     // Set the "Use Current Page(s)" button's text and enabled state.
     this._updateUseCurrentButton();
 
-    // This is an async task.
-    handleControllingExtension("prefs", "homepage_override")
-      .then((isControlled) => {
-        // Disable or enable the inputs based on if this is controlled by an extension.
-        document.querySelectorAll("#browserHomePage, .homepage-button")
-          .forEach((button) => {
-            button.disabled = isControlled;
-          });
-      });
+    function setInputDisabledStates(isControlled) {
+      // Disable or enable the inputs based on if this is controlled by an extension.
+      document.querySelectorAll("#browserHomePage, .homepage-button")
+        .forEach((element) => {
+          let isLocked = document.getElementById(element.getAttribute("preference")).locked;
+          element.disabled = isLocked || isControlled;
+        });
+    }
+
+    if (homePref.locked) {
+      // An extension can't control these settings if they're locked.
+      hideControllingExtension("homepage_override");
+      setInputDisabledStates(false);
+    } else {
+      // Asynchronously update the extension controlled UI.
+      handleControllingExtension("prefs", "homepage_override")
+        .then(setInputDisabledStates);
+    }
 
     // If the pref is set to about:home or about:newtab, set the value to ""
     // to show the placeholder text (about:home title) rather than
@@ -743,8 +754,11 @@ var gMainPane = {
     }
 
     // FIXME Bug 244192: using dangerous "|" joiner!
-    if (tabs.length)
+    if (tabs.length) {
       homePage.value = tabs.map(getTabURI).join("|");
+    }
+
+    Services.telemetry.scalarAdd("preferences.use_current_page", 1);
   },
 
   /**
@@ -757,6 +771,23 @@ var gMainPane = {
     gSubDialog.open("chrome://browser/content/preferences/selectBookmark.xul",
       "resizable=yes, modal=yes", rv,
       this._setHomePageToBookmarkClosed.bind(this, rv));
+    Services.telemetry.scalarAdd("preferences.use_bookmark", 1);
+  },
+
+  onBrowserHomePageChange() {
+    if (this.telemetryHomePageTimer) {
+      clearTimeout(this.telemetryHomePageTimer);
+    }
+    let browserHomePage = document.querySelector("#browserHomePage").value;
+    // The length of the home page URL string should be more then four,
+    // and it should contain at least one ".", for example, "https://mozilla.org".
+    if (browserHomePage.length > 4 && browserHomePage.includes(".")) {
+      this.telemetryHomePageTimer = setTimeout(() => {
+        let homePageNumber = browserHomePage.split("|").length;
+        Services.telemetry.scalarAdd("preferences.browser_home_page_change", 1);
+        Services.telemetry.keyedScalarAdd("preferences.browser_home_page_count", homePageNumber, 1);
+      }, 3000);
+    }
   },
 
   _setHomePageToBookmarkClosed(rv, aEvent) {
@@ -794,7 +825,7 @@ var gMainPane = {
     if (document.getElementById(prefName).locked)
       return;
 
-    useCurrent.disabled = !tabs.length
+    useCurrent.disabled = !tabs.length;
   },
 
   _getTabsForHomePage() {
@@ -1032,9 +1063,9 @@ var gMainPane = {
 
     let title = bundlePreferences.getString("disableContainersAlertTitle");
     let message = PluralForm.get(count, bundlePreferences.getString("disableContainersMsg"))
-      .replace("#S", count)
+      .replace("#S", count);
     let okButton = PluralForm.get(count, bundlePreferences.getString("disableContainersOkButton"))
-      .replace("#S", count)
+      .replace("#S", count);
     let cancelButton = bundlePreferences.getString("disableContainersButton2");
 
     let buttonFlags = (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
@@ -1964,7 +1995,7 @@ var gMainPane = {
         if (internalMenuItem) {
           menu.selectedItem = internalMenuItem;
         } else {
-          Cu.reportError("No menu item defined to set!")
+          Cu.reportError("No menu item defined to set!");
         }
         break;
       case Ci.nsIHandlerInfo.useSystemDefault:
@@ -2295,7 +2326,7 @@ var gMainPane = {
       return this._getIconURLForWebApp(aHandlerApp.uriTemplate);
 
     if (aHandlerApp instanceof Ci.nsIWebContentHandlerInfo)
-      return this._getIconURLForWebApp(aHandlerApp.uri)
+      return this._getIconURLForWebApp(aHandlerApp.uri);
 
     // We know nothing about other kinds of handler apps.
     return "";
@@ -2836,7 +2867,7 @@ HandlerInfoWrapper.prototype = {
 
     // Make sure the preferred handler is in the set of possible handlers.
     if (aNewValue)
-      this.addPossibleApplicationHandler(aNewValue)
+      this.addPossibleApplicationHandler(aNewValue);
   },
 
   get possibleApplicationHandlers() {
@@ -2957,7 +2988,7 @@ HandlerInfoWrapper.prototype = {
     try {
       if (this.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo &&
         this.wrappedHandlerInfo.primaryExtension)
-        return this.wrappedHandlerInfo.primaryExtension
+        return this.wrappedHandlerInfo.primaryExtension;
     } catch (ex) { }
 
     return null;
@@ -3385,7 +3416,7 @@ var feedHandlerInfo = {
   _prefSelectedReader: PREF_FEED_SELECTED_READER,
   _smallIcon: "chrome://browser/skin/feeds/feedIcon16.png",
   _appPrefLabel: "webFeed"
-}
+};
 
 var videoFeedHandlerInfo = {
   __proto__: new FeedHandlerInfo(TYPE_MAYBE_VIDEO_FEED),
@@ -3395,7 +3426,7 @@ var videoFeedHandlerInfo = {
   _prefSelectedReader: PREF_VIDEO_FEED_SELECTED_READER,
   _smallIcon: "chrome://browser/skin/feeds/videoFeedIcon16.png",
   _appPrefLabel: "videoPodcastFeed"
-}
+};
 
 var audioFeedHandlerInfo = {
   __proto__: new FeedHandlerInfo(TYPE_MAYBE_AUDIO_FEED),
@@ -3405,7 +3436,7 @@ var audioFeedHandlerInfo = {
   _prefSelectedReader: PREF_AUDIO_FEED_SELECTED_READER,
   _smallIcon: "chrome://browser/skin/feeds/audioFeedIcon16.png",
   _appPrefLabel: "audioPodcastFeed"
-}
+};
 
 /**
  * InternalHandlerInfoWrapper provides a basic mechanism to create an internal

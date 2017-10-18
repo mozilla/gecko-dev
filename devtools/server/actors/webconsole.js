@@ -443,7 +443,8 @@ WebConsoleActor.prototype =
    *         Debuggee value for |value|.
    */
   makeDebuggeeValue: function (value, useObjectGlobal) {
-    if (useObjectGlobal && typeof value == "object") {
+    let isObject = Object(value) === value;
+    if (useObjectGlobal && isObject) {
       try {
         let global = Cu.getGlobalForObject(value);
         let dbgGlobal = this.dbg.makeGlobalObjectReference(global);
@@ -2123,7 +2124,8 @@ NetworkEventActor.prototype =
     return {
       from: this.actorID,
       timings: this._timings,
-      totalTime: this._totalTime
+      totalTime: this._totalTime,
+      offsets: this._offsets
     };
   },
 
@@ -2332,9 +2334,10 @@ NetworkEventActor.prototype =
    * @param object timings
    *        Timing details about the network event.
    */
-  addEventTimings: function (total, timings) {
+  addEventTimings: function (total, timings, offsets) {
     this._totalTime = total;
     this._timings = timings;
+    this._offsets = offsets;
 
     let packet = {
       from: this.actorID,

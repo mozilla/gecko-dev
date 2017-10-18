@@ -245,6 +245,11 @@ RawServoDeclarationBlockStrongBorrowedOrNull
 Gecko_GetSMILOverrideDeclarationBlock(RawGeckoElementBorrowed element);
 bool Gecko_StyleAnimationsEquals(RawGeckoStyleAnimationListBorrowed,
                                  RawGeckoStyleAnimationListBorrowed);
+void Gecko_CopyAnimationNames(RawGeckoStyleAnimationListBorrowedMut aDest,
+                              RawGeckoStyleAnimationListBorrowed aSrc);
+// This function takes an already addrefed nsAtom
+void Gecko_SetAnimationName(mozilla::StyleAnimation* aStyleAnimation,
+                            nsAtom* aAtom);
 void Gecko_UpdateAnimations(RawGeckoElementBorrowed aElementOrPseudo,
                             ServoStyleContextBorrowedOrNull aOldComputedValues,
                             ServoStyleContextBorrowedOrNull aComputedValues,
@@ -676,6 +681,7 @@ bool Gecko_DocumentRule_UseForPresentation(RawGeckoPresContextBorrowed,
 void Gecko_SetJemallocThreadLocalArena(bool enabled);
 
 void Gecko_AddBufferToCrashReport(const void* addr, size_t len);
+void Gecko_AnnotateCrashReport(const char* key_str, const char* value_str);
 
 // Pseudo-element flags.
 #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \

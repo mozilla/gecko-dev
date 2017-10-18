@@ -20,12 +20,12 @@ doctest = false
 
 [features]
 gecko_like_types = []
-unstable = []
+bench = []
 
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = "0.21.1"
+cssparser = "0.22.0"
 log = "0.3"
 fnv = "1.0"
 malloc_size_of = { path = "../malloc_size_of" }

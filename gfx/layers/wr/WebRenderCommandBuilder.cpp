@@ -16,8 +16,10 @@
 #include "mozilla/layers/ScrollingLayersHelper.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/UpdateImageHelper.h"
+#include "gfxEnv.h"
 #include "nsDisplayListInvalidation.h"
 #include "WebRenderCanvasRenderer.h"
+#include "LayersLogging.h"
 #include "LayerTreeInvalidation.h"
 
 namespace mozilla {
@@ -27,6 +29,23 @@ void WebRenderCommandBuilder::Destroy()
 {
   mLastCanvasDatas.Clear();
   RemoveUnusedAndResetWebRenderUserData();
+}
+
+void
+WebRenderCommandBuilder::EmptyTransaction()
+{
+  // We need to update canvases that might have changed.
+  for (auto iter = mLastCanvasDatas.Iter(); !iter.Done(); iter.Next()) {
+    RefPtr<WebRenderCanvasData> canvasData = iter.Get()->GetKey();
+    WebRenderCanvasRendererAsync* canvas = canvasData->GetCanvasRenderer();
+    canvas->UpdateCompositableClient();
+  }
+}
+
+bool
+WebRenderCommandBuilder::NeedsEmptyTransaction()
+{
+  return !mLastCanvasDatas.IsEmpty();
 }
 
 void
@@ -354,7 +373,7 @@ PaintItemByDrawTarget(nsDisplayItem* aItem,
       }
 
       FrameLayerBuilder* layerBuilder = new FrameLayerBuilder();
-      layerBuilder->Init(aDisplayListBuilder, aManager);
+      layerBuilder->Init(aDisplayListBuilder, aManager, nullptr, true);
       layerBuilder->DidBeginRetainedLayerTransaction(aManager);
 
       aManager->BeginTransactionWithTarget(context);
@@ -374,6 +393,15 @@ PaintItemByDrawTarget(nsDisplayItem* aItem,
         static_cast<nsDisplayFilter*>(aItem)->PaintAsLayer(aDisplayListBuilder,
                                                            context, aManager);
       }
+
+#ifdef MOZ_DUMP_PAINTING
+      if (gfxUtils::DumpDisplayList() || gfxEnv::DumpPaint()) {
+        fprintf_stderr(gfxUtils::sDumpPaintFile, "Basic layer tree for painting contents of display item %s(%p):\n", aItem->Name(), aItem->Frame());
+        std::stringstream stream;
+        aManager->Dump(stream, "", gfxEnv::DumpPaintToFile());
+        fprint_stderr(gfxUtils::sDumpPaintFile, stream);  // not a typo, fprint_stderr declared in LayersLogging.h
+      }
+#endif
 
       if (aManager->InTransaction()) {
         aManager->AbortTransaction();
@@ -488,7 +516,9 @@ WebRenderCommandBuilder::GenerateFallbackData(nsDisplayItem* aItem,
       Range<uint8_t> bytes((uint8_t*)recorder->mOutputStream.mData, recorder->mOutputStream.mLength);
       wr::ImageKey key = mManager->WrBridge()->GetNextImageKey();
       wr::ImageDescriptor descriptor(paintSize.ToUnknownSize(), 0, dt->GetFormat(), isOpaque);
-      aResources.AddBlobImage(key, descriptor, bytes);
+      if (!aResources.AddBlobImage(key, descriptor, bytes)) {
+        return nullptr;
+      }
       fallbackData->SetKey(key);
     } else {
       fallbackData->CreateImageClientIfNeeded();

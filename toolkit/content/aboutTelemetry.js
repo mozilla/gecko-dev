@@ -231,7 +231,7 @@ var Settings = {
 
     // eslint-disable-next-line no-unsanitized/property
     homeExplanation.innerHTML = explanation;
-    this.attachObservers()
+    this.attachObservers();
   },
 
   convertStringToLink(string) {
@@ -290,7 +290,7 @@ var PingPicker = {
         if (!pingPicker.classList.contains("hidden")) {
           pingPicker.classList.add("hidden");
         } else {
-          pingPicker.classList.remove("hidden")
+          pingPicker.classList.remove("hidden");
           event.stopPropagation();
         }
       });
@@ -342,9 +342,10 @@ var PingPicker = {
 
     // eslint-disable-next-line no-unsanitized/property
     pingExplanation.innerHTML = explanation;
-    pingExplanation.querySelector(".change-ping").addEventListener("click", () =>
-      document.getElementById("ping-picker").classList.remove("hidden")
-    );
+    pingExplanation.querySelector(".change-ping").addEventListener("click", (ev) => {
+      document.getElementById("ping-picker").classList.remove("hidden");
+      ev.stopPropagation();
+    });
 
     GenericSubsection.deleteAllSubSections();
   },
@@ -938,7 +939,7 @@ var StackRenderer = {
     for (let i = 0; i < aStacks.length; ++i) {
       let stack = aStacks[i];
       aRenderHeader(i);
-      this.renderStack(div, stack)
+      this.renderStack(div, stack);
     }
   },
 
@@ -1048,7 +1049,7 @@ function SymbolicationRequest_fetchSymbols() {
   this.symbolRequest.setRequestHeader("Connection", "close");
   this.symbolRequest.onreadystatechange = this.handleSymbolResponse.bind(this);
   this.symbolRequest.send(requestJSON);
-}
+};
 
 var ChromeHangs = {
 
@@ -1315,7 +1316,7 @@ var Search = {
         };
       }
     }
-    return [isPassFunc, filter]
+    return [isPassFunc, filter];
   },
 
   filterElements(elements, filterText) {
@@ -1407,7 +1408,7 @@ var Search = {
       let keyedSubSections = [];
       let subsections = section.querySelectorAll(".sub-section");
       for (let section of subsections) {
-        let datas = section.querySelector("table").rows
+        let datas = section.querySelector("table").rows;
         keyedSubSections.push({key: section, datas});
       }
       noSearchResults = this.filterKeyedElements(keyedSubSections, text);
@@ -1478,7 +1479,7 @@ var Search = {
     });
     this.updateNoResults(text, noSearchResults);
   }
-}
+};
 
 /*
  * Helper function to render JS objects with white space between top level elements
@@ -1521,7 +1522,7 @@ var GenericSubsection = {
       let section = ev.target;
       showSubSection(section);
     });
-    subCategory.appendChild(document.createTextNode(title))
+    subCategory.appendChild(document.createTextNode(title));
     category.appendChild(subCategory);
   },
 
@@ -1563,10 +1564,10 @@ var GenericSubsection = {
     let subsections = document.querySelectorAll(".category-subsection");
     subsections.forEach((el) => {
       el.parentElement.removeChild(el);
-    })
+    });
   },
 
-}
+};
 
 var GenericTable = {
 
@@ -1684,7 +1685,7 @@ var AddonDetails = {
       let titleText = bundle.formatStringFromName("addonProvider", [provider], 1);
       providerSection.appendChild(document.createTextNode(titleText));
 
-      let headingStrings = [this.tableIDTitle, this.tableDetailsTitle ]
+      let headingStrings = [this.tableIDTitle, this.tableDetailsTitle ];
       let table = GenericTable.render(explodeObject(addonDetails[provider]),
                                       headingStrings);
       table.appendChild(providerSection);
@@ -1975,7 +1976,7 @@ function show(selected) {
   selected.classList.add("selected");
 
   document.querySelectorAll("section").forEach((section) => {
-    section.classList.remove("active")
+    section.classList.remove("active");
   });
   selected_section.classList.add("active");
 
@@ -2021,7 +2022,7 @@ function setupListeners() {
   let menu = document.getElementById("categories");
   menu.addEventListener("click", (e) => {
     if (e.target && e.target.parentNode == menu) {
-      show(e.target)
+      show(e.target);
     }
   });
 
@@ -2220,7 +2221,7 @@ var HistogramSection = {
       }
     }
   },
-}
+};
 
 var KeyedHistogramSection = {
   render(aPayload) {
@@ -2255,7 +2256,7 @@ var KeyedHistogramSection = {
       }
     }
   },
-}
+};
 
 var SessionInformation = {
   render(aPayload) {
@@ -2270,7 +2271,7 @@ var SessionInformation = {
       infoSection.appendChild(table);
     }
   },
-}
+};
 
 var SimpleMeasurements = {
   render(aPayload) {
@@ -2331,7 +2332,7 @@ var SimpleMeasurements = {
 
     return result;
   },
-}
+};
 
 function renderProcessList(ping, selectEl) {
   removeAllChildNodes(selectEl);
@@ -2378,7 +2379,7 @@ function renderPayloadList(ping) {
 
   if (!ping.payload.childPayloads) {
     listEl.disabled = true;
-    return
+    return;
   }
   listEl.disabled = false;
 

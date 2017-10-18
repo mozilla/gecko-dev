@@ -5,7 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use core::nonzero::NonZero;
+use nonzero::NonZero;
 use std::cell::Cell;
 use std::fmt;
 use webrender_api;
@@ -339,11 +339,15 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
+#[cfg(feature = "unstable")]
 pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZero::new_unchecked(5678)) };
+#[cfg(feature = "unstable")]
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
 #[allow(unsafe_code)]
+#[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
     unsafe { BrowsingContextIndex(NonZero::new_unchecked(8765)) };
+#[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
     BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
 

@@ -354,6 +354,8 @@ public:
 
   DimensionInfo GetDimensionInfo();
 
+  nsresult UpdatePosition();
+
   void SizeModeChanged(const nsSizeMode& aSizeMode);
 
   void UIResolutionChanged();
@@ -646,6 +648,7 @@ protected:
                                                      const bool& aTruncate) override;
 
   virtual mozilla::ipc::IPCResult RecvRequestCrossBrowserNavigation(const uint32_t& aGlobalIndex) override;
+  virtual mozilla::ipc::IPCResult RecvShowCanvasPermissionPrompt(const nsCString& aFirstPartyURI) override;
 
   ContentCacheInParent mContentCache;
 
@@ -668,8 +671,6 @@ private:
 
   RefPtr<nsIContentParent> mManager;
   void TryCacheDPIAndScale();
-
-  nsresult UpdatePosition();
 
   bool AsyncPanZoomEnabled() const;
 

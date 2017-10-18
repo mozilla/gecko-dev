@@ -1365,7 +1365,13 @@ nsIFrame::HasOpacityInternal(float aThreshold,
 
   EffectSet* effects =
     aEffectSet ? aEffectSet : EffectSet::GetEffectSet(this);
-  return (IsPrimaryFrame() &&
+  if (!effects) {
+    return false;
+  }
+
+  return ((IsPrimaryFrame() ||
+           nsLayoutUtils::FirstContinuationOrIBSplitSibling(this)->
+             IsPrimaryFrame()) &&
           nsLayoutUtils::HasAnimationOfProperty(effects, eCSSProperty_opacity));
 }
 
@@ -2480,7 +2486,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   bool usingSVGEffects = usingFilter || usingMask;
 
   nsRect dirtyRectOutsideSVGEffects = dirtyRect;
-  nsDisplayList hoistedScrollInfoItemsStorage;
+  nsDisplayList hoistedScrollInfoItemsStorage(aBuilder);
   if (usingSVGEffects) {
     dirtyRect =
       nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(this, dirtyRect);
@@ -2564,7 +2570,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     clipState.Clear();
   }
 
-  nsDisplayListCollection set;
+  nsDisplayListCollection set(aBuilder);
   {
     DisplayListClipState::AutoSaveRestore nestedClipState(aBuilder);
     nsDisplayListBuilder::AutoInTransformSetter
@@ -2631,7 +2637,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   // element itself.
   set.PositionedDescendants()->SortByZOrder();
 
-  nsDisplayList resultList;
+  nsDisplayList resultList(aBuilder);
   // Now follow the rules of http://www.w3.org/TR/CSS21/zindex.html
   // 1,2: backgrounds and borders
   resultList.AppendToTop(set.BorderBackground());
@@ -2760,8 +2766,8 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   if (isTransformed && !resultList.IsEmpty() && extend3DContext) {
     // Install dummy nsDisplayTransform as a leaf containing
     // descendants not participating this 3D rendering context.
-    nsDisplayList nonparticipants;
-    nsDisplayList participants;
+    nsDisplayList nonparticipants(aBuilder);
+    nsDisplayList participants(aBuilder);
     int index = 1;
 
     while (nsDisplayItem* item = resultList.RemoveBottom()) {
@@ -3175,8 +3181,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     awayFromCommonPath = true;
   }
 
-  nsDisplayList list;
-  nsDisplayList extraPositionedDescendants;
+  nsDisplayList list(aBuilder);
+  nsDisplayList extraPositionedDescendants(aBuilder);
   const ActiveScrolledRoot* wrapListASR = aBuilder->CurrentActiveScrolledRoot();
   if (isStackingContext) {
     if (effects->mMixBlendMode != NS_STYLE_BLEND_NORMAL) {
@@ -3249,7 +3255,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     // We allow positioned descendants of the child to escape to our parent
     // stacking context's positioned descendant list, because they might be
     // z-index:non-auto
-    nsDisplayListCollection pseudoStack;
+    nsDisplayListCollection pseudoStack(aBuilder);
     aBuilder->AdjustWindowDraggingRegion(child);
     nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
     child->BuildDisplayList(aBuilder, pseudoStack);
@@ -10232,7 +10238,8 @@ nsIFrame::UpdateStyleOfOwnedChildFrame(
   nsChangeHint childHint = aChildFrame->StyleContext()->CalcStyleDifference(
     aNewStyleContext,
     &equalStructs,
-    &samePointerStructs);
+    &samePointerStructs,
+    /* aIgnoreVariables = */ true);
 
   // CalcStyleDifference will handle caching structs on the new style context,
   // but only if we're not on a style worker thread.
@@ -10713,6 +10720,15 @@ nsIFrame::AddSizeOfExcludingThisForTree(nsWindowSizes& aSizes) const
     if (!aSizes.mState.HaveSeenPtr(sc)) {
       sc->AddSizeOfIncludingThis(aSizes,
                                  &aSizes.mLayoutComputedValuesNonDom);
+    }
+
+    // And our additional style contexts.
+    int32_t index = 0;
+    while (auto* extra = GetAdditionalStyleContext(index++)) {
+      if (!aSizes.mState.HaveSeenPtr(extra)) {
+        extra->AsServo()->AddSizeOfIncludingThis(aSizes,
+                                                 &aSizes.mLayoutComputedValuesNonDom);
+      }
     }
   }
 

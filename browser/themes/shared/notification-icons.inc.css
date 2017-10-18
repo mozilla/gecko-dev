@@ -117,6 +117,11 @@
   list-style-image: url(chrome://browser/skin/notification-icons/screen-blocked.svg);
 }
 
+#canvas-notification-icon,
+.popup-notification-icon[popupid="canvas-permissions-prompt"] {
+  list-style-image: url(chrome://browser/skin/notification-icons/canvas.svg);
+}
+
 #webRTC-preview:not([hidden]) {
   display: -moz-stack;
   border-radius: 4px;
@@ -205,7 +210,7 @@ html|*#webRTC-previewVideo {
 }
 
 .popup-notification-icon[popupid="click-to-play-plugins"] {
-  list-style-image: url(chrome://mozapps/skin/plugins/pluginBlocked-64.png);
+  list-style-image: url(chrome://mozapps/skin/plugins/pluginBlocked.svg);
 }
 
 /* OFFLINE APPS */

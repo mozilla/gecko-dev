@@ -139,10 +139,10 @@ SetupABIArguments(MacroAssembler& masm, const FuncExport& fe, Register argv, Reg
               case MIRType::Int64: {
                 Register sp = masm.getStackPointer();
 #if JS_BITS_PER_WORD == 32
-                masm.load32(Address(src.base, src.offset + INT64LOW_OFFSET), scratch);
-                masm.store32(scratch, Address(sp, iter->offsetFromArgBase() + INT64LOW_OFFSET));
-                masm.load32(Address(src.base, src.offset + INT64HIGH_OFFSET), scratch);
-                masm.store32(scratch, Address(sp, iter->offsetFromArgBase() + INT64HIGH_OFFSET));
+                masm.load32(LowWord(src), scratch);
+                masm.store32(scratch, LowWord(Address(sp, iter->offsetFromArgBase())));
+                masm.load32(HighWord(src), scratch);
+                masm.store32(scratch, HighWord(Address(sp, iter->offsetFromArgBase())));
 #else
                 Register64 scratch64(scratch);
                 masm.load64(src, scratch64);
@@ -384,10 +384,10 @@ StackCopy(MacroAssembler& masm, MIRType type, Register scratch, Address src, Add
         masm.store32(scratch, dst);
     } else if (type == MIRType::Int64) {
 #if JS_BITS_PER_WORD == 32
-        masm.load32(Address(src.base, src.offset + INT64LOW_OFFSET), scratch);
-        masm.store32(scratch, Address(dst.base, dst.offset + INT64LOW_OFFSET));
-        masm.load32(Address(src.base, src.offset + INT64HIGH_OFFSET), scratch);
-        masm.store32(scratch, Address(dst.base, dst.offset + INT64HIGH_OFFSET));
+        masm.load32(LowWord(src), scratch);
+        masm.store32(scratch, LowWord(dst));
+        masm.load32(HighWord(src), scratch);
+        masm.store32(scratch, HighWord(dst));
 #else
         Register64 scratch64(scratch);
         masm.load64(src, scratch64);
@@ -770,6 +770,15 @@ GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi, Label* throwLa
     AssertStackAlignment(masm, JitStackAlignment, sizeOfRetAddr);
     masm.callJitNoProfiler(callee);
 
+    // Note that there might be a GC thing in the JSReturnOperand now.
+    // In all the code paths from here:
+    // - either the value is unboxed because it was a primitive and we don't
+    //   need to worry about rooting anymore.
+    // - or the value needs to be rooted, but nothing can cause a GC between
+    //   here and CoerceInPlace, which roots before coercing to a primitive.
+    //   In particular, this is true because wasm::InInterruptibleCode will
+    //   return false when PC is in the jit exit.
+
     // The JIT callee clobbers all registers, including WasmTlsReg and
     // FramePointer, so restore those here. During this sequence of
     // instructions, FP can't be trusted by the profiling frame iterator.
@@ -790,7 +799,14 @@ GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi, Label* throwLa
     unsigned nativeFramePushed = masm.framePushed();
     AssertStackAlignment(masm, ABIStackAlignment);
 
-    masm.branchTestMagic(Assembler::Equal, JSReturnOperand, throwLabel);
+#ifdef DEBUG
+    {
+        Label ok;
+        masm.branchTestMagic(Assembler::NotEqual, JSReturnOperand, &ok);
+        masm.breakpoint();
+        masm.bind(&ok);
+    }
+#endif
 
     Label oolConvert;
     switch (fi.sig().ret()) {
@@ -882,15 +898,12 @@ GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi, Label* throwLa
             masm.unboxInt32(Address(masm.getStackPointer(), offsetToCoerceArgv), ReturnReg);
             break;
           case ExprType::F64:
-            masm.call(SymbolicAddress::CoerceInPlace_ToNumber);
-            masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
-            masm.loadDouble(Address(masm.getStackPointer(), offsetToCoerceArgv), ReturnDoubleReg);
-            break;
           case ExprType::F32:
             masm.call(SymbolicAddress::CoerceInPlace_ToNumber);
             masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
             masm.loadDouble(Address(masm.getStackPointer(), offsetToCoerceArgv), ReturnDoubleReg);
-            masm.convertDoubleToFloat32(ReturnDoubleReg, ReturnFloat32Reg);
+            if (fi.sig().ret() == ExprType::F32)
+                masm.convertDoubleToFloat32(ReturnDoubleReg, ReturnFloat32Reg);
             break;
           default:
             MOZ_CRASH("Unsupported convert type");

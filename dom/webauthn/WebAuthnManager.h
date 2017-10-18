@@ -57,8 +57,7 @@ struct Account;
 class ArrayBufferViewOrArrayBuffer;
 struct AssertionOptions;
 class OwningArrayBufferViewOrArrayBuffer;
-struct ScopedCredentialOptions;
-struct ScopedCredentialParameters;
+struct MakePublicKeyCredentialOptions;
 class Promise;
 class WebAuthnTransactionChild;
 class WebAuthnTransactionInfo;
@@ -69,8 +68,21 @@ class WebAuthnManager final : public nsIIPCBackgroundChildCreateCallback,
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
+  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
+
   static WebAuthnManager* GetOrCreate();
   static WebAuthnManager* Get();
+
+  already_AddRefed<Promise>
+  MakeCredential(nsPIDOMWindowInner* aParent,
+                 const MakePublicKeyCredentialOptions& aOptions);
+
+  already_AddRefed<Promise>
+  GetAssertion(nsPIDOMWindowInner* aParent,
+               const PublicKeyCredentialRequestOptions& aOptions);
+
+  already_AddRefed<Promise>
+  Store(nsPIDOMWindowInner* aParent, const Credential& aCredential);
 
   void
   FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer);
@@ -80,28 +92,15 @@ public:
                      nsTArray<uint8_t>& aSigBuffer);
 
   void
-  Cancel(const nsresult& aError);
+  RequestAborted(const nsresult& aError);
 
-  already_AddRefed<Promise>
-  MakeCredential(nsPIDOMWindowInner* aParent,
-                 const MakeCredentialOptions& aOptions);
-
-  already_AddRefed<Promise>
-  GetAssertion(nsPIDOMWindowInner* aParent,
-               const PublicKeyCredentialRequestOptions& aOptions);
-
-  void StartRegister();
-  void StartSign();
-  void StartCancel();
-
-  // nsIIPCbackgroundChildCreateCallback methods
-  void ActorCreated(PBackgroundChild* aActor) override;
-  void ActorFailed() override;
   void ActorDestroyed();
+
 private:
   WebAuthnManager();
   virtual ~WebAuthnManager();
 
+  void Cancel(const nsresult& aError);
   void MaybeClearTransaction();
 
   typedef MozPromise<nsresult, nsresult, false> BackgroundActorPromise;

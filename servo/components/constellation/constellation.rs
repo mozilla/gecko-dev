@@ -64,6 +64,34 @@
 //!
 //! Since there is only one constellation, and its responsibilities include crash reporting,
 //! it is very important that it does not panic.
+//!
+//! It's also important that the constellation not deadlock. In particular, we need
+//! to be careful that we don't introduce any cycles in the can-block-on relation.
+//! Blocking is typically introduced by `receiver.recv()`, which blocks waiting for the
+//! sender to send some data. Servo tries to achieve deadlock-freedom by using the following
+//! can-block-on relation:
+//!
+//! * Layout can block on canvas
+//! * Layout can block on font cache
+//! * Layout can block on image cache
+//! * Constellation can block on compositor
+//! * Constellation can block on embedder
+//! * Constellation can block on layout
+//! * Script can block on anything (other than script)
+//! * Blocking is transitive (if T1 can block on T2 and T2 can block on T3 then T1 can block on T3)
+//! * Nothing can block on itself!
+//!
+//! There is a complexity intoduced by IPC channels, since they do not support
+//! non-blocking send. This means that as well as `receiver.recv()` blocking,
+//! `sender.send(data)` can also block when the IPC buffer is full. For this reason it is
+//! very important that all IPC receivers where we depend on non-blocking send
+//! use a router to route IPC messages to an mpsc channel. The reason why that solves
+//! the problem is that under the hood, the router uses a dedicated thread to forward
+//! messages, and:
+//!
+//! * Anything (other than a routing thread) can block on a routing thread
+//!
+//! See https://github.com/servo/servo/issues/14704
 
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
@@ -772,6 +800,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.all_descendant_browsing_contexts_iter(BrowsingContextId::from(top_level_browsing_context_id))
     }
 
+    #[cfg(feature = "unstable")]
     /// The joint session future is the merge of the session future of every
     /// browsing_context, sorted chronologically.
     fn joint_session_future<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
@@ -782,12 +811,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .kmerge_by(|a, b| a.instant.cmp(&b.instant) == Ordering::Less)
     }
 
+    #[cfg(not(feature = "unstable"))]
+    /// The joint session future is the merge of the session future of every
+    /// browsing_context, sorted chronologically.
+    fn joint_session_future<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
+                                -> Box<Iterator<Item = &'a SessionHistoryEntry> + 'a>
+    {
+        Box::new(
+            self.all_browsing_contexts_iter(top_level_browsing_context_id)
+                .map(|browsing_context| browsing_context.next.iter().rev())
+                .kmerge_by(|a, b| a.instant.cmp(&b.instant) == Ordering::Less)
+        )
+    }
+
     /// Is the joint session future empty?
     fn joint_session_future_is_empty(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> bool {
         self.all_browsing_contexts_iter(top_level_browsing_context_id)
             .all(|browsing_context| browsing_context.next.is_empty())
     }
 
+    #[cfg(feature = "unstable")]
     /// The joint session past is the merge of the session past of every
     /// browsing_context, sorted reverse chronologically.
     fn joint_session_past<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
@@ -802,6 +845,25 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                  }))
             .kmerge_by(|a, b| a.0.cmp(&b.0) == Ordering::Greater)
             .map(|(_, entry)| entry)
+    }
+
+    #[cfg(not(feature = "unstable"))]
+    /// The joint session past is the merge of the session past of every
+    /// browsing_context, sorted reverse chronologically.
+    fn joint_session_past<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
+                              -> Box<Iterator<Item = &'a SessionHistoryEntry> + 'a>
+    {
+        Box::new(
+            self.all_browsing_contexts_iter(top_level_browsing_context_id)
+                .map(|browsing_context| browsing_context.prev.iter().rev()
+                     .scan(browsing_context.instant, |prev_instant, entry| {
+                         let instant = *prev_instant;
+                         *prev_instant = entry.instant;
+                         Some((instant, entry))
+                     }))
+                .kmerge_by(|a, b| a.0.cmp(&b.0) == Ordering::Greater)
+                .map(|(_, entry)| entry)
+        )
     }
 
     /// Is the joint session past empty?
@@ -2902,12 +2964,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // In order to get repeatability, we sort the pipeline ids.
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
         pipeline_ids.sort();
-        if let Some((ref mut rng, _)) = self.random_pipeline_closure {
+        if let Some((ref mut rng, probability)) = self.random_pipeline_closure {
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     // Don't kill the mozbrowser pipeline
                     if PREFS.is_mozbrowser_enabled() && pipeline.parent_info.is_none() {
                         info!("Not closing mozbrowser pipeline {}.", pipeline_id);
+                    } else if
+                        self.pending_changes.iter().any(|change| change.new_pipeline_id == pipeline.id) &&
+                        probability <= rng.gen::<f32>()
+                    {
+                        // We tend not to close pending pipelines, as that almost always
+                        // results in pipelines being closed early in their lifecycle,
+                        // and not stressing the constellation as much.
+                        // https://github.com/servo/servo/issues/18852
+                        info!("Not closing pending pipeline {}.", pipeline_id);
                     } else {
                         // Note that we deliberately do not do any of the tidying up
                         // associated with closing a pipeline. The constellation should cope!

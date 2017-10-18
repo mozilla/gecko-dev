@@ -518,6 +518,15 @@
          <item name="android:nextFocusLeft">@+id/info</item>
     </style>
 
+    <style name="TabsLayoutItemFavicon">
+        <item name="android:layout_marginRight">4dp</item>
+    </style>
+
+    <style name="TabsListItemFavicon">
+        <item name="android:layout_marginLeft">10dp</item>
+        <item name="android:layout_marginRight">6dp</item>
+    </style>
+
     <style name="Widget.RemoteTabsItemView" parent="Widget.TwoLinePageRow"/>
 
     <style name="Widget.RemoteTabsClientView" parent="Widget.TwoLinePageRow">
@@ -836,6 +845,11 @@
         <item name="android:scaleType">centerInside</item>
     </style>
 
+    <style name="UrlBar.ThemeBackground" parent="UrlBar.V15.ThemeBackground"/>
+    <style name="UrlBar.V15.ThemeBackground" parent="UrlBar.Base">
+        <item name="android:layout_marginLeft">5dp</item>
+    </style>
+
     <!-- URL bar - Site identity -->
     <style name="UrlBar.SiteIdentity" parent="UrlBar.V15.SiteIdentity"/>
     <style name="UrlBar.Base.SiteIdentity" parent="UrlBar.Button">
@@ -844,7 +858,6 @@
         <item name="android:scaleType">center</item>
     </style>
     <style name="UrlBar.V15.SiteIdentity" parent="UrlBar.Base.SiteIdentity">
-        <item name="android:layout_marginLeft">5dp</item>
         <item name="android:paddingRight">@dimen/browser_toolbar_site_security_margin_end</item>
     </style>
 
@@ -950,6 +963,34 @@
     <style name="TabStrip.V15.Favicon" parent="TabStrip.Base.Favicon">
         <item name="android:layout_marginLeft">12dp</item>
         <item name="android:layout_marginRight">8dp</item>
+    </style>
+
+    <style name="TabStrip.Close" parent="TabStrip.V15.Close"/>
+    <style name="TabStrip.V15.Close" parent="TabStrip.Base">
+        <item name="android:layout_alignParentRight">true</item>
+    </style>
+
+    <style name="TabStrip.Title" parent="TabStrip.V15.Title"/>
+    <style name="TabStrip.V15.Title" parent="TabStrip.Base">
+        <item name="android:layout_toRightOf">@id/favicon</item>
+        <item name="android:layout_toLeftOf">@id/close</item>
+    </style>
+
+    <style name="PwaConfirm">
+        <item name="android:layout_width">match_parent</item>
+    </style>
+
+    <style name="PwaConfirm.Title">
+        <item name="android:layout_toRightOf">@id/pwa_confirm_icon_wrap</item>
+        <item name="android:layout_toLeftOf">@id/pwa_confirm_cancel</item>
+    </style>
+
+    <style name="PwaConfirm.Cancel">
+        <item name="android:layout_alignParentRight">true</item>
+    </style>
+
+    <style name="PwaConfirm.Url">
+        <item name="android:layout_alignLeft">@+id/pwa_confirm_title</item>
     </style>
 
 </resources>

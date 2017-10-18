@@ -16,8 +16,9 @@ fuzzy-if(OSX==1010,1,24) fuzzy-if(d2d,16,908) fuzzy-if(webrender,18,2160) == box
 fails-if(Android) == boxshadow-fileupload.html boxshadow-fileupload-ref.html
 fuzzy-if(skiaContent,13,28) fuzzy-if(webrender,29-29,453-453) == boxshadow-inner-basic.html boxshadow-inner-basic-ref.svg
 random-if(layersGPUAccelerated) == boxshadow-mixed.html boxshadow-mixed-ref.html
+== boxshadow-mixed-2.html boxshadow-mixed-2-ref.html
 random-if(d2d) fuzzy-if(skiaContent,1,100) fuzzy-if(webrender,127,3528) == boxshadow-rounded-spread.html boxshadow-rounded-spread-ref.html
-fuzzy-if(skiaContent,1,50) HTTP(..) == boxshadow-dynamic.xul boxshadow-dynamic-ref.xul
+fuzzy-if(skiaContent,1,50) fails-if(stylo) HTTP(..) == boxshadow-dynamic.xul boxshadow-dynamic-ref.xul # bug 1408235
 random-if(d2d) fails-if(webrender) == boxshadow-onecorner.html boxshadow-onecorner-ref.html
 random-if(d2d) fails-if(webrender) == boxshadow-twocorners.html boxshadow-twocorners-ref.html
 random-if(d2d) fails-if(webrender) == boxshadow-threecorners.html boxshadow-threecorners-ref.html
@@ -39,7 +40,7 @@ fuzzy(13,9445) fuzzy-if(d2d,13,10926) fuzzy-if(webrender,14,14307) == boxshadow-
 == overflow-not-scrollable-2.html overflow-not-scrollable-2-ref.html
 fuzzy-if(webrender,1,655) == 611574-1.html 611574-1-ref.html
 fuzzy-if(webrender,4,144) == 611574-2.html 611574-2-ref.html
-fuzzy-if(winWidget,5,30) fuzzy-if(skiaContent,16,10) fuzzy-if(webrender,162-162,120-120) == fieldset.html fieldset-ref.html # minor anti-aliasing problem on Windows
+fuzzy-if(winWidget,5,30) fuzzy-if(skiaContent,16,10) fuzzy-if(webrender,51-51,120-120) == fieldset.html fieldset-ref.html # minor anti-aliasing problem on Windows
 fuzzy-if(winWidget,5,30) fuzzy-if(skiaContent,16,10) fails-if(webrender) == fieldset-inset.html fieldset-inset-ref.html # minor anti-aliasing problem on Windows
 == 1178575.html 1178575-ref.html
 == 1178575-2.html 1178575-2-ref.html

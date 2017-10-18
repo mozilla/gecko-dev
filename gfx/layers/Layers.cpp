@@ -1352,8 +1352,7 @@ ContainerLayer::DefaultComputeSupportsComponentAlphaChildren(bool* aNeedsSurface
       if (HasOpaqueAncestorLayer(this) &&
           GetEffectiveTransform().Is2D(&transform) &&
           !gfx::ThebesMatrix(transform).HasNonIntegerTranslation() &&
-          blendMode == gfx::CompositionOp::OP_OVER &&
-          Manager()->SupportsBackdropCopyForComponentAlpha())
+          blendMode == gfx::CompositionOp::OP_OVER)
       {
         mSupportsComponentAlphaChildren = true;
         needsSurfaceCopy = true;
@@ -2304,7 +2303,7 @@ LayerManager::Dump(std::stringstream& aStream, const char* aPrefix,
   nsAutoCString pfx(aPrefix);
   pfx += "  ";
   if (!GetRoot()) {
-    aStream << nsPrintfCString("%s(null)", pfx.get()).get();
+    aStream << nsPrintfCString("%s(null)\n", pfx.get()).get();
     if (aDumpHtml) {
       aStream << "</li></ul>";
     }

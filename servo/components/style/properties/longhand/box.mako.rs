@@ -68,6 +68,33 @@
                 )
             }
 
+            /// Whether `new_display` should be ignored, given a previous
+            /// `old_display` value.
+            ///
+            /// This is used to ignore `display: -moz-box` declarations after an
+            /// equivalent `display: -webkit-box` declaration, since the former
+            /// has a vastly different meaning. See bug 1107378 and bug 1407701.
+            ///
+            /// FIXME(emilio): This is a pretty decent hack, we should try to
+            /// remove it.
+            pub fn should_ignore_parsed_value(
+                _old_display: Self,
+                _new_display: Self,
+            ) -> bool {
+                #[cfg(feature = "gecko")]
+                {
+                    match (_old_display, _new_display) {
+                        (T::_webkit_box, T::_moz_box) |
+                        (T::_webkit_inline_box, T::_moz_inline_box) => {
+                            return true;
+                        }
+                        _ => {},
+                    }
+                }
+
+                return false;
+            }
+
             /// Returns whether this "display" value is one of the types for
             /// ruby.
             #[cfg(feature = "gecko")]
@@ -165,7 +192,7 @@
     /// Parse a display value.
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input,
             % for value in values:
                 "${value}" => {
                     Ok(computed_value::T::${to_rust_ident(value)})
@@ -545,7 +572,7 @@ ${helpers.predefined_type("animation-timing-function",
 
             let number = input.expect_number()?;
             if number < 0.0 {
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
 
             Ok(SpecifiedValue::Number(number))
@@ -1177,7 +1204,7 @@ ${helpers.predefined_type(
                     _ => Err(()),
                 };
                 result
-                    .map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
+                    .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
             })
         })?))
     }
@@ -1730,7 +1757,7 @@ ${helpers.predefined_type("transform-origin",
             };
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
+                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
             };
             result.insert(flag);
         }
@@ -1738,7 +1765,7 @@ ${helpers.predefined_type("transform-origin",
         if !result.is_empty() {
             Ok(result)
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 </%helpers:longhand>
@@ -1839,7 +1866,8 @@ ${helpers.single_keyword("-moz-orient",
             Ok(computed_value::T::Auto)
         } else {
             input.parse_comma_separated(|i| {
-                CustomIdent::from_ident(i.expect_ident()?, &[
+                let location = i.current_source_location();
+                CustomIdent::from_ident(location, i.expect_ident()?, &[
                     "will-change",
                     "none",
                     "all",
@@ -1914,7 +1942,7 @@ ${helpers.predefined_type(
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         // FIXME: remove clone() when lifetimes are non-lexical
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
+        try_match_ident_ignore_ascii_case! { input,
             "auto" => Ok(TOUCH_ACTION_AUTO),
             "none" => Ok(TOUCH_ACTION_NONE),
             "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),

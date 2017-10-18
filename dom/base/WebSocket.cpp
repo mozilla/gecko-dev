@@ -1603,7 +1603,8 @@ WebSocketImpl::Init(JSContext* aCx,
     int16_t shouldLoad = nsIContentPolicy::ACCEPT;
     rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_WEBSOCKET,
                                    uri,
-                                   aPrincipal,
+                                   aPrincipal, // loading principal
+                                   aPrincipal, // triggering principal
                                    originDoc,
                                    EmptyCString(),
                                    nullptr,
@@ -1666,18 +1667,17 @@ WebSocketImpl::Init(JSContext* aCx,
       nsCOMPtr<nsPIDOMWindowInner> innerWindow;
 
       while (true) {
-        if (principal) {
-          bool isNullPrincipal = true;
-          isNullPrincipal = principal->GetIsNullPrincipal();
-          if (isNullPrincipal || nsContentUtils::IsSystemPrincipal(principal)) {
-            break;
-          }
+        if (principal && !principal->GetIsNullPrincipal()) {
+          break;
         }
 
         if (!innerWindow) {
           innerWindow = do_QueryInterface(globalObject);
-          if (NS_WARN_IF(!innerWindow)) {
-            return NS_ERROR_DOM_SECURITY_ERR;
+          if (!innerWindow) {
+            // If we are in a XPConnect sandbox or in a JS component,
+            // innerWindow will be null. There is nothing on top of this to be
+            // considered.
+            break;
           }
         }
 

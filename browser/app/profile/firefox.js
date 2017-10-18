@@ -318,10 +318,9 @@ pref("browser.urlbar.suggest.history",              true);
 pref("browser.urlbar.suggest.bookmark",             true);
 pref("browser.urlbar.suggest.openpage",             true);
 pref("browser.urlbar.suggest.searches",             true);
+
+// Whether the user made a choice in the old search suggestions opt-in bar.
 pref("browser.urlbar.userMadeSearchSuggestionsChoice", false);
-// The suggestion opt-in notification will be shown on 4 different days.
-pref("browser.urlbar.daysBeforeHidingSuggestionsPrompt", 4);
-pref("browser.urlbar.lastSuggestionsPromptDate", 20160601);
 // The suggestion opt-out hint will be hidden after being shown 4 times.
 pref("browser.urlbar.timesBeforeHidingSuggestionsHint", 4);
 
@@ -891,6 +890,8 @@ pref("browser.sessionstore.debug.no_auto_updates", false);
 pref("browser.sessionstore.cleanup.forget_closed_after", 1209600000);
 // Maximum number of bytes of DOMSessionStorage data we collect per origin.
 pref("browser.sessionstore.dom_storage_limit", 2048);
+// Amount of failed SessionFile writes until we restart the worker.
+pref("browser.sessionstore.max_write_failures", 5);
 
 // allow META refresh by default
 pref("accessibility.blockautorefresh", false);

@@ -41,6 +41,7 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ErrorEventBinding.h"
 #include "mozilla/dom/EventTargetBinding.h"
+#include "mozilla/dom/FetchUtil.h"
 #include "mozilla/dom/MessageChannel.h"
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/WorkerBinding.h"
@@ -823,6 +824,22 @@ DispatchToEventLoop(void* aClosure, JS::Dispatchable* aDispatchable)
   return r->Dispatch();
 }
 
+static bool
+ConsumeStream(JSContext* aCx,
+              JS::HandleObject aObj,
+              JS::MimeType aMimeType,
+              JS::StreamConsumer* aConsumer)
+{
+  WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
+  if (!worker) {
+    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+                              JSMSG_ERROR_CONSUMING_RESPONSE);
+    return false;
+  }
+
+  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer, worker);
+}
+
 class WorkerJSContext;
 
 class WorkerThreadContextPrivate : private PerThreadAtomCache
@@ -909,6 +926,8 @@ InitJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSContext* aWorkerCx)
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
   JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoop, (void*)aWorkerPrivate);
+
+  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStream);
 
   if (!JS::InitSelfHostedCode(aWorkerCx)) {
     NS_WARNING("Could not init self-hosted code!");
@@ -1965,7 +1984,7 @@ RuntimeService::Init()
     do_GetService(kStreamTransportServiceCID, &rv);
   NS_ENSURE_TRUE(sts, NS_ERROR_FAILURE);
 
-  mIdleThreadTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  mIdleThreadTimer = NS_NewTimer();
   NS_ENSURE_STATE(mIdleThreadTimer);
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();

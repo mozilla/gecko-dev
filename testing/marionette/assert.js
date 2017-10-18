@@ -14,15 +14,16 @@ const {
   InvalidArgumentError,
   InvalidSessionIDError,
   NoSuchWindowError,
-  pprint,
   UnexpectedAlertOpenError,
   UnsupportedOperationError,
 } = Cu.import("chrome://marionette/content/error.js", {});
+const {pprint} = Cu.import("chrome://marionette/content/format.js", {});
 
 this.EXPORTED_SYMBOLS = ["assert"];
 
 const isFennec = () => AppConstants.platform == "android";
-const isFirefox = () => Services.appinfo.name == "Firefox";
+const isFirefox = () =>
+    Services.appinfo.ID == "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
 
 /**
  * Shorthands for common assertions made in Marionette.

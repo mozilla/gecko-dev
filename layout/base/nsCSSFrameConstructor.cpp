@@ -3819,14 +3819,8 @@ nsCSSFrameConstructor::FindInputData(Element* aElement,
                                  nsCSSAnonBoxes::buttonContent) },
     // TODO: this is temporary until a frame is written: bug 635240.
     SIMPLE_INT_CREATE(NS_FORM_INPUT_NUMBER, NS_NewNumberControlFrame),
-#if defined(MOZ_WIDGET_ANDROID)
-    // On Android, date/time input appears as a normal text box.
-    SIMPLE_INT_CREATE(NS_FORM_INPUT_TIME, NS_NewTextControlFrame),
-    SIMPLE_INT_CREATE(NS_FORM_INPUT_DATE, NS_NewTextControlFrame),
-#else
     SIMPLE_INT_CREATE(NS_FORM_INPUT_TIME, NS_NewDateTimeControlFrame),
     SIMPLE_INT_CREATE(NS_FORM_INPUT_DATE, NS_NewDateTimeControlFrame),
-#endif
     // TODO: this is temporary until a frame is written: bug 888320
     SIMPLE_INT_CREATE(NS_FORM_INPUT_MONTH, NS_NewTextControlFrame),
     // TODO: this is temporary until a frame is written: bug 888320
@@ -5303,7 +5297,6 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   // is not a suitable block.
   nsContainerFrame* blockFrame =
     NS_NewMathMLmathBlockFrame(mPresShell, blockContext);
-  blockFrame->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
 
   InitAndRestoreFrame(aState, aContent, aParentFrame, blockFrame);
   ReparentFrames(this, blockFrame, aBlockItems, false);
@@ -6292,12 +6285,10 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
 static void
 AddGenConPseudoToFrame(nsIFrame* aOwnerFrame, nsIContent* aContent)
 {
-  NS_ASSERTION(nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(aOwnerFrame),
-               "property should only be set on first continuation/ib-sibling");
-
   // FIXME(emilio): Remove this property, and use the frame of the generated
   // content itself to tear the content down? It should be quite simpler.
 
+  aOwnerFrame = nsLayoutUtils::FirstContinuationOrIBSplitSibling(aOwnerFrame);
   nsIFrame::ContentArray* value =
     aOwnerFrame->GetProperty(nsIFrame::GenConProperty());
   if (!value) {
@@ -6557,7 +6548,9 @@ AdjustAppendParentForAfterContent(nsFrameManager* aFrameManager,
   // frames to find the first one that is either a ::after frame for an
   // ancestor of aChild or a frame that is for a node later in the
   // document than aChild and return that in aAfterFrame.
-  if (aParentFrame->GetProperty(nsIFrame::GenConProperty()) ||
+  nsIFrame* afterBeforeOwnerFrame =
+    nsLayoutUtils::FirstContinuationOrIBSplitSibling(aParentFrame);
+  if (afterBeforeOwnerFrame->GetProperty(nsIFrame::GenConProperty()) ||
       nsLayoutUtils::HasPseudoStyle(aContainer, aParentFrame->StyleContext(),
                                     CSSPseudoElementType::after,
                                     aParentFrame->PresContext()) ||

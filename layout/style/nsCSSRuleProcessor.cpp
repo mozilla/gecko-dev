@@ -16,7 +16,6 @@
 #include <algorithm>
 #include "nsAtom.h"
 #include "PLDHashTable.h"
-#include "nsICSSPseudoComparator.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/css/ImportRule.h"
 #include "mozilla/css/StyleRule.h"
@@ -894,7 +893,8 @@ struct RuleCascadeData {
   nsTArray<nsCSSPageRule*> mPageRules;
   nsTArray<nsCSSCounterStyleRule*> mCounterStyleRules;
 
-  nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRuleTable;
+  nsDataHashtable<nsRefPtrHashKey<const nsAtom>,
+                  nsCSSKeyframesRule*> mKeyframesRuleTable;
   // The hashtable doesn't need to hold a strong reference to the name
   // atom, because nsCSSCounterStyleRule always does. If the name changes
   // we need to discard this table and rebuild it anyway.
@@ -952,17 +952,7 @@ RuleCascadeData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   n += mFontFeatureValuesRules.ShallowSizeOfExcludingThis(aMallocSizeOf);
   n += mPageRules.ShallowSizeOfExcludingThis(aMallocSizeOf);
   n += mCounterStyleRules.ShallowSizeOfExcludingThis(aMallocSizeOf);
-
   n += mKeyframesRuleTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
-  for (auto iter = mKeyframesRuleTable.ConstIter(); !iter.Done(); iter.Next()) {
-    // We don't own the nsCSSKeyframesRule objects so we don't count them. We
-    // do care about the size of the keys' nsAString members' buffers though.
-    //
-    // Note that we depend on nsStringHashKey::GetKey() returning a reference,
-    // since otherwise aKey would be a copy of the string key and we would not
-    // be measuring the right object here.
-    n += iter.Key().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
-  }
 
   return n;
 }
@@ -1153,11 +1143,6 @@ nsCSSRuleProcessor::InitSystemMetrics()
     sSystemMetrics->AppendElement(nsGkAtoms::windows_glass);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_ColorPickerAvailable, &metricResult);
-  if (NS_SUCCEEDED(rv) && metricResult) {
-    sSystemMetrics->AppendElement(nsGkAtoms::color_picker_available);
-  }
-
   rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsClassic, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(nsGkAtoms::windows_classic);
@@ -1172,12 +1157,6 @@ nsCSSRuleProcessor::InitSystemMetrics()
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(nsGkAtoms::swipe_animation_enabled);
-  }
-
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_PhysicalHomeButton,
-                           &metricResult);
-  if (NS_SUCCEEDED(rv) && metricResult) {
-    sSystemMetrics->AppendElement(nsGkAtoms::physical_home_button);
   }
 
 #ifdef XP_WIN
@@ -1759,15 +1738,6 @@ nsCSSRuleProcessor::StringPseudoMatches(const mozilla::dom::Element* aElement,
           }
         } else {
           // Selectors specifying other directions never match.
-          return false;
-        }
-      }
-      break;
-
-    case CSSPseudoClassType::mozSystemMetric:
-      {
-        RefPtr<nsAtom> metric = NS_Atomize(aString);
-        if (!nsCSSRuleProcessor::HasSystemMetric(metric)) {
           return false;
         }
       }
@@ -2612,6 +2582,22 @@ nsCSSRuleProcessor::RulesMatching(AnonBoxRuleProcessorData* aData)
 }
 
 #ifdef MOZ_XUL
+static bool
+XULTreePseudoMatches(nsCSSSelector* aSelector, const AtomArray& aInputWord)
+{
+  // Iterate the class list.  For each item in the list, see if
+  // it is contained in our scratch array.  If we have a miss, then
+  // we aren't a match.  If all items in the class list are
+  // present in the scratch array, then we have a match.
+  nsAtomList* curr = aSelector->mClassList;
+  while (curr) {
+    if (!aInputWord.Contains(curr->mAtom))
+      return false;
+    curr = curr->mNext;
+  }
+  return true;
+}
+
 /* virtual */ void
 nsCSSRuleProcessor::RulesMatching(XULTreeRuleProcessorData* aData)
 {
@@ -2626,7 +2612,7 @@ nsCSSRuleProcessor::RulesMatching(XULTreeRuleProcessorData* aData)
       nsTArray<RuleValue>& rules = entry->mRules;
       for (RuleValue *value = rules.Elements(), *end = value + rules.Length();
            value != end; ++value) {
-        if (aData->mComparator->PseudoMatches(value->mSelector)) {
+        if (XULTreePseudoMatches(value->mSelector, aData->mInputWord)) {
           ContentEnumFunc(*value, value->mSelector->mNext, aData, nodeContext,
                           nullptr);
         }
@@ -3103,7 +3089,7 @@ nsCSSRuleProcessor::AppendFontFaceRules(
 
 nsCSSKeyframesRule*
 nsCSSRuleProcessor::KeyframesRuleForName(nsPresContext* aPresContext,
-                                         const nsString& aName)
+                                         const nsAtom* aName)
 {
   RuleCascadeData* cascade = GetRuleCascade(aPresContext);
 

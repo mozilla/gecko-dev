@@ -219,11 +219,10 @@ public:
   // Resolves style for a (possibly-pseudo) Element without assuming that the
   // style has been resolved. If the element was unstyled and a new style
   // context was resolved, it is not stored in the DOM. (That is, the element
-  // remains unstyled.) |aPeudoTag| and |aPseudoType| must match.
+  // remains unstyled.)
   already_AddRefed<ServoStyleContext>
   ResolveStyleLazily(dom::Element* aElement,
                      CSSPseudoElementType aPseudoType,
-                     nsAtom* aPseudoTag,
                      StyleRuleInclusion aRules =
                        StyleRuleInclusion::All);
 
@@ -365,7 +364,7 @@ public:
    */
   already_AddRefed<ServoStyleContext> ResolveServoStyle(dom::Element* aElement);
 
-  bool GetKeyframesForName(const nsString& aName,
+  bool GetKeyframesForName(nsAtom* aName,
                            const nsTimingFunction& aTimingFunction,
                            nsTArray<Keyframe>& aKeyframes);
 
@@ -390,7 +389,6 @@ public:
   already_AddRefed<ServoStyleContext>
   GetBaseContextForElement(dom::Element* aElement,
                            nsPresContext* aPresContext,
-                           nsAtom* aPseudoTag,
                            CSSPseudoElementType aPseudoType,
                            const ServoStyleContext* aStyle);
 
@@ -480,6 +478,9 @@ public:
                        ServoStyleContext* aNewLayoutParent,
                        Element* aElement);
 
+  bool IsMaster() const { return mKind == Kind::Master; }
+  bool IsForXBL() const { return mKind == Kind::ForXBL; }
+
 private:
   friend class AutoSetInServoTraversal;
   friend class AutoPrepareTraversal;
@@ -490,9 +491,6 @@ private:
    * Gets the pending snapshots to handle from the restyle manager.
    */
   const SnapshotTable& Snapshots();
-
-  bool IsMaster() const { return mKind == Kind::Master; }
-  bool IsForXBL() const { return mKind == Kind::ForXBL; }
 
   /**
    * Resolve all ServoDeclarationBlocks attached to mapped
@@ -558,7 +556,6 @@ private:
   already_AddRefed<ServoStyleContext>
     ResolveStyleLazilyInternal(dom::Element* aElement,
                                CSSPseudoElementType aPseudoType,
-                               nsAtom* aPseudoTag,
                                StyleRuleInclusion aRules =
                                  StyleRuleInclusion::All,
                                bool aIgnoreExistingStyles = false);

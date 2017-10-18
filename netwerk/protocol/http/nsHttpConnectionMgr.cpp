@@ -305,7 +305,7 @@ nsHttpConnectionMgr::PruneDeadConnectionsAfter(uint32_t timeInSeconds)
     LOG(("nsHttpConnectionMgr::PruneDeadConnectionsAfter\n"));
 
     if(!mTimer)
-        mTimer = do_CreateInstance("@mozilla.org/timer;1");
+        mTimer = NS_NewTimer();
 
     // failure to create a timer is not a fatal error, but idle connections
     // will not be cleaned up until we try to use them.
@@ -2646,7 +2646,7 @@ nsHttpConnectionMgr::OnMsgVerifyTraffic(int32_t, ARefBase *)
 
     // If the timer is already there. we just re-init it
     if(!mTrafficTimer) {
-        mTrafficTimer = do_CreateInstance("@mozilla.org/timer;1");
+        mTrafficTimer = NS_NewTimer();
     }
 
     // failure to create a timer is not a fatal error, but dead
@@ -2882,7 +2882,7 @@ nsHttpConnectionMgr::ActivateTimeoutTick()
     }
 
     if (!mTimeoutTick) {
-        mTimeoutTick = do_CreateInstance(NS_TIMER_CONTRACTID);
+        mTimeoutTick = NS_NewTimer();
         if (!mTimeoutTick) {
             NS_WARNING("failed to create timer for http timeout management");
             return;
@@ -3278,7 +3278,7 @@ nsHttpConnectionMgr::EnsureThrottleTickerIfNeeded()
 
     MOZ_ASSERT(!mThrottlingInhibitsReading);
 
-    mThrottleTicker = do_CreateInstance("@mozilla.org/timer;1");
+    mThrottleTicker = NS_NewTimer();
     if (mThrottleTicker) {
         mThrottleTicker->Init(this, mThrottleSuspendFor, nsITimer::TYPE_ONE_SHOT);
         mThrottlingInhibitsReading = true;
@@ -3349,13 +3349,9 @@ nsHttpConnectionMgr::DelayedResumeBackgroundThrottledTransactions()
         return;
     }
 
-    mDelayedResumeReadTimer = do_CreateInstance("@mozilla.org/timer;1");
-    if (!mDelayedResumeReadTimer) {
-        return;
-    }
-
     LOG(("nsHttpConnectionMgr::DelayedResumeBackgroundThrottledTransactions"));
-    mDelayedResumeReadTimer->Init(this, mThrottleResumeIn, nsITimer::TYPE_ONE_SHOT);
+    NS_NewTimerWithObserver(getter_AddRefs(mDelayedResumeReadTimer),
+                            this, mThrottleResumeIn, nsITimer::TYPE_ONE_SHOT);
 }
 
 void
@@ -4014,12 +4010,9 @@ nsHttpConnectionMgr::nsHalfOpenSocket::SetupBackupTimer()
         //
         // Failure to setup the timer is something we can live with,
         // so don't return an error in that case.
-        nsresult rv;
-        mSynTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
-        if (NS_SUCCEEDED(rv)) {
-            mSynTimer->InitWithCallback(this, timeout, nsITimer::TYPE_ONE_SHOT);
-            LOG(("nsHalfOpenSocket::SetupBackupTimer() [this=%p]", this));
-        }
+        NS_NewTimerWithCallback(getter_AddRefs(mSynTimer),
+                                this, timeout, nsITimer::TYPE_ONE_SHOT);
+        LOG(("nsHalfOpenSocket::SetupBackupTimer() [this=%p]", this));
     } else if (timeout) {
         LOG(("nsHalfOpenSocket::SetupBackupTimer() [this=%p], did not arm\n", this));
     }
@@ -4765,12 +4758,10 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
 
     MOZ_ASSERT((trans == mSocketTransport) || (trans == mBackupTransport));
     MOZ_ASSERT(mEnt);
-
     if (mTransaction) {
-        RefPtr<PendingTransactionInfo> info = FindTransactionHelper(false);
         if ((trans == mSocketTransport) ||
             ((trans == mBackupTransport) && (status == NS_NET_STATUS_CONNECTED_TO) &&
-            info)) {
+             mSocketTransport)) {
             // Send this status event only if the transaction is still pending,
             // i.e. it has not found a free already connected socket.
             // Sockets in halfOpen state can only get following events:
@@ -4779,6 +4770,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
             // mBackupTransport is only started after
             // NS_NET_STATUS_CONNECTING_TO of mSocketTransport, so ignore all
             // mBackupTransport events until NS_NET_STATUS_CONNECTED_TO.
+            // mBackupTransport must be connected before mSocketTransport.
             mTransaction->OnTransportStatus(trans, status, progress);
         }
     }

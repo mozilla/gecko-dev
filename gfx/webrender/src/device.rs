@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::shader_source;
-use api::{ColorF, ImageFormat};
+use api::ImageFormat;
 use api::{DeviceIntRect, DeviceUintSize};
 use euclid::Transform3D;
 use gleam::gl;
@@ -182,6 +182,11 @@ pub fn build_shader_strings(
     // GLSL requires that the version number comes first.
     vs_source.push_str(gl_version_string);
     fs_source.push_str(gl_version_string);
+
+    // Insert the shader name to make debugging easier.
+    let name_string = format!("// {}\n", base_filename);
+    vs_source.push_str(&name_string);
+    fs_source.push_str(&name_string);
 
     // Define a constant depending on whether we are compiling VS or FS.
     vs_source.push_str(SHADER_KIND_VERTEX);
@@ -425,6 +430,7 @@ pub struct Program {
     id: gl::GLuint,
     u_transform: gl::GLint,
     u_device_pixel_ratio: gl::GLint,
+    u_mode: gl::GLint,
 }
 
 impl Drop for Program {
@@ -1407,11 +1413,13 @@ impl Device {
 
         let u_transform = self.gl.get_uniform_location(pid, "uTransform");
         let u_device_pixel_ratio = self.gl.get_uniform_location(pid, "uDevicePixelRatio");
+        let u_mode = self.gl.get_uniform_location(pid, "uMode");
 
         let program = Program {
             id: pid,
             u_transform,
             u_device_pixel_ratio,
+            u_mode,
         };
 
         self.bind_program(&program);
@@ -1443,12 +1451,19 @@ impl Device {
         self.gl.uniform_2f(location, x, y);
     }
 
-    pub fn set_uniforms(&self, program: &Program, transform: &Transform3D<f32>) {
+    pub fn set_uniforms(
+        &self,
+        program: &Program,
+        transform: &Transform3D<f32>,
+        mode: i32,
+    ) {
         debug_assert!(self.inside_frame);
         self.gl
             .uniform_matrix_4fv(program.u_transform, false, &transform.to_row_major_array());
         self.gl
             .uniform_1f(program.u_device_pixel_ratio, self.device_pixel_ratio);
+        self.gl
+            .uniform_1i(program.u_mode, mode);
     }
 
     pub fn create_pbo(&mut self) -> PBO {
@@ -1842,12 +1857,6 @@ impl Device {
         self.gl.blend_equation(gl::FUNC_ADD);
     }
 
-    pub fn set_blend_mode_subpixel(&self, color: ColorF) {
-        self.gl.blend_color(color.r, color.g, color.b, color.a);
-        self.gl
-            .blend_func(gl::CONSTANT_COLOR, gl::ONE_MINUS_SRC_COLOR);
-    }
-
     pub fn set_blend_mode_multiply(&self) {
         self.gl
             .blend_func_separate(gl::ZERO, gl::SRC_COLOR, gl::ZERO, gl::SRC_ALPHA);
@@ -1862,6 +1871,12 @@ impl Device {
         self.gl
             .blend_func_separate(gl::ONE, gl::ONE, gl::ONE, gl::ONE);
         self.gl.blend_equation_separate(gl::MIN, gl::FUNC_ADD);
+    }
+    pub fn set_blend_mode_subpixel_pass0(&self) {
+        self.gl.blend_func(gl::ZERO, gl::ONE_MINUS_SRC_COLOR);
+    }
+    pub fn set_blend_mode_subpixel_pass1(&self) {
+        self.gl.blend_func(gl::ONE, gl::ONE);
     }
 }
 

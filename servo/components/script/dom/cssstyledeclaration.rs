@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use style::attr::AttrValue;
-use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
+use style::properties::{DeclarationSource, Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
@@ -193,11 +193,11 @@ impl CSSStyleDeclaration {
                pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess)
                -> DomRoot<CSSStyleDeclaration> {
-        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner,
-                                                                  pseudo,
-                                                                  modification_access),
-                           global,
-                           CSSStyleDeclarationBinding::Wrap)
+        reflect_dom_object(
+            Box::new(CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access)),
+            global,
+            CSSStyleDeclarationBinding::Wrap
+        )
     }
 
     fn get_computed_style(&self, property: PropertyId) -> DOMString {
@@ -274,7 +274,11 @@ impl CSSStyleDeclaration {
 
             // Step 7
             // Step 8
-            *changed = pdb.extend_reset(declarations.drain(), importance);
+            *changed = pdb.extend(
+                declarations.drain(),
+                importance,
+                DeclarationSource::CssOm,
+            );
 
             Ok(())
         })

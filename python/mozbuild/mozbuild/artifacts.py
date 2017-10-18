@@ -744,7 +744,13 @@ class ArtifactPersistLimit(PersistLimit):
             if f.path in self._downloaded_now:
                 kept.append(f)
                 continue
-            fs.remove(f.path)
+            try:
+                fs.remove(f.path)
+            except WindowsError:
+                # For some reason, on automation, we can't remove those files.
+                # So for now, ignore the error.
+                kept.append(f)
+                continue
             self.log(logging.INFO, 'artifact',
                 {'filename': f.path},
                 'Purged artifact {filename}')
@@ -790,7 +796,9 @@ class ArtifactCache(object):
             # human readable unique name, but extracting build IDs is time consuming
             # (especially on Mac OS X, where we must mount a large DMG file).
             hash = hashlib.sha256(url).hexdigest()[:16]
-            fname = hash + '-' + os.path.basename(url)
+            # Strip query string and fragments.
+            basename = os.path.basename(urlparse.urlparse(url).path)
+            fname = hash + '-' + basename
 
         path = os.path.abspath(mozpath.join(self._cache_dir, fname))
         if self._skip_cache and os.path.exists(path):

@@ -11,12 +11,12 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("chrome://marionette/content/assert.js");
 Cu.import("chrome://marionette/content/element.js");
 const {
-  pprint,
   InvalidArgumentError,
   MoveTargetOutOfBoundsError,
   UnsupportedOperationError,
 } = Cu.import("chrome://marionette/content/error.js", {});
 Cu.import("chrome://marionette/content/event.js");
+const {pprint} = Cu.import("chrome://marionette/content/format.js", {});
 Cu.import("chrome://marionette/content/interaction.js");
 
 this.EXPORTED_SYMBOLS = ["action"];
@@ -1321,7 +1321,7 @@ function dispatchPointerMove(a, inputState, tickDuration, seenEls, window) {
     const [startX, startY] = [inputState.x, inputState.y];
 
     let target = action.computePointerDestination(a, inputState,
-        getElementCenter(a.origin, seenEls));
+        getElementCenter(a.origin, seenEls, window));
     const [targetX, targetY] = [target.x, target.y];
 
     if (!inViewPort(targetX, targetY, window)) {
@@ -1430,11 +1430,11 @@ function inViewPort(x, y, win) {
   return !(x < 0 || y < 0 || x > win.innerWidth || y > win.innerHeight);
 }
 
-function getElementCenter(elementReference, seenEls) {
+function getElementCenter(elementReference, seenEls, window) {
   if (element.isWebElementReference(elementReference)) {
     let uuid = elementReference[element.Key] ||
         elementReference[element.LegacyKey];
-    let el = seenEls.get(uuid);
+    let el = seenEls.get(uuid, window);
     return element.coordinates(el);
   }
   return {};

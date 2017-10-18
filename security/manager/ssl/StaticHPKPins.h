@@ -131,6 +131,10 @@ static const char kGOOGLE_PIN_COMODORSADomainValidationSecureServerCAFingerprint
 static const char kGOOGLE_PIN_DigiCertECCSecureServerCAFingerprint[] =
   "PZXN3lRAy+8tBKk2Ox6F7jIlnzr2Yzmwqc3JnyfXoCw=";
 
+/* GOOGLE_PIN_DigiCertSHA2HighAssuranceServerCA */
+static const char kGOOGLE_PIN_DigiCertSHA2HighAssuranceServerCAFingerprint[] =
+  "k2v657xBsOVe1PQRwOsHsw3bsGT2VzIqz5K+59sNQws=";
+
 /* GOOGLE_PIN_Entrust_SSL */
 static const char kGOOGLE_PIN_Entrust_SSLFingerprint[] =
   "nsxRNo6G40YPZsKV5JQt1TCA8nseQQr/LRqp1Oa8fnw=";
@@ -298,6 +302,10 @@ static const char kTor2Fingerprint[] =
 /* Tor3 */
 static const char kTor3Fingerprint[] =
   "CleC1qwUR8JPgH1nXvSe2VHxDe5/KfNs96EusbfSOfo=";
+
+/* TumblrBackup */
+static const char kTumblrBackupFingerprint[] =
+  "avlD96PLERV78IN1fD+ab5cupkUDD9wTZWJjHX6VC9w=";
 
 /* Twitter1 */
 static const char kTwitter1Fingerprint[] =
@@ -594,19 +602,18 @@ static const StaticFingerprints kPinset_spideroak = {
 static const char* const kPinset_yahoo_Data[] = {
   kYahooBackup1Fingerprint,
   kGOOGLE_PIN_VeriSignClass2_G2Fingerprint,
+  kDigiCert_Assured_ID_Root_CAFingerprint,
   kVeriSign_Class_3_Public_Primary_Certification_Authority___G5Fingerprint,
-  kGeoTrust_Primary_Certification_AuthorityFingerprint,
   kVerisign_Class_3_Public_Primary_Certification_Authority___G3Fingerprint,
   kVeriSign_Class_3_Public_Primary_Certification_Authority___G4Fingerprint,
+  kDigiCert_Trusted_Root_G4Fingerprint,
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
   kVerisign_Class_2_Public_Primary_Certification_Authority___G3Fingerprint,
   kYahooBackup2Fingerprint,
-  kGeoTrust_Global_CAFingerprint,
+  kDigiCert_Global_Root_G2Fingerprint,
   kVeriSign_Universal_Root_Certification_AuthorityFingerprint,
-  kGeoTrust_Universal_CAFingerprint,
-  kGeoTrust_Primary_Certification_Authority___G3Fingerprint,
   kDigiCert_Global_Root_CAFingerprint,
-  kGeoTrust_Primary_Certification_Authority___G2Fingerprint,
+  kDigiCert_Global_Root_G3Fingerprint,
 };
 static const StaticFingerprints kPinset_yahoo = {
   sizeof(kPinset_yahoo_Data) / sizeof(const char*),
@@ -640,6 +647,16 @@ static const char* const kPinset_ncsccs_Data[] = {
 static const StaticFingerprints kPinset_ncsccs = {
   sizeof(kPinset_ncsccs_Data) / sizeof(const char*),
   kPinset_ncsccs_Data
+};
+
+static const char* const kPinset_tumblr_Data[] = {
+  kDigiCert_High_Assurance_EV_Root_CAFingerprint,
+  kTumblrBackupFingerprint,
+  kGOOGLE_PIN_DigiCertSHA2HighAssuranceServerCAFingerprint,
+};
+static const StaticFingerprints kPinset_tumblr = {
+  sizeof(kPinset_tumblr_Data) / sizeof(const char*),
+  kPinset_tumblr_Data
 };
 
 /* Domainlist */
@@ -1124,6 +1141,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "www.googlemail.com", false, false, false, -1, &kPinset_google_root_pems },
   { "www.messenger.com", true, false, false, -1, &kPinset_facebook },
   { "www.torproject.org", true, false, false, -1, &kPinset_tor },
+  { "www.tumblr.com", false, true, false, -1, &kPinset_tumblr },
   { "www.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "xa.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "xbrlsuccess.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1136,8 +1154,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "zh.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
 };
 
-// Pinning Preload List Length = 479;
+// Pinning Preload List Length = 480;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1516081864552000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1516772752763000);

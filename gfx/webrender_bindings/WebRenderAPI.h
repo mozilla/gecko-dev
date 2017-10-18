@@ -208,6 +208,10 @@ public:
 
   ~DisplayListBuilder();
 
+  void Save();
+  void Restore();
+  void ClearSave();
+
   void Finalize(wr::LayoutSize& aOutContentSize,
                 wr::BuiltDisplayList& aOutDisplayList);
 
@@ -225,8 +229,8 @@ public:
   wr::WrClipId DefineClip(const wr::LayoutRect& aClipRect,
                           const nsTArray<wr::ComplexClipRegion>* aComplex = nullptr,
                           const wr::WrImageMask* aMask = nullptr);
-  void PushClip(const wr::WrClipId& aClipId, bool aMask = false);
-  void PopClip(bool aMask = false);
+  void PushClip(const wr::WrClipId& aClipId, bool aExtra = false);
+  void PopClip(bool aExtra = false);
 
   wr::WrStickyId DefineStickyFrame(const wr::LayoutRect& aContentRect,
                                    const wr::StickySideConstraint* aTop,
@@ -370,7 +374,7 @@ public:
                       bool aIsBackfaceVisible,
                       const wr::Shadow& aShadow);
 
-  void PopShadow();
+  void PopAllShadows();
 
 
 
@@ -399,8 +403,8 @@ public:
   // Try to avoid using this when possible.
   wr::WrState* Raw() { return mWrState; }
 
-  // Return true if the current clip stack has any mask type clip.
-  bool HasMaskClip() { return mMaskClipCount > 0; }
+  // Return true if the current clip stack has any extra clip.
+  bool HasExtraClip() { return mExtraClipCount > 0; }
 
 protected:
   wr::WrState* mWrState;
@@ -417,8 +421,8 @@ protected:
   // ensure that we don't define a particular scroll layer multiple times.
   std::unordered_map<layers::FrameMetrics::ViewID, Maybe<layers::FrameMetrics::ViewID>> mScrollParents;
 
-  // The number of mask clips that are in the stack.
-  uint32_t mMaskClipCount;
+  // The number of extra clips that are in the stack.
+  uint32_t mExtraClipCount;
 
   friend class WebRenderAPI;
 };

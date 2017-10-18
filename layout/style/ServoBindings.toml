@@ -449,6 +449,7 @@ structs-types = [
     "nsCSSKeyword",
     "nsCSSPropertyID",
     "nsCSSPropertyIDSet",
+    "nsCSSRect",
     "nsCSSShadowArray",
     "nsCSSUnit",
     "nsCSSValue",
@@ -520,6 +521,7 @@ structs-types = [
     "ParsingMode",
     "InheritTarget",
     "URLMatchingFunction",
+    "StyleAnimation",
     "StyleRuleInclusion",
     "nsStyleTransformMatrix::MatrixTransformOperator",
     "RawGeckoGfxMatrix4x4",
@@ -541,7 +543,6 @@ servo-immutable-borrow-types = [
     "RawGeckoDocument",
     "RawServoDeclarationBlockStrong",
     "RawGeckoPresContext",
-    "RawGeckoStyleAnimationList",
     "RawGeckoXBLBinding",
 ]
 servo-borrow-types = [
@@ -557,6 +558,7 @@ servo-borrow-types = [
     "RawGeckoFontFaceRuleList",
     "RawGeckoServoStyleRuleList",
     "RawGeckoServoAnimationValueList",
+    "RawGeckoStyleAnimationList",
     "RawGeckoStyleChildrenIterator",
 ]
 fixups = [

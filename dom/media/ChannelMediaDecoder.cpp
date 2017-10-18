@@ -30,8 +30,7 @@ ChannelMediaDecoder::ResourceCallback::Connect(ChannelMediaDecoder* aDecoder)
 {
   MOZ_ASSERT(NS_IsMainThread());
   mDecoder = aDecoder;
-  mTimer = do_CreateInstance("@mozilla.org/timer;1");
-  mTimer->SetTarget(mAbstractMainThread->AsEventTarget());
+  mTimer = NS_NewTimer(mAbstractMainThread->AsEventTarget());
 }
 
 void
@@ -171,6 +170,28 @@ ChannelMediaDecoder::ChannelMediaDecoder(MediaDecoderInit& aInit)
 
   // mIgnoreProgressData
   mWatchManager.Watch(mLogicallySeeking, &ChannelMediaDecoder::SeekingChanged);
+}
+
+/* static */
+already_AddRefed<ChannelMediaDecoder>
+ChannelMediaDecoder::Create(MediaDecoderInit& aInit,
+                            DecoderDoctorDiagnostics* aDiagnostics)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  RefPtr<ChannelMediaDecoder> decoder;
+
+  const MediaContainerType& type = aInit.mContainerType;
+  if (DecoderTraits::IsSupportedType(type)) {
+    decoder = new ChannelMediaDecoder(aInit);
+    return decoder.forget();
+  }
+
+  if (DecoderTraits::IsHttpLiveStreamingType(type)) {
+    // We don't have an HLS decoder.
+    Telemetry::Accumulate(Telemetry::MEDIA_HLS_DECODER_SUCCESS, false);
+  }
+
+  return nullptr;
 }
 
 bool

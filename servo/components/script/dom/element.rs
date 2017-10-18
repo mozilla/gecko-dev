@@ -87,25 +87,26 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
+use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
-use selectors::matching::{RelevantLinkStatus, matches_selector_list};
 use selectors::sink::Push;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
-use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
 use std::mem;
 use std::rc::Rc;
+use std::str::FromStr;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
+use style::dom_apis;
 use style::element_state::*;
 use style::invalidation::element::restyle_hints::RESTYLE_SELF;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -119,6 +120,11 @@ use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
 use stylesheet_loader::StylesheetOwner;
 use task::TaskOnce;
+use xml5ever::serialize as xmlSerialize;
+use xml5ever::serialize::SerializeOpts as XmlSerializeOpts;
+use xml5ever::serialize::TraversalScope as XmlTraversalScope;
+use xml5ever::serialize::TraversalScope::ChildrenOnly as XmlChildrenOnly;
+use xml5ever::serialize::TraversalScope::IncludeNode as XmlIncludeNode;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -212,10 +218,10 @@ pub enum AdjacentPosition {
     BeforeEnd,
 }
 
-impl<'a> TryFrom<&'a str> for AdjacentPosition {
-    type Error = Error;
+impl FromStr for AdjacentPosition {
+    type Err = Error;
 
-    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Error> {
+    fn from_str(position: &str) -> Result<Self, Self::Err> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
@@ -275,7 +281,7 @@ impl Element {
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<Element> {
         Node::reflect_node(
-            box Element::new_inherited(local_name, namespace, prefix, document),
+            Box::new(Element::new_inherited(local_name, namespace, prefix, document)),
             document,
             ElementBinding::Wrap)
     }
@@ -1003,6 +1009,19 @@ impl Element {
         }
     }
 
+    pub fn xmlSerialize(&self, traversal_scope: XmlTraversalScope) -> Fallible<DOMString> {
+        let mut writer = vec![];
+        match xmlSerialize::serialize(&mut writer,
+                        &self.upcast::<Node>(),
+                        XmlSerializeOpts {
+                            traversal_scope: traversal_scope,
+                            ..Default::default()
+                        }) {
+            Ok(()) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
+            Err(_) => panic!("Cannot serialize element"),
+        }
+    }
+
     pub fn root_element(&self) -> DomRoot<Element> {
         if self.node.is_in_doc() {
             self.upcast::<Node>()
@@ -1301,21 +1320,17 @@ impl Element {
 
     pub fn get_url_attribute(&self, local_name: &LocalName) -> DOMString {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        if !self.has_attribute(local_name) {
-            return DOMString::new();
-        }
-        let url = self.get_string_attribute(local_name);
-        let doc = document_from_node(self);
-        let base = doc.base_url();
-        // https://html.spec.whatwg.org/multipage/#reflect
+        let attr = match self.get_attribute(&ns!(), local_name) {
+            Some(attr) => attr,
+            None => return DOMString::new(),
+        };
+        let value = &**attr.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        match base.join(&url) {
-            Ok(parsed) => DOMString::from(parsed.into_string()),
-            Err(_) => DOMString::from(""),
-        }
-    }
-    pub fn set_url_attribute(&self, local_name: &LocalName, value: DOMString) {
-        self.set_string_attribute(local_name, value);
+        let base = document_from_node(self).base_url();
+        let value = base.join(value)
+            .map(|parsed| parsed.into_string())
+            .unwrap_or_else(|_| value.to_owned());
+        DOMString::from(value)
     }
 
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
@@ -1324,6 +1339,7 @@ impl Element {
             None => DOMString::new(),
         }
     }
+
     pub fn set_string_attribute(&self, local_name: &LocalName, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.into()));
@@ -2049,11 +2065,14 @@ impl ElementMethods for Element {
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
-        // XXX TODO: XML case
         let qname = QualName::new(self.prefix().clone(),
                                   self.namespace().clone(),
                                   self.local_name().clone());
-        self.serialize(ChildrenOnly(Some(qname)))
+        if document_from_node(self).is_html_document() {
+            return self.serialize(ChildrenOnly(Some(qname)));
+        } else {
+            return self.xmlSerialize(XmlChildrenOnly(Some(qname)));
+        }
     }
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
@@ -2073,7 +2092,11 @@ impl ElementMethods for Element {
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
-        self.serialize(IncludeNode)
+        if document_from_node(self).is_html_document() {
+            return self.serialize(IncludeNode);
+        } else {
+            return self.xmlSerialize(XmlIncludeNode);
+        }
     }
 
     // https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
@@ -2187,16 +2210,16 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(_) => Err(Error::Syntax),
-            Ok(selectors) => {
-                let quirks_mode = document_from_node(self).quirks_mode();
-                // FIXME(bholley): Consider an nth-index cache here.
-                let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
-                                                   quirks_mode);
-                Ok(matches_selector_list(&selectors, &DomRoot::from_ref(self), &mut ctx))
-            }
-        }
+        let selectors =
+            match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+                Err(_) => return Err(Error::Syntax),
+                Ok(selectors) => selectors,
+            };
+
+        let quirks_mode = document_from_node(self).quirks_mode();
+        let element = DomRoot::from_ref(self);
+
+        Ok(dom_apis::element_matches(&element, &selectors, quirks_mode))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector
@@ -2206,30 +2229,24 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(_) => Err(Error::Syntax),
-            Ok(selectors) => {
-                let root = self.upcast::<Node>();
-                for element in root.inclusive_ancestors() {
-                    if let Some(element) = DomRoot::downcast::<Element>(element) {
-                        let quirks_mode = document_from_node(self).quirks_mode();
-                        // FIXME(bholley): Consider an nth-index cache here.
-                        let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
-                                                           quirks_mode);
-                        if matches_selector_list(&selectors, &element, &mut ctx) {
-                            return Ok(Some(element));
-                        }
-                    }
-                }
-                Ok(None)
-            }
-        }
+        let selectors =
+            match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+                Err(_) => return Err(Error::Syntax),
+                Ok(selectors) => selectors,
+            };
+
+        let quirks_mode = document_from_node(self).quirks_mode();
+        Ok(dom_apis::element_closest(
+            DomRoot::from_ref(self),
+            &selectors,
+            quirks_mode,
+        ))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<DomRoot<Element>>> {
-        let where_ = AdjacentPosition::try_from(&*where_)?;
+        let where_ = where_.parse::<AdjacentPosition>()?;
         let inserted_node = self.insert_adjacent(where_, element.upcast())?;
         Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
@@ -2241,7 +2258,7 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
-        let where_ = AdjacentPosition::try_from(&*where_)?;
+        let where_ = where_.parse::<AdjacentPosition>()?;
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 
@@ -2249,7 +2266,7 @@ impl ElementMethods for Element {
     fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
                           -> ErrorResult {
         // Step 1.
-        let position = AdjacentPosition::try_from(&*position)?;
+        let position = position.parse::<AdjacentPosition>()?;
 
         let context = match position {
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
@@ -2500,7 +2517,7 @@ impl VirtualMethods for Element {
     }
 }
 
-impl<'a> ::selectors::Element for DomRoot<Element> {
+impl<'a> SelectorsElement for DomRoot<Element> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
@@ -2579,7 +2596,7 @@ impl<'a> ::selectors::Element for DomRoot<Element> {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    _: &mut LocalMatchingContext<Self::Impl>,
+                                    _: &mut MatchingContext,
                                     _: &RelevantLinkStatus,
                                     _: &mut F)
                                     -> bool
@@ -3048,11 +3065,11 @@ pub struct ElementPerformFullscreenEnter {
 
 impl ElementPerformFullscreenEnter {
     pub fn new(element: Trusted<Element>, promise: TrustedPromise, error: bool) -> Box<ElementPerformFullscreenEnter> {
-        box ElementPerformFullscreenEnter {
+        Box::new(ElementPerformFullscreenEnter {
             element: element,
             promise: promise,
             error: error,
-        }
+        })
     }
 }
 
@@ -3091,10 +3108,10 @@ pub struct ElementPerformFullscreenExit {
 
 impl ElementPerformFullscreenExit {
     pub fn new(element: Trusted<Element>, promise: TrustedPromise) -> Box<ElementPerformFullscreenExit> {
-        box ElementPerformFullscreenExit {
+        Box::new(ElementPerformFullscreenExit {
             element: element,
             promise: promise,
-        }
+        })
     }
 }
 

@@ -110,11 +110,9 @@ def target_tasks_try(full_task_graph, parameters):
     elif try_mode == 'try_option_syntax':
         return _try_option_syntax(full_task_graph, parameters)
     else:
-        # With no try mode, we would like to schedule everything (following
-        # run_on_projects) and let optimization trim it down.  But optimization
-        # isn't yet up to the task, so instead we use try_option_syntax with
-        # an empty message (which basically just schedules `-j`objs)
-        return _try_option_syntax(full_task_graph, parameters)
+        # With no try mode, we schedule nothing, allowing the user to add tasks
+        # later via treeherder.
+        return []
 
 
 @_target_task('default')
@@ -304,6 +302,10 @@ def target_tasks_candidates_fennec(full_task_graph, parameters):
     filtered_for_project = target_tasks_nightly_fennec(full_task_graph, parameters)
 
     def filter(task):
+        attr = task.attributes.get
+        # Don't ship single locale fennec anymore - Bug 1408083
+        if attr("locale") or attr("chunk_locales"):
+            return False
         if task.kind not in ['balrog']:
             return task.attributes.get('nightly', False)
 

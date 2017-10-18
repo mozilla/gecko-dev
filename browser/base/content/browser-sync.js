@@ -297,7 +297,7 @@ var gSync = {
 
   populateSendTabToDevicesMenu(devicesPopup, url, title, createDeviceNodeFn) {
     if (!createDeviceNodeFn) {
-      createDeviceNodeFn = (clientId, name, clientType) => {
+      createDeviceNodeFn = (clientId, name, clientType, lastModified) => {
         let eltName = name ? "menuitem" : "menuseparator";
         return document.createElement(eltName);
       };
@@ -340,10 +340,10 @@ var gSync = {
         this.remoteClients.map(client => client.id);
 
       clients.forEach(clientId => this.sendTabToDevice(url, clientId, title));
-    }
+    };
 
-    function addTargetDevice(clientId, name, clientType) {
-      const targetDevice = createDeviceNodeFn(clientId, name, clientType);
+    function addTargetDevice(clientId, name, clientType, lastModified) {
+      const targetDevice = createDeviceNodeFn(clientId, name, clientType, lastModified);
       targetDevice.addEventListener("command", onTargetDeviceCommand, true);
       targetDevice.classList.add("sync-menuitem", "sendtab-target");
       targetDevice.setAttribute("clientId", clientId);
@@ -356,7 +356,7 @@ var gSync = {
     for (let client of clients) {
       const type = client.formfactor && client.formfactor.includes("tablet") ?
                    "tablet" : client.type;
-      addTargetDevice(client.id, client.name, type);
+      addTargetDevice(client.id, client.name, type, client.serverLastModified * 1000);
     }
 
     // "Send to All Devices" menu item
@@ -465,9 +465,12 @@ var gSync = {
                               contextMenu.onVideo || contextMenu.onAudio ||
                               contextMenu.onLink || contextMenu.onTextInput);
 
-    ["context-sendpagetodevice", "context-sep-sendpagetodevice"]
+    // Avoids double separator on images with links.
+    const hideSeparator = contextMenu.isContentSelected &&
+                          contextMenu.onLink && contextMenu.onImage;
+    ["context-sendpagetodevice", ...(hideSeparator ? [] : ["context-sep-sendpagetodevice"])]
     .forEach(id => contextMenu.showItem(id, showSendPage));
-    ["context-sendlinktodevice", "context-sep-sendlinktodevice"]
+    ["context-sendlinktodevice", ...(hideSeparator ? [] : ["context-sep-sendlinktodevice"])]
     .forEach(id => contextMenu.showItem(id, showSendLink));
 
     if (!showSendLink && !showSendPage) {

@@ -95,6 +95,7 @@
 #include "nsBidi.h"
 
 #include "mozilla/dom/URL.h"
+#include "mozilla/ServoCSSParser.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -146,17 +147,29 @@ private:
 nscolor
 nsPresContext::MakeColorPref(const nsString& aColor)
 {
-  nsCSSParser parser;
-  nsCSSValue value;
-  if (!parser.ParseColorString(aColor, nullptr, 0, value)) {
-    // Any better choices?
-    return NS_RGB(0, 0, 0);
+  bool ok;
+  nscolor result;
+
+  ServoStyleSet* servoStyleSet = mShell && mShell->StyleSet()
+    ? mShell->StyleSet()->GetAsServo()
+    : nullptr;
+
+  if (servoStyleSet) {
+    ok = ServoCSSParser::ComputeColor(servoStyleSet, NS_RGB(0, 0, 0), aColor,
+                                      &result);
+  } else {
+    nsCSSParser parser;
+    nsCSSValue value;
+    ok = parser.ParseColorString(aColor, nullptr, 0, value) &&
+         nsRuleNode::ComputeColor(value, this, nullptr, result);
   }
 
-  nscolor color;
-  return nsRuleNode::ComputeColor(value, this, nullptr, color)
-    ? color
-    : NS_RGB(0, 0, 0);
+  if (!ok) {
+    // Any better choices?
+    result = NS_RGB(0, 0, 0);
+  }
+
+  return result;
 }
 
 bool
@@ -1356,7 +1369,10 @@ nsPresContext::UpdateEffectiveTextZoom()
 
   mEffectiveTextZoom = newZoom;
 
-  if (HasCachedStyleData()) {
+  // In case of servo, stylist.device might have already generated the default
+  // computed values with the previous effective text zoom value even if the
+  // pres shell has not initialized yet.
+  if (mDocument->IsStyledByServo() || HasCachedStyleData()) {
     // Media queries could have changed, since we changed the meaning
     // of 'em' units in them.
     MediaFeatureValuesChanged(eRestyle_ForceDescendants,
@@ -1868,16 +1884,17 @@ nsPresContext::SysColorChangedInternal()
 void
 nsPresContext::RefreshSystemMetrics()
 {
-  // This will force the system metrics to be generated the next time they're used
+  // This will force the system metrics to be generated the next time they're
+  // used.
   nsCSSRuleProcessor::FreeSystemMetrics();
 
-  // Changes to system metrics can change media queries on them, or
-  // :-moz-system-metric selectors (which requires eRestyle_Subtree).
+  // Changes to system metrics can change media queries on them.
+  //
   // Changes in theme can change system colors (whose changes are
   // properly reflected in computed style data), system fonts (whose
   // changes are not), and -moz-appearance (whose changes likewise are
-  // not), so we need to reflow.
-  MediaFeatureValuesChanged(eRestyle_Subtree, NS_STYLE_HINT_REFLOW);
+  // not), so we need to recascade for the first, and reflow for the rest.
+  MediaFeatureValuesChanged(eRestyle_ForceDescendants, NS_STYLE_HINT_REFLOW);
 }
 
 void
@@ -2253,16 +2270,29 @@ nsPresContext::HasAuthorSpecifiedRules(const nsIFrame* aFrame,
   }
   Element* elem = aFrame->GetContent()->AsElement();
 
-  MOZ_ASSERT(elem->GetPseudoElementType() ==
-             aFrame->StyleContext()->GetPseudoType());
-  if (elem->HasServoData()) {
-    return Servo_HasAuthorSpecifiedRules(elem,
-                                         aRuleTypeMask,
-                                         UseDocumentColors());
-  } else {
+  // We need to handle non-generated content pseudos too, so we use
+  // the parent of generated content pseudo to be consistent.
+  if (elem->GetPseudoElementType() != CSSPseudoElementType::NotPseudo) {
+    MOZ_ASSERT(elem->GetParent(), "Pseudo element has no parent element?");
+    elem = elem->GetParent()->AsElement();
+  }
+  if (MOZ_UNLIKELY(!elem->HasServoData())) {
     // Probably shouldn't happen, but does. See bug 1387953
     return false;
   }
+
+  nsStyleContext* styleContext = aFrame->StyleContext();
+  CSSPseudoElementType pseudoType = styleContext->GetPseudoType();
+  // Anonymous boxes are more complicated, and we just assume that they
+  // cannot have any author-specified rules here.
+  if (pseudoType == CSSPseudoElementType::InheritingAnonBox ||
+      pseudoType == CSSPseudoElementType::NonInheritingAnonBox) {
+    return false;
+  }
+  return Servo_HasAuthorSpecifiedRules(styleContext->AsServo(),
+                                       elem, pseudoType,
+                                       aRuleTypeMask,
+                                       UseDocumentColors());
 }
 
 gfxUserFontSet*
@@ -2768,18 +2798,13 @@ nsPresContext::CreateTimer(nsTimerCallbackFunc aCallback,
                            const char* aName,
                            uint32_t aDelay)
 {
-  nsCOMPtr<nsITimer> timer = do_CreateInstance("@mozilla.org/timer;1");
-  timer->SetTarget(Document()->EventTargetFor(TaskCategory::Other));
-  if (timer) {
-    nsresult rv = timer->InitWithNamedFuncCallback(aCallback, this, aDelay,
-                                                   nsITimer::TYPE_ONE_SHOT,
-                                                   aName);
-    if (NS_SUCCEEDED(rv)) {
-      return timer.forget();
-    }
-  }
-
-  return nullptr;
+  nsCOMPtr<nsITimer> timer;
+  NS_NewTimerWithFuncCallback(getter_AddRefs(timer),
+                              aCallback, this, aDelay,
+                              nsITimer::TYPE_ONE_SHOT,
+                              aName,
+                              Document()->EventTargetFor(TaskCategory::Other));
+  return timer.forget();
 }
 
 static bool sGotInterruptEnv = false;
@@ -3416,21 +3441,20 @@ nsRootPresContext::EnsureEventualDidPaintEvent(uint64_t aTransactionId)
     }
   }
 
-  nsCOMPtr<nsITimer> timer = do_CreateInstance("@mozilla.org/timer;1");
-  timer->SetTarget(Document()->EventTargetFor(TaskCategory::Other));
-  if (timer) {
-    RefPtr<nsRootPresContext> self = this;
-    nsresult rv = timer->InitWithCallback(
-      NewNamedTimerCallback([self, aTransactionId](){
-        nsAutoScriptBlocker blockScripts;
-        self->NotifyDidPaintForSubtree(aTransactionId);
-    }, "NotifyDidPaintForSubtree"), 100, nsITimer::TYPE_ONE_SHOT);
+  nsCOMPtr<nsITimer> timer;
+  RefPtr<nsRootPresContext> self = this;
+  nsresult rv = NS_NewTimerWithCallback(
+    getter_AddRefs(timer),
+    NewNamedTimerCallback([self, aTransactionId](){
+      nsAutoScriptBlocker blockScripts;
+      self->NotifyDidPaintForSubtree(aTransactionId);
+     }, "NotifyDidPaintForSubtree"), 100, nsITimer::TYPE_ONE_SHOT,
+    Document()->EventTargetFor(TaskCategory::Other));
 
-    if (NS_SUCCEEDED(rv)) {
-      NotifyDidPaintTimer* t = mNotifyDidPaintTimers.AppendElement();
-      t->mTransactionId = aTransactionId;
-      t->mTimer = timer;
-    }
+  if (NS_SUCCEEDED(rv)) {
+    NotifyDidPaintTimer* t = mNotifyDidPaintTimers.AppendElement();
+    t->mTransactionId = aTransactionId;
+    t->mTimer = timer;
   }
 }
 

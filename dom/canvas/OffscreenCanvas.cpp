@@ -217,11 +217,13 @@ OffscreenCanvas::ToCloneData()
 }
 
 already_AddRefed<ImageBitmap>
-OffscreenCanvas::TransferToImageBitmap()
+OffscreenCanvas::TransferToImageBitmap(ErrorResult& aRv)
 {
-  ErrorResult rv;
   nsCOMPtr<nsIGlobalObject> globalObject = GetGlobalObject();
-  RefPtr<ImageBitmap> result = ImageBitmap::CreateFromOffscreenCanvas(globalObject, *this, rv);
+  RefPtr<ImageBitmap> result = ImageBitmap::CreateFromOffscreenCanvas(globalObject, *this, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
 
   // Clear the content.
   if ((mCurrentContextType == CanvasContextType::WebGL1 ||
@@ -284,8 +286,13 @@ OffscreenCanvas::ToBlob(JSContext* aCx,
   RefPtr<EncodeCompleteCallback> callback =
     new EncodeCallback(global, promise);
 
-  CanvasRenderingContextHelper::ToBlob(aCx, global,
-                                       callback, aType, aParams, aRv);
+  // TODO: Can we obtain the context and document here somehow
+  // so that we can decide when usePlaceholder should be true/false?
+  // See https://trac.torproject.org/18599
+  // For now, we always return a placeholder if fingerprinting resistance is on.
+  bool usePlaceholder = nsContentUtils::ShouldResistFingerprinting();
+  CanvasRenderingContextHelper::ToBlob(aCx, global, callback, aType, aParams,
+                                       usePlaceholder, aRv);
 
   return promise.forget();
 }

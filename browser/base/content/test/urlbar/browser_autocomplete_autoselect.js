@@ -1,3 +1,6 @@
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
+
 const ONEOFF_URLBAR_PREF = "browser.urlbar.oneOffSearches";
 
 function repeat(limit, func) {
@@ -27,11 +30,12 @@ function is_selected_one_off(index) {
 
 add_task(async function() {
   let maxResults = Services.prefs.getIntPref("browser.urlbar.maxRichResults");
-
   Services.prefs.setBoolPref(ONEOFF_URLBAR_PREF, true);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:mozilla");
   registerCleanupFunction(async function() {
     await PlacesTestUtils.clearHistory();
     Services.prefs.clearUserPref(ONEOFF_URLBAR_PREF);
+    await BrowserTestUtils.removeTab(tab);
   });
 
   let visits = [];
@@ -42,8 +46,8 @@ add_task(async function() {
   });
   await PlacesTestUtils.addVisits(visits);
 
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:mozilla");
   await promiseAutocompleteResultPopup("example.com/autocomplete");
+  await waitForAutocompleteResultAt(maxResults - 1);
 
   let popup = gURLBar.popup;
   let results = popup.richlistbox.children;
@@ -79,14 +83,13 @@ add_task(async function() {
   is_selected(1);
 
   info("Page Up will go up the list, but not wrap");
-  EventUtils.synthesizeKey("VK_PAGE_UP", {})
+  EventUtils.synthesizeKey("VK_PAGE_UP", {});
   is_selected(0);
 
   info("Page Up again will wrap around to the end of the list");
-  EventUtils.synthesizeKey("VK_PAGE_UP", {})
+  EventUtils.synthesizeKey("VK_PAGE_UP", {});
   is_selected(maxResults - 1);
 
   EventUtils.synthesizeKey("VK_ESCAPE", {});
   await promisePopupHidden(gURLBar.popup);
-  gBrowser.removeTab(tab);
 });

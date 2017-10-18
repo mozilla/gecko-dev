@@ -30,7 +30,7 @@ void main(void) {
                      vec2(res.offset.x, -res.offset.y) / uDevicePixelRatio;
 
     RectWithSize local_rect = RectWithSize(local_pos,
-                                           (res.uv_rect.zw - res.uv_rect.xy) / uDevicePixelRatio);
+                                           (res.uv_rect.zw - res.uv_rect.xy) * res.scale / uDevicePixelRatio);
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(local_rect,
@@ -57,27 +57,45 @@ void main(void) {
     vec2 st0 = res.uv_rect.xy / texture_size;
     vec2 st1 = res.uv_rect.zw / texture_size;
 
-    vColor = text.color;
+    vColor = vec4(text.color.rgb * text.color.a, text.color.a);
     vUv = vec3(mix(st0, st1, f), res.layer);
     vUvBorder = (res.uv_rect + vec4(0.5, 0.5, -0.5, -0.5)) / texture_size.xyxy;
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
+
+#define MODE_ALPHA          0
+#define MODE_SUBPX_PASS0    1
+#define MODE_SUBPX_PASS1    2
+
 void main(void) {
     vec3 tc = vec3(clamp(vUv.xy, vUvBorder.xy, vUvBorder.zw), vUv.z);
-#ifdef WR_FEATURE_SUBPIXEL_AA
-    //note: the blend mode is not compatible with clipping
-    oFragColor = texture(sColor0, tc);
-#else
-    vec4 color = texture(sColor0, tc) * vColor;
+    vec4 color = texture(sColor0, tc);
+
+    float alpha = 1.0;
 #ifdef WR_FEATURE_TRANSFORM
-    float a = 0.0;
-    init_transform_fs(vLocalPos, a);
-    color.a *= a;
+    init_transform_fs(vLocalPos, alpha);
 #endif
-    color.a = min(color.a, do_clip());
-    oFragColor = color;
-#endif
+    alpha *= do_clip();
+
+    // TODO(gw): It would be worth profiling this and seeing
+    //           if we should instead handle the mode via
+    //           a combination of mix() etc. Branching on
+    //           a uniform is probably fast in most GPUs now though?
+    vec4 modulate_color = vec4(0.0);
+    switch (uMode) {
+        case MODE_ALPHA:
+            modulate_color = alpha * vColor;
+            break;
+        case MODE_SUBPX_PASS0:
+            modulate_color = vec4(alpha);
+            break;
+        case MODE_SUBPX_PASS1:
+            modulate_color = vColor;
+            break;
+    }
+
+    oFragColor = color * modulate_color;
 }
 #endif

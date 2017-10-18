@@ -29,7 +29,7 @@ impl CSSStyleValue {
     }
 
     pub fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
-        reflect_dom_object(box CSSStyleValue::new_inherited(value), global, Wrap)
+        reflect_dom_object(Box::new(CSSStyleValue::new_inherited(value)), global, Wrap)
     }
 }
 
@@ -37,14 +37,6 @@ impl CSSStyleValueMethods for CSSStyleValue {
     /// https://drafts.css-houdini.org/css-typed-om-1/#CSSStyleValue-stringification-behavior
     fn Stringifier(&self) -> DOMString {
         DOMString::from(&*self.value)
-    }
-
-    /// This attribute is no longer part of the `CSSStyleValue` interface,
-    /// but is still used in some examples.
-    /// https://github.com/GoogleChrome/houdini-samples/issues/16
-    // check-tidy: no specs after this line
-    fn CssText(&self) -> DOMString {
-        self.Stringifier()
     }
 }
 

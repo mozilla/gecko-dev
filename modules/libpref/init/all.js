@@ -313,7 +313,7 @@ pref("media.dormant-on-pause-timeout-ms", 5000);
 
 // Used by ChannelMediaResource to run data callbacks from HTTP channel
 // off the main thread.
-pref("media.omt_data_delivery.enabled", false);
+pref("media.omt_data_delivery.enabled", true);
 
 // File-backed MediaCache size in kilobytes
 pref("media.cache_size", 512000);
@@ -471,7 +471,6 @@ pref("media.peerconnection.dtmf.enabled", true);
 
 pref("media.webrtc.debug.trace_mask", 0);
 pref("media.webrtc.debug.multi_log", false);
-pref("media.webrtc.debug.aec_log_dir", "");
 pref("media.webrtc.debug.log_file", "");
 pref("media.webrtc.debug.aec_dump_max_size", 4194304); // 4MB
 
@@ -1457,11 +1456,7 @@ pref("javascript.options.discardSystemSource", false);
 // js/src/jsgc.cpp.  They're documented in js/src/jsapi.h.
 
 // JSGC_MAX_MALLOC_BYTES
-// This preference limits the malloc memory that javascript objects may use.
-// If you want to change these values for your device,
-// please find Bug 417052 comment 17 and Bug 456721
-// Comment 32 and Bug 613551.
-// Override the shell's default of 0xffffffff
+// How much malloc memory can be allocated before triggering a GC, in MB.
 pref("javascript.options.mem.high_water_mark", 128);
 
 // JSGC_MAX_BYTES
@@ -1758,6 +1753,10 @@ pref("network.http.connection-retry-timeout", 250);
 // The number of seconds after sending initial SYN for an HTTP connection
 // to give up if the OS does not give up first
 pref("network.http.connection-timeout", 90);
+
+// Close a connection if tls handshake does not finish in given number of
+// seconds.
+pref("network.http.tls-handshake-timeout", 30);
 
 // The number of seconds to allow active connections to prove that they have
 // traffic before considered stalled, after a network change has been detected
@@ -2116,7 +2115,7 @@ pref("network.dir.format", 2);
 // <link rel="prefetch"> URLs).
 pref("network.prefetch-next", true);
 // enables the preloading (i.e., preloading of <link rel="preload"> URLs).
-pref("network.preload", true);
+pref("network.preload", false);
 
 // enables the predictive service
 pref("network.predictor.enabled", true);
@@ -5341,6 +5340,10 @@ pref("dom.vr.puppet.enabled", false);
 // Allow displaying the result of vr submitframe (0: disable, 1: store the
 // result as a base64 image, 2: show it on the screen).
 pref("dom.vr.puppet.submitframe", 0);
+// The number of milliseconds since last frame start before triggering a new frame.
+// When content is failing to submit frames on time or the lower level VR platform API's
+// are rejecting frames, it determines the rate at which RAF callbacks will be called.
+pref("dom.vr.display.rafMaxDuration", 50);
 // VR test system.
 pref("dom.vr.test.enabled", false);
 
@@ -5794,10 +5797,14 @@ pref("dom.webkitBlink.filesystem.enabled", true);
 pref("media.block-autoplay-until-in-foreground", true);
 
 // Is Stylo CSS support built and enabled?
-// Only define this pref if Stylo support is actually built in.
+// Only define these prefs if Stylo support is actually built in.
 #ifdef MOZ_STYLO
 pref("layout.css.stylo-blocklist.enabled", true);
+#ifdef NIGHTLY_BUILD
+pref("layout.css.stylo-blocklist.blocked_domains", "arewestyloyet.rs");
+#else
 pref("layout.css.stylo-blocklist.blocked_domains", "");
+#endif
 #ifdef MOZ_STYLO_ENABLE
 pref("layout.css.servo.enabled", true);
 #else
@@ -5895,20 +5902,19 @@ pref("layers.mlgpu.enable-on-windows7", true);
 pref("layers.advanced.background-color", false);
 pref("layers.advanced.background-image", 2);
 pref("layers.advanced.border-layers", 2);
-pref("layers.advanced.boxshadow-inset-layers", 2);
-pref("layers.advanced.boxshadow-outer-layers", 2);
+pref("layers.advanced.boxshadow-inset-layers", false);
+pref("layers.advanced.boxshadow-outer-layers", false);
 pref("layers.advanced.bullet-layers", 2);
 pref("layers.advanced.button-foreground-layers", 2);
 pref("layers.advanced.canvas-background-color", 2);
-pref("layers.advanced.caret-layers", 2);
+pref("layers.advanced.caret-layers", false);
 pref("layers.advanced.columnRule-layers", 2);
 pref("layers.advanced.displaybuttonborder-layers", 2);
 pref("layers.advanced.image-layers", 2);
 pref("layers.advanced.outline-layers", 2);
-pref("layers.advanced.solid-color", 2);
-pref("layers.advanced.table", 2);
+pref("layers.advanced.solid-color", false);
+pref("layers.advanced.table", false);
 pref("layers.advanced.text-layers", 2);
-pref("layers.advanced.filter-layers", 2);
 
 // Enable lowercased response header name
 pref("dom.xhr.lowercase_header.enabled", false);

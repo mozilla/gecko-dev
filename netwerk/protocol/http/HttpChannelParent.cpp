@@ -1431,7 +1431,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
              "HttpChannelParent getting OnStartRequest from a different HttpBaseChannel instance");
 
   // Send down any permissions which are relevant to this URL if we are
-  // performing a document load. We can't do that is mIPCClosed is set.
+  // performing a document load. We can't do that if mIPCClosed is set.
   if (!mIPCClosed) {
     PContentParent* pcp = Manager()->Manager();
     MOZ_ASSERT(pcp, "We should have a manager if our IPC isn't closed");
@@ -1443,6 +1443,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   nsHttpResponseHead *responseHead = chan->GetResponseHead();
   nsHttpRequestHead  *requestHead = chan->GetRequestHead();
   bool isFromCache = false;
+  uint64_t cacheEntryId = 0;
   int32_t fetchCount = 0;
   uint32_t expirationTime = nsICacheEntry::NO_EXPIRATION_TIME;
   nsCString cachedCharset;
@@ -1451,6 +1452,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
   if (httpChannelImpl) {
     httpChannelImpl->IsFromCache(&isFromCache);
+    httpChannelImpl->GetCacheEntryId(&cacheEntryId);
     httpChannelImpl->GetCacheTokenFetchCount(&fetchCount);
     httpChannelImpl->GetCacheTokenExpirationTime(&expirationTime);
     httpChannelImpl->GetCacheTokenCachedCharset(cachedCharset);
@@ -1528,6 +1530,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
                           requestHead->Headers(),
                           isFromCache,
                           mCacheEntry ? true : false,
+                          cacheEntryId,
                           fetchCount, expirationTime,
                           cachedCharset, secInfoSerialization,
                           chan->GetSelfAddr(), chan->GetPeerAddr(),
@@ -1568,6 +1571,7 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   mChannel->GetDomainLookupStart(&timing.domainLookupStart);
   mChannel->GetDomainLookupEnd(&timing.domainLookupEnd);
   mChannel->GetConnectStart(&timing.connectStart);
+  mChannel->GetTcpConnectEnd(&timing.tcpConnectEnd);
   mChannel->GetSecureConnectionStart(&timing.secureConnectionStart);
   mChannel->GetConnectEnd(&timing.connectEnd);
   mChannel->GetRequestStart(&timing.requestStart);

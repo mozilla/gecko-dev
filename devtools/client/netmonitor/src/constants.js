@@ -25,6 +25,7 @@ const actionTypes = {
   SET_REQUEST_FILTER_TEXT: "SET_REQUEST_FILTER_TEXT",
   SORT_BY: "SORT_BY",
   TOGGLE_COLUMN: "TOGGLE_COLUMN",
+  TOGGLE_RECORDING: "TOGGLE_RECORDING",
   TOGGLE_REQUEST_FILTER_TYPE: "TOGGLE_REQUEST_FILTER_TYPE",
   UPDATE_REQUEST: "UPDATE_REQUEST",
   WATERFALL_RESIZE: "WATERFALL_RESIZE",
@@ -53,6 +54,7 @@ const EVENTS = {
   // See https://developer.mozilla.org/docs/Tools/Web_Console/remoting for
   // more information about what each packet is supposed to deliver.
   NETWORK_EVENT: "NetMonitor:NetworkEvent",
+  NETWORK_EVENT_UPDATED: "NetMonitor:NetworkEventUpdated",
   TIMELINE_EVENT: "NetMonitor:TimelineEvent",
 
   // When a network event is added to the view
@@ -93,6 +95,9 @@ const EVENTS = {
 
   // Fired once the connection is established
   CONNECTED: "connected",
+
+  // When request payload (HTTP details data) are fetched from the backend.
+  PAYLOAD_READY: "NetMonitor:PayloadReady",
 };
 
 const UPDATE_PROPS = [
@@ -262,6 +267,19 @@ const FILTER_FLAGS = [
   "regexp",
 ];
 
+const FILTER_TAGS = [
+  "html",
+  "css",
+  "js",
+  "xhr",
+  "fonts",
+  "images",
+  "media",
+  "flash",
+  "ws",
+  "other",
+];
+
 const REQUESTS_WATERFALL = {
   BACKGROUND_TICKS_MULTIPLE: 5, // ms
   BACKGROUND_TICKS_SCALES: 3,
@@ -289,6 +307,7 @@ const general = {
   HEADERS,
   RESPONSE_HEADERS,
   FILTER_FLAGS,
+  FILTER_TAGS,
   SOURCE_EDITOR_SYNTAX_HIGHLIGHT_MAX_SIZE: 51200, // 50 KB in bytes
   REQUESTS_WATERFALL,
   PANELS,

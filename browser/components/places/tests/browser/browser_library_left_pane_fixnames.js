@@ -59,7 +59,7 @@ function test() {
                                                   PlacesUIUtils.ORGANIZER_QUERY_ANNO);
     var query = { name: queryName,
                   itemId,
-                  correctTitle: PlacesUtils.bookmarks.getItemTitle(itemId) }
+                  correctTitle: PlacesUtils.bookmarks.getItemTitle(itemId) };
     switch (queryName) {
       case "BookmarksToolbar":
         query.concreteId = PlacesUtils.toolbarFolderId;
@@ -81,7 +81,7 @@ function test() {
       PlacesUtils.bookmarks.setItemTitle(query.concreteId, "badName");
   }
 
-  PlacesUIUtils.__defineGetter__("leftPaneFolderId", cachedLeftPaneFolderIdGetter);
+  restoreLeftPaneGetters();
 
   // Open Library, this will kick-off left pane code.
   openLibrary(onLibraryReady);

@@ -105,7 +105,7 @@ struct EnterJITStack
  *   ...using standard EABI calling convention
  */
 JitCode*
-JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
+JitRuntime::generateEnterJIT(JSContext* cx)
 {
     const Address slot_token(sp, offsetof(EnterJITStack, token));
     const Address slot_vp(sp, offsetof(EnterJITStack, vp));
@@ -145,8 +145,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     masm.loadPtr(slot_token, r9);
 
     // Save stack pointer.
-    if (type == EnterJitBaseline)
-        masm.movePtr(sp, r11);
+    masm.movePtr(sp, r11);
 
     // Load the number of actual arguments into r10.
     masm.loadPtr(slot_vp, r10);
@@ -215,8 +214,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     masm.finishDataTransfer();
 
     Label returnLabel;
-    if (type == EnterJitBaseline) {
-        // Handle OSR.
+    {
+        // Handle Interpreter -> Baseline OSR.
         AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
         regs.take(JSReturnOperand);
         regs.takeUnchecked(OsrFrameReg);
@@ -352,10 +351,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     // Call the function.
     masm.callJitNoProfiler(r0);
 
-    if (type == EnterJitBaseline) {
-        // Baseline OSR will return here.
-        masm.bind(&returnLabel);
-    }
+    // Interpreter -> Baseline OSR will return here.
+    masm.bind(&returnLabel);
 
     // The top of the stack now points to the address of the field following the
     // return address because the return address is popped for the return, so we
@@ -1287,10 +1284,10 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     //
     // JitFrame_Rectifier
     //
-    // The rectifier frame can be preceded by either an IonJS, a WasmToJSJit or
-    // a BaselineStub frame.
+    // The rectifier frame can be preceded by either an IonJS, a BaselineStub,
+    // or a CppToJSJit/WasmToJSJit frame.
     //
-    // Stack layout if caller of rectifier was Ion or WasmToJSJit:
+    // Stack layout if caller of rectifier was Ion or CppToJSJit/WasmToJSJit:
     //
     //              Ion-Descriptor
     //              Ion-ReturnAddr
@@ -1354,8 +1351,8 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
 
         masm.bind(&notIonFrame);
 
-        // Check for either BaselineStub or WasmToJSJit: since WasmToJSJit is
-        // just an entry, jump there if we see it.
+        // Check for either BaselineStub or a CppToJSJit/WasmToJSJit entry
+        // frame.
         masm.branch32(Assembler::NotEqual, scratch3, Imm32(JitFrame_BaselineStub), &handle_Entry);
 
         // Handle Rectifier <- BaselineStub <- BaselineJS

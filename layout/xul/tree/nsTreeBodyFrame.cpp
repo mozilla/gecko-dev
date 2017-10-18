@@ -13,6 +13,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/ResultExtensions.h"
 #include "mozilla/TextEditRules.h"
 
 #include "gfxUtils.h"
@@ -1810,16 +1811,12 @@ nsTreeBodyFrame::CreateTimer(const LookAndFeel::IntID aID,
   // Create a new timer only if the delay is greater than zero.
   // Zero value means that this feature is completely disabled.
   if (delay > 0) {
-    timer = do_CreateInstance("@mozilla.org/timer;1");
-    if (timer) {
-      timer->SetTarget(
-          mContent->OwnerDoc()->EventTargetFor(TaskCategory::Other));
-      timer->InitWithNamedFuncCallback(aFunc, this, delay, aType, aName);
-    }
+    MOZ_TRY_VAR(timer, NS_NewTimerWithFuncCallback(
+        aFunc, this, delay, aType, aName,
+        mContent->OwnerDoc()->EventTargetFor(TaskCategory::Other)));
   }
 
-  NS_IF_ADDREF(*aTimer = timer);
-
+  timer.forget(aTimer);
   return NS_OK;
 }
 
@@ -4475,26 +4472,9 @@ nsTreeBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
 nsStyleContext*
 nsTreeBodyFrame::GetPseudoStyleContext(nsICSSAnonBoxPseudo* aPseudoElement)
 {
-  return mStyleCache.GetStyleContext(this, PresContext(), mContent,
+  return mStyleCache.GetStyleContext(PresContext(), mContent,
                                      mStyleContext, aPseudoElement,
                                      mScratchArray);
-}
-
-// Our comparator for resolving our complex pseudos
-bool
-nsTreeBodyFrame::PseudoMatches(nsCSSSelector* aSelector)
-{
-  // Iterate the class list.  For each item in the list, see if
-  // it is contained in our scratch array.  If we have a miss, then
-  // we aren't a match.  If all items in the class list are
-  // present in the scratch array, then we have a match.
-  nsAtomList* curr = aSelector->mClassList;
-  while (curr) {
-    if (!mScratchArray.Contains(curr->mAtom))
-      return false;
-    curr = curr->mNext;
-  }
-  return true;
 }
 
 nsIContent*

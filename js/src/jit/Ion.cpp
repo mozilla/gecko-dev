@@ -295,13 +295,8 @@ JitRuntime::initialize(JSContext* cx, AutoLockForExclusiveAccess& lock)
         return false;
 
     JitSpew(JitSpew_Codegen, "# Emitting EnterJIT sequence");
-    enterJIT_ = generateEnterJIT(cx, EnterJitOptimized);
+    enterJIT_ = generateEnterJIT(cx);
     if (!enterJIT_)
-        return false;
-
-    JitSpew(JitSpew_Codegen, "# Emitting EnterBaselineJIT sequence");
-    enterBaselineJIT_ = generateEnterJIT(cx, EnterJitBaseline);
-    if (!enterBaselineJIT_)
         return false;
 
     JitSpew(JitSpew_Codegen, "# Emitting Pre Barrier for Value");
@@ -2238,7 +2233,8 @@ IonCompile(JSContext* cx, JSScript* script,
         if (!CreateMIRRootList(*builder))
             return AbortReason::Alloc;
 
-        if (!StartOffThreadIonCompile(cx, builder)) {
+        AutoLockHelperThreadState lock;
+        if (!StartOffThreadIonCompile(cx, builder, lock)) {
             JitSpew(JitSpew_IonAbort, "Unable to start off-thread ion compilation.");
             builder->graphSpewer().endFunction();
             return AbortReason::Alloc;
@@ -2486,7 +2482,7 @@ jit::OffThreadCompilationAvailable(JSContext* cx)
 }
 
 MethodStatus
-jit::CanEnter(JSContext* cx, RunState& state)
+jit::CanEnterIon(JSContext* cx, RunState& state)
 {
     MOZ_ASSERT(jit::IsIonEnabled(cx));
 
@@ -2521,14 +2517,6 @@ jit::CanEnter(JSContext* cx, RunState& state)
             ForbidCompilation(cx, script);
             return Method_CantCompile;
         }
-
-        if (!state.maybeCreateThisForConstructor(cx)) {
-            if (cx->isThrowingOutOfMemory()) {
-                cx->recoverFromOutOfMemory();
-                return Method_Skipped;
-            }
-            return Method_Error;
-        }
     }
 
     // If --ion-eager is used, compile with Baseline first, so that we
@@ -2539,11 +2527,8 @@ jit::CanEnter(JSContext* cx, RunState& state)
             return status;
     }
 
-    // Skip if the script is being compiled off thread or can't be
-    // Ion-compiled (again). MaybeCreateThisForConstructor could have
-    // started an Ion compilation or marked the script as uncompilable.
-    if (script->isIonCompilingOffThread() || !script->canIonCompile())
-        return Method_Skipped;
+    MOZ_ASSERT(!script->isIonCompilingOffThread());
+    MOZ_ASSERT(script->canIonCompile());
 
     // Attempt compilation. Returns Method_Compiled if already compiled.
     MethodStatus status = Compile(cx, script, nullptr, nullptr);
@@ -2753,144 +2738,6 @@ jit::Recompile(JSContext* cx, HandleScript script, BaselineFrame* osrFrame, jsby
     }
 
     return Method_Compiled;
-}
-
-static JitExecStatus
-EnterIon(JSContext* cx, EnterJitData& data)
-{
-    if (!CheckRecursionLimit(cx))
-        return JitExec_Aborted;
-
-    MOZ_ASSERT(jit::IsIonEnabled(cx));
-    MOZ_ASSERT(!data.osrFrame);
-
-#ifdef DEBUG
-    // See comment in EnterBaseline.
-    mozilla::Maybe<JS::AutoAssertNoGC> nogc;
-    nogc.emplace(cx);
-#endif
-
-    EnterJitCode enter = cx->runtime()->jitRuntime()->enterIon();
-
-    // Caller must construct |this| before invoking the Ion function.
-    MOZ_ASSERT_IF(data.constructing,
-                  data.maxArgv[0].isObject() || data.maxArgv[0].isMagic(JS_UNINITIALIZED_LEXICAL));
-
-    data.result.setInt32(data.numActualArgs);
-    {
-        AssertCompartmentUnchanged pcc(cx);
-        ActivationEntryMonitor entryMonitor(cx, data.calleeToken);
-        JitActivation activation(cx);
-
-#ifdef DEBUG
-        nogc.reset();
-#endif
-        CALL_GENERATED_CODE(enter, data.jitcode, data.maxArgc, data.maxArgv, /* osrFrame = */nullptr, data.calleeToken,
-                            /* envChain = */ nullptr, 0, data.result.address());
-    }
-
-    MOZ_ASSERT(!cx->hasIonReturnOverride());
-
-    // Jit callers wrap primitive constructor return, except for derived class constructors.
-    if (!data.result.isMagic() && data.constructing &&
-        data.result.isPrimitive())
-    {
-        MOZ_ASSERT(data.maxArgv[0].isObject());
-        data.result = data.maxArgv[0];
-    }
-
-    // Release temporary buffer used for OSR into Ion.
-    cx->freeOsrTempData();
-
-    MOZ_ASSERT_IF(data.result.isMagic(), data.result.isMagic(JS_ION_ERROR));
-    return data.result.isMagic() ? JitExec_Error : JitExec_Ok;
-}
-
-bool
-jit::SetEnterJitData(JSContext* cx, EnterJitData& data, RunState& state,
-                     MutableHandle<GCVector<Value>> vals)
-{
-    data.osrFrame = nullptr;
-
-    // Note: keep this in sync with EnterBaselineAtBranch.
-
-    if (state.isInvoke()) {
-        const CallArgs& args = state.asInvoke()->args();
-        unsigned numFormals = state.script()->functionNonDelazifying()->nargs();
-        data.constructing = state.asInvoke()->constructing();
-        data.numActualArgs = args.length();
-        data.maxArgc = Max(args.length(), numFormals) + 1;
-        data.envChain = nullptr;
-        data.calleeToken = CalleeToToken(&args.callee().as<JSFunction>(), data.constructing);
-
-        if (data.numActualArgs >= numFormals) {
-            data.maxArgv = args.array() - 1; // -1 to include |this|
-        } else {
-            MOZ_ASSERT(vals.empty());
-            unsigned numPushedArgs = Max(args.length(), numFormals);
-            if (!vals.reserve(numPushedArgs + 1 + data.constructing))
-                return false;
-
-            // Append |this| and any provided arguments.
-            for (size_t i = 1; i < args.length() + 2; ++i)
-                vals.infallibleAppend(args.base()[i]);
-
-            // Pad missing arguments with |undefined|.
-            while (vals.length() < numFormals + 1)
-                vals.infallibleAppend(UndefinedValue());
-
-            if (data.constructing)
-                vals.infallibleAppend(args.newTarget());
-
-            MOZ_ASSERT(vals.length() >= numFormals + 1 + data.constructing);
-            data.maxArgv = vals.begin();
-        }
-    } else {
-        data.constructing = false;
-        data.numActualArgs = 0;
-        data.maxArgc = 0;
-        data.maxArgv = nullptr;
-        data.envChain = state.asExecute()->environmentChain();
-
-        data.calleeToken = CalleeToToken(state.script());
-
-        if (state.script()->isForEval() && state.script()->isDirectEvalInFunction()) {
-            // Push newTarget onto the stack.
-            if (!vals.reserve(1))
-                return false;
-
-            data.maxArgc = 1;
-            data.maxArgv = vals.begin();
-            if (state.asExecute()->newTarget().isNull()) {
-                ScriptFrameIter iter(cx);
-                vals.infallibleAppend(iter.newTarget());
-            } else {
-                vals.infallibleAppend(state.asExecute()->newTarget());
-            }
-        }
-    }
-
-    return true;
-}
-
-JitExecStatus
-jit::IonCannon(JSContext* cx, RunState& state)
-{
-    IonScript* ion = state.script()->ionScript();
-
-    EnterJitData data(cx);
-    data.jitcode = ion->method()->raw();
-
-    Rooted<GCVector<Value>> vals(cx, GCVector<Value>(cx));
-    if (!SetEnterJitData(cx, data, state, &vals))
-        return JitExec_Error;
-
-    JitExecStatus status = EnterIon(cx, data);
-
-    if (status == JitExec_Ok)
-        state.setReturnValue(data.result);
-
-    return status;
 }
 
 static void

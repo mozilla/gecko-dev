@@ -530,7 +530,7 @@ var SendScheduler = {
         nextSendDelay = this._backoffDelay;
       }
 
-      this._log.trace("_doSendTask - waiting for next send opportunity, timeout is " + nextSendDelay)
+      this._log.trace("_doSendTask - waiting for next send opportunity, timeout is " + nextSendDelay);
       this._sendTaskState = "wait on next send opportunity";
       const cancelled = await CancellableTimeout.promiseWaitOnTimeout(nextSendDelay);
       if (cancelled) {
@@ -653,12 +653,12 @@ var TelemetrySendImpl = {
     this._log.trace("setup");
 
     this._testMode = testing;
-    this._sendingEnabled = true;
 
     Services.obs.addObserver(this, TOPIC_IDLE_DAILY);
     Services.obs.addObserver(this, TOPIC_PROFILE_CHANGE_NET_TEARDOWN);
 
     this._server = Services.prefs.getStringPref(TelemetryUtils.Preferences.Server, undefined);
+    this._sendingEnabled = true;
 
     // Annotate crash reports so that crash pings are sent correctly and listen
     // to pref changes to adjust the annotations accordingly.
@@ -797,6 +797,10 @@ var TelemetrySendImpl = {
    * Notify that we can start submitting data to the servers.
    */
   notifyCanUpload() {
+    if (!this._sendingEnabled) {
+      this._log.trace("notifyCanUpload - notifying before sending is enabled. Ignoring.");
+      return Promise.resolve();
+    }
     // Let the scheduler trigger sending pings if possible, also inform the
     // crash reporter that it can send crash pings if appropriate.
     SendScheduler.triggerSendingPings(true);

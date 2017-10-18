@@ -19,6 +19,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/Logging.h"
+#include "mozilla/ResultExtensions.h"
 #include "nsIInterfaceRequestor.h"
 #include "mozilla/LoadContext.h"
 #include "mozilla/Telemetry.h"
@@ -113,9 +114,7 @@ nsUrlClassifierStreamUpdater::DownloadDone()
 
   mPendingUpdates.Clear();
   mDownloadError = false;
-  mSuccessCallback = nullptr;
-  mUpdateErrorCallback = nullptr;
-  mDownloadErrorCallback = nullptr;
+  mCurrentRequest = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -220,23 +219,17 @@ nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
       "timeout. Disabling these update timeouts.");
     return NS_OK;
   }
-  mResponseTimeoutTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-  if (NS_SUCCEEDED(rv)) {
-    rv = mResponseTimeoutTimer->InitWithCallback(this,
-                                                 sResponseTimeoutMs,
-                                                 nsITimer::TYPE_ONE_SHOT);
-  }
+  MOZ_TRY_VAR(mResponseTimeoutTimer,
+              NS_NewTimerWithCallback(this, sResponseTimeoutMs,
+                                      nsITimer::TYPE_ONE_SHOT));
 
-  mTimeoutTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+  MOZ_TRY_VAR(mTimeoutTimer,
+              NS_NewTimerWithCallback(this, sTimeoutMs,
+                                      nsITimer::TYPE_ONE_SHOT));
 
-  if (NS_SUCCEEDED(rv)) {
-    if (sTimeoutMs < DEFAULT_TIMEOUT_MS) {
-      LOG(("Download update timeout %d ms (< %d ms) would be too small",
-           sTimeoutMs, DEFAULT_TIMEOUT_MS));
-    }
-    rv = mTimeoutTimer->InitWithCallback(this,
-                                         sTimeoutMs,
-                                         nsITimer::TYPE_ONE_SHOT);
+  if (sTimeoutMs < DEFAULT_TIMEOUT_MS) {
+    LOG(("Download update timeout %d ms (< %d ms) would be too small",
+         sTimeoutMs, DEFAULT_TIMEOUT_MS));
   }
 
   return NS_OK;
@@ -286,17 +279,13 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
     LOG(("Already updating, queueing update %s from %s", aRequestPayload.Data(),
          aUpdateUrl.Data()));
     *_retval = false;
-    PendingRequest *request = mPendingRequests.AppendElement(fallible);
+    UpdateRequest *request = mPendingRequests.AppendElement(fallible);
     if (!request) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    request->mTables = aRequestTables;
-    request->mRequestPayload = aRequestPayload;
-    request->mIsPostRequest = aIsPostRequest;
-    request->mUrl = aUpdateUrl;
-    request->mSuccessCallback = aSuccessCallback;
-    request->mUpdateErrorCallback = aUpdateErrorCallback;
-    request->mDownloadErrorCallback = aDownloadErrorCallback;
+    BuildUpdateRequest(aRequestTables, aRequestPayload, aIsPostRequest, aUpdateUrl,
+                       aSuccessCallback, aUpdateErrorCallback, aDownloadErrorCallback,
+                       request);
     return NS_OK;
   }
 
@@ -329,27 +318,19 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
     LOG(("Service busy, already updating, queuing update %s from %s",
          aRequestPayload.Data(), aUpdateUrl.Data()));
     *_retval = false;
-    PendingRequest *request = mPendingRequests.AppendElement(fallible);
+    UpdateRequest *request = mPendingRequests.AppendElement(fallible);
     if (!request) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    request->mTables = aRequestTables;
-    request->mRequestPayload = aRequestPayload;
-    request->mIsPostRequest = aIsPostRequest;
-    request->mUrl = aUpdateUrl;
-    request->mSuccessCallback = aSuccessCallback;
-    request->mUpdateErrorCallback = aUpdateErrorCallback;
-    request->mDownloadErrorCallback = aDownloadErrorCallback;
+    BuildUpdateRequest(aRequestTables, aRequestPayload, aIsPostRequest, aUpdateUrl,
+                       aSuccessCallback, aUpdateErrorCallback, aDownloadErrorCallback,
+                       request);
 
     // We cannot guarantee that we will be notified when DBService is done
     // processing the current update, so we fire a retry timer on our own.
-    nsresult rv;
-    mFetchNextRequestTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-    if (NS_SUCCEEDED(rv)) {
-      rv = mFetchNextRequestTimer->InitWithCallback(this,
-                                                    FETCH_NEXT_REQUEST_RETRY_DELAY_MS,
-                                                    nsITimer::TYPE_ONE_SHOT);
-    }
+    MOZ_TRY_VAR(mFetchNextRequestTimer,
+                NS_NewTimerWithCallback(this, FETCH_NEXT_REQUEST_RETRY_DELAY_MS,
+                                        nsITimer::TYPE_ONE_SHOT));
 
     return NS_OK;
   }
@@ -366,14 +347,15 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
   urlUtil->GetTelemetryProvider(tables.SafeElementAt(0, EmptyCString()),
                                 mTelemetryProvider);
 
-  mSuccessCallback = aSuccessCallback;
-  mUpdateErrorCallback = aUpdateErrorCallback;
-  mDownloadErrorCallback = aDownloadErrorCallback;
+  mCurrentRequest = MakeUnique<UpdateRequest>();
+  BuildUpdateRequest(aRequestTables, aRequestPayload, aIsPostRequest, aUpdateUrl,
+                     aSuccessCallback, aUpdateErrorCallback, aDownloadErrorCallback,
+                     mCurrentRequest.get());
 
   mIsUpdating = true;
   *_retval = true;
 
-  LOG(("FetchUpdate: %s", aUpdateUrl.Data()));
+  LOG(("FetchUpdate: %s", mCurrentRequest->mUrl.Data()));
 
   return FetchUpdate(aUpdateUrl, aRequestPayload, aIsPostRequest, EmptyCString());
 }
@@ -446,7 +428,7 @@ nsUrlClassifierStreamUpdater::FetchNextRequest()
     return NS_OK;
   }
 
-  PendingRequest request = mPendingRequests[0];
+  UpdateRequest request = mPendingRequests[0];
   mPendingRequests.RemoveElementAt(0);
   LOG(("Stream updater: fetching next request: %s, %s",
        request.mTables.get(), request.mUrl.get()));
@@ -461,6 +443,28 @@ nsUrlClassifierStreamUpdater::FetchNextRequest()
     request.mDownloadErrorCallback,
     &dummy);
   return NS_OK;
+}
+
+void
+nsUrlClassifierStreamUpdater::BuildUpdateRequest(
+  const nsACString &aRequestTables,
+  const nsACString &aRequestPayload,
+  bool aIsPostRequest,
+  const nsACString &aUpdateUrl,
+  nsIUrlClassifierCallback *aSuccessCallback,
+  nsIUrlClassifierCallback *aUpdateErrorCallback,
+  nsIUrlClassifierCallback *aDownloadErrorCallback,
+  UpdateRequest* aRequest)
+{
+  MOZ_ASSERT(aRequest);
+
+  aRequest->mTables = aRequestTables;
+  aRequest->mRequestPayload = aRequestPayload;
+  aRequest->mIsPostRequest = aIsPostRequest;
+  aRequest->mUrl = aUpdateUrl;
+  aRequest->mSuccessCallback = aSuccessCallback;
+  aRequest->mUpdateErrorCallback = aUpdateErrorCallback;
+  aRequest->mDownloadErrorCallback = aDownloadErrorCallback;
 }
 
 NS_IMETHODIMP
@@ -484,11 +488,8 @@ nsUrlClassifierStreamUpdater::StreamFinished(nsresult status,
   // scheduling the next time we pull the list from the server. That's a different
   // timer in listmanager.js (see bug 1110891).
   nsresult rv;
-  mFetchIndirectUpdatesTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-  if (NS_SUCCEEDED(rv)) {
-    rv = mFetchIndirectUpdatesTimer->InitWithCallback(this, requestedDelay,
-                                                      nsITimer::TYPE_ONE_SHOT);
-  }
+  rv = NS_NewTimerWithCallback(getter_AddRefs(mFetchIndirectUpdatesTimer),
+                               this, requestedDelay, nsITimer::TYPE_ONE_SHOT);
 
   if (NS_FAILED(rv)) {
     NS_WARNING("Unable to initialize timer, fetching next safebrowsing item immediately");
@@ -507,8 +508,11 @@ nsUrlClassifierStreamUpdater::UpdateSuccess(uint32_t requestedTimeout)
   }
 
   // DownloadDone() clears mSuccessCallback, so we save it off here.
-  nsCOMPtr<nsIUrlClassifierCallback> successCallback = mDownloadError ? nullptr : mSuccessCallback.get();
-  nsCOMPtr<nsIUrlClassifierCallback> downloadErrorCallback = mDownloadError ? mDownloadErrorCallback.get() : nullptr;
+  nsCOMPtr<nsIUrlClassifierCallback> successCallback =
+    mDownloadError ? nullptr : mCurrentRequest->mSuccessCallback.get();
+  nsCOMPtr<nsIUrlClassifierCallback> downloadErrorCallback =
+    mDownloadError ? mCurrentRequest->mDownloadErrorCallback.get() : nullptr;
+
   DownloadDone();
 
   nsAutoCString strTimeout;
@@ -535,8 +539,10 @@ nsUrlClassifierStreamUpdater::UpdateError(nsresult result)
   LOG(("nsUrlClassifierStreamUpdater::UpdateError [this=%p]", this));
 
   // DownloadDone() clears mUpdateErrorCallback, so we save it off here.
-  nsCOMPtr<nsIUrlClassifierCallback> errorCallback = mDownloadError ? nullptr : mUpdateErrorCallback.get();
-  nsCOMPtr<nsIUrlClassifierCallback> downloadErrorCallback = mDownloadError ? mDownloadErrorCallback.get() : nullptr;
+  nsCOMPtr<nsIUrlClassifierCallback> errorCallback =
+    mDownloadError ? nullptr : mCurrentRequest->mUpdateErrorCallback.get();
+  nsCOMPtr<nsIUrlClassifierCallback> downloadErrorCallback =
+    mDownloadError ? mCurrentRequest->mDownloadErrorCallback.get() : nullptr;
   DownloadDone();
 
   nsAutoCString strResult;
@@ -642,14 +648,9 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
       mozilla::Telemetry::Accumulate(mozilla::Telemetry::URLCLASSIFIER_UPDATE_REMOTE_STATUS2,
                                      mTelemetryProvider, HTTPStatusToBucket(requestStatus));
       if (requestStatus == 400) {
-        nsCOMPtr<nsIURI> uri;
-        nsAutoCString spec;
-        rv = httpChannel->GetURI(getter_AddRefs(uri));
-        if (NS_SUCCEEDED(rv) && uri) {
-          uri->GetAsciiSpec(spec);
-        }
-        printf_stderr("Safe Browsing server returned a 400 during update: request = %s \n",
-                      spec.get());
+        printf_stderr("Safe Browsing server returned a 400 during update:"
+                       "request url = %s, payload = %s\n",
+                       mCurrentRequest->mUrl.get(), mCurrentRequest->mRequestPayload.get());
       }
 
       LOG(("nsUrlClassifierStreamUpdater::OnStartRequest %s (%d)", succeeded ?
@@ -668,7 +669,7 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
     mDownloadErrorStatusStr = strStatus;
     status = NS_ERROR_ABORT;
   } else if (NS_SUCCEEDED(status)) {
-    MOZ_ASSERT(mDownloadErrorCallback);
+    MOZ_ASSERT(mCurrentRequest->mDownloadErrorCallback);
     mBeganStream = true;
     LOG(("nsUrlClassifierStreamUpdater::Beginning stream [this=%p]", this));
     rv = mDBService->BeginStream(mStreamTable);

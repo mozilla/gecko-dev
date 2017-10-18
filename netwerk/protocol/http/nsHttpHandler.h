@@ -11,6 +11,7 @@
 #include "nsHttpConnectionMgr.h"
 #include "ASpdySession.h"
 
+#include "mozilla/StaticPtr.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsWeakReference.h"
@@ -65,9 +66,8 @@ public:
     NS_DECL_NSIOBSERVER
     NS_DECL_NSISPECULATIVECONNECT
 
-    nsHttpHandler();
+    static already_AddRefed<nsHttpHandler> GetInstance();
 
-    MOZ_MUST_USE nsresult Init();
     MOZ_MUST_USE nsresult AddStandardRequestHeaders(nsHttpRequestHead *,
                                                     bool isSecure);
     MOZ_MUST_USE nsresult AddConnectionHeader(nsHttpRequestHead *,
@@ -124,6 +124,7 @@ public:
     bool           AllowAltSvcOE() { return mEnableAltSvcOE; }
     bool           AllowOriginExtension() { return mEnableOriginExtension; }
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
+    uint32_t       TLSHandshakeTimeout()  { return mTLSHandshakeTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
     bool           CriticalRequestPrioritization() { return mCriticalRequestPrioritization; }
     bool           UseH2Deps() { return mUseH2Deps; }
@@ -403,7 +404,11 @@ public:
     }
 
 private:
+    nsHttpHandler();
+
     virtual ~nsHttpHandler();
+
+    MOZ_MUST_USE nsresult Init();
 
     //
     // Useragent/prefs helper methods
@@ -575,6 +580,10 @@ private:
     // established. In milliseconds.
     uint32_t       mConnectTimeout;
 
+    // The maximum amount of time to wait for a tls handshake to be
+    // established. In milliseconds.
+    uint32_t       mTLSHandshakeTimeout;
+
     // The maximum number of current global half open sockets allowable
     // when starting a new speculative connection.
     uint32_t       mParallelSpeculativeConnectLimit;
@@ -684,7 +693,7 @@ public:
     MOZ_MUST_USE nsresult NewChannelId(uint64_t& channelId);
 };
 
-extern nsHttpHandler *gHttpHandler;
+extern StaticRefPtr<nsHttpHandler> gHttpHandler;
 
 //-----------------------------------------------------------------------------
 // nsHttpsHandler - thin wrapper to distinguish the HTTP handler from the

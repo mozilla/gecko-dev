@@ -715,7 +715,7 @@ nsComputedDOMStyle::DoGetStyleContextNoFlush(Element* aElement,
           } else {
             return presContext->StyleSet()->AsServo()->
               GetBaseContextForElement(aElement, presContext,
-                                       aPseudo, pseudoType, result->AsServo());
+                                       pseudoType, result->AsServo());
           }
         }
 
@@ -742,13 +742,13 @@ nsComputedDOMStyle::DoGetStyleContextNoFlush(Element* aElement,
                                ? StyleRuleInclusion::DefaultOnly
                                : StyleRuleInclusion::All;
     RefPtr<ServoStyleContext> result =
-       servoSet->ResolveStyleLazily(aElement, pseudoType, aPseudo, rules);
+       servoSet->ResolveStyleLazily(aElement, pseudoType, rules);
     if (aAnimationFlag == eWithAnimation) {
       return result.forget();
     }
 
     return servoSet->GetBaseContextForElement(aElement, presContext,
-                                              aPseudo, pseudoType, result);
+                                              pseudoType, result);
   }
 
   RefPtr<GeckoStyleContext> parentContext;
@@ -3616,7 +3616,7 @@ nsComputedDOMStyle::GetScrollSnapPoints(const nsStyleCoord& aCoord)
     val->SetIdent(eCSSKeyword_none);
   } else {
     nsAutoString argumentString;
-    SetCssTextToCoord(argumentString, aCoord);
+    SetCssTextToCoord(argumentString, aCoord, true);
     nsAutoString tmp;
     tmp.AppendLiteral("repeat(");
     tmp.Append(argumentString);
@@ -6306,14 +6306,15 @@ nsComputedDOMStyle::DoGetStopColor()
 
 void
 nsComputedDOMStyle::BoxValuesToString(nsAString& aString,
-                                      const nsTArray<nsStyleCoord>& aBoxValues)
+                                      const nsTArray<nsStyleCoord>& aBoxValues,
+                                      bool aClampNegativeCalc)
 {
   MOZ_ASSERT(aBoxValues.Length() == 4, "wrong number of box values");
   nsAutoString value1, value2, value3, value4;
-  SetCssTextToCoord(value1, aBoxValues[0]);
-  SetCssTextToCoord(value2, aBoxValues[1]);
-  SetCssTextToCoord(value3, aBoxValues[2]);
-  SetCssTextToCoord(value4, aBoxValues[3]);
+  SetCssTextToCoord(value1, aBoxValues[0], aClampNegativeCalc);
+  SetCssTextToCoord(value2, aBoxValues[1], aClampNegativeCalc);
+  SetCssTextToCoord(value3, aBoxValues[2], aClampNegativeCalc);
+  SetCssTextToCoord(value4, aBoxValues[3], aClampNegativeCalc);
 
   // nsROCSSPrimitiveValue do not have binary comparison operators.
   // Compare string results instead.
@@ -6344,8 +6345,8 @@ nsComputedDOMStyle::BasicShapeRadiiToString(nsAString& aCssText,
     vertical.AppendElement(
       aCorners.Get(FullToHalfCorner(corner, true)));
   }
-  BoxValuesToString(horizontalString, horizontal);
-  BoxValuesToString(verticalString, vertical);
+  BoxValuesToString(horizontalString, horizontal, true);
+  BoxValuesToString(verticalString, vertical, true);
   aCssText.Append(horizontalString);
   if (horizontalString == verticalString) {
     return;
@@ -6381,11 +6382,13 @@ nsComputedDOMStyle::CreatePrimitiveValueForBasicShape(
           shapeFunctionString.AppendLiteral(", ");
         }
         SetCssTextToCoord(coordString,
-                          aStyleBasicShape->Coordinates()[i]);
+                          aStyleBasicShape->Coordinates()[i],
+                          false);
         shapeFunctionString.Append(coordString);
         shapeFunctionString.Append(' ');
         SetCssTextToCoord(coordString,
-                          aStyleBasicShape->Coordinates()[i + 1]);
+                          aStyleBasicShape->Coordinates()[i + 1],
+                          false);
         shapeFunctionString.Append(coordString);
       }
       break;
@@ -6416,7 +6419,7 @@ nsComputedDOMStyle::CreatePrimitiveValueForBasicShape(
       break;
     }
     case StyleBasicShapeType::Inset: {
-      BoxValuesToString(shapeFunctionString, aStyleBasicShape->Coordinates());
+      BoxValuesToString(shapeFunctionString, aStyleBasicShape->Coordinates(), false);
       if (aStyleBasicShape->HasRadius()) {
         shapeFunctionString.AppendLiteral(" round ");
         nsAutoString radiiString;
@@ -6504,11 +6507,11 @@ nsComputedDOMStyle::DoGetShapeOutside()
 
 void
 nsComputedDOMStyle::SetCssTextToCoord(nsAString& aCssText,
-                                      const nsStyleCoord& aCoord)
+                                      const nsStyleCoord& aCoord,
+                                      bool aClampNegativeCalc)
 {
   RefPtr<nsROCSSPrimitiveValue> value = new nsROCSSPrimitiveValue;
-  bool clampNegativeCalc = true;
-  SetValueToCoord(value, aCoord, clampNegativeCalc);
+  SetValueToCoord(value, aCoord, aClampNegativeCalc);
   value->GetCssText(aCssText);
 }
 
@@ -6544,7 +6547,7 @@ nsComputedDOMStyle::CreatePrimitiveValueForStyleFilter(
     shadowValue->GetCssText(argumentString, dummy);
   } else {
     // Filter function argument.
-    SetCssTextToCoord(argumentString, aStyleFilter.GetFilterParameter());
+    SetCssTextToCoord(argumentString, aStyleFilter.GetFilterParameter(), true);
   }
   filterFunctionString.Append(argumentString);
 
@@ -6867,12 +6870,13 @@ nsComputedDOMStyle::DoGetAnimationName()
     const StyleAnimation *animation = &display->mAnimations[i];
     RefPtr<nsROCSSPrimitiveValue> property = new nsROCSSPrimitiveValue;
 
-    const nsString& name = animation->GetName();
-    if (name.IsEmpty()) {
+    nsAtom* name = animation->GetName();
+    if (name == nsGkAtoms::_empty) {
       property->SetIdent(eCSSKeyword_none);
     } else {
+      nsDependentAtomString nameStr(name);
       nsAutoString escaped;
-      nsStyleUtil::AppendEscapedCSSIdent(animation->GetName(), escaped);
+      nsStyleUtil::AppendEscapedCSSIdent(nameStr, escaped);
       property->SetString(escaped); // really want SetIdent
     }
     valueList->AppendCSSValue(property.forget());

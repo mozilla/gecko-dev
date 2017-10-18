@@ -2256,7 +2256,6 @@ GK_ATOM(forcemessagemanager, "forcemessagemanager")
 GK_ATOM(isPreloadBrowser, "isPreloadBrowser")
 
 // Names for system metrics
-GK_ATOM(color_picker_available, "color-picker-available")
 GK_ATOM(scrollbar_start_backward, "scrollbar-start-backward")
 GK_ATOM(scrollbar_start_forward, "scrollbar-start-forward")
 GK_ATOM(scrollbar_end_backward, "scrollbar-end-backward")
@@ -2272,7 +2271,6 @@ GK_ATOM(windows_glass, "windows-glass")
 GK_ATOM(touch_enabled, "touch-enabled")
 GK_ATOM(menubar_drag, "menubar-drag")
 GK_ATOM(swipe_animation_enabled, "swipe-animation-enabled")
-GK_ATOM(physical_home_button, "physical-home-button")
 
 // windows theme selector metrics
 GK_ATOM(windows_classic, "windows-classic")
@@ -2286,7 +2284,6 @@ GK_ATOM(windows_theme_zune, "windows-theme-zune")
 GK_ATOM(windows_theme_generic, "windows-theme-generic")
 
 // And the same again, as media query keywords.
-GK_ATOM(_moz_color_picker_available, "-moz-color-picker-available")
 GK_ATOM(_moz_scrollbar_start_backward, "-moz-scrollbar-start-backward")
 GK_ATOM(_moz_scrollbar_start_forward, "-moz-scrollbar-start-forward")
 GK_ATOM(_moz_scrollbar_end_backward, "-moz-scrollbar-end-backward")
@@ -2308,7 +2305,6 @@ GK_ATOM(_moz_device_pixel_ratio, "-moz-device-pixel-ratio")
 GK_ATOM(_moz_device_orientation, "-moz-device-orientation")
 GK_ATOM(_moz_is_resource_document, "-moz-is-resource-document")
 GK_ATOM(_moz_swipe_animation_enabled, "-moz-swipe-animation-enabled")
-GK_ATOM(_moz_physical_home_button, "-moz-physical-home-button")
 
 // application commands
 GK_ATOM(Back, "Back")

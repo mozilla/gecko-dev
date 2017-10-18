@@ -75,10 +75,10 @@ use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
+use selector_parser::{AttrValue, PseudoClassStringArg};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
@@ -158,32 +158,6 @@ impl<'ln> GeckoNode<'ln> {
         unsafe { &*self.node_info().mDocument }
     }
 
-    #[inline]
-    fn first_child(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mFirstChild.as_ref().map(GeckoNode::from_content) }
-    }
-
-    #[inline]
-    fn last_child(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { Gecko_GetLastChild(self.0).map(GeckoNode) }
-    }
-
-    #[inline]
-    fn prev_sibling(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mPreviousSibling.as_ref().map(GeckoNode::from_content) }
-    }
-
-    #[inline]
-    fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
-    }
-
-    /// Simple iterator over all this node's children.  Unlike `.children()`, this iterator does
-    /// not filter out nodes that don't need layout.
-    fn dom_children(self) -> GeckoChildrenIterator<'ln> {
-        GeckoChildrenIterator::Current(self.first_child())
-    }
-
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
     /// Make sure to mirror any modifications in both places.
     fn flattened_tree_parent_is_parent(&self) -> bool {
@@ -222,11 +196,6 @@ impl<'ln> GeckoNode<'ln> {
     fn contains_non_whitespace_content(&self) -> bool {
         unsafe { Gecko_IsSignificantChild(self.0, true, false) }
     }
-
-    #[inline]
-    fn may_have_anonymous_children(&self) -> bool {
-        self.get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
-    }
 }
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
@@ -244,38 +213,33 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteElement = GeckoElement<'ln>;
-    type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
         unsafe { self.0.mParent.as_ref().map(GeckoNode) }
     }
 
-    fn children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
-        LayoutIterator(self.dom_children())
+    #[inline]
+    fn first_child(&self) -> Option<Self> {
+        unsafe { self.0.mFirstChild.as_ref().map(GeckoNode::from_content) }
+    }
+
+    #[inline]
+    fn last_child(&self) -> Option<Self> {
+        unsafe { Gecko_GetLastChild(self.0).map(GeckoNode) }
+    }
+
+    #[inline]
+    fn prev_sibling(&self) -> Option<Self> {
+        unsafe { self.0.mPreviousSibling.as_ref().map(GeckoNode::from_content) }
+    }
+
+    #[inline]
+    fn next_sibling(&self) -> Option<Self> {
+        unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
     }
 
     fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
         self.flattened_tree_parent().and_then(|n| n.as_element())
-    }
-
-    fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
-        if let Some(element) = self.as_element() {
-            // This condition is similar to the check that
-            // StyleChildrenIterator::IsNeeded does, except that it might return
-            // true if we used to (but no longer) have anonymous content from
-            // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
-            if element.is_in_anonymous_subtree() ||
-               element.has_xbl_binding_with_content() ||
-               self.may_have_anonymous_children() {
-                unsafe {
-                    let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
-                    Gecko_ConstructStyleChildrenIterator(element.0, &mut iter);
-                    return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
-                }
-            }
-        }
-
-        LayoutIterator(self.dom_children())
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -305,10 +269,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_can_be_fragmented(&self, _value: bool) {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
-    }
-
-    fn is_in_doc(&self) -> bool {
-        unsafe { bindings::Gecko_IsInDocument(self.0) }
     }
 }
 
@@ -447,6 +407,11 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
+    #[inline]
+    fn may_have_anonymous_children(&self) -> bool {
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
+    }
+
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute<R>(
         value: &str,
@@ -883,6 +848,7 @@ impl structs::FontSizePrefs {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type FontMetricsProvider = GeckoFontMetricsProvider;
+    type TraversalChildrenIterator = GeckoChildrenIterator<'le>;
 
     fn inheritance_parent(&self) -> Option<Self> {
         if self.is_native_anonymous() {
@@ -892,6 +858,24 @@ impl<'le> TElement for GeckoElement<'le> {
                 .flattened_tree_parent()
                 .and_then(|n| n.as_element())
         }
+    }
+
+    fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'le>> {
+        // This condition is similar to the check that
+        // StyleChildrenIterator::IsNeeded does, except that it might return
+        // true if we used to (but no longer) have anonymous content from
+        // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
+        if self.is_in_anonymous_subtree() ||
+           self.has_xbl_binding_with_content() ||
+           self.may_have_anonymous_children() {
+            unsafe {
+                let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
+                Gecko_ConstructStyleChildrenIterator(self.0, &mut iter);
+                return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
+            }
+        }
+
+        LayoutIterator(GeckoChildrenIterator::Current(self.as_node().first_child()))
     }
 
     fn before_pseudo_element(&self) -> Option<Self> {
@@ -1103,6 +1087,11 @@ impl<'le> TElement for GeckoElement<'le> {
     fn is_native_anonymous(&self) -> bool {
         use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
         self.flags() & (NODE_IS_NATIVE_ANONYMOUS as u32) != 0
+    }
+
+    #[inline]
+    fn matches_user_and_author_rules(&self) -> bool {
+        !self.is_in_native_anonymous_subtree()
     }
 
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
@@ -1844,7 +1833,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
-        context: &mut LocalMatchingContext<Self::Impl>,
+        context: &mut MatchingContext,
         relevant_link: &RelevantLinkStatus,
         flags_setter: &mut F,
     ) -> bool
@@ -1899,20 +1888,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDirAttrRTL |
             NonTSPseudoClass::MozDirAttrLikeAuto |
             NonTSPseudoClass::MozAutofill |
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Hover |
             NonTSPseudoClass::MozAutofillPreview => {
                 self.get_state().intersects(pseudo_class.state_flag())
             },
             NonTSPseudoClass::AnyLink => self.is_link(),
-            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context.shared),
-            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context.shared),
-            NonTSPseudoClass::Active |
-            NonTSPseudoClass::Hover => {
-                if context.active_hover_quirk_matches() && !self.is_link() {
-                    false
-                } else {
-                    self.get_state().contains(pseudo_class.state_flag())
-                }
-            },
+            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context),
+            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context),
             NonTSPseudoClass::MozFirstNode => {
                 flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
                 let mut elem = self.as_node();
@@ -1975,7 +1958,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Lang(ref lang_arg) => {
                 self.match_element_lang(None, lang_arg)
             }
-            NonTSPseudoClass::MozSystemMetric(ref s) |
             NonTSPseudoClass::MozLocaleDir(ref s) |
             NonTSPseudoClass::Dir(ref s) => {
                 unsafe {
@@ -2074,12 +2056,5 @@ impl<'a> NamespaceConstraintHelpers for NamespaceConstraint<&'a Namespace> {
             NamespaceConstraint::Any => ptr::null_mut(),
             NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
         }
-    }
-}
-
-impl<'le> ElementExt for GeckoElement<'le> {
-    #[inline]
-    fn matches_user_and_author_rules(&self) -> bool {
-        !self.is_in_native_anonymous_subtree()
     }
 }

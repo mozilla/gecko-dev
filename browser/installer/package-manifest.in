@@ -149,11 +149,6 @@
 @BINPATH@/@DLL_PREFIX@mozavcodec@DLL_SUFFIX@
 #endif
 @RESPATH@/browser/blocklist.xml
-#ifdef XP_UNIX
-#ifndef XP_MACOSX
-@RESPATH@/run-mozilla.sh
-#endif
-#endif
 #ifdef XP_WIN
 #ifdef _AMD64_
 @BINPATH@/@DLL_PREFIX@qipcap64@DLL_SUFFIX@
@@ -385,6 +380,8 @@
 @RESPATH@/browser/components/devtools-startup.js
 @RESPATH@/browser/components/aboutdebugging-registration.js
 @RESPATH@/browser/components/aboutdebugging.manifest
+@RESPATH@/browser/components/aboutdevtools-registration.js
+@RESPATH@/browser/components/aboutdevtools.manifest
 @RESPATH@/browser/components/Experiments.manifest
 @RESPATH@/browser/components/ExperimentsService.js
 @RESPATH@/browser/components/browser-newtab.xpt

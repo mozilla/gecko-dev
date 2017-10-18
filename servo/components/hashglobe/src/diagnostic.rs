@@ -1,7 +1,7 @@
 use hash_map::HashMap;
 use std::borrow::Borrow;
 use std::hash::{BuildHasher, Hash};
-use table::SafeHash;
+use std::ptr;
 
 use FailedAllocationError;
 
@@ -10,11 +10,16 @@ const CANARY: usize = 0x42cafe99;
 #[cfg(target_pointer_width = "64")]
 const CANARY: usize = 0x42cafe9942cafe99;
 
+#[cfg(target_pointer_width = "32")]
+const POISON: usize = 0xdeadbeef;
+#[cfg(target_pointer_width = "64")]
+const POISON: usize = 0xdeadbeefdeadbeef;
+
 #[derive(Clone, Debug)]
 enum JournalEntry {
-    Insert(SafeHash),
-    GetOrInsertWith(SafeHash),
-    Remove(SafeHash),
+    Insert(usize),
+    GOIW(usize),
+    Remove(usize),
     DidClear(usize),
 }
 
@@ -37,29 +42,37 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         &self.map
     }
 
-    #[inline(always)]
+    #[inline(never)]
     pub fn begin_mutation(&mut self) {
+        self.map.verify();
         assert!(self.readonly);
         self.readonly = false;
+        self.verify();
     }
 
-    #[inline(always)]
+    #[inline(never)]
     pub fn end_mutation(&mut self) {
+        self.map.verify();
         assert!(!self.readonly);
         self.readonly = true;
+        self.verify();
+    }
 
+    fn verify(&self) {
         let mut position = 0;
-        let mut bad_canary: Option<(usize, *const usize)> = None;
+        let mut count = 0;
+        let mut bad_canary = None;
         for (_,v) in self.map.iter() {
             let canary_ref = &v.0;
+            position += 1;
             if *canary_ref == CANARY {
-                position += 1;
                 continue;
             }
-            bad_canary = Some((*canary_ref, canary_ref));
+            count += 1;
+            bad_canary = Some((*canary_ref, canary_ref, position));
         }
         if let Some(c) = bad_canary {
-            self.report_corruption(c.0, c.1, position);
+            self.report_corruption(c.0, c.1, c.2, count);
         }
     }
 
@@ -105,7 +118,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         default: F
     ) -> Result<&mut V, FailedAllocationError> {
         assert!(!self.readonly);
-        self.journal.push(JournalEntry::GetOrInsertWith(self.map.make_hash(&key)));
+        self.journal.push(JournalEntry::GOIW(self.map.make_hash(&key).inspect()));
         let entry = self.map.try_entry(key)?;
         Ok(&mut entry.or_insert_with(|| (CANARY, default())).1)
     }
@@ -113,7 +126,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
     #[inline(always)]
     pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, FailedAllocationError> {
         assert!(!self.readonly);
-        self.journal.push(JournalEntry::Insert(self.map.make_hash(&k)));
+        self.journal.push(JournalEntry::Insert(self.map.make_hash(&k).inspect()));
         let old = self.map.try_insert(k, (CANARY, v))?;
         Ok(old.map(|x| x.1))
     }
@@ -124,7 +137,10 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
               Q: Hash + Eq
     {
         assert!(!self.readonly);
-        self.journal.push(JournalEntry::Remove(self.map.make_hash(k)));
+        self.journal.push(JournalEntry::Remove(self.map.make_hash(k).inspect()));
+        if let Some(v) = self.map.get_mut(k) {
+            unsafe { ptr::write_volatile(&mut v.0, POISON); }
+        }
         self.map.remove(k).map(|x| x.1)
     }
 
@@ -141,26 +157,33 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
 
     #[inline(never)]
     fn report_corruption(
-        &mut self,
+        &self,
         canary: usize,
         canary_addr: *const usize,
-        position: usize
+        position: usize,
+        count: usize,
     ) {
+        use ::std::ffi::CString;
+        let key = b"HashMapJournal\0";
+        let value = CString::new(format!("{:?}", self.journal)).unwrap();
         unsafe {
-            Gecko_AddBufferToCrashReport(
-                self.journal.as_ptr() as *const _,
-                self.journal.len() * ::std::mem::size_of::<JournalEntry>(),
+            Gecko_AnnotateCrashReport(
+                key.as_ptr() as *const ::std::os::raw::c_char,
+                value.as_ptr(),
             );
         }
         panic!(
-            "HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, pos={}, base_addr={:?}, cnry_addr={:?})",
+            concat!("HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, count={}, ",
+                    "last_pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})"),
             self.map.len(),
             self.map.raw_capacity(),
             ::std::mem::size_of::<(K, (usize, V))>(),
             canary,
+            count,
             position,
             self.map.raw_buffer(),
             canary_addr,
+            self.journal.len(),
         );
     }
 }
@@ -200,11 +223,13 @@ impl<K: Hash + Eq, V, S: BuildHasher> Drop for DiagnosticHashMap<K, V, S>
           S: BuildHasher
 {
     fn drop(&mut self) {
+        self.map.verify();
         debug_assert!(self.readonly, "Dropped while mutating");
+        self.verify();
     }
 }
 
 extern "C" {
-    pub fn Gecko_AddBufferToCrashReport(addr: *const ::std::os::raw::c_void,
-                                        bytes: usize);
+    pub fn Gecko_AnnotateCrashReport(key_str: *const ::std::os::raw::c_char,
+                                     value_str: *const ::std::os::raw::c_char);
 }

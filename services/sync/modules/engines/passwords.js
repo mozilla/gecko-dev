@@ -47,10 +47,18 @@ function isSyncableChange(oldLogin, newLogin) {
 
 this.LoginRec = function LoginRec(collection, id) {
   CryptoWrapper.call(this, collection, id);
-}
+};
 LoginRec.prototype = {
   __proto__: CryptoWrapper.prototype,
   _logName: "Sync.Record.Login",
+
+  cleartextToString() {
+    let o = Object.assign({}, this.cleartext);
+    if (o.password) {
+      o.password = "X".repeat(o.password.length);
+    }
+    return JSON.stringify(o);
+  }
 };
 
 Utils.deferGetSet(LoginRec, "cleartext", [
@@ -62,7 +70,7 @@ Utils.deferGetSet(LoginRec, "cleartext", [
 
 this.PasswordEngine = function PasswordEngine(service) {
   SyncEngine.call(this, "Passwords", service);
-}
+};
 PasswordEngine.prototype = {
   __proto__: SyncEngine.prototype,
   _storeObj: PasswordStore,
@@ -404,7 +412,7 @@ class PasswordValidator extends CollectionValidator {
 
   getClientItems() {
     let logins = Services.logins.getAllLogins({});
-    let syncHosts = Utils.getSyncCredentialsHosts()
+    let syncHosts = Utils.getSyncCredentialsHosts();
     let result = logins.map(l => l.QueryInterface(Ci.nsILoginMetaInfo))
                        .filter(l => !syncHosts.has(l.hostname));
     return Promise.resolve(result);
@@ -422,7 +430,7 @@ class PasswordValidator extends CollectionValidator {
       username: item.username,
       usernameField: item.usernameField,
       original: item,
-    }
+    };
   }
 
   async normalizeServerItem(item) {

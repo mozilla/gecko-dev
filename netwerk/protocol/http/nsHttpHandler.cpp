@@ -30,6 +30,7 @@
 #include "nsPrintfCString.h"
 #include "nsCOMPtr.h"
 #include "nsNetCID.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Printf.h"
 #include "mozilla/Sprintf.h"
 #include "nsAsyncRedirectVerifyHelper.h"
@@ -168,7 +169,20 @@ GetDeviceModelId() {
 // nsHttpHandler <public>
 //-----------------------------------------------------------------------------
 
-nsHttpHandler *gHttpHandler = nullptr;
+StaticRefPtr<nsHttpHandler> gHttpHandler;
+
+/* static */ already_AddRefed<nsHttpHandler>
+nsHttpHandler::GetInstance()
+{
+    if (!gHttpHandler) {
+        gHttpHandler = new nsHttpHandler();
+        DebugOnly<nsresult> rv = gHttpHandler->Init();
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        ClearOnShutdown(&gHttpHandler);
+    }
+    RefPtr<nsHttpHandler> httpHandler = gHttpHandler;
+    return httpHandler.forget();
+}
 
 nsHttpHandler::nsHttpHandler()
     : mHttpVersion(NS_HTTP_VERSION_1_1)
@@ -243,6 +257,7 @@ nsHttpHandler::nsHttpHandler()
     , mSpdyPingThreshold(PR_SecondsToInterval(58))
     , mSpdyPingTimeout(PR_SecondsToInterval(8))
     , mConnectTimeout(90000)
+    , mTLSHandshakeTimeout(30000)
     , mParallelSpeculativeConnectLimit(6)
     , mSpeculativeConnectEnabled(true)
     , mRequestTokenBucketEnabled(true)
@@ -271,7 +286,7 @@ nsHttpHandler::nsHttpHandler()
     mUserAgentOverride.SetIsVoid(true);
 
     MOZ_ASSERT(!gHttpHandler, "HTTP handler already created!");
-    gHttpHandler = this;
+
     nsCOMPtr<nsIXULRuntime> runtime = do_GetService("@mozilla.org/xre/runtime;1");
     if (runtime) {
         runtime->GetProcessID(&mProcessId);
@@ -389,7 +404,6 @@ nsHttpHandler::~nsHttpHandler()
     // and it'll segfault.  NeckoChild will get cleaned up by process exit.
 
     nsHttp::DestroyAtomTable();
-    gHttpHandler = nullptr;
 }
 
 nsresult
@@ -1575,6 +1589,14 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         if (NS_SUCCEEDED(rv))
             // the pref is in seconds, but the variable is in milliseconds
             mConnectTimeout = clamped(val, 1, 0xffff) * PR_MSEC_PER_SEC;
+    }
+
+    // The maximum amount of time to wait for a tls handshake to finish.
+    if (PREF_CHANGED(HTTP_PREF("tls-handshake-timeout"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("tls-handshake-timeout"), &val);
+        if (NS_SUCCEEDED(rv))
+            // the pref is in seconds, but the variable is in milliseconds
+            mTLSHandshakeTimeout = clamped(val, 1, 0xffff) * PR_MSEC_PER_SEC;
     }
 
     // The maximum number of current global half open sockets allowable

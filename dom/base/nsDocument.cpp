@@ -111,6 +111,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
+#include "ExpandedPrincipal.h"
 #include "NullPrincipal.h"
 
 #include "nsIDOMWindow.h"
@@ -2484,6 +2485,18 @@ nsDocument::MaybeDowngradePrincipal(nsIPrincipal* aPrincipal)
 {
   if (!aPrincipal) {
     return nullptr;
+  }
+
+  // We can't load a document with an expanded principal. If we're given one,
+  // automatically downgrade it to the last principal it subsumes (which is the
+  // extension principal, in the case of extension content scripts).
+  auto* basePrin = BasePrincipal::Cast(aPrincipal);
+  if (basePrin->Is<ExpandedPrincipal>()) {
+    auto* expanded = basePrin->As<ExpandedPrincipal>();
+
+    MOZ_ASSERT(expanded->WhiteList().Length() > 0);
+
+    return do_AddRef(expanded->WhiteList().LastElement().get());
   }
 
   if (!sChromeInContentPrefCached) {
@@ -4995,6 +5008,7 @@ nsIDocument::SetContainer(nsDocShell* aContainer)
   }
 
   mAncestorPrincipals = aContainer->AncestorPrincipals();
+  mAncestorOuterWindowIDs = aContainer->AncestorOuterWindowIDs();
 }
 
 nsISupports*
@@ -13678,10 +13692,8 @@ nsIDocument::UpdateStyleBackendType()
     // able to use XUL by default, and the back door to enable XUL is
     // mostly just for testing, which means they don't matter, and we
     // shouldn't respect them at the same time.
-    // Note that, since tests can have XUL support, we still need to
-    // explicitly exclude XUL documents here.
     if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()) &&
-        !IsXULDocument() && !ShouldUseGeckoBackend(mDocumentURI) &&
+        !ShouldUseGeckoBackend(mDocumentURI) &&
         !nsLayoutUtils::IsInStyloBlocklist(NodePrincipal())) {
       mStyleBackendType = StyleBackendType::Servo;
     }

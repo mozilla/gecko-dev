@@ -634,7 +634,6 @@
 #endif
 
       <tabs id="tabbrowser-tabs"
-            class="tabbrowser-tabs"
             tabbrowser="content"
             flex="1"
             setfocus="false"
@@ -779,7 +778,6 @@
                      tabscrolling="true"
                      showcommentcolumn="true"
                      showimagecolumn="true"
-                     enablehistory="true"
                      newlines="stripsurroundingwhitespace"
                      ontextentered="this.handleCommand(param);"
                      ontextreverted="return this.handleRevert();"
@@ -824,6 +822,8 @@
                          tooltiptext="&urlbar.geolocationNotificationAnchor.tooltip;"/>
                   <image id="addons-notification-icon" class="notification-anchor-icon install-icon" role="button"
                          tooltiptext="&urlbar.addonsNotificationAnchor.tooltip;"/>
+                  <image id="canvas-notification-icon" class="notification-anchor-icon" role="button"
+                         tooltiptext="&urlbar.canvasNotificationAnchor.tooltip;"/>
                   <image id="indexedDB-notification-icon" class="notification-anchor-icon indexedDB-icon" role="button"
                          tooltiptext="&urlbar.indexedDBNotificationAnchor.tooltip;"/>
                   <image id="password-notification-icon" class="notification-anchor-icon login-icon" role="button"

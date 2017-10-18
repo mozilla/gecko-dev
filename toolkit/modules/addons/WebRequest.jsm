@@ -166,12 +166,12 @@ class ResponseHeaderChanger extends HeaderChanger {
 }
 
 const MAYBE_CACHED_EVENTS = new Set([
-  "onResponseStarted", "onBeforeRedirect", "onCompleted", "onErrorOccurred",
+  "onResponseStarted", "onHeadersReceived", "onBeforeRedirect", "onCompleted", "onErrorOccurred",
 ]);
 
 const OPTIONAL_PROPERTIES = [
   "requestHeaders", "responseHeaders", "statusCode", "statusLine", "error", "redirectUrl",
-  "requestBody", "scheme", "realm", "isProxy", "challenger", "proxyInfo", "ip",
+  "requestBody", "scheme", "realm", "isProxy", "challenger", "proxyInfo", "ip", "frameAncestors",
 ];
 
 function serializeRequestData(eventName) {

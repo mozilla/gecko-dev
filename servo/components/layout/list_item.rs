@@ -24,8 +24,12 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for ListItemFlow {}
+
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]
+#[repr(C)]
 pub struct ListItemFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,
@@ -235,7 +239,7 @@ impl ListStyleTypeContent {
                 let text = generated_content::static_representation(list_style_type);
                 ListStyleTypeContent::StaticText(text)
             }
-            _ => ListStyleTypeContent::GeneratedContent(box GeneratedContentInfo::ListItem),
+            _ => ListStyleTypeContent::GeneratedContent(Box::new(GeneratedContentInfo::ListItem)),
         }
     }
 }

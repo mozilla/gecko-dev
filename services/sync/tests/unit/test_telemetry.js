@@ -176,7 +176,7 @@ add_task(async function test_uploading() {
     equal(ping.engines.length, 1);
     equal(ping.engines[0].name, "bookmarks");
     ok(!!ping.engines[0].outgoing);
-    greater(ping.engines[0].outgoing[0].sent, 0)
+    greater(ping.engines[0].outgoing[0].sent, 0);
     ok(!ping.engines[0].incoming);
 
     PlacesUtils.bookmarks.setItemTitle(bmk_id, "New Title");
@@ -294,7 +294,7 @@ add_task(async function test_sync_partialUpload() {
     ok(!ping.engines[0].failureReason);
     deepEqual(ping.engines[0].outgoing, [{ sent: 234, failed: 2 }]);
 
-    collection.post = function() { throw new Error("Failure"); }
+    collection.post = function() { throw new Error("Failure"); };
 
     engine._store.items["record-no-1000"] = "Record No. 1000";
     engine._tracker.addChangedID("record-no-1000", 1000);
@@ -342,7 +342,7 @@ add_task(async function test_generic_engine_fail() {
   engine.enabled = true;
   let server = await serverForFoo(engine);
   await SyncTestingInfrastructure(server);
-  let e = new Error("generic failure message")
+  let e = new Error("generic failure message");
   engine._errToThrow = e;
 
   try {
@@ -354,6 +354,36 @@ add_task(async function test_generic_engine_fail() {
       name: "unexpectederror",
       error: String(e)
     });
+  } finally {
+    await cleanAndGo(engine, server);
+    Service.engineManager.unregister(engine);
+  }
+});
+
+add_task(async function test_engine_fail_weird_errors() {
+  enableValidationPrefs();
+  await Service.engineManager.register(SteamEngine);
+  let engine = Service.engineManager.get("steam");
+  engine.enabled = true;
+  let server = await serverForFoo(engine);
+  await SyncTestingInfrastructure(server);
+  try {
+    let msg = "Bad things happened!";
+    engine._errToThrow = { message: msg };
+    let ping = await sync_and_validate_telem(true);
+    equal(ping.status.service, SYNC_FAILED_PARTIAL);
+    deepEqual(ping.engines.find(err => err.name === "steam").failureReason, {
+      name: "unexpectederror",
+      error: "Bad things happened!"
+    });
+    let e = { msg };
+    engine._errToThrow = e;
+    ping = await sync_and_validate_telem(true);
+    deepEqual(ping.engines.find(err => err.name === "steam").failureReason, {
+      name: "unexpectederror",
+      error: JSON.stringify(e)
+    });
+
   } finally {
     await cleanAndGo(engine, server);
     Service.engineManager.unregister(engine);
@@ -453,7 +483,7 @@ add_task(async function test_initial_sync_engines() {
         continue;
       }
       greaterOrEqual(e.took, 1);
-      ok(!!e.outgoing)
+      ok(!!e.outgoing);
       equal(e.outgoing.length, 1);
       notEqual(e.outgoing[0].sent, undefined);
       equal(e.outgoing[0].failed, undefined);
@@ -537,7 +567,7 @@ add_task(async function test_discarding() {
       await promiseStopServer(server);
     }
   }
-})
+});
 
 add_task(async function test_no_foreign_engines_in_error_ping() {
   enableValidationPrefs();

@@ -217,7 +217,7 @@ PlacesViewBase.prototype = {
       }
     }
 
-    if (PlacesControllerDragHelper.disallowInsertion(container))
+    if (PlacesControllerDragHelper.disallowInsertion(container, this))
       return null;
 
     return new InsertionPoint({
@@ -448,7 +448,7 @@ PlacesViewBase.prototype = {
         "checkForMiddleClick(this, event); event.stopPropagation();");
       let label =
         PlacesUIUtils.getFormattedString("menuOpenLivemarkOrigin.label",
-                                         [aPopup.parentNode.getAttribute("label")])
+                                         [aPopup.parentNode.getAttribute("label")]);
       aPopup._siteURIMenuitem.setAttribute("label", label);
       aPopup.insertBefore(aPopup._siteURIMenuitem, aPopup._startMarker);
 
@@ -1499,7 +1499,7 @@ PlacesToolbar.prototype = {
       let eltRect = elt.getBoundingClientRect();
       let eltIndex = Array.prototype.indexOf.call(this._rootElt.childNodes, elt);
       if (PlacesUtils.nodeIsFolder(elt._placesNode) &&
-          !PlacesUIUtils.isContentsReadOnly(elt._placesNode)) {
+          !PlacesUIUtils.isFolderReadOnly(elt._placesNode, this)) {
         // This is a folder.
         // If we are in the middle of it, drop inside it.
         // Otherwise, drop before it, with regards to RTL mode.
@@ -2277,4 +2277,4 @@ this.PlacesPanelview = class extends PlacesViewBase {
     if (!this.controllers.getControllerCount() && this._controller)
       this.controllers.appendController(this._controller);
   }
-}
+};

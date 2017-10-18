@@ -47,26 +47,6 @@ using namespace mozilla;
 
 //----------------------------------------------------------------------
 
-class CheckStaticAtomSizes
-{
-  CheckStaticAtomSizes()
-  {
-    static_assert((sizeof(nsFakeStringBuffer<1>().mRefCnt) ==
-                   sizeof(nsStringBuffer().mRefCount)) &&
-                  (sizeof(nsFakeStringBuffer<1>().mSize) ==
-                   sizeof(nsStringBuffer().mStorageSize)) &&
-                  (offsetof(nsFakeStringBuffer<1>, mRefCnt) ==
-                   offsetof(nsStringBuffer, mRefCount)) &&
-                  (offsetof(nsFakeStringBuffer<1>, mSize) ==
-                   offsetof(nsStringBuffer, mStorageSize)) &&
-                  (offsetof(nsFakeStringBuffer<1>, mStringData) ==
-                   sizeof(nsStringBuffer)),
-                  "mocked-up strings' representations should be compatible");
-  }
-};
-
-//----------------------------------------------------------------------
-
 enum class GCKind {
   RegularOperation,
   Shutdown,
@@ -102,46 +82,14 @@ public:
 // See nsAtom::AddRef() and nsAtom::Release().
 static Atomic<int32_t, ReleaseAcquire> gUnusedAtomCount(0);
 
-#if defined(NS_BUILD_REFCNT_LOGGING)
-// nsFakeStringBuffers don't really use the refcounting system, but we
-// have to give a coherent series of addrefs and releases to the
-// refcount logging system, or we'll hit assertions when running with
-// XPCOM_MEM_LOG_CLASSES=nsStringBuffer.
-class FakeBufferRefcountHelper
-{
-public:
-  explicit FakeBufferRefcountHelper(nsStringBuffer* aBuffer)
-    : mBuffer(aBuffer)
-  {
-    // Account for the initial static refcount of 1, so that we don't
-    // hit a refcount logging assertion when this object first appears
-    // with a refcount of 2.
-    NS_LOG_ADDREF(aBuffer, 1, "nsStringBuffer", sizeof(nsStringBuffer));
-  }
-
-  ~FakeBufferRefcountHelper()
-  {
-    // We told the refcount logging system in the ctor that this
-    // object was created, so now we have to tell it that it was
-    // destroyed, to avoid leak reports. This may cause odd the
-    // refcount isn't actually 0.
-    NS_LOG_RELEASE(mBuffer, 0, "nsStringBuffer");
-  }
-
-private:
-  nsStringBuffer* mBuffer;
-};
-
-UniquePtr<nsTArray<FakeBufferRefcountHelper>> gFakeBuffers;
-#endif
-
 // This constructor is for dynamic atoms and HTML5 atoms.
 nsAtom::nsAtom(AtomKind aKind, const nsAString& aString, uint32_t aHash)
   : mRefCnt(1)
+  , mLength(aString.Length())
+  , mKind(static_cast<uint32_t>(aKind))
+  , mHash(aHash)
 {
-  mLength = aString.Length();
-  SetKind(aKind);
-  MOZ_ASSERT(IsDynamicAtom() || IsHTML5Atom());
+  MOZ_ASSERT(aKind == AtomKind::DynamicAtom || aKind == AtomKind::HTML5Atom);
   RefPtr<nsStringBuffer> buf = nsStringBuffer::FromString(aString);
   if (buf) {
     mString = static_cast<char16_t*>(buf->Data());
@@ -158,44 +106,28 @@ nsAtom::nsAtom(AtomKind aKind, const nsAString& aString, uint32_t aHash)
     mString[mLength] = char16_t(0);
   }
 
-  mHash = aHash;
   MOZ_ASSERT_IF(IsDynamicAtom(), mHash == HashString(mString, mLength));
 
-  NS_ASSERTION(mString[mLength] == char16_t(0), "null terminated");
-  NS_ASSERTION(buf && buf->StorageSize() >= (mLength + 1) * sizeof(char16_t),
-               "enough storage");
-  NS_ASSERTION(Equals(aString), "correct data");
+  MOZ_ASSERT(mString[mLength] == char16_t(0), "null terminated");
+  MOZ_ASSERT(buf && buf->StorageSize() >= (mLength + 1) * sizeof(char16_t),
+             "enough storage");
+  MOZ_ASSERT(Equals(aString), "correct data");
 
   // Take ownership of buffer
   mozilla::Unused << buf.forget();
 }
 
 // This constructor is for static atoms.
-nsAtom::nsAtom(nsStringBuffer* aStringBuffer, uint32_t aLength, uint32_t aHash)
+nsAtom::nsAtom(const char16_t* aString, uint32_t aLength, uint32_t aHash)
+  : mLength(aLength)
+  , mKind(static_cast<uint32_t>(AtomKind::StaticAtom))
+  , mHash(aHash)
+  , mString(const_cast<char16_t*>(aString))
 {
-  mLength = aLength;
-  SetKind(AtomKind::StaticAtom);
-  mString = static_cast<char16_t*>(aStringBuffer->Data());
-
-#if defined(NS_BUILD_REFCNT_LOGGING)
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!gFakeBuffers) {
-    gFakeBuffers = MakeUnique<nsTArray<FakeBufferRefcountHelper>>();
-  }
-  gFakeBuffers->AppendElement(aStringBuffer);
-#endif
-
-  // Technically we could currently avoid doing this addref by instead making
-  // the static atom buffers have an initial refcount of 2.
-  aStringBuffer->AddRef();
-
-  mHash = aHash;
   MOZ_ASSERT(mHash == HashString(mString, mLength));
 
   MOZ_ASSERT(mString[mLength] == char16_t(0), "null terminated");
-  MOZ_ASSERT(aStringBuffer &&
-             aStringBuffer->StorageSize() == (mLength + 1) * sizeof(char16_t),
-             "correct storage");
+  MOZ_ASSERT(NS_strlen(mString) == mLength, "correct storage");
 }
 
 nsAtom::~nsAtom()
@@ -203,6 +135,20 @@ nsAtom::~nsAtom()
   if (!IsStaticAtom()) {
     MOZ_ASSERT(IsDynamicAtom() || IsHTML5Atom());
     nsStringBuffer::FromData(mString)->Release();
+  }
+}
+
+void
+nsAtom::ToString(nsAString& aString) const
+{
+  // See the comment on |mString|'s declaration.
+  if (IsStaticAtom()) {
+    // AssignLiteral() lets us assign without copying. This isn't a string
+    // literal, but it's a static atom and thus has an unbounded lifetime,
+    // which is what's important.
+    aString.AssignLiteral(mString, mLength);
+  } else {
+    nsStringBuffer::FromData(mString)->ToString(mLength, aString);
   }
 }
 
@@ -561,10 +507,6 @@ NS_InitAtomTable()
 void
 NS_ShutdownAtomTable()
 {
-#if defined(NS_BUILD_REFCNT_LOGGING)
-  gFakeBuffers = nullptr;
-#endif
-
   delete gStaticAtomTable;
   gStaticAtomTable = nullptr;
 
@@ -633,17 +575,15 @@ nsAtomFriend::RegisterStaticAtoms(const nsStaticAtom* aAtoms,
   }
 
   for (uint32_t i = 0; i < aAtomCount; ++i) {
-    nsStringBuffer* stringBuffer = aAtoms[i].mStringBuffer;
+    const char16_t* string = aAtoms[i].mString;
     nsAtom** atomp = aAtoms[i].mAtom;
 
-    MOZ_ASSERT(nsCRT::IsAscii(static_cast<char16_t*>(stringBuffer->Data())));
+    MOZ_ASSERT(nsCRT::IsAscii(string));
 
-    uint32_t stringLen = stringBuffer->StorageSize() / sizeof(char16_t) - 1;
+    uint32_t stringLen = NS_strlen(string);
 
     uint32_t hash;
-    AtomTableEntry* he =
-      GetAtomHashEntry(static_cast<char16_t*>(stringBuffer->Data()),
-                       stringLen, &hash);
+    AtomTableEntry* he = GetAtomHashEntry(string, stringLen, &hash);
 
     nsAtom* atom = he->mAtom;
     if (atom) {
@@ -658,7 +598,7 @@ nsAtomFriend::RegisterStaticAtoms(const nsStaticAtom* aAtoms,
           "Static atom registration for %s should be pushed back", name.get());
       }
     } else {
-      atom = new nsAtom(stringBuffer, stringLen, hash);
+      atom = new nsAtom(string, stringLen, hash);
       he->mAtom = atom;
     }
     *atomp = atom;

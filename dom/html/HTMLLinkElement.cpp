@@ -378,7 +378,8 @@ HTMLLinkElement::GetLinkTarget(nsAString& aTarget)
 
 static const DOMTokenListSupportedToken sSupportedRelValues[] = {
   // Keep this in sync with ToLinkMask in nsStyleLinkElement.cpp.
-  // "import" must come first because it's conditional.
+  // "preload" must come first because it can be disabled.
+  "preload",
   "prefetch",
   "dns-prefetch",
   "stylesheet",
@@ -387,7 +388,6 @@ static const DOMTokenListSupportedToken sSupportedRelValues[] = {
   "preconnect",
   "icon",
   "search",
-  "preload",
   nullptr
 };
 
@@ -395,7 +395,11 @@ nsDOMTokenList*
 HTMLLinkElement::RelList()
 {
   if (!mRelList) {
-    mRelList = new nsDOMTokenList(this, nsGkAtoms::rel, sSupportedRelValues);
+    if (Preferences::GetBool("network.preload")) {
+      mRelList = new nsDOMTokenList(this, nsGkAtoms::rel, sSupportedRelValues);
+    } else {
+      mRelList = new nsDOMTokenList(this, nsGkAtoms::rel, &sSupportedRelValues[1]);
+    }
   }
   return mRelList;
 }

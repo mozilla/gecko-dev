@@ -75,6 +75,9 @@ public:
                       bool aIsSync, uint64_t aTransactionId,
                       const WebRenderScrollData& aScrollData,
                       const mozilla::TimeStamp& aTxnStartTime);
+  void EndEmptyTransaction(const FocusTarget& aFocusTarget,
+                           uint64_t aTransactionId,
+                           const mozilla::TimeStamp& aTxnStartTime);
   void ProcessWebRenderParentCommands();
 
   CompositorBridgeChild* GetCompositorBridgeChild();
@@ -107,6 +110,16 @@ public:
   void SetNamespace(wr::IdNamespace aIdNamespace)
   {
     mIdNamespace = aIdNamespace;
+  }
+
+  wr::FontKey GetNextFontKey()
+  {
+    return wr::FontKey { GetNamespace(), GetNextResourceId() };
+  }
+
+  wr::FontInstanceKey GetNextFontInstanceKey()
+  {
+    return wr::FontInstanceKey { GetNamespace(), GetNextResourceId() };
   }
 
   wr::WrImageKey GetNextImageKey()

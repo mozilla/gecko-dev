@@ -1423,13 +1423,14 @@
               findBar._findField.getAttribute("focused") == "true");
           }
 
-          // If focus is in the tab bar, retain it there.
-          if (document.activeElement == oldTab) {
-            // We need to explicitly focus the new tab, because
-            // tabbox.xml does this only in some cases.
+          let activeEl = document.activeElement;
+          // If focus is on the old tab, move it to the new tab.
+          if (activeEl == oldTab) {
             newTab.focus();
-          } else if (gMultiProcessBrowser && document.activeElement !== newBrowser) {
-
+          } else if (gMultiProcessBrowser && activeEl != newBrowser && activeEl != newTab) {
+            // In e10s, if focus isn't already in the tabstrip or on the new browser,
+            // and the new browser's previous focus wasn't in the url bar but focus is
+            // there now, we need to adjust focus further.
             let keepFocusOnUrlBar = newBrowser &&
                                     newBrowser._urlbarFocused &&
                                     gURLBar &&
@@ -6413,7 +6414,7 @@
 
       <field name="_firstTab">null</field>
       <field name="_lastTab">null</field>
-      <field name="_afterSelectedTab">null</field>
+      <field name="_beforeSelectedTab">null</field>
       <field name="_beforeHoveredTab">null</field>
       <field name="_afterHoveredTab">null</field>
       <field name="_hoveredTab">null</field>
@@ -6546,16 +6547,16 @@
 
           let selectedIndex = visibleTabs.indexOf(this.selectedItem);
 
-          let lastVisible = visibleTabs.length - 1;
+          if (this._beforeSelectedTab) {
+            this._beforeSelectedTab.removeAttribute("beforeselected-visible");
+          }
 
-          if (this._afterSelectedTab)
-            this._afterSelectedTab.removeAttribute("afterselected-visible");
-          if (this.selectedItem.closing || selectedIndex == lastVisible) {
-            this._afterSelectedTab = null;
+          if (this.selectedItem.closing || selectedIndex == 0) {
+            this._beforeSelectedTab = null;
           } else {
-            this._afterSelectedTab = visibleTabs[selectedIndex + 1];
-            this._afterSelectedTab.setAttribute("afterselected-visible",
-                                                "true");
+            this._beforeSelectedTab = visibleTabs[selectedIndex - 1];
+            this._beforeSelectedTab.setAttribute("beforeselected-visible",
+                                                 "true");
           }
 
           if (this._firstTab)
@@ -6564,7 +6565,7 @@
           this._firstTab.setAttribute("first-visible-tab", "true");
           if (this._lastTab)
             this._lastTab.removeAttribute("last-visible-tab");
-          this._lastTab = visibleTabs[lastVisible];
+          this._lastTab = visibleTabs[visibleTabs.length - 1];
           this._lastTab.setAttribute("last-visible-tab", "true");
 
           let hoveredTab = this._hoveredTab;
@@ -7074,7 +7075,7 @@
               let sourceNode = dt.mozGetDataAt(TAB_DROP_TYPE, 0);
               if (sourceNode instanceof XULElement &&
                   sourceNode.localName == "tab" &&
-                  sourceNode.ownerGlobal instanceof ChromeWindow &&
+                  sourceNode.ownerGlobal.isChromeWindow &&
                   sourceNode.ownerDocument.documentElement.getAttribute("windowtype") == "navigator:browser" &&
                   sourceNode.ownerGlobal.gBrowser.tabContainer == sourceNode.parentNode) {
                 // Do not allow transfering a private tab to a non-private window

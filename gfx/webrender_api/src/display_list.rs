@@ -4,7 +4,7 @@
 
 use {BorderDetails, BorderDisplayItem, BorderWidths, BoxShadowClipMode, BoxShadowDisplayItem};
 use {ClipAndScrollInfo, ClipDisplayItem, ClipId, ColorF, ComplexClipRegion, DisplayItem};
-use {ExtendMode, FastHashMap, FastHashSet, FilterOp, FontInstanceKey, GlyphIndex, GlyphInstance};
+use {ExtendMode, FilterOp, FontInstanceKey, GlyphInstance};
 use {GlyphOptions, Gradient, GradientDisplayItem, GradientStop, IframeDisplayItem};
 use {ImageDisplayItem, ImageKey, ImageMask, ImageRendering, LayerPrimitiveInfo, LayoutPoint};
 use {LayoutPrimitiveInfo, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D};
@@ -17,7 +17,10 @@ use YuvImageDisplayItem;
 use bincode;
 use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::{SerializeMap, SerializeSeq};
+use std::io::{Read, Write};
+use std::{io, ptr};
 use std::marker::PhantomData;
+use std::slice;
 use time::precise_time_ns;
 
 // We don't want to push a long text-run. If a text-run is too long, split it into several parts.
@@ -70,8 +73,6 @@ pub struct BuiltDisplayListDescriptor {
     builder_finish_time: u64,
     /// The third IPC time stamp: just before sending
     send_start_time: u64,
-    /// The offset where DisplayItems stop and the Glyph list starts
-    glyph_offset: usize,
 }
 
 pub struct BuiltDisplayListIter<'a> {
@@ -88,12 +89,6 @@ pub struct BuiltDisplayListIter<'a> {
 pub struct DisplayItemRef<'a: 'b, 'b> {
     iter: &'b BuiltDisplayListIter<'a>,
 }
-
-pub struct GlyphsIter<'a> {
-    list: &'a BuiltDisplayList,
-    data: &'a [u8],
-}
-
 
 #[derive(PartialEq)]
 enum Peek {
@@ -125,12 +120,9 @@ impl BuiltDisplayList {
         &self.data[..]
     }
 
+    // Currently redundant with data, but may be useful if we add extra data to dl
     pub fn item_slice(&self) -> &[u8] {
-        &self.data[.. self.descriptor.glyph_offset]
-    }
-
-    pub fn glyph_slice(&self) -> &[u8] {
-        &self.data[self.descriptor.glyph_offset ..]
+        &self.data[..]
     }
 
     pub fn descriptor(&self) -> &BuiltDisplayListDescriptor {
@@ -147,13 +139,6 @@ impl BuiltDisplayList {
 
     pub fn iter(&self) -> BuiltDisplayListIter {
         BuiltDisplayListIter::new(self)
-    }
-
-    pub fn glyphs(&self) -> GlyphsIter {
-        GlyphsIter {
-            list: self,
-            data: self.glyph_slice(),
-        }
     }
 
     pub fn get<'de, T: Deserialize<'de>>(&self, range: ItemRange<T>) -> AuxIter<T> {
@@ -186,6 +171,7 @@ fn skip_slice<T: for<'de> Deserialize<'de>>(
     *data = &data[range.length ..];
     (range, count)
 }
+
 
 impl<'a> BuiltDisplayListIter<'a> {
     pub fn new(list: &'a BuiltDisplayList) -> Self {
@@ -237,7 +223,7 @@ impl<'a> BuiltDisplayListIter<'a> {
                 return None;
             }
 
-            self.cur_item = bincode::deserialize_from(&mut self.data, bincode::Infinite)
+            self.cur_item = bincode::deserialize_from(&mut UnsafeReader::new(&mut self.data), bincode::Infinite)
                 .expect("MEH: malicious process?");
 
             match self.cur_item.item {
@@ -312,21 +298,6 @@ impl<'a> BuiltDisplayListIter<'a> {
     }
 }
 
-impl<'a> Iterator for GlyphsIter<'a> {
-    type Item = (FontInstanceKey, ColorF, ItemRange<GlyphIndex>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.data.len() == 0 {
-            return None;
-        }
-
-        let (font_key, color) = bincode::deserialize_from(&mut self.data, bincode::Infinite)
-            .expect("MEH: malicious process?");
-        let glyph_indices = skip_slice::<GlyphIndex>(self.list, &mut self.data).0;
-        Some((font_key, color, glyph_indices))
-    }
-}
-
 // Some of these might just become ItemRanges
 impl<'a, 'b> DisplayItemRef<'a, 'b> {
     pub fn display_item(&self) -> &DisplayItem {
@@ -394,7 +365,7 @@ impl<'de, 'a, T: Deserialize<'de>> AuxIter<'a, T> {
         let size: usize = if data.len() == 0 {
             0 // Accept empty ItemRanges pointing anywhere
         } else {
-            bincode::deserialize_from(&mut data, bincode::Infinite).expect("MEH: malicious input?")
+            bincode::deserialize_from(&mut UnsafeReader::new(&mut data), bincode::Infinite).expect("MEH: malicious input?")
         };
 
         AuxIter {
@@ -414,7 +385,7 @@ impl<'a, T: for<'de> Deserialize<'de>> Iterator for AuxIter<'a, T> {
         } else {
             self.size -= 1;
             Some(
-                bincode::deserialize_from(&mut self.data, bincode::Infinite)
+                bincode::deserialize_from(&mut UnsafeReader::new(&mut self.data), bincode::Infinite)
                     .expect("MEH: malicious input?"),
             )
         }
@@ -483,19 +454,165 @@ impl<'a, 'b> Serialize for DisplayItemRef<'a, 'b> {
     }
 }
 
+// This is a replacement for bincode::serialize_into(&vec)
+// The default implementation Write for Vec will basically
+// call extend_from_slice(). Serde ends up calling that for every
+// field of a struct that we're serializing. extend_from_slice()
+// does not get inlined and thus we end up calling a generic memcpy()
+// implementation. If we instead reserve enough room for the serialized
+// struct in the Vec ahead of time we can rely on that and use
+// the following UnsafeVecWriter to write into the vec without
+// any checks. This writer assumes that size returned by the
+// serialize function will not change between calls to serialize_into:
+//
+// For example, the following struct will cause memory unsafety when
+// used with UnsafeVecWriter.
+//
+// struct S {
+//    first: Cell<bool>,
+// }
+//
+// impl Serialize for S {
+//    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//        where S: Serializer
+//    {
+//        if self.first.get() {
+//            self.first.set(false);
+//            ().serialize(serializer)
+//        } else {
+//            0.serialize(serializer)
+//        }
+//    }
+// }
+//
+
+struct UnsafeVecWriter(*mut u8);
+
+impl Write for UnsafeVecWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unsafe {
+            ptr::copy_nonoverlapping(buf.as_ptr(), self.0, buf.len());
+            self.0 = self.0.offset(buf.len() as isize);
+        }
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+}
+
+struct SizeCounter(usize);
+
+impl<'a> Write for SizeCounter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0 += buf.len();
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+}
+
+fn serialize_fast<T: Serialize>(vec: &mut Vec<u8>, e: &T) {
+    // manually counting the size is faster than vec.reserve(bincode::serialized_size(&e) as usize) for some reason
+    let mut size = SizeCounter(0);
+    bincode::serialize_into(&mut size,e , bincode::Infinite).unwrap();
+    vec.reserve(size.0);
+
+    let old_len = vec.len();
+    let ptr = unsafe { vec.as_mut_ptr().offset(old_len as isize) };
+    let mut w = UnsafeVecWriter(ptr);
+    bincode::serialize_into(&mut w, e, bincode::Infinite).unwrap();
+
+    // fix up the length
+    unsafe { vec.set_len(old_len + size.0); }
+
+    // make sure we wrote the right amount
+    debug_assert!(((w.0 as usize) - (vec.as_ptr() as usize)) == vec.len());
+}
+
+// This uses a (start, end) representation instead of (start, len) so that
+// only need to update a single field as we read through it. This
+// makes it easier for llvm to understand what's going on. (https://github.com/rust-lang/rust/issues/45068)
+// We update the slice only once we're done reading
+struct UnsafeReader<'a: 'b, 'b> {
+    start: *const u8,
+    end: *const u8,
+    slice: &'b mut &'a [u8],
+}
+
+impl<'a, 'b> UnsafeReader<'a, 'b> {
+    #[inline(always)]
+    fn new(buf: &'b mut &'a [u8]) -> UnsafeReader<'a, 'b> {
+        unsafe {
+            let end = buf.as_ptr().offset(buf.len() as isize);
+            let start = buf.as_ptr();
+            UnsafeReader { start: start, end, slice: buf }
+        }
+    }
+
+    // This read implementation is significantly faster than the standard &[u8] one.
+    //
+    // First, it only supports reading exactly buf.len() bytes. This ensures that
+    // the argument to memcpy is always buf.len() and will allow a constant buf.len()
+    // to be propagated through to memcpy which LLVM will turn into explicit loads and
+    // stores. The standard implementation does a len = min(slice.len(), buf.len())
+    //
+    // Second, we only need to adjust 'start' after reading and it's only adjusted by a
+    // constant. This allows LLVM to avoid adjusting the length field after ever read
+    // and lets it be aggregated into a single adjustment.
+    #[inline(always)]
+    fn read_internal(&mut self, buf: &mut [u8]) {
+        // this is safe because we panic if start + buf.len() > end
+        unsafe {
+            assert!(self.start.offset(buf.len() as isize) <= self.end, "UnsafeReader: read past end of target");
+            ptr::copy_nonoverlapping(self.start, buf.as_mut_ptr(), buf.len());
+            self.start = self.start.offset(buf.len() as isize);
+        }
+    }
+}
+
+impl<'a, 'b> Drop for UnsafeReader<'a, 'b> {
+    // this adjusts input slice so that it properly represents the amount that's left.
+    #[inline(always)]
+    fn drop(&mut self) {
+        // this is safe because we know that start and end are contained inside the original slice
+        unsafe {
+            *self.slice = slice::from_raw_parts(self.start, (self.end as usize) - (self.start as usize));
+        }
+    }
+}
+
+impl<'a, 'b> Read for UnsafeReader<'a, 'b> {
+    // These methods were not being inlined and we need them to be so that the memcpy
+    // is for a constant size
+    #[inline(always)]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.read_internal(buf);
+        Ok(buf.len())
+    }
+    #[inline(always)]
+    fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        self.read_internal(buf);
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SaveState {
+    dl_len: usize,
+    clip_stack_len: usize,
+    next_clip_id: u64,
+}
+
 #[derive(Clone)]
 pub struct DisplayListBuilder {
     pub data: Vec<u8>,
     pub pipeline_id: PipelineId,
     clip_stack: Vec<ClipAndScrollInfo>,
-    // FIXME: audit whether fast hashers (FNV?) are safe here
-    glyphs: FastHashMap<(FontInstanceKey, ColorF), FastHashSet<GlyphIndex>>,
     next_clip_id: u64,
     builder_start_time: u64,
 
     /// The size of the content of this display list. This is used to allow scrolling
     /// outside the bounds of the display list items themselves.
     content_size: LayoutSize,
+    save_state: Option<SaveState>,
 }
 
 impl DisplayListBuilder {
@@ -519,11 +636,42 @@ impl DisplayListBuilder {
             clip_stack: vec![
                 ClipAndScrollInfo::simple(ClipId::root_scroll_node(pipeline_id)),
             ],
-            glyphs: FastHashMap::default(),
             next_clip_id: FIRST_CLIP_ID,
             builder_start_time: start_time,
             content_size,
+            save_state: None,
         }
+    }
+
+    /// Saves the current display list state, so it may be `restore()`'d.
+    ///
+    /// # Conditions:
+    /// 
+    /// * Doesn't support popping clips that were pushed before the save.
+    /// * Doesn't support nested saves.
+    /// * Must call `clear_save()` if the restore becomes unnecessary.
+    pub fn save(&mut self) {
+        assert!(self.save_state.is_none(), "DisplayListBuilder doesn't support nested saves");
+
+        self.save_state = Some(SaveState {
+            clip_stack_len: self.clip_stack.len(),
+            dl_len: self.data.len(),
+            next_clip_id: self.next_clip_id,
+        });
+    }
+
+    /// Restores the state of the builder to when `save()` was last called.
+    pub fn restore(&mut self) {
+        let state = self.save_state.take().expect("No save to restore DisplayListBuilder from");
+
+        self.clip_stack.truncate(state.clip_stack_len);
+        self.data.truncate(state.dl_len);
+        self.next_clip_id = state.next_clip_id;
+    }
+
+    /// Discards the builder's save (indicating the attempted operation was sucessful).
+    pub fn clear_save(&mut self) {
+        self.save_state.take().expect("No save to clear in DisplayListBuilder");
     }
 
     pub fn print_display_list(&mut self) {
@@ -541,28 +689,42 @@ impl DisplayListBuilder {
     }
 
     fn push_item(&mut self, item: SpecificDisplayItem, info: &LayoutPrimitiveInfo) {
-        bincode::serialize_into(
+        serialize_fast(
             &mut self.data,
             &DisplayItem {
                 item,
                 clip_and_scroll: *self.clip_stack.last().unwrap(),
                 info: *info,
             },
-            bincode::Infinite,
-        ).unwrap();
+        )
+    }
+
+    fn push_item_with_clip_scroll_info(
+        &mut self,
+        item: SpecificDisplayItem,
+        info: &LayoutPrimitiveInfo,
+        scrollinfo: ClipAndScrollInfo
+    ) {
+        serialize_fast(
+            &mut self.data,
+            &DisplayItem {
+                item,
+                clip_and_scroll: scrollinfo,
+                info: *info,
+            },
+        )
     }
 
     fn push_new_empty_item(&mut self, item: SpecificDisplayItem) {
         let info = LayoutPrimitiveInfo::new(LayoutRect::zero());
-        bincode::serialize_into(
+        serialize_fast(
             &mut self.data,
             &DisplayItem {
                 item,
                 clip_and_scroll: *self.clip_stack.last().unwrap(),
                 info,
-            },
-            bincode::Infinite,
-        ).unwrap();
+            }
+        )
     }
 
     fn push_iter<I>(&mut self, iter: I)
@@ -575,10 +737,10 @@ impl DisplayListBuilder {
         let len = iter.len();
         let mut count = 0;
 
-        bincode::serialize_into(&mut self.data, &len, bincode::Infinite).unwrap();
+        serialize_fast(&mut self.data, &len);
         for elem in iter {
             count += 1;
-            bincode::serialize_into(&mut self.data, &elem, bincode::Infinite).unwrap();
+            serialize_fast(&mut self.data, &elem);
         }
 
         debug_assert_eq!(len, count);
@@ -664,27 +826,7 @@ impl DisplayListBuilder {
         for split_glyphs in glyphs.chunks(MAX_TEXT_RUN_LENGTH) {
             self.push_item(item, info);
             self.push_iter(split_glyphs);
-
-            // Remember that we've seen these glyphs
-            self.cache_glyphs(
-                font_key,
-                color,
-                split_glyphs.iter().map(|glyph| glyph.index),
-            );
         }
-    }
-
-    fn cache_glyphs<I: Iterator<Item = GlyphIndex>>(
-        &mut self,
-        font_key: FontInstanceKey,
-        color: ColorF,
-        glyphs: I,
-    ) {
-        let font_glyphs = self.glyphs
-            .entry((font_key, color))
-            .or_insert(FastHashSet::default());
-
-        font_glyphs.extend(glyphs);
     }
 
     // Gradients can be defined with stops outside the range of [0, 1]
@@ -969,7 +1111,7 @@ impl DisplayListBuilder {
     fn generate_clip_id(&mut self, id: Option<ClipId>) -> ClipId {
         id.unwrap_or_else(|| {
             self.next_clip_id += 1;
-            ClipId::Clip(self.next_clip_id - 1, 0, self.pipeline_id)
+            ClipId::Clip(self.next_clip_id - 1, self.pipeline_id)
         })
     }
 
@@ -986,10 +1128,10 @@ impl DisplayListBuilder {
         I: IntoIterator<Item = ComplexClipRegion>,
         I::IntoIter: ExactSizeIterator,
     {
-        let parent_id = self.clip_stack.last().unwrap().scroll_node_id;
+        let parent = self.clip_stack.last().unwrap().scroll_node_id;
         self.define_scroll_frame_with_parent(
             id,
-            parent_id,
+            parent,
             content_rect,
             clip_rect,
             complex_clips,
@@ -1000,7 +1142,7 @@ impl DisplayListBuilder {
     pub fn define_scroll_frame_with_parent<I>(
         &mut self,
         id: Option<ClipId>,
-        parent_id: ClipId,
+        parent: ClipId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
         complex_clips: I,
@@ -1014,7 +1156,6 @@ impl DisplayListBuilder {
         let id = self.generate_clip_id(id);
         let item = SpecificDisplayItem::ScrollFrame(ScrollFrameDisplayItem {
             id: id,
-            parent_id: parent_id,
             image_mask: image_mask,
             scroll_sensitivity,
         });
@@ -1026,7 +1167,8 @@ impl DisplayListBuilder {
             tag: None,
         };
 
-        self.push_item(item, &info);
+        let scrollinfo = ClipAndScrollInfo::simple(parent);
+        self.push_item_with_clip_scroll_info(item, &info, scrollinfo);
         self.push_iter(complex_clips);
         id
     }
@@ -1042,10 +1184,10 @@ impl DisplayListBuilder {
         I: IntoIterator<Item = ComplexClipRegion>,
         I::IntoIter: ExactSizeIterator,
     {
-        let parent_id = self.clip_stack.last().unwrap().scroll_node_id;
+        let parent = self.clip_stack.last().unwrap().scroll_node_id;
         self.define_clip_with_parent(
             id,
-            parent_id,
+            parent,
             clip_rect,
             complex_clips,
             image_mask)
@@ -1054,7 +1196,7 @@ impl DisplayListBuilder {
     pub fn define_clip_with_parent<I>(
         &mut self,
         id: Option<ClipId>,
-        parent_id: ClipId,
+        parent: ClipId,
         clip_rect: LayoutRect,
         complex_clips: I,
         image_mask: Option<ImageMask>,
@@ -1066,13 +1208,13 @@ impl DisplayListBuilder {
         let id = self.generate_clip_id(id);
         let item = SpecificDisplayItem::Clip(ClipDisplayItem {
             id,
-            parent_id: parent_id,
             image_mask: image_mask,
         });
 
         let info = LayoutPrimitiveInfo::new(clip_rect);
 
-        self.push_item(item, &info);
+        let scrollinfo = ClipAndScrollInfo::simple(parent);
+        self.push_item_with_clip_scroll_info(item, &info, scrollinfo);
         self.push_iter(complex_clips);
         id
     }
@@ -1104,6 +1246,10 @@ impl DisplayListBuilder {
 
     pub fn pop_clip_id(&mut self) {
         self.clip_stack.pop();
+        if let Some(save_state) = self.save_state.as_ref() {
+            assert!(self.clip_stack.len() >= save_state.clip_stack_len,
+                    "Cannot pop clips that were pushed before the DisplayListBuilder save.");
+        }
         assert!(self.clip_stack.len() > 0);
     }
 
@@ -1114,45 +1260,16 @@ impl DisplayListBuilder {
         self.push_item(item, info);
     }
 
-    // Don't use this function. It will go away.
-    //
-    // We're using this method as a hack in Gecko to retain parts sub-parts of display
-    // lists so that we can regenerate them without building Gecko display items. WebRender
-    // will replace references to the root scroll frame id with the current scroll frame
-    // id.
-    pub fn push_nested_display_list(&mut self, built_display_list: &BuiltDisplayList) {
-        self.push_new_empty_item(SpecificDisplayItem::PushNestedDisplayList);
-
-        // Need to read out all the glyph data to update the cache
-        for (font_key, color, glyphs) in built_display_list.glyphs() {
-            self.cache_glyphs(font_key, color, built_display_list.get(glyphs));
-        }
-
-        // Only append the actual items, not any caches
-        self.data.extend_from_slice(built_display_list.item_slice());
-        self.push_new_empty_item(SpecificDisplayItem::PopNestedDisplayList);
-    }
-
     pub fn push_shadow(&mut self, info: &LayoutPrimitiveInfo, shadow: Shadow) {
         self.push_item(SpecificDisplayItem::PushShadow(shadow), info);
     }
 
-    pub fn pop_shadow(&mut self) {
-        self.push_new_empty_item(SpecificDisplayItem::PopShadow);
+    pub fn pop_all_shadows(&mut self) {
+        self.push_new_empty_item(SpecificDisplayItem::PopAllShadows);
     }
 
-    pub fn finalize(mut self) -> (PipelineId, LayoutSize, BuiltDisplayList) {
-        let glyph_offset = self.data.len();
-
-        // Want to use self.push_iter, so can't borrow self
-        let glyphs = ::std::mem::replace(&mut self.glyphs, FastHashMap::default());
-
-        // Append glyph data to the end
-        for ((font_key, color), sub_glyphs) in glyphs {
-            bincode::serialize_into(&mut self.data, &font_key, bincode::Infinite).unwrap();
-            bincode::serialize_into(&mut self.data, &color, bincode::Infinite).unwrap();
-            self.push_iter(sub_glyphs);
-        }
+    pub fn finalize(self) -> (PipelineId, LayoutSize, BuiltDisplayList) {
+        assert!(self.save_state.is_none(), "Finalized DisplayListBuilder with a pending save");
 
         let end_time = precise_time_ns();
 
@@ -1165,7 +1282,6 @@ impl DisplayListBuilder {
                     builder_start_time: self.builder_start_time,
                     builder_finish_time: end_time,
                     send_start_time: 0,
-                    glyph_offset,
                 },
                 data: self.data,
             },

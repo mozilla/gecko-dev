@@ -69,14 +69,23 @@ GetTopProfilingJitFrame(Activation* act)
     if (!act || !act->isJit())
         return nullptr;
 
-    // For null exitFrame, there is no previous exit frame, just return.
-    uint8_t* jsExitFP = act->asJit()->jsExitFP();
-    if (!jsExitFP)
+    jit::JitActivation* jitActivation = act->asJit();
+
+    // If there is no exit frame set, just return.
+    if (!jitActivation->hasExitFP())
         return nullptr;
 
-    jit::JSJitProfilingFrameIterator iter(jsExitFP);
-    MOZ_ASSERT(!iter.done());
-    return iter.fp();
+    // Skip wasm frames that might be in the way.
+    JitFrameIter iter(jitActivation);
+    while (!iter.done() && iter.isWasm())
+        ++iter;
+
+    if (!iter.isJSJit())
+        return nullptr;
+
+    jit::JSJitProfilingFrameIterator jitIter(iter.asJSJit().fp());
+    MOZ_ASSERT(!jitIter.done());
+    return jitIter.fp();
 }
 
 void
@@ -374,38 +383,6 @@ ProfileEntry::trace(JSTracer* trc)
         TraceNullableRoot(trc, &s, "ProfileEntry script");
         spOrScript = s;
     }
-}
-
-GeckoProfilerEntryMarker::GeckoProfilerEntryMarker(JSContext* cx,
-                                                   JSScript* script
-                                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-    : profiler(&cx->geckoProfiler())
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    if (!profiler->installed()) {
-        profiler = nullptr;
-        return;
-    }
-    spBefore_ = profiler->stackPointer();
-
-    // We want to push a CPP frame so the profiler can correctly order JS and native stacks.
-    // Only the sp value is important.
-    profiler->pseudoStack_->pushCppFrame(
-        /* label = */ "", /* dynamicString = */ nullptr, /* sp = */ this, /* line = */ 0,
-        ProfileEntry::Kind::CPP_MARKER_FOR_JS, ProfileEntry::Category::OTHER);
-
-    profiler->pseudoStack_->pushJsFrame(
-        "js::RunScript", /* dynamicString = */ nullptr, script, script->code());
-}
-
-GeckoProfilerEntryMarker::~GeckoProfilerEntryMarker()
-{
-    if (profiler == nullptr)
-        return;
-
-    profiler->pseudoStack_->pop();    // the JS frame
-    profiler->pseudoStack_->pop();    // the BEGIN_PSEUDO_JS frame
-    MOZ_ASSERT(spBefore_ == profiler->stackPointer());
 }
 
 GeckoProfilerBaselineOSRMarker::GeckoProfilerBaselineOSRMarker(JSContext* cx, bool hasProfilerFrame

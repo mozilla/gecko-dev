@@ -120,12 +120,6 @@ add_task(async function tests() {
   let engine = Services.search.getEngineByName("Google");
   ok(engine, "Google");
 
-  // Show the search bar after initializing the search service, to avoid the
-  // synchronous initialization to interfere.
-  await SpecialPowers.pushPrefEnv({ set: [
-    ["browser.search.widget.inNavBar", true],
-  ]});
-
   let base = "https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8";
 
   let url;
@@ -155,8 +149,8 @@ add_task(async function cleanup() {
 
     Services.prefs.clearUserPref("browser.search.geoip.url");
 
-    Services.prefs.setCharPref(BROWSER_SEARCH_PREF + "countryCode", originalCountryCode)
-    Services.prefs.setCharPref(BROWSER_SEARCH_PREF + "region", originalRegion)
+    Services.prefs.setCharPref(BROWSER_SEARCH_PREF + "countryCode", originalCountryCode);
+    Services.prefs.setCharPref(BROWSER_SEARCH_PREF + "region", originalRegion);
 
     // We can't clear the pref because it's set to false by testing/profiles/prefs_general.js
     Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", false);

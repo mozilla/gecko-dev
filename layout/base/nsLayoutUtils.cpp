@@ -121,7 +121,7 @@
 #include "mozilla/StyleSetHandle.h"
 #include "mozilla/StyleSetHandleInlines.h"
 #include "RegionBuilder.h"
-#include "SVGSVGElement.h"
+#include "SVGViewportElement.h"
 #include "DisplayItemClip.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "prenv.h"
@@ -2986,7 +2986,7 @@ nsLayoutUtils::GetLayerTransformForFrame(nsIFrame* aFrame,
                                nsDisplayListBuilderMode::TRANSFORM_COMPUTATION,
                                false/*don't build caret*/);
   builder.BeginFrame();
-  nsDisplayList list;
+  nsDisplayList list(&builder);
   nsDisplayTransform* item =
     new (&builder) nsDisplayTransform(&builder, aFrame, &list, nsRect());
 
@@ -3269,7 +3269,7 @@ nsLayoutUtils::GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
                                nsDisplayListBuilderMode::EVENT_DELIVERY,
                                false);
   builder.BeginFrame();
-  nsDisplayList list;
+  nsDisplayList list(&builder);
 
   if (aFlags & IGNORE_PAINT_SUPPRESSION) {
     builder.IgnorePaintSuppression();
@@ -3659,7 +3659,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
     visibleRegion = aDirtyRegion;
   }
 
-  nsDisplayList list;
+  nsDisplayList list(&builder);
 
   // If the root has embedded plugins, flag the builder so we know we'll need
   // to update plugin geometry after painting.
@@ -3762,15 +3762,13 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
   Telemetry::AccumulateTimeDelta(Telemetry::PAINT_BUILD_DISPLAYLIST_TIME,
                                  startBuildDisplayList);
 
-  bool profilerNeedsDisplayList =
-    PROFILER_FEATURE_ACTIVE(ProfilerFeature::DisplayListDump);
   bool consoleNeedsDisplayList = gfxUtils::DumpDisplayList() || gfxEnv::DumpPaint();
 #ifdef MOZ_DUMP_PAINTING
   FILE* savedDumpFile = gfxUtils::sDumpPaintFile;
 #endif
 
   UniquePtr<std::stringstream> ss;
-  if (consoleNeedsDisplayList || profilerNeedsDisplayList) {
+  if (consoleNeedsDisplayList) {
     ss = MakeUnique<std::stringstream>();
 #ifdef MOZ_DUMP_PAINTING
     if (gfxEnv::DumpPaintToFile()) {
@@ -3807,11 +3805,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
     if (gfxEnv::DumpPaint() || gfxEnv::DumpPaintItems()) {
       // Flush stream now to avoid reordering dump output relative to
       // messages dumped by PaintRoot below.
-      if (profilerNeedsDisplayList && !consoleNeedsDisplayList) {
-        PROFILER_TRACING("log", ss->str().c_str(), TRACING_EVENT);
-      } else {
-        fprint_stderr(gfxUtils::sDumpPaintFile, *ss);
-      }
+      fprint_stderr(gfxUtils::sDumpPaintFile, *ss);
       ss = MakeUnique<std::stringstream>();
     }
   }
@@ -3870,7 +3864,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
         pixelCount, rasterizeTime, paintedInLastSecond);
   }
 
-  if (consoleNeedsDisplayList || profilerNeedsDisplayList) {
+  if (consoleNeedsDisplayList) {
     *ss << "Painting --- after optimization:\n";
     nsFrame::PrintDisplayList(&builder, list, *ss, gfxEnv::DumpPaintToFile());
 
@@ -3880,11 +3874,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
                                                gfxEnv::DumpPaintToFile());
     }
 
-    if (profilerNeedsDisplayList && !consoleNeedsDisplayList) {
-      PROFILER_TRACING("log", ss->str().c_str(), TRACING_EVENT);
-    } else {
-      fprint_stderr(gfxUtils::sDumpPaintFile, *ss);
-    }
+    fprint_stderr(gfxUtils::sDumpPaintFile, *ss);
 
 #ifdef MOZ_DUMP_PAINTING
     if (gfxEnv::DumpPaintToFile()) {
@@ -7477,7 +7467,7 @@ nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
   result.mHasSize = status & imgIRequest::STATUS_SIZE_AVAILABLE;
   if ((status & imgIRequest::STATUS_LOAD_COMPLETE) == 0) {
     // Spec says to use GetComplete, but that only works on
-    // nsIDOMHTMLImageElement, and we support all sorts of other stuff
+    // HTMLImageElement, and we support all sorts of other stuff
     // here.  Do this for now pending spec clarification.
     result.mIsStillLoading = (status & imgIRequest::STATUS_ERROR) == 0;
     return result;
@@ -9765,7 +9755,7 @@ ComputeSVGReferenceRect(nsIFrame* aFrame,
     case StyleGeometryBox::ViewBox: {
       nsIContent* content = aFrame->GetContent();
       nsSVGElement* element = static_cast<nsSVGElement*>(content);
-      SVGSVGElement* svgElement = element->GetCtx();
+      SVGViewportElement* svgElement = element->GetCtx();
       MOZ_ASSERT(svgElement);
 
       if (svgElement && svgElement->HasViewBoxRect()) {

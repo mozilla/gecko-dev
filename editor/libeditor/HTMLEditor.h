@@ -152,8 +152,8 @@ public:
   NS_DECL_NSIHTMLINLINETABLEEDITOR
 
   // XXX Following methods are not overriding but defined here...
-  nsresult CopyLastEditableChildStyles(nsIDOMNode* aPreviousBlock,
-                                       nsIDOMNode* aNewBlock,
+  nsresult CopyLastEditableChildStyles(nsINode* aPreviousBlock,
+                                       nsINode* aNewBlock,
                                        Element** aOutBrNode);
 
   nsresult LoadHTML(const nsAString& aInputString);
@@ -313,6 +313,7 @@ public:
                       uint32_t aLength);
   virtual nsresult InsertTextImpl(const nsAString& aStringToInsert,
                                   nsCOMPtr<nsINode>* aInOutNode,
+                                  nsCOMPtr<nsIContent>* aInOutChildAtOffset,
                                   int32_t* aInOutOffset,
                                   nsIDocument* aDoc) override;
   NS_IMETHOD_(bool) IsModifiableNode(nsIDOMNode* aNode) override;
@@ -330,7 +331,8 @@ public:
   nsresult InsertNodeAtPoint(nsIDOMNode* aNode,
                              nsCOMPtr<nsIDOMNode>* ioParent,
                              int32_t* ioOffset,
-                             bool aNoEmptyNodes);
+                             bool aNoEmptyNodes,
+                             nsCOMPtr<nsIDOMNode>* ioChildAtOffset = nullptr);
 
   /**
    * Use this to assure that selection is set after attribute nodes when
@@ -580,9 +582,9 @@ protected:
    * @param aValue     The value of aAttribute, example: blue in
    *                   <FONT color="blue"> May be null.  Ignored if aAttribute
    *                   is null.
-   * @param aIsSet     [OUT] true if <aProperty aAttribute=aValue> effects
-   *                         aNode.
    * @param outValue   [OUT] the value of the attribute, if aIsSet is true
+   * @return           true if <aProperty aAttribute=aValue> effects
+   *                   aNode.
    *
    * The nsIContent variant returns aIsSet instead of using an out parameter.
    */
@@ -590,13 +592,6 @@ protected:
                                   nsAtom* aProperty,
                                   const nsAString* aAttribute,
                                   const nsAString* aValue,
-                                  nsAString* outValue = nullptr);
-
-  void IsTextPropertySetByContent(nsIDOMNode* aNode,
-                                  nsAtom* aProperty,
-                                  const nsAString* aAttribute,
-                                  const nsAString* aValue,
-                                  bool& aIsSet,
                                   nsAString* outValue = nullptr);
 
   // Methods for handling plaintext quotations
@@ -768,30 +763,18 @@ protected:
   nsresult RemoveBlockContainer(nsIContent& aNode);
 
   nsIContent* GetPriorHTMLSibling(nsINode* aNode);
-  nsresult GetPriorHTMLSibling(nsIDOMNode*inNode,
-                               nsCOMPtr<nsIDOMNode>* outNode);
 
   nsIContent* GetNextHTMLSibling(nsINode* aNode);
-  nsresult GetNextHTMLSibling(nsIDOMNode* inNode,
-                              nsCOMPtr<nsIDOMNode>* outNode);
 
   nsIContent* GetPriorHTMLNode(nsINode* aNode, bool aNoBlockCrossing = false);
-  nsresult GetPriorHTMLNode(nsIDOMNode* inNode, nsCOMPtr<nsIDOMNode>* outNode,
-                            bool bNoBlockCrossing = false);
   nsIContent* GetPriorHTMLNode(nsINode* aParent, int32_t aOffset,
+                               nsINode* aChildAtOffset,
                                bool aNoBlockCrossing = false);
-  nsresult GetPriorHTMLNode(nsIDOMNode* inParent, int32_t inOffset,
-                            nsCOMPtr<nsIDOMNode>* outNode,
-                            bool bNoBlockCrossing = false);
 
   nsIContent* GetNextHTMLNode(nsINode* aNode, bool aNoBlockCrossing = false);
-  nsresult GetNextHTMLNode(nsIDOMNode* inNode, nsCOMPtr<nsIDOMNode>* outNode,
-                           bool bNoBlockCrossing = false);
   nsIContent* GetNextHTMLNode(nsINode* aParent, int32_t aOffset,
+                              nsINode* aChildAtOffset,
                               bool aNoBlockCrossing = false);
-  nsresult GetNextHTMLNode(nsIDOMNode* inParent, int32_t inOffset,
-                           nsCOMPtr<nsIDOMNode>* outNode,
-                           bool bNoBlockCrossing = false);
 
   bool IsFirstEditableChild(nsINode* aNode);
   bool IsLastEditableChild(nsINode* aNode);

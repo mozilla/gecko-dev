@@ -44,8 +44,11 @@ struct EnterJITRegs
     double f25;
     double f24;
 
+    uintptr_t align;
+
     // non-volatile registers.
     uint64_t ra;
+    uint64_t fp;
     uint64_t s7;
     uint64_t s6;
     uint64_t s5;
@@ -69,7 +72,8 @@ GenerateReturn(MacroAssembler& masm, int returnCode)
         masm.as_gslq(s1, s2, StackPointer, offsetof(EnterJITRegs, s2));
         masm.as_gslq(s3, s4, StackPointer, offsetof(EnterJITRegs, s4));
         masm.as_gslq(s5, s6, StackPointer, offsetof(EnterJITRegs, s6));
-        masm.as_gslq(s7, ra, StackPointer, offsetof(EnterJITRegs, ra));
+        masm.as_gslq(s7, fp, StackPointer, offsetof(EnterJITRegs, fp));
+        masm.as_ld(ra, StackPointer, offsetof(EnterJITRegs, ra));
 
         // Restore non-volatile floating point registers
         masm.as_gslq(f24, f25, StackPointer, offsetof(EnterJITRegs, f25));
@@ -86,6 +90,7 @@ GenerateReturn(MacroAssembler& masm, int returnCode)
         masm.as_ld(s5, StackPointer, offsetof(EnterJITRegs, s5));
         masm.as_ld(s6, StackPointer, offsetof(EnterJITRegs, s6));
         masm.as_ld(s7, StackPointer, offsetof(EnterJITRegs, s7));
+        masm.as_ld(fp, StackPointer, offsetof(EnterJITRegs, fp));
         masm.as_ld(ra, StackPointer, offsetof(EnterJITRegs, ra));
 
         // Restore non-volatile floating point registers
@@ -114,7 +119,8 @@ GeneratePrologue(MacroAssembler& masm)
         masm.as_gssq(s1, s2, StackPointer, offsetof(EnterJITRegs, s2));
         masm.as_gssq(s3, s4, StackPointer, offsetof(EnterJITRegs, s4));
         masm.as_gssq(s5, s6, StackPointer, offsetof(EnterJITRegs, s6));
-        masm.as_gssq(s7, ra, StackPointer, offsetof(EnterJITRegs, ra));
+        masm.as_gssq(s7, fp, StackPointer, offsetof(EnterJITRegs, fp));
+        masm.as_sd(ra, StackPointer, offsetof(EnterJITRegs, ra));
 
         masm.as_gssq(f24, f25, StackPointer, offsetof(EnterJITRegs, f25));
         masm.as_gssq(f26, f27, StackPointer, offsetof(EnterJITRegs, f27));
@@ -131,6 +137,7 @@ GeneratePrologue(MacroAssembler& masm)
     masm.as_sd(s5, StackPointer, offsetof(EnterJITRegs, s5));
     masm.as_sd(s6, StackPointer, offsetof(EnterJITRegs, s6));
     masm.as_sd(s7, StackPointer, offsetof(EnterJITRegs, s7));
+    masm.as_sd(fp, StackPointer, offsetof(EnterJITRegs, fp));
     masm.as_sd(ra, StackPointer, offsetof(EnterJITRegs, ra));
     masm.as_sd(a7, StackPointer, offsetof(EnterJITRegs, a7));
 
@@ -149,7 +156,7 @@ GeneratePrologue(MacroAssembler& masm)
 // The trampoline use the EnterJitCode signature, with the standard x64 fastcall
 // calling convention.
 JitCode *
-JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
+JitRuntime::generateEnterJIT(JSContext* cx)
 {
     const Register reg_code = IntArgReg0;
     const Register reg_argc = IntArgReg1;
@@ -169,8 +176,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     masm.movePtr(StackPointer, s4);
 
     // Save stack pointer as baseline frame.
-    if (type == EnterJitBaseline)
-        masm.movePtr(StackPointer, BaselineFrameReg);
+    masm.movePtr(StackPointer, BaselineFrameReg);
 
     // Load the number of actual arguments into s3.
     masm.unboxInt32(Address(reg_vp, 0), s3);
@@ -227,8 +233,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 
     CodeLabel returnLabel;
     CodeLabel oomReturnLabel;
-    if (type == EnterJitBaseline) {
-        // Handle OSR.
+    {
+        // Handle Interpreter -> Baseline OSR.
         AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
         regs.take(OsrFrameReg);
         regs.take(BaselineFrameReg);
@@ -333,8 +339,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     // Call the function with pushing return address to stack.
     masm.callJitNoProfiler(reg_code);
 
-    if (type == EnterJitBaseline) {
-        // Baseline OSR will return here.
+    {
+        // Interpreter -> Baseline OSR will return here.
         masm.bind(returnLabel.target());
         masm.addCodeLabel(returnLabel);
         masm.bind(oomReturnLabel.target());
@@ -1207,10 +1213,10 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     //
     // JitFrame_Rectifier
     //
-    // The rectifier frame can be preceded by either an IonJS, a WasmToJSJit or
-    // a BaselineStub frame.
+    // The rectifier frame can be preceded by either an IonJS, a BaselineStub,
+    // or a CppToJSJit/WasmToJSJit frame.
     //
-    // Stack layout if caller of rectifier was Ion or WasmToJSJit:
+    // Stack layout if caller of rectifier was Ion or CppToJSJit/WasmToJSJit:
     //
     //              Ion-Descriptor
     //              Ion-ReturnAddr
@@ -1274,8 +1280,8 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
 
         masm.bind(&notIonFrame);
 
-        // Check for either BaselineStub or WasmToJSJit: since WasmToJSJit is
-        // just an entry, jump there if we see it.
+        // Check for either BaselineStub or a CppToJSJit/WasmToJSJit entry
+        // frame.
         masm.branch32(Assembler::NotEqual, scratch3, Imm32(JitFrame_BaselineStub), &handle_Entry);
 
         // Handle Rectifier <- BaselineStub <- BaselineJS

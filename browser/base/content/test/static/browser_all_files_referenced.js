@@ -154,8 +154,6 @@ var whitelist = [
   // Bug 1348533
   {file: "chrome://mozapps/skin/downloads/buttons.png", platforms: ["macosx"]},
   {file: "chrome://mozapps/skin/downloads/downloadButtons.png", platforms: ["linux", "win"]},
-  // Bug 1348556
-  {file: "chrome://mozapps/skin/plugins/pluginBlocked.png"},
   // Bug 1348558
   {file: "chrome://mozapps/skin/update/downloadButtons.png",
    platforms: ["linux"]},
@@ -347,7 +345,7 @@ function parseCodeFile(fileUri) {
                 if (!/\.(properties|js|jsm|json|css)$/.test(path))
                   path += ".js";
                 gReferencesFromCode.add(path);
-                break
+                break;
               }
             }
           }
@@ -581,12 +579,12 @@ add_task(async function checkAllTheFiles() {
     // running the test on a local non-packaged build.
 
     if (/resource:\/\/app\/features\/[^/]+\/bootstrap\.js/.test(file)) {
-      info("not reporting feature boostrap file: " + file)
+      info("not reporting feature boostrap file: " + file);
       return false;
     }
     // Bug 1351892 - can stop shipping these?
     if (/resource:\/\/app\/features\/[^/]+\/chrome\/skin\//.test(file)) {
-      info("not reporting feature skin file that may be for another platform: " + file)
+      info("not reporting feature skin file that may be for another platform: " + file);
       return false;
     }
     return true;

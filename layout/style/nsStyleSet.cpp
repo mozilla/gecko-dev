@@ -2186,7 +2186,7 @@ already_AddRefed<GeckoStyleContext>
 nsStyleSet::ResolveXULTreePseudoStyle(Element* aParentElement,
                                       nsICSSAnonBoxPseudo* aPseudoTag,
                                       GeckoStyleContext* aParentContext,
-                                      nsICSSPseudoComparator* aComparator)
+                                      const mozilla::AtomArray& aInputWord)
 {
   NS_ENSURE_FALSE(mInShutdown, nullptr);
 
@@ -2199,7 +2199,7 @@ nsStyleSet::ResolveXULTreePseudoStyle(Element* aParentElement,
                                aParentElement->OwnerDoc());
   InitStyleScopes(treeContext, aParentElement);
   XULTreeRuleProcessorData data(PresContext(), aParentElement, &ruleWalker,
-                                aPseudoTag, aComparator, treeContext);
+                                aPseudoTag, aInputWord, treeContext);
   FileRules(EnumRulesMatching<XULTreeRuleProcessorData>, &data, aParentElement,
             &ruleWalker);
 
@@ -2241,7 +2241,7 @@ nsStyleSet::AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray)
 }
 
 nsCSSKeyframesRule*
-nsStyleSet::KeyframesRuleForName(const nsString& aName)
+nsStyleSet::KeyframesRuleForName(nsAtom* aName)
 {
   NS_ENSURE_FALSE(mInShutdown, nullptr);
   NS_ASSERTION(mBatching == 0, "rule processors out of date");

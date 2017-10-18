@@ -537,7 +537,7 @@ class ContextMenu {
 
     // Media related cache info parent needs for saving
     let contentType = null;
-    let contentDisposition = null
+    let contentDisposition = null;
     if (aEvent.target.nodeType == Ci.nsIDOMNode.ELEMENT_NODE &&
         aEvent.target instanceof Ci.nsIImageLoadingContent &&
         aEvent.target.currentURI) {
@@ -659,7 +659,7 @@ class ContextMenu {
       contentType: context.target.ownerDocument.contentType,
 
       // used for nsContextMenu.saveLink
-      isPrivate: context.target.ownerDocument.isPrivate,
+      isPrivate: PrivateBrowsingUtils.isBrowserPrivate(context.target.ownerDocument),
     };
 
     // used for nsContextMenu.initMediaPlayerItems

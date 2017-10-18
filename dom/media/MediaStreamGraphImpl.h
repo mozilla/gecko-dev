@@ -456,13 +456,12 @@ public:
    */
   GraphDriver* CurrentDriver() const
   {
-    AssertOnGraphThreadOrNotRunning();
+#ifdef DEBUG
+    if (!OnGraphThreadOrNotRunning()) {
+      mMonitor.AssertCurrentThreadOwns();
+    }
+#endif
     return mDriver;
-  }
-
-  bool RemoveMixerCallback(MixerCallbackReceiver* aReceiver)
-  {
-    return mMixer.RemoveCallback(aReceiver);
   }
 
   /**
@@ -475,7 +474,10 @@ public:
    */
   void SetCurrentDriver(GraphDriver* aDriver)
   {
+#ifdef DEBUG
+    mMonitor.AssertCurrentThreadOwns();
     AssertOnGraphThreadOrNotRunning();
+#endif
     mDriver = aDriver;
   }
 

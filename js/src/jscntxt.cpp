@@ -148,6 +148,11 @@ js::NewContext(uint32_t maxBytes, uint32_t maxNurseryBytes, JSRuntime* parentRun
 
     MOZ_RELEASE_ASSERT(!TlsContext.get());
 
+#if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
+    js::oom::SetThreadType(!parentRuntime ? js::THREAD_TYPE_COOPERATING
+                                          : js::THREAD_TYPE_WORKER);
+#endif
+
     JSRuntime* runtime = js_new<JSRuntime>(parentRuntime);
     if (!runtime)
         return nullptr;
@@ -486,14 +491,6 @@ js::ReportErrorVA(JSContext* cx, unsigned flags, const char* format,
 void
 js::ReportUsageErrorASCII(JSContext* cx, HandleObject callee, const char* msg)
 {
-    const char* usageStr = "usage";
-    PropertyName* usageAtom = Atomize(cx, usageStr, strlen(usageStr))->asPropertyName();
-    RootedId id(cx, NameToId(usageAtom));
-    DebugOnly<Shape*> shape = static_cast<Shape*>(callee->as<JSFunction>().lookup(cx, id));
-    MOZ_ASSERT(!shape->configurable());
-    MOZ_ASSERT(!shape->writable());
-    MOZ_ASSERT(shape->hasDefaultGetter());
-
     RootedValue usage(cx);
     if (!JS_GetProperty(cx, callee, "usage", &usage))
         return;
@@ -1143,11 +1140,11 @@ class MOZ_STACK_CLASS ReportExceptionClosure : public ScriptEnvironmentPreparer:
 } // anonymous namespace
 
 JS_FRIEND_API(bool)
-js::UseInternalJobQueues(JSContext* cx)
+js::UseInternalJobQueues(JSContext* cx, bool cooperative)
 {
     // Internal job queue handling must be set up very early. Self-hosting
     // initialization is as good a marker for that as any.
-    MOZ_RELEASE_ASSERT(!cx->runtime()->hasInitializedSelfHosting(),
+    MOZ_RELEASE_ASSERT(cooperative || !cx->runtime()->hasInitializedSelfHosting(),
                        "js::UseInternalJobQueues must be called early during runtime startup.");
     MOZ_ASSERT(!cx->jobQueue);
     auto* queue = js_new<PersistentRooted<JobQueue>>(cx, JobQueue(SystemAllocPolicy()));
@@ -1155,7 +1152,10 @@ js::UseInternalJobQueues(JSContext* cx)
         return false;
 
     cx->jobQueue = queue;
-    cx->runtime()->offThreadPromiseState.ref().initInternalDispatchQueue();
+
+    if (!cooperative)
+        cx->runtime()->offThreadPromiseState.ref().initInternalDispatchQueue();
+    MOZ_ASSERT(cx->runtime()->offThreadPromiseState.ref().initialized());
 
     JS::SetEnqueuePromiseJobCallback(cx, InternalEnqueuePromiseJobCallback);
 

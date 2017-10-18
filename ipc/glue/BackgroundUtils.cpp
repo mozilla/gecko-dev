@@ -192,18 +192,15 @@ PrincipalToPrincipalInfo(nsIPrincipal* aPrincipal,
   }
 
   // might be an expanded principal
-  nsCOMPtr<nsIExpandedPrincipal> expanded =
-    do_QueryInterface(aPrincipal);
+  auto* basePrin = BasePrincipal::Cast(aPrincipal);
+  if (basePrin->Is<ExpandedPrincipal>()) {
+    auto* expanded = basePrin->As<ExpandedPrincipal>();
 
-  if (expanded) {
     nsTArray<PrincipalInfo> whitelistInfo;
     PrincipalInfo info;
 
-    nsTArray< nsCOMPtr<nsIPrincipal> >* whitelist;
-    MOZ_ALWAYS_SUCCEEDS(expanded->GetWhiteList(&whitelist));
-
-    for (uint32_t i = 0; i < whitelist->Length(); i++) {
-      rv = PrincipalToPrincipalInfo((*whitelist)[i], &info);
+    for (auto& prin : expanded->WhiteList()) {
+      rv = PrincipalToPrincipalInfo(prin, &info);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -370,6 +367,13 @@ LoadInfoToLoadInfoArgs(nsILoadInfo *aLoadInfo,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  nsTArray<PrincipalInfo> ancestorPrincipals;
+  ancestorPrincipals.SetCapacity(aLoadInfo->AncestorPrincipals().Length());
+  for (const auto& principal : aLoadInfo->AncestorPrincipals()) {
+    rv = PrincipalToPrincipalInfo(principal, ancestorPrincipals.AppendElement());
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   *aOptionalLoadInfoArgs =
     LoadInfoArgs(
       loadingPrincipalInfo,
@@ -395,6 +399,8 @@ LoadInfoToLoadInfoArgs(nsILoadInfo *aLoadInfo,
       aLoadInfo->GetOriginAttributes(),
       redirectChainIncludingInternalRedirects,
       redirectChain,
+      ancestorPrincipals,
+      aLoadInfo->AncestorOuterWindowIDs(),
       aLoadInfo->CorsUnsafeHeaders(),
       aLoadInfo->GetForcePreflight(),
       aLoadInfo->GetIsPreflight(),
@@ -467,6 +473,15 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
     redirectChain.AppendElement(redirectHistoryEntry.forget());
   }
 
+  nsTArray<nsCOMPtr<nsIPrincipal>> ancestorPrincipals;
+  ancestorPrincipals.SetCapacity(loadInfoArgs.ancestorPrincipals().Length());
+  for (const PrincipalInfo& principalInfo : loadInfoArgs.ancestorPrincipals()) {
+    nsCOMPtr<nsIPrincipal> ancestorPrincipal =
+      PrincipalInfoToPrincipal(principalInfo, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    ancestorPrincipals.AppendElement(ancestorPrincipal.forget());
+  }
+
   nsCOMPtr<nsILoadInfo> loadInfo =
     new mozilla::LoadInfo(loadingPrincipal,
                           triggeringPrincipal,
@@ -491,6 +506,8 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
                           loadInfoArgs.originAttributes(),
                           redirectChainIncludingInternalRedirects,
                           redirectChain,
+                          Move(ancestorPrincipals),
+                          loadInfoArgs.ancestorOuterWindowIDs(),
                           loadInfoArgs.corsUnsafeHeaders(),
                           loadInfoArgs.forcePreflight(),
                           loadInfoArgs.isPreflight(),

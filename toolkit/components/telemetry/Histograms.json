@@ -244,15 +244,6 @@
     "kind": "boolean",
     "description": "blocklist.xml has been loaded synchronously *** No longer needed (bug 1156565). Delete histogram and accumulation code! ***"
   },
-  "BOX_ALIGN_PROPS_IN_BLOCKS_FLAG": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["bwerth@mozilla.com"],
-    "bug_numbers": [1351383],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "57",
-    "kind": "boolean",
-    "description": "Whether we have layed out any display:block containers with not-yet-supported properties from CSS Box Align."
-  },
   "CHECKERBOARD_DURATION": {
     "record_in_processes": ["main", "content", "gpu"],
     "alert_emails": ["kgupta@mozilla.com"],
@@ -7774,14 +7765,6 @@
     "n_buckets": 100,
     "description": "Life-span of a new tab without suggested tile: time delta between first-visible and unload events (half-seconds)."
   },
-  "NEWTAB_PAGE_LIFE_SPAN_SUGGESTED": {
-    "record_in_processes": ["main", "content"],
-    "expires_in_version": "default",
-    "kind": "exponential",
-    "high": 1200,
-    "n_buckets": 100,
-    "description": "Life-span of a new tab with suggested tile: time delta between first-visible and unload events (half-seconds)."
-  },
   "NEWTAB_PAGE_PINNED_SITES_COUNT": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "default",
@@ -8402,6 +8385,28 @@
      "releaseChannelCollection": "opt-out",
      "description": "A counter incremented every time the user prints a document."
    },
+  "DEVTOOLS_COLD_TOOLBOX_OPEN_DELAY_MS": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "hkirschner@mozilla.com"],
+    "bug_numbers": [1405584],
+    "expires_in_version": "62",
+    "kind": "exponential",
+    "high": 60000,
+    "n_buckets": 100,
+    "keyed": true,
+    "description": "Time taken (in ms) to open the first DevTools toolbox. This is keyed by tool ID being opened [inspector, webconsole, jsdebugger, styleeditor, shadereditor, canvasdebugger, performance, memory, netmonitor, storage, webaudioeditor, scratchpad, dom]."
+  },
+  "DEVTOOLS_WARM_TOOLBOX_OPEN_DELAY_MS": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["dev-developer-tools@lists.mozilla.org", "hkirschner@mozilla.com"],
+    "bug_numbers": [1405584],
+    "expires_in_version": "62",
+    "kind": "exponential",
+    "high": 60000,
+    "n_buckets": 100,
+    "keyed": true,
+    "description": "Time taken (in ms) to open all but first DevTools toolbox. This is keyed by tool ID being opened [inspector, webconsole, jsdebugger, styleeditor, shadereditor, canvasdebugger, performance, memory, netmonitor, storage, webaudioeditor, scratchpad, dom]."
+  },
   "DEVTOOLS_DEBUGGER_DISPLAY_SOURCE_LOCAL_MS": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "never",
@@ -8823,6 +8828,36 @@
     "high": 10000,
     "n_buckets": 20,
     "description": "The length of time (in milliseconds) it took for the answerer to complete ICE, given that it failed. Does not count cases where StartChecks() was never called."
+  },
+  "WEBRTC_ICE_NR_ICE_GATHER_TIME": {
+    "record_in_processes": ["content"],
+    "alert_emails": ["webrtc-ice-telemetry-alerts@mozilla.com", "bcampen@mozilla.com"],
+    "bug_numbers": [1319268],
+    "expires_in_version": "60",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 20,
+    "description": "The length of time (in milliseconds) it took to call nr_ice_gather, given that gathering did not succeed/fail immediately during the call."
+  },
+  "WEBRTC_ICE_NR_ICE_GATHER_TIME_IMMEDIATE_FAILURE": {
+    "record_in_processes": ["content"],
+    "alert_emails": ["webrtc-ice-telemetry-alerts@mozilla.com", "bcampen@mozilla.com"],
+    "bug_numbers": [1319268],
+    "expires_in_version": "60",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 20,
+    "description": "The length of time (in milliseconds) it took to call nr_ice_gather, given that gathering failed immediately during the call."
+  },
+  "WEBRTC_ICE_NR_ICE_GATHER_TIME_IMMEDIATE_SUCCESS": {
+    "record_in_processes": ["content"],
+    "alert_emails": ["webrtc-ice-telemetry-alerts@mozilla.com", "bcampen@mozilla.com"],
+    "bug_numbers": [1319268],
+    "expires_in_version": "60",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 20,
+    "description": "The length of time (in milliseconds) it took to call nr_ice_gather, given that gathering succeeded immediately during the call."
   },
   "WEBRTC_ICE_SUCCESS_TIME": {
     "record_in_processes": ["main", "content"],
@@ -13726,5 +13761,15 @@
     "keyed": true,
     "bug_numbers": [1341569],
     "description": "Milliseconds between starting to fill an autofill-eligible form field and submitting the form, keyed by the combination of form type and filling type."
+  },
+  "GFX_OMTP_PAINT_WAIT_TIME": {
+    "record_in_processes": ["content"],
+    "alert_emails": ["gfx-telemetry-alerts@mozilla.com","danderson@mozilla.com"],
+    "expires_in_version": "61",
+    "kind": "exponential",
+    "high": 200,
+    "n_buckets": 50,
+    "description": "Amount of time in milliseconds the main thread spends waiting for the paint thread to complete, if the time was greater than 200us.",
+    "bug_numbers": [1386968]
   }
 }

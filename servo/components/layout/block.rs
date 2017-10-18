@@ -492,8 +492,12 @@ pub enum FormattingContextType {
     Other,
 }
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for BlockFlow {}
+
 // A block formatting context.
 #[derive(Serialize)]
+#[repr(C)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -537,7 +541,7 @@ impl BlockFlow {
                 None => ForceNonfloatedFlag::ForceNonfloated,
             }),
             fragment: fragment,
-            float: float_kind.map(|kind| box FloatedBlockInfo::new(kind)),
+            float: float_kind.map(|kind| Box::new(FloatedBlockInfo::new(kind))),
             flags: BlockFlowFlags::empty(),
         }
     }

@@ -6,7 +6,6 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
-use core::nonzero::NonZero;
 use euclid::{Point2D, TypedPoint2D, TypedVector2D, ScaleFactor};
 use gfx_traits::Epoch;
 use gleam::gl;
@@ -14,6 +13,7 @@ use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::{Image, PixelFormat};
+use nonzero::NonZero;
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
 use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton};
@@ -1502,9 +1502,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
         let mut flags = self.webrender.get_debug_flags();
         let flag = match option {
-            WebRenderDebugOption::Profiler => webrender::PROFILER_DBG,
-            WebRenderDebugOption::TextureCacheDebug => webrender::TEXTURE_CACHE_DBG,
-            WebRenderDebugOption::RenderTargetDebug => webrender::RENDER_TARGET_DBG,
+            WebRenderDebugOption::Profiler => webrender::DebugFlags::PROFILER_DBG,
+            WebRenderDebugOption::TextureCacheDebug => webrender::DebugFlags::TEXTURE_CACHE_DBG,
+            WebRenderDebugOption::RenderTargetDebug => webrender::DebugFlags::RENDER_TARGET_DBG,
         };
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);

@@ -66,6 +66,11 @@ talos:
     - talos-tp5o
     - talos-perf-reftest
     - talos-perf-reftest-singletons
+    - talos-tp6
+    - talos-tp6-stylo-threads
+    - talos-speedometer
+    - talos-h1
+    - talos-h2
 
 awsy:
     - awsy
@@ -99,18 +104,19 @@ reftest-stylo:
     - reftest-stylo
 
 qr-talos:
-    # - talos-chrome # fails with layers-free
+    # - talos-chrome # regressed, see bug 1408418
     - talos-dromaeojs
-    # - talos-g1 # fails with layers-free
+    - talos-g1
     # - talos-g2 # doesn't work with QR yet
     - talos-g3
     - talos-g4
     - talos-g5
-    # - talos-other # fails with layers-free
+    - talos-other
     # - talos-svgr # fails with layers-free
     - talos-tp5o
     - talos-perf-reftest
     - talos-perf-reftest-singletons
+    - talos-speedometer
 
 qr-tests:
     - cppunit
@@ -144,6 +150,8 @@ linux-talos-stylo-disabled:
     - talos-tp5o-stylo-disabled
     - talos-perf-reftest-stylo-disabled
     - talos-perf-reftest-singletons-stylo-disabled
+    - talos-tp6-stylo-disabled
+    - talos-speedometer-stylo-disabled
 
 windows-reftest-gpu:
     - reftest-gpu
@@ -169,6 +177,7 @@ windows-tests:
     - mochitest-webgl
     - reftest
     - reftest-no-accel
+    - test-verify
     - web-platform-tests
     - web-platform-tests-reftests
     - xpcshell
@@ -188,6 +197,9 @@ windows-talos:
     - talos-xperf
     - talos-tp6
     - talos-tp6-stylo-threads
+    - talos-speedometer
+    - talos-h1
+    - talos-h2
 
 windows-talos-stylo-disabled:
     - talos-chrome-stylo-disabled
@@ -203,6 +215,7 @@ windows-talos-stylo-disabled:
     - talos-tp5o-stylo-disabled
     - talos-xperf-stylo-disabled
     - talos-tp6-stylo-disabled
+    - talos-speedometer-stylo-disabled
 
 macosx64-tests:
     - cppunit
@@ -224,6 +237,7 @@ macosx64-tests:
     - mochitest-media
     - mochitest-webgl
     - reftest
+    - test-verify
     - web-platform-tests
     - web-platform-tests-reftests
     - xpcshell
@@ -242,6 +256,9 @@ macosx64-talos:
     - talos-perf-reftest-singletons
     - talos-tp6
     - talos-tp6-stylo-threads
+    - talos-speedometer
+    - talos-h1
+    - talos-h2
 
 macosx64-talos-stylo-disabled:
     - talos-chrome-stylo-disabled
@@ -256,6 +273,7 @@ macosx64-talos-stylo-disabled:
     - talos-perf-reftest-stylo-disabled
     - talos-perf-reftest-singletons-stylo-disabled
     - talos-tp6-stylo-disabled
+    - talos-speedometer-stylo-disabled
 
 linux32-tests:
     - cppunit
@@ -317,3 +335,6 @@ android-x86-tests:
 
 devtools-tests:
     - mochitest-devtools-chrome
+
+mochitest-headless:
+    - mochitest-plain-headless

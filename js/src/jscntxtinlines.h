@@ -55,9 +55,7 @@ class CompartmentChecker
 
     void check(JSCompartment* c) {
         if (c && !compartment->runtimeFromAnyThread()->isAtomsCompartment(c)) {
-            if (!compartment)
-                compartment = c;
-            else if (c != compartment)
+            if (c != compartment)
                 fail(compartment, c);
         }
     }
@@ -457,7 +455,9 @@ JSContext::enterNonAtomsCompartment(JSCompartment* c)
     enterCompartmentDepth_++;
 
     MOZ_ASSERT(!c->zone()->isAtomsZone());
+    c->holdGlobal();
     enterZoneGroup(c->zone()->group());
+    c->releaseGlobal();
 
     c->enter();
     setCompartment(c, nullptr);

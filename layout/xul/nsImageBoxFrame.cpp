@@ -31,7 +31,6 @@
 #include "nsILoadGroup.h"
 #include "nsContainerFrame.h"
 #include "nsCSSRendering.h"
-#include "nsIDOMHTMLImageElement.h"
 #include "nsNameSpaceManager.h"
 #include "nsTextFragment.h"
 #include "nsTransform2D.h"
@@ -340,7 +339,7 @@ nsImageBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
     clip(aBuilder, this, clipFlags);
 
-  nsDisplayList list;
+  nsDisplayList list(aBuilder);
   list.AppendNewToTop(
     new (aBuilder) nsDisplayXULImage(aBuilder, this));
 

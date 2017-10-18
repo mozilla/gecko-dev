@@ -12,7 +12,7 @@ linux64-clang-3.9:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         docker-image: {in-tree: desktop-build}
-        max-run-time: 36000
+        max-run-time: 7200
     run:
         using: toolchain-script
         script: build-clang-3.9-linux.sh
@@ -35,13 +35,35 @@ linux64-clang-4:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         docker-image: {in-tree: desktop-build}
-        max-run-time: 36000
+        max-run-time: 7200
     run:
         using: toolchain-script
         script: build-clang-4-linux.sh
         resources:
             - 'build/build-clang/build-clang.py'
             - 'build/build-clang/clang-4-linux64.json'
+            - 'taskcluster/scripts/misc/tooltool-download.sh'
+        toolchain-artifact: public/build/clang.tar.xz
+    toolchains:
+        - linux64-gcc-4.9
+
+linux64-clang-5:
+    description: "Clang 5 toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(clang5)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: desktop-build}
+        max-run-time: 7200
+    run:
+        using: toolchain-script
+        script: build-clang-5-linux.sh
+        resources:
+            - 'build/build-clang/build-clang.py'
+            - 'build/build-clang/clang-5-linux64.json'
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/clang.tar.xz
     toolchains:
@@ -109,6 +131,27 @@ linux64-gcc-6:
             - 'build/unix/build-gcc/build-gcc.sh'
         toolchain-alias: linux64-gcc
         toolchain-artifact: public/build/gcc.tar.xz
+
+linux64-sixgill:
+    description: "sixgill GCC plugin build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(sixgill)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: desktop-build}
+        max-run-time: 3600
+    run:
+        using: toolchain-script
+        script: build-gcc-sixgill-plugin-linux.sh
+        resources:
+            - 'build/unix/build-gcc/build-gcc.sh'
+            - 'taskcluster/scripts/misc/build-gcc-sixgill-plugin-linux.sh'
+        toolchain-artifact: public/build/sixgill.tar.xz
+    toolchains:
+        - linux64-gcc-4.9
 
 linux64-binutils:
     description: "Binutils toolchain build"
@@ -185,7 +228,80 @@ linux64-libdmg:
         script: build-libdmg-hfsplus.sh
         toolchain-artifact: public/build/dmg.tar.xz
 
-linux64-rust-1.19:
+linux64-proguard-jar-repack:
+    description: "proguard.jar repack toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(proguard-jar)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: desktop-build}
+        max-run-time: 36000
+    run:
+        using: toolchain-script
+        script: repack-proguard-jar.sh
+        toolchain-artifact: public/build/proguard-jar.tar.xz
+        toolchain-alias: proguard-jar
+
+linux64-android-sdk-linux-repack:
+    description: "Android SDK (Linux) repack toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(android-sdk-linux)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: android-build}
+        max-run-time: 36000
+        artifacts:
+          - name: project/gecko/android-sdk
+            path: /builds/worker/project/gecko/android-sdk/
+            type: directory
+    run:
+        using: toolchain-script
+        script: repack-android-sdk-linux.sh
+        tc-vcs: false
+        resources:
+            - 'python/mozboot/**/*android*'
+        toolchain-artifact: project/gecko/android-sdk/android-sdk-linux.tar.xz
+        toolchain-alias: android-sdk-linux
+
+linux64-android-gradle-dependencies:
+    description: "Android Gradle dependencies toolchain task"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(gradle-dependencies)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: android-build}
+        env:
+            GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-online"
+        max-run-time: 36000
+    run:
+        using: toolchain-script
+        script: android-gradle-dependencies.sh
+        sparse-profile: null
+
+        tc-vcs: false
+        resources:
+            - 'taskcluster/scripts/misc/tooltool-download.sh'
+            - 'taskcluster/scripts/misc/android-gradle-dependencies/**'
+            - '**/*.gradle'
+            - 'mobile/android/config/mozconfigs/android-api-16-gradle-dependencies/**'
+            - 'mobile/android/config/mozconfigs/common*'
+        toolchain-artifact: public/build/android-gradle-dependencies.tar.xz
+        toolchain-alias: android-gradle-dependencies
+    toolchains:
+        # Aliases aren't allowed for toolchains depending on toolchains.
+        - linux64-android-sdk-linux-repack
+        - linux64-proguard-jar-repack
+
+linux64-rust-1.21:
     description: "rust repack"
     treeherder:
         kind: build
@@ -202,7 +318,7 @@ linux64-rust-1.19:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-            '--channel', '1.19.0',
+            '--channel', '1.21.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'i686-unknown-linux-gnu',
@@ -210,7 +326,55 @@ linux64-rust-1.19:
         toolchain-alias: linux64-rust
         toolchain-artifact: public/build/rustc.tar.xz
 
-linux64-rust-macos-1.19:
+linux64-rust-1.20:
+    description: "rust repack"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(rust-1.20)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: desktop-build}
+        max-run-time: 7200
+        env:
+          UPLOAD_DIR: artifacts
+    run:
+        using: toolchain-script
+        script: repack_rust.py
+        arguments: [
+            '--channel', '1.20.0',
+            '--host', 'x86_64-unknown-linux-gnu',
+            '--target', 'x86_64-unknown-linux-gnu',
+            '--target', 'i686-unknown-linux-gnu',
+        ]
+        toolchain-artifact: public/build/rustc.tar.xz
+
+linux64-rust-1.19:
+    description: "rust repack"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TL(rust-1.19)
+        tier: 1
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        docker-image: {in-tree: desktop-build}
+        max-run-time: 7200
+        env:
+          UPLOAD_DIR: artifacts
+    run:
+        using: toolchain-script
+        script: repack_rust.py
+        arguments: [
+            '--channel', '1.19.0',
+            '--host', 'x86_64-unknown-linux-gnu',
+            '--target', 'x86_64-unknown-linux-gnu',
+            '--target', 'i686-unknown-linux-gnu',
+        ]
+        toolchain-artifact: public/build/rustc.tar.xz
+
+linux64-rust-macos-1.21:
     description: "rust repack with macos-cross support"
     treeherder:
         kind: build
@@ -227,7 +391,7 @@ linux64-rust-macos-1.19:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-           '--channel', '1.19.0',
+           '--channel', '1.21.0',
            '--host', 'x86_64-unknown-linux-gnu',
            '--target', 'x86_64-unknown-linux-gnu',
            '--target', 'x86_64-apple-darwin',
@@ -235,7 +399,7 @@ linux64-rust-macos-1.19:
         toolchain-alias: linux64-rust-macos
         toolchain-artifact: public/build/rustc.tar.xz
 
-linux64-rust-android-1.19:
+linux64-rust-android-1.21:
     description: "rust repack with android-cross support"
     treeherder:
         kind: build
@@ -252,7 +416,7 @@ linux64-rust-android-1.19:
         using: toolchain-script
         script: repack_rust.py
         arguments: [
-           '--channel', '1.19.0',
+           '--channel', '1.21.0',
            '--host', 'x86_64-unknown-linux-gnu',
            '--target', 'x86_64-unknown-linux-gnu',
            '--target', 'armv7-linux-androideabi',
@@ -280,7 +444,7 @@ linux64-sccache:
             - 'taskcluster/scripts/misc/tooltool-download.sh'
         toolchain-artifact: public/build/sccache2.tar.xz
     toolchains:
-        - linux64-clang-3.9
+        - linux64-gcc-4.9
         - linux64-rust-1.19
 
 linux64-gn:

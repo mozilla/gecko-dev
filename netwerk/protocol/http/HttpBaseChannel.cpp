@@ -1068,7 +1068,8 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
 
   nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(aStream);
   if (!seekable) {
-    aStream = new PartiallySeekableInputStream(aStream);
+    nsCOMPtr<nsIInputStream> stream = aStream;
+    aStream = new PartiallySeekableInputStream(stream.forget());
   }
 
   mUploadStream = aStream;
@@ -3996,6 +3997,12 @@ HttpBaseChannel::GetConnectStart(TimeStamp* _retval) {
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetTcpConnectEnd(TimeStamp* _retval) {
+  *_retval = mTransactionTimings.tcpConnectEnd;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetSecureConnectionStart(TimeStamp* _retval) {
   *_retval = mTransactionTimings.secureConnectionStart;
   return NS_OK;
@@ -4076,6 +4083,7 @@ IMPL_TIMING_ATTR(HandleFetchEventEnd)
 IMPL_TIMING_ATTR(DomainLookupStart)
 IMPL_TIMING_ATTR(DomainLookupEnd)
 IMPL_TIMING_ATTR(ConnectStart)
+IMPL_TIMING_ATTR(TcpConnectEnd)
 IMPL_TIMING_ATTR(SecureConnectionStart)
 IMPL_TIMING_ATTR(ConnectEnd)
 IMPL_TIMING_ATTR(RequestStart)

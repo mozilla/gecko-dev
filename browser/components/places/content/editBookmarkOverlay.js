@@ -55,8 +55,14 @@ var gEditItemOverlay = {
         throw new Error("Cannot use an incomplete node to initialize the edit bookmark panel");
       }
       let parent = node.parent;
-      isParentReadOnly = !PlacesUtils.nodeIsFolder(parent) ||
-                          PlacesUIUtils.isContentsReadOnly(parent);
+      isParentReadOnly = !PlacesUtils.nodeIsFolder(parent);
+      if (!isParentReadOnly) {
+        let folderId = PlacesUtils.getConcreteItemId(parent);
+        isParentReadOnly = folderId == PlacesUtils.placesRootId ||
+                           (!("get" in Object.getOwnPropertyDescriptor(PlacesUIUtils, "leftPaneFolderId")) &&
+                            (folderId == PlacesUIUtils.leftPaneFolderId ||
+                             folderId == PlacesUIUtils.allBookmarksFolderId));
+      }
       parentId = parent.itemId;
       parentGuid = parent.bookmarkGuid;
     }
@@ -341,7 +347,7 @@ var gEditItemOverlay = {
       let curentURITags = PlacesUtils.tagging.getTagsForURI(uri);
       for (let tag of commonTags) {
         if (!curentURITags.includes(tag)) {
-          commonTags.delete(tag)
+          commonTags.delete(tag);
           if (commonTags.size == 0)
             return this._paneInfo.cachedCommonTags = [];
         }
@@ -742,7 +748,7 @@ var gEditItemOverlay = {
       this._element("chooseFolderSeparator").hidden =
         this._element("chooseFolderMenuItem").hidden = false;
     } else {
-      expander.className = "expander-up"
+      expander.className = "expander-up";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextup"));
       folderTreeRow.collapsed = false;

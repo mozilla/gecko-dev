@@ -1637,11 +1637,14 @@ Simulator::startInterrupt(JitActivation* activation)
 void
 Simulator::handleWasmInterrupt()
 {
+    if (!wasm::CodeExists)
+        return;
+
     void* pc = (void*)get_pc();
     void* fp = (void*)getRegister(Register::fp);
 
     JitActivation* activation = TlsContext.get()->activation()->asJit();
-    const wasm::CodeSegment* segment = activation->compartment()->wasm.lookupCodeSegment(pc);
+    const wasm::CodeSegment* segment = wasm::LookupCodeSegment(pc);
     if (!segment || !segment->containsCodePC(pc))
         return;
 
@@ -1663,6 +1666,9 @@ Simulator::handleWasmInterrupt()
 bool
 Simulator::handleWasmFault(int32_t addr, unsigned numBytes)
 {
+    if (!wasm::CodeExists)
+        return false;
+
     JSContext* cx = TlsContext.get();
     if (!cx->activation() || !cx->activation()->isJit())
         return false;
@@ -1671,7 +1677,7 @@ Simulator::handleWasmFault(int32_t addr, unsigned numBytes)
     void* pc = reinterpret_cast<void*>(get_pc());
     uint8_t* fp = reinterpret_cast<uint8_t*>(getRegister(Register::fp));
 
-    const wasm::CodeSegment* segment = act->compartment()->wasm.lookupCodeSegment(pc);
+    const wasm::CodeSegment* segment = wasm::LookupCodeSegment(pc);
     if (!segment)
         return false;
 

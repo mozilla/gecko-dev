@@ -3,11 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![feature(box_patterns)]
-#![feature(box_syntax)]
-#![feature(conservative_impl_trait)]
-#![feature(nonzero)]
-#![feature(raw)]
 
 extern crate app_units;
 extern crate atomic_refcell;

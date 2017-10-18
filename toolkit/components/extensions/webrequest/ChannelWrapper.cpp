@@ -569,6 +569,60 @@ ChannelWrapper::ParentWindowId() const
   return -1;
 }
 
+void
+ChannelWrapper::GetFrameAncestors(dom::Nullable<nsTArray<dom::MozFrameAncestorInfo>>& aFrameAncestors, ErrorResult& aRv) const
+{
+  nsCOMPtr<nsILoadInfo> loadInfo = GetLoadInfo();
+  if (!loadInfo || WindowId(loadInfo) == 0) {
+    aFrameAncestors.SetNull();
+    return;
+  }
+
+  nsresult rv = GetFrameAncestors(loadInfo, aFrameAncestors.SetValue());
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+  }
+}
+
+nsresult
+ChannelWrapper::GetFrameAncestors(nsILoadInfo* aLoadInfo, nsTArray<dom::MozFrameAncestorInfo>& aFrameAncestors) const
+{
+  const nsTArray<nsCOMPtr<nsIPrincipal>>& ancestorPrincipals = aLoadInfo->AncestorPrincipals();
+  const nsTArray<uint64_t>& ancestorOuterWindowIDs = aLoadInfo->AncestorOuterWindowIDs();
+  uint32_t size = ancestorPrincipals.Length();
+  MOZ_DIAGNOSTIC_ASSERT(size == ancestorOuterWindowIDs.Length());
+  if (size != ancestorOuterWindowIDs.Length()) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  bool subFrame = aLoadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_SUBDOCUMENT;
+  if (!aFrameAncestors.SetCapacity(subFrame ? size : size + 1, fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  // The immediate parent is always the first element in the ancestor arrays, however
+  // SUBDOCUMENTs do not have their immediate parent included, so we inject it here.
+  // This will force wrapper.parentWindowId == wrapper.frameAncestors[0].frameId to
+  // always be true.  All ather requests already match this way.
+  if (subFrame) {
+    auto ancestor = aFrameAncestors.AppendElement();
+    GetDocumentURL(ancestor->mUrl);
+    ancestor->mFrameId = ParentWindowId();
+  }
+
+  for (uint32_t i = 0; i < size; ++i) {
+    auto ancestor = aFrameAncestors.AppendElement();
+    nsCOMPtr<nsIURI> uri;
+    MOZ_TRY(ancestorPrincipals[i]->GetURI(getter_AddRefs(uri)));
+    if (!uri) {
+      return NS_ERROR_UNEXPECTED;
+    }
+    MOZ_TRY(uri->GetSpec(ancestor->mUrl));
+    ancestor->mFrameId = NormalizeWindowID(aLoadInfo, ancestorOuterWindowIDs[i]);
+  }
+  return NS_OK;
+}
+
 /*****************************************************************************
  * Response filtering
  *****************************************************************************/
@@ -576,6 +630,12 @@ ChannelWrapper::ParentWindowId() const
 void
 ChannelWrapper::RegisterTraceableChannel(const WebExtensionPolicy& aAddon, nsITabParent* aTabParent)
 {
+  // We can't attach new listeners after the response has started, so don't
+  // bother registering anything.
+  if (mResponseStarted) {
+    return;
+  }
+
   mAddonEntries.Put(aAddon.Id(), aTabParent);
   if (!mChannelEntry) {
     mChannelEntry = WebRequestService::GetSingleton().RegisterChannel(this);
@@ -721,7 +781,7 @@ ChannelWrapper::FinalURI() const
   if (nsCOMPtr<nsIChannel> chan = MaybeChannel()) {
     NS_GetFinalChannelURI(chan, getter_AddRefs(uri));
   }
-  return uri.forget();;
+  return uri.forget();
 }
 
 void
@@ -860,6 +920,7 @@ ChannelWrapper::RequestListener::OnStartRequest(nsIRequest *request, nsISupports
   MOZ_ASSERT(mOrigStreamListener, "Should have mOrigStreamListener");
 
   mChannelWrapper->mChannelEntry = nullptr;
+  mChannelWrapper->mResponseStarted = true;
   mChannelWrapper->ErrorCheck();
   mChannelWrapper->FireEvent(NS_LITERAL_STRING("start"));
 

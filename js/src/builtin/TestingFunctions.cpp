@@ -13,6 +13,8 @@
 #include "mozilla/Unused.h"
 
 #include <cmath>
+#include <cstdlib>
+#include <ctime>
 
 #include "jsapi.h"
 #include "jscntxt.h"
@@ -561,6 +563,29 @@ WasmThreadsSupported(JSContext* cx, unsigned argc, Value* vp)
     isSupported = isSupported && jit::AtomicOperations::isLockfree8();
 
     args.rval().setBoolean(isSupported);
+    return true;
+}
+
+static bool
+WasmCompileMode(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    // We default to ion if nothing is enabled, as does the Wasm compiler.
+    JSString* result;
+    if (!wasm::HasSupport(cx))
+        result = JS_NewStringCopyZ(cx, "disabled");
+    else if (cx->options().wasmBaseline() && cx->options().wasmIon())
+        result = JS_NewStringCopyZ(cx, "baseline-or-ion");
+    else if (cx->options().wasmBaseline())
+        result = JS_NewStringCopyZ(cx, "baseline");
+    else
+        result = JS_NewStringCopyZ(cx, "ion");
+
+    if (!result)
+        return false;
+
+    args.rval().setString(result);
     return true;
 }
 
@@ -1444,6 +1469,17 @@ OOMThreadTypes(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static bool
+CheckCanSimulateOOM(JSContext* cx)
+{
+    if (js::oom::GetThreadType() != js::THREAD_TYPE_COOPERATING) {
+        JS_ReportErrorASCII(cx, "Simulated OOM failure is only supported on the main thread");
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 SetupOOMFailure(JSContext* cx, bool failAlways, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -1481,6 +1517,9 @@ SetupOOMFailure(JSContext* cx, bool failAlways, unsigned argc, Value* vp)
         return false;
     }
 
+    if (!CheckCanSimulateOOM(cx))
+        return false;
+
     js::oom::SimulateOOMAfter(count, targetThread, failAlways);
     args.rval().setUndefined();
     return true;
@@ -1502,6 +1541,10 @@ static bool
 ResetOOMFailure(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (!CheckCanSimulateOOM(cx))
+        return false;
+
     args.rval().setBoolean(js::oom::HadSimulatedOOM());
     js::oom::ResetSimulatedOOM();
     return true;
@@ -1536,6 +1579,9 @@ OOMTest(JSContext* cx, unsigned argc, Value* vp)
         JS_ReportErrorASCII(cx, "The optional second argument to oomTest() must be a boolean.");
         return false;
     }
+
+    if (!CheckCanSimulateOOM(cx))
+        return false;
 
     bool expectExceptionOnFailure = true;
     if (args.length() == 2)
@@ -2641,9 +2687,11 @@ SetIonCheckGraphCoherency(JSContext* cx, unsigned argc, Value* vp)
 
 class CloneBufferObject : public NativeObject {
     static const JSPropertySpec props_[3];
-    static const size_t DATA_SLOT   = 0;
+
+    static const size_t DATA_SLOT = 0;
     static const size_t LENGTH_SLOT = 1;
-    static const size_t NUM_SLOTS   = 2;
+    static const size_t SYNTHETIC_SLOT = 2;
+    static const size_t NUM_SLOTS = 3;
 
   public:
     static const Class class_;
@@ -2654,6 +2702,7 @@ class CloneBufferObject : public NativeObject {
             return nullptr;
         obj->as<CloneBufferObject>().setReservedSlot(DATA_SLOT, PrivateValue(nullptr));
         obj->as<CloneBufferObject>().setReservedSlot(LENGTH_SLOT, Int32Value(0));
+        obj->as<CloneBufferObject>().setReservedSlot(SYNTHETIC_SLOT, BooleanValue(false));
 
         if (!JS_DefineProperties(cx, obj, props_))
             return nullptr;
@@ -2671,7 +2720,7 @@ class CloneBufferObject : public NativeObject {
             return nullptr;
         }
         buffer->steal(data.get());
-        obj->setData(data.release());
+        obj->setData(data.release(), false);
         return obj;
     }
 
@@ -2679,9 +2728,14 @@ class CloneBufferObject : public NativeObject {
         return static_cast<JSStructuredCloneData*>(getReservedSlot(DATA_SLOT).toPrivate());
     }
 
-    void setData(JSStructuredCloneData* aData) {
+    bool isSynthetic() const {
+        return getReservedSlot(SYNTHETIC_SLOT).toBoolean();
+    }
+
+    void setData(JSStructuredCloneData* aData, bool synthetic) {
         MOZ_ASSERT(!data());
         setReservedSlot(DATA_SLOT, PrivateValue(aData));
+        setReservedSlot(SYNTHETIC_SLOT, BooleanValue(synthetic));
     }
 
     // Discard an owned clone buffer.
@@ -2695,12 +2749,6 @@ class CloneBufferObject : public NativeObject {
 
     static bool
     setCloneBuffer_impl(JSContext* cx, const CallArgs& args) {
-        if (fuzzingSafe) {
-            // A manually-created clonebuffer could easily trigger a crash
-            args.rval().setUndefined();
-            return true;
-        }
-
         Rooted<CloneBufferObject*> obj(cx, &args.thisv().toObject().as<CloneBufferObject>());
 
         uint8_t* data = nullptr;
@@ -2733,7 +2781,7 @@ class CloneBufferObject : public NativeObject {
             return false;
         js_memcpy(buf->Start(), data, nbytes);
         obj->discard();
-        obj->setData(buf.release());
+        obj->setData(buf.release(), true);
 
         args.rval().setUndefined();
         return true;
@@ -2951,8 +2999,11 @@ Deserialize(JSContext* cx, unsigned argc, Value* vp)
         JS_ReportErrorASCII(cx, "deserialize requires a clonebuffer argument");
         return false;
     }
+    Rooted<CloneBufferObject*> obj(cx, &args[0].toObject().as<CloneBufferObject>());
 
-    JS::StructuredCloneScope scope = JS::StructuredCloneScope::SameProcessSameThread;
+    JS::StructuredCloneScope scope =
+        obj->isSynthetic() ? JS::StructuredCloneScope::DifferentProcess
+                           : JS::StructuredCloneScope::SameProcessSameThread;
     if (args.get(1).isObject()) {
         RootedObject opts(cx, &args[1].toObject());
         if (!opts)
@@ -2976,8 +3027,6 @@ Deserialize(JSContext* cx, unsigned argc, Value* vp)
         }
     }
 
-    Rooted<CloneBufferObject*> obj(cx, &args[0].toObject().as<CloneBufferObject>());
-
     // Clone buffer was already consumed?
     if (!obj->data()) {
         JS_ReportErrorASCII(cx, "deserialize given invalid clone buffer "
@@ -2988,6 +3037,13 @@ Deserialize(JSContext* cx, unsigned argc, Value* vp)
     bool hasTransferable;
     if (!JS_StructuredCloneHasTransferables(*obj->data(), &hasTransferable))
         return false;
+
+    if (obj->isSynthetic() &&
+        (scope != JS::StructuredCloneScope::DifferentProcess || hasTransferable))
+    {
+        JS_ReportErrorASCII(cx, "clone buffer data is synthetic but may contain pointers");
+        return false;
+    }
 
     RootedValue deserialized(cx);
     if (!JS_ReadStructuredClone(cx, *obj->data(),
@@ -4241,10 +4297,8 @@ SetRNGState(JSContext* cx, unsigned argc, Value* vp)
 #endif
 
 static ModuleEnvironmentObject*
-GetModuleEnvironment(JSContext* cx, HandleValue moduleValue)
+GetModuleEnvironment(JSContext* cx, HandleModuleObject module)
 {
-    RootedModuleObject module(cx, &moduleValue.toObject().as<ModuleObject>());
-
     // Use the initial environment so that tests can check bindings exists
     // before they have been instantiated.
     RootedModuleEnvironmentObject env(cx, &module->initialEnvironment());
@@ -4268,7 +4322,13 @@ GetModuleEnvironmentNames(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, args[0]));
+    RootedModuleObject module(cx, &args[0].toObject().as<ModuleObject>());
+    if (module->status() == MODULE_STATUS_ERRORED) {
+        JS_ReportErrorASCII(cx, "Module environment unavailable");
+        return false;
+    }
+
+    RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, module));
     Rooted<IdVector> ids(cx, IdVector(cx));
     if (!JS_Enumerate(cx, env, &ids))
         return false;
@@ -4305,7 +4365,13 @@ GetModuleEnvironmentValue(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, args[0]));
+    RootedModuleObject module(cx, &args[0].toObject().as<ModuleObject>());
+    if (module->status() == MODULE_STATUS_ERRORED) {
+        JS_ReportErrorASCII(cx, "Module environment unavailable");
+        return false;
+    }
+
+    RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, module));
     RootedString name(cx, args[1].toString());
     RootedId id(cx);
     if (!JS_StringToId(cx, name, &id))
@@ -4706,6 +4772,118 @@ DisableForEach(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
+static bool
+GetTimeZone(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    RootedObject callee(cx, &args.callee());
+
+    if (args.length() != 0) {
+        ReportUsageErrorASCII(cx, callee, "Wrong number of arguments");
+        return false;
+    }
+
+    auto getTimeZone = [](std::time_t* now) -> const char* {
+        std::tm local{};
+#if defined(_WIN32)
+        _tzset();
+        if (localtime_s(&local, now) == 0)
+            return _tzname[local.tm_isdst > 0];
+#else
+        tzset();
+#if defined(HAVE_LOCALTIME_R)
+        if (localtime_r(now, &local)) {
+#else
+        std::tm* localtm = std::localtime(now);
+        if (localtm) {
+            *local = *localtm;
+#endif /* HAVE_LOCALTIME_R */
+
+#if defined(HAVE_TM_ZONE_TM_GMTOFF)
+            return local.tm_zone;
+#else
+            return tzname[local.tm_isdst > 0];
+#endif /* HAVE_TM_ZONE_TM_GMTOFF */
+        }
+#endif /* _WIN32 */
+        return nullptr;
+    };
+
+    std::time_t now = std::time(nullptr);
+    if (now != static_cast<std::time_t>(-1)) {
+        if (const char* tz = getTimeZone(&now)) {
+            JSString* str = JS_NewStringCopyZ(cx, tz);
+            if (!str)
+                return false;
+            args.rval().setString(str);
+            return true;
+        }
+    }
+
+    args.rval().setUndefined();
+    return true;
+}
+
+static bool
+SetTimeZone(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    RootedObject callee(cx, &args.callee());
+
+    if (args.length() != 1) {
+        ReportUsageErrorASCII(cx, callee, "Wrong number of arguments");
+        return false;
+    }
+
+    if (!args[0].isString() && !args[0].isUndefined()) {
+        ReportUsageErrorASCII(cx, callee, "First argument should be a string or undefined");
+        return false;
+    }
+
+    auto setTimeZone = [](const char* value) {
+#if defined(_WIN32)
+        return _putenv_s("TZ", value) == 0;
+#else
+        return setenv("TZ", value, true) == 0;
+#endif /* _WIN32 */
+    };
+
+    auto unsetTimeZone = []() {
+#if defined(_WIN32)
+        return _putenv_s("TZ", "") == 0;
+#else
+        return unsetenv("TZ") == 0;
+#endif /* _WIN32 */
+    };
+
+    if (args[0].isString() && !args[0].toString()->empty()) {
+        JSAutoByteString timeZone;
+        if (!timeZone.encodeLatin1(cx, args[0].toString()))
+            return false;
+
+        if (!setTimeZone(timeZone.ptr())) {
+            JS_ReportErrorASCII(cx, "Failed to set 'TZ' environment variable");
+            return false;
+        }
+    } else {
+        if (!unsetTimeZone()) {
+            JS_ReportErrorASCII(cx, "Failed to unset 'TZ' environment variable");
+            return false;
+        }
+    }
+
+#if defined(_WIN32)
+    _tzset();
+#else
+    tzset();
+#endif /* _WIN32 */
+
+    JS::ResetTimeZone();
+
+    args.rval().setUndefined();
+    return true;
+}
+
 #if defined(FUZZING) && defined(__AFL_COMPILER)
 static bool
 AflLoop(JSContext* cx, unsigned argc, Value* vp)
@@ -5092,6 +5270,11 @@ gc::ZealModeHelpText),
 "  Returns a boolean indicating whether the WebAssembly threads proposal is\n"
 "  supported on the current device."),
 
+    JS_FN_HELP("wasmCompileMode", WasmCompileMode, 0, 0,
+"wasmCompileMode()",
+"  Returns a string indicating the available compile policy: 'baseline', 'ion',\n"
+"  'baseline-or-ion', or 'disabled' (if wasm is not available at all)."),
+
     JS_FN_HELP("wasmTextToBinary", WasmTextToBinary, 1, 0,
 "wasmTextToBinary(str)",
 "  Translates the given text wasm module into its binary encoding."),
@@ -5383,6 +5566,10 @@ gc::ZealModeHelpText),
 "isLegacyIterator(value)",
 "  Returns whether the value is considered is a legacy iterator.\n"),
 
+    JS_FN_HELP("getTimeZone", GetTimeZone, 0, 0,
+"getTimeZone()",
+"  Get the current time zone.\n"),
+
     JS_FS_HELP_END
 };
 
@@ -5400,6 +5587,12 @@ static const JSFunctionSpecWithHelp FuzzingUnsafeTestingFunctions[] = {
     JS_FN_HELP("getErrorNotes", GetErrorNotes, 1, 0,
 "getErrorNotes(error)",
 "  Returns an array of error notes."),
+
+    JS_FN_HELP("setTimeZone", SetTimeZone, 1, 0,
+"setTimeZone(tzname)",
+"  Set the 'TZ' environment variable to the given time zone and applies the new time zone.\n"
+"  An empty string or undefined resets the time zone to its default value.\n"
+"  NOTE: The input string is not validated and will be passed verbatim to setenv()."),
 
     JS_FS_HELP_END
 };

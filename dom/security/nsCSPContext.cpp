@@ -224,14 +224,6 @@ nsCSPContext::permitsInternal(CSPDirective aDir,
 
   nsAutoString violatedDirective;
   for (uint32_t p = 0; p < mPolicies.Length(); p++) {
-
-    // According to the W3C CSP spec, frame-ancestors checks are ignored for
-    // report-only policies (when "monitoring").
-    if (aDir == nsIContentSecurityPolicy::FRAME_ANCESTORS_DIRECTIVE &&
-        mPolicies[p]->getReportOnlyFlag()) {
-      continue;
-    }
-
     if (!mPolicies[p]->permits(aDir,
                                aContentLocation,
                                aNonce,
@@ -1144,11 +1136,13 @@ class CSPReportSenderRunnable final : public Runnable
 
       if (blockedURI) {
         blockedURI->GetSpec(blockedDataStr);
-        bool isData = false;
-        rv = blockedURI->SchemeIs("data", &isData);
-        if (NS_SUCCEEDED(rv) && isData) {
-          blockedDataStr.Truncate(40);
-          blockedDataStr.AppendASCII("...");
+        if (blockedDataStr.Length() > 40) {
+          bool isData = false;
+          rv = blockedURI->SchemeIs("data", &isData);
+          if (NS_SUCCEEDED(rv) && isData) {
+            blockedDataStr.Truncate(40);
+            blockedDataStr.AppendASCII("...");
+          }
         }
       } else if (blockedString) {
         blockedString->GetData(blockedDataStr);

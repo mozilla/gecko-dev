@@ -268,7 +268,6 @@
 
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 
-using base::ChildPrivileges;
 using base::KillProcess;
 
 #ifdef MOZ_CRASHREPORTER
@@ -1907,14 +1906,13 @@ ContentParent::StartForceKillTimer()
 
   int32_t timeoutSecs = Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
   if (timeoutSecs > 0) {
-    mForceKillTimer = do_CreateInstance("@mozilla.org/timer;1");
+    NS_NewTimerWithFuncCallback(getter_AddRefs(mForceKillTimer),
+                                ContentParent::ForceKillTimerCallback,
+                                this,
+                                timeoutSecs * 1000,
+                                nsITimer::TYPE_ONE_SHOT,
+                                "dom::ContentParent::StartForceKillTimer");
     MOZ_ASSERT(mForceKillTimer);
-    mForceKillTimer->InitWithNamedFuncCallback(
-      ContentParent::ForceKillTimerCallback,
-      this,
-      timeoutSecs * 1000,
-      nsITimer::TYPE_ONE_SHOT,
-      "dom::ContentParent::StartForceKillTimer");
   }
 }
 
@@ -2123,10 +2121,8 @@ ContentParent::ContentParent(ContentParent* aOpener,
 #endif
 
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  ChildPrivileges privs = mRemoteType.EqualsLiteral(FILE_REMOTE_TYPE)
-                          ? base::PRIVILEGES_FILEREAD
-                          : base::PRIVILEGES_DEFAULT;
-  mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content, privs);
+  bool isFile = mRemoteType.EqualsLiteral(FILE_REMOTE_TYPE);
+  mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content, isFile);
 }
 
 ContentParent::~ContentParent()

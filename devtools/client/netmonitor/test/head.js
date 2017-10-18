@@ -60,6 +60,7 @@ const CURL_URL = EXAMPLE_URL + "html_copy-as-curl.html";
 const CURL_UTILS_URL = EXAMPLE_URL + "html_curl-utils.html";
 const SEND_BEACON_URL = EXAMPLE_URL + "html_send-beacon.html";
 const CORS_URL = EXAMPLE_URL + "html_cors-test-page.html";
+const PAUSE_URL = EXAMPLE_URL + "html_pause-test-page.html";
 
 const SIMPLE_SJS = EXAMPLE_URL + "sjs_simple-test-server.sjs";
 const SIMPLE_UNSORTED_COOKIES_SJS = EXAMPLE_URL + "sjs_simple-unsorted-cookies-test-server.sjs";
@@ -176,9 +177,8 @@ function waitForTimelineMarkers(monitor) {
  */
 function waitForAllRequestsFinished(monitor) {
   let window = monitor.panelWin;
-  let { windowRequire } = window;
-  let { getNetworkRequest } =
-    windowRequire("devtools/client/netmonitor/src/connector/index");
+  let { connector } = window;
+  let { getNetworkRequest } = connector;
 
   return new Promise(resolve => {
     // Key is the request id, value is a boolean - is request finished or not?
@@ -207,13 +207,13 @@ function waitForAllRequestsFinished(monitor) {
 
       // All requests are done - unsubscribe from events and resolve!
       window.off(EVENTS.NETWORK_EVENT, onRequest);
-      window.off(EVENTS.RECEIVED_EVENT_TIMINGS, onTimings);
+      window.off(EVENTS.PAYLOAD_READY, onTimings);
       info("All requests finished");
       resolve();
     }
 
     window.on(EVENTS.NETWORK_EVENT, onRequest);
-    window.on(EVENTS.RECEIVED_EVENT_TIMINGS, onTimings);
+    window.on(EVENTS.PAYLOAD_READY, onTimings);
   });
 }
 
@@ -290,12 +290,11 @@ function teardown(monitor) {
 function waitForNetworkEvents(monitor, getRequests, postRequests = 0) {
   return new Promise((resolve) => {
     let panel = monitor.panelWin;
-    let { windowRequire } = panel;
-    let { getNetworkRequest } =
-      windowRequire("devtools/client/netmonitor/src/connector/index");
+    let { getNetworkRequest } = panel.connector;
     let progress = {};
     let genericEvents = 0;
     let postEvents = 0;
+    let payloadReady = 0;
     let awaitedEventsToListeners = [
       ["UPDATING_REQUEST_HEADERS", onGenericEvent],
       ["RECEIVED_REQUEST_HEADERS", onGenericEvent],
@@ -311,7 +310,8 @@ function waitForNetworkEvents(monitor, getRequests, postRequests = 0) {
       ["UPDATING_RESPONSE_CONTENT", onGenericEvent],
       ["RECEIVED_RESPONSE_CONTENT", onGenericEvent],
       ["UPDATING_EVENT_TIMINGS", onGenericEvent],
-      ["RECEIVED_EVENT_TIMINGS", onGenericEvent]
+      ["RECEIVED_EVENT_TIMINGS", onGenericEvent],
+      ["PAYLOAD_READY", onPayloadReady]
     ];
 
     function initProgressForURL(url) {
@@ -351,6 +351,18 @@ function waitForNetworkEvents(monitor, getRequests, postRequests = 0) {
       maybeResolve(event, actor, networkInfo);
     }
 
+    function onPayloadReady(event, actor) {
+      let networkInfo = getNetworkRequest(actor);
+      if (!networkInfo) {
+        // Must have been related to reloading document to disable cache.
+        // Ignore the event.
+        return;
+      }
+
+      payloadReady++;
+      maybeResolve(event, actor, networkInfo);
+    }
+
     function maybeResolve(event, actor, networkInfo) {
       info("> Network events progress: " +
         genericEvents + "/" + ((getRequests + postRequests) * 13) + ", " +
@@ -366,7 +378,8 @@ function waitForNetworkEvents(monitor, getRequests, postRequests = 0) {
       // There are 15 updates which need to be fired for a request to be
       // considered finished. The "requestPostData" packet isn't fired for
       // non-POST requests.
-      if (genericEvents >= (getRequests + postRequests) * 13 &&
+      if (payloadReady >= (getRequests + postRequests) &&
+        genericEvents >= (getRequests + postRequests) * 13 &&
         postEvents >= postRequests * 2) {
         awaitedEventsToListeners.forEach(([e, l]) => panel.off(EVENTS[e], l));
         executeSoon(resolve);

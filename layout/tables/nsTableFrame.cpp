@@ -1319,11 +1319,6 @@ nsDisplayTableBorderCollapse::CreateWebRenderCommands(mozilla::wr::DisplayListBu
                                                       mozilla::layers::WebRenderLayerManager* aManager,
                                                       nsDisplayListBuilder* aDisplayListBuilder)
 {
-  ContainerLayerParameters parameter;
-  if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
-    return false;
-  }
-
   static_cast<nsTableFrame *>(mFrame)->CreateWebRenderCommandsForBCBorders(aBuilder,
                                                                           aSc,
                                                                           ToReferenceFrame());
@@ -8087,7 +8082,8 @@ nsTableFrame::UpdateStyleOfOwnedAnonBoxesForTableWrapper(
   nsChangeHint wrapperHint = aWrapperFrame->StyleContext()->CalcStyleDifference(
     newContext,
     &equalStructs,
-    &samePointerStructs);
+    &samePointerStructs,
+    /* aIgnoreVariables = */ true);
 
   // CalcStyleDifference will handle caching structs on the new style context,
   // but only if we're not on a style worker thread.

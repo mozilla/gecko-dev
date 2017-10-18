@@ -184,18 +184,17 @@ gfxFontCache::gfxFontCache(nsIEventTarget* aEventTarget)
 #ifndef RELEASE_OR_BETA
     // Currently disabled for release builds, due to unexplained crashes
     // during expiration; see bug 717175 & 894798.
-    mWordCacheExpirationTimer = do_CreateInstance("@mozilla.org/timer;1");
-    if (mWordCacheExpirationTimer) {
-        if (XRE_IsContentProcess() && NS_IsMainThread()) {
-            mWordCacheExpirationTimer->SetTarget(aEventTarget);
-        }
-        mWordCacheExpirationTimer->InitWithNamedFuncCallback(
-          WordCacheExpirationTimerCallback,
-          this,
-          SHAPED_WORD_TIMEOUT_SECONDS * 1000,
-          nsITimer::TYPE_REPEATING_SLACK,
-          "gfxFontCache::gfxFontCache");
+    nsIEventTarget* target = nullptr;
+    if (XRE_IsContentProcess() && NS_IsMainThread()) {
+      target = aEventTarget;
     }
+    NS_NewTimerWithFuncCallback(getter_AddRefs(mWordCacheExpirationTimer),
+                                WordCacheExpirationTimerCallback,
+                                this,
+                                SHAPED_WORD_TIMEOUT_SECONDS * 1000,
+                                nsITimer::TYPE_REPEATING_SLACK,
+                                "gfxFontCache::gfxFontCache",
+                                target);
 #endif
 }
 
@@ -842,8 +841,16 @@ gfxFont::GetRoundOffsetsToPixels(DrawTarget* aDrawTarget)
   }
 
   // Sometimes hint metrics gets set for us, most notably for printing.
+#ifdef MOZ_TREE_CAIRO
   cairo_hint_metrics_t hint_metrics =
     cairo_scaled_font_get_hint_metrics(scaled_font);
+#else
+  cairo_font_options_t* font_options = cairo_font_options_create();
+  cairo_scaled_font_get_font_options(scaled_font, font_options);
+  cairo_hint_metrics_t hint_metrics =
+    cairo_font_options_get_hint_metrics(font_options);
+  cairo_font_options_destroy(font_options);
+#endif
 
   switch (hint_metrics) {
   case CAIRO_HINT_METRICS_OFF:
@@ -1610,9 +1617,15 @@ public:
 private:
 #define GLYPH_BUFFER_SIZE (2048/sizeof(Glyph))
 
+    Glyph* GlyphBuffer()
+    {
+        return *mGlyphBuffer.addr();
+    }
+
+
     Glyph *AppendGlyph()
     {
-        return &mGlyphBuffer[mNumGlyphs++];
+        return &GlyphBuffer()[mNumGlyphs++];
     }
 
     static DrawMode
@@ -1633,13 +1646,13 @@ private:
         }
 
         if (mRunParams.isRTL) {
-            Glyph *begin = &mGlyphBuffer[0];
-            Glyph *end = &mGlyphBuffer[mNumGlyphs];
+            Glyph *begin = &GlyphBuffer()[0];
+            Glyph *end = &GlyphBuffer()[mNumGlyphs];
             std::reverse(begin, end);
         }
 
         gfx::GlyphBuffer buf;
-        buf.mGlyphs = mGlyphBuffer;
+        buf.mGlyphs = GlyphBuffer();
         buf.mNumGlyphs = mNumGlyphs;
 
         const gfxContext::AzureState &state = mRunParams.context->CurrentState();
@@ -1781,7 +1794,9 @@ private:
                                     mFontParams.renderingOptions);
     }
 
-    Glyph        mGlyphBuffer[GLYPH_BUFFER_SIZE];
+    // Allocate space for a buffer of Glyph records, without initializing them.
+    AlignedStorage2<Glyph[GLYPH_BUFFER_SIZE]> mGlyphBuffer;
+
     unsigned int mNumGlyphs;
 
 #undef GLYPH_BUFFER_SIZE
@@ -3572,9 +3587,14 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
 
             // for fonts with USE_TYPO_METRICS set in the fsSelection field,
             // let the OS/2 sTypo* metrics override those from the hhea table
-            // (see http://www.microsoft.com/typography/otspec/os2.htm#fss)
+            // (see http://www.microsoft.com/typography/otspec/os2.htm#fss).
+            //
+            // We also prefer OS/2 metrics if the hhea table gave us a negative
+            // value for maxDescent, which almost certainly indicates a sign
+            // error in the font. (See bug 1402413 for an example.)
             const uint16_t kUseTypoMetricsMask = 1 << 7;
-            if (uint16_t(os2->fsSelection) & kUseTypoMetricsMask) {
+            if ((uint16_t(os2->fsSelection) & kUseTypoMetricsMask) ||
+                aMetrics.maxDescent < 0) {
                 SET_SIGNED(maxAscent, os2->sTypoAscender);
                 SET_SIGNED(maxDescent, - int16_t(os2->sTypoDescender));
                 SET_SIGNED(externalLeading, os2->sTypoLineGap);

@@ -713,8 +713,8 @@ TextEditRules::WillInsertText(EditAction aAction,
       if (mTimer) {
         mTimer->Cancel();
       } else {
-        mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
+        mTimer = NS_NewTimer();
+        NS_ENSURE_TRUE(mTimer, NS_ERROR_OUT_OF_MEMORY);
       }
       mTimer->InitWithCallback(this, LookAndFeel::GetPasswordMaskDelay(),
                                nsITimer::TYPE_ONE_SHOT);
@@ -726,6 +726,8 @@ TextEditRules::WillInsertText(EditAction aAction,
   // get the (collapsed) selection location
   NS_ENSURE_STATE(aSelection->GetRangeAt(0));
   nsCOMPtr<nsINode> selNode = aSelection->GetRangeAt(0)->GetStartContainer();
+  nsCOMPtr<nsIContent> selChild =
+    aSelection->GetRangeAt(0)->GetChildAtStartOffset();
   int32_t selOffset = aSelection->GetRangeAt(0)->StartOffset();
   NS_ENSURE_STATE(selNode);
 
@@ -744,7 +746,8 @@ TextEditRules::WillInsertText(EditAction aAction,
   if (aAction == EditAction::insertIMEText) {
     NS_ENSURE_STATE(mTextEditor);
     // Find better insertion point to insert text.
-    mTextEditor->FindBetterInsertionPoint(selNode, selOffset);
+    mTextEditor->FindBetterInsertionPoint(selNode, selOffset,
+                                          address_of(selChild));
     // If there is one or more IME selections, its minimum offset should be
     // the insertion point.
     int32_t IMESelectionOffset =
@@ -753,7 +756,7 @@ TextEditRules::WillInsertText(EditAction aAction,
       selOffset = IMESelectionOffset;
     }
     rv = mTextEditor->InsertTextImpl(*outString, address_of(selNode),
-                                     &selOffset, doc);
+                                     address_of(selChild), &selOffset, doc);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
     // aAction == EditAction::insertText; find where we are
@@ -765,7 +768,7 @@ TextEditRules::WillInsertText(EditAction aAction,
     AutoTransactionsConserveSelection dontChangeMySelection(mTextEditor);
 
     rv = mTextEditor->InsertTextImpl(*outString, address_of(curNode),
-                                     &curOffset, doc);
+                                     address_of(selChild), &curOffset, doc);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (curNode) {

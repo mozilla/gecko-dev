@@ -388,22 +388,6 @@ public:
      */
     eIntID_SwipeAnimationEnabled,
 
-    /*
-     * A Boolean value to determine whether we have a color picker available
-     * for <input type="color"> to hook into.
-     *
-     * This lets us selectively enable the style for <input type="color">
-     * based on whether it's functional or not.
-     */
-    eIntID_ColorPickerAvailable,
-
-    /*
-     * A boolean value indicating whether or not the device has a hardware
-     * home button. Used on gaia to determine whether a home button
-     * is shown.
-     */
-     eIntID_PhysicalHomeButton,
-
      /*
       * Controls whether overlay scrollbars display when the user moves
       * the mouse in a scrollable frame.

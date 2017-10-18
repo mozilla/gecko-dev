@@ -16,7 +16,7 @@ use gpu_types::{CompositePrimitiveInstance, PrimitiveInstance, SimplePrimitiveIn
 use internal_types::{FastHashMap, SourceTexture};
 use internal_types::BatchTextures;
 use prim_store::{PrimitiveIndex, PrimitiveKind, PrimitiveMetadata, PrimitiveStore};
-use prim_store::DeferredResolve;
+use prim_store::{DeferredResolve, TextRunMode};
 use profiler::FrameProfileCounters;
 use render_task::{AlphaRenderItem, ClipWorkItem, MaskGeometryKind, MaskSegment};
 use render_task::{RenderTaskAddress, RenderTaskId, RenderTaskKey, RenderTaskKind};
@@ -26,7 +26,8 @@ use renderer::ImageBufferKind;
 use resource_cache::{GlyphFetchResult, ResourceCache};
 use std::{cmp, usize, f32, i32};
 use texture_allocator::GuillotineAllocator;
-use util::{TransformedRect, TransformedRectKind};
+use util::{MatrixHelpers, TransformedRect, TransformedRectKind};
+use euclid::rect;
 
 // Special sentinel value recognized by the shader. It is considered to be
 // a dummy task that doesn't mask out anything.
@@ -54,17 +55,17 @@ impl AlphaBatchHelpers for PrimitiveStore {
             PrimitiveKind::TextRun => {
                 let text_run_cpu = &self.cpu_text_runs[metadata.cpu_prim_index.0];
                 match text_run_cpu.font.render_mode {
-                    FontRenderMode::Subpixel => BlendMode::Subpixel(text_run_cpu.color),
+                    FontRenderMode::Subpixel => BlendMode::Subpixel,
                     FontRenderMode::Alpha |
                     FontRenderMode::Mono |
-                    FontRenderMode::Bitmap => BlendMode::Alpha,
+                    FontRenderMode::Bitmap => BlendMode::PremultipliedAlpha,
                 }
             }
             PrimitiveKind::Image |
             PrimitiveKind::AlignedGradient |
             PrimitiveKind::AngleGradient |
             PrimitiveKind::RadialGradient |
-            PrimitiveKind::Shadow => if needs_blending {
+            PrimitiveKind::Picture => if needs_blending {
                 BlendMode::PremultipliedAlpha
             } else {
                 BlendMode::None
@@ -128,26 +129,49 @@ impl AlphaBatchList {
     ) -> &mut Vec<PrimitiveInstance> {
         let mut selected_batch_index = None;
 
-        // Composites always get added to their own batch.
-        // This is because the result of a composite can affect
-        // the input to the next composite. Perhaps we can
-        // optimize this in the future.
         match key.kind {
-            BatchKind::Composite { .. } => {}
-            _ => 'outer: for (batch_index, batch) in self.batches.iter().enumerate().rev().take(10)
-            {
-                if batch.key.is_compatible_with(&key) {
-                    selected_batch_index = Some(batch_index);
-                    break;
-                }
+            BatchKind::Composite { .. } => {
+                // Composites always get added to their own batch.
+                // This is because the result of a composite can affect
+                // the input to the next composite. Perhaps we can
+                // optimize this in the future.
+            }
+            BatchKind::Transformable(_, TransformBatchKind::TextRun) => {
+                'outer_text: for (batch_index, batch) in self.batches.iter().enumerate().rev().take(10) {
+                    // Subpixel text is drawn in two passes. Because of this, we need
+                    // to check for overlaps with every batch (which is a bit different
+                    // than the normal batching below).
+                    for item_rect in &batch.item_rects {
+                        if item_rect.intersects(item_bounding_rect) {
+                            break 'outer_text;
+                        }
+                    }
 
-                // check for intersections
-                for item_rect in &batch.item_rects {
-                    if item_rect.intersects(item_bounding_rect) {
-                        break 'outer;
+                    if batch.key.is_compatible_with(&key) {
+                        selected_batch_index = Some(batch_index);
+                        break;
                     }
                 }
-            },
+            }
+            _ => {
+                'outer_default: for (batch_index, batch) in self.batches.iter().enumerate().rev().take(10) {
+                    // For normal batches, we only need to check for overlaps for batches
+                    // other than the first batch we consider. If the first batch
+                    // is compatible, then we know there isn't any potential overlap
+                    // issues to worry about.
+                    if batch.key.is_compatible_with(&key) {
+                        selected_batch_index = Some(batch_index);
+                        break;
+                    }
+
+                    // check for intersections
+                    for item_rect in &batch.item_rects {
+                        if item_rect.intersects(item_bounding_rect) {
+                            break 'outer_default;
+                        }
+                    }
+                }
+            }
         }
 
         if selected_batch_index.is_none() {
@@ -228,7 +252,7 @@ impl BatchList {
     ) -> &mut Vec<PrimitiveInstance> {
         match key.blend_mode {
             BlendMode::None => self.opaque_batch_list.get_suitable_batch(key),
-            BlendMode::Alpha | BlendMode::PremultipliedAlpha | BlendMode::Subpixel(..) => {
+            BlendMode::Alpha | BlendMode::PremultipliedAlpha | BlendMode::Subpixel => {
                 self.alpha_batch_list
                     .get_suitable_batch(key, item_bounding_rect)
             }
@@ -507,8 +531,7 @@ impl AlphaRenderItem {
                         let text_cpu =
                             &ctx.prim_store.cpu_text_runs[prim_metadata.cpu_prim_index.0];
 
-                        let mut font = text_cpu.font.clone();
-                        font.size = font.size.scale_by(ctx.device_pixel_ratio);
+                        let font = text_cpu.get_font(TextRunMode::Normal, ctx.device_pixel_ratio);
 
                         ctx.resource_cache.fetch_glyphs(
                             font,
@@ -528,6 +551,7 @@ impl AlphaRenderItem {
                                     transform_kind,
                                     TransformBatchKind::TextRun,
                                 );
+
                                 let key = BatchKey::new(kind, blend_mode, textures);
                                 let batch = batch_list.get_suitable_batch(key, item_bounding_rect);
 
@@ -541,10 +565,10 @@ impl AlphaRenderItem {
                             },
                         );
                     }
-                    PrimitiveKind::Shadow => {
-                        let shadow =
-                            &ctx.prim_store.cpu_shadows[prim_metadata.cpu_prim_index.0];
-                        let cache_task_id = shadow.render_task_id.expect("no render task!");
+                    PrimitiveKind::Picture => {
+                        let picture =
+                            &ctx.prim_store.cpu_pictures[prim_metadata.cpu_prim_index.0];
+                        let cache_task_id = picture.render_task_id.expect("no render task!");
                         let cache_task_address = render_tasks.get_task_address(cache_task_id);
                         let textures = BatchTextures::render_target_cache();
                         let kind = BatchKind::Transformable(
@@ -1135,67 +1159,69 @@ impl RenderTarget for ColorRenderTarget {
                     blur_direction: BlurDirection::Horizontal,
                 });
             }
-            RenderTaskKind::CachePrimitive(prim_index) => {
+            RenderTaskKind::Picture(prim_index) => {
                 let prim_metadata = ctx.prim_store.get_metadata(prim_index);
                 let prim_address = prim_metadata.gpu_location.as_int(gpu_cache);
 
                 match prim_metadata.prim_kind {
-                    PrimitiveKind::Shadow => {
-                        let prim = &ctx.prim_store.cpu_shadows[prim_metadata.cpu_prim_index.0];
+                    PrimitiveKind::Picture => {
+                        let prim = &ctx.prim_store.cpu_pictures[prim_metadata.cpu_prim_index.0];
 
                         let task_index = render_tasks.get_task_address(task_id);
 
-                        for sub_prim_index in &prim.primitives {
-                            let sub_metadata = ctx.prim_store.get_metadata(*sub_prim_index);
-                            let sub_prim_address =
-                                gpu_cache.get_address(&sub_metadata.gpu_location);
-                            let instance = SimplePrimitiveInstance::new(
-                                sub_prim_address,
-                                task_index,
-                                RenderTaskAddress(0),
-                                PackedLayerIndex(0).into(),
-                                0,
-                            ); // z is disabled for rendering cache primitives
+                        for run in &prim.prim_runs {
+                            for i in 0 .. run.count {
+                                let sub_prim_index = PrimitiveIndex(run.prim_index.0 + i);
 
-                            match sub_metadata.prim_kind {
-                                PrimitiveKind::TextRun => {
-                                    // Add instances that reference the text run GPU location. Also supply
-                                    // the parent shadow prim address as a user data field, allowing
-                                    // the shader to fetch the shadow parameters.
-                                    let text = &ctx.prim_store.cpu_text_runs
-                                        [sub_metadata.cpu_prim_index.0];
-                                    let text_run_cache_prims = &mut self.text_run_cache_prims;
+                                let sub_metadata = ctx.prim_store.get_metadata(sub_prim_index);
+                                let sub_prim_address =
+                                    gpu_cache.get_address(&sub_metadata.gpu_location);
+                                let instance = SimplePrimitiveInstance::new(
+                                    sub_prim_address,
+                                    task_index,
+                                    RenderTaskAddress(0),
+                                    PackedLayerIndex(0).into(),
+                                    0,
+                                ); // z is disabled for rendering cache primitives
 
-                                    let mut font = text.font.clone();
-                                    font.size = font.size.scale_by(ctx.device_pixel_ratio);
-                                    font.render_mode = text.shadow_render_mode;
+                                match sub_metadata.prim_kind {
+                                    PrimitiveKind::TextRun => {
+                                        // Add instances that reference the text run GPU location. Also supply
+                                        // the parent shadow prim address as a user data field, allowing
+                                        // the shader to fetch the shadow parameters.
+                                        let text = &ctx.prim_store.cpu_text_runs
+                                            [sub_metadata.cpu_prim_index.0];
+                                        let text_run_cache_prims = &mut self.text_run_cache_prims;
 
-                                    ctx.resource_cache.fetch_glyphs(
-                                        font,
-                                        &text.glyph_keys,
-                                        &mut self.glyph_fetch_buffer,
-                                        gpu_cache,
-                                        |texture_id, glyphs| {
-                                            let batch = text_run_cache_prims
-                                                .entry(texture_id)
-                                                .or_insert(Vec::new());
+                                        let font = text.get_font(TextRunMode::Shadow, ctx.device_pixel_ratio);
 
-                                            for glyph in glyphs {
-                                                batch.push(instance.build(
-                                                    glyph.index_in_text_run,
-                                                    glyph.uv_rect_address.as_int(),
-                                                    prim_address,
-                                                ));
-                                            }
-                                        },
-                                    );
-                                }
-                                PrimitiveKind::Line => {
-                                    self.line_cache_prims
-                                        .push(instance.build(prim_address, 0, 0));
-                                }
-                                _ => {
-                                    unreachable!("Unexpected sub primitive type");
+                                        ctx.resource_cache.fetch_glyphs(
+                                            font,
+                                            &text.glyph_keys,
+                                            &mut self.glyph_fetch_buffer,
+                                            gpu_cache,
+                                            |texture_id, glyphs| {
+                                                let batch = text_run_cache_prims
+                                                    .entry(texture_id)
+                                                    .or_insert(Vec::new());
+
+                                                for glyph in glyphs {
+                                                    batch.push(instance.build(
+                                                        glyph.index_in_text_run,
+                                                        glyph.uv_rect_address.as_int(),
+                                                        prim_address,
+                                                    ));
+                                                }
+                                            },
+                                        );
+                                    }
+                                    PrimitiveKind::Line => {
+                                        self.line_cache_prims
+                                            .push(instance.build(prim_address, 0, 0));
+                                    }
+                                    _ => {
+                                        unreachable!("Unexpected sub primitive type");
+                                    }
                                 }
                             }
                         }
@@ -1255,7 +1281,7 @@ impl RenderTarget for AlphaRenderTarget {
             RenderTaskKind::Alpha(..) |
             RenderTaskKind::VerticalBlur(..) |
             RenderTaskKind::HorizontalBlur(..) |
-            RenderTaskKind::CachePrimitive(..) |
+            RenderTaskKind::Picture(..) |
             RenderTaskKind::Readback(..) => {
                 panic!("Should not be added to alpha target!");
             }
@@ -1598,6 +1624,17 @@ pub struct StackingContext {
 
     /// Current stacking context visibility of backface.
     pub is_backface_visible: bool,
+
+    /// Allow subpixel AA for text runs on this stacking context.
+    /// This is a temporary hack while we don't support subpixel AA
+    /// on transparent stacking contexts.
+    pub allow_subpixel_aa: bool,
+
+    /// Indicate that if any pritimive contained in this stacking context.
+    pub has_any_primitive: bool,
+
+    /// Union of all stacking context bounds of all children.
+    pub children_sc_bounds: LayerRect,
 }
 
 impl StackingContext {
@@ -1615,6 +1652,8 @@ impl StackingContext {
             TransformStyle::Flat => ContextIsolation::None,
             TransformStyle::Preserve3D => ContextIsolation::Items,
         };
+        let allow_subpixel_aa = composite_ops.count() == 0 &&
+                                isolation == ContextIsolation::None;
         StackingContext {
             pipeline_id,
             reference_frame_offset,
@@ -1627,6 +1666,9 @@ impl StackingContext {
             is_pipeline_root,
             is_visible: false,
             is_backface_visible,
+            allow_subpixel_aa,
+            has_any_primitive: false,
+            children_sc_bounds: LayerRect::zero(),
         }
     }
 
@@ -1686,7 +1728,13 @@ impl PackedLayer {
         screen_rect: &DeviceIntRect,
         device_pixel_ratio: f32,
     ) -> Option<(TransformedRectKind, DeviceIntRect)> {
-        self.local_clip_rect = *local_rect;
+        self.local_clip_rect = if self.transform.has_perspective_component() {
+            // Given a very large rect which means any rect would be inside this rect.
+            // That is, nothing would be clipped.
+            rect(f32::MIN / 2.0, f32::MIN / 2.0, f32::MAX, f32::MAX)
+        } else {
+            *local_rect
+        };
         let xf_rect = TransformedRect::new(local_rect, &self.transform, device_pixel_ratio);
         xf_rect
             .bounding_rect

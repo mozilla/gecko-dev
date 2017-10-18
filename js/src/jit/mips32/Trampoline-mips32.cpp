@@ -129,7 +129,7 @@ GeneratePrologue(MacroAssembler& masm)
  *   ...using standard EABI calling convention
  */
 JitCode*
-JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
+JitRuntime::generateEnterJIT(JSContext* cx)
 {
     const Register reg_code = a0;
     const Register reg_argc = a1;
@@ -151,8 +151,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     masm.loadPtr(slotToken, s2);
 
     // Save stack pointer as baseline frame.
-    if (type == EnterJitBaseline)
-        masm.movePtr(StackPointer, BaselineFrameReg);
+    masm.movePtr(StackPointer, BaselineFrameReg);
 
     // Load the number of actual arguments into s3.
     masm.loadPtr(slotVp, s3);
@@ -205,8 +204,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 
     CodeLabel returnLabel;
     CodeLabel oomReturnLabel;
-    if (type == EnterJitBaseline) {
-        // Handle OSR.
+    {
+        // Handle Interpreter -> Baseline OSR.
         AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
         regs.take(OsrFrameReg);
         regs.take(BaselineFrameReg);
@@ -317,8 +316,8 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     // Call the function with pushing return address to stack.
     masm.callJitNoProfiler(reg_code);
 
-    if (type == EnterJitBaseline) {
-        // Baseline OSR will return here.
+    {
+        // Interpreter -> Baseline OSR will return here.
         masm.bind(returnLabel.target());
         masm.addCodeLabel(returnLabel);
         masm.bind(oomReturnLabel.target());
@@ -1266,10 +1265,10 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     //
     // JitFrame_Rectifier
     //
-    // The rectifier frame can be preceded by either an IonJS, a WasmToJSJit or
-    // a BaselineStub frame.
+    // The rectifier frame can be preceded by either an IonJS, a BaselineStub,
+    // or a CppToJSJit/WasmToJSJit frame.
     //
-    // Stack layout if caller of rectifier was Ion or WasmToJSJit:
+    // Stack layout if caller of rectifier was Ion or CppToJSJit/WasmToJSJit:
     //
     //              Ion-Descriptor
     //              Ion-ReturnAddr
@@ -1333,8 +1332,8 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
 
         masm.bind(&notIonFrame);
 
-        // Check for either BaselineStub or WasmToJSJit: since WasmToJSJit is
-        // just an entry, jump there if we see it.
+        // Check for either BaselineStub or a CppToJSJit/WasmToJSJit entry
+        // frame.
         masm.branch32(Assembler::NotEqual, scratch3, Imm32(JitFrame_BaselineStub), &handle_Entry);
 
         // Handle Rectifier <- BaselineStub <- BaselineJS

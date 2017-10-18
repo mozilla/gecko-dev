@@ -1250,15 +1250,13 @@ gfxFcPlatformFontList::gfxFcPlatformFontList()
     int rescanInterval = FcConfigGetRescanInterval(nullptr);
     if (rescanInterval) {
         mLastConfig = FcConfigGetCurrent();
-        mCheckFontUpdatesTimer = do_CreateInstance("@mozilla.org/timer;1");
-        if (mCheckFontUpdatesTimer) {
-          mCheckFontUpdatesTimer->InitWithNamedFuncCallback(
-            CheckFontUpdates,
-            this,
-            (rescanInterval + 1) * 1000,
-            nsITimer::TYPE_REPEATING_SLACK,
-            "gfxFcPlatformFontList::gfxFcPlatformFontList");
-        } else {
+        NS_NewTimerWithFuncCallback(getter_AddRefs(mCheckFontUpdatesTimer),
+                                    CheckFontUpdates,
+                                    this,
+                                    (rescanInterval + 1) * 1000,
+                                    nsITimer::TYPE_REPEATING_SLACK,
+                                    "gfxFcPlatformFontList::gfxFcPlatformFontList");
+        if (!mCheckFontUpdatesTimer) {
             NS_WARNING("Failure to create font updates timer");
         }
     }
@@ -1518,12 +1516,12 @@ gfxFcPlatformFontList::MakePlatformFont(const nsAString& aFontName,
 {
     FT_Face face = Factory::NewFTFaceFromData(nullptr, aFontData, aLength, 0);
     if (!face) {
-        NS_Free((void*)aFontData);
+        free((void*)aFontData);
         return nullptr;
     }
     if (FT_Err_Ok != FT_Select_Charmap(face, FT_ENCODING_UNICODE)) {
         Factory::ReleaseFTFace(face);
-        NS_Free((void*)aFontData);
+        free((void*)aFontData);
         return nullptr;
     }
 

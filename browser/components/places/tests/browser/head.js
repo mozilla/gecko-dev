@@ -5,20 +5,27 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "TestUtils",
   "resource://testing-common/TestUtils.jsm");
 
-// We need to cache this before test runs...
-var cachedLeftPaneFolderIdGetter;
-var getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
-if (!cachedLeftPaneFolderIdGetter && typeof(getter) == "function") {
-  cachedLeftPaneFolderIdGetter = getter;
+// We need to cache these before test runs...
+let leftPaneGetters = new Map([["leftPaneFolderId", null],
+                               ["allBookmarksFolderId", null]]);
+for (let [key, val] of leftPaneGetters) {
+  if (!val) {
+    let getter = Object.getOwnPropertyDescriptor(PlacesUIUtils, key).get;
+    if (typeof getter == "function") {
+      leftPaneGetters.set(key, getter);
+    }
+  }
 }
 
-// ...And restore it when test ends.
-registerCleanupFunction(function() {
-  let updatedGetter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
-  if (cachedLeftPaneFolderIdGetter && typeof(updatedGetter) != "function") {
-    PlacesUIUtils.__defineGetter__("leftPaneFolderId", cachedLeftPaneFolderIdGetter);
+// ...And restore them when test ends.
+function restoreLeftPaneGetters() {
+  for (let [key, getter] of leftPaneGetters) {
+    Object.defineProperty(PlacesUIUtils, key, {
+      enumerable: true, configurable: true, get: getter
+    });
   }
-});
+}
+registerCleanupFunction(restoreLeftPaneGetters);
 
 function openLibrary(callback, aLeftPaneRoot) {
   let library = window.openDialog("chrome://browser/content/places/places.xul",
@@ -169,7 +176,7 @@ function promiseBookmarksNotification(notification, conditionFn) {
             } else {
               info(`promiseBookmarksNotification: skip cause condition doesn't apply to ${JSON.stringify(args)}`);
             }
-          }
+          };
         return () => {};
       }
     });
@@ -190,7 +197,7 @@ function promiseHistoryNotification(notification, conditionFn) {
               PlacesUtils.history.removeObserver(proxifiedObserver, false);
               executeSoon(resolve);
             }
-          }
+          };
         return () => {};
       }
     });
@@ -364,7 +371,7 @@ var openContextMenuForContentSelector = async function(browser, selector) {
                                                      "popupshown");
   await ContentTask.spawn(browser, { selector }, async function(args) {
     let doc = content.document;
-    let elt = doc.querySelector(args.selector)
+    let elt = doc.querySelector(args.selector);
     dump(`openContextMenuForContentSelector: found ${elt}\n`);
 
     /* Open context menu so chrome can access the element */
@@ -476,7 +483,7 @@ function promisePlacesInitComplete() {
   const gBrowserGlue = Cc["@mozilla.org/browser/browserglue;1"]
                          .getService(Ci.nsIObserver);
 
-  let placesInitCompleteObserved = TestUtils.topicObserved("places-browser-init-complete")
+  let placesInitCompleteObserved = TestUtils.topicObserved("places-browser-init-complete");
 
   gBrowserGlue.observe(null, "browser-glue-test",
     "places-browser-init-complete");

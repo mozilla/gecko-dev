@@ -165,7 +165,7 @@ impl HTMLInputElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLInputElement> {
-        Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLInputElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLInputElementBinding::Wrap)
     }
@@ -452,7 +452,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
-    make_url_or_base_getter!(FormAction, "formaction");
+    make_form_action_getter!(FormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_setter!(SetFormAction, "formaction");
@@ -530,7 +530,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-src
-    make_url_setter!(SetSrc, "src");
+    make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_getter!(Step, "step");

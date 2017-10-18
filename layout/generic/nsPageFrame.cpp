@@ -406,7 +406,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
                              nsPageFrame* aPage, nsIFrame* aExtraPage,
                              nsDisplayList* aList)
 {
-  nsDisplayList newList;
+  nsDisplayList newList(aBuilder);
 
   while (true) {
     nsDisplayItem* i = aList->RemoveBottom();
@@ -442,7 +442,7 @@ BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
   if (!aExtraPage->HasAnyStateBits(NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO)) {
     return;
   }
-  nsDisplayList list;
+  nsDisplayList list(aBuilder);
   aExtraPage->BuildDisplayListForStackingContext(aBuilder, &list);
   PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, &list);
   aList->AppendToTop(&list);
@@ -509,7 +509,7 @@ void
 nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsDisplayListSet& aLists)
 {
-  nsDisplayListCollection set;
+  nsDisplayListCollection set(aBuilder);
 
   if (PresContext()->IsScreen()) {
     DisplayBorderBackgroundOutline(aBuilder, aLists);
@@ -537,7 +537,7 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
   clipRect += aBuilder->ToReferenceFrame(child);
 
-  nsDisplayList content;
+  nsDisplayList content(aBuilder);
   {
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
@@ -642,17 +642,17 @@ nsPageFrame::PaintHeaderFooter(gfxContext& aRenderingContext,
 
   // print document headers and footers
   nsString headerLeft, headerCenter, headerRight;
-  mPD->mPrintSettings->GetHeaderStrLeft(getter_Copies(headerLeft));
-  mPD->mPrintSettings->GetHeaderStrCenter(getter_Copies(headerCenter));
-  mPD->mPrintSettings->GetHeaderStrRight(getter_Copies(headerRight));
+  mPD->mPrintSettings->GetHeaderStrLeft(headerLeft);
+  mPD->mPrintSettings->GetHeaderStrCenter(headerCenter);
+  mPD->mPrintSettings->GetHeaderStrRight(headerRight);
   DrawHeaderFooter(aRenderingContext, *fontMet, eHeader,
                    headerLeft, headerCenter, headerRight,
                    rect, ascent, visibleHeight);
 
   nsString footerLeft, footerCenter, footerRight;
-  mPD->mPrintSettings->GetFooterStrLeft(getter_Copies(footerLeft));
-  mPD->mPrintSettings->GetFooterStrCenter(getter_Copies(footerCenter));
-  mPD->mPrintSettings->GetFooterStrRight(getter_Copies(footerRight));
+  mPD->mPrintSettings->GetFooterStrLeft(footerLeft);
+  mPD->mPrintSettings->GetFooterStrCenter(footerCenter);
+  mPD->mPrintSettings->GetFooterStrRight(footerRight);
   DrawHeaderFooter(aRenderingContext, *fontMet, eFooter,
                    footerLeft, footerCenter, footerRight,
                    rect, ascent, visibleHeight);
