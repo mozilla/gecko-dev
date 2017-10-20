@@ -12,6 +12,7 @@
 #include "mozilla/Logging.h"
 #include "prinrval.h"
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "nsIComponentManager.h"
 #include "nsCOMPtr.h"
@@ -90,8 +91,9 @@ class nsJAR final : public nsIZipReader
       mReleaseTime = PR_INTERVAL_NO_TIMEOUT;
     }
 
-    void SetZipReaderCache(nsZipReaderCache* cache) {
-      mCache = cache;
+    void SetZipReaderCache(nsZipReaderCache* aCache) {
+      mozilla::MutexAutoLock lock(mLock);
+      mCache = aCache;
     }
 
     nsresult GetNSPRFileDesc(PRFileDesc** aNSPRFileDesc);
@@ -109,7 +111,7 @@ class nsJAR final : public nsIZipReader
     int16_t                  mGlobalStatus;   // Global signature verification status
     PRIntervalTime           mReleaseTime;    // used by nsZipReaderCache for flushing entries
     nsZipReaderCache*        mCache;          // if cached, this points to the cache it's contained in
-    mozilla::Mutex           mLock;
+    mozilla::Mutex           mLock;           // protect mCache and mZip
     int64_t                  mMtime;
     int32_t                  mTotalItemsInManifest;
     bool                     mOpened;
