@@ -1550,6 +1550,8 @@ ApplicationReputationService::ApplicationReputationService()
 
 ApplicationReputationService::~ApplicationReputationService() {
   LOG(("Application reputation service shutting down"));
+  MOZ_ASSERT(gApplicationReputationService == this);
+  gApplicationReputationService = nullptr;
 }
 
 NS_IMETHODIMP
