@@ -70,7 +70,7 @@ impl Parse for TrackSize<LengthOrPercentage> {
 
 /// Parse the grid line names into a vector of owned strings.
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-line-names
+/// <https://drafts.csswg.org/css-grid/#typedef-line-names>
 pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Box<[CustomIdent]>, ParseError<'i>> {
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
@@ -88,9 +88,9 @@ pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Box<[Custo
 
 /// The type of `repeat` function (only used in parsing).
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-track-repeat
+/// <https://drafts.csswg.org/css-grid/#typedef-track-repeat>
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 enum RepeatType {
     /// [`<auto-repeat>`](https://drafts.csswg.org/css-grid/#typedef-auto-repeat)
     Auto,

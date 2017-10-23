@@ -867,6 +867,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
         if self.is_in_anonymous_subtree() ||
            self.has_xbl_binding_with_content() ||
+           self.is_in_shadow_tree() ||
            self.may_have_anonymous_children() {
             unsafe {
                 let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
@@ -1833,7 +1834,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
-        context: &mut MatchingContext,
+        context: &mut MatchingContext<Self::Impl>,
         relevant_link: &RelevantLinkStatus,
         flags_setter: &mut F,
     ) -> bool
@@ -1974,7 +1975,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_pseudo_element(
         &self,
         pseudo_element: &PseudoElement,
-        _context: &mut MatchingContext
+        _context: &mut MatchingContext<Self::Impl>,
     ) -> bool {
         // TODO(emilio): I believe we could assert we are a pseudo-element and
         // match the proper pseudo-element, given how we rulehash the stuff

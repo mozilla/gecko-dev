@@ -871,6 +871,9 @@ nsDocShell::~nsDocShell()
 {
   MOZ_ASSERT(!mObserved);
 
+  // Avoid notifying observers while we're in the dtor.
+  mIsBeingDestroyed = true;
+
   Destroy();
 
   nsCOMPtr<nsISHistoryInternal> shPrivate(do_QueryInterface(mSessionHistory));
@@ -4126,7 +4129,7 @@ nsDocShell::GetChildOffset(int32_t* aChildOffset)
 NS_IMETHODIMP
 nsDocShell::GetHistoryID(nsID** aID)
 {
-  *aID = static_cast<nsID*>(nsMemory::Clone(&mHistoryID, sizeof(nsID)));
+  *aID = mHistoryID.Clone();
   return NS_OK;
 }
 

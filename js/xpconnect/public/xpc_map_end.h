@@ -23,10 +23,9 @@
 
 /**************************************************************/
 
-NS_IMETHODIMP XPC_MAP_CLASSNAME::GetClassName(char * *aClassName)
+NS_IMETHODIMP XPC_MAP_CLASSNAME::GetClassName(nsACString& aClassName)
 {
-    static const char sName[] = XPC_MAP_QUOTED_CLASSNAME;
-    *aClassName = (char*) nsMemory::Clone(sName, sizeof(sName));
+    aClassName.AssignLiteral(XPC_MAP_QUOTED_CLASSNAME);
     return NS_OK;
 }
 

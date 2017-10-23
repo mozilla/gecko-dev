@@ -181,8 +181,7 @@ nsTableRowGroupFrame::InitRepeatedFrame(nsTableRowGroupFrame* aHeaderFooterFrame
     while (copyCellFrame && originalCellFrame) {
       NS_ASSERTION(originalCellFrame->GetContent() == copyCellFrame->GetContent(),
                    "cell frames have different content");
-      int32_t colIndex;
-      originalCellFrame->GetColIndex(colIndex);
+      uint32_t colIndex = originalCellFrame->ColIndex();
       copyCellFrame->SetColIndex(colIndex);
 
       // Move to the next cell frame
@@ -213,14 +212,14 @@ DisplayRows(nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
   // the rows in |f|, but that's exactly what we're trying to avoid, so we
   // approximate it by checking it for |f|: if it's true for any row
   // in |f| then it's true for |f| itself.
-  nsIFrame* kid = aBuilder->ShouldDescendIntoFrame(f) ?
-    nullptr : f->GetFirstRowContaining(aBuilder->GetDirtyRect().y, &overflowAbove);
+  nsIFrame* kid = aBuilder->ShouldDescendIntoFrame(f, true) ?
+    nullptr : f->GetFirstRowContaining(aBuilder->GetVisibleRect().y, &overflowAbove);
 
   if (kid) {
     // have a cursor, use it
     while (kid) {
-      if (kid->GetRect().y - overflowAbove >= aBuilder->GetDirtyRect().YMost() &&
-          kid->GetNormalRect().y - overflowAbove >= aBuilder->GetDirtyRect().YMost())
+      if (kid->GetRect().y - overflowAbove >= aBuilder->GetVisibleRect().YMost() &&
+          kid->GetNormalRect().y - overflowAbove >= aBuilder->GetVisibleRect().YMost())
         break;
       f->BuildDisplayListForChild(aBuilder, kid, aLists);
       kid = kid->GetNextSibling();
@@ -1043,8 +1042,7 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
               nsTableCellFrame* contCell = static_cast<nsTableCellFrame*>(
                 aPresContext.PresShell()->FrameConstructor()->
                   CreateContinuingFrame(&aPresContext, cell, &aLastRow));
-              int32_t colIndex;
-              cell->GetColIndex(colIndex);
+              uint32_t colIndex = cell->ColIndex();
               aContRow->InsertCellFrame(contCell, colIndex);
             }
           }

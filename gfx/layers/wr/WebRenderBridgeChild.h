@@ -28,20 +28,21 @@ class CompositableClient;
 class CompositorBridgeChild;
 class StackingContextHelper;
 class TextureForwarder;
+class WebRenderLayerManager;
 
 template<class T>
-class WeakPtrHashKey : public PLDHashEntryHdr
+class ThreadSafeWeakPtrHashKey : public PLDHashEntryHdr
 {
 public:
-  typedef T* KeyType;
+  typedef RefPtr<T> KeyType;
   typedef const T* KeyTypePointer;
 
-  explicit WeakPtrHashKey(KeyTypePointer aKey) : mKey(const_cast<KeyType>(aKey)) {}
+  explicit ThreadSafeWeakPtrHashKey(KeyTypePointer aKey) : mKey(do_AddRef(const_cast<T*>(aKey))) {}
 
-  KeyType GetKey() const { return mKey; }
-  bool KeyEquals(KeyTypePointer aKey) const { return aKey == mKey; }
+  KeyType GetKey() const { return do_AddRef(mKey); }
+  bool KeyEquals(KeyTypePointer aKey) const { return mKey == aKey; }
 
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
+  static KeyTypePointer KeyToPointer(const KeyType& aKey) { return aKey.get(); }
   static PLDHashNumber HashKey(KeyTypePointer aKey)
   {
     return NS_PTR_TO_UINT32(aKey) >> 2;
@@ -49,11 +50,11 @@ public:
   enum { ALLOW_MEMMOVE = true };
 
 private:
-  WeakPtr<T> mKey;
+  ThreadSafeWeakPtr<T> mKey;
 };
 
-typedef WeakPtrHashKey<gfx::UnscaledFont> UnscaledFontHashKey;
-typedef WeakPtrHashKey<gfx::ScaledFont> ScaledFontHashKey;
+typedef ThreadSafeWeakPtrHashKey<gfx::UnscaledFont> UnscaledFontHashKey;
+typedef ThreadSafeWeakPtrHashKey<gfx::ScaledFont> ScaledFontHashKey;
 
 class WebRenderBridgeChild final : public PWebRenderBridgeChild
                                  , public CompositableForwarder
@@ -72,7 +73,7 @@ public:
                       wr::BuiltDisplayList& dl,
                       wr::IpcResourceUpdateQueue& aResources,
                       const gfx::IntSize& aSize,
-                      bool aIsSync, uint64_t aTransactionId,
+                      uint64_t aTransactionId,
                       const WebRenderScrollData& aScrollData,
                       const mozilla::TimeStamp& aTxnStartTime);
   void EndEmptyTransaction(const FocusTarget& aFocusTarget,
@@ -131,7 +132,8 @@ public:
                   gfx::ScaledFont* aFont, const wr::ColorF& aColor,
                   const StackingContextHelper& aSc,
                   const wr::LayerRect& aBounds, const wr::LayerRect& aClip,
-                  bool aBackfaceVisible);
+                  bool aBackfaceVisible,
+                  const wr::GlyphOptions* aGlyphOptions = nullptr);
 
   wr::FontInstanceKey GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont);
 
@@ -140,6 +142,8 @@ public:
 
   void BeginClearCachedResources();
   void EndClearCachedResources();
+
+  void SetWebRenderLayerManager(WebRenderLayerManager* aManager);
 
   ipc::IShmemAllocator* GetShmemAllocator();
 
@@ -199,6 +203,7 @@ private:
   wr::IdNamespace mIdNamespace;
   uint32_t mResourceId;
   wr::PipelineId mPipelineId;
+  WebRenderLayerManager* mManager;
 
   bool mIPCOpen;
   bool mDestroyed;

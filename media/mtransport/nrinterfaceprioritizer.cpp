@@ -28,7 +28,7 @@ public:
   bool Init(const nr_local_addr& local_addr) {
     ifname_ = local_addr.addr.ifname;
 
-    char buf[MAXIFNAME + 41];
+    char buf[MAXIFNAME + 47];
     int r = nr_transport_addr_fmt_ifname_addr_string(&local_addr.addr, buf, sizeof(buf));
     if (r) {
       MOZ_MTLOG(ML_ERROR, "Error formatting interface key.");
@@ -110,6 +110,10 @@ private:
     }
     if (type & NR_INTERFACE_TYPE_MOBILE) {
       return 3;
+    }
+    if (type & NR_INTERFACE_TYPE_TEREDO) {
+      // Teredo gets penalty because it's IP relayed
+      return 5;
     }
     return 4;
   }

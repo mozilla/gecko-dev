@@ -63,9 +63,7 @@ pub enum CalcUnit {
 }
 
 /// A struct to hold a simplified `<length>` or `<percentage>` expression.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
     pub clamping_mode: AllowedNumericType,
@@ -84,7 +82,7 @@ pub struct CalcLengthOrPercentage {
 }
 
 impl ToCss for CalcLengthOrPercentage {
-    /// https://drafts.csswg.org/css-values/#calc-serialize
+    /// <https://drafts.csswg.org/css-values/#calc-serialize>
     ///
     /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]

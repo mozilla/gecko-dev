@@ -8,6 +8,7 @@
 #include "nsICryptoHash.h"
 #include "nsNetCID.h"
 #include "nsThreadUtils.h"
+#include "WebAuthnCoseIdentifiers.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
 #include "mozilla/dom/Promise.h"
@@ -17,7 +18,6 @@
 #include "mozilla/dom/WebAuthnManager.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnUtil.h"
-#include "mozilla/dom/WebCryptoCommon.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 
@@ -52,28 +52,6 @@ NS_IMPL_ISUPPORTS(WebAuthnManager, nsIIPCBackgroundChildCreateCallback,
 /***********************************************************************
  * Utility Functions
  **********************************************************************/
-
-template<class OOS>
-static nsresult
-GetAlgorithmName(const OOS& aAlgorithm,
-                 /* out */ nsString& aName)
-{
-  if (aAlgorithm.IsString()) {
-    // If string, then treat as algorithm name
-    aName.Assign(aAlgorithm.GetAsString());
-  } else {
-    // TODO: Coerce to string and extract name. See WebCryptoTask.cpp
-  }
-
-  // Only ES256 is currently supported
-  if (NORMALIZED_EQUALS(aName, JWK_ALG_ECDSA_P_256)) {
-    aName.AssignLiteral(JWK_ALG_ECDSA_P_256);
-  } else {
-    return NS_ERROR_DOM_SYNTAX_ERR;
-  }
-
-  return NS_OK;
-}
 
 static nsresult
 AssembleClientData(const nsAString& aOrigin, const CryptoBuffer& aChallenge,
@@ -215,15 +193,13 @@ WebAuthnManager::WebAuthnManager()
 }
 
 void
-WebAuthnManager::MaybeClearTransaction()
+WebAuthnManager::ClearTransaction()
 {
-  mClientData.reset();
-  mInfo.reset();
-  mTransactionPromise = nullptr;
-  if (mCurrentParent) {
-    StopListeningForVisibilityEvents(mCurrentParent, this);
-    mCurrentParent = nullptr;
+  if (!NS_WARN_IF(mTransaction.isNothing())) {
+    StopListeningForVisibilityEvents(mTransaction.ref().mParent, this);
   }
+
+  mTransaction.reset();
 
   if (mChild) {
     RefPtr<WebAuthnTransactionChild> c;
@@ -232,10 +208,33 @@ WebAuthnManager::MaybeClearTransaction()
   }
 }
 
+void
+WebAuthnManager::RejectTransaction(const nsresult& aError)
+{
+  if (!NS_WARN_IF(mTransaction.isNothing())) {
+    mTransaction.ref().mPromise->MaybeReject(aError);
+  }
+
+  ClearTransaction();
+}
+
+void
+WebAuthnManager::CancelTransaction(const nsresult& aError)
+{
+  if (mChild) {
+    mChild->SendRequestCancel();
+  }
+
+  RejectTransaction(aError);
+}
+
 WebAuthnManager::~WebAuthnManager()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MaybeClearTransaction();
+
+  if (mTransaction.isSome()) {
+    RejectTransaction(NS_ERROR_ABORT);
+  }
 }
 
 RefPtr<WebAuthnManager::BackgroundActorPromise>
@@ -289,7 +288,9 @@ WebAuthnManager::MakeCredential(nsPIDOMWindowInner* aParent,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aParent);
 
-  MaybeClearTransaction();
+  if (mTransaction.isSome()) {
+    CancelTransaction(NS_ERROR_ABORT);
+  }
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aParent);
 
@@ -365,75 +366,40 @@ WebAuthnManager::MakeCredential(nsPIDOMWindowInner* aParent,
     return promise.forget();
   }
 
-  // Process each element of cryptoParameters using the following steps, to
-  // produce a new sequence normalizedParameters.
-  nsTArray<PublicKeyCredentialParameters> normalizedParams;
+
+  // TODO: Move this logic into U2FTokenManager in Bug 1409220.
+
+  // Process each element of mPubKeyCredParams using the following steps, to
+  // produce a new sequence acceptableParams.
+  nsTArray<PublicKeyCredentialParameters> acceptableParams;
   for (size_t a = 0; a < aOptions.mPubKeyCredParams.Length(); ++a) {
     // Let current be the currently selected element of
-    // cryptoParameters.
+    // mPubKeyCredParams.
 
     // If current.type does not contain a PublicKeyCredentialType
     // supported by this implementation, then stop processing current and move
-    // on to the next element in cryptoParameters.
+    // on to the next element in mPubKeyCredParams.
     if (aOptions.mPubKeyCredParams[a].mType != PublicKeyCredentialType::Public_key) {
       continue;
     }
 
-    // Let normalizedAlgorithm be the result of normalizing an algorithm using
-    // the procedure defined in [WebCryptoAPI], with alg set to
-    // current.algorithm and op set to 'generateKey'. If an error occurs during
-    // this procedure, then stop processing current and move on to the next
-    // element in cryptoParameters.
-
     nsString algName;
-    if (NS_FAILED(GetAlgorithmName(aOptions.mPubKeyCredParams[a].mAlg,
-                                   algName))) {
+    if (NS_FAILED(CoseAlgorithmToWebCryptoId(aOptions.mPubKeyCredParams[a].mAlg,
+                                             algName))) {
       continue;
     }
 
-    // Add a new object of type PublicKeyCredentialParameters to
-    // normalizedParameters, with type set to current.type and algorithm set to
-    // normalizedAlgorithm.
-    PublicKeyCredentialParameters normalizedObj;
-    normalizedObj.mType = aOptions.mPubKeyCredParams[a].mType;
-    normalizedObj.mAlg.SetAsString().Assign(algName);
-
-    if (!normalizedParams.AppendElement(normalizedObj, mozilla::fallible)){
+    if (!acceptableParams.AppendElement(aOptions.mPubKeyCredParams[a],
+                                        mozilla::fallible)){
       promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
       return promise.forget();
     }
   }
 
-  // If normalizedAlgorithm is empty and cryptoParameters was not empty, cancel
+  // If acceptableParams is empty and mPubKeyCredParams was not empty, cancel
   // the timer started in step 2, reject promise with a DOMException whose name
   // is "NotSupportedError", and terminate this algorithm.
-  if (normalizedParams.IsEmpty() && !aOptions.mPubKeyCredParams.IsEmpty()) {
-    promise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return promise.forget();
-  }
-
-  // TODO: The following check should not be here. This is checking for
-  // parameters specific to the soft key, and should be put in the soft key
-  // manager in the parent process. Still need to serialize
-  // PublicKeyCredentialParameters first.
-
-  // Check if at least one of the specified combinations of
-  // PublicKeyCredentialParameters and cryptographic parameters is supported. If
-  // not, return an error code equivalent to NotSupportedError and terminate the
-  // operation.
-
-  bool isValidCombination = false;
-
-  for (size_t a = 0; a < normalizedParams.Length(); ++a) {
-    if (normalizedParams[a].mType == PublicKeyCredentialType::Public_key &&
-        normalizedParams[a].mAlg.IsString() &&
-        normalizedParams[a].mAlg.GetAsString().EqualsLiteral(
-          JWK_ALG_ECDSA_P_256)) {
-      isValidCombination = true;
-      break;
-    }
-  }
-  if (!isValidCombination) {
+  if (acceptableParams.IsEmpty() && !aOptions.mPubKeyCredParams.IsEmpty()) {
     promise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return promise.forget();
   }
@@ -499,19 +465,22 @@ WebAuthnManager::MakeCredential(nsPIDOMWindowInner* aParent,
   p->Then(GetMainThreadSerialEventTarget(), __func__,
           []() {
             WebAuthnManager* mgr = WebAuthnManager::Get();
-            if (mgr && mgr->mChild) {
-              mgr->mChild->SendRequestRegister(mgr->mInfo.ref());
+            if (mgr && mgr->mChild && mgr->mTransaction.isSome()) {
+              mgr->mChild->SendRequestRegister(mgr->mTransaction.ref().mInfo);
             }
           },
           []() {
             // This case can't actually happen, we'll have crashed if the child
             // failed to create.
           });
-  mTransactionPromise = promise;
-  mClientData = Some(clientDataJSON);
-  mCurrentParent = aParent;
-  mInfo = Some(info);
+
   ListenForVisibilityEvents(aParent, this);
+
+  MOZ_ASSERT(mTransaction.isNothing());
+  mTransaction = Some(WebAuthnTransaction(aParent,
+                                          promise,
+                                          Move(info),
+                                          Move(clientDataJSON)));
 
   return promise.forget();
 }
@@ -523,7 +492,9 @@ WebAuthnManager::GetAssertion(nsPIDOMWindowInner* aParent,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aParent);
 
-  MaybeClearTransaction();
+  if (mTransaction.isSome()) {
+    CancelTransaction(NS_ERROR_ABORT);
+  }
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aParent);
 
@@ -649,8 +620,8 @@ WebAuthnManager::GetAssertion(nsPIDOMWindowInner* aParent,
   p->Then(GetMainThreadSerialEventTarget(), __func__,
           []() {
             WebAuthnManager* mgr = WebAuthnManager::Get();
-            if (mgr && mgr->mChild) {
-              mgr->mChild->SendRequestSign(mgr->mInfo.ref());
+            if (mgr && mgr->mChild && mgr->mTransaction.isSome()) {
+              mgr->mChild->SendRequestSign(mgr->mTransaction.ref().mInfo);
             }
           },
           []() {
@@ -658,12 +629,13 @@ WebAuthnManager::GetAssertion(nsPIDOMWindowInner* aParent,
             // failed to create.
           });
 
-  // Only store off the promise if we've succeeded in sending the IPC event.
-  mTransactionPromise = promise;
-  mClientData = Some(clientDataJSON);
-  mCurrentParent = aParent;
-  mInfo = Some(info);
   ListenForVisibilityEvents(aParent, this);
+
+  MOZ_ASSERT(mTransaction.isNothing());
+  mTransaction = Some(WebAuthnTransaction(aParent,
+                                          promise,
+                                          Move(info),
+                                          Move(clientDataJSON)));
 
   return promise.forget();
 }
@@ -675,7 +647,9 @@ WebAuthnManager::Store(nsPIDOMWindowInner* aParent,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aParent);
 
-  MaybeClearTransaction();
+  if (mTransaction.isSome()) {
+    CancelTransaction(NS_ERROR_ABORT);
+  }
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aParent);
 
@@ -693,18 +667,21 @@ void
 WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mTransactionPromise);
-  MOZ_ASSERT(mInfo.isSome());
+
+  // Check for a valid transaction.
+  if (mTransaction.isNothing()) {
+    return;
+  }
 
   CryptoBuffer regData;
   if (NS_WARN_IF(!regData.Assign(aRegBuffer.Elements(), aRegBuffer.Length()))) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   mozilla::dom::CryptoBuffer aaguidBuf;
   if (NS_WARN_IF(!aaguidBuf.SetCapacity(16, mozilla::fallible))) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
   // TODO: Adjust the AAGUID from all zeroes in Bug 1381575 (if needed)
@@ -723,7 +700,7 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   nsresult rv = U2FDecomposeRegistrationResponse(regData, pubKeyBuf, keyHandleBuf,
                                                  attestationCertBuf, signatureBuf);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
   MOZ_ASSERT(keyHandleBuf.Length() <= 0xFFFF);
@@ -731,19 +708,19 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   nsAutoString keyHandleBase64Url;
   rv = keyHandleBuf.ToJwkBase64(keyHandleBase64Url);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
   CryptoBuffer clientDataBuf;
-  if (!clientDataBuf.Assign(mClientData.ref())) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+  if (!clientDataBuf.Assign(mTransaction.ref().mClientData)) {
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   CryptoBuffer rpIdHashBuf;
-  if (!rpIdHashBuf.Assign(mInfo.ref().RpIdHash())) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+  if (!rpIdHashBuf.Assign(mTransaction.ref().mInfo.RpIdHash())) {
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
@@ -751,7 +728,7 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   CryptoBuffer pubKeyObj;
   rv = CBOREncodePublicKeyObj(pubKeyBuf, pubKeyObj);
   if (NS_FAILED(rv)) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
@@ -759,7 +736,7 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   // See https://github.com/w3c/webauthn/issues/507
   mozilla::dom::CryptoBuffer counterBuf;
   if (NS_WARN_IF(!counterBuf.SetCapacity(4, mozilla::fallible))) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
   counterBuf.AppendElement(0x00, mozilla::fallible);
@@ -772,7 +749,7 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   CryptoBuffer attDataBuf;
   rv = AssembleAttestationData(aaguidBuf, keyHandleBuf, pubKeyObj, attDataBuf);
   if (NS_FAILED(rv)) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
@@ -780,7 +757,7 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   rv = AssembleAuthenticatorData(rpIdHashBuf, FLAG_TUP, counterBuf, attDataBuf,
                                  authDataBuf);
   if (NS_FAILED(rv)) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
@@ -790,7 +767,7 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   rv = CBOREncodeAttestationObj(authDataBuf, attestationCertBuf, signatureBuf,
                                 attObj);
   if (NS_FAILED(rv)) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
@@ -798,18 +775,19 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
   // values returned from the authenticator as well as the clientDataJSON
   // computed earlier.
   RefPtr<AuthenticatorAttestationResponse> attestation =
-      new AuthenticatorAttestationResponse(mCurrentParent);
+      new AuthenticatorAttestationResponse(mTransaction.ref().mParent);
   attestation->SetClientDataJSON(clientDataBuf);
   attestation->SetAttestationObject(attObj);
 
-  RefPtr<PublicKeyCredential> credential = new PublicKeyCredential(mCurrentParent);
+  RefPtr<PublicKeyCredential> credential =
+      new PublicKeyCredential(mTransaction.ref().mParent);
   credential->SetId(keyHandleBase64Url);
   credential->SetType(NS_LITERAL_STRING("public-key"));
   credential->SetRawId(keyHandleBuf);
   credential->SetResponse(attestation);
 
-  mTransactionPromise->MaybeResolve(credential);
-  MaybeClearTransaction();
+  mTransaction.ref().mPromise->MaybeResolve(credential);
+  ClearTransaction();
 }
 
 void
@@ -817,25 +795,28 @@ WebAuthnManager::FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,
                                     nsTArray<uint8_t>& aSigBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mTransactionPromise);
-  MOZ_ASSERT(mInfo.isSome());
+
+  // Check for a valid transaction.
+  if (mTransaction.isNothing()) {
+    return;
+  }
 
   CryptoBuffer tokenSignatureData;
   if (NS_WARN_IF(!tokenSignatureData.Assign(aSigBuffer.Elements(),
                                             aSigBuffer.Length()))) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   CryptoBuffer clientDataBuf;
-  if (!clientDataBuf.Assign(mClientData.ref())) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+  if (!clientDataBuf.Assign(mTransaction.ref().mClientData)) {
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   CryptoBuffer rpIdHashBuf;
-  if (!rpIdHashBuf.Assign(mInfo.ref().RpIdHash())) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+  if (!rpIdHashBuf.Assign(mTransaction.ref().mInfo.RpIdHash())) {
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
@@ -845,7 +826,7 @@ WebAuthnManager::FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,
   nsresult rv = U2FDecomposeSignResponse(tokenSignatureData, flags, counterBuf,
                                          signatureBuf);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
@@ -855,20 +836,20 @@ WebAuthnManager::FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,
                                  /* deliberately empty */ attestationDataBuf,
                                  authenticatorDataBuf);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
   CryptoBuffer credentialBuf;
   if (!credentialBuf.Assign(aCredentialId)) {
-    Cancel(NS_ERROR_OUT_OF_MEMORY);
+    RejectTransaction(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   nsAutoString credentialBase64Url;
   rv = credentialBuf.ToJwkBase64(credentialBase64Url);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    Cancel(rv);
+    RejectTransaction(rv);
     return;
   }
 
@@ -878,20 +859,20 @@ WebAuthnManager::FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,
   // with the values returned from the authenticator as well as the
   // clientDataJSON computed earlier.
   RefPtr<AuthenticatorAssertionResponse> assertion =
-    new AuthenticatorAssertionResponse(mCurrentParent);
+    new AuthenticatorAssertionResponse(mTransaction.ref().mParent);
   assertion->SetClientDataJSON(clientDataBuf);
   assertion->SetAuthenticatorData(authenticatorDataBuf);
   assertion->SetSignature(signatureBuf);
 
   RefPtr<PublicKeyCredential> credential =
-    new PublicKeyCredential(mCurrentParent);
+    new PublicKeyCredential(mTransaction.ref().mParent);
   credential->SetId(credentialBase64Url);
   credential->SetType(NS_LITERAL_STRING("public-key"));
   credential->SetRawId(credentialBuf);
   credential->SetResponse(assertion);
 
-  mTransactionPromise->MaybeResolve(credential);
-  MaybeClearTransaction();
+  mTransaction.ref().mPromise->MaybeResolve(credential);
+  ClearTransaction();
 }
 
 void
@@ -899,19 +880,9 @@ WebAuthnManager::RequestAborted(const nsresult& aError)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  Cancel(aError);
-}
-
-void
-WebAuthnManager::Cancel(const nsresult& aError)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (mTransactionPromise) {
-    mTransactionPromise->MaybeReject(aError);
+  if (mTransaction.isSome()) {
+    RejectTransaction(aError);
   }
-
-  MaybeClearTransaction();
 }
 
 NS_IMETHODIMP
@@ -919,7 +890,6 @@ WebAuthnManager::HandleEvent(nsIDOMEvent* aEvent)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aEvent);
-  MOZ_ASSERT(mChild);
 
   nsAutoString type;
   aEvent->GetType(type);
@@ -935,9 +905,7 @@ WebAuthnManager::HandleEvent(nsIDOMEvent* aEvent)
     MOZ_LOG(gWebAuthnManagerLog, LogLevel::Debug,
             ("Visibility change: WebAuthn window is hidden, cancelling job."));
 
-    mChild->SendRequestCancel();
-
-    Cancel(NS_ERROR_ABORT);
+    CancelTransaction(NS_ERROR_ABORT);
   }
 
   return NS_OK;

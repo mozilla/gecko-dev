@@ -253,6 +253,15 @@ public:
   };
 
   /**
+   * Invalidate for displayport change.
+   */
+  static void InvalidateForDisplayPortChange(nsIContent* aContent,
+                                             bool aHadDisplayPort,
+                                             const nsRect& aOldDisplayPort,
+                                             const nsRect& aNewDisplayPort,
+                                             RepaintMode aRepaintMode = RepaintMode::Repaint);
+
+  /**
    * Set the display port margins for a content element to be used with a
    * display port base (see SetDisplayPortBase()).
    * See also nsIDOMWindowUtils.setDisplayPortMargins.
@@ -598,18 +607,6 @@ public:
    * the viewport).
    */
   static bool IsFixedPosFrameInDisplayPort(const nsIFrame* aFrame);
-
-  /**
-   * Store whether aThumbFrame wants its own layer. This sets a property on
-   * the frame.
-   */
-  static void SetScrollbarThumbLayerization(nsIFrame* aThumbFrame, bool aLayerize);
-
-  /**
-   * Returns whether aThumbFrame wants its own layer due to having called
-   * SetScrollbarThumbLayerization.
-   */
-  static bool IsScrollbarThumbLayerized(nsIFrame* aThumbFrame);
 
   /**
     * GetScrollableFrameFor returns the scrollable frame for a scrolled frame
@@ -2038,6 +2035,11 @@ public:
   static nsIFrame* GetDisplayRootFrame(nsIFrame* aFrame);
 
   /**
+   * Find the nearest viewport frame that is an ancestor of the given frame.
+   */
+  static nsIFrame* GetViewportFrame(nsIFrame* aFrame);
+
+  /**
    * Get the reference frame that would be used when constructing a
    * display item for this frame.  Rather than using their own frame
    * as a reference frame.)
@@ -2560,6 +2562,12 @@ public:
 
 #ifdef MOZ_STYLO
   /**
+   * Return whether stylo should be used for a given document URI and
+   * principal.
+   */
+  static bool ShouldUseStylo(nsIURI* aDocumentURI, nsIPrincipal* aPrincipal);
+
+  /**
    * Principal-based blocklist for stylo.
    * Check if aPrincipal is blocked by stylo's blocklist and should fallback to
    * use Gecko's style backend. Note that using a document's principal rather
@@ -2581,6 +2589,10 @@ public:
    * So, NEVER use this in any other cases.
    */
   static void RemoveFromStyloBlocklist(const nsACString& aBlockedDomain);
+#else
+  static bool ShouldUseStylo(nsIURI* aDocumentURI, nsIPrincipal* aPrincipal) {
+    return false;
+  }
 #endif
 
   /**

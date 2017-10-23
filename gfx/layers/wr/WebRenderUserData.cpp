@@ -54,16 +54,25 @@ WebRenderImageData::WebRenderImageData(WebRenderLayerManager* aWRManager, nsDisp
 
 WebRenderImageData::~WebRenderImageData()
 {
+  ClearCachedResources();
+}
+
+void
+WebRenderImageData::ClearCachedResources()
+{
   if (mKey) {
     mWRManager->AddImageKeyForDiscard(mKey.value());
+    mKey.reset();
   }
 
   if (mExternalImageId) {
     WrBridge()->DeallocExternalImageId(mExternalImageId.ref());
+    mExternalImageId.reset();
   }
 
   if (mPipelineId) {
     WrBridge()->RemovePipelineIdForCompositable(mPipelineId.ref());
+    mPipelineId.reset();
   }
 }
 
@@ -128,8 +137,8 @@ void
 WebRenderImageData::CreateAsyncImageWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                       ImageContainer* aContainer,
                                                       const StackingContextHelper& aSc,
-                                                      const LayerRect& aBounds,
-                                                      const LayerRect& aSCBounds,
+                                                      const LayoutDeviceRect& aBounds,
+                                                      const LayoutDeviceRect& aSCBounds,
                                                       const gfx::Matrix4x4& aSCTransform,
                                                       const gfx::MaybeIntSize& aScaleToSize,
                                                       const wr::ImageRendering& aFilter,
@@ -235,6 +244,15 @@ WebRenderCanvasData::WebRenderCanvasData(WebRenderLayerManager* aWRManager, nsDi
 
 WebRenderCanvasData::~WebRenderCanvasData()
 {
+  ClearCachedResources();
+}
+
+void
+WebRenderCanvasData::ClearCachedResources()
+{
+  if (mCanvasRenderer) {
+    mCanvasRenderer->ClearCachedResources();
+  }
 }
 
 WebRenderCanvasRendererAsync*

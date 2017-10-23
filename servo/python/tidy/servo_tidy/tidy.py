@@ -626,6 +626,10 @@ def check_rust(file_name, lines):
                       + decl_found.format(crate_name))
             prev_crate[indent] = crate_name
 
+        if line == "}":
+            for i in [i for i in prev_crate.keys() if i > indent]:
+                del prev_crate[i]
+
         # check alphabetical order of feature attributes in lib.rs files
         if is_lib_rs_file:
             match = re.search(r"#!\[feature\((.*)\)\]", line)
@@ -852,7 +856,7 @@ def check_spec(file_name, lines):
     macro_patt = re.compile("^\s*\S+!(.*)$")
 
     # Pattern representing a line with comment containing a spec link
-    link_patt = re.compile("^\s*///? https://.+$")
+    link_patt = re.compile("^\s*///? (<https://.+>|https://.+)$")
 
     # Pattern representing a line with comment or attribute
     comment_patt = re.compile("^\s*(///?.+|#\[.+\])$")

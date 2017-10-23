@@ -125,14 +125,6 @@ KeyframeEffectReadOnly::NotifyAnimationTimingUpdated()
     ResetIsRunningOnCompositor();
   }
 
-  // Detect changes to "in effect" status since we need to recalculate the
-  // animation cascade for this element whenever that changes.
-  bool inEffect = IsInEffect();
-  if (inEffect != mInEffectOnLastAnimationTimingUpdate) {
-    MarkCascadeNeedsUpdate();
-    mInEffectOnLastAnimationTimingUpdate = inEffect;
-  }
-
   // Request restyle if necessary.
   if (mAnimation && !mProperties.IsEmpty() && HasComputedTimingChanged()) {
     EffectCompositor::RestyleType restyleType =
@@ -140,6 +132,16 @@ KeyframeEffectReadOnly::NotifyAnimationTimingUpdated()
       EffectCompositor::RestyleType::Throttled :
       EffectCompositor::RestyleType::Standard;
     RequestRestyle(restyleType);
+  }
+
+  // Detect changes to "in effect" status since we need to recalculate the
+  // animation cascade for this element whenever that changes.
+  // Note that updating mInEffectOnLastAnimationTimingUpdate has to be done
+  // after above CanThrottle() call since the function uses the flag inside it.
+  bool inEffect = IsInEffect();
+  if (inEffect != mInEffectOnLastAnimationTimingUpdate) {
+    MarkCascadeNeedsUpdate();
+    mInEffectOnLastAnimationTimingUpdate = inEffect;
   }
 
   // If we're no longer "in effect", our ComposeStyle method will never be
@@ -973,6 +975,11 @@ KeyframeEffectReadOnly::UpdateTargetRegistration()
     effectSet->AddEffect(*this);
     mInEffectSet = true;
     UpdateEffectSet(effectSet);
+    nsIFrame* f = mTarget->mElement->GetPrimaryFrame();
+    while (f) {
+      f->MarkNeedsDisplayItemRebuild();
+      f = f->GetNextContinuation();
+    }
   } else if (!isRelevant && mInEffectSet) {
     UnregisterTarget();
   }
@@ -996,6 +1003,11 @@ KeyframeEffectReadOnly::UnregisterTarget()
     if (effectSet->IsEmpty()) {
       EffectSet::DestroyEffectSet(mTarget->mElement, mTarget->mPseudoType);
     }
+  }
+  nsIFrame* f = mTarget->mElement->GetPrimaryFrame();
+  while (f) {
+    f->MarkNeedsDisplayItemRebuild();
+    f = f->GetNextContinuation();
   }
 }
 
@@ -1375,9 +1387,10 @@ KeyframeEffectReadOnly::CanThrottle() const
     return true;
   }
 
-  // We can throttle the animation if the animation is paint only and
-  // the target frame is out of view or the document is in background tabs.
-  if (CanIgnoreIfNotVisible()) {
+  // Unless we are newly in-effect, we can throttle the animation if the
+  // animation is paint only and the target frame is out of view or the document
+  // is in background tabs.
+  if (mInEffectOnLastAnimationTimingUpdate && CanIgnoreIfNotVisible()) {
     nsIPresShell* presShell = GetPresShell();
     if ((presShell && !presShell->IsActive()) ||
         frame->IsScrolledOutOfView()) {
@@ -1686,23 +1699,22 @@ KeyframeEffectReadOnly::RecordFrameSizeTelemetry(uint32_t aPixelArea) {
   }
 }
 
-static already_AddRefed<GeckoStyleContext>
-CreateStyleContextForAnimationValue(nsCSSPropertyID aProperty,
-                                    const StyleAnimationValue& aValue,
-                                    GeckoStyleContext* aBaseStyleContext)
+already_AddRefed<nsStyleContext>
+KeyframeEffectReadOnly::CreateStyleContextForAnimationValue(
+  nsCSSPropertyID aProperty,
+  const AnimationValue& aValue,
+  GeckoStyleContext* aBaseStyleContext)
 {
   MOZ_ASSERT(aBaseStyleContext,
              "CreateStyleContextForAnimationValue needs to be called "
-             "with a valid nsStyleContext");
+             "with a valid GeckoStyleContext");
 
   RefPtr<AnimValuesStyleRule> styleRule = new AnimValuesStyleRule();
-  styleRule->AddValue(aProperty, aValue);
+  styleRule->AddValue(aProperty, aValue.mGecko);
 
   nsCOMArray<nsIStyleRule> rules;
   rules.AppendObject(styleRule);
 
-  MOZ_ASSERT(aBaseStyleContext->PresContext()->StyleSet()->IsGecko(),
-             "ServoStyleSet should not use StyleAnimationValue for animations");
   nsStyleSet* styleSet =
     aBaseStyleContext->PresContext()->StyleSet()->AsGecko();
 
@@ -1716,17 +1728,33 @@ CreateStyleContextForAnimationValue(nsCSSPropertyID aProperty,
   return styleContext.forget();
 }
 
-void
-KeyframeEffectReadOnly::CalculateCumulativeChangeHint(
-  nsStyleContext* aStyleContext)
+already_AddRefed<nsStyleContext>
+KeyframeEffectReadOnly::CreateStyleContextForAnimationValue(
+  nsCSSPropertyID aProperty,
+  const AnimationValue& aValue,
+  const ServoStyleContext* aBaseStyleContext)
 {
-  if (mDocument->IsStyledByServo()) {
-    // FIXME (bug 1303235): Do this for Servo too
-    return;
-  }
+  MOZ_ASSERT(aBaseStyleContext,
+             "CreateStyleContextForAnimationValue needs to be called "
+             "with a valid ServoStyleContext");
+
+  ServoStyleSet* styleSet =
+    aBaseStyleContext->PresContext()->StyleSet()->AsServo();
+  Element* elementForResolve =
+    EffectCompositor::GetElementToRestyle(mTarget->mElement,
+                                          mTarget->mPseudoType);
+  MOZ_ASSERT(elementForResolve, "The target element shouldn't be null");
+  return styleSet->ResolveServoStyleByAddingAnimation(elementForResolve,
+                                                      aBaseStyleContext,
+                                                      aValue.mServo);
+}
+
+template<typename StyleType>
+void
+KeyframeEffectReadOnly::CalculateCumulativeChangeHint(StyleType* aStyleContext)
+{
   mCumulativeChangeHint = nsChangeHint(0);
 
-  auto* geckoContext = aStyleContext ? aStyleContext->AsGecko() : nullptr;
   for (const AnimationProperty& property : mProperties) {
     for (const AnimationPropertySegment& segment : property.mSegments) {
       // In case composite operation is not 'replace' or value is null,
@@ -1737,15 +1765,23 @@ KeyframeEffectReadOnly::CalculateCumulativeChangeHint(
         mCumulativeChangeHint = ~nsChangeHint_Hints_CanIgnoreIfNotVisible;
         return;
       }
-      RefPtr<GeckoStyleContext> fromContext =
+      RefPtr<nsStyleContext> fromContext =
         CreateStyleContextForAnimationValue(property.mProperty,
-                                            segment.mFromValue.mGecko,
-                                            geckoContext);
+                                            segment.mFromValue,
+                                            aStyleContext);
+      if (!fromContext) {
+        mCumulativeChangeHint = ~nsChangeHint_Hints_CanIgnoreIfNotVisible;
+        return;
+      }
 
-      RefPtr<GeckoStyleContext> toContext =
+      RefPtr<nsStyleContext> toContext =
         CreateStyleContextForAnimationValue(property.mProperty,
-                                            segment.mToValue.mGecko,
-                                            geckoContext);
+                                            segment.mToValue,
+                                            aStyleContext);
+      if (!toContext) {
+        mCumulativeChangeHint = ~nsChangeHint_Hints_CanIgnoreIfNotVisible;
+        return;
+      }
 
       uint32_t equalStructs = 0;
       uint32_t samePointerStructs = 0;
@@ -1788,12 +1824,6 @@ bool
 KeyframeEffectReadOnly::CanIgnoreIfNotVisible() const
 {
   if (!AnimationUtils::IsOffscreenThrottlingEnabled()) {
-    return false;
-  }
-
-  // FIXME (bug 1303235): We don't calculate mCumulativeChangeHint for
-  // the Servo backend yet
-  if (mDocument->IsStyledByServo()) {
     return false;
   }
 

@@ -35,6 +35,22 @@ const reqShim = require.context("raw!devtools/shim/locales/",
 const reqGlobal = require.context("raw!toolkit/locales/",
                                   true, /^.*\.properties$/);
 
+// Map used to memoize Number formatters.
+const numberFormatters = new Map();
+const getNumberFormatter = function (decimals) {
+  let formatter = numberFormatters.get(decimals);
+  if (!formatter) {
+    // Create and memoize a formatter for the provided decimals
+    formatter = Intl.NumberFormat(undefined, {
+      maximumFractionDigits: decimals,
+      minimumFractionDigits: decimals
+    });
+    numberFormatters.set(decimals, formatter);
+  }
+
+  return formatter;
+};
+
 /**
  * Memoized getter for properties files that ensures a given url is only required and
  * parsed once.
@@ -135,27 +151,28 @@ LocalizationHelper.prototype = {
    *         The localized number as a string.
    */
   numberWithDecimals: function (number, decimals = 0) {
-    // If this is an integer, don't do anything special.
+    // Do not show decimals for integers.
     if (number === (number|0)) {
-      return number;
+      return getNumberFormatter(0).format(number);
     }
+
     // If this isn't a number (and yes, `isNaN(null)` is false), return zero.
     if (isNaN(number) || number === null) {
-      return "0";
+      return getNumberFormatter(0).format(0);
     }
 
-    let localized = number.toLocaleString();
+    // Localize the number using a memoized Intl.NumberFormat formatter.
+    let localized = getNumberFormatter(decimals).format(number);
 
-    // If no grouping or decimal separators are available, bail out, because
-    // padding with zeros at the end of the string won't make sense anymore.
-    if (!localized.match(/[^\d]/)) {
-      return localized;
+    // Convert the localized number to a number again.
+    let localizedNumber = localized * 1;
+    // Check if this number is now equal to an integer.
+    if (localizedNumber === (localizedNumber|0)) {
+    // If it is, remove the fraction part.
+      return getNumberFormatter(0).format(localizedNumber);
     }
 
-    return number.toLocaleString(undefined, {
-      maximumFractionDigits: decimals,
-      minimumFractionDigits: decimals
-    });
+    return localized;
   }
 };
 

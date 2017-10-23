@@ -57,7 +57,6 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::{FrameType, PipelineId};
@@ -75,7 +74,7 @@ use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, Runtime};
 use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use script_thread::{ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
@@ -127,14 +126,14 @@ use webrender_api::{ClipId, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WindowState {
     Alive,
     Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.
 }
 
 /// Extra information concerning the reason for reflowing.
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
     RefreshTick,
@@ -161,24 +160,24 @@ pub enum ReflowReason {
 #[dom_struct]
 pub struct Window {
     globalscope: GlobalScope,
-    #[ignore_heap_size_of = "trait objects are hard"]
+    #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     dom_manipulation_task_source: DOMManipulationTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     user_interaction_task_source: UserInteractionTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     networking_task_source: NetworkingTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     history_traversal_task_source: HistoryTraversalTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     performance_timeline_task_source: PerformanceTimelineTaskSource,
     navigator: MutNullableDom<Navigator>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
@@ -196,7 +195,7 @@ pub struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
@@ -209,22 +208,22 @@ pub struct Window {
     dom_static: GlobalStaticData,
 
     /// The JavaScript runtime.
-    #[ignore_heap_size_of = "Rc<T> is hard"]
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
     js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout thread.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     layout_chan: Sender<Msg>,
 
     /// A handle to perform RPC calls into the layout, quickly.
-    #[ignore_heap_size_of = "trait objects are hard"]
+    #[ignore_malloc_size_of = "trait objects are hard"]
     layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
     /// A handle for communicating messages to the bluetooth thread.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
@@ -242,7 +241,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
@@ -251,7 +250,7 @@ pub struct Window {
     current_viewport: Cell<Rect<Au>>,
 
     /// A flag to prevent async events from attempting to interact with this window.
-    #[ignore_heap_size_of = "defined in std"]
+    #[ignore_malloc_size_of = "defined in std"]
     ignore_further_async_events: DomRefCell<Arc<AtomicBool>>,
 
     error_reporter: CSSErrorReporter,
@@ -265,11 +264,11 @@ pub struct Window {
     test_runner: MutNullableDom<TestRunner>,
 
     /// A handle for communicating messages to the webvr thread, if available.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     webgl_chan: WebGLChan,
 
     /// A handle for communicating messages to the webvr thread, if available.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// A map for storing the previous permission state read results.
@@ -287,10 +286,10 @@ pub struct Window {
 
     /// Worklets
     test_worklet: MutNullableDom<Worklet>,
-    /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     paint_worklet: MutNullableDom<Worklet>,
     /// The Webrender Document id associated with this window.
-    #[ignore_heap_size_of = "defined in webrender_api"]
+    #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_document: DocumentId,
 }
 
@@ -360,7 +359,7 @@ impl Window {
     }
 
     /// Returns the window proxy if it has not been discarded.
-    /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+    /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
         self.window_proxy.get()
             .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
@@ -742,13 +741,13 @@ impl WindowMethods for Window {
         base64_atob(atob)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
         self.Document()
             .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback })
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
     fn CancelAnimationFrame(&self, ident: u32) {
         let doc = self.Document();
         doc.cancel_animation_frame(ident);
@@ -1090,7 +1089,7 @@ impl Window {
         self.ignore_further_async_events.borrow().store(true, Ordering::SeqCst);
     }
 
-    /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
     pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
         // Step 3
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
@@ -1144,33 +1143,20 @@ impl Window {
                               None);
     }
 
-    /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
+    /// <https://drafts.csswg.org/cssom-view/#perform-a-scroll>
     pub fn perform_a_scroll(&self,
                             x: f32,
                             y: f32,
                             scroll_root_id: ClipId,
-                            behavior: ScrollBehavior,
-                            element: Option<&Element>) {
-        //TODO Step 1
-        let point = Point2D::new(x, y);
-        let smooth = match behavior {
-            ScrollBehavior::Auto => {
-                element.map_or(false, |_element| {
-                    // TODO check computed scroll-behaviour CSS property
-                    true
-                })
-            }
-            ScrollBehavior::Instant => false,
-            ScrollBehavior::Smooth => true
-        };
-
+                            _behavior: ScrollBehavior,
+                            _element: Option<&Element>) {
+        // TODO Step 1
+        // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
+        // properly process ScrollBehavior here.
         self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
             scroll_root_id: scroll_root_id,
             scroll_offset: Vector2D::new(-x, -y),
         })).unwrap();
-
-        let message = ScriptMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
-        self.send_to_constellation(message);
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1406,18 +1392,6 @@ impl Window {
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn hit_test_query(&self,
-                          client_point: Point2D<f32>,
-                          update_cursor: bool)
-                          -> Option<UntrustedNodeAddress> {
-        if !self.reflow(ReflowGoal::HitTestQuery(client_point, update_cursor),
-                        ReflowReason::Query) {
-            return None
-        }
-
-        self.layout_rpc.hit_test().node_address
-    }
-
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
         if !self.reflow(ReflowGoal::NodeScrollGeometryQuery(node), ReflowReason::Query) {
             return Rect::zero();
@@ -1506,8 +1480,12 @@ impl Window {
         self.layout_rpc.margin_style()
     }
 
-    pub fn text_index_query(&self, node: TrustedNodeAddress, mouse_x: i32, mouse_y: i32) -> TextIndexResponse {
-        if !self.reflow(ReflowGoal::TextIndexQuery(node, mouse_x, mouse_y), ReflowReason::Query) {
+    pub fn text_index_query(
+        &self,
+        node: TrustedNodeAddress,
+        point_in_node: Point2D<f32>
+    ) -> TextIndexResponse {
+        if !self.reflow(ReflowGoal::TextIndexQuery(node, point_in_node), ReflowReason::Query) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()
@@ -1910,8 +1888,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::Full => "\tFull",
         ReflowGoal::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowGoal::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-        ReflowGoal::HitTestQuery(..) => "\tHitTestQuery",
-        ReflowGoal::NodesFromPoint(..) => "\tNodesFromPoint",
+        ReflowGoal::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
         ReflowGoal::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowGoal::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowGoal::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",

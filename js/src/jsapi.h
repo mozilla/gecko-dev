@@ -493,7 +493,7 @@ class HandleValueArray
     HandleValueArray(size_t len, const Value* elements) : length_(len), elements_(elements) {}
 
   public:
-    explicit HandleValueArray(const RootedValue& value) : length_(1), elements_(value.address()) {}
+    explicit HandleValueArray(HandleValue value) : length_(1), elements_(value.address()) {}
 
     MOZ_IMPLICIT HandleValueArray(const AutoValueVector& values)
       : length_(values.length()), elements_(values.begin()) {}
@@ -1140,9 +1140,10 @@ class JS_PUBLIC_API(ContextOptions) {
       : baseline_(true),
         ion_(true),
         asmJS_(true),
-        wasm_(false),
-        wasmBaseline_(false),
-        wasmIon_(false),
+        wasm_(true),
+        wasmBaseline_(true),
+        wasmIon_(true),
+        testWasmAwaitTier2_(false),
         throwOnAsmJSValidationFailure_(false),
         nativeRegExp_(true),
         asyncStack_(true),
@@ -1226,6 +1227,16 @@ class JS_PUBLIC_API(ContextOptions) {
     }
     ContextOptions& toggleWasmIon() {
         wasmIon_ = !wasmIon_;
+        return *this;
+    }
+
+    bool testWasmAwaitTier2() const { return testWasmAwaitTier2_; }
+    ContextOptions& setTestWasmAwaitTier2(bool flag) {
+        testWasmAwaitTier2_ = flag;
+        return *this;
+    }
+    ContextOptions& toggleTestWasmAwaitTier2() {
+        testWasmAwaitTier2_ = !testWasmAwaitTier2_;
         return *this;
     }
 
@@ -1324,6 +1335,7 @@ class JS_PUBLIC_API(ContextOptions) {
     bool wasm_ : 1;
     bool wasmBaseline_ : 1;
     bool wasmIon_ : 1;
+    bool testWasmAwaitTier2_ : 1;
     bool throwOnAsmJSValidationFailure_ : 1;
     bool nativeRegExp_ : 1;
     bool asyncStack_ : 1;

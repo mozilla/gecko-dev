@@ -122,7 +122,7 @@ AsyncImagePipelineManager::RemoveAsyncImagePipeline(const wr::PipelineId& aPipel
 
 void
 AsyncImagePipelineManager::UpdateAsyncImagePipeline(const wr::PipelineId& aPipelineId,
-                                                    const LayerRect& aScBounds,
+                                                    const LayoutDeviceRect& aScBounds,
                                                     const gfx::Matrix4x4& aScTransform,
                                                     const gfx::MaybeIntSize& aScaleToSize,
                                                     const wr::ImageRendering& aFilter,
@@ -272,7 +272,10 @@ AsyncImagePipelineManager::ApplyAsyncImages()
       // We don't need to update the display list, either because we can't or because
       // the previous one is still up to date.
       // We may, however, have updated some resources.
-      mApi->UpdateResources(resourceUpdates);
+      mApi->UpdatePipelineResources(resourceUpdates, pipelineId, epoch);
+      if (pipeline->mCurrentTexture) {
+        HoldExternalImage(pipelineId, epoch, pipeline->mCurrentTexture->AsWebRenderTextureHost());
+      }
       continue;
     }
 
@@ -293,9 +296,9 @@ AsyncImagePipelineManager::ApplyAsyncImages()
                                 nsTArray<wr::WrFilterOp>(),
                                 true);
 
-    LayerRect rect(0, 0, pipeline->mCurrentTexture->GetSize().width, pipeline->mCurrentTexture->GetSize().height);
+    LayoutDeviceRect rect(0, 0, pipeline->mCurrentTexture->GetSize().width, pipeline->mCurrentTexture->GetSize().height);
     if (pipeline->mScaleToSize.isSome()) {
-      rect = LayerRect(0, 0, pipeline->mScaleToSize.value().width, pipeline->mScaleToSize.value().height);
+      rect = LayoutDeviceRect(0, 0, pipeline->mScaleToSize.value().width, pipeline->mScaleToSize.value().height);
     }
 
     if (pipeline->mUseExternalImage) {

@@ -27,7 +27,7 @@ use values::specified::Length;
 const UNSIGNED_LONG_MAX: u32 = 2147483647;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f32),
@@ -35,7 +35,7 @@ pub enum LengthOrPercentageOrAuto {
 }
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum AttrValue {
     String(String),
     TokenList(String, Vec<Atom>),
@@ -66,7 +66,7 @@ pub enum AttrValue {
     /// declaration block), but that avoids keeping a refcounted
     /// declarationblock for longer than needed.
     Declaration(String,
-                #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+                #[ignore_malloc_size_of = "Arc"]
                 Arc<Locked<PropertyDeclarationBlock>>)
 }
 
@@ -393,7 +393,7 @@ impl PartialEq<Atom> for AttrValue {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values>
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {
         LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,
@@ -596,7 +596,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
 
 /// A struct that uniquely identifies an element's attribute.
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct AttrIdentifier {
     pub local_name: LocalName,
     pub name: LocalName,

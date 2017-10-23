@@ -18,7 +18,7 @@ use std::borrow::ToOwned;
 #[dom_struct]
 pub struct TextDecoder {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rust-encoding"]
+    #[ignore_malloc_size_of = "Defined in rust-encoding"]
     encoding: EncodingRef,
     fatal: bool,
 }
@@ -42,7 +42,7 @@ impl TextDecoder {
                            TextDecoderBinding::Wrap)
     }
 
-    /// https://encoding.spec.whatwg.org/#dom-textdecoder
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
     pub fn Constructor(global: &GlobalScope,
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)

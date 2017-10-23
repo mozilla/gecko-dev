@@ -657,49 +657,6 @@ ToString(const ModifierKeyState& aModifierKeyState)
 // in metrofx after preventDefault is called on keydown events.
 static uint32_t sUniqueKeyEventId = 0;
 
-struct DeadKeyEntry
-{
-  char16_t BaseChar;
-  char16_t CompositeChar;
-};
-
-
-class DeadKeyTable
-{
-  friend class KeyboardLayout;
-
-  uint16_t mEntries;
-  // KeyboardLayout::AddDeadKeyTable() will allocate as many entries as
-  // required.  It is the only way to create new DeadKeyTable instances.
-  DeadKeyEntry mTable[1];
-
-  void Init(const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries)
-  {
-    mEntries = aEntries;
-    memcpy(mTable, aDeadKeyArray, aEntries * sizeof(DeadKeyEntry));
-  }
-
-  static uint32_t SizeInBytes(uint32_t aEntries)
-  {
-    return offsetof(DeadKeyTable, mTable) + aEntries * sizeof(DeadKeyEntry);
-  }
-
-public:
-  uint32_t Entries() const
-  {
-    return mEntries;
-  }
-
-  bool IsEqual(const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries) const
-  {
-    return (mEntries == aEntries &&
-            !memcmp(mTable, aDeadKeyArray,
-                    aEntries * sizeof(DeadKeyEntry)));
-  }
-
-  char16_t GetCompositeChar(char16_t aBaseChar) const;
-};
-
 
 /*****************************************************************************
  * mozilla::widget::ModifierKeyState
@@ -1021,12 +978,6 @@ VirtualKey::ShiftStateToModifiers(ShiftState aShiftState)
     modifiers |= MODIFIER_ALTGRAPH;
   }
   return modifiers;
-}
-
-inline char16_t
-VirtualKey::GetCompositeChar(ShiftState aShiftState, char16_t aBaseChar) const
-{
-  return mShiftStates[aShiftState].DeadKey.Table->GetCompositeChar(aBaseChar);
 }
 
 const DeadKeyTable*
@@ -1468,7 +1419,7 @@ NativeKey::InitWithKeyChar()
       MOZ_LOG(sNativeKeyLogger, LogLevel::Info,
         ("%p   NativeKey::InitWithKeyChar(), removed char message, %s",
          this, ToString(charMsg).get()));
-      NS_WARN_IF(charMsg.hwnd != mMsg.hwnd);
+      Unused << NS_WARN_IF(charMsg.hwnd != mMsg.hwnd);
       mFollowingCharMsgs.AppendElement(charMsg);
     }
   }
@@ -4580,7 +4531,7 @@ KeyboardLayout::GetDeadKeyCombinations(uint8_t aDeadKey,
                   break;
                 }
                 default:
-                  NS_WARN_IF("File a bug for this dead-key handling!");
+                  NS_WARNING("File a bug for this dead-key handling!");
                   deadKeyActive = false;
                   break;
               }

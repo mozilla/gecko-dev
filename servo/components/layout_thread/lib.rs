@@ -13,7 +13,6 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
-extern crate heapsize;
 #[macro_use]
 extern crate html5ever;
 extern crate ipc_channel;
@@ -22,8 +21,10 @@ extern crate layout;
 extern crate layout_traits;
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
@@ -38,6 +39,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_allocator;
 extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_config;
@@ -59,7 +61,6 @@ use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{Epoch, node_id_from_clip_id};
-use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
@@ -67,13 +68,12 @@ use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
-use layout::context::heap_size_of_persistent_local_context;
+use layout::context::malloc_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT, RelayoutMode};
 use layout::layout_debug;
-use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
@@ -84,6 +84,8 @@ use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal,
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
+use libc::c_void;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -92,8 +94,8 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowGoal};
-use script_layout_interface::message::{ScriptReflow, ReflowComplete};
+use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
+use script_layout_interface::message::{ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
@@ -120,10 +122,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
-use style::context::{QuirksMode, SharedStyleContext};
-use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
-use style::context::RegisteredSpeculativePainter;
-use style::context::RegisteredSpeculativePainters;
+use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
+use style::context::{SharedStyleContext, StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::driver;
 use style::error_reporting::{NullReporter, RustLogReporter};
@@ -519,7 +519,6 @@ impl LayoutThread {
                     content_box_response: None,
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
-                    hit_test_response: (None, false),
                     scroll_root_id_response: None,
                     scroll_area_response: Rect::zero(),
                     overflow_response: NodeOverflowResponse(None),
@@ -705,6 +704,14 @@ impl LayoutThread {
             Msg::UpdateScrollStateFromScript(state) => {
                 let mut rw_data = possibly_locked_rw_data.lock();
                 rw_data.scroll_offsets.insert(state.scroll_root_id, state.scroll_offset);
+
+                let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
+                self.webrender_api.scroll_node_with_id(
+                    self.webrender_document,
+                    webrender_api::LayoutPoint::from_untyped(&point),
+                    state.scroll_root_id,
+                    webrender_api::ScrollClamping::ToContentBounds
+                );
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
@@ -767,6 +774,9 @@ impl LayoutThread {
                                reports_chan: ReportsChan,
                                possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut reports = vec![];
+        // Servo uses vanilla jemalloc, which doesn't have a
+        // malloc_enclosing_size_of function.
+        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
@@ -775,20 +785,20 @@ impl LayoutThread {
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
+            size: display_list.map_or(0, |sc| sc.size_of(&mut ops)),
         });
 
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.heap_size_of_children(),
+            size: self.stylist.size_of(&mut ops),
         });
 
         // The LayoutThread has data in Persistent TLS...
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "local-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: heap_size_of_persistent_local_context(),
+            size: malloc_size_of_persistent_local_context(&mut ops),
         });
 
         reports_chan.send(reports);
@@ -1078,10 +1088,7 @@ impl LayoutThread {
                     ReflowGoal::ContentBoxesQuery(_) => {
                         rw_data.content_boxes_response = Vec::new();
                     },
-                    ReflowGoal::HitTestQuery(..) => {
-                        rw_data.hit_test_response = (None, false);
-                    },
-                    ReflowGoal::NodesFromPoint(..) => {
+                    ReflowGoal::NodesFromPointQuery(..) => {
                         rw_data.nodes_from_point_response = Vec::new();
                     },
                     ReflowGoal::NodeGeometryQuery(_) => {
@@ -1355,27 +1362,19 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
-            ReflowGoal::HitTestQuery(client_point, update_cursor) => {
-                let point = Point2D::new(Au::from_f32_px(client_point.x),
-                                         Au::from_f32_px(client_point.y));
-                let result = rw_data.display_list
-                                    .as_ref()
-                                    .expect("Tried to hit test with no display list")
-                                    .hit_test(&point, &rw_data.scroll_offsets);
-                rw_data.hit_test_response = (result.last().cloned(), update_cursor);
-            },
-            ReflowGoal::TextIndexQuery(node, mouse_x, mouse_y) => {
+            ReflowGoal::TextIndexQuery(node, point_in_node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 let opaque_node = node.opaque();
-                let client_point = Point2D::new(Au::from_px(mouse_x),
-                                                Au::from_px(mouse_y));
-                rw_data.text_index_response =
-                    TextIndexResponse(rw_data.display_list
-                                      .as_ref()
-                                      .expect("Tried to hit test with no display list")
-                                      .text_index(opaque_node,
-                                                  &client_point,
-                                                  &rw_data.scroll_offsets));
+                let point_in_node = Point2D::new(
+                    Au::from_f32_px(point_in_node.x),
+                    Au::from_f32_px(point_in_node.y)
+                );
+                rw_data.text_index_response = TextIndexResponse(
+                    rw_data.display_list
+                    .as_ref()
+                    .expect("Tried to hit test with no display list")
+                    .text_index(opaque_node, &point_in_node)
+                );
             },
             ReflowGoal::NodeGeometryQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1411,25 +1410,28 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.margin_style_response = process_margin_style_query(node);
             },
-            ReflowGoal::NodesFromPoint(client_point) => {
-                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                                Au::from_f32_px(client_point.y));
-                let nodes_from_point_list = {
-                    let result = match rw_data.display_list {
-                        None => panic!("Tried to hit test without a DisplayList"),
-                        Some(ref display_list) => {
-                            display_list.hit_test(&client_point, &rw_data.scroll_offsets)
-                        }
-                    };
-
-                    result
+            ReflowGoal::NodesFromPointQuery(client_point, ref reflow_goal) => {
+                let mut flags = match reflow_goal {
+                    &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
+                    &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
                 };
 
-                rw_data.nodes_from_point_response = nodes_from_point_list.iter()
-                   .rev()
-                   .map(|metadata| metadata.node.to_untrusted_node_address())
+                // The point we get is not relative to the entire WebRender scene, but to this
+                // particular pipeline, so we need to tell WebRender about that.
+                flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+
+                let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
+                let results = self.webrender_api.hit_test(
+                    self.webrender_document,
+                    Some(self.id.to_webrender()),
+                    client_point,
+                    flags
+                );
+
+                rw_data.nodes_from_point_response = results.items.iter()
+                   .map(|item| UntrustedNodeAddress(item.tag.0 as *const c_void))
                    .collect()
-            }
+            },
 
             ReflowGoal::Full | ReflowGoal::TickAnimations => {}
         }

@@ -74,13 +74,13 @@ pub struct ServoParser {
     /// The document associated with this parser.
     document: Dom<Document>,
     /// Input received from network.
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     network_input: DomRefCell<BufferQueue>,
     /// Part of an UTF-8 code point spanning input chunks
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     incomplete_utf8: DomRefCell<Option<IncompleteUtf8>>,
     /// Input received from script. Used only to support document.write().
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     script_input: DomRefCell<BufferQueue>,
     /// The tokenizer of this parser.
     tokenizer: DomRefCell<Tokenizer>,
@@ -88,11 +88,11 @@ pub struct ServoParser {
     last_chunk_received: Cell<bool>,
     /// Whether this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#script-nesting-level
+    /// <https://html.spec.whatwg.org/multipage/#script-nesting-level>
     script_nesting_level: Cell<usize>,
-    /// https://html.spec.whatwg.org/multipage/#abort-a-parser
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
     aborted: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#script-created-parser
+    /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
 }
 
@@ -198,7 +198,7 @@ impl ServoParser {
 
     /// Corresponds to the latter part of the "Otherwise" branch of the 'An end
     /// tag whose tag name is "script"' of
-    /// https://html.spec.whatwg.org/multipage/#parsing-main-incdata
+    /// <https://html.spec.whatwg.org/multipage/#parsing-main-incdata>
     ///
     /// This first moves everything from the script input to the beginning of
     /// the network input, effectively resetting the insertion point to just
@@ -493,13 +493,13 @@ impl<I> Iterator for FragmentParsingResult<I>
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(JSTraceable, MallocSizeOf, PartialEq)]
 enum ParserKind {
     Normal,
     ScriptCreated,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
@@ -742,13 +742,26 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<N
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Sink {
     base_url: ServoUrl,
     document: Dom<Document>,
     current_line: u64,
     script: MutNullableDom<HTMLScriptElement>,
+}
+
+impl Sink {
+    fn same_tree(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+
+        x.is_in_same_home_subtree(y)
+    }
+
+    fn has_parent_node(&self, node: &Dom<Node>) -> bool {
+         node.GetParentNode().is_some()
+    }
 }
 
 #[allow(unrooted_must_root)]  // FIXME: really?
@@ -781,13 +794,6 @@ impl TreeSink for Sink {
         }
     }
 
-    fn same_tree(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
-        let x = x.downcast::<Element>().expect("Element node expected");
-        let y = y.downcast::<Element>().expect("Element node expected");
-
-        x.is_in_same_home_subtree(y)
-    }
-
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
             -> Dom<Node> {
         let is = attrs.iter()
@@ -818,10 +824,6 @@ impl TreeSink for Sink {
             DOMString::from(String::from(target)), DOMString::from(String::from(data)),
             doc);
         Dom::from_ref(pi.upcast())
-    }
-
-    fn has_parent_node(&self, node: &Dom<Node>) -> bool {
-         node.GetParentNode().is_some()
     }
 
     fn associate_with_form(&mut self, target: &Dom<Node>, form: &Dom<Node>, nodes: (&Dom<Node>, Option<&Dom<Node>>)) {
@@ -930,7 +932,7 @@ impl TreeSink for Sink {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#html-integration-point
+    /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
     /// Specifically, the <annotation-xml> cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();

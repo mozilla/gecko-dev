@@ -584,7 +584,7 @@ load 1039454-1.html
 load 1042489.html
 load 1054010-1.html
 load 1058954-1.html
-asserts-if(!stylo,0-2) pref(dom.webcomponents.enabled,true) load 1059138-1.html # bug 1389936
+asserts-if(!stylo,0-2) skip-if(stylo) pref(dom.webcomponents.enabled,true) load 1059138-1.html # bug 1389936 for non-stylo, bug 1409136 for stylo.
 load 1134531.html
 load 1134667.html
 load 1137723-1.html
@@ -607,6 +607,7 @@ load 1221112-1.html
 load 1221112-2.html
 load 1221874-1.html
 load 1222783.xhtml
+load 1223522.xhtml
 load 1223568-1.html
 load 1223568-2.html
 load 1224230-1.html
@@ -662,6 +663,7 @@ load 1364361-1.html
 load 1367413-1.html
 load 1368617-1.html
 load 1373586.html
+load 1375858.html
 load 1381134.html
 load 1381134-2.html
 load 1401420-1.html

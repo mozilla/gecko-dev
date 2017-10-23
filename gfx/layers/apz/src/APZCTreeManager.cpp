@@ -507,8 +507,9 @@ APZCTreeManager::PushStateToWR(wr::WebRenderAPI* aWrApi,
         // the scroll offset. Since we are effectively giving WR the async
         // scroll delta here, we want to negate the translation.
         ParentLayerPoint asyncScrollDelta = -layerTranslation;
+        // XXX figure out what zoom-related conversions need to happen here.
         aWrApi->UpdateScrollPosition(lastPipelineId, apzc->GetGuid().mScrollId,
-            wr::ToLayoutPoint(asyncScrollDelta));
+            wr::ToLayoutPoint(LayoutDevicePoint::FromUnknownPoint(asyncScrollDelta.ToUnknownPoint())));
 
         apzc->ReportCheckerboard(aSampleTime);
         activeAnimations |= apzc->AdvanceAnimations(aSampleTime);
@@ -659,7 +660,6 @@ void
 APZCTreeManager::StartScrollbarDrag(const ScrollableLayerGuid& aGuid,
                                     const AsyncDragMetrics& aDragMetrics)
 {
-
   RefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid);
   if (!apzc) {
     NotifyScrollbarDragRejected(aGuid);
@@ -670,13 +670,24 @@ APZCTreeManager::StartScrollbarDrag(const ScrollableLayerGuid& aGuid,
   mInputQueue->ConfirmDragBlock(inputBlockId, apzc, aDragMetrics);
 }
 
-void
+bool
 APZCTreeManager::StartAutoscroll(const ScrollableLayerGuid& aGuid,
                                  const ScreenPoint& aAnchorLocation)
 {
-  if (RefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid)) {
-    apzc->StartAutoscroll(aAnchorLocation);
+  RefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid);
+  if (!apzc) {
+    if (XRE_IsGPUProcess()) {
+      // If we're in the compositor process, the "return false" will be
+      // ignored because the query comes over the PAPZCTreeManager protocol
+      // via an async message. In this case, send an explicit rejection
+      // message to content.
+      NotifyAutoscrollRejected(aGuid);
+    }
+    return false;
   }
+
+  apzc->StartAutoscroll(aAnchorLocation);
+  return true;
 }
 
 void
@@ -693,6 +704,14 @@ APZCTreeManager::NotifyScrollbarDragRejected(const ScrollableLayerGuid& aGuid) c
   const LayerTreeState* state = CompositorBridgeParent::GetIndirectShadowTree(aGuid.mLayersId);
   MOZ_ASSERT(state && state->mController);
   state->mController->NotifyAsyncScrollbarDragRejected(aGuid.mScrollId);
+}
+
+void
+APZCTreeManager::NotifyAutoscrollRejected(const ScrollableLayerGuid& aGuid) const
+{
+  const LayerTreeState* state = CompositorBridgeParent::GetIndirectShadowTree(aGuid.mLayersId);
+  MOZ_ASSERT(state && state->mController);
+  state->mController->NotifyAsyncAutoscrollRejected(aGuid.mScrollId);
 }
 
 template<class ScrollNode> HitTestingTreeNode*

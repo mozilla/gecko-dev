@@ -159,74 +159,6 @@ inline void SetPendingException(JSContext *cx, const char16_t *aMsg)
     JS_ReportErrorUTF8(cx, "%s", msg.get());
 }
 
-// Helper class to get stuff from the ClassInfo and not waste extra time with
-// virtual method calls for things it has already gotten
-class ClassInfoData
-{
-public:
-    ClassInfoData(nsIClassInfo *aClassInfo, const char *aName)
-        : mClassInfo(aClassInfo),
-          mFlags(0),
-          mName(const_cast<char *>(aName)),
-          mDidGetFlags(false),
-          mMustFreeName(false)
-    {
-    }
-
-    ~ClassInfoData()
-    {
-        if (mMustFreeName)
-            free(mName);
-    }
-
-    uint32_t GetFlags()
-    {
-        if (!mDidGetFlags) {
-            if (mClassInfo) {
-                nsresult rv = mClassInfo->GetFlags(&mFlags);
-                if (NS_FAILED(rv)) {
-                    mFlags = 0;
-                }
-            } else {
-                mFlags = 0;
-            }
-
-            mDidGetFlags = true;
-        }
-
-        return mFlags;
-    }
-
-    bool IsDOMClass()
-    {
-        return !!(GetFlags() & nsIClassInfo::DOM_OBJECT);
-    }
-
-    const char* GetName()
-    {
-        if (!mName) {
-            if (mClassInfo) {
-                mClassInfo->GetClassDescription(&mName);
-            }
-
-            if (mName) {
-                mMustFreeName = true;
-            } else {
-                mName = const_cast<char *>("UnnamedClass");
-            }
-        }
-
-        return mName;
-    }
-
-private:
-    nsIClassInfo *mClassInfo; // WEAK
-    uint32_t mFlags;
-    char *mName;
-    bool mDidGetFlags;
-    bool mMustFreeName;
-};
-
 /* static */
 bool
 nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
@@ -1281,27 +1213,26 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
                                           nsIClassInfo *aClassInfo)
 {
 // XXX Special case for nsIXPCException ?
-    ClassInfoData objClassInfo = ClassInfoData(aClassInfo, nullptr);
-    if (objClassInfo.IsDOMClass())
-    {
+
+    uint32_t flags;
+    if (aClassInfo && NS_SUCCEEDED(aClassInfo->GetFlags(&flags)) &&
+        (flags & nsIClassInfo::DOM_OBJECT)) {
         return NS_OK;
     }
 
     // We give remote-XUL whitelisted domains a free pass here. See bug 932906.
     JS::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
     MOZ_RELEASE_ASSERT(contextRealm);
-    if (!xpc::AllowContentXBLScope(contextRealm))
-    {
+    if (!xpc::AllowContentXBLScope(contextRealm)) {
         return NS_OK;
     }
 
-    if (nsContentUtils::IsCallerChrome())
-    {
+    if (nsContentUtils::IsCallerChrome()) {
         return NS_OK;
     }
 
-    // We want to expose nsIDOMXULCommandDispatcher and nsITreeSelection implementations
-    // in XBL scopes.
+    // We want to expose nsIDOMXULCommandDispatcher and nsITreeSelection
+    // implementations in XBL scopes.
     if (xpc::IsContentXBLScope(contextRealm)) {
       nsCOMPtr<nsIDOMXULCommandDispatcher> dispatcher = do_QueryInterface(aObj);
       if (dispatcher) {
@@ -1315,22 +1246,29 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     }
 
     //-- Access denied, report an error
-    nsAutoCString origin;
+    nsAutoCString originUTF8;
     nsIPrincipal* subjectPrincipal = nsContentUtils::SubjectPrincipal();
-    GetPrincipalDomainOrigin(subjectPrincipal, origin);
-    NS_ConvertUTF8toUTF16 originUnicode(origin);
-    NS_ConvertUTF8toUTF16 classInfoName(objClassInfo.GetName());
+    GetPrincipalDomainOrigin(subjectPrincipal, originUTF8);
+    NS_ConvertUTF8toUTF16 originUTF16(originUTF8);
+    nsAutoCString classInfoNameUTF8;
+    if (aClassInfo) {
+      aClassInfo->GetClassDescription(classInfoNameUTF8);
+    }
+    if (classInfoNameUTF8.IsEmpty()) {
+      classInfoNameUTF8.AssignLiteral("UnnamedClass");
+    }
+    NS_ConvertUTF8toUTF16 classInfoUTF16(classInfoNameUTF8);
     nsresult rv;
     nsAutoString errorMsg;
-    if (originUnicode.IsEmpty()) {
-        const char16_t* formatStrings[] = { classInfoName.get() };
+    if (originUTF16.IsEmpty()) {
+        const char16_t* formatStrings[] = { classInfoUTF16.get() };
         rv = sStrBundle->FormatStringFromName("CreateWrapperDenied",
                                               formatStrings,
                                               1,
                                               errorMsg);
     } else {
-        const char16_t* formatStrings[] = { classInfoName.get(),
-                                            originUnicode.get() };
+        const char16_t* formatStrings[] = { classInfoUTF16.get(),
+                                            originUTF16.get() };
         rv = sStrBundle->FormatStringFromName("CreateWrapperDeniedForOrigin",
                                               formatStrings,
                                               2,

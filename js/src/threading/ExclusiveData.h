@@ -10,6 +10,7 @@
 #include "mozilla/Alignment.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Move.h"
+#include "mozilla/OperatorNewExtensions.h"
 
 #include "threading/ConditionVariable.h"
 #include "threading/Mutex.h"
@@ -81,6 +82,7 @@ namespace js {
 template <typename T>
 class ExclusiveData
 {
+  protected:
     mutable Mutex lock_;
     mutable mozilla::AlignedStorage2<T> value_;
 
@@ -99,7 +101,7 @@ class ExclusiveData
     explicit ExclusiveData(const MutexId& id, U&& u)
       : lock_(id)
     {
-        new (value_.addr()) T(mozilla::Forward<U>(u));
+        new (mozilla::KnownNotNull, value_.addr()) T(mozilla::Forward<U>(u));
     }
 
     /**
@@ -109,7 +111,7 @@ class ExclusiveData
     explicit ExclusiveData(const MutexId& id, Args&&... args)
       : lock_(id)
     {
-        new (value_.addr()) T(mozilla::Forward<Args>(args)...);
+        new (mozilla::KnownNotNull, value_.addr()) T(mozilla::Forward<Args>(args)...);
     }
 
     ~ExclusiveData() {
@@ -118,16 +120,16 @@ class ExclusiveData
         release();
     }
 
-    ExclusiveData(ExclusiveData&& rhs) :
-      lock_(mozilla::Move(rhs.lock))
+    ExclusiveData(ExclusiveData&& rhs)
+      : lock_(mozilla::Move(rhs.lock))
     {
         MOZ_ASSERT(&rhs != this, "self-move disallowed!");
-        new (value_.addr()) T(mozilla::Move(*rhs.value_.addr()));
+        new (mozilla::KnownNotNull, value_.addr()) T(mozilla::Move(*rhs.value_.addr()));
     }
 
     ExclusiveData& operator=(ExclusiveData&& rhs) {
         this->~ExclusiveData();
-        new (this) ExclusiveData(mozilla::Move(rhs));
+        new (mozilla::KnownNotNull, this) ExclusiveData(mozilla::Move(rhs));
         return *this;
     }
 
@@ -179,10 +181,6 @@ class ExclusiveData
             return parent_;
         }
 
-        void wait(ConditionVariable& cond) {
-            cond.impl_.wait(parent_->lock_);
-        }
-
         ~Guard() {
             if (parent_)
                 parent_->release();
@@ -192,6 +190,62 @@ class ExclusiveData
     /**
      * Access the protected inner `T` value for exclusive reading and writing.
      */
+    Guard lock() const {
+        return Guard(*this);
+    }
+};
+
+template <class T>
+class ExclusiveWaitableData : public ExclusiveData<T>
+{
+    typedef ExclusiveData<T> Base;
+
+    mutable ConditionVariable condVar_;
+
+  public:
+    template <typename U>
+    explicit ExclusiveWaitableData(const MutexId& id, U&& u)
+      : Base(id, mozilla::Forward<U>(u))
+    {}
+
+    template <typename... Args>
+    explicit ExclusiveWaitableData(const MutexId& id, Args&&... args)
+      : Base(id, mozilla::Forward<Args>(args)...)
+    {}
+
+    class MOZ_STACK_CLASS Guard : public ExclusiveData<T>::Guard
+    {
+        typedef typename ExclusiveData<T>::Guard Base;
+
+      public:
+        explicit Guard(const ExclusiveWaitableData& parent)
+          : Base(parent)
+        {}
+
+        Guard(Guard&& guard)
+          : Base(mozilla::Move(guard))
+        {}
+
+        Guard& operator=(Guard&& rhs) {
+            return Base::operator=(mozilla::Move(rhs));
+        }
+
+        void wait() {
+            auto* parent = static_cast<const ExclusiveWaitableData*>(this->parent());
+            parent->condVar_.impl_.wait(parent->lock_);
+        }
+
+        void notify_one() {
+            auto* parent = static_cast<const ExclusiveWaitableData*>(this->parent());
+            parent->condVar_.notify_one();
+        }
+
+        void notify_all() {
+            auto* parent = static_cast<const ExclusiveWaitableData*>(this->parent());
+            parent->condVar_.notify_all();
+        }
+    };
+
     Guard lock() const {
         return Guard(*this);
     }

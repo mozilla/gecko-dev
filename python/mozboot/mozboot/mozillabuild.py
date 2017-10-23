@@ -2,13 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import errno
+from __future__ import absolute_import, print_function
+
 import os
 import sys
 import subprocess
-import tempfile
 
 from mozboot.base import BaseBootstrapper
+
 
 class MozillaBuildBootstrapper(BaseBootstrapper):
     '''Bootstrapper for MozillaBuild to install rustup.'''
@@ -44,8 +45,8 @@ class MozillaBuildBootstrapper(BaseBootstrapper):
         pass
 
     def ensure_stylo_packages(self, state_dir, checkout_root):
-        import stylo
-        self.install_tooltool_clang_package(state_dir, checkout_root, stylo.WINDOWS)
+        from mozboot import stylo
+        self.install_toolchain_artifact(state_dir, checkout_root, stylo.WINDOWS)
 
     def _update_package_manager(self):
         pass
@@ -58,4 +59,3 @@ class MozillaBuildBootstrapper(BaseBootstrapper):
         command = [pip_dir, 'install', '--upgrade']
         command.extend(packages)
         self.run(command)
-

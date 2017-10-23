@@ -496,7 +496,7 @@ public:
     SwapScaleWidthHeightForRotation(scaleHint, rotationDeg);
     container->SetScaleHint(scaleHint);
 
-    LayerRect rect(destGFXRect.x, destGFXRect.y, destGFXRect.width, destGFXRect.height);
+    LayoutDeviceRect rect(destGFXRect.x, destGFXRect.y, destGFXRect.width, destGFXRect.height);
     return aManager->CommandBuilder().PushImage(this, container, aBuilder, aResources, aSc, rect);
   }
 
@@ -584,6 +584,7 @@ nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
       nsDisplayListBuilder::AutoBuildingDisplayList
         buildingForChild(aBuilder, child,
+                         aBuilder->GetVisibleRect() - child->GetOffsetTo(this),
                          aBuilder->GetDirtyRect() - child->GetOffsetTo(this),
                          aBuilder->IsAtRootOfPseudoStackingContext());
 

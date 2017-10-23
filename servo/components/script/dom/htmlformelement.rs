@@ -57,7 +57,7 @@ use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
 #[dom_struct]
@@ -166,7 +166,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
     fn Elements(&self) -> DomRoot<HTMLFormControlsCollection> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct ElementsFilter {
             form: DomRoot<HTMLFormElement>
         }
@@ -235,13 +235,13 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum SubmittedFrom {
     FromForm,
     NotFromForm
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum ResetFrom {
     FromForm,
     NotFromForm
@@ -452,7 +452,7 @@ impl HTMLFormElement {
     }
 
     /// Interactively validate the constraints of form elements
-    /// https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints
+    /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
     fn interactive_validation(&self) -> Result<(), ()> {
         // Step 1-3
         let _unhandled_invalid_controls = match self.static_validation() {
@@ -466,7 +466,7 @@ impl HTMLFormElement {
     }
 
     /// Statitically validate the constraints of form elements
-    /// https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints
+    /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
     fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
         let node = self.upcast::<Node>();
         // FIXME(#3553): This is an incorrect way of getting controls owned by the
@@ -506,7 +506,7 @@ impl HTMLFormElement {
         Err(unhandled_invalid_controls)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 1 to 3
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
@@ -564,7 +564,7 @@ impl HTMLFormElement {
         //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
 
-    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // Step 4
@@ -674,14 +674,14 @@ impl HTMLFormElement {
     }
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum FormDatumValue {
     #[allow(dead_code)]
     File(DomRoot<File>),
     String(DOMString)
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
@@ -701,21 +701,21 @@ impl FormDatum {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog
 }
 
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 #[allow(dead_code)]
 pub enum FormSubmittableElement {
     ButtonElement(DomRoot<HTMLButtonElement>),
@@ -759,7 +759,7 @@ impl FormSubmittableElement {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormSubmitter<'a> {
     FormElement(&'a HTMLFormElement),
     InputElement(&'a HTMLInputElement),

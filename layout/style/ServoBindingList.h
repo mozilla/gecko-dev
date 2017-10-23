@@ -435,7 +435,7 @@ SERVO_BINDING_FUNC(Servo_DeclarationBlock_SetPropertyById, bool,
 SERVO_BINDING_FUNC(Servo_DeclarationBlock_RemoveProperty, void,
                    RawServoDeclarationBlockBorrowed declarations,
                    const nsACString* property)
-SERVO_BINDING_FUNC(Servo_DeclarationBlock_RemovePropertyById, void,
+SERVO_BINDING_FUNC(Servo_DeclarationBlock_RemovePropertyById, bool,
                    RawServoDeclarationBlockBorrowed declarations,
                    nsCSSPropertyID property)
 SERVO_BINDING_FUNC(Servo_DeclarationBlock_HasCSSWideKeyword, bool,
@@ -583,6 +583,13 @@ SERVO_BINDING_FUNC(Servo_ResolvePseudoStyle, ServoStyleContextStrong,
                    bool is_probe,
                    ServoStyleContextBorrowedOrNull inherited_style,
                    RawServoStyleSetBorrowed set)
+SERVO_BINDING_FUNC(Servo_ComputedValues_ResolveXULTreePseudoStyle,
+                   ServoStyleContextStrong,
+                   RawGeckoElementBorrowed element,
+                   nsAtom* pseudo_tag,
+                   ServoStyleContextBorrowed inherited_style,
+                   const mozilla::AtomArray* input_word,
+                   RawServoStyleSetBorrowed set)
 SERVO_BINDING_FUNC(Servo_SetExplicitStyle, void,
                    RawGeckoElementBorrowed element,
                    ServoStyleContextBorrowed primary_style)
@@ -647,6 +654,14 @@ SERVO_BINDING_FUNC(Servo_StyleSet_GetBaseComputedValuesForElement,
                    ServoStyleContextBorrowed existing_style,
                    const mozilla::ServoElementSnapshotTable* snapshots,
                    mozilla::CSSPseudoElementType pseudo_type)
+// Returns computed values for the given element by adding an animation value.
+SERVO_BINDING_FUNC(Servo_StyleSet_GetComputedValuesByAddingAnimation,
+                   ServoStyleContextStrong,
+                   RawServoStyleSetBorrowed set,
+                   RawGeckoElementBorrowed element,
+                   ServoStyleContextBorrowed existing_style,
+                   const mozilla::ServoElementSnapshotTable* snapshots,
+                   RawServoAnimationValueBorrowed animation)
 
 // For canvas font.
 SERVO_BINDING_FUNC(Servo_SerializeFontValueForCanvas, void,

@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <locale.h>
 #include "OSPreferences.h"
 #include "dlfcn.h"
 #include "glib.h"
@@ -28,9 +29,18 @@ OSPreferences::ReadSystemLocales(nsTArray<nsCString>& aLocaleList)
 bool
 OSPreferences::ReadRegionalPrefsLocales(nsTArray<nsCString>& aLocaleList)
 {
-  // For now we're just taking System Locales since we don't know of any better
-  // API for regional prefs.
-  return ReadSystemLocales(aLocaleList);
+  MOZ_ASSERT(aLocaleList.IsEmpty());
+
+  // For now we're just taking the LC_TIME from POSIX environment for all
+  // regional preferences.
+  nsAutoCString localeStr(setlocale(LC_TIME, nullptr));
+
+  if (CanonicalizeLanguageTag(localeStr)) {
+    aLocaleList.AppendElement(localeStr);
+    return true;
+  }
+
+  return false;
 }
 
 /*

@@ -2119,6 +2119,10 @@ PromiseAllResolveElementFunction(JSContext* cx, unsigned argc, Value* vp)
         // See comment for PerformPromiseAll, step 3 for why we unwrap here.
         valuesObj = UncheckedUnwrap(valuesObj);
     }
+    if (JS_IsDeadWrapper(valuesObj)) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
+        return false;
+    }
     RootedNativeObject values(cx, &valuesObj->as<NativeObject>());
 
     // Step 6 (moved under step 10).
@@ -2761,6 +2765,8 @@ js::AsyncGeneratorResolve(JSContext* cx, Handle<AsyncGeneratorObject*> asyncGenO
     // Step 5.
     RootedObject resultPromise(cx, request->promise());
 
+    asyncGenObj->cacheRequest(request);
+
     // Step 6.
     RootedObject resultObj(cx, CreateIterResultObject(cx, value, done));
     if (!resultObj)
@@ -2798,6 +2804,8 @@ js::AsyncGeneratorReject(JSContext* cx, Handle<AsyncGeneratorObject*> asyncGenOb
 
     // Step 5.
     RootedObject resultPromise(cx, request->promise());
+
+    asyncGenObj->cacheRequest(request);
 
     // Step 6.
     if (!RejectMaybeWrappedPromise(cx, resultPromise, exception))
@@ -2936,7 +2944,8 @@ js::AsyncGeneratorEnqueue(JSContext* cx, HandleValue asyncGenVal,
 
     // Step 5 (reordered).
     Rooted<AsyncGeneratorRequest*> request(
-        cx, AsyncGeneratorRequest::create(cx, completionKind, completionValue, resultPromise));
+        cx, AsyncGeneratorObject::createRequest(cx, asyncGenObj, completionKind, completionValue,
+                                                resultPromise));
     if (!request)
         return false;
 

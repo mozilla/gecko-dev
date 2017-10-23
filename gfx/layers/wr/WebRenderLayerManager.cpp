@@ -70,6 +70,7 @@ WebRenderLayerManager::Initialize(PCompositorBridgeChild* aCBChild,
   }
 
   mWrChild = static_cast<WebRenderBridgeChild*>(bridge);
+  WrBridge()->SetWebRenderLayerManager(this);
   WrBridge()->SendCreate(size.ToUnknownSize());
   WrBridge()->IdentifyTextureHost(textureFactoryIdentifier);
   WrBridge()->SetNamespace(id_namespace);
@@ -251,9 +252,11 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
   AUTO_PROFILER_TRACING("Paint", "RenderLayers");
   mTransactionIncomplete = false;
 
-  if (gfxPrefs::LayersDump()) {
-    this->Dump();
-  }
+#if 0
+  // Useful for debugging, it dumps the display list *before* we try to build
+  // WR commands from it
+  nsFrame::PrintDisplayList(aDisplayListBuilder, *aDisplayList);
+#endif
 
   // Since we don't do repeat transactions right now, just set the time
   mAnimationReadyTime = TimeStamp::Now();
@@ -296,7 +299,6 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
     mScrollData.SetPaintSequenceNumber(mPaintSequenceNumber);
   }
 
-  bool sync = mTarget != nullptr;
   mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
   TimeStamp transactionStart = mTransactionIdAllocator->GetTransactionStart();
 
@@ -320,9 +322,8 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
   mLastDisplayListSize = dl.dl.inner.capacity;
 
   {
-    AUTO_PROFILER_TRACING("Paint", sync ? "ForwardDPTransactionSync"
-                                        : "ForwardDPTransaction");
-    WrBridge()->EndTransaction(contentSize, dl, resourceUpdates, size.ToUnknownSize(), sync,
+    AUTO_PROFILER_TRACING("Paint", "ForwardDPTransaction");
+    WrBridge()->EndTransaction(contentSize, dl, resourceUpdates, size.ToUnknownSize(),
                                mLatestTransactionId, mScrollData, transactionStart);
   }
 
@@ -501,7 +502,9 @@ WebRenderLayerManager::DidComposite(uint64_t aTransactionId,
     if (listener) {
       listener->DidCompositeWindow(aTransactionId, aCompositeStart, aCompositeEnd);
     }
-    mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
+    if (mTransactionIdAllocator) {
+      mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
+    }
   }
 
   // These observers fire whether or not we were in a transaction.
@@ -532,6 +535,13 @@ WebRenderLayerManager::ClearCachedResources(Layer* aSubtree)
   WrBridge()->BeginClearCachedResources();
   DiscardImages();
   WrBridge()->EndClearCachedResources();
+}
+
+void
+WebRenderLayerManager::WrUpdated()
+{
+  mWebRenderCommandBuilder.ClearCachedResources();
+  DiscardLocalImages();
 }
 
 void

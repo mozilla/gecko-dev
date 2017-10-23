@@ -212,6 +212,16 @@ struct nsCSSRendering {
                                  const nsRect& aBorderArea,
                                  nsStyleContext* aStyleContext);
 
+
+  static bool CreateWebRenderCommandsForBorder(nsDisplayItem* aItem,
+                                               nsIFrame* aForFrame,
+                                               const nsRect& aBorderArea,
+                                               mozilla::wr::DisplayListBuilder& aBuilder,
+                                               mozilla::wr::IpcResourceUpdateQueue& aResources,
+                                               const mozilla::layers::StackingContextHelper& aSc,
+                                               mozilla::layers::WebRenderLayerManager* aManager,
+                                               nsDisplayListBuilder* aDisplayListBuilder);
+
   /**
    * Render the outline for an element using css rendering rules
    * for borders.
@@ -277,6 +287,8 @@ struct nsCSSRendering {
    */
   static bool FindBackground(nsIFrame* aForFrame,
                              nsStyleContext** aBackgroundSC);
+  static bool FindBackgroundFrame(nsIFrame* aForFrame,
+                                  nsIFrame** aBackgroundFrame);
 
   /**
    * As FindBackground, but the passed-in frame is known to be a root frame
@@ -296,17 +308,24 @@ struct nsCSSRendering {
    * @param aBackground
    *   contains background style information for the canvas on return
    */
-  static nsStyleContext*
-  FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame)
+
+  static nsIFrame*
+  FindCanvasBackgroundFrame(nsIFrame* aForFrame, nsIFrame* aRootElementFrame)
   {
     MOZ_ASSERT(IsCanvasFrame(aForFrame), "not a canvas frame");
     if (aRootElementFrame)
-      return FindRootFrameBackground(aRootElementFrame);
+      return FindBackgroundStyleFrame(aRootElementFrame);
 
     // This should always give transparent, so we'll fill it in with the
     // default color if needed.  This seems to happen a bit while a page is
     // being loaded.
-    return aForFrame->StyleContext();
+    return aForFrame;
+  }
+
+  static nsStyleContext*
+  FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame)
+  {
+    return FindCanvasBackgroundFrame(aForFrame, aRootElementFrame)->StyleContext();
   }
 
   /**

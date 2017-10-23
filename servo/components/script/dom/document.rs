@@ -10,10 +10,8 @@ use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -94,7 +92,7 @@ use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
-use euclid::{Point2D, Vector2D};
+use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
@@ -110,14 +108,12 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
-use script_layout_interface::message::{Msg, ReflowGoal};
+use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
-use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
-use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{MsDuration, ScriptMsg, TouchpadPressurePhase};
-use script_traits::{TouchEventType, TouchId};
-use script_traits::UntrustedNodeAddress;
+use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
+use script_traits::{MozBrowserEvent, MsDuration, ScriptMsg, TouchEventType, TouchId};
+use script_traits::{TouchpadPressurePhase, UntrustedNodeAddress};
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
@@ -162,13 +158,29 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+pub enum FireMouseEventType {
+    Move,
+    Over,
+    Out,
+}
+
+impl FireMouseEventType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            &FireMouseEventType::Move => "mousemove",
+            &FireMouseEventType::Over => "mouseout",
+            &FireMouseEventType::Out => "mouseover",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
 }
 
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub struct PendingRestyle {
     /// If this element had a state or attribute change since the last restyle, track
     /// the original condition of the element.
@@ -191,10 +203,10 @@ impl PendingRestyle {
     }
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct StyleSheetInDocument {
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     sheet: Arc<Stylesheet>,
     owner: Dom<Element>,
 }
@@ -219,7 +231,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
     }
 }
 
-/// https://dom.spec.whatwg.org/#document
+/// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub struct Document {
     node: Node,
@@ -232,7 +244,7 @@ pub struct Document {
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DomRefCell<ServoUrl>,
-    #[ignore_heap_size_of = "defined in selectors"]
+    #[ignore_malloc_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
@@ -261,23 +273,23 @@ pub struct Document {
     focused: MutNullableDom<Element>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
-    /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
+    /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     deferred_scripts: PendingInOrderScriptVec,
-    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
+    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible>
     asap_in_order_scripts_list: PendingInOrderScriptVec,
-    /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
+    /// <https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible>
     asap_scripts_set: DomRefCell<Vec<Dom<HTMLScriptElement>>>,
-    /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
+    /// <https://html.spec.whatwg.org/multipage/#concept-n-noscript>
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: bool,
-    /// https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier
+    /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
     /// Current identifier of animation frame callback
     animation_frame_ident: Cell<u32>,
-    /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
+    /// <https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks>
     /// List of animation frame callbacks
     animation_frame_list: DomRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
@@ -294,7 +306,7 @@ pub struct Document {
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
-    /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
+    /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to the layout thread when the
     /// time comes.
@@ -302,10 +314,10 @@ pub struct Document {
     /// This flag will be true if layout suppressed a reflow attempt that was
     /// needed in order for the page to be painted.
     needs_paint: Cell<bool>,
-    /// http://w3c.github.io/touch-events/#dfn-active-touch-point
+    /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// Navigation Timing properties:
-    /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
+    /// <https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming>
     dom_loading: Cell<u64>,
     dom_interactive: Cell<u64>,
     dom_content_loaded_event_start: Cell<u64>,
@@ -313,21 +325,21 @@ pub struct Document {
     dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
-    /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: MutableOrigin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
-    /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
     referrer: Option<String>,
-    /// https://html.spec.whatwg.org/multipage/#target-element
+    /// <https://html.spec.whatwg.org/multipage/#target-element>
     target_element: MutNullableDom<Element>,
-    /// https://w3c.github.io/uievents/#event-type-dblclick
-    #[ignore_heap_size_of = "Defined in std"]
+    /// <https://w3c.github.io/uievents/#event-type-dblclick>
+    #[ignore_malloc_size_of = "Defined in std"]
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
-    /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
+    /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
@@ -350,7 +362,7 @@ pub struct Document {
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -358,7 +370,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -366,7 +378,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -375,7 +387,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -383,7 +395,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -391,7 +403,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -399,7 +411,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -421,7 +433,7 @@ impl Document {
     #[inline]
     pub fn has_browsing_context(&self) -> bool { self.has_browsing_context }
 
-    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-bc>
     #[inline]
     pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
         if self.has_browsing_context {
@@ -524,7 +536,7 @@ impl Document {
     }
 
     /// Refresh the cached first base element in the DOM.
-    /// https://github.com/w3c/web-platform-tests/issues/2122
+    /// <https://github.com/w3c/web-platform-tests/issues/2122>
     pub fn refresh_base_element(&self) {
         let base = self.upcast::<Node>()
                        .traverse_preorder()
@@ -667,7 +679,7 @@ impl Document {
     }
 
     /// Attempt to find a named element in this page's document.
-    /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
+    /// <https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document>
     pub fn find_fragment_node(&self, fragid: &str) -> Option<DomRoot<Element>> {
         // Step 1 is not handled here; the fragid is already obtained by the calling function
         // Step 2: Simply use None to indicate the top of the document.
@@ -682,7 +694,7 @@ impl Document {
 
     /// Scroll to the target element, and when we do not find a target
     /// and the fragment is empty or "top", scroll to the top.
-    /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
+    /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
     pub fn check_and_scroll_fragment(&self, fragment: &str) {
         let target = self.find_fragment_node(fragment);
 
@@ -834,11 +846,15 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_mouse_event(&self,
-                              js_runtime: *mut JSRuntime,
-                              button: MouseButton,
-                              client_point: Point2D<f32>,
-                              mouse_event_type: MouseEventType) {
+    pub fn handle_mouse_event(
+        &self,
+        js_runtime: *mut JSRuntime,
+        _button: MouseButton,
+        client_point: Point2D<f32>,
+        mouse_event_type: MouseEventType,
+        node_address: Option<UntrustedNodeAddress>,
+        point_in_node: Option<Point2D<f32>>
+    ) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
             MouseEventType::MouseUp => "mouseup".to_owned(),
@@ -846,40 +862,16 @@ impl Document {
         };
         debug!("{}: at {:?}", mouse_event_type_string, client_point);
 
-        let node = match self.window.hit_test_query(client_point, false) {
-            Some(node_address) => {
-                debug!("node address is {:?}", node_address);
-                unsafe {
-                    node::from_untrusted_node_address(js_runtime, node_address)
-                }
-            },
+        let el = node_address.and_then(|address| {
+            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            node.inclusive_ancestors()
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+        });
+        let el = match el {
+            Some(el) => el,
             None => return,
         };
-
-        let el = match node.downcast::<Element>() {
-            Some(el) => DomRoot::from_ref(el),
-            None => {
-                let parent = node.GetParentNode();
-                match parent.and_then(DomRoot::downcast::<Element>) {
-                    Some(parent) => parent,
-                    None => return,
-                }
-            },
-        };
-
-        // If the target is an iframe, forward the event to the child document.
-        if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
-            if let Some(pipeline_id) = iframe.pipeline_id() {
-                let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
-                let child_point = client_point - child_origin;
-
-                let event = CompositorEvent::MouseButtonEvent(mouse_event_type, button, child_point);
-                let event = ScriptMsg::ForwardEvent(pipeline_id, event);
-                self.send_to_constellation(event);
-            }
-            return;
-        }
 
         let node = el.upcast::<Node>();
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
@@ -896,22 +888,25 @@ impl Document {
         let client_x = client_point.x as i32;
         let client_y = client_point.y as i32;
         let click_count = 1;
-        let event = MouseEvent::new(&self.window,
-                                    DOMString::from(mouse_event_type_string),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    Some(&self.window),
-                                    click_count,
-                                    client_x,
-                                    client_y,
-                                    client_x,
-                                    client_y, // TODO: Get real screen coordinates?
-                                    false,
-                                    false,
-                                    false,
-                                    false,
-                                    0i16,
-                                    None);
+        let event = MouseEvent::new(
+            &self.window,
+            DOMString::from(mouse_event_type_string),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            click_count,
+            client_x,
+            client_y,
+            client_x,
+            client_y, // TODO: Get real screen coordinates?
+            false,
+            false,
+            false,
+            false,
+            0i16,
+            None,
+            point_in_node,
+        );
         let event = event.upcast::<Event>();
 
         // https://w3c.github.io/uievents/#trusted-events
@@ -968,22 +963,25 @@ impl Document {
                 let client_x = click_pos.x as i32;
                 let client_y = click_pos.y as i32;
 
-                let event = MouseEvent::new(&self.window,
-                                            DOMString::from("dblclick"),
-                                            EventBubbles::Bubbles,
-                                            EventCancelable::Cancelable,
-                                            Some(&self.window),
-                                            click_count,
-                                            client_x,
-                                            client_y,
-                                            client_x,
-                                            client_y,
-                                            false,
-                                            false,
-                                            false,
-                                            false,
-                                            0i16,
-                                            None);
+                let event = MouseEvent::new(
+                    &self.window,
+                    DOMString::from("dblclick"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
+                    Some(&self.window),
+                    click_count,
+                    client_x,
+                    client_y,
+                    client_x,
+                    client_y,
+                    false,
+                    false,
+                    false,
+                    false,
+                    0i16,
+                    None,
+                    None
+                );
                 event.upcast::<Event>().fire(target.upcast());
 
                 // When a double click occurs, self.last_click_info is left as None so that a
@@ -997,44 +995,23 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_touchpad_pressure_event(&self,
-                                          js_runtime: *mut JSRuntime,
-                                          client_point: Point2D<f32>,
-                                          pressure: f32,
-                                          phase_now: TouchpadPressurePhase) {
-        let node = match self.window.hit_test_query(client_point, false) {
-            Some(node_address) => unsafe {
-                node::from_untrusted_node_address(js_runtime, node_address)
-            },
-            None => return
+    pub fn handle_touchpad_pressure_event(
+        &self,
+        js_runtime: *mut JSRuntime,
+        pressure: f32,
+        phase_now: TouchpadPressurePhase,
+        node_address: Option<UntrustedNodeAddress>
+    ) {
+        let el = node_address.and_then(|address| {
+            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            node.inclusive_ancestors()
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+        });
+        let el = match el {
+            Some(el) => el,
+            None => return,
         };
-
-        let el = match node.downcast::<Element>() {
-            Some(el) => DomRoot::from_ref(el),
-            None => {
-                let parent = node.GetParentNode();
-                match parent.and_then(DomRoot::downcast::<Element>) {
-                    Some(parent) => parent,
-                    None => return
-                }
-            },
-        };
-
-        // If the target is an iframe, forward the event to the child document.
-        if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
-            if let Some(pipeline_id) = iframe.pipeline_id() {
-                let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
-                let child_point = client_point - child_origin;
-
-                let event = CompositorEvent::TouchpadPressureEvent(child_point,
-                                                                   pressure,
-                                                                   phase_now);
-                let event = ScriptMsg::ForwardEvent(pipeline_id, event);
-                self.send_to_constellation(event);
-            }
-            return;
-        }
 
         let phase_before = self.touchpad_pressure_phase.get();
         self.touchpad_pressure_phase.set(phase_now);
@@ -1076,35 +1053,41 @@ impl Document {
         event.fire(target);
     }
 
-    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
+    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: FireMouseEventType) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
 
-        let mouse_event = MouseEvent::new(&self.window,
-                                          DOMString::from(event_name),
-                                          EventBubbles::Bubbles,
-                                          EventCancelable::Cancelable,
-                                          Some(&self.window),
-                                          0i32,
-                                          client_x,
-                                          client_y,
-                                          client_x,
-                                          client_y,
-                                          false,
-                                          false,
-                                          false,
-                                          false,
-                                          0i16,
-                                          None);
+        let mouse_event = MouseEvent::new(
+            &self.window,
+            DOMString::from(event_name.as_str()),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            0i32,
+            client_x,
+            client_y,
+            client_x,
+            client_y,
+            false,
+            false,
+            false,
+            false,
+            0i16,
+            None,
+            None
+        );
         let event = mouse_event.upcast::<Event>();
         event.fire(target);
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_mouse_move_event(&self,
-                                   js_runtime: *mut JSRuntime,
-                                   client_point: Option<Point2D<f32>>,
-                                   prev_mouse_over_target: &MutNullableDom<Element>) {
+    pub fn handle_mouse_move_event(
+        &self,
+        js_runtime: *mut JSRuntime,
+        client_point: Option<Point2D<f32>>,
+        prev_mouse_over_target: &MutNullableDom<Element>,
+        node_address: Option<UntrustedNodeAddress>
+    ) {
         let client_point = match client_point {
             None => {
                 // If there's no point, there's no target under the mouse
@@ -1115,31 +1098,21 @@ impl Document {
             Some(client_point) => client_point,
         };
 
-        let maybe_new_target = self.window.hit_test_query(client_point, true).and_then(|address| {
+        let maybe_new_target = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
             node.inclusive_ancestors()
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
 
-        // Send mousemove event to topmost target, and forward it if it's an iframe
-        if let Some(ref new_target) = maybe_new_target {
-            // If the target is an iframe, forward the event to the child document.
-            if let Some(iframe) = new_target.downcast::<HTMLIFrameElement>() {
-                if let Some(pipeline_id) = iframe.pipeline_id() {
-                    let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                    let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
-                    let child_point = client_point - child_origin;
+        // Send mousemove event to topmost target, unless it's an iframe, in which case the
+        // compositor should have also sent an event to the inner document.
+        let new_target = match maybe_new_target {
+            Some(ref target) => target,
+            None => return,
+        };
 
-                    let event = CompositorEvent::MouseMoveEvent(Some(child_point));
-                    let event = ScriptMsg::ForwardEvent(pipeline_id, event);
-                    self.send_to_constellation(event);
-                }
-                return;
-            }
-
-            self.fire_mouse_event(client_point, new_target.upcast(), "mousemove".to_owned());
-        }
+        self.fire_mouse_event(client_point, new_target.upcast(), FireMouseEventType::Move);
 
         // Nothing more to do here, mousemove is sent,
         // and the element under the mouse hasn't changed.
@@ -1168,7 +1141,7 @@ impl Document {
             }
 
             // Remove hover state to old target and its parents
-            self.fire_mouse_event(client_point, old_target.upcast(), "mouseout".to_owned());
+            self.fire_mouse_event(client_point, old_target.upcast(), FireMouseEventType::Out);
 
             // TODO: Fire mouseleave here only if the old target is
             // not an ancestor of the new target.
@@ -1185,7 +1158,7 @@ impl Document {
                 element.set_hover_state(true);
             }
 
-            self.fire_mouse_event(client_point, &new_target.upcast(), "mouseover".to_owned());
+            self.fire_mouse_event(client_point, &new_target.upcast(), FireMouseEventType::Over);
 
             // TODO: Fire mouseenter here.
         }
@@ -1197,12 +1170,14 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_touch_event(&self,
-                              js_runtime: *mut JSRuntime,
-                              event_type: TouchEventType,
-                              touch_id: TouchId,
-                              point: Point2D<f32>)
-                              -> TouchEventResult {
+    pub fn handle_touch_event(
+        &self,
+        js_runtime: *mut JSRuntime,
+        event_type: TouchEventType,
+        touch_id: TouchId,
+        point: Point2D<f32>,
+        node_address: Option<UntrustedNodeAddress>
+    ) -> TouchEventResult {
         let TouchId(identifier) = touch_id;
 
         let event_name = match event_type {
@@ -1212,36 +1187,16 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = match self.window.hit_test_query(point, false) {
-            Some(node_address) => unsafe {
-                node::from_untrusted_node_address(js_runtime, node_address)
-            },
-            None => return TouchEventResult::Processed(false),
+        let el = node_address.and_then(|address| {
+            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            node.inclusive_ancestors()
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+        });
+        let el = match el {
+            Some(el) => el,
+            None => return TouchEventResult::Forwarded,
         };
-        let el = match node.downcast::<Element>() {
-            Some(el) => DomRoot::from_ref(el),
-            None => {
-                let parent = node.GetParentNode();
-                match parent.and_then(DomRoot::downcast::<Element>) {
-                    Some(parent) => parent,
-                    None => return TouchEventResult::Processed(false),
-                }
-            },
-        };
-
-        // If the target is an iframe, forward the event to the child document.
-        if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
-            if let Some(pipeline_id) = iframe.pipeline_id() {
-                let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
-                let child_point = point - child_origin;
-
-                let event = CompositorEvent::TouchEvent(event_type, touch_id, child_point);
-                let event = ScriptMsg::ForwardEvent(pipeline_id, event);
-                self.send_to_constellation(event);
-            }
-            return TouchEventResult::Forwarded;
-        }
 
         let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
@@ -1522,7 +1477,7 @@ impl Document {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     pub fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
 
@@ -1554,7 +1509,7 @@ impl Document {
         ident
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
     pub fn cancel_animation_frame(&self, ident: u32) {
         let mut list = self.animation_frame_list.borrow_mut();
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == ident) {
@@ -1562,7 +1517,7 @@ impl Document {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
+    /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub fn run_the_animation_frame_callbacks(&self) {
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
@@ -2000,20 +1955,24 @@ impl Document {
         event.fire(target);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
+    /// <https://html.spec.whatwg.org/multipage/#cookie-averse-document-object>
     pub fn is_cookie_averse(&self) -> bool {
         !self.has_browsing_context || !url_has_network_scheme(&self.url())
     }
 
-    pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        if !self.window.reflow(ReflowGoal::NodesFromPoint(*client_point), ReflowReason::Query) {
+    pub fn nodes_from_point(&self,
+                            client_point: &Point2D<f32>,
+                            reflow_goal: NodesFromPointQueryType)
+                            -> Vec<UntrustedNodeAddress> {
+        if !self.window.reflow(ReflowGoal::NodesFromPointQuery(*client_point, reflow_goal),
+                               ReflowReason::Query) {
             return vec!();
         };
 
         self.window.layout().nodes_from_point_response()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
+    /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub fn lookup_custom_element_definition(&self,
                                             namespace: &Namespace,
                                             local_name: &LocalName,
@@ -2045,7 +2004,7 @@ impl Document {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -2151,7 +2110,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, ori
     Some(host)
 }
 
-/// https://url.spec.whatwg.org/#network-scheme
+/// <https://url.spec.whatwg.org/#network-scheme>
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
     match url.scheme() {
         "ftp" | "http" | "https" => true,
@@ -2159,7 +2118,7 @@ fn url_has_network_scheme(url: &ServoUrl) -> bool {
     }
 }
 
-#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum HasBrowsingContext {
     No,
     Yes,
@@ -2225,7 +2184,7 @@ impl Document {
                     /// Per-process shared lock for author-origin stylesheets
                     ///
                     /// FIXME: make it per-document or per-pipeline instead:
-                    /// https://github.com/servo/servo/issues/16027
+                    /// <https://github.com/servo/servo/issues/16027>
                     /// (Need to figure out what to do with the style attribute
                     /// of elements adopted into another document.)
                     static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
@@ -2466,7 +2425,7 @@ impl Document {
         })
     }
 
-    /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
+    /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     pub fn appropriate_template_contents_owner_document(&self) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document.or_init(|| {
             let doctype = if self.is_html_document {
@@ -3537,7 +3496,7 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
         }
@@ -3662,12 +3621,11 @@ impl DocumentMethods for Document {
             return None;
         }
 
-        match self.window.hit_test_query(*point, false) {
-            Some(untrusted_node_address) => {
+        match self.nodes_from_point(point, NodesFromPointQueryType::Topmost).first() {
+            Some(address) => {
                 let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
-
                 let node = unsafe {
-                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
+                    node::from_untrusted_node_address(js_runtime, *address)
                 };
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node.downcast::<Element>().unwrap_or_else(|| {
@@ -3701,7 +3659,8 @@ impl DocumentMethods for Document {
         let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
         // Step 1 and Step 3
-        let mut elements: Vec<DomRoot<Element>> = self.nodes_from_point(point).iter()
+        let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);
+        let mut elements: Vec<DomRoot<Element>> = nodes.iter()
             .flat_map(|&untrusted_node_address| {
                 let node = unsafe {
                     node::from_untrusted_node_address(js_runtime, untrusted_node_address)
@@ -3977,7 +3936,7 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
     }
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
+/// <https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token>
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     match_ignore_ascii_case! { token,
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
@@ -4012,10 +3971,10 @@ pub enum FocusEventType {
 /// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
 /// without mutating the DOM), then we fall back to simple timeouts to save energy over video
 /// refresh.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct FakeRequestAnimationFrameCallback {
     /// The document.
-    #[ignore_heap_size_of = "non-owning"]
+    #[ignore_malloc_size_of = "non-owning"]
     document: Trusted<Document>,
 }
 
@@ -4026,11 +3985,11 @@ impl FakeRequestAnimationFrameCallback {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum AnimationFrameCallback {
     DevtoolsFramerateTick { actor_name: String },
     FrameRequestCallback {
-        #[ignore_heap_size_of = "Rc is hard"]
+        #[ignore_malloc_size_of = "Rc is hard"]
         callback: Rc<FrameRequestCallback>
     },
 }
@@ -4052,7 +4011,7 @@ impl AnimationFrameCallback {
     }
 }
 
-#[derive(Default, HeapSizeOf, JSTraceable)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PendingInOrderScriptVec {
     scripts: DomRefCell<VecDeque<PendingScript>>,
@@ -4088,7 +4047,7 @@ impl PendingInOrderScriptVec {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,

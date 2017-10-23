@@ -33,14 +33,14 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
 #[dom_struct]
-/// https://drafts.css-houdini.org/worklets/#workletglobalscope
+/// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
 pub struct WorkletGlobalScope {
     /// The global for this worklet.
     globalscope: GlobalScope,
     /// The base URL for this worklet.
     base_url: ServoUrl,
     /// Sender back to the script thread
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Worklet task executor
     executor: WorkletExecutor,
@@ -154,8 +154,8 @@ pub struct WorkletGlobalScopeInit {
     pub image_cache: Arc<ImageCache>,
 }
 
-/// https://drafts.css-houdini.org/worklets/#worklet-global-scope-type
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable)]
+/// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub enum WorkletGlobalScopeType {
     /// A servo-specific testing worklet
     Test,

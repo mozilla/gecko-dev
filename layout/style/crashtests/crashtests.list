@@ -89,6 +89,7 @@ load 786108-1.html
 load 786108-2.html
 load 788836.html
 load 806310-1.html
+load 809762.html
 load 812824.html
 load 822766-1.html
 load 822842.html
@@ -110,7 +111,7 @@ load 945048-1.html
 load 972199-1.html
 load 989965-1.html
 load 992333-1.html
-pref(dom.webcomponents.enabled,true) load 1017798-1.html # bug 1323689
+pref(dom.webcomponents.enabled,true) load 1017798-1.html # bug 1409086
 load 1028514-1.html
 load 1066089-1.html
 load 1074651-1.html
@@ -250,3 +251,7 @@ load 1404324-1.html
 load 1404324-2.html
 load 1404324-3.html
 load 1404057.html
+load 1409502.html
+load 1409931.html
+load 1410226-1.html
+load 1410226-2.html

@@ -915,6 +915,11 @@ public:
   {
     return LAYER_ACTIVE;
   }
+
+  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override
+  {
+    return new nsDisplayPluginGeometry(this, aBuilder);
+  }
 };
 
 static nsRect
@@ -1444,7 +1449,7 @@ nsPluginFrame::CreateWebRenderCommands(nsDisplayItem* aItem,
   }
   lm->AddDidCompositeObserver(mDidCompositeObserver.get());
 
-  LayerRect dest(r.x, r.y, size.width, size.height);
+  LayoutDeviceRect dest(r.x, r.y, size.width, size.height);
   return aManager->CommandBuilder().PushImage(aItem, container, aBuilder, aResources, aSc, dest);
 }
 

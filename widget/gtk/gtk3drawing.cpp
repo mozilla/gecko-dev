@@ -23,6 +23,8 @@ static gboolean checkbox_check_state;
 static gboolean notebook_has_tab_gap;
 
 static ScrollbarGTKMetrics sScrollbarMetrics[2];
+static ToggleGTKMetrics sCheckboxMetrics;
+static ToggleGTKMetrics sRadioMetrics;
 
 #define ARROW_UP      0
 #define ARROW_DOWN    G_PI
@@ -42,6 +44,9 @@ moz_gtk_menu_item_paint(WidgetNodeType widget, cairo_t *cr, GdkRectangle* rect,
 
 static GtkBorder
 GetMarginBorderPadding(GtkStyleContext* aStyle);
+
+static void
+InsetByMargin(GdkRectangle* rect, GtkStyleContext* style);
 
 // GetStateFlagsFromGtkWidgetState() can be safely used for the specific
 // GtkWidgets that set both prelight and active flags.  For other widgets,
@@ -111,6 +116,8 @@ moz_gtk_refresh()
 
     sScrollbarMetrics[GTK_ORIENTATION_HORIZONTAL].initialized = false;
     sScrollbarMetrics[GTK_ORIENTATION_VERTICAL].initialized = false;
+    sCheckboxMetrics.initialized = false;
+    sRadioMetrics.initialized = false;
 }
 
 gint
@@ -303,39 +310,37 @@ moz_gtk_button_paint(cairo_t *cr, GdkRectangle* rect,
 }
 
 static gint
+moz_gtk_header_bar_button_paint(cairo_t *cr, GdkRectangle* rect,
+                                GtkWidgetState* state,
+                                GtkReliefStyle relief, GtkWidget* widget,
+                                GtkTextDirection direction)
+{
+    InsetByMargin(rect, gtk_widget_get_style_context(widget));
+    return moz_gtk_button_paint(cr, rect, state, relief, widget, direction);
+}
+
+static gint
 moz_gtk_toggle_paint(cairo_t *cr, GdkRectangle* rect,
                      GtkWidgetState* state,
                      gboolean selected, gboolean inconsistent,
                      gboolean isradio, GtkTextDirection direction)
 {
     GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
-    gint indicator_size, indicator_spacing;
     gint x, y, width, height;
-    gint focus_x, focus_y, focus_width, focus_height;
     GtkStyleContext *style;
 
-    GtkWidget *widget = GetWidget(isradio ? MOZ_GTK_RADIOBUTTON_CONTAINER :
-                                            MOZ_GTK_CHECKBUTTON_CONTAINER);
-    gtk_widget_style_get(widget,
-                         "indicator_size", &indicator_size,
-                         "indicator_spacing", &indicator_spacing,
-                         nullptr);
+    const ToggleGTKMetrics* metrics = GetToggleMetrics(isradio);
 
     // XXX we should assert rect->height >= indicator_size too
     // after bug 369581 is fixed.
-    MOZ_ASSERT(rect->width >= indicator_size,
+    MOZ_ASSERT(rect->width >= metrics->minSizeWithBorder.width,
                "GetMinimumWidgetSize was ignored");
 
     // Paint it center aligned in the rect.
-    x = rect->x + (rect->width - indicator_size) / 2;
-    y = rect->y + (rect->height - indicator_size) / 2;
-    width = indicator_size;
-    height = indicator_size;
-
-    focus_x = x - indicator_spacing;
-    focus_y = y - indicator_spacing;
-    focus_width = width + 2 * indicator_spacing;
-    focus_height = height + 2 * indicator_spacing;
+    width = metrics->minSizeWithBorder.width;
+    height = metrics->minSizeWithBorder.height;
+    x = rect->x + (rect->width - width) / 2;
+    y = rect->y + (rect->height - height) / 2;
 
     if (selected)
         state_flags = static_cast<GtkStateFlags>(state_flags|checkbox_check_state);
@@ -349,20 +354,25 @@ moz_gtk_toggle_paint(cairo_t *cr, GdkRectangle* rect,
     if (gtk_check_version(3, 20, 0) == nullptr) {
         gtk_render_background(style, cr, x, y, width, height);
         gtk_render_frame(style, cr, x, y, width, height);
-    }
-
-    if (isradio) {
-        gtk_render_option(style, cr, x, y, width, height);
-        if (state->focused) {
-            gtk_render_focus(style, cr, focus_x, focus_y,
-                            focus_width, focus_height);
+        // Indicator is inset by the toggle's padding and border.
+        gint indicator_x = x + metrics->borderAndPadding.left;
+        gint indicator_y = y + metrics->borderAndPadding.top;
+        gint indicator_width = metrics->minSizeWithBorder.width -
+            metrics->borderAndPadding.left - metrics->borderAndPadding.right;
+        gint indicator_height = metrics->minSizeWithBorder.height -
+            metrics->borderAndPadding.top - metrics->borderAndPadding.bottom;
+        if (isradio) {
+            gtk_render_option(style, cr, indicator_x, indicator_y,
+                              indicator_width, indicator_height);
+        } else {
+            gtk_render_check(style, cr, indicator_x, indicator_y,
+                             indicator_width, indicator_height);
         }
-    }
-    else {
-        gtk_render_check(style, cr, x, y, width, height);
-        if (state->focused) {
-            gtk_render_focus(style, cr,
-                             focus_x, focus_y, focus_width, focus_height);
+    } else {
+        if (isradio) {
+            gtk_render_option(style, cr, x, y, width, height);
+        } else {
+            gtk_render_check(style, cr, x, y, width, height);
         }
     }
 
@@ -1949,6 +1959,21 @@ moz_gtk_info_bar_paint(cairo_t *cr, GdkRectangle* rect,
     return MOZ_GTK_SUCCESS;
 }
 
+static gint
+moz_gtk_header_bar_paint(WidgetNodeType widgetType,
+                         cairo_t *cr, GdkRectangle* rect, GtkWidgetState* state)
+{
+    GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
+    GtkStyleContext *style = GetStyleContext(widgetType, GTK_TEXT_DIR_LTR,
+                                             state_flags);
+    InsetByMargin(rect, style);
+    gtk_render_background(style, cr, rect->x, rect->y, rect->width,
+                          rect->height);
+    gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
+
+    return MOZ_GTK_SUCCESS;
+}
+
 static void
 moz_gtk_add_style_margin(GtkStyleContext* style,
                          gint* left, gint* top, gint* right, gint* bottom)
@@ -2209,6 +2234,22 @@ moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
             moz_gtk_add_margin_border_padding(labelStyle,
                                               left, top, right, bottom);
 
+            return MOZ_GTK_SUCCESS;
+        }
+    case MOZ_GTK_HEADER_BAR:
+    case MOZ_GTK_HEADER_BAR_MAXIMIZED:
+        {
+            style = GetStyleContext(widget);
+            moz_gtk_add_style_border(style, left, top, right, bottom);
+            moz_gtk_add_style_padding(style, left, top, right, bottom);
+            return MOZ_GTK_SUCCESS;
+        }
+    case MOZ_GTK_HEADER_BAR_BUTTON_CLOSE:
+    case MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE:
+    case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE:
+        {
+            style = GetStyleContext(widget);
+            moz_gtk_add_margin_border_padding(style, left, top, right, bottom);
             return MOZ_GTK_SUCCESS;
         }
 
@@ -2515,6 +2556,68 @@ SizeFromLengthAndBreadth(GtkOrientation aOrientation,
         MozGtkSize({aLength, aBreadth}) : MozGtkSize({aBreadth, aLength});
 }
 
+const ToggleGTKMetrics*
+GetToggleMetrics(bool isRadio)
+{
+    ToggleGTKMetrics* metrics;
+    if (isRadio) {
+        metrics = &sRadioMetrics;
+    } else {
+        metrics = &sCheckboxMetrics;
+    }
+    if (metrics->initialized)
+        return metrics;
+
+    metrics->initialized = true;
+    if (gtk_check_version(3,20,0) == nullptr) {
+        GtkStyleContext* style;
+        if (isRadio) {
+            style = GetStyleContext(MOZ_GTK_RADIOBUTTON);
+        } else {
+            style = GetStyleContext(MOZ_GTK_CHECKBUTTON);
+        }
+        GtkStateFlags state_flags = gtk_style_context_get_state(style);
+        gtk_style_context_get(style, state_flags,
+                              "min-height",&(metrics->minSizeWithBorder.height),
+                              "min-width", &(metrics->minSizeWithBorder.width),
+                              nullptr);
+        // Fallback to indicator size if min dimensions are zero
+        if (metrics->minSizeWithBorder.height == 0 ||
+            metrics->minSizeWithBorder.width == 0) {
+            gint indicator_size;
+            gtk_widget_style_get(GetWidget(MOZ_GTK_CHECKBUTTON_CONTAINER),
+                                 "indicator_size", &indicator_size, nullptr);
+            if (metrics->minSizeWithBorder.height == 0) {
+                metrics->minSizeWithBorder.height = indicator_size;
+            }
+            if (metrics->minSizeWithBorder.width == 0) {
+                metrics->minSizeWithBorder.width = indicator_size;
+            }
+        }
+
+        GtkBorder border, padding;
+        gtk_style_context_get_border(style, state_flags, &border);
+        gtk_style_context_get_padding(style, state_flags, &padding);
+        metrics->borderAndPadding.left = border.left + padding.left;
+        metrics->borderAndPadding.right = border.right + padding.right;
+        metrics->borderAndPadding.top = border.top + padding.top;
+        metrics->borderAndPadding.bottom = border.bottom + padding.bottom;
+        metrics->minSizeWithBorder.width += metrics->borderAndPadding.left +
+                                            metrics->borderAndPadding.right;
+        metrics->minSizeWithBorder.height += metrics->borderAndPadding.top +
+                                             metrics->borderAndPadding.bottom;
+    } else {
+        gint indicator_size, indicator_spacing;
+        gtk_widget_style_get(GetWidget(MOZ_GTK_CHECKBUTTON_CONTAINER),
+                             "indicator_size", &indicator_size,
+                             "indicator_spacing", &indicator_spacing,
+                             nullptr);
+        metrics->minSizeWithBorder.width =
+            metrics->minSizeWithBorder.height = indicator_size;
+    }
+    return metrics;
+}
+
 const ScrollbarGTKMetrics*
 GetScrollbarMetrics(GtkOrientation aOrientation)
 {
@@ -2671,6 +2774,14 @@ moz_gtk_widget_paint(WidgetNodeType widget, cairo_t *cr,
                                     (GtkReliefStyle) flags,
                                     GetWidget(MOZ_GTK_BUTTON),
                                     direction);
+        break;
+    case MOZ_GTK_HEADER_BAR_BUTTON_CLOSE:
+    case MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE:
+    case MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE:
+        return moz_gtk_header_bar_button_paint(cr, rect, state,
+                                               (GtkReliefStyle) flags,
+                                               GetWidget(widget),
+                                               direction);
         break;
     case MOZ_GTK_CHECKBUTTON:
     case MOZ_GTK_RADIOBUTTON:
@@ -2877,6 +2988,10 @@ moz_gtk_widget_paint(WidgetNodeType widget, cairo_t *cr,
         break;
     case MOZ_GTK_INFO_BAR:
         return moz_gtk_info_bar_paint(cr, rect, state);
+        break;
+    case MOZ_GTK_HEADER_BAR:
+    case MOZ_GTK_HEADER_BAR_MAXIMIZED:
+        return moz_gtk_header_bar_paint(widget, cr, rect, state);
         break;
     default:
         g_warning("Unknown widget type: %d", widget);

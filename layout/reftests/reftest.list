@@ -402,10 +402,7 @@ include ../../widget/reftests/reftest.list
 include ../../dom/tests/reftest/xml-stylesheet/reftest.list
 
 # xul-document-load/ (no XUL theme on Android)
-# skip for stylo because the reference page is wrong due to bug 1408235.
-# There are some pages rendered incorrectly in the same way, so this
-# test set is basically broken and not worth further annotating.
-skip-if(Android||stylo||styloVsGecko) include xul-document-load/reftest.list
+skip-if(Android) include xul-document-load/reftest.list
 
 # xul/ (no XUL theme on Android)
 skip-if(Android) include xul/reftest.list
@@ -445,6 +442,9 @@ include ../../dom/encoding/test/reftest/reftest.list
 
 # APZ/async positioning tests
 include ../../gfx/layers/apz/test/reftest/reftest.list
+
+# Display list building
+include display-list/reftest.list
 
 # Media
 include ../../dom/media/test/reftest/reftest.list

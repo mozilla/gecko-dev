@@ -19,13 +19,15 @@
 #include <unistd.h> // for getpid()
 #endif
 
-ThreadInfo::ThreadInfo(const char* aName, int aThreadId, bool aIsMainThread,
+ThreadInfo::ThreadInfo(const char* aName,
+                       int aThreadId,
+                       bool aIsMainThread,
                        void* aStackTop)
   : mName(strdup(aName))
   , mRegisterTime(TimeStamp::Now())
   , mThreadId(aThreadId)
   , mIsMainThread(aIsMainThread)
-  , mRacyInfo(mozilla::WrapNotNull(new RacyThreadInfo()))
+  , mRacyInfo(mozilla::MakeNotNull<RacyThreadInfo*>())
   , mPlatformData(AllocPlatformData(aThreadId))
   , mStackTop(aStackTop)
   , mIsBeingProfiled(false)
@@ -82,7 +84,7 @@ ThreadInfo::StreamJSON(const ProfileBuffer& aBuffer,
 
   double firstSampleTime = 0.0;
 
-  aWriter.Start(SpliceableJSONWriter::SingleLineStyle);
+  aWriter.Start();
   {
     StreamSamplesAndMarkers(Name(), ThreadId(), aBuffer, aWriter,
                             aProcessStartTime,

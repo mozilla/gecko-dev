@@ -3,9 +3,7 @@
 // Instead of loading EventUtils.js into the test scope in browser-test.js for all tests,
 // we only need EventUtils.js for a few files which is why we are using loadSubScript.
 var EventUtils = {};
-this._scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
-                     getService(Ci.mozIJSSubScriptLoader);
-this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", EventUtils);
+Services.scriptloader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", EventUtils);
 
 add_task(async function test() {
   // Make sure the bookmarks bar is visible and restore its state on cleanup.
@@ -35,7 +33,7 @@ add_task(async function test() {
    */
   let simulateDragDrop = async function(aEffect, aMimeType) {
     const url = "http://www.mozilla.org/D1995729-A152-4e30-8329-469B01F30AA7";
-    let promiseItemAddedNotification = promiseBookmarksNotification(
+    let promiseItemAddedNotification = PlacesTestUtils.waitForNotification(
       "onItemAdded", (itemId, parentId, index, type, uri, guid) => uri.spec == url);
 
     // We use the toolbar as the drag source, as we just need almost any node
@@ -81,7 +79,7 @@ add_task(async function test() {
     else
       data = urls.join("\n");
 
-    let promiseItemAddedNotification = promiseBookmarksNotification(
+    let promiseItemAddedNotification = PlacesTestUtils.waitForNotification(
       "onItemAdded", (itemId, parentId, index, type, uri, guid) => uri.spec == urls[2]);
 
     // See notes for EventUtils.synthesizeDrop in simulateDragDrop().

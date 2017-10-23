@@ -9,6 +9,7 @@
 // except according to those terms.
 
 //! Fork of Arc for Servo. This has the following advantages over std::Arc:
+//!
 //! * We don't waste storage on the weak reference count.
 //! * We don't do extra RMU operations to handle the possibility of weak references.
 //! * We can experiment with arena allocation (todo).
@@ -16,7 +17,7 @@
 //! * We have support for dynamically-sized types (see from_header_and_iter).
 //! * We have support for thin arcs to unsized types (see ThinArc).
 //!
-//! [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
+//! [1]: https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
 // The semantics of Arc are alread documented in the Rust docs, so we don't
 // duplicate those here.
@@ -26,8 +27,6 @@ extern crate nodrop;
 #[cfg(feature = "servo")] extern crate serde;
 extern crate stable_deref_trait;
 
-#[cfg(feature = "servo")]
-use heapsize::HeapSizeOf;
 use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
@@ -83,7 +82,7 @@ const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 /// be thin or fat (which depends on whether or not T is sized). Given
 /// that this is all a temporary hack, this restriction is fine for now.
 ///
-/// [1] https://github.com/rust-lang/rust/issues/27730
+/// [1]: https://github.com/rust-lang/rust/issues/27730
 pub struct NonZeroPtrMut<T: ?Sized + 'static>(&'static mut T);
 impl<T: ?Sized> NonZeroPtrMut<T> {
     pub fn new(ptr: *mut T) -> Self {
@@ -474,15 +473,6 @@ impl<T: ?Sized> AsRef<T> for Arc<T> {
 
 unsafe impl<T: ?Sized> StableDeref for Arc<T> {}
 unsafe impl<T: ?Sized> CloneStableDeref for Arc<T> {}
-
-// This is what the HeapSize crate does for regular arc, but is questionably
-// sound. See https://github.com/servo/heapsize/issues/37
-#[cfg(feature = "servo")]
-impl<T: HeapSizeOf> HeapSizeOf for Arc<T> {
-    fn heap_size_of_children(&self) -> usize {
-        (**self).heap_size_of_children()
-    }
-}
 
 #[cfg(feature = "servo")]
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Arc<T>

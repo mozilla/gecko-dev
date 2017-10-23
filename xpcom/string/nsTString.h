@@ -38,6 +38,8 @@ public:
   typedef typename nsTSubstring<T>::substring_type substring_type;
 #endif
 
+  typedef typename substring_type::literalstring_type literalstring_type;
+
   typedef typename substring_type::fallible_t fallible_t;
 
   typedef typename substring_type::char_type char_type;
@@ -61,9 +63,6 @@ public:
   typedef typename substring_type::DataFlags DataFlags;
   typedef typename substring_type::ClassFlags ClassFlags;
 
-  using typename substring_type::IsChar;
-  using typename substring_type::IsChar16;
-
 public:
 
   /**
@@ -83,7 +82,7 @@ public:
   }
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   explicit
   nsTString(char16ptr_t aStr, size_type aLength = size_type(-1))
     : substring_type(ClassFlags::NULL_TERMINATED)
@@ -98,6 +97,12 @@ public:
     this->Assign(aStr);
   }
 
+  nsTString(self_type&& aStr)
+    : substring_type(ClassFlags::NULL_TERMINATED)
+  {
+    this->Assign(mozilla::Move(aStr));
+  }
+
   MOZ_IMPLICIT nsTString(const substring_tuple_type& aTuple)
     : substring_type(ClassFlags::NULL_TERMINATED)
   {
@@ -106,6 +111,21 @@ public:
 
   explicit
   nsTString(const substring_type& aReadable)
+    : substring_type(ClassFlags::NULL_TERMINATED)
+  {
+    this->Assign(aReadable);
+  }
+
+  explicit
+  nsTString(substring_type&& aReadable)
+    : substring_type(ClassFlags::NULL_TERMINATED)
+  {
+    this->Assign(mozilla::Move(aReadable));
+  }
+
+  // NOTE(nika): gcc 4.9 workaround. Remove when support is dropped.
+  explicit
+  nsTString(const literalstring_type& aReadable)
     : substring_type(ClassFlags::NULL_TERMINATED)
   {
     this->Assign(aReadable);
@@ -128,8 +148,13 @@ public:
     this->Assign(aStr);
     return *this;
   }
+  self_type& operator=(self_type&& aStr)
+  {
+    this->Assign(mozilla::Move(aStr));
+    return *this;
+  }
 #if defined(MOZ_USE_CHAR16_WRAPPER)
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   self_type& operator=(const char16ptr_t aStr)
   {
     this->Assign(static_cast<const char16_t*>(aStr));
@@ -137,6 +162,17 @@ public:
   }
 #endif
   self_type& operator=(const substring_type& aStr)
+  {
+    this->Assign(aStr);
+    return *this;
+  }
+  self_type& operator=(substring_type&& aStr)
+  {
+    this->Assign(mozilla::Move(aStr));
+    return *this;
+  }
+  // NOTE(nika): gcc 4.9 workaround. Remove when support is dropped.
+  self_type& operator=(const literalstring_type& aStr)
   {
     this->Assign(aStr);
     return *this;
@@ -200,14 +236,14 @@ public:
   int32_t Find(const char* aString, bool aIgnoreCase = false,
                int32_t aOffset = 0, int32_t aCount = -1) const;
 
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   int32_t Find(const self_type& aString, int32_t aOffset = 0,
                int32_t aCount = -1) const;
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   int32_t Find(const char_type* aString, int32_t aOffset = 0,
                int32_t aCount = -1) const;
 #ifdef MOZ_USE_CHAR16_WRAPPER
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   int32_t Find(char16ptr_t aString, int32_t aOffset = 0,
                int32_t aCount = -1) const
   {
@@ -234,10 +270,10 @@ public:
   int32_t RFind(const char* aCString, bool aIgnoreCase = false,
                 int32_t aOffset = -1, int32_t aCount = -1) const;
 
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   int32_t RFind(const self_type& aString, int32_t aOffset = -1,
                 int32_t aCount = -1) const;
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   int32_t RFind(const char_type* aString, int32_t aOffset = -1,
                 int32_t aCount = -1) const;
 
@@ -273,7 +309,7 @@ public:
     return FindCharInSet(aString.get(), aOffset);
   }
 
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   int32_t FindCharInSet(const char* aSet, int32_t aOffset = 0) const;
 
 
@@ -302,7 +338,7 @@ public:
    * @param   aCount tells us how many chars to compare
    * @return  -1,0,1
    */
-  template <typename EnableIfChar = IsChar>
+  template <typename Q = T, typename EnableIfChar = mozilla::CharOnlyT<Q>>
   int32_t Compare(const char_type* aString, bool aIgnoreCase = false,
                   int32_t aCount = -1) const;
 
@@ -315,13 +351,13 @@ public:
    * @param   aCount tells us how many chars to compare
    * @return  boolean
    */
-  template <typename EnableIfChar = IsChar>
+  template <typename Q = T, typename EnableIfChar = mozilla::CharOnlyT<Q>>
   bool EqualsIgnoreCase(const char_type* aString, int32_t aCount = -1) const
   {
     return Compare(aString, true, aCount) == 0;
   }
 
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   bool EqualsIgnoreCase(const incompatible_char_type* aString, int32_t aCount = -1) const;
 
   /**
@@ -407,10 +443,10 @@ public:
    */
   void StripChars(const char_type* aSet);
 
-  template<typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   bool StripChars(const incompatible_char_type* aSet, const fallible_t&);
 
-  template<typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   void StripChars(const incompatible_char_type* aSet);
 
   /**
@@ -427,7 +463,7 @@ public:
   void ReplaceChar(char_type aOldChar, char_type aNewChar);
   void ReplaceChar(const char_type* aSet, char_type aNewChar);
 
-  template<typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   void ReplaceChar(const char* aSet, char16_t aNewChar);
 
   /**
@@ -551,13 +587,11 @@ public:
   typedef typename base_string_type::substring_type substring_type;
   typedef typename base_string_type::size_type size_type;
   typedef typename base_string_type::substring_tuple_type substring_tuple_type;
+  typedef typename base_string_type::literalstring_type literalstring_type;
 
   // These are only for internal use within the string classes:
   typedef typename base_string_type::DataFlags DataFlags;
   typedef typename base_string_type::ClassFlags ClassFlags;
-
-  using typename base_string_type::IsChar;
-  using typename base_string_type::IsChar16;
 
 public:
 
@@ -589,7 +623,7 @@ public:
   }
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   explicit
   nsTAutoStringN(char16ptr_t aData, size_type aLength = size_type(-1))
     : self_type(static_cast<const char16_t*>(aData), aLength)
@@ -603,8 +637,29 @@ public:
     this->Assign(aStr);
   }
 
+  nsTAutoStringN(self_type&& aStr)
+    : self_type()
+  {
+    this->Assign(mozilla::Move(aStr));
+  }
+
   explicit
   nsTAutoStringN(const substring_type& aStr)
+    : self_type()
+  {
+    this->Assign(aStr);
+  }
+
+  explicit
+  nsTAutoStringN(substring_type&& aStr)
+    : self_type()
+  {
+    this->Assign(mozilla::Move(aStr));
+  }
+
+  // NOTE(nika): gcc 4.9 workaround. Remove when support is dropped.
+  explicit
+  nsTAutoStringN(const literalstring_type& aStr)
     : self_type()
   {
     this->Assign(aStr);
@@ -628,7 +683,7 @@ public:
     return *this;
   }
 #if defined(MOZ_USE_CHAR16_WRAPPER)
-  template <typename EnableIfChar16 = IsChar16>
+  template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   self_type& operator=(char16ptr_t aStr)
   {
     this->Assign(aStr);
@@ -640,7 +695,23 @@ public:
     this->Assign(aStr);
     return *this;
   }
+  self_type& operator=(self_type&& aStr)
+  {
+    this->Assign(mozilla::Move(aStr));
+    return *this;
+  }
   self_type& operator=(const substring_type& aStr)
+  {
+    this->Assign(aStr);
+    return *this;
+  }
+  self_type& operator=(substring_type&& aStr)
+  {
+    this->Assign(mozilla::Move(aStr));
+    return *this;
+  }
+  // NOTE(nika): gcc 4.9 workaround. Remove when support is dropped.
+  self_type& operator=(const literalstring_type& aStr)
   {
     this->Assign(aStr);
     return *this;

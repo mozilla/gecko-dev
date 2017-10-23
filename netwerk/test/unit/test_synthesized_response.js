@@ -17,8 +17,17 @@ function make_uri(url) {
   return ios.newURI(url);
 }
 
-// ensure the cache service is prepped when running the test
-Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
+function isParentProcess() {
+    let appInfo = Cc["@mozilla.org/xre/app-info;1"];
+    return (!appInfo || appInfo.getService(Ci.nsIXULRuntime).processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT);
+}
+
+if (isParentProcess()) {
+  // ensure the cache service is prepped when running the test
+  // We only do this in the main process, as the cache storage service leaks
+  // when instantiated in the content process.
+  Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
+}
 
 var gotOnProgress;
 var gotOnStatus;
@@ -54,9 +63,8 @@ function make_channel(url, body, cb) {
                             .createInstance(Ci.nsIStringInputStream);
         synthesized.data = body;
 
-        NetUtil.asyncCopy(synthesized, channel.responseBody, function() {
-          channel.finishSynthesizedResponse('');
-        });
+        channel.startSynthesizedResponse(synthesized, null, '');
+        channel.finishSynthesizedResponse();
       }
       if (cb) {
         cb(channel);
@@ -143,10 +151,9 @@ add_test(function() {
       var synthesized = Cc["@mozilla.org/io/string-input-stream;1"]
                           .createInstance(Ci.nsIStringInputStream);
       synthesized.data = NON_REMOTE_BODY;
-      NetUtil.asyncCopy(synthesized, channel.responseBody, function() {
-        channel.synthesizeHeader("Content-Length", NON_REMOTE_BODY.length);
-        channel.finishSynthesizedResponse('');
-      });
+      channel.synthesizeHeader("Content-Length", NON_REMOTE_BODY.length);
+      channel.startSynthesizedResponse(synthesized, null, '');
+      channel.finishSynthesizedResponse();
     });
   });
   chan.asyncOpen2(new ChannelListener(handle_synthesized_response, null));
@@ -169,12 +176,11 @@ add_test(function() {
                         .createInstance(Ci.nsIStringInputStream);
     synthesized.data = NON_REMOTE_BODY;
 
-    NetUtil.asyncCopy(synthesized, intercepted.responseBody, function() {
-      // set the content-type to ensure that the stream converter doesn't hold up notifications
-      // and cause the test to fail
-      intercepted.synthesizeHeader("Content-Type", "text/plain");
-      intercepted.finishSynthesizedResponse('');
-    });
+    // set the content-type to ensure that the stream converter doesn't hold up notifications
+    // and cause the test to fail
+    intercepted.synthesizeHeader("Content-Type", "text/plain");
+    intercepted.startSynthesizedResponse(synthesized, null, '');
+    intercepted.finishSynthesizedResponse();
   });
   chan.asyncOpen2(new ChannelListener(handle_synthesized_response, null,
 				     CL_ALLOW_UNKNOWN_CL | CL_SUSPEND | CL_EXPECT_3S_DELAY));
@@ -212,11 +218,10 @@ add_test(function() {
                         .createInstance(Ci.nsIStringInputStream);
     synthesized.data = NON_REMOTE_BODY;
 
-    NetUtil.asyncCopy(synthesized, intercepted.responseBody, function() {
-      let channel = intercepted.channel;
-      intercepted.finishSynthesizedResponse('');
-      channel.cancel(Cr.NS_BINDING_ABORTED);
-    });
+    let channel = intercepted.channel;
+    intercepted.startSynthesizedResponse(synthesized, null, '');
+    intercepted.finishSynthesizedResponse();
+    channel.cancel(Cr.NS_BINDING_ABORTED);
   });
   chan.asyncOpen2(new ChannelListener(run_next_test, null,
                                      CL_EXPECT_FAILURE | CL_ALLOW_UNKNOWN_CL));
@@ -229,10 +234,12 @@ add_test(function() {
                         .createInstance(Ci.nsIStringInputStream);
     synthesized.data = NON_REMOTE_BODY;
 
-    NetUtil.asyncCopy(synthesized, intercepted.responseBody, function() {
-      intercepted.channel.cancel(Cr.NS_BINDING_ABORTED);
-      intercepted.finishSynthesizedResponse('');
-    });
+    intercepted.channel.cancel(Cr.NS_BINDING_ABORTED);
+
+    // This should not throw, but result in the channel firing callbacks
+    // with an error status.
+    intercepted.startSynthesizedResponse(synthesized, null, '');
+    intercepted.finishSynthesizedResponse();
   });
   chan.asyncOpen2(new ChannelListener(run_next_test, null,
                                      CL_EXPECT_FAILURE | CL_ALLOW_UNKNOWN_CL));

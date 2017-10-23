@@ -7,6 +7,7 @@
 #ifndef mozilla_ServoStyleSet_h
 #define mozilla_ServoStyleSet_h
 
+#include "mozilla/AtomArray.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/EventStates.h"
@@ -239,6 +240,14 @@ public:
   already_AddRefed<ServoStyleContext>
   ResolveNonInheritingAnonymousBoxStyle(nsAtom* aPseudoTag);
 
+#ifdef MOZ_XUL
+  already_AddRefed<ServoStyleContext>
+  ResolveXULTreePseudoStyle(dom::Element* aParentElement,
+                            nsICSSAnonBoxPseudo* aPseudoTag,
+                            ServoStyleContext* aParentContext,
+                            const AtomArray& aInputWord);
+#endif
+
   // manage the set of style sheets in the style set
   nsresult AppendStyleSheet(SheetType aType, ServoStyleSheet* aSheet);
   nsresult PrependStyleSheet(SheetType aType, ServoStyleSheet* aSheet);
@@ -392,6 +401,20 @@ public:
                            CSSPseudoElementType aPseudoType,
                            const ServoStyleContext* aStyle);
 
+  // Get a style context that represents |aStyle|, but as though
+  // it additionally matched the rules of the newly added |aAnimaitonaValue|.
+  // We use this function to temporarily generate a ServoStyleContext for
+  // calculating the cumulative change hints.
+  // This must hold:
+  //   The additional rules must be appropriate for the transition
+  //   level of the cascade, which is the highest level of the cascade.
+  //   (This is the case for one current caller, the cover rule used
+  //   for CSS transitions.)
+  // Note: |aElement| should be the generated element if it is pseudo.
+  already_AddRefed<ServoStyleContext>
+  ResolveServoStyleByAddingAnimation(dom::Element* aElement,
+                                     const ServoStyleContext* aStyle,
+                                     RawServoAnimationValue* aAnimationValue);
   /**
    * Resolve style for a given declaration block with/without the parent style.
    * If the parent style is not specified, the document default computed values

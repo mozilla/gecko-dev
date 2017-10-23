@@ -46,20 +46,6 @@ PKCS11ModuleDB::DeleteModule(const nsAString& aModuleName)
   }
 
   NS_ConvertUTF16toUTF8 moduleName(aModuleName);
-  // Introduce additional scope for module so all references to it are released
-  // before we call SECMOD_DeleteModule, below.
-#ifndef MOZ_NO_SMART_CARDS
-  {
-    UniqueSECMODModule module(SECMOD_FindModule(moduleName.get()));
-    if (!module) {
-      return NS_ERROR_FAILURE;
-    }
-    nsCOMPtr<nsINSSComponent> nssComponent(
-      do_GetService(PSM_COMPONENT_CONTRACTID));
-    nssComponent->ShutdownSmartCardThread(module.get());
-  }
-#endif
-
   // modType is an output variable. We ignore it.
   int32_t modType;
   SECStatus srv = SECMOD_DeleteModule(moduleName.get(), &modType);
@@ -114,6 +100,24 @@ PKCS11ModuleDB::AddModule(const nsAString& aModuleName,
     return NS_ERROR_INVALID_ARG;
   }
 
+  // "Root Certs" is the name some NSS command-line utilities will give the
+  // roots module if they decide to load it when there happens to be a
+  // `DLL_PREFIX "nssckbi" DLL_SUFFIX` file in the directory being operated on.
+  // This causes failures, so as a workaround, the PSM initialization code will
+  // unconditionally remove any module named "Root Certs". We should prevent the
+  // user from adding an unrelated module named "Root Certs" in the first place
+  // so PSM doesn't delete it. See bug 1406396.
+  if (aModuleName.EqualsLiteral("Root Certs")) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
+  // There appears to be a deadlock if we try to load modules concurrently, so
+  // just wait until the loadable roots module has been loaded.
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   NS_ConvertUTF16toUTF8 moduleName(aModuleName);
   nsCString fullPath;
   // NSS doesn't support Unicode path.  Use native charset
@@ -130,12 +134,6 @@ PKCS11ModuleDB::AddModule(const nsAString& aModuleName,
   if (!module) {
     return NS_ERROR_FAILURE;
   }
-
-#ifndef MOZ_NO_SMART_CARDS
-  nsCOMPtr<nsINSSComponent> nssComponent(
-    do_GetService(PSM_COMPONENT_CONTRACTID));
-  nssComponent->LaunchSmartCardThread(module.get());
-#endif
 
   nsAutoString scalarKey;
   GetModuleNameForTelemetry(module.get(), scalarKey);

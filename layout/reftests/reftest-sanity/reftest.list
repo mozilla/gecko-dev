@@ -3,7 +3,7 @@
 != data:text/plain,HELLO about:blank
 
 # these tests make sure async reftests work:
-fails-if(styloVsGecko) == test-async.xul test-async-ref.xul # bug 1408235
+== test-async.xul test-async-ref.xul
 == test-async.html test-async-ref.html
 
 # test that zoom works (and really zooms, not just scales)
@@ -36,8 +36,8 @@ HTTP == data:text/html,<div>Text</div> default.html
 != blank.html default.html
 HTTP != blank.html default.html
 
-HTTP(..) == filter-1.xhtml filter-1-ref.xhtml
-HTTP(..) == filter-2.xhtml filter-2-ref.xhtml
+== filter-1.xhtml filter-1-ref.xhtml
+== filter-2.xhtml filter-2-ref.xhtml
 
 # test that the MozReftestInvalidate event fires
 == invalidation.html about:blank
@@ -111,10 +111,10 @@ require-or(true&&true,fails) script scripttest-pass.html
 
 # tests for pref(...) syntax in manifest, including "fails" examples with incorrect prefs
 # a boolean pref
-pref(gfx.downloadable_fonts.enabled,true) skip-if(styloVsGecko) HTTP(..) != font-download.html font-default.html
-pref(gfx.downloadable_fonts.enabled,false) skip-if(styloVsGecko) HTTP(..) == font-download.html font-default.html
-fails pref(gfx.downloadable_fonts.enabled,0) HTTP(..) == font-download.html font-default.html
-fails pref(gfx.downloadable_fonts.enabled,"foo") HTTP(..) == font-download.html font-default.html
+pref(gfx.downloadable_fonts.enabled,true) skip-if(styloVsGecko) != font-download.html font-default.html
+pref(gfx.downloadable_fonts.enabled,false) skip-if(styloVsGecko) == font-download.html font-default.html
+fails pref(gfx.downloadable_fonts.enabled,0) == font-download.html font-default.html
+fails pref(gfx.downloadable_fonts.enabled,"foo") == font-download.html font-default.html
 # a non-existent pref
 fails pref(not.a.real.pref.name,1) == font-download.html font-default.html
 # an integer pref

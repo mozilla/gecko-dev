@@ -21,8 +21,8 @@ use values::computed::{Context, ToComputedValue, ComputedUrl};
 /// eagerly resolving with rust-url would be duplicated work.
 ///
 /// However, this approach is still not necessarily optimal: See
-/// https://bugzilla.mozilla.org/show_bug.cgi?id=1347435#c6
-#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
+/// <https://bugzilla.mozilla.org/show_bug.cgi?id=1347435#c6>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SpecifiedUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to
@@ -30,6 +30,7 @@ pub struct SpecifiedUrl {
     ///
     /// Refcounted since cloning this should be cheap and data: uris can be
     /// really large.
+    #[ignore_malloc_size_of = "Arc"]
     original: Option<Arc<String>>,
 
     /// The resolved value for the url, if valid.

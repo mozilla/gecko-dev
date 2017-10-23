@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 from mozboot.base import BaseBootstrapper
 from mozboot.linux_common import StyloInstall
 
@@ -50,7 +52,7 @@ class GentooBootstrapper(StyloInstall, BaseBootstrapper):
         jdk_file = 'jdk-8u144-linux-x64.tar.gz'
         self.run_as_root(['wget', '-c', '-O', distdir + '/' + jdk_file,
                           '--header', 'Cookie: oraclelicense=accept-securebackup-cookie',
-                          'http://download.oracle.com/otn-pub/java/jdk/8u144-b01/090f390dda5b47b9b721c7dfaa008135/' + jdk_file])
+                          'http://download.oracle.com/otn-pub/java/jdk/8u144-b01/090f390dda5b47b9b721c7dfaa008135/' + jdk_file])  # noqa
 
         # Install the Oracle JDK. We explicitly prompt the user to accept the
         # changes because this command might need to modify the portage
@@ -59,12 +61,12 @@ class GentooBootstrapper(StyloInstall, BaseBootstrapper):
                           '--autounmask-continue', '--ask',
                           '=dev-java/oracle-jdk-bin-1.8.0.144'])
 
-        import android
+        from mozboot import android
         android.ensure_android('linux', artifact_mode=artifact_mode,
                                no_interactive=self.no_interactive)
 
     def suggest_mobile_android_mozconfig(self, artifact_mode=False):
-        import android
+        from mozboot import android
         android.suggest_mozconfig('linux', artifact_mode=artifact_mode)
 
     def suggest_mobile_android_artifact_mode_mozconfig(self):

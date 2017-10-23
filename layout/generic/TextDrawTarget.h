@@ -55,6 +55,7 @@ public:
                           nsRect& aBounds)
     : mBuilder(aBuilder), mSc(aSc), mManager(aManager)
   {
+    SetPermitSubpixelAA(!aItem->IsSubpixelAADisabled());
 
     // Compute clip/bounds
     auto appUnitsPerDevPixel = aItem->Frame()->PresContext()->AppUnitsPerDevPixel();
@@ -68,8 +69,8 @@ public:
                   clip.GetClipRect(), appUnitsPerDevPixel);
     }
 
-    mBoundsRect = aSc.ToRelativeLayoutRect(LayerRect::FromUnknownRect(layoutBoundsRect.ToUnknownRect()));
-    mClipRect = aSc.ToRelativeLayoutRect(LayerRect::FromUnknownRect(layoutClipRect.ToUnknownRect()));
+    mBoundsRect = aSc.ToRelativeLayoutRect(layoutBoundsRect);
+    mClipRect = aSc.ToRelativeLayoutRect(layoutClipRect);
 
     mBackfaceVisible = !aItem->BackfaceIsHidden();
 
@@ -100,7 +101,7 @@ public:
              const DrawOptions& aOptions,
              const GlyphRenderingOptions* aRenderingOptions) override
   {
-    // FIXME(?): Deal with AA on the DrawOptions, and the GlyphRenderingOptions
+    // FIXME(?): Deal with GlyphRenderingOptions
 
     // Make sure we're only given boring color patterns
     MOZ_RELEASE_ASSERT(aOptions.mCompositionOp == CompositionOp::OP_OVER);
@@ -125,12 +126,15 @@ public:
       const gfx::Glyph& sourceGlyph = aBuffer.mGlyphs[i];
       targetGlyph.index = sourceGlyph.mIndex;
       targetGlyph.point = mSc.ToRelativeLayoutPoint(
-              LayerPoint::FromUnknownPoint(sourceGlyph.mPosition));
+          LayoutDevicePoint::FromUnknownPoint(sourceGlyph.mPosition));
     }
+
+    wr::GlyphOptions glyphOptions;
+    glyphOptions.render_mode = wr::ToFontRenderMode(aOptions.mAntialiasMode, GetPermitSubpixelAA());
 
     mManager->WrBridge()->PushGlyphs(mBuilder, glyphs, aFont,
                                      color, mSc, mBoundsRect, mClipRect,
-                                     mBackfaceVisible);
+                                     mBackfaceVisible, &glyphOptions);
   }
 
   void

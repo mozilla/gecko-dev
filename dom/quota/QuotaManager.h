@@ -298,6 +298,9 @@ public:
                                     nsIFile** aDirectory,
                                     bool* aCreated);
 
+  nsresult
+  EnsureTemporaryStorageIsInitialized();
+
   void
   OriginClearCompleted(PersistenceType aPersistenceType,
                        const nsACString& aOrigin);
@@ -477,7 +480,7 @@ private:
   UpgradeStorageFrom1_0To2_0(mozIStorageConnection* aConnection);
 
   nsresult
-  UpgradeStorageFrom2_0To3_0(mozIStorageConnection* aConnection);
+  UpgradeStorageFrom2_0To2_1(mozIStorageConnection* aConnection);
 
   nsresult
   InitializeRepository(PersistenceType aPersistenceType);

@@ -14,9 +14,8 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A computed angle.
 #[animate(fallback = "Self::animate_fallback")]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-#[derive(Animate, Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 #[derive(PartialOrd, ToAnimatedZero)]
 pub enum Angle {
     /// An angle with degree unit.
@@ -67,7 +66,7 @@ impl Angle {
         Angle::Radian(0.0)
     }
 
-    /// https://drafts.csswg.org/css-transitions/#animtype-number
+    /// <https://drafts.csswg.org/css-transitions/#animtype-number>
     #[inline]
     fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Angle::from_radians(self.radians().animate(&other.radians(), procedure)?))

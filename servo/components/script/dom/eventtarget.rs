@@ -32,7 +32,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use heapsize::HeapSizeOf;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
@@ -48,11 +47,19 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
 
-#[derive(Clone, JSTraceable, PartialEq)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CommonEventHandler {
-    EventHandler(Rc<EventHandlerNonNull>),
-    ErrorEventHandler(Rc<OnErrorEventHandlerNonNull>),
-    BeforeUnloadEventHandler(Rc<OnBeforeUnloadEventHandlerNonNull>),
+    EventHandler(
+        #[ignore_malloc_size_of = "Rc"]
+        Rc<EventHandlerNonNull>),
+
+    ErrorEventHandler(
+        #[ignore_malloc_size_of = "Rc"]
+        Rc<OnErrorEventHandlerNonNull>),
+
+    BeforeUnloadEventHandler(
+        #[ignore_malloc_size_of = "Rc"]
+        Rc<OnBeforeUnloadEventHandlerNonNull>),
 }
 
 impl CommonEventHandler {
@@ -65,14 +72,14 @@ impl CommonEventHandler {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-/// https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler
-#[derive(Clone, JSTraceable, PartialEq)]
+/// <https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler>
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 struct InternalRawUncompiledHandler {
     source: DOMString,
     url: ServoUrl,
@@ -80,7 +87,7 @@ struct InternalRawUncompiledHandler {
 }
 
 /// A representation of an event handler, either compiled or uncompiled raw source, or null.
-#[derive(Clone, JSTraceable, PartialEq)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 enum InlineEventListener {
     Uncompiled(InternalRawUncompiledHandler),
     Compiled(CommonEventHandler),
@@ -90,7 +97,7 @@ enum InlineEventListener {
 impl InlineEventListener {
     /// Get a compiled representation of this event handler, compiling it from its
     /// raw source if necessary.
-    /// https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
+    /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
     fn get_compiled_handler(&mut self, owner: &EventTarget, ty: &Atom)
                             -> Option<CommonEventHandler> {
         match mem::replace(self, InlineEventListener::Null) {
@@ -110,17 +117,10 @@ impl InlineEventListener {
     }
 }
 
-#[derive(Clone, JSTraceable, PartialEq)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 enum EventListenerType {
-    Additive(Rc<EventListener>),
+    Additive(#[ignore_malloc_size_of = "Rc"] Rc<EventListener>),
     Inline(InlineEventListener),
-}
-
-impl HeapSizeOf for EventListenerType {
-    fn heap_size_of_children(&self) -> usize {
-        // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
-        0
-    }
 }
 
 impl EventListenerType {
@@ -225,14 +225,14 @@ impl CompiledEventListener {
     }
 }
 
-#[derive(Clone, DenyPublicFields, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf, PartialEq)]
 /// A listener in a collection of event listeners.
 struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListenerType
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 /// A mix of potentially uncompiled and compiled event listeners of the same type.
 struct EventListeners(Vec<EventListenerEntry>);
 
@@ -314,7 +314,7 @@ impl EventTarget {
         *self.handlers.borrow_mut() = Default::default();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11
+    /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11>
     fn set_inline_event_listener(&self,
                                  ty: Atom,
                                  listener: Option<InlineEventListener>) {
@@ -353,7 +353,7 @@ impl EventTarget {
     }
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
-    /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
+    /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3>
     pub fn set_event_handler_uncompiled(&self,
                                         url: ServoUrl,
                                         line: usize,

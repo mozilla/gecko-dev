@@ -131,6 +131,13 @@ void
 RenderViewMLGPU::RenderAfterBackdropCopy()
 {
   MOZ_ASSERT(mContainer && mContainer->NeedsSurfaceCopy());
+
+  // Update the invalid bounds based on the container's visible region. This
+  // of course won't affect the prepared pipeline, but it will change the
+  // scissor rect in SetDeviceState.
+  mInvalidBounds = mContainer->GetRenderRegion().GetBounds().ToUnknownRect() -
+                   GetTargetOffset();
+
   ExecuteRendering();
 }
 
@@ -208,8 +215,8 @@ RenderViewMLGPU::UpdateVisibleRegion(ItemInfo& aItem)
     // Update the render region even if we won't compute visibility, since some
     // layer types (like Canvas and Image) need to have the visible region
     // clamped.
-    LayerIntRegion region = Move(aItem.layer->GetShadowVisibleRegion());
-    aItem.layer->SetRegionToRender(Move(region));
+    LayerIntRegion region = aItem.layer->GetShadowVisibleRegion();
+    aItem.layer->SetRenderRegion(Move(region));
 
     AL_LOG("RenderView %p simple occlusion test, bounds=%s, translation?=%d\n",
       this,
@@ -231,7 +238,7 @@ RenderViewMLGPU::UpdateVisibleRegion(ItemInfo& aItem)
   IntRect clip = aItem.layer->GetComputedClipRect().ToUnknownRect();
   AL_LOG("  clip=%s\n", Stringify(translation).c_str());
 
-  LayerIntRegion region = Move(aItem.layer->GetShadowVisibleRegion());
+  LayerIntRegion region = aItem.layer->GetShadowVisibleRegion();
   region.MoveBy(translation);
   AL_LOG("  effective-visible=%s\n", Stringify(region).c_str());
 
@@ -246,14 +253,14 @@ RenderViewMLGPU::UpdateVisibleRegion(ItemInfo& aItem)
   region.MoveBy(-translation);
   AL_LOG("  new-local-visible=%s\n", Stringify(region).c_str());
 
-  aItem.layer->SetRegionToRender(Move(region));
+  aItem.layer->SetRenderRegion(Move(region));
 
   // Apply the new occluded area. We do another dance with the translation to
   // avoid copying the region. We do this after the SetRegionToRender call to
   // accomodate the possiblity of a layer changing its visible region.
   if (aItem.opaque) {
     mOccludedRegion.MoveBy(-translation);
-    mOccludedRegion.OrWith(aItem.layer->GetShadowVisibleRegion());
+    mOccludedRegion.OrWith(aItem.layer->GetRenderRegion());
     mOccludedRegion.MoveBy(translation);
     AL_LOG("  new-occluded=%s\n", Stringify(mOccludedRegion).c_str());
 

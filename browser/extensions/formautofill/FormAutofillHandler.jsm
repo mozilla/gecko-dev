@@ -154,10 +154,11 @@ FormAutofillHandler.prototype = {
       this.address.fieldDetails = [];
     }
 
-    if (!this.creditCard.fieldDetails.some(i => i.fieldName == "cc-number")) {
-      log.debug("Ignoring credit card related fields since it's without credit card number field");
+    if (!this._isValidCreditCardForm(this.creditCard.fieldDetails)) {
+      log.debug("Invalid credit card form");
       this.creditCard.fieldDetails = [];
     }
+
     let validDetails = Array.of(...(this.address.fieldDetails),
                                 ...(this.creditCard.fieldDetails));
     for (let detail of validDetails) {
@@ -169,6 +170,28 @@ FormAutofillHandler.prototype = {
     }
 
     return validDetails;
+  },
+
+  _isValidCreditCardForm(fieldDetails) {
+    let ccNumberReason = "";
+    let hasCCNumber = false;
+    let hasExpiryDate = false;
+
+    for (let detail of fieldDetails) {
+      switch (detail.fieldName) {
+        case "cc-number":
+          hasCCNumber = true;
+          ccNumberReason = detail._reason;
+          break;
+        case "cc-exp":
+        case "cc-exp-month":
+        case "cc-exp-year":
+          hasExpiryDate = true;
+          break;
+      }
+    }
+
+    return hasCCNumber && (ccNumberReason == "autocomplete" || hasExpiryDate);
   },
 
   getFieldDetailByName(fieldName) {
@@ -328,11 +351,48 @@ FormAutofillHandler.prototype = {
     }
   },
 
+  _creditCardExpDateTransformer(profile) {
+    if (!profile["cc-exp"]) {
+      return;
+    }
+
+    let detail = this.getFieldDetailByName("cc-exp");
+    if (!detail) {
+      return;
+    }
+
+    let element = detail.elementWeakRef.get();
+    if (element.tagName != "INPUT" || !element.placeholder) {
+      return;
+    }
+
+    let result,
+      ccExpMonth = profile["cc-exp-month"],
+      ccExpYear = profile["cc-exp-year"],
+      placeholder = element.placeholder;
+
+    result = /(?:[^m]|\b)(m{1,2})\s*([-/\\]*)\s*(y{2,4})(?!y)/i.exec(placeholder);
+    if (result) {
+      profile["cc-exp"] = String(ccExpMonth).padStart(result[1].length, "0") +
+                          result[2] +
+                          String(ccExpYear).substr(-1 * result[3].length);
+      return;
+    }
+
+    result = /(?:[^y]|\b)(y{2,4})\s*([-/\\]*)\s*(m{1,2})(?!m)/i.exec(placeholder);
+    if (result) {
+      profile["cc-exp"] = String(ccExpYear).substr(-1 * result[1].length) +
+                          result[2] +
+                          String(ccExpMonth).padStart(result[3].length, "0");
+    }
+  },
+
   getAdaptedProfiles(originalProfiles) {
     for (let profile of originalProfiles) {
       this._addressTransformer(profile);
       this._telTransformer(profile);
       this._matchSelectOptions(profile);
+      this._creditCardExpDateTransformer(profile);
     }
     return originalProfiles;
   },
@@ -648,7 +708,7 @@ FormAutofillHandler.prototype = {
           value = FormAutofillUtils.getAbbreviatedStateName([value, text]) || text;
         }
 
-        if (!value) {
+        if (!value || value.length > FormAutofillUtils.MAX_FIELD_VALUE_LENGTH) {
           // Keep the property and preserve more information for updating
           data[type].record[detail.fieldName] = "";
           return;
@@ -666,8 +726,8 @@ FormAutofillHandler.prototype = {
 
     if (data.address && !this._isAddressRecordCreatable(data.address.record)) {
       log.debug("No address record saving since there are only",
-                     Object.keys(data.address.record).length,
-                     "usable fields");
+                Object.keys(data.address.record).length,
+                "usable fields");
       delete data.address;
     }
 

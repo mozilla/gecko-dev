@@ -140,7 +140,7 @@ pub struct Element {
     attrs: DomRefCell<Vec<Dom<Attr>>>,
     id_attribute: DomRefCell<Option<Atom>>,
     is: DomRefCell<Option<LocalName>>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
@@ -149,14 +149,14 @@ pub struct Element {
     /// operations may require restyling this element or its descendants. The
     /// flags are not atomic, so the style system takes care of only set them
     /// when it has exclusive access to the element.
-    #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
+    #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
-    /// https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue
+    /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
     custom_element_reaction_queue: DomRefCell<Vec<CustomElementReaction>>,
-    /// https://dom.spec.whatwg.org/#concept-element-custom-element-definition
-    #[ignore_heap_size_of = "Rc"]
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-definition>
+    #[ignore_malloc_size_of = "Rc"]
     custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
-    /// https://dom.spec.whatwg.org/#concept-element-custom-element-state
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     custom_element_state: Cell<CustomElementState>,
 }
 
@@ -176,7 +176,7 @@ impl fmt::Debug for DomRoot<Element> {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 pub enum ElementCreator {
     ParserCreated(u64),
     ScriptCreated,
@@ -187,8 +187,8 @@ pub enum CustomElementCreationMode {
     Asynchronous,
 }
 
-/// https://dom.spec.whatwg.org/#concept-element-custom-element-state
-#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+/// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CustomElementState {
     Undefined,
     Failed,
@@ -2063,7 +2063,7 @@ impl ElementMethods for Element {
         self.upcast::<Node>().client_rect().size.height
     }
 
-    /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
+    /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         let qname = QualName::new(self.prefix().clone(),
                                   self.namespace().clone(),
@@ -2075,7 +2075,7 @@ impl ElementMethods for Element {
         }
     }
 
-    /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
+    /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
     fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
         // Step 1.
         let frag = self.parse_fragment(value)?;
@@ -2528,11 +2528,11 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.upcast::<Node>().GetParentElement()
     }
 
-    fn match_pseudo_element(&self,
-                            _pseudo: &PseudoElement,
-                            _context: &mut MatchingContext)
-                            -> bool
-    {
+    fn match_pseudo_element(
+        &self,
+        _pseudo: &PseudoElement,
+        _context: &mut MatchingContext<Self::Impl>,
+    ) -> bool {
         false
     }
 
@@ -2594,13 +2594,15 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.namespace()
     }
 
-    fn match_non_ts_pseudo_class<F>(&self,
-                                    pseudo_class: &NonTSPseudoClass,
-                                    _: &mut MatchingContext,
-                                    _: &RelevantLinkStatus,
-                                    _: &mut F)
-                                    -> bool
-        where F: FnMut(&Self, ElementSelectorFlags),
+    fn match_non_ts_pseudo_class<F>(
+        &self,
+        pseudo_class: &NonTSPseudoClass,
+        _: &mut MatchingContext<Self::Impl>,
+        _: &RelevantLinkStatus,
+        _: &mut F,
+    ) -> bool
+    where
+        F: FnMut(&Self, ElementSelectorFlags),
     {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
@@ -2779,7 +2781,7 @@ impl Element {
 
     /// Please call this method *only* for real click events
     ///
-    /// https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
+    /// <https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps>
     ///
     /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
     /// If the spec says otherwise, check with Manishearth first
@@ -2859,7 +2861,7 @@ impl Element {
         self.state.get().contains(IN_ACTIVE_STATE)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#concept-selector-active
+    /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
     pub fn set_active_state(&self, value: bool) {
         self.set_state(IN_ACTIVE_STATE, value);
 
@@ -2936,7 +2938,7 @@ impl Element {
         self.set_state(IN_FULLSCREEN_STATE, value)
     }
 
-    /// https://dom.spec.whatwg.org/#connected
+    /// <https://dom.spec.whatwg.org/#connected>
     pub fn is_connected(&self) -> bool {
         let node = self.upcast::<Node>();
         let root = node.GetRootNode();
@@ -2998,11 +3000,11 @@ impl Element {
 #[derive(Clone, Copy)]
 pub enum AttributeMutation<'a> {
     /// The attribute is set, keep track of old value.
-    /// https://dom.spec.whatwg.org/#attribute-is-set
+    /// <https://dom.spec.whatwg.org/#attribute-is-set>
     Set(Option<&'a AttrValue>),
 
     /// The attribute is removed.
-    /// https://dom.spec.whatwg.org/#attribute-is-removed
+    /// <https://dom.spec.whatwg.org/#attribute-is-removed>
     Removed,
 }
 
@@ -3025,7 +3027,7 @@ impl<'a> AttributeMutation<'a> {
 /// A holder for an element's "tag name", which will be lazily
 /// resolved and cached. Should be reset when the document
 /// owner changes.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct TagName {
     ptr: DomRefCell<Option<LocalName>>,
 }
