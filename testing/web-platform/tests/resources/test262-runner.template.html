@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+function runtest_in_worker(filename, worker_class)
+{
+  worker_class = worker_class || Worker;
+  let testname = filename;
+  async_test(function(t) {
+    fetch(filename)
+      .then(response => response.text())
+      .then(function(script) {
+        var w = new worker_class("/resources/test262-runner.js");
+        w.postMessage([script]);
+        w.onmessage = function(e) {
+          let ret = e.data[0];
+          if (ret == "ok") {
+            t.done();
+          }
+        }
+        w.onerror = function(e) {
+          // TODO: Fail test as quick as possible instead of waiting for a timeout.
+        }
+      });
+  }, testname);
+}
+
+window.addEventListener("load", function() {
+    ###tests###
+    for (each of tests) {
+      runtest_in_worker(each);
+    }
+});
+
+</script>
