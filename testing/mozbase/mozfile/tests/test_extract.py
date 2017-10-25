@@ -23,7 +23,7 @@ class TestExtract(unittest.TestCase):
             path = os.path.join(directory, *f)
             exists = os.path.exists(path)
             if not exists:
-                print "%s does not exist" % (os.path.join(f))
+                print ("%s does not exist" % (os.path.join(f)))
             self.assertTrue(exists)
             if exists:
                 contents = file(path).read().strip()
