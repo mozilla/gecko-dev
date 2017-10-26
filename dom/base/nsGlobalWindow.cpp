@@ -1125,11 +1125,6 @@ public:
     return false;
   }
 
-  bool watch(JSContext *cx, JS::Handle<JSObject*> proxy,
-             JS::Handle<jsid> id, JS::Handle<JSObject*> callable) const override;
-  bool unwatch(JSContext *cx, JS::Handle<JSObject*> proxy,
-               JS::Handle<jsid> id) const override;
-
   static const nsOuterWindowProxy singleton;
 
 protected:
@@ -1476,20 +1471,6 @@ nsOuterWindowProxy::AppendIndexedPropertyNames(JSContext *cx, JSObject *proxy,
   }
 
   return true;
-}
-
-bool
-nsOuterWindowProxy::watch(JSContext *cx, JS::Handle<JSObject*> proxy,
-                          JS::Handle<jsid> id, JS::Handle<JSObject*> callable) const
-{
-  return js::WatchGuts(cx, proxy, id, callable);
-}
-
-bool
-nsOuterWindowProxy::unwatch(JSContext *cx, JS::Handle<JSObject*> proxy,
-                            JS::Handle<jsid> id) const
-{
-  return js::UnwatchGuts(cx, proxy, id);
 }
 
 size_t
@@ -6338,7 +6319,8 @@ nsGlobalWindow::CancelAnimationFrame(int32_t aHandle, ErrorResult& aError)
 }
 
 already_AddRefed<MediaQueryList>
-nsGlobalWindow::MatchMediaOuter(const nsAString& aMediaQueryList)
+nsGlobalWindow::MatchMediaOuter(const nsAString& aMediaQueryList,
+                                CallerType aCallerType)
 {
   MOZ_RELEASE_ASSERT(IsOuterWindow());
 
@@ -6346,18 +6328,19 @@ nsGlobalWindow::MatchMediaOuter(const nsAString& aMediaQueryList)
     return nullptr;
   }
 
-  return mDoc->MatchMedia(aMediaQueryList);
+  return mDoc->MatchMedia(aMediaQueryList, aCallerType);
 }
 
 already_AddRefed<MediaQueryList>
 nsGlobalWindow::MatchMedia(const nsAString& aMediaQueryList,
+                           CallerType aCallerType,
                            ErrorResult& aError)
 {
   // FIXME: This whole forward-to-outer and then get a pres
   // shell/context off the docshell dance is sort of silly; it'd make
   // more sense to forward to the inner, but it's what everyone else
   // (GetSelection, GetScrollXY, etc.) does around here.
-  FORWARD_TO_OUTER_OR_THROW(MatchMediaOuter, (aMediaQueryList), aError, nullptr);
+  FORWARD_TO_OUTER_OR_THROW(MatchMediaOuter, (aMediaQueryList, aCallerType), aError, nullptr);
 }
 
 void

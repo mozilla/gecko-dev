@@ -119,7 +119,12 @@
 
 #pageAction-panel-sendToDevice,
 #pageAction-urlbar-sendToDevice {
-  list-style-image: url("chrome://browser/skin/device-mobile.svg");
+  list-style-image: url("chrome://browser/skin/send-to-device.svg");
+}
+
+#pageAction-panel-sendToDevice:-moz-locale-dir(rtl) > .toolbarbutton-icon,
+#pageAction-urlbar-sendToDevice:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
 }
 
 .pageAction-sendToDevice-device[clientType=mobile] {
@@ -294,12 +299,8 @@
   /* .urlbar-icon has width 28px. Each frame is 33px wide. Set margin-inline-start
      to be half the difference, -2.5px. */
   margin-inline-start: -2.5px;
-  /* Set the height to equal the height of each frame of the SVG. Must use
-     min- and max- width and height due to bug 1379332. */
-  min-width: 33px;
-  max-width: 33px;
-  min-height: 33px;
-  max-height: 33px;
+  width: 33px; /* Width of each frame within the SVG sprite */
+  height: 33px; /* Height of each frame within the SVG sprite */
 }
 
 :root[uidensity=compact] #star-button-box[animationsenabled] > #star-button[starred][animate] + #star-button-animatable-box {
@@ -341,12 +342,6 @@
 #reader-mode-button[readeractive] {
   fill: var(--toolbarbutton-icon-fill-attention);
   fill-opacity: 1;
-}
-
-/* Blocked popup icon */
-
-#page-report-button {
-  list-style-image: url(chrome://browser/skin/notification-icons/popup.svg);
 }
 
 /* Zoom button */

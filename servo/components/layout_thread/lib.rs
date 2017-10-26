@@ -86,7 +86,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
+use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -895,11 +895,7 @@ impl LayoutThread {
     }
 
     fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
-        let mut data = match node.mutate_layout_data() {
-            Some(x) => x,
-            None => return None,
-        };
-        let result = data.flow_construction_result.get();
+        let result = node.mutate_layout_data()?.flow_construction_result.get();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {

@@ -33,8 +33,7 @@ static mozilla::LazyLogModule gU2FManagerLog("u2fmanager");
 
 NS_NAMED_LITERAL_STRING(kVisibilityChange, "visibilitychange");
 
-NS_IMPL_ISUPPORTS(U2FManager, nsIIPCBackgroundChildCreateCallback,
-                  nsIDOMEventListener);
+NS_IMPL_ISUPPORTS(U2FManager, nsIDOMEventListener);
 
 /***********************************************************************
  * Utility Functions
@@ -105,12 +104,6 @@ U2FManager::ClearTransaction()
   }
 
   mTransaction.reset();
-
-  if (mChild) {
-    RefPtr<U2FTransactionChild> c;
-    mChild.swap(c);
-    c->Send__delete__(c);
-  }
 }
 
 void
@@ -127,8 +120,8 @@ U2FManager::RejectTransaction(const nsresult& aError)
 void
 U2FManager::CancelTransaction(const nsresult& aError)
 {
-  if (mChild) {
-    mChild->SendRequestCancel();
+  if (!NS_WARN_IF(!mChild || mTransaction.isNothing())) {
+    mChild->SendRequestCancel(mTransaction.ref().mId);
   }
 
   RejectTransaction(aError);
@@ -141,27 +134,40 @@ U2FManager::~U2FManager()
   if (mTransaction.isSome()) {
     RejectTransaction(NS_ERROR_ABORT);
   }
+
+  if (mChild) {
+    RefPtr<U2FTransactionChild> c;
+    mChild.swap(c);
+    c->Send__delete__(c);
+  }
 }
 
-RefPtr<U2FManager::BackgroundActorPromise>
-U2FManager::GetOrCreateBackgroundActor()
+bool
+U2FManager::MaybeCreateBackgroundActor()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  PBackgroundChild *actor = BackgroundChild::GetForCurrentThread();
-  RefPtr<U2FManager::BackgroundActorPromise> promise =
-    mPBackgroundCreationPromise.Ensure(__func__);
-
-  if (actor) {
-    ActorCreated(actor);
-  } else {
-    bool ok = BackgroundChild::GetOrCreateForCurrentThread(this);
-    if (NS_WARN_IF(!ok)) {
-      ActorFailed();
-    }
+  if (mChild) {
+    return true;
   }
 
-  return promise;
+  PBackgroundChild* actorChild = BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actorChild)) {
+    return false;
+  }
+
+  RefPtr<U2FTransactionChild> mgr(new U2FTransactionChild());
+  PWebAuthnTransactionChild* constructedMgr =
+    actorChild->SendPWebAuthnTransactionConstructor(mgr);
+
+  if (NS_WARN_IF(!constructedMgr)) {
+    return false;
+  }
+
+  MOZ_ASSERT(constructedMgr == mgr);
+  mChild = mgr.forget();
+
+  return true;
 }
 
 //static
@@ -259,18 +265,9 @@ U2FManager::Register(nsPIDOMWindowInner* aParent, const nsCString& aRpId,
     return U2FPromise::CreateAndReject(ErrorCode::OTHER_ERROR, __func__).forget();
   }
 
-  RefPtr<MozPromise<nsresult, nsresult, false>> p = GetOrCreateBackgroundActor();
-  p->Then(GetMainThreadSerialEventTarget(), __func__,
-          []() {
-            U2FManager* mgr = U2FManager::Get();
-            if (mgr && mgr->mChild && mgr->mTransaction.isSome()) {
-              mgr->mChild->SendRequestRegister(mgr->mTransaction.ref().mInfo);
-            }
-          },
-          []() {
-            // This case can't actually happen, we'll have crashed if the child
-            // failed to create.
-          });
+  if (!MaybeCreateBackgroundActor()) {
+    return U2FPromise::CreateAndReject(ErrorCode::OTHER_ERROR, __func__).forget();
+  }
 
   ListenForVisibilityEvents(aParent, this);
 
@@ -285,6 +282,8 @@ U2FManager::Register(nsPIDOMWindowInner* aParent, const nsCString& aRpId,
 
   MOZ_ASSERT(mTransaction.isNothing());
   mTransaction = Some(U2FTransaction(aParent, Move(info), aClientDataJSON));
+
+  mChild->SendRequestRegister(mTransaction.ref().mId, mTransaction.ref().mInfo);
   return mTransaction.ref().mPromise.Ensure(__func__);
 }
 
@@ -308,18 +307,9 @@ U2FManager::Sign(nsPIDOMWindowInner* aParent,
     return U2FPromise::CreateAndReject(ErrorCode::OTHER_ERROR, __func__).forget();
   }
 
-  RefPtr<MozPromise<nsresult, nsresult, false>> p = GetOrCreateBackgroundActor();
-  p->Then(GetMainThreadSerialEventTarget(), __func__,
-          []() {
-            U2FManager* mgr = U2FManager::Get();
-            if (mgr && mgr->mChild && mgr->mTransaction.isSome()) {
-              mgr->mChild->SendRequestSign(mgr->mTransaction.ref().mInfo);
-            }
-          },
-          []() {
-            // This case can't actually happen, we'll have crashed if the child
-            // failed to create.
-          });
+  if (!MaybeCreateBackgroundActor()) {
+    return U2FPromise::CreateAndReject(ErrorCode::OTHER_ERROR, __func__).forget();
+  }
 
   ListenForVisibilityEvents(aParent, this);
 
@@ -334,16 +324,19 @@ U2FManager::Sign(nsPIDOMWindowInner* aParent,
 
   MOZ_ASSERT(mTransaction.isNothing());
   mTransaction = Some(U2FTransaction(aParent, Move(info), aClientDataJSON));
+
+  mChild->SendRequestSign(mTransaction.ref().mId, mTransaction.ref().mInfo);
   return mTransaction.ref().mPromise.Ensure(__func__);
 }
 
 void
-U2FManager::FinishRegister(nsTArray<uint8_t>& aRegBuffer)
+U2FManager::FinishRegister(const uint64_t& aTransactionId,
+                           nsTArray<uint8_t>& aRegBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Check for a valid transaction.
-  if (mTransaction.isNothing()) {
+  if (mTransaction.isNothing() || mTransaction.ref().mId != aTransactionId) {
     return;
   }
 
@@ -388,13 +381,14 @@ U2FManager::FinishRegister(nsTArray<uint8_t>& aRegBuffer)
 }
 
 void
-U2FManager::FinishSign(nsTArray<uint8_t>& aCredentialId,
+U2FManager::FinishSign(const uint64_t& aTransactionId,
+                       nsTArray<uint8_t>& aCredentialId,
                        nsTArray<uint8_t>& aSigBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Check for a valid transaction.
-  if (mTransaction.isNothing()) {
+  if (mTransaction.isNothing() || mTransaction.ref().mId != aTransactionId) {
     return;
   }
 
@@ -447,11 +441,12 @@ U2FManager::FinishSign(nsTArray<uint8_t>& aCredentialId,
 }
 
 void
-U2FManager::RequestAborted(const nsresult& aError)
+U2FManager::RequestAborted(const uint64_t& aTransactionId,
+                           const nsresult& aError)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mTransaction.isSome()) {
+  if (mTransaction.isSome() && mTransaction.ref().mId == aTransactionId) {
     RejectTransaction(aError);
   }
 }
@@ -461,7 +456,6 @@ U2FManager::HandleEvent(nsIDOMEvent* aEvent)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aEvent);
-  MOZ_ASSERT(mChild);
 
   nsAutoString type;
   aEvent->GetType(type);
@@ -471,9 +465,11 @@ U2FManager::HandleEvent(nsIDOMEvent* aEvent)
 
   nsCOMPtr<nsIDocument> doc =
     do_QueryInterface(aEvent->InternalDOMEvent()->GetTarget());
-  MOZ_ASSERT(doc);
+  if (NS_WARN_IF(!doc)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  if (doc && doc->Hidden()) {
+  if (doc->Hidden()) {
     MOZ_LOG(gU2FManagerLog, LogLevel::Debug,
             ("Visibility change: U2F window is hidden, cancelling job."));
 
@@ -484,38 +480,10 @@ U2FManager::HandleEvent(nsIDOMEvent* aEvent)
 }
 
 void
-U2FManager::ActorCreated(PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aActor);
-
-  if (mChild) {
-    return;
-  }
-
-  RefPtr<U2FTransactionChild> mgr(new U2FTransactionChild());
-  PWebAuthnTransactionChild* constructedMgr =
-    aActor->SendPWebAuthnTransactionConstructor(mgr);
-
-  if (NS_WARN_IF(!constructedMgr)) {
-    ActorFailed();
-    return;
-  }
-  MOZ_ASSERT(constructedMgr == mgr);
-  mChild = mgr.forget();
-  mPBackgroundCreationPromise.Resolve(NS_OK, __func__);
-}
-
-void
 U2FManager::ActorDestroyed()
 {
+  MOZ_ASSERT(NS_IsMainThread());
   mChild = nullptr;
-}
-
-void
-U2FManager::ActorFailed()
-{
-  MOZ_CRASH("We shouldn't be here!");
 }
 
 } // namespace dom

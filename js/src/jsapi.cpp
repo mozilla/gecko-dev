@@ -39,7 +39,6 @@
 #include "jsstr.h"
 #include "jstypes.h"
 #include "jsutil.h"
-#include "jswatchpoint.h"
 #include "jsweakmap.h"
 #include "jswrapper.h"
 
@@ -3683,9 +3682,6 @@ CreateNonSyntacticEnvironmentChain(JSContext* cx, AutoObjectVector& envChain,
 static bool
 IsFunctionCloneable(HandleFunction fun)
 {
-    if (!fun->isInterpreted())
-        return true;
-
     // If a function was compiled with non-global syntactic environments on
     // the environment chain, we could have baked in EnvironmentCoordinates
     // into the script. We cannot clone it without breaking the compiler's
@@ -3723,27 +3719,17 @@ CloneFunctionObject(JSContext* cx, HandleObject funobj, HandleObject env, Handle
             return nullptr;
     }
 
+    if (fun->isNative()) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
+        return nullptr;
+    }
+
     if (!IsFunctionCloneable(fun)) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_CLONE_FUNOBJ_SCOPE);
         return nullptr;
     }
 
     if (fun->isBoundFunction()) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
-        return nullptr;
-    }
-
-    if (IsAsmJSModule(fun) || wasm::IsExportedFunction(fun)) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
-        return nullptr;
-    }
-
-    if (IsWrappedAsyncFunction(fun)) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
-        return nullptr;
-    }
-
-    if (IsWrappedAsyncGenerator(fun)) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
         return nullptr;
     }

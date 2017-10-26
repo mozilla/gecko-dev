@@ -990,8 +990,8 @@ nsRange::DoSetRange(const RawRangeBoundary& aStart,
                    aRoot == IsValidBoundary(aEnd.Container())),
                   "Wrong root");
   NS_PRECONDITION(!aRoot ||
-                  (aStart.Container()->IsNodeOfType(nsINode::eCONTENT) &&
-                   aEnd.Container()->IsNodeOfType(nsINode::eCONTENT) &&
+                  (aStart.Container()->IsContent() &&
+                   aEnd.Container()->IsContent() &&
                    aRoot ==
                     static_cast<nsIContent*>(aStart.Container())->GetBindingParent() &&
                    aRoot ==
@@ -1001,7 +1001,7 @@ nsRange::DoSetRange(const RawRangeBoundary& aStart,
                     aRoot->IsNodeOfType(nsINode::eATTRIBUTE) ||
                     aRoot->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
                      /*For backward compatibility*/
-                    aRoot->IsNodeOfType(nsINode::eCONTENT))),
+                    aRoot->IsContent())),
                   "Bad root");
   if (mRoot != aRoot) {
     if (mRoot) {
@@ -1257,13 +1257,12 @@ nsRange::ComputeRootNode(nsINode* aNode, bool aMaySpanAnonymousSubtrees)
     return nullptr;
   }
 
-  if (aNode->IsNodeOfType(nsINode::eCONTENT)) {
+  if (aNode->IsContent()) {
     if (aNode->NodeInfo()->NameAtom() == nsGkAtoms::documentTypeNodeName) {
       return nullptr;
     }
 
-    nsIContent* content = static_cast<nsIContent*>(aNode);
-
+    nsIContent* content = aNode->AsContent();
     if (!aMaySpanAnonymousSubtrees) {
       // If the node is in a shadow tree then the ShadowRoot is the root.
       ShadowRoot* containingShadow = content->GetContainingShadow();
@@ -2419,6 +2418,7 @@ nsRange::CutContents(DocumentFragment** aFragment)
       {
         nsCOMPtr<nsINode> n = do_QueryInterface(commonCloneAncestor);
         n->AppendChild(*farthestAncestor, res);
+        res.WouldReportJSException();
         if (NS_WARN_IF(res.Failed())) {
           return res.StealNSResult();
         }
@@ -2431,6 +2431,7 @@ nsRange::CutContents(DocumentFragment** aFragment)
       } else {
         commonCloneAncestor->AppendChild(*nodeToResult, res);
       }
+      res.WouldReportJSException();
       if (NS_WARN_IF(res.Failed())) {
         return res.StealNSResult();
       }

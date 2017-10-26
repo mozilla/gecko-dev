@@ -46,8 +46,7 @@ static mozilla::LazyLogModule gWebAuthnManagerLog("webauthnmanager");
 
 NS_NAMED_LITERAL_STRING(kVisibilityChange, "visibilitychange");
 
-NS_IMPL_ISUPPORTS(WebAuthnManager, nsIIPCBackgroundChildCreateCallback,
-                  nsIDOMEventListener);
+NS_IMPL_ISUPPORTS(WebAuthnManager, nsIDOMEventListener);
 
 /***********************************************************************
  * Utility Functions
@@ -200,12 +199,6 @@ WebAuthnManager::ClearTransaction()
   }
 
   mTransaction.reset();
-
-  if (mChild) {
-    RefPtr<WebAuthnTransactionChild> c;
-    mChild.swap(c);
-    c->Send__delete__(c);
-  }
 }
 
 void
@@ -221,8 +214,8 @@ WebAuthnManager::RejectTransaction(const nsresult& aError)
 void
 WebAuthnManager::CancelTransaction(const nsresult& aError)
 {
-  if (mChild) {
-    mChild->SendRequestCancel();
+  if (!NS_WARN_IF(!mChild || mTransaction.isNothing())) {
+    mChild->SendRequestCancel(mTransaction.ref().mId);
   }
 
   RejectTransaction(aError);
@@ -235,27 +228,40 @@ WebAuthnManager::~WebAuthnManager()
   if (mTransaction.isSome()) {
     RejectTransaction(NS_ERROR_ABORT);
   }
+
+  if (mChild) {
+    RefPtr<WebAuthnTransactionChild> c;
+    mChild.swap(c);
+    c->Send__delete__(c);
+  }
 }
 
-RefPtr<WebAuthnManager::BackgroundActorPromise>
-WebAuthnManager::GetOrCreateBackgroundActor()
+bool
+WebAuthnManager::MaybeCreateBackgroundActor()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  PBackgroundChild *actor = BackgroundChild::GetForCurrentThread();
-  RefPtr<WebAuthnManager::BackgroundActorPromise> promise =
-    mPBackgroundCreationPromise.Ensure(__func__);
-
-  if (actor) {
-    ActorCreated(actor);
-  } else {
-    bool ok = BackgroundChild::GetOrCreateForCurrentThread(this);
-    if (NS_WARN_IF(!ok)) {
-      ActorFailed();
-    }
+  if (mChild) {
+    return true;
   }
 
-  return promise;
+  PBackgroundChild* actor = BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actor)) {
+    return false;
+  }
+
+  RefPtr<WebAuthnTransactionChild> mgr(new WebAuthnTransactionChild());
+  PWebAuthnTransactionChild* constructedMgr =
+    actor->SendPWebAuthnTransactionConstructor(mgr);
+
+  if (NS_WARN_IF(!constructedMgr)) {
+    return false;
+  }
+
+  MOZ_ASSERT(constructedMgr == mgr);
+  mChild = mgr.forget();
+
+  return true;
 }
 
 //static
@@ -453,6 +459,11 @@ WebAuthnManager::MakeCredential(nsPIDOMWindowInner* aParent,
     excludeList.AppendElement(c);
   }
 
+  if (!MaybeCreateBackgroundActor()) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+    return promise.forget();
+  }
+
   // TODO: Add extension list building
   nsTArray<WebAuthnExtension> extensions;
 
@@ -461,18 +472,6 @@ WebAuthnManager::MakeCredential(nsPIDOMWindowInner* aParent,
                                adjustedTimeout,
                                excludeList,
                                extensions);
-  RefPtr<MozPromise<nsresult, nsresult, false>> p = GetOrCreateBackgroundActor();
-  p->Then(GetMainThreadSerialEventTarget(), __func__,
-          []() {
-            WebAuthnManager* mgr = WebAuthnManager::Get();
-            if (mgr && mgr->mChild && mgr->mTransaction.isSome()) {
-              mgr->mChild->SendRequestRegister(mgr->mTransaction.ref().mInfo);
-            }
-          },
-          []() {
-            // This case can't actually happen, we'll have crashed if the child
-            // failed to create.
-          });
 
   ListenForVisibilityEvents(aParent, this);
 
@@ -482,6 +481,7 @@ WebAuthnManager::MakeCredential(nsPIDOMWindowInner* aParent,
                                           Move(info),
                                           Move(clientDataJSON)));
 
+  mChild->SendRequestRegister(mTransaction.ref().mId, mTransaction.ref().mInfo);
   return promise.forget();
 }
 
@@ -603,6 +603,11 @@ WebAuthnManager::GetAssertion(nsPIDOMWindowInner* aParent,
     allowList.AppendElement(c);
   }
 
+  if (!MaybeCreateBackgroundActor()) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+    return promise.forget();
+  }
+
   // TODO: Add extension list building
   // If extensions was specified, process any extensions supported by this
   // client platform, to produce the extension data that needs to be sent to the
@@ -616,18 +621,6 @@ WebAuthnManager::GetAssertion(nsPIDOMWindowInner* aParent,
                                adjustedTimeout,
                                allowList,
                                extensions);
-  RefPtr<MozPromise<nsresult, nsresult, false>> p = GetOrCreateBackgroundActor();
-  p->Then(GetMainThreadSerialEventTarget(), __func__,
-          []() {
-            WebAuthnManager* mgr = WebAuthnManager::Get();
-            if (mgr && mgr->mChild && mgr->mTransaction.isSome()) {
-              mgr->mChild->SendRequestSign(mgr->mTransaction.ref().mInfo);
-            }
-          },
-          []() {
-            // This case can't actually happen, we'll have crashed if the child
-            // failed to create.
-          });
 
   ListenForVisibilityEvents(aParent, this);
 
@@ -637,6 +630,7 @@ WebAuthnManager::GetAssertion(nsPIDOMWindowInner* aParent,
                                           Move(info),
                                           Move(clientDataJSON)));
 
+  mChild->SendRequestSign(mTransaction.ref().mId, mTransaction.ref().mInfo);
   return promise.forget();
 }
 
@@ -664,12 +658,13 @@ WebAuthnManager::Store(nsPIDOMWindowInner* aParent,
 }
 
 void
-WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
+WebAuthnManager::FinishMakeCredential(const uint64_t& aTransactionId,
+                                      nsTArray<uint8_t>& aRegBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Check for a valid transaction.
-  if (mTransaction.isNothing()) {
+  if (mTransaction.isNothing() || mTransaction.ref().mId != aTransactionId) {
     return;
   }
 
@@ -791,13 +786,14 @@ WebAuthnManager::FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer)
 }
 
 void
-WebAuthnManager::FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,
+WebAuthnManager::FinishGetAssertion(const uint64_t& aTransactionId,
+                                    nsTArray<uint8_t>& aCredentialId,
                                     nsTArray<uint8_t>& aSigBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Check for a valid transaction.
-  if (mTransaction.isNothing()) {
+  if (mTransaction.isNothing() || mTransaction.ref().mId != aTransactionId) {
     return;
   }
 
@@ -876,11 +872,12 @@ WebAuthnManager::FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,
 }
 
 void
-WebAuthnManager::RequestAborted(const nsresult& aError)
+WebAuthnManager::RequestAborted(const uint64_t& aTransactionId,
+                                const nsresult& aError)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mTransaction.isSome()) {
+  if (mTransaction.isSome() && mTransaction.ref().mId == aTransactionId) {
     RejectTransaction(aError);
   }
 }
@@ -899,9 +896,11 @@ WebAuthnManager::HandleEvent(nsIDOMEvent* aEvent)
 
   nsCOMPtr<nsIDocument> doc =
     do_QueryInterface(aEvent->InternalDOMEvent()->GetTarget());
-  MOZ_ASSERT(doc);
+  if (NS_WARN_IF(!doc)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  if (doc && doc->Hidden()) {
+  if (doc->Hidden()) {
     MOZ_LOG(gWebAuthnManagerLog, LogLevel::Debug,
             ("Visibility change: WebAuthn window is hidden, cancelling job."));
 
@@ -912,40 +911,10 @@ WebAuthnManager::HandleEvent(nsIDOMEvent* aEvent)
 }
 
 void
-WebAuthnManager::ActorCreated(PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aActor);
-
-  if (mChild) {
-    return;
-  }
-
-  RefPtr<WebAuthnTransactionChild> mgr(new WebAuthnTransactionChild());
-  PWebAuthnTransactionChild* constructedMgr =
-    aActor->SendPWebAuthnTransactionConstructor(mgr);
-
-  if (NS_WARN_IF(!constructedMgr)) {
-    ActorFailed();
-    return;
-  }
-  MOZ_ASSERT(constructedMgr == mgr);
-  mChild = mgr.forget();
-  mPBackgroundCreationPromise.Resolve(NS_OK, __func__);
-}
-
-void
 WebAuthnManager::ActorDestroyed()
 {
   MOZ_ASSERT(NS_IsMainThread());
   mChild = nullptr;
-}
-
-void
-WebAuthnManager::ActorFailed()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_CRASH("We shouldn't be here!");
 }
 
 }

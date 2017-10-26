@@ -196,6 +196,7 @@ protected:
   static void DetachAGR(AnimatedGeometryRoot* aAGR) {
     aAGR->mFrame = nullptr;
     aAGR->mParentAGR = nullptr;
+    NS_RELEASE(aAGR);
   }
   NS_DECLARE_FRAME_PROPERTY_WITH_DTOR(AnimatedGeometryRootCache, AnimatedGeometryRoot, DetachAGR)
 
@@ -207,6 +208,7 @@ protected:
   {
     MOZ_ASSERT(mParentAGR || mIsAsync, "The root AGR should always be treated as an async AGR.");
     if (mIsRetained) {
+      NS_ADDREF(this);
       aFrame->SetProperty(AnimatedGeometryRootCache(), this);
     }
   }
@@ -254,7 +256,8 @@ struct ActiveScrolledRoot {
       asr = new ActiveScrolledRoot();
 
       if (aIsRetained) {
-        f->SetProperty(ActiveScrolledRootCache(), asr);
+        RefPtr<ActiveScrolledRoot> ref = asr;
+        f->SetProperty(ActiveScrolledRootCache(), ref.forget().take());
       }
     }
     asr->mParent = aParent;
@@ -308,6 +311,7 @@ private:
   static void DetachASR(ActiveScrolledRoot* aASR) {
     aASR->mParent = nullptr;
     aASR->mScrollableFrame = nullptr;
+    NS_RELEASE(aASR);
   }
   NS_DECLARE_FRAME_PROPERTY_WITH_DTOR(ActiveScrolledRootCache, ActiveScrolledRoot, DetachASR)
 
@@ -754,7 +758,7 @@ public:
    * ResetMarkedFramesForDisplayList to make sure that the results of
    * MarkFramesForDisplayList do not carry over between batches.
    */
-  void ResetMarkedFramesForDisplayList();
+  void ResetMarkedFramesForDisplayList(nsIFrame* aReferenceFrame);
   /**
    * Notify the display list builder that we're leaving a presshell.
    */
@@ -827,8 +831,8 @@ public:
    */
   void MarkFramesForDisplayList(nsIFrame* aDirtyFrame,
                                 const nsFrameList& aFrames);
-  void MarkFrameForDisplay(nsIFrame* aFrame, nsIFrame* aStopAtFrame = nullptr);
-  void MarkFrameForDisplayIfVisible(nsIFrame* aFrame, nsIFrame* aStopAtFrame = nullptr);
+  void MarkFrameForDisplay(nsIFrame* aFrame, nsIFrame* aStopAtFrame);
+  void MarkFrameForDisplayIfVisible(nsIFrame* aFrame, nsIFrame* aStopAtFrame);
 
   void ClearFixedBackgroundDisplayData();
   /**
@@ -874,25 +878,27 @@ public:
    * effects applied to them (e.g. CSS opacity or filters).
    *
    * @param aWidgetType the -moz-appearance value for the themed widget
+   * @param aItem the item associated with the theme geometry
    * @param aRect the device-pixel rect relative to the widget's displayRoot
    * for the themed widget
    */
-  void RegisterThemeGeometry(uint8_t aWidgetType, nsIFrame* aFrame,
-                             const mozilla::LayoutDeviceIntRect& aRect) {
-    if (mIsPaintingToWindow) {
-      nsTArray<ThemeGeometry>* geometries =
-        mThemeGeometries.LookupOrAdd(aFrame);
-
-      geometries->AppendElement(ThemeGeometry(aWidgetType, aRect));
+  void RegisterThemeGeometry(uint8_t aWidgetType, nsDisplayItem* aItem,
+                             const mozilla::LayoutDeviceIntRect& aRect)
+  {
+    if (!mIsPaintingToWindow) {
+      return;
     }
+
+    nsTArray<ThemeGeometry>* geometries = mThemeGeometries.LookupOrAdd(aItem);
+    geometries->AppendElement(ThemeGeometry(aWidgetType, aRect));
   }
 
   /**
-   * Removes theme geometries associated with the given frame.
+   * Removes theme geometries associated with the given display item |aItem|.
    */
-  void UnregisterThemeGeometry(nsIFrame* aFrame)
+  void UnregisterThemeGeometry(nsDisplayItem* aItem)
   {
-    mThemeGeometries.Remove(aFrame);
+    mThemeGeometries.Remove(aItem);
   }
 
   /**
@@ -1607,11 +1613,11 @@ public:
    */
   AnimatedGeometryRoot* AnimatedGeometryRootForASR(const ActiveScrolledRoot* aASR);
 
-  bool HitTestShouldStopAtFirstOpaque() const {
-    return mHitTestShouldStopAtFirstOpaque;
+  bool HitTestIsForVisibility() const {
+    return mHitTestIsForVisibility;
   }
-  void SetHitTestShouldStopAtFirstOpaque(bool aHitTestShouldStopAtFirstOpaque) {
-    mHitTestShouldStopAtFirstOpaque = aHitTestShouldStopAtFirstOpaque;
+  void SetHitTestIsForVisibility(bool aHitTestIsForVisibility) {
+    mHitTestIsForVisibility = aHitTestIsForVisibility;
   }
 
 private:
@@ -1703,7 +1709,7 @@ private:
   nsCOMPtr<nsISelection>         mBoundingSelection;
   AutoTArray<PresShellState,8> mPresShellStates;
   AutoTArray<nsIFrame*,400>    mFramesMarkedForDisplay;
-  nsClassHashtable<nsPtrHashKey<nsIFrame>, nsTArray<ThemeGeometry>> mThemeGeometries;
+  nsClassHashtable<nsPtrHashKey<nsDisplayItem>, nsTArray<ThemeGeometry>> mThemeGeometries;
   nsDisplayTableItem*            mCurrentTableItem;
   DisplayListClipState           mClipState;
   const ActiveScrolledRoot*      mCurrentActiveScrolledRoot;
@@ -1797,7 +1803,7 @@ private:
   bool                           mForceLayerForScrollParent;
   bool                           mAsyncPanZoomEnabled;
   bool                           mBuildingInvisibleItems;
-  bool                           mHitTestShouldStopAtFirstOpaque;
+  bool                           mHitTestIsForVisibility;
   bool                           mIsBuilding;
   bool                           mInInvalidSubtree;
 };
@@ -3858,7 +3864,7 @@ public:
 
   void Destroy(nsDisplayListBuilder* aBuilder) override
   {
-    aBuilder->UnregisterThemeGeometry(mFrame);
+    aBuilder->UnregisterThemeGeometry(this);
     nsDisplayItem::Destroy(aBuilder);
   }
 
@@ -5095,7 +5101,7 @@ public:
 
   NS_DISPLAY_DECL_NAME("SubDocument", TYPE_SUBDOCUMENT)
 
-  mozilla::UniquePtr<ScrollMetadata> ComputeScrollMetadata(Layer* aLayer,
+  mozilla::UniquePtr<ScrollMetadata> ComputeScrollMetadata(LayerManager* aLayerManager,
                                                            const ContainerLayerParameters& aContainerParameters);
 
 protected:
@@ -5319,7 +5325,7 @@ public:
 
   virtual void WriteDebugInfo(std::stringstream& aStream) override;
 
-  mozilla::UniquePtr<ScrollMetadata> ComputeScrollMetadata(Layer* aLayer,
+  mozilla::UniquePtr<ScrollMetadata> ComputeScrollMetadata(LayerManager* aLayerManager,
                                                            const ContainerLayerParameters& aContainerParameters);
 
   virtual bool UpdateScrollData(mozilla::layers::WebRenderScrollData* aData,

@@ -958,7 +958,7 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
       mForceLayerForScrollParent(false),
       mAsyncPanZoomEnabled(nsLayoutUtils::AsyncPanZoomEnabled(aReferenceFrame)),
       mBuildingInvisibleItems(false),
-      mHitTestShouldStopAtFirstOpaque(false),
+      mHitTestIsForVisibility(false),
       mIsBuilding(false),
       mInInvalidSubtree(false)
 {
@@ -1006,7 +1006,7 @@ nsDisplayListBuilder::MarkFrameForDisplay(nsIFrame* aFrame, nsIFrame* aStopAtFra
 {
   mFramesMarkedForDisplay.AppendElement(aFrame);
   for (nsIFrame* f = aFrame; f;
-       f = nsLayoutUtils::GetParentOrPlaceholderFor(f)) {
+       f = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(f)) {
     if (f->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO)
       return;
     f->AddStateBits(NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO);
@@ -1022,7 +1022,7 @@ nsDisplayListBuilder::MarkFrameForDisplayIfVisible(nsIFrame* aFrame, nsIFrame* a
 {
   mFramesMarkedForDisplay.AppendElement(aFrame);
   for (nsIFrame* f = aFrame; f;
-       f = nsLayoutUtils::GetParentOrPlaceholderFor(f)) {
+       f = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(f)) {
     if (f->ForceDescendIntoIfVisible())
       return;
     f->SetForceDescendIntoIfVisible(true);
@@ -1129,15 +1129,14 @@ void nsDisplayListBuilder::MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame,
     if (ps->IsScrollPositionClampingScrollPortSizeSet()) {
       dirtyRectRelativeToDirtyFrame =
         nsRect(nsPoint(0, 0), ps->GetScrollPositionClampingScrollPortSize());
+      visible = dirtyRectRelativeToDirtyFrame;
 #ifdef MOZ_WIDGET_ANDROID
     } else {
       dirtyRectRelativeToDirtyFrame =
         nsRect(nsPoint(0, 0), aDirtyFrame->GetSize());
+      visible = dirtyRectRelativeToDirtyFrame;
 #endif
     }
-    // TODO: We probably don't want visible and dirty to be the same here, figure
-    // out what to do.
-    visible = dirtyRectRelativeToDirtyFrame;
   }
   nsPoint offset = aFrame->GetOffsetTo(aDirtyFrame);
   visible -= offset;
@@ -1177,16 +1176,20 @@ void nsDisplayListBuilder::MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame,
   MarkFrameForDisplay(aFrame, aDirtyFrame);
 }
 
-static void UnmarkFrameForDisplay(nsIFrame* aFrame) {
+static void UnmarkFrameForDisplay(nsIFrame* aFrame, nsIFrame* aStopAtFrame) {
   aFrame->DeleteProperty(nsDisplayListBuilder::OutOfFlowDisplayDataProperty());
 
   for (nsIFrame* f = aFrame; f;
-       f = nsLayoutUtils::GetParentOrPlaceholderFor(f)) {
+       f = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(f)) {
     if (!(f->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO) &&
         !f->ForceDescendIntoIfVisible())
       return;
     f->RemoveStateBits(NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO);
     f->SetForceDescendIntoIfVisible(false);
+    if (f == aStopAtFrame) {
+      // we've reached a frame that we know will be painted, so we can stop.
+      break;
+    }
   }
 
 }
@@ -1273,7 +1276,7 @@ nsDisplayListBuilder::EnterPresShell(nsIFrame* aReferenceFrame,
     // and possibly end up with an extra nsDisplaySolidColor item.
     nsCanvasFrame* canvasFrame = do_QueryFrame(sf->GetScrolledFrame());
     if (canvasFrame) {
-      MarkFrameForDisplayIfVisible(canvasFrame);
+      MarkFrameForDisplayIfVisible(canvasFrame, aReferenceFrame);
     }
   }
 
@@ -1303,7 +1306,7 @@ nsDisplayListBuilder::EnterPresShell(nsIFrame* aReferenceFrame,
   RefPtr<nsCaret> caret = state->mPresShell->GetCaret();
   state->mCaretFrame = caret->GetPaintGeometry(&state->mCaretRect);
   if (state->mCaretFrame) {
-    MarkFrameForDisplay(state->mCaretFrame, nullptr);
+    MarkFrameForDisplay(state->mCaretFrame, aReferenceFrame);
   }
 
   nsPresContext* pc = aReferenceFrame->PresContext();
@@ -1355,7 +1358,7 @@ nsDisplayListBuilder::LeavePresShell(nsIFrame* aReferenceFrame, nsDisplayList* a
     }
   }
 
-  ResetMarkedFramesForDisplayList();
+  ResetMarkedFramesForDisplayList(aReferenceFrame);
   mPresShellStates.SetLength(mPresShellStates.Length() - 1);
 
   if (!mPresShellStates.IsEmpty()) {
@@ -1392,13 +1395,13 @@ nsDisplayListBuilder::FreeClipChains()
 }
 
 void
-nsDisplayListBuilder::ResetMarkedFramesForDisplayList()
+nsDisplayListBuilder::ResetMarkedFramesForDisplayList(nsIFrame* aReferenceFrame)
 {
   // Unmark and pop off the frames marked for display in this pres shell.
   uint32_t firstFrameForShell = CurrentPresShellState()->mFirstFrameMarkedForDisplay;
   for (uint32_t i = firstFrameForShell;
        i < mFramesMarkedForDisplay.Length(); ++i) {
-    UnmarkFrameForDisplay(mFramesMarkedForDisplay[i]);
+    UnmarkFrameForDisplay(mFramesMarkedForDisplay[i], aReferenceFrame);
   }
   mFramesMarkedForDisplay.SetLength(firstFrameForShell);
 }
@@ -2486,7 +2489,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
       return nsLayoutUtils::ContainsMetricsWithId(root, aScrollId);
     };
     if (Maybe<ScrollMetadata> rootMetadata = nsLayoutUtils::GetRootMetadata(
-          aBuilder, root, containerParameters, callback)) {
+          aBuilder, root->Manager(), containerParameters, callback)) {
       root->SetScrollMetadata(rootMetadata.value());
     }
 
@@ -2763,13 +2766,17 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
 
       for (uint32_t j = 0; j < outFrames.Length(); j++) {
         nsIFrame *f = outFrames.ElementAt(j);
-        // Handle the XUL 'mousethrough' feature and 'pointer-events'.
-        if (!GetMouseThrough(f) && IsFrameReceivingPointerEvents(f)) {
+        // Filter out some frames depending on the type of hittest
+        // we are doing. For visibility tests, pass through all frames.
+        // For pointer tests, only pass through frames that are styled
+        // to receive pointer events.
+        if (aBuilder->HitTestIsForVisibility() ||
+            (!GetMouseThrough(f) && IsFrameReceivingPointerEvents(f))) {
           writeFrames->AppendElement(f);
         }
       }
 
-      if (aBuilder->HitTestShouldStopAtFirstOpaque() &&
+      if (aBuilder->HitTestIsForVisibility() &&
           item->GetOpaqueRegion(aBuilder, &snap).Contains(aRect)) {
         // We're exiting early, so pop the remaining items off the buffer.
         aState->mItemBuffer.SetLength(itemBufferStart);
@@ -3220,15 +3227,15 @@ nsDisplaySolidColorRegion::CreateWebRenderCommands(mozilla::wr::DisplayListBuild
 }
 
 static void
-RegisterThemeGeometry(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                      nsITheme::ThemeGeometryType aType)
+RegisterThemeGeometry(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem,
+                      nsIFrame* aFrame, nsITheme::ThemeGeometryType aType)
 {
   if (aBuilder->IsInChromeDocumentOrPopup() && !aBuilder->IsInTransform()) {
     nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(aFrame);
     nsPoint offset = aBuilder->IsInSubdocument() ? aBuilder->ToReferenceFrame(aFrame)
                                                  : aFrame->GetOffsetTo(displayRoot);
     nsRect borderBox = nsRect(offset, aFrame->GetSize());
-    aBuilder->RegisterThemeGeometry(aType, aFrame,
+    aBuilder->RegisterThemeGeometry(aType, aItem,
       LayoutDeviceIntRect::FromUnknownRect(
         borderBox.ToNearestPixels(
           aFrame->PresContext()->AppUnitsPerDevPixel())));
@@ -4184,7 +4191,7 @@ nsDisplayThemedBackground::nsDisplayThemedBackground(nsDisplayListBuilder* aBuil
   nsITheme::ThemeGeometryType type =
     theme->ThemeGeometryTypeForWidget(mFrame, disp->mAppearance);
   if (type != nsITheme::eThemeGeometryTypeUnknown) {
-    RegisterThemeGeometry(aBuilder, aFrame, type);
+    RegisterThemeGeometry(aBuilder, this, aFrame, type);
   }
 
   if (disp->mAppearance == NS_THEME_WIN_BORDERLESS_GLASS ||
@@ -4731,7 +4738,7 @@ nsDisplayOutline::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuil
     return false;
   }
 
-  mBorderRenderer->CreateWebRenderCommands(aBuilder, aResources, aSc);
+  mBorderRenderer->CreateWebRenderCommands(this, aBuilder, aResources, aSc);
   return true;
 }
 
@@ -5630,7 +5637,6 @@ nsDisplayBoxShadowOuter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder
                                                      borderRect,
                                                      mFrame,
                                                      borderRadii);
-    MOZ_ASSERT(borderRadii.AreRadiiSame());
   }
 
   // Everything here is in app units, change to device units.
@@ -5663,9 +5669,17 @@ nsDisplayBoxShadowOuter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder
       wr::LayoutRect deviceBoxRect = aSc.ToRelativeLayoutRect(deviceBox);
       wr::LayoutRect deviceClipRect = aSc.ToRelativeLayoutRect(clipRect);
 
-      // TODO: support non-uniform border radius.
-      float borderRadius = hasBorderRadius ? borderRadii.TopLeft().width
-                                           : 0.0;
+      LayoutDeviceSize zeroSize;
+      wr::BorderRadius borderRadius = wr::ToBorderRadius(zeroSize, zeroSize,
+                                                         zeroSize, zeroSize);
+      if (hasBorderRadius) {
+        borderRadius = wr::ToBorderRadius(
+          LayoutDeviceSize::FromUnknownSize(borderRadii.TopLeft()),
+          LayoutDeviceSize::FromUnknownSize(borderRadii.TopRight()),
+          LayoutDeviceSize::FromUnknownSize(borderRadii.BottomLeft()),
+          LayoutDeviceSize::FromUnknownSize(borderRadii.BottomRight()));
+      }
+
       float spreadRadius = float(shadow->mSpread) / float(appUnitsPerDevPixel);
 
       aBuilder.PushBoxShadow(deviceBoxRect,
@@ -5835,8 +5849,12 @@ nsDisplayBoxShadowInner::CreateInsetBoxShadowWebRenderCommands(mozilla::wr::Disp
           appUnitsPerDevPixel);
 
       float blurRadius = float(shadowItem->mRadius) / float(appUnitsPerDevPixel);
-      // TODO: WR doesn't support non-uniform border radii
-      float borderRadius = innerRadii.TopLeft().width;
+
+      wr::BorderRadius borderRadius = wr::ToBorderRadius(
+        LayoutDeviceSize::FromUnknownSize(innerRadii.TopLeft()),
+        LayoutDeviceSize::FromUnknownSize(innerRadii.TopRight()),
+        LayoutDeviceSize::FromUnknownSize(innerRadii.BottomLeft()),
+        LayoutDeviceSize::FromUnknownSize(innerRadii.BottomRight()));
       // NOTE: Any spread radius > 0 will render nothing. WR Bug.
       float spreadRadius = float(shadowItem->mSpread) / float(appUnitsPerDevPixel);
 
@@ -6035,7 +6053,7 @@ nsDisplayWrapList::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   if (mListPtr->IsOpaque()) {
     // Everything within GetBounds that's visible is opaque.
     result = GetBounds(aBuilder, aSnap);
-  } else if (aBuilder->HitTestShouldStopAtFirstOpaque()) {
+  } else if (aBuilder->HitTestIsForVisibility()) {
     // If we care about an accurate opaque region, iterate the display list
     // and build up a region of opaque bounds.
     nsDisplayItem* item = mList.GetBottom();
@@ -6303,7 +6321,8 @@ nsDisplayOpacity::ApplyOpacity(nsDisplayListBuilder* aBuilder,
 bool
 nsDisplayOpacity::CanApplyOpacity() const
 {
-  return true;
+  return !EffectCompositor::HasAnimationsForCompositor(mFrame,
+                                                       eCSSProperty_opacity);
 }
 
 /**
@@ -6861,7 +6880,7 @@ nsDisplaySubDocument::BuildLayer(nsDisplayListBuilder* aBuilder,
 }
 
 UniquePtr<ScrollMetadata>
-nsDisplaySubDocument::ComputeScrollMetadata(Layer* aLayer,
+nsDisplaySubDocument::ComputeScrollMetadata(LayerManager* aLayerManager,
                                             const ContainerLayerParameters& aContainerParameters)
 {
   if (!(mFlags & GENERATE_SCROLLABLE_LAYER)) {
@@ -6884,7 +6903,7 @@ nsDisplaySubDocument::ComputeScrollMetadata(Layer* aLayer,
   return MakeUnique<ScrollMetadata>(
     nsLayoutUtils::ComputeScrollMetadata(
       mFrame, rootScrollFrame, rootScrollFrame->GetContent(), ReferenceFrame(),
-      aLayer, mScrollParentId, viewport, Nothing(),
+      aLayerManager, mScrollParentId, viewport, Nothing(),
       isRootContentDocument, params));
 }
 
@@ -7265,6 +7284,20 @@ nsDisplayStickyPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
   return layer.forget();
 }
 
+// Returns the smallest distance from "0" to the range [min, max] where
+// min <= max.
+static nscoord DistanceToRange(nscoord min, nscoord max) {
+  MOZ_ASSERT(min <= max);
+  if (max < 0) {
+    return max;
+  }
+  if (min > 0) {
+    return min;
+  }
+  MOZ_ASSERT(min <= 0 && max >= 0);
+  return 0;
+}
+
 bool
 nsDisplayStickyPosition::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                  mozilla::wr::IpcResourceUpdateQueue& aResources,
@@ -7272,22 +7305,12 @@ nsDisplayStickyPosition::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder
                                                  WebRenderLayerManager* aManager,
                                                  nsDisplayListBuilder* aDisplayListBuilder)
 {
-  LayoutDevicePoint scTranslation;
   StickyScrollContainer* stickyScrollContainer = StickyScrollContainer::GetStickyScrollContainerForFrame(mFrame);
   if (stickyScrollContainer) {
     float auPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
 
     bool snap;
     nsRect itemBounds = GetBounds(aDisplayListBuilder, &snap);
-
-    // The itemBounds here already take into account the main-thread
-    // position:sticky implementation, so we need to unapply that.
-    nsIFrame* firstCont = nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
-    nsPoint translation = stickyScrollContainer->ComputePosition(firstCont) - firstCont->GetNormalPosition();
-    itemBounds.MoveBy(-translation);
-    scTranslation = LayoutDevicePoint::FromAppUnits(translation, auPerDevPixel);
-
-    LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(itemBounds, auPerDevPixel);
 
     Maybe<wr::StickySideConstraint> top;
     Maybe<wr::StickySideConstraint> right;
@@ -7298,7 +7321,13 @@ nsDisplayStickyPosition::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder
     nsRect inner;
     stickyScrollContainer->GetScrollRanges(mFrame, &outer, &inner);
 
+    nsIFrame* scrollFrame = do_QueryFrame(stickyScrollContainer->ScrollFrame());
+    nsPoint offset = scrollFrame->GetOffsetTo(ReferenceFrame());
+
+    // Adjust the scrollPort coordinates to be relative to the reference frame,
+    // so that it is in the same space as everything else.
     nsRect scrollPort = stickyScrollContainer->ScrollFrame()->GetScrollPortRect();
+    scrollPort += offset;
 
     // The following computations make more sense upon understanding the
     // semantics of "inner" and "outer", which is explained in the comment on
@@ -7306,65 +7335,71 @@ nsDisplayStickyPosition::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder
 
     if (outer.YMost() != inner.YMost()) {
       // Question: How far will itemBounds.y be from the top of the scrollport
-      // when we have scrolled down from the current scroll position of "0" to a
-      // scroll position of "inner.YMost()" (which is >= 0 since we are
-      // scrolling down)?
-      // Answer: (itemBounds.y - 0) - (inner.YMost() - 0)
-      //      == itemBounds.y - inner.YMost()
-      float margin = NSAppUnitsToFloatPixels(itemBounds.y - inner.YMost(), auPerDevPixel);
-      // The scroll distance during which the item should remain "stuck"
-      float maxOffset = NSAppUnitsToFloatPixels(outer.YMost() - inner.YMost(), auPerDevPixel);
+      // when we have scrolled from the current scroll position of "0" to
+      // reach the range [inner.YMost(), outer.YMost()] where the item gets
+      // stuck?
+      // Answer: the current distance is "itemBounds.y - scrollPort.y". That
+      // needs to be adjusted by the distance to the range. If the distance is
+      // negative (i.e. inner.YMost() <= outer.YMost() < 0) then we would be
+      // scrolling upwards (decreasing scroll offset) to reach that range,
+      // which would increase itemBounds.y and make it farther away from the
+      // top of the scrollport. So in that case the adjustment is -distance.
+      // If the distance is positive (0 < inner.YMost() <= outer.YMost()) then
+      // we would be scrolling downwards, itemBounds.y would decrease, and we
+      // again need to adjust by -distance. If we are already in the range
+      // then no adjustment is needed and distance is 0 so again using
+      // -distance works.
+      nscoord distance = DistanceToRange(inner.YMost(), outer.YMost());
+      float margin = NSAppUnitsToFloatPixels(itemBounds.y - scrollPort.y - distance, auPerDevPixel);
+      // Question: Given the current state, what is the range during which
+      // WR will have to apply an adjustment to the item (in order to prevent
+      // the item from visually moving) as a result of async scrolling?
+      // Answer: [inner.YMost(), outer.YMost()]. But right now the WR API
+      // doesn't allow us to provide the whole range; it just takes one side
+      // of the range and assumes it has a particular sign. Bug 1411627 will
+      // fix this more completely but for now we do the best we can. Note that
+      // this value also needs to be converted from being relative to the
+      // scrollframe to being relative to the reference frame, so we have to
+      // adjust it by |offset|.
+      float maxOffset = NSAppUnitsToFloatPixels(std::max(0, outer.YMost() + offset.y), auPerDevPixel);
       top = Some(wr::StickySideConstraint { margin, maxOffset });
     }
     if (outer.y != inner.y) {
-      // Question: How far will itemBounds.YMost() be from the bottom of the
-      // scrollport when we have scrolled up from the current scroll position of
-      // "0" to a scroll position of "inner.y" (which is <= 0 since we are
-      // scrolling up)?
-      // Answer: (scrollPort.height - itemBounds.YMost()) - (0 - inner.y)
-      //      == scrollPort.height - itemBounds.YMost() + inner.y
-      float margin = NSAppUnitsToFloatPixels(scrollPort.height - itemBounds.YMost() + inner.y, auPerDevPixel);
-      // The scroll distance during which the item should remain "stuck"
-      float maxOffset = NSAppUnitsToFloatPixels(outer.y - inner.y, auPerDevPixel);
+      // Similar logic as in the previous section, but this time we care about
+      // the distance from itemBounds.YMost() to scrollPort.YMost().
+      nscoord distance = DistanceToRange(outer.y, inner.y);
+      float margin = NSAppUnitsToFloatPixels(scrollPort.YMost() - itemBounds.YMost() + distance, auPerDevPixel);
+      // And here WR will be moving the item upwards rather than downwards so
+      // again things are inverted from the previous block.
+      float maxOffset = NSAppUnitsToFloatPixels(std::min(0, outer.y + offset.y), auPerDevPixel);
       bottom = Some(wr::StickySideConstraint { margin, maxOffset });
     }
     // Same as above, but for the x-axis
     if (outer.XMost() != inner.XMost()) {
-      float margin = NSAppUnitsToFloatPixels(itemBounds.x - inner.XMost(), auPerDevPixel);
-      float maxOffset = NSAppUnitsToFloatPixels(outer.XMost() - inner.XMost(), auPerDevPixel);
+      nscoord distance = DistanceToRange(inner.XMost(), outer.XMost());
+      float margin = NSAppUnitsToFloatPixels(itemBounds.x - scrollPort.x - distance, auPerDevPixel);
+      float maxOffset = NSAppUnitsToFloatPixels(std::max(0, outer.XMost() + offset.x), auPerDevPixel);
       left = Some(wr::StickySideConstraint { margin, maxOffset });
     }
     if (outer.x != inner.x) {
-      float margin = NSAppUnitsToFloatPixels(scrollPort.width - itemBounds.XMost() + inner.x, auPerDevPixel);
-      float maxOffset = NSAppUnitsToFloatPixels(outer.x - inner.x, auPerDevPixel);
+      nscoord distance = DistanceToRange(outer.x, inner.x);
+      float margin = NSAppUnitsToFloatPixels(scrollPort.XMost() - itemBounds.XMost() + distance, auPerDevPixel);
+      float maxOffset = NSAppUnitsToFloatPixels(std::min(0, outer.x + offset.x), auPerDevPixel);
       right = Some(wr::StickySideConstraint { margin, maxOffset });
     }
 
+    LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(itemBounds, auPerDevPixel);
     wr::WrStickyId id = aBuilder.DefineStickyFrame(aSc.ToRelativeLayoutRect(bounds),
         top.ptrOr(nullptr), right.ptrOr(nullptr), bottom.ptrOr(nullptr), left.ptrOr(nullptr));
 
-    aBuilder.PushStickyFrame(id);
+    aBuilder.PushStickyFrame(id, GetClipChain());
   }
 
-  // All the things inside this position:sticky item also have the main-thread
-  // translation already applied, so we need to make sure that gets unapplied.
-  // The easiest way to do it is to just create a new stacking context with an
-  // adjusted origin and use that for the nested items. This way all the
-  // ToRelativeLayoutRect calls on this StackingContextHelper object will
-  // include the necessary adjustment.
-  StackingContextHelper sc(aSc, aBuilder);
-  sc.AdjustOrigin(scTranslation);
-
-  // TODO: if, inside this nested command builder, we try to turn a gecko clip
-  // chain into a WR clip chain, we might end up repushing the clip stack
-  // without `id` which effectively throws out the sticky behaviour. The
-  // repushing can happen because of the need to define a new clip while
-  // particular things are on the stack
-  nsDisplayOwnLayer::CreateWebRenderCommands(aBuilder, aResources, sc,
+  nsDisplayOwnLayer::CreateWebRenderCommands(aBuilder, aResources, aSc,
       aManager, aDisplayListBuilder);
 
   if (stickyScrollContainer) {
-    aBuilder.PopStickyFrame();
+    aBuilder.PopStickyFrame(GetClipChain());
   }
 
   return true;
@@ -7416,7 +7451,7 @@ nsDisplayScrollInfoLayer::GetLayerState(nsDisplayListBuilder* aBuilder,
 }
 
 UniquePtr<ScrollMetadata>
-nsDisplayScrollInfoLayer::ComputeScrollMetadata(Layer* aLayer,
+nsDisplayScrollInfoLayer::ComputeScrollMetadata(LayerManager* aLayerManager,
                                                 const ContainerLayerParameters& aContainerParameters)
 {
   nsRect viewport = mScrollFrame->GetRect() -
@@ -7425,7 +7460,7 @@ nsDisplayScrollInfoLayer::ComputeScrollMetadata(Layer* aLayer,
 
   ScrollMetadata metadata = nsLayoutUtils::ComputeScrollMetadata(
       mScrolledFrame, mScrollFrame, mScrollFrame->GetContent(),
-      ReferenceFrame(), aLayer,
+      ReferenceFrame(), aLayerManager,
       mScrollParentId, viewport, Nothing(), false, aContainerParameters);
   metadata.GetMetrics().SetIsScrollInfoLayer(true);
 
@@ -7438,7 +7473,7 @@ nsDisplayScrollInfoLayer::UpdateScrollData(mozilla::layers::WebRenderScrollData*
 {
   if (aLayerData) {
     UniquePtr<ScrollMetadata> metadata =
-      ComputeScrollMetadata(nullptr, ContainerLayerParameters());
+      ComputeScrollMetadata(aData->GetManager(), ContainerLayerParameters());
     MOZ_ASSERT(aData);
     MOZ_ASSERT(metadata);
     aLayerData->AppendScrollMetadata(*aData, *metadata);
@@ -9396,18 +9431,18 @@ nsDisplayMask::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder
                                                                             aSc, aDisplayListBuilder,
                                                                             bounds);
   if (mask) {
-    wr::WrClipId clipId = aBuilder.DefineClip(
+    wr::WrClipId clipId = aBuilder.DefineClip(Nothing(), Nothing(),
         aSc.ToRelativeLayoutRect(bounds), nullptr, mask.ptr());
     // Don't record this clip push in aBuilder's internal clip stack, because
     // otherwise any nested ScrollingLayersHelper instances that are created
     // will get confused about which clips are pushed.
-    aBuilder.PushClip(clipId, /*aMask*/ true);
+    aBuilder.PushClip(clipId, GetClipChain());
   }
 
   nsDisplaySVGEffects::CreateWebRenderCommands(aBuilder, aResources, aSc, aManager, aDisplayListBuilder);
 
   if (mask) {
-    aBuilder.PopClip(/*aMask*/ true);
+    aBuilder.PopClip(GetClipChain());
   }
 
   return true;
@@ -9569,6 +9604,13 @@ nsDisplayFilter::PaintAsLayer(nsDisplayListBuilder* aBuilder,
   nsDisplayFilterGeometry::UpdateDrawResult(this, imgParams.result);
 }
 
+static float
+ClampStdDeviation(float aStdDeviation)
+{
+  // Cap software blur radius for performance reasons.
+  return std::min(std::max(0.0f, aStdDeviation), 100.0f);
+}
+
 bool
 nsDisplayFilter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                          mozilla::wr::IpcResourceUpdateQueue& aResources,
@@ -9595,6 +9637,18 @@ nsDisplayFilter::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuild
         mozilla::wr::WrFilterOp filterOp = {
           wr::ToWrFilterOpType(filter.GetType()),
           filter.GetFilterParameter().GetFactorOrPercentValue(),
+        };
+        wrFilters.AppendElement(filterOp);
+        break;
+      }
+      case NS_STYLE_FILTER_BLUR: {
+        float appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+        mozilla::wr::WrFilterOp filterOp = {
+          wr::ToWrFilterOpType(filter.GetType()),
+          ClampStdDeviation(
+            NSAppUnitsToFloatPixels(
+              filter.GetFilterParameter().GetCoordValue(),
+              appUnitsPerDevPixel)),
         };
         wrFilters.AppendElement(filterOp);
         break;

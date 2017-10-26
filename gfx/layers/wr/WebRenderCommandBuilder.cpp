@@ -60,10 +60,11 @@ WebRenderCommandBuilder::BuildWebRenderCommands(wr::DisplayListBuilder& aBuilder
 
     StackingContextHelper sc;
     mParentCommands.Clear();
-    aScrollData = WebRenderScrollData();
+    aScrollData = WebRenderScrollData(mManager);
     MOZ_ASSERT(mLayerScrollData.empty());
     mLastCanvasDatas.Clear();
     mLastAsr = nullptr;
+    mScrollingHelper.BeginBuild(mManager, aBuilder);
 
     {
       StackingContextHelper pageRootSc(sc, aBuilder);
@@ -84,7 +85,7 @@ WebRenderCommandBuilder::BuildWebRenderCommands(wr::DisplayListBuilder& aBuilder
       return aScrollData.HasMetadataFor(aScrollId);
     };
     if (Maybe<ScrollMetadata> rootMetadata = nsLayoutUtils::GetRootMetadata(
-          aDisplayListBuilder, nullptr, ContainerLayerParameters(), callback)) {
+          aDisplayListBuilder, mManager, ContainerLayerParameters(), callback)) {
       mLayerScrollData.back().AppendScrollMetadata(aScrollData, rootMetadata.ref());
     }
     // Append the WebRenderLayerScrollData items into WebRenderScrollData
@@ -94,7 +95,7 @@ WebRenderCommandBuilder::BuildWebRenderCommands(wr::DisplayListBuilder& aBuilder
       aScrollData.AddLayerData(*i);
     }
     mLayerScrollData.clear();
-    mClipIdCache.clear();
+    mScrollingHelper.EndBuild();
 
     // Remove the user data those are not displayed on the screen and
     // also reset the data to unused for next transaction.
@@ -111,6 +112,8 @@ WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(nsDisplayList* a
                                                                 wr::DisplayListBuilder& aBuilder,
                                                                 wr::IpcResourceUpdateQueue& aResources)
 {
+  mScrollingHelper.BeginList();
+
   bool apzEnabled = mManager->AsyncPanZoomEnabled();
   EventRegions eventRegions;
 
@@ -213,15 +216,12 @@ WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(nsDisplayList* a
       }
     }
 
-    { // ensure the scope of ScrollingLayersHelper is maintained
-      ScrollingLayersHelper clip(item, aBuilder, aSc, mClipIdCache, apzEnabled);
-
-      // Note: this call to CreateWebRenderCommands can recurse back into
-      // this function if the |item| is a wrapper for a sublist.
-      if (!item->CreateWebRenderCommands(aBuilder, aResources, aSc, mManager,
-                                         aDisplayListBuilder)) {
-        PushItemAsImage(item, aBuilder, aResources, aSc, aDisplayListBuilder);
-      }
+    mScrollingHelper.BeginItem(item, aSc);
+    // Note: this call to CreateWebRenderCommands can recurse back into
+    // this function if the |item| is a wrapper for a sublist.
+    if (!item->CreateWebRenderCommands(aBuilder, aResources, aSc, mManager,
+                                       aDisplayListBuilder)) {
+      PushItemAsImage(item, aBuilder, aResources, aSc, aDisplayListBuilder);
     }
 
     if (apzEnabled) {
@@ -260,6 +260,8 @@ WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(nsDisplayList* a
     MOZ_ASSERT(!mLayerScrollData.empty());
     mLayerScrollData.back().AddEventRegions(eventRegions);
   }
+
+  mScrollingHelper.EndList();
 }
 
 Maybe<wr::ImageKey>

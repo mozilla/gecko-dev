@@ -687,15 +687,13 @@ class MemoryCounter
     }
 
     void setMax(size_t newMax, const AutoLockGC& lock) {
-        // For compatibility treat any value that exceeds PTRDIFF_T_MAX to
-        // mean that value.
-        initialMaxBytes_ = (ptrdiff_t(newMax) >= 0) ? newMax : size_t(-1) >> 1;
+        initialMaxBytes_ = newMax;
         maxBytes_ = initialMaxBytes_;
         reset();
     }
 
     bool update(T* owner, size_t bytes) {
-        bytes_ += ptrdiff_t(bytes);
+        bytes_ += bytes;
         if (MOZ_UNLIKELY(isTooMuchMalloc())) {
             if (!triggered_)
                 triggered_ = owner->triggerGCForTooMuchMalloc();
@@ -708,7 +706,7 @@ class MemoryCounter
         other.reset();
     }
 
-    ptrdiff_t bytes() const { return bytes_; }
+    size_t bytes() const { return bytes_; }
     size_t maxBytes() const { return maxBytes_; }
     size_t initialMaxBytes(const AutoLockGC& lock) const { return initialMaxBytes_; }
     bool isTooMuchMalloc() const { return bytes_ >= maxBytes_; }
@@ -910,6 +908,8 @@ class GCRuntime
     bool majorGCRequested() const { return majorGCTriggerReason != JS::gcreason::NO_REASON; }
 
     bool fullGCForAtomsRequested() const { return fullGCForAtomsRequested_; }
+
+    bool shouldSweepAtomsZone() { return shouldSweepAtomsZone_; }
 
     double computeHeapGrowthFactor(size_t lastBytes);
     size_t computeTriggerBytes(double growthFactor, size_t lastBytes);
@@ -1302,6 +1302,9 @@ class GCRuntime
 
     /* Whether observed type information is being released in the current GC. */
     ActiveThreadData<bool> releaseObservedTypes;
+
+    /* Whether the atoms table will be swept. */
+    ActiveThreadOrGCTaskData<bool> shouldSweepAtomsZone_;
 
     /* Singly linked list of zones to be swept in the background. */
     ActiveThreadOrGCTaskData<ZoneList> backgroundSweepZones;

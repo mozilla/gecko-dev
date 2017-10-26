@@ -418,20 +418,26 @@ extern "C" {
 }
 
 impl webrender_api::RenderNotifier for CppNotifier {
-    fn new_frame_ready(&mut self) {
+    fn clone(&self) -> Box<webrender_api::RenderNotifier> {
+        Box::new(CppNotifier {
+            window_id: self.window_id,
+        })
+    }
+
+    fn new_frame_ready(&self) {
         unsafe {
             wr_notifier_new_frame_ready(self.window_id);
         }
     }
 
-    fn new_scroll_frame_ready(&mut self,
+    fn new_scroll_frame_ready(&self,
                               composite_needed: bool) {
         unsafe {
             wr_notifier_new_scroll_frame_ready(self.window_id, composite_needed);
         }
     }
 
-    fn external_event(&mut self,
+    fn external_event(&self,
                       event: ExternalEvent) {
         unsafe {
             wr_notifier_external_event(self.window_id, event.unwrap());
@@ -643,7 +649,10 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         ..Default::default()
     };
 
-    let (renderer, sender) = match Renderer::new(gl, opts) {
+    let notifier = Box::new(CppNotifier {
+        window_id: window_id,
+    });
+    let (renderer, sender) = match Renderer::new(gl, notifier, opts) {
         Ok((renderer, sender)) => (renderer, sender),
         Err(e) => {
             println!(" Failed to create a Renderer: {:?}", e);
@@ -655,9 +664,6 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         },
     };
 
-    renderer.set_render_notifier(Box::new(CppNotifier {
-                                              window_id: window_id,
-                                          }));
     unsafe {
         *out_max_texture_size = renderer.get_max_texture_size();
     }
@@ -788,12 +794,13 @@ pub extern "C" fn wr_resource_updates_update_blob_image(
     image_key: WrImageKey,
     descriptor: &WrImageDescriptor,
     bytes: &mut WrVecU8,
+    dirty_rect: DeviceUintRect,
 ) {
     resources.update_image(
         image_key,
         descriptor.into(),
         ImageData::new_blob_image(bytes.flush_into_vec()),
-        None
+        Some(dirty_rect)
     );
 }
 
@@ -1199,19 +1206,52 @@ pub extern "C" fn wr_dp_pop_stacking_context(state: &mut WrState) {
     state.frame_builder.dl_builder.pop_stacking_context();
 }
 
+fn make_scroll_info(state: &mut WrState,
+                    scroll_id: Option<&u64>,
+                    clip_id: Option<&u64>)
+                    -> Option<ClipAndScrollInfo> {
+    if let Some(&sid) = scroll_id {
+        if let Some(&cid) = clip_id {
+            Some(ClipAndScrollInfo::new(
+                ClipId::new(sid, state.pipeline_id),
+                ClipId::Clip(cid, state.pipeline_id)))
+        } else {
+            Some(ClipAndScrollInfo::simple(
+                ClipId::new(sid, state.pipeline_id)))
+        }
+    } else if let Some(&cid) = clip_id {
+        Some(ClipAndScrollInfo::simple(
+            ClipId::Clip(cid, state.pipeline_id)))
+    } else {
+        None
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn wr_dp_define_clip(state: &mut WrState,
+                                    ancestor_scroll_id: *const u64,
+                                    ancestor_clip_id: *const u64,
                                     clip_rect: LayoutRect,
                                     complex: *const ComplexClipRegion,
                                     complex_count: usize,
                                     mask: *const WrImageMask)
                                     -> u64 {
     debug_assert!(unsafe { is_in_main_thread() });
+
+    let info = make_scroll_info(state,
+                                unsafe { ancestor_scroll_id.as_ref() },
+                                unsafe { ancestor_clip_id.as_ref() });
+
     let complex_slice = make_slice(complex, complex_count);
     let complex_iter = complex_slice.iter().cloned();
     let mask : Option<ImageMask> = unsafe { mask.as_ref() }.map(|x| x.into());
 
-    let clip_id = state.frame_builder.dl_builder.define_clip(None, clip_rect, complex_iter, mask);
+    let clip_id = if info.is_some() {
+        state.frame_builder.dl_builder.define_clip_with_parent(None,
+            info.unwrap().scroll_node_id, clip_rect, complex_iter, mask)
+    } else {
+        state.frame_builder.dl_builder.define_clip(None, clip_rect, complex_iter, mask)
+    };
     // return the u64 id value from inside the ClipId::Clip(..)
     match clip_id {
         ClipId::Clip(id, pipeline_id) => {
@@ -1262,13 +1302,26 @@ pub extern "C" fn wr_dp_define_sticky_frame(state: &mut WrState,
 #[no_mangle]
 pub extern "C" fn wr_dp_define_scroll_layer(state: &mut WrState,
                                             scroll_id: u64,
+                                            ancestor_scroll_id: *const u64,
+                                            ancestor_clip_id: *const u64,
                                             content_rect: LayoutRect,
                                             clip_rect: LayoutRect) {
     assert!(unsafe { is_in_main_thread() });
+
+    let info = make_scroll_info(state,
+                                unsafe { ancestor_scroll_id.as_ref() },
+                                unsafe { ancestor_clip_id.as_ref() });
+
     let clip_id = ClipId::new(scroll_id, state.pipeline_id);
-    state.frame_builder.dl_builder.define_scroll_frame(
-        Some(clip_id), content_rect, clip_rect, vec![], None,
-        ScrollSensitivity::Script);
+    if info.is_some() {
+        state.frame_builder.dl_builder.define_scroll_frame_with_parent(
+            Some(clip_id), info.unwrap().scroll_node_id, content_rect,
+            clip_rect, vec![], None, ScrollSensitivity::Script);
+    } else {
+        state.frame_builder.dl_builder.define_scroll_frame(
+            Some(clip_id), content_rect, clip_rect, vec![], None,
+            ScrollSensitivity::Script);
+    };
 }
 
 #[no_mangle]
@@ -1300,15 +1353,9 @@ pub extern "C" fn wr_dp_push_clip_and_scroll_info(state: &mut WrState,
                                                   scroll_id: u64,
                                                   clip_id: *const u64) {
     debug_assert!(unsafe { is_in_main_thread() });
-    let scroll_id = ClipId::new(scroll_id, state.pipeline_id);
-    let info = if let Some(&id) = unsafe { clip_id.as_ref() } {
-        ClipAndScrollInfo::new(
-            scroll_id,
-            ClipId::Clip(id, state.pipeline_id))
-    } else {
-        ClipAndScrollInfo::simple(scroll_id)
-    };
-    state.frame_builder.dl_builder.push_clip_and_scroll_info(info);
+    let info = make_scroll_info(state, Some(&scroll_id), unsafe { clip_id.as_ref() });
+    debug_assert!(info.is_some());
+    state.frame_builder.dl_builder.push_clip_and_scroll_info(info.unwrap());
 }
 
 #[no_mangle]
@@ -1478,18 +1525,28 @@ pub extern "C" fn wr_dp_pop_all_shadows(state: &mut WrState) {
 
 #[no_mangle]
 pub extern "C" fn wr_dp_push_line(state: &mut WrState,
-                                  clip: LayoutRect,
+                                  clip: &LayoutRect,
                                   is_backface_visible: bool,
-                                  baseline: f32,
-                                  start: f32,
-                                  end: f32,
+                                  bounds: &LayoutRect,
+                                  _wavy_line_thickness: f32,
                                   orientation: LineOrientation,
-                                  width: f32,
-                                  color: ColorF,
+                                  color: &ColorF,
                                   style: LineStyle) {
     debug_assert!(unsafe { is_in_main_thread() });
 
-    let mut prim_info = LayoutPrimitiveInfo::with_clip_rect(LayoutRect::zero(), clip.into());
+    // TODO: remove this once WR is updated to just check the bounds.
+    let (baseline, start, end, width) = match orientation {
+        LineOrientation::Horizontal => (bounds.origin.y,
+                                        bounds.origin.x,
+                                        bounds.origin.x + bounds.size.width,
+                                        bounds.size.height),
+        LineOrientation::Vertical => (bounds.origin.x,
+                                      bounds.origin.y,
+                                      bounds.origin.y + bounds.size.height,
+                                      bounds.size.width),
+    };
+
+    let mut prim_info = LayoutPrimitiveInfo::with_clip_rect(*bounds, (*clip).into());
     prim_info.is_backface_visible = is_backface_visible;
     state.frame_builder
          .dl_builder
@@ -1499,7 +1556,7 @@ pub extern "C" fn wr_dp_push_line(state: &mut WrState,
                     end,
                     orientation,
                     width,
-                    color,
+                    *color,
                     style);
 
 }
@@ -1712,7 +1769,7 @@ pub extern "C" fn wr_dp_push_box_shadow(state: &mut WrState,
                                         color: ColorF,
                                         blur_radius: f32,
                                         spread_radius: f32,
-                                        border_radius: f32,
+                                        border_radius: BorderRadius,
                                         clip_mode: BoxShadowClipMode) {
     debug_assert!(unsafe { is_in_main_thread() });
 

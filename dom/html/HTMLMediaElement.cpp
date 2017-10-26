@@ -1193,16 +1193,17 @@ public:
       ? nsIContentPolicy::TYPE_INTERNAL_AUDIO :
         nsIContentPolicy::TYPE_INTERNAL_VIDEO;
 
-    // If aElement has 'loadingprincipal' attribute, we will use the value as
+    // If aElement has 'triggeringprincipal' attribute, we will use the value as
     // triggeringPrincipal for the channel, otherwise it will default to use
     // aElement->NodePrincipal().
-    // This function returns true when aElement has 'loadingprincipal', so if
+    // This function returns true when aElement has 'triggeringprincipal', so if
     // setAttrs is true we will override the origin attributes on the channel
     // later.
     nsCOMPtr<nsIPrincipal> triggeringPrincipal;
-    bool setAttrs = nsContentUtils::GetLoadingPrincipalForXULNode(aElement,
-                                    aElement->mLoadingSrcTriggeringPrincipal,
-                                    getter_AddRefs(triggeringPrincipal));
+    bool setAttrs =
+      nsContentUtils::QueryTriggeringPrincipal(aElement,
+                                               aElement->mLoadingSrcTriggeringPrincipal,
+                                               getter_AddRefs(triggeringPrincipal));
 
     nsCOMPtr<nsILoadGroup> loadGroup = aElement->GetDocumentLoadGroup();
     nsCOMPtr<nsIChannel> channel;
@@ -1653,36 +1654,11 @@ HTMLMediaElement::GetSrcObject() const
 void
 HTMLMediaElement::SetSrcObject(DOMMediaStream& aValue)
 {
-  SetMozSrcObject(&aValue);
+  SetSrcObject(&aValue);
 }
 
 void
 HTMLMediaElement::SetSrcObject(DOMMediaStream* aValue)
-{
-  mSrcAttrStream = aValue;
-  UpdateAudioChannelPlayingState();
-  DoLoad();
-}
-
-// TODO: Remove prefixed versions soon (1183495)
-
-already_AddRefed<DOMMediaStream>
-HTMLMediaElement::GetMozSrcObject() const
-{
-  NS_ASSERTION(!mSrcAttrStream || mSrcAttrStream->GetPlaybackStream(),
-               "MediaStream should have been set up properly");
-  RefPtr<DOMMediaStream> stream = mSrcAttrStream;
-  return stream.forget();
-}
-
-void
-HTMLMediaElement::SetMozSrcObject(DOMMediaStream& aValue)
-{
-  SetMozSrcObject(&aValue);
-}
-
-void
-HTMLMediaElement::SetMozSrcObject(DOMMediaStream* aValue)
 {
   mSrcAttrStream = aValue;
   UpdateAudioChannelPlayingState();
@@ -2682,6 +2658,12 @@ HTMLMediaElement::FastSeek(double aTime, ErrorResult& aRv)
 already_AddRefed<Promise>
 HTMLMediaElement::SeekToNextFrame(ErrorResult& aRv)
 {
+  if (mSeekDOMPromise) {
+    // We can't perform NextFrameSeek while seek is already in action.
+    // Just return the pending seek promise.
+    return do_AddRef(mSeekDOMPromise);
+  }
+
   /* This will cause JIT code to be kept around longer, to help performance
    * when using SeekToNextFrame to iterate through every frame of a video.
    */
@@ -6593,7 +6575,7 @@ void HTMLMediaElement::NotifyShutdownEvent()
 bool
 HTMLMediaElement::IsNodeOfType(uint32_t aFlags) const
 {
-  return !(aFlags & ~(eCONTENT | eMEDIA));
+  return !(aFlags & ~eMEDIA);
 }
 
 void HTMLMediaElement::DispatchAsyncSourceError(nsIContent* aSourceElement)

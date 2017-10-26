@@ -304,6 +304,16 @@ static inline wr::LayoutRect ToLayoutRect(const gfxRect rect)
   return r;
 }
 
+static inline wr::DeviceUintRect ToDeviceUintRect(const mozilla::ImageIntRect& rect)
+{
+  wr::DeviceUintRect r;
+  r.origin.x = rect.x;
+  r.origin.y = rect.y;
+  r.size.width = rect.width;
+  r.size.height = rect.height;
+  return r;
+}
+
 static inline wr::LayoutRect ToLayoutRect(const mozilla::LayoutDeviceIntRect& rect)
 {
   return ToLayoutRect(IntRectToRect(rect));
@@ -325,6 +335,7 @@ static inline wr::ComplexClipRegion ToComplexClipRegion(const RoundedRect& rect)
   ret.radii.top_right    = ToLayoutSize(LayoutDeviceSize::FromUnknownSize(rect.corners.radii[mozilla::eCornerTopRight]));
   ret.radii.bottom_left  = ToLayoutSize(LayoutDeviceSize::FromUnknownSize(rect.corners.radii[mozilla::eCornerBottomLeft]));
   ret.radii.bottom_right = ToLayoutSize(LayoutDeviceSize::FromUnknownSize(rect.corners.radii[mozilla::eCornerBottomRight]));
+  ret.mode = wr::ClipMode::Clip;
   return ret;
 }
 

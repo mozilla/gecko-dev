@@ -215,7 +215,6 @@
 #include "jsscript.h"
 #include "jstypes.h"
 #include "jsutil.h"
-#include "jswatchpoint.h"
 #include "jsweakmap.h"
 #ifdef XP_WIN
 # include "jswin.h"
@@ -2733,10 +2732,6 @@ GCRuntime::updateZonePointersToRelocatedCells(Zone* zone, AutoLockForExclusiveAc
         gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK_ROOTS);
 
         WeakMapBase::traceZone(zone, &trc);
-        for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
-            if (c->watchpointMap)
-                c->watchpointMap->trace(&trc);
-        }
     }
 
     // Sweep everything to fix up weak pointers.
@@ -2777,7 +2772,6 @@ GCRuntime::updateRuntimePointersToRelocatedCells(AutoLockForExclusiveAccess& loc
     }
 
     // Sweep everything to fix up weak pointers.
-    WatchpointMap::sweepAll(rt);
     Debugger::sweepAll(rt->defaultFreeOp());
     jit::JitRuntime::SweepJitcodeGlobalTable(rt);
     for (JS::detail::WeakCacheBase* cache : rt->weakCaches())
@@ -4045,10 +4039,6 @@ ShouldCollectZone(Zone* zone, JS::gcreason::Reason reason)
     // Off-thread parsing is inhibited after the start of GC which prevents
     // races between creating atoms during parsing and sweeping atoms on the
     // active thread.
-    //
-    // Otherwise, we always schedule a GC in the atoms zone so that atoms which
-    // the other collected zones are using are marked, and we can update the
-    // set of atoms in use by the other collected zones at the end of the GC.
     if (zone->isAtomsZone())
         return TlsContext.get()->canCollectAtoms();
 
@@ -4345,7 +4335,7 @@ GCRuntime::updateMallocCountersOnGC()
     // Update the malloc counters for any zones we are collecting.
     for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
         if (zone->isCollecting())
-            zone->updateGCMallocBytesOnGC(lock);
+            zone->updateAllMallocBytesOnGC(lock);
     }
 
     // Update the runtime malloc counter only if we are doing a full GC.
@@ -4372,10 +4362,6 @@ GCRuntime::markWeakReferences(gcstats::PhaseKind phase)
         if (!marker.isWeakMarkingTracer()) {
             for (ZoneIterT zone(rt); !zone.done(); zone.next())
                 markedAny |= WeakMapBase::markZoneIteratively(zone, &marker);
-        }
-        for (CompartmentsIterT<ZoneIterT> c(rt); !c.done(); c.next()) {
-            if (c->watchpointMap)
-                markedAny |= c->watchpointMap->markIteratively(&marker);
         }
         markedAny |= Debugger::markIteratively(&marker);
         markedAny |= jit::JitRuntime::MarkJitcodeGlobalTableIteratively(&marker);
@@ -5247,9 +5233,11 @@ UpdateAtomsBitmap(JSRuntime* runtime)
 
     // For convenience sweep these tables non-incrementally as part of bitmap
     // sweeping; they are likely to be much smaller than the main atoms table.
-    runtime->unsafeSymbolRegistry().sweep();
-    for (CompartmentsIter comp(runtime, SkipAtoms); !comp.done(); comp.next())
-        comp->sweepVarNames();
+    if (runtime->gc.shouldSweepAtomsZone()) {
+        runtime->unsafeSymbolRegistry().sweep();
+        for (CompartmentsIter comp(runtime, SkipAtoms); !comp.done(); comp.next())
+            comp->sweepVarNames();
+    }
 }
 
 static void
@@ -5283,7 +5271,6 @@ SweepMisc(JSRuntime* runtime)
         c->sweepTemplateLiteralMap();
         c->sweepSelfHostingScriptSource();
         c->sweepNativeIterators();
-        c->sweepWatchpoints();
     }
 }
 
@@ -5506,7 +5493,7 @@ GCRuntime::beginSweepingSweepGroup(FreeOp* fop, SliceBudget& budget)
 
     AutoSCC scc(stats(), sweepGroupIndex);
 
-    bool sweepingAtoms = false;
+    bool groupIncludesAtomsZone = false;
     for (SweepGroupZonesIter zone(rt); !zone.done(); zone.next()) {
         /* Set the GC state to sweeping. */
         zone->changeGCState(Zone::Mark, Zone::Sweep);
@@ -5515,7 +5502,7 @@ GCRuntime::beginSweepingSweepGroup(FreeOp* fop, SliceBudget& budget)
         zone->arenas.purge();
 
         if (zone->isAtomsZone())
-            sweepingAtoms = true;
+            groupIncludesAtomsZone = true;
 
 #ifdef DEBUG
         zone->gcLastSweepGroupIndex = sweepGroupIndex;
@@ -5547,7 +5534,7 @@ GCRuntime::beginSweepingSweepGroup(FreeOp* fop, SliceBudget& budget)
         AutoLockHelperThreadState lock;
 
         Maybe<AutoRunParallelTask> updateAtomsBitmap;
-        if (sweepingAtoms)
+        if (groupIncludesAtomsZone)
             updateAtomsBitmap.emplace(rt, UpdateAtomsBitmap, PhaseKind::UPDATE_ATOMS_BITMAP, lock);
 
         AutoPhase ap(stats(), PhaseKind::SWEEP_COMPARTMENTS);
@@ -5576,13 +5563,15 @@ GCRuntime::beginSweepingSweepGroup(FreeOp* fop, SliceBudget& budget)
             joinTask(task, PhaseKind::SWEEP_WEAK_CACHES, lock);
     }
 
-    if (sweepingAtoms)
+    if (groupIncludesAtomsZone && shouldSweepAtomsZone())
         startSweepingAtomsTable();
 
     // Queue all GC things in all zones for sweeping, either on the foreground
     // or on the background thread.
 
     for (SweepGroupZonesIter zone(rt); !zone.done(); zone.next()) {
+        if (zone->isAtomsZone() && !shouldSweepAtomsZone())
+            continue;
 
         zone->arenas.queueForForegroundSweep(fop, ForegroundObjectFinalizePhase);
         zone->arenas.queueForForegroundSweep(fop, ForegroundNonObjectFinalizePhase);
@@ -5665,6 +5654,9 @@ GCRuntime::beginSweepPhase(JS::gcreason::Reason reason, AutoLockForExclusiveAcce
      */
 
     MOZ_ASSERT(!abortSweepAfterCurrentGroup);
+
+    MOZ_ASSERT(maybeAtomsToSweep.ref().isNothing());
+    MOZ_ASSERT(!rt->atomsAddedWhileSweeping());
 
     AutoSetThreadIsSweeping threadIsSweeping;
 
@@ -5840,7 +5832,7 @@ GCRuntime::startSweepingAtomsTable()
 IncrementalProgress
 GCRuntime::sweepAtomsTable(FreeOp* fop, SliceBudget& budget)
 {
-    if (!atomsZone->isGCSweeping())
+    if (!atomsZone->isGCSweeping() || !shouldSweepAtomsZone())
         return Finished;
 
     gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_ATOMS_TABLE);
@@ -6486,6 +6478,9 @@ GCRuntime::endSweepPhase(bool destroyingRuntime, AutoLockForExclusiveAccess& loc
 #endif
 
     AssertNoWrappersInGrayList(rt);
+
+    MOZ_ASSERT(maybeAtomsToSweep.ref().isNothing());
+    MOZ_ASSERT(!rt->atomsAddedWhileSweeping());
 }
 
 void
@@ -7248,6 +7243,15 @@ GCRuntime::gcCycle(bool nonincrementalByAPI, SliceBudget& budget, JS::gcreason::
 {
     // Note that GC callbacks are allowed to re-enter GC.
     AutoCallGCCallbacks callCallbacks(*this);
+
+    // We always schedule a GC in the atoms zone so that atoms which the other
+    // collected zones are using are marked, and we can update the set of atoms
+    // in use by the other collected zones at the end of the GC.  However we
+    // only collect the atoms table if the atoms zone was actually scheduled.
+    if (!isIncrementalGCInProgress()) {
+        shouldSweepAtomsZone_ = atomsZone->isGCScheduled();
+        atomsZone->scheduleGC();
+    }
 
     gcstats::AutoGCSlice agc(stats(), scanZonesBeforeGC(), invocationKind, budget, reason);
 

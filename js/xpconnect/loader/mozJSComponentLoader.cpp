@@ -207,8 +207,16 @@ mozJSComponentLoader::mozJSComponentLoader()
       mLoaderGlobal(dom::RootingCx())
 {
     MOZ_ASSERT(!sSelf, "mozJSComponentLoader should be a singleton");
+}
 
-    sSelf = this;
+// static
+already_AddRefed<mozJSComponentLoader>
+mozJSComponentLoader::GetOrCreate()
+{
+    if (!sSelf) {
+        sSelf = new mozJSComponentLoader();
+    }
+    return do_AddRef(sSelf);
 }
 
 #define ENSURE_DEP(name) { nsresult rv = Ensure##name(); NS_ENSURE_SUCCESS(rv, rv); }
@@ -369,8 +377,8 @@ mozJSComponentLoader::LoadModule(FileLocation& aFile)
             return nullptr;
     }
 
-    AUTO_PROFILER_LABEL_DYNAMIC("mozJSComponentLoader::LoadModule", OTHER,
-                                spec.get());
+    AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING(
+      "mozJSComponentLoader::LoadModule", OTHER, spec);
 
     ModuleEntry* mod;
     if (mModules.Get(spec, &mod))

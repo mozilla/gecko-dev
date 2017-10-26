@@ -112,7 +112,7 @@ RetainedDisplayListBuilder::PreProcessDisplayList(nsDisplayList* aList,
     // to the common AGR (of both the existing item and the invalidated
     // frame) and determine if they can ever intersect.
     if (aAGR && i->GetAnimatedGeometryRoot()->GetAsyncAGR() != aAGR) {
-      mBuilder.MarkFrameForDisplayIfVisible(f);
+      mBuilder.MarkFrameForDisplayIfVisible(f, mBuilder.RootReferenceFrame());
     }
 
     // TODO: This is here because we sometimes reuse the previous display list
@@ -456,7 +456,7 @@ RetainedDisplayListBuilder::MergeDisplayLists(nsDisplayList* aNewList,
 }
 
 static void
-TakeAndAddModifiedFramesFromRootFrame(std::vector<WeakFrame>& aFrames,
+TakeAndAddModifiedFramesFromRootFrame(nsTArray<nsIFrame*>& aFrames,
                                       nsIFrame* aRootFrame)
 {
   MOZ_ASSERT(aRootFrame);
@@ -464,13 +464,19 @@ TakeAndAddModifiedFramesFromRootFrame(std::vector<WeakFrame>& aFrames,
   std::vector<WeakFrame>* frames =
     aRootFrame->GetProperty(nsIFrame::ModifiedFrameList());
 
-  if (frames) {
-    for (WeakFrame& frame : *frames) {
-      aFrames.push_back(Move(frame));
-    }
-
-    frames->clear();
+  if (!frames) {
+    return;
   }
+
+  for (WeakFrame& frame : *frames) {
+    nsIFrame* f = frame.GetFrame();
+
+    if (f) {
+      aFrames.AppendElement(f);
+    }
+  }
+
+  frames->clear();
 }
 
 static bool
@@ -479,8 +485,8 @@ SubDocEnumCb(nsIDocument* aDocument, void* aData)
   MOZ_ASSERT(aDocument);
   MOZ_ASSERT(aData);
 
-  std::vector<WeakFrame>* modifiedFrames =
-    static_cast<std::vector<WeakFrame>*>(aData);
+  nsTArray<nsIFrame*>* modifiedFrames =
+    static_cast<nsTArray<nsIFrame*>*>(aData);
 
   nsIPresShell* presShell = aDocument->GetShell();
   nsIFrame* rootFrame = presShell ? presShell->GetRootFrame() : nullptr;
@@ -493,15 +499,15 @@ SubDocEnumCb(nsIDocument* aDocument, void* aData)
   return true;
 }
 
-static std::vector<WeakFrame>
+static nsTArray<nsIFrame*>
 GetModifiedFrames(nsIFrame* aDisplayRootFrame)
 {
   MOZ_ASSERT(aDisplayRootFrame);
 
-  std::vector<WeakFrame> modifiedFrames;
+  nsTArray<nsIFrame*> modifiedFrames;
   TakeAndAddModifiedFramesFromRootFrame(modifiedFrames, aDisplayRootFrame);
 
-  nsIDocument *rootdoc = aDisplayRootFrame->PresContext()->Document();
+  nsIDocument* rootdoc = aDisplayRootFrame->PresContext()->Document();
 
   if (rootdoc) {
     rootdoc->EnumerateSubDocuments(SubDocEnumCb, &modifiedFrames);
@@ -545,16 +551,14 @@ GetModifiedFrames(nsIFrame* aDisplayRootFrame)
  * build is required.
  */
 bool
-RetainedDisplayListBuilder::ComputeRebuildRegion(std::vector<WeakFrame>& aModifiedFrames,
+RetainedDisplayListBuilder::ComputeRebuildRegion(nsTArray<nsIFrame*>& aModifiedFrames,
                                                  nsRect* aOutDirty,
                                                  AnimatedGeometryRoot** aOutModifiedAGR,
                                                  nsTArray<nsIFrame*>* aOutFramesWithProps)
 {
   CRR_LOG("Computing rebuild regions for %d frames:\n", aModifiedFrames.size());
   for (nsIFrame* f : aModifiedFrames) {
-    if (!f) {
-      continue;
-    }
+    MOZ_ASSERT(f);
 
     if (f->HasOverrideDirtyRegion()) {
       aOutFramesWithProps->AppendElement(f);
@@ -628,7 +632,7 @@ RetainedDisplayListBuilder::ComputeRebuildRegion(std::vector<WeakFrame>& aModifi
         // we need to keep bubbling up to the next stacking context.
         if (currentFrame != mBuilder.RootReferenceFrame() &&
             currentFrame->HasDisplayItems()) {
-          mBuilder.MarkFrameForDisplayIfVisible(currentFrame);
+          mBuilder.MarkFrameForDisplayIfVisible(currentFrame, mBuilder.RootReferenceFrame());
 
           // Store the stacking context relative dirty area such
           // that display list building will pick it up when it
@@ -674,6 +678,37 @@ RetainedDisplayListBuilder::ComputeRebuildRegion(std::vector<WeakFrame>& aModifi
   return true;
 }
 
+/*
+ * A simple early exit heuristic to avoid slow partial display list rebuilds.
+ */
+static bool
+ShouldBuildPartial(nsTArray<nsIFrame*>& aModifiedFrames)
+{
+  if (aModifiedFrames.Length() > gfxPrefs::LayoutRebuildFrameLimit()) {
+    return false;
+  }
+
+  for (nsIFrame* f : aModifiedFrames) {
+    MOZ_ASSERT(f);
+
+    const LayoutFrameType type = f->Type();
+
+    // If we have any modified frames of the following types, it is likely that
+    // doing a partial rebuild of the display list will be slower than doing a
+    // full rebuild.
+    // This is because these frames either intersect or may intersect with most
+    // of the page content. This is either due to display port size or different
+    // async AGR.
+    if (type == LayoutFrameType::Viewport ||
+        type == LayoutFrameType::PageContent ||
+        type == LayoutFrameType::Canvas ||
+        type == LayoutFrameType::Scrollbar) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 bool
 RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
@@ -685,7 +720,10 @@ RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
 
   mBuilder.EnterPresShell(mBuilder.RootReferenceFrame());
 
-  std::vector<WeakFrame> modifiedFrames = GetModifiedFrames(mBuilder.RootReferenceFrame());
+  nsTArray<nsIFrame*> modifiedFrames =
+    GetModifiedFrames(mBuilder.RootReferenceFrame());
+
+  const bool shouldBuildPartial = ShouldBuildPartial(modifiedFrames);
 
   if (mPreviousCaret != mBuilder.GetCaretFrame()) {
     if (mPreviousCaret) {
@@ -703,7 +741,7 @@ RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
   AnimatedGeometryRoot* modifiedAGR = nullptr;
   nsTArray<nsIFrame*> framesWithProps;
   bool merged = false;
-  if (!mList.IsEmpty() &&
+  if (shouldBuildPartial && !mList.IsEmpty() &&
       ComputeRebuildRegion(modifiedFrames, &modifiedDirty, &modifiedAGR, &framesWithProps)) {
     modifiedDirty.IntersectRect(modifiedDirty, mBuilder.RootReferenceFrame()->GetVisualOverflowRectRelativeToSelf());
 
@@ -753,7 +791,6 @@ RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
       f->SetFrameIsModified(false);
     }
   }
-  modifiedFrames.clear();
 
   // Override dirty regions should only exist during this function. We set them up during
   // ComputeRebuildRegion, and clear them here.

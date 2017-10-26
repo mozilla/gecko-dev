@@ -373,7 +373,7 @@ already_AddRefed<nsIContent>
 HTMLEditor::FindSelectionRoot(nsINode* aNode)
 {
   NS_PRECONDITION(aNode->IsNodeOfType(nsINode::eDOCUMENT) ||
-                  aNode->IsNodeOfType(nsINode::eCONTENT),
+                  aNode->IsContent(),
                   "aNode must be content or document node");
 
   nsCOMPtr<nsIDocument> doc = aNode->GetUncomposedDoc();
@@ -2765,7 +2765,7 @@ HTMLEditor::GetLinkedObjects(nsIArray** aNodeList)
         nsCOMPtr<nsIURIRefObject> refObject;
         rv = NS_NewHTMLURIRefObject(getter_AddRefs(refObject), node);
         if (NS_SUCCEEDED(rv)) {
-          nodes->AppendElement(refObject, false);
+          nodes->AppendElement(refObject);
         }
       }
       iter->Next();
@@ -3060,7 +3060,7 @@ HTMLEditor::GetEmbeddedObjects(nsIArray** aNodeList)
           (element->IsHTMLElement(nsGkAtoms::body) &&
            element->HasAttr(kNameSpaceID_None, nsGkAtoms::background))) {
         nsCOMPtr<nsIDOMNode> domNode = do_QueryInterface(node);
-        nodes->AppendElement(domNode, false);
+        nodes->AppendElement(domNode);
        }
      }
      iter->Next();

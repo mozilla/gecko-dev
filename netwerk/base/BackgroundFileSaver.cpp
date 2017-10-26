@@ -296,7 +296,7 @@ BackgroundFileSaver::GetSignatureInfo(nsIArray** aSignatureInfo)
   }
   nsCOMPtr<nsIMutableArray> sigArray = do_CreateInstance(NS_ARRAY_CONTRACTID);
   for (int i = 0; i < mSignatureInfo.Count(); ++i) {
-    sigArray->AppendElement(mSignatureInfo[i], false);
+    sigArray->AppendElement(mSignatureInfo[i]);
   }
   *aSignatureInfo = sigArray;
   NS_IF_ADDREF(*aSignatureInfo);
@@ -620,10 +620,11 @@ BackgroundFileSaver::ProcessStateChange()
                                    PR_WRONLY | creationIoFlags, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  outputStream = NS_BufferOutputStream(outputStream, BUFFERED_IO_SIZE);
-  if (!outputStream) {
-    return NS_ERROR_FAILURE;
-  }
+  nsCOMPtr<nsIOutputStream> bufferedStream;
+  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedStream),
+                                  outputStream.forget(), BUFFERED_IO_SIZE);
+  NS_ENSURE_SUCCESS(rv, rv);
+  outputStream = bufferedStream;
 
   // Wrap the output stream so that it feeds the digest context if needed.
   if (mDigestContext) {

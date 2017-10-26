@@ -304,6 +304,11 @@ impl Window {
         }
     }
 
+    /// Get a sender to the time profiler thread.
+    pub fn time_profiler_chan(&self) -> &TimeProfilerChan {
+        self.globalscope.time_profiler_chan()
+    }
+
     pub fn origin(&self) -> &MutableOrigin {
         self.globalscope.origin()
     }
@@ -591,15 +596,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<DomRoot<Element>> {
         // Steps 1-3.
-        let window_proxy = match self.window_proxy.get() {
-            None => return None,
-            Some(window_proxy) => window_proxy,
-        };
+        let window_proxy = self.window_proxy.get()?;
+
         // Step 4-5.
-        let container = match window_proxy.frame_element() {
-            None => return None,
-            Some(container) => container,
-        };
+        let container = window_proxy.frame_element()?;
+
         // Step 6.
         let container_doc = document_from_node(container);
         let current_doc = GlobalScope::current().expect("No current global object").as_window().Document();
@@ -687,10 +688,8 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.
-        let window_proxy = match self.undiscarded_window_proxy() {
-            Some(window_proxy) => window_proxy,
-            None => return None,
-        };
+        let window_proxy = self.undiscarded_window_proxy()?;
+
         // Step 4.
         if let Some(parent) = window_proxy.parent() {
             return Some(DomRoot::from_ref(parent));
@@ -702,10 +701,8 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn GetTop(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.
-        let window_proxy = match self.undiscarded_window_proxy() {
-            Some(window_proxy) => window_proxy,
-            None => return None,
-        };
+        let window_proxy = self.undiscarded_window_proxy()?;
+
         // Steps 4-5.
         Some(DomRoot::from_ref(window_proxy.top()))
     }
@@ -1046,6 +1043,10 @@ impl Window {
         TaskCanceller {
             cancelled: Some(self.ignore_further_async_events.borrow().clone()),
         }
+    }
+
+    pub fn get_navigation_start(&self) -> f64 {
+        self.navigation_start_precise.get()
     }
 
     /// Cancels all the tasks associated with that window.
@@ -1862,6 +1863,10 @@ impl Window {
             WindowBinding::Wrap(runtime.cx(), win)
         }
     }
+
+    pub fn pipeline_id(&self) -> Option<PipelineId> {
+        Some(self.upcast::<GlobalScope>().pipeline_id())
+    }
 }
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
@@ -1970,6 +1975,7 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(self.task_canceller().wrap_task(task)),
+            self.pipeline_id()
         ));
     }
 }

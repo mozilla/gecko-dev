@@ -466,8 +466,9 @@ MutableBlobStorage::Append(const void* aData, uint32_t aLength)
 
   // If eInMemory is the current Storage state, we could maybe migrate to
   // a temporary file.
-  if (mStorageState == eInMemory && ShouldBeTemporaryStorage(aLength)) {
-    MaybeCreateTemporaryFile();
+  if (mStorageState == eInMemory && ShouldBeTemporaryStorage(aLength) &&
+      !MaybeCreateTemporaryFile()) {
+    return NS_ERROR_FAILURE;
   }
 
   // If we are already in the temporaryFile mode, we have to dispatch a
@@ -547,42 +548,21 @@ MutableBlobStorage::ShouldBeTemporaryStorage(uint64_t aSize) const
   return bufferSize.value() >= mMaxMemory;
 }
 
-void
+bool
 MutableBlobStorage::MaybeCreateTemporaryFile()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   mStorageState = eWaitingForTemporaryFile;
 
-  mozilla::ipc::PBackgroundChild* actor =
-    mozilla::ipc::BackgroundChild::GetForCurrentThread();
-  if (actor) {
-    ActorCreated(actor);
-  } else {
-    mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread(this);
-  }
-}
-
-void
-MutableBlobStorage::ActorFailed()
-{
-  MOZ_CRASH("Failed to create a PBackgroundChild actor!");
-}
-
-void
-MutableBlobStorage::ActorCreated(PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mStorageState == eWaitingForTemporaryFile ||
-             mStorageState == eClosed);
-  MOZ_ASSERT_IF(mPendingCallback, mStorageState == eClosed);
-
-  // If the object has been already closed and we don't need to execute a
-  // callback, we have nothing else to do.
-  if (mStorageState == eClosed && !mPendingCallback) {
-    return;
+  mozilla::ipc::PBackgroundChild* actorChild =
+    mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actorChild)) {
+    return false;
   }
 
   mActor = new TemporaryIPCBlobChild(this);
-  aActor->SendPTemporaryIPCBlobConstructor(mActor);
+  actorChild->SendPTemporaryIPCBlobConstructor(mActor);
 
   // We need manually to increase the reference for this actor because the
   // IPC allocator method is not triggered. The Release() is called by IPDL
@@ -590,6 +570,8 @@ MutableBlobStorage::ActorCreated(PBackgroundChild* aActor)
   mActor.get()->AddRef();
 
   // The actor will call us when the FileDescriptor is received.
+
+  return true;
 }
 
 void
@@ -695,8 +677,6 @@ MutableBlobStorage::SizeOfCurrentMemoryBuffer() const
   MOZ_ASSERT(NS_IsMainThread());
   return mStorageState < eInTemporaryFile ? mDataLen : 0;
 }
-
-NS_IMPL_ISUPPORTS(MutableBlobStorage, nsIIPCBackgroundChildCreateCallback)
 
 } // dom namespace
 } // mozilla namespace

@@ -5019,14 +5019,18 @@ static bool
 WrapWithProto(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    Value obj = UndefinedValue(), proto = UndefinedValue();
-    if (args.length() == 2) {
-        obj = args[0];
-        proto = args[1];
-    }
+    Value obj = args.get(0);
+    Value proto = args.get(1);
     if (!obj.isObject() || !proto.isObjectOrNull()) {
         JS_ReportErrorNumberASCII(cx, my_GetErrorMessage, nullptr, JSSMSG_INVALID_ARGS,
                                   "wrapWithProto");
+        return false;
+    }
+
+    // Disallow constructing (deeply) nested wrapper chains, to avoid running
+    // out of stack space in isCallable/isConstructor. See bug 1126105.
+    if (IsWrapper(&obj.toObject())) {
+        JS_ReportErrorASCII(cx, "wrapWithProto cannot wrap a wrapper");
         return false;
     }
 
@@ -5148,16 +5152,46 @@ GetMaxArgs(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static bool
-ObjectEmulatingUndefined(JSContext* cx, unsigned argc, Value* vp)
+IsHTMLDDA_Call(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    static const JSClass cls = {
-        "ObjectEmulatingUndefined",
-        JSCLASS_EMULATES_UNDEFINED
+    // These are the required conditions under which this object may be called
+    // by test262 tests, and the required behavior under those conditions.
+    if (args.length() == 0 ||
+        (args.length() == 1 && args[0].isString() && args[0].toString()->length() == 0))
+    {
+        args.rval().setNull();
+        return true;
+    }
+
+    JS_ReportErrorASCII(cx, "IsHTMLDDA object is being called in an impermissible manner");
+    return false;
+}
+
+static bool
+CreateIsHTMLDDA(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    static const JSClassOps classOps = {
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        IsHTMLDDA_Call,
     };
 
-    RootedObject obj(cx, JS_NewObject(cx, &cls));
+    static const JSClass cls = {
+        "IsHTMLDDA",
+        JSCLASS_EMULATES_UNDEFINED,
+        &classOps,
+    };
+
+    JSObject* obj = JS_NewObject(cx, &cls);
     if (!obj)
         return false;
     args.rval().setObject(*obj);
@@ -6791,6 +6825,10 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "nukeAllCCWs()",
 "  Like nukeCCW, but for all CrossCompartmentWrappers targeting the current compartment."),
 
+    JS_FN_HELP("wrapWithProto", WrapWithProto, 2, 0,
+"wrapWithProto(obj)",
+"  Wrap an object into a noop wrapper with prototype semantics."),
+
     JS_FN_HELP("createMappedArrayBuffer", CreateMappedArrayBuffer, 1, 0,
 "createMappedArrayBuffer(filename, [offset, [size]])",
 "  Create an array buffer that mmaps the given file."),
@@ -6803,10 +6841,15 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "getMaxArgs()",
 "  Return the maximum number of supported args for a call."),
 
-    JS_FN_HELP("objectEmulatingUndefined", ObjectEmulatingUndefined, 0, 0,
-"objectEmulatingUndefined()",
-"  Return a new object obj for which typeof obj === \"undefined\", obj == null\n"
-"  and obj == undefined (and vice versa for !=), and ToBoolean(obj) === false.\n"),
+    JS_FN_HELP("createIsHTMLDDA", CreateIsHTMLDDA, 0, 0,
+"createIsHTMLDDA()",
+"  Return an object |obj| that \"looks like\" the |document.all| object in\n"
+"  browsers in certain ways: |typeof obj === \"undefined\"|, |obj == null|\n"
+"  and |obj == undefined| (vice versa for !=), |ToBoolean(obj) === false|,\n"
+"  and when called with no arguments or the single argument \"\" returns\n"
+"  null.  (Calling |obj| any other way crashes or throws an exception.)\n"
+"  This function implements the exact requirements of the $262.IsHTMLDDA\n"
+"  property in test262."),
 
     JS_FN_HELP("isCachingEnabled", IsCachingEnabled, 0, 0,
 "isCachingEnabled()",
@@ -6960,12 +7003,6 @@ TestAssertRecoveredOnBailout,
 "  original hook, that we reinstate after the call to |fun| completes,\n"
 "  might be asked for the source code of compilations that |fun|\n"
 "  performed, and which, presumably, only |hook| knows how to find.\n"),
-
-    JS_FN_HELP("wrapWithProto", WrapWithProto, 2, 0,
-"wrapWithProto(obj)",
-"  Wrap an object into a noop wrapper with prototype semantics.\n"
-"  Note: This is not fuzzing safe because it can be used to construct\n"
-"        deeply nested wrapper chains that cannot exist in the wild."),
 
     JS_FN_HELP("trackedOpts", ReflectTrackedOptimizations, 1, 0,
 "trackedOpts(fun)",

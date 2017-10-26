@@ -4805,8 +4805,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
     return false;
   }
 
-  if (aNode->IsNodeOfType(nsINode::eCONTENT) &&
-      static_cast<nsIContent*>(aNode)->ChromeOnlyAccess()) {
+  if (aNode->IsContent() && aNode->AsContent()->ChromeOnlyAccess()) {
     return false;
   }
 
@@ -4832,11 +4831,11 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
       return true;
     }
 
-    if (aNode->IsNodeOfType(nsINode::eCONTENT)) {
-      nsIContent* content = static_cast<nsIContent*>(aNode);
-      nsIContent* insertionParent = content->GetXBLInsertionParent();
-      if (insertionParent) {
-        aNode = insertionParent;
+    if (aNode->IsContent()) {
+      nsIContent* insertionPoint = aNode->AsContent()->GetXBLInsertionPoint();
+      if (insertionPoint) {
+        aNode = insertionPoint->GetParent();
+        MOZ_ASSERT(aNode);
         continue;
       }
     }
@@ -5499,7 +5498,7 @@ nsContentUtils::IsInSameAnonymousTree(const nsINode* aNode,
   NS_PRECONDITION(aContent,
                   "Must have a content to work with");
 
-  if (!aNode->IsNodeOfType(nsINode::eCONTENT)) {
+  if (!aNode->IsContent()) {
     /**
      * The root isn't an nsIContent, so it's a document or attribute.  The only
      * nodes in the same anonymous subtree as it will have a null
@@ -10480,59 +10479,59 @@ nsContentUtils::AppendNativeAnonymousChildren(
 }
 
 /* static */ bool
-nsContentUtils::GetLoadingPrincipalForXULNode(nsIContent* aLoadingNode,
-                                              nsIPrincipal* aDefaultPrincipal,
-                                              nsIPrincipal** aLoadingPrincipal)
+nsContentUtils::QueryTriggeringPrincipal(nsIContent* aLoadingNode,
+                                         nsIPrincipal* aDefaultPrincipal,
+                                         nsIPrincipal** aTriggeringPrincipal)
 {
   MOZ_ASSERT(aLoadingNode);
-  MOZ_ASSERT(aLoadingPrincipal);
+  MOZ_ASSERT(aTriggeringPrincipal);
 
   bool result = false;
   nsCOMPtr<nsIPrincipal> loadingPrincipal = aDefaultPrincipal;
   if (!loadingPrincipal) {
     loadingPrincipal = aLoadingNode->NodePrincipal();
   }
+
+  // If aLoadingNode is content, bail out early.
+  if (!aLoadingNode->NodePrincipal()->GetIsSystemPrincipal()) {
+    loadingPrincipal.forget(aTriggeringPrincipal);
+    return result;
+  }
+
   nsAutoString loadingStr;
-  aLoadingNode->GetAttr(kNameSpaceID_None, nsGkAtoms::loadingprincipal,
+  aLoadingNode->GetAttr(kNameSpaceID_None, nsGkAtoms::triggeringprincipal,
                         loadingStr);
 
-  // Fall back to mContent's principal if 'loadingprincipal' isn't specified,
-  // or if the doc isn't loaded by System Principal.
-  if (loadingStr.IsEmpty() ||
-      !aLoadingNode->OwnerDoc()->NodePrincipal()->GetIsSystemPrincipal()) {
-    loadingPrincipal.forget(aLoadingPrincipal);
+  // Fall back if 'triggeringprincipal' isn't specified,
+  if (loadingStr.IsEmpty()) {
+    loadingPrincipal.forget(aTriggeringPrincipal);
     return result;
   }
 
   nsCOMPtr<nsISupports> serializedPrincipal;
   NS_DeserializeObject(NS_ConvertUTF16toUTF8(loadingStr),
                        getter_AddRefs(serializedPrincipal));
-  loadingPrincipal = do_QueryInterface(serializedPrincipal);
-  if (loadingPrincipal) {
-    // We only allow specifying loadingprincipal attribute on a node loaded by
-    // SystemPrincipal.
-    MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(aLoadingNode->NodePrincipal()),
-               "aLoadingNode Should be loaded with SystemPrincipal");
-
+  nsCOMPtr<nsIPrincipal> serializedPrin = do_QueryInterface(serializedPrincipal);
+  if (serializedPrin) {
     result = true;
+    serializedPrin.forget(aTriggeringPrincipal);
   } else {
     // Fallback if the deserialization is failed.
-    loadingPrincipal = aLoadingNode->NodePrincipal();
+    loadingPrincipal.forget(aTriggeringPrincipal);
   }
 
-  loadingPrincipal.forget(aLoadingPrincipal);
   return result;
 }
 
 /* static */ void
 nsContentUtils::GetContentPolicyTypeForUIImageLoading(nsIContent* aLoadingNode,
-                                                      nsIPrincipal** aLoadingPrincipal,
+                                                      nsIPrincipal** aTriggeringPrincipal,
                                                       nsContentPolicyType& aContentPolicyType,
                                                       uint64_t* aRequestContextID)
 {
   MOZ_ASSERT(aRequestContextID);
 
-  bool result = GetLoadingPrincipalForXULNode(aLoadingNode, aLoadingPrincipal);
+  bool result = QueryTriggeringPrincipal(aLoadingNode, aTriggeringPrincipal);
   if (result) {
     // Set the content policy type to TYPE_INTERNAL_IMAGE_FAVICON for
     // indicating it's a favicon loading.

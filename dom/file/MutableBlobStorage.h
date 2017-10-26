@@ -8,7 +8,6 @@
 #define mozilla_dom_MutableBlobStorage_h
 
 #include "mozilla/RefPtr.h"
-#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "prio.h"
 
 class nsIEventTarget;
@@ -37,11 +36,10 @@ public:
 };
 
 // This class is main-thread only.
-class MutableBlobStorage final : public nsIIPCBackgroundChildCreateCallback
+class MutableBlobStorage final
 {
 public:
-  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MutableBlobStorage)
 
   enum MutableBlobStorageType
   {
@@ -85,7 +83,7 @@ private:
 
   bool ShouldBeTemporaryStorage(uint64_t aSize) const;
 
-  void MaybeCreateTemporaryFile();
+  bool MaybeCreateTemporaryFile();
 
   void DispatchToIOThread(already_AddRefed<nsIRunnable> aRunnable);
 

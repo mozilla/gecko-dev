@@ -11,7 +11,7 @@ else:
 
 # We allow warnings for third-party code that can be updated from upstream.
 # TODO: fix NSPR warnings and remove this
-ALLOW_COMPILER_WARNINGS = True
+AllowCompilerWarnings()
 
 DEFINES['_NSPR_BUILD_'] = True
 if CONFIG['OS_ARCH'] == 'Linux':
@@ -40,7 +40,7 @@ elif CONFIG['OS_TARGET'] in ('FreeBSD', 'OpenBSD', 'NetBSD'):
     SOURCES += ['/nsprpub/pr/src/md/unix/%s.c' % CONFIG['OS_TARGET'].lower()]
 elif CONFIG['OS_TARGET'] == 'Darwin':
     OS_LIBS += ['-framework CoreServices']
-    if CONFIG['HOST_MAJOR_VERSION'] == '15':
+    if CONFIG['HOST_MAJOR_VERSION'] >= '15':
         DEFINES.update(
             HAS_CONNECTX=True,
         )

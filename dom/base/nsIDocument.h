@@ -2078,7 +2078,8 @@ public:
    */
 
   already_AddRefed<mozilla::dom::MediaQueryList>
-    MatchMedia(const nsAString& aMediaQueryList);
+    MatchMedia(const nsAString& aMediaQueryList,
+               mozilla::dom::CallerType aCallerType);
 
   mozilla::LinkedList<mozilla::dom::MediaQueryList>& MediaQueryLists() {
     return mDOMMediaQueryLists;
@@ -2372,6 +2373,16 @@ public:
   {
     nsPIDOMWindowInner* inner = GetInnerWindow();
     return inner && inner->IsCurrentInnerWindow() && inner->GetDoc() == this;
+  }
+
+  /**
+   * Returns whether this document should perform image loads.
+   */
+  bool ShouldLoadImages() const
+  {
+    // We check IsBeingUsedAsImage() so that SVG documents loaded as
+    // images can themselves have data: URL image references.
+    return IsCurrentActiveDocument() || IsBeingUsedAsImage();
   }
 
   /**

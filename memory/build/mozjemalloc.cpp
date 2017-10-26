@@ -109,9 +109,12 @@
 
 #include "mozmemory_wrap.h"
 #include "mozjemalloc.h"
-#include "mozilla/Sprintf.h"
-#include "mozilla/Likely.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/DoublyLinkedList.h"
+#include "mozilla/GuardObjects.h"
+#include "mozilla/Likely.h"
+#include "mozilla/Sprintf.h"
+#include "mozilla/UniquePtr.h"
 
 /*
  * On Linux, we use madvise(MADV_DONTNEED) to release memory back to the
@@ -297,15 +300,6 @@ void *_mmap(void *addr, size_t length, int prot, int flags,
 #endif
 #endif
 
-#ifdef MOZ_DEBUG
-   /* Disable inlining to make debugging easier. */
-#ifdef inline
-#undef inline
-#endif
-
-#  define inline
-#endif
-
 /* Size of stack-allocated buffer passed to strerror_r(). */
 #define	STRERROR_BUF		64
 
@@ -467,31 +461,30 @@ static unsigned nsbins; /* Number of (2^n)-spaced sub-page bins. */
 #define calculate_arena_maxclass() \
  (chunksize - (arena_chunk_header_npages << pagesize_2pow))
 
+#define CHUNKSIZE_DEFAULT ((size_t) 1 << CHUNK_2POW_DEFAULT)
+static const size_t chunksize = CHUNKSIZE_DEFAULT;
+static const size_t chunksize_mask = CHUNKSIZE_DEFAULT - 1;
+
+#ifdef MALLOC_STATIC_PAGESIZE
+static const size_t chunk_npages = CHUNKSIZE_DEFAULT >> pagesize_2pow;
+#define arena_chunk_header_npages calculate_arena_header_pages()
+#define arena_maxclass calculate_arena_maxclass()
+#else
+static size_t chunk_npages;
+static size_t arena_chunk_header_npages;
+static size_t arena_maxclass; /* Max size class for arenas. */
+#endif
+
 /*
  * Recycle at most 128 chunks. With 1 MiB chunks, this means we retain at most
  * 6.25% of the process address space on a 32-bit OS for later use.
  */
 #define CHUNK_RECYCLE_LIMIT 128
 
-#ifdef MALLOC_STATIC_PAGESIZE
-#define CHUNKSIZE_DEFAULT ((size_t) 1 << CHUNK_2POW_DEFAULT)
-static const size_t chunksize = CHUNKSIZE_DEFAULT;
-static const size_t chunksize_mask = CHUNKSIZE_DEFAULT - 1;
-static const size_t chunk_npages = CHUNKSIZE_DEFAULT >> pagesize_2pow;
-#define arena_chunk_header_npages calculate_arena_header_pages()
-#define arena_maxclass calculate_arena_maxclass()
-static const size_t recycle_limit = CHUNK_RECYCLE_LIMIT * CHUNKSIZE_DEFAULT;
-#else
-static size_t chunksize;
-static size_t chunksize_mask; /* (chunksize - 1). */
-static size_t chunk_npages;
-static size_t arena_chunk_header_npages;
-static size_t arena_maxclass; /* Max size class for arenas. */
-static size_t recycle_limit;
-#endif
+static const size_t gRecycleLimit = CHUNK_RECYCLE_LIMIT * CHUNKSIZE_DEFAULT;
 
 /* The current amount of recycled bytes, updated atomically. */
-static size_t recycled_size;
+static mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gRecycledSize;
 
 /******************************************************************************/
 
@@ -520,6 +513,22 @@ struct Mutex
   inline void Lock();
 
   inline void Unlock();
+};
+
+struct MOZ_RAII MutexAutoLock
+{
+  explicit MutexAutoLock(Mutex& aMutex MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  : mMutex(aMutex)
+  {
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    mMutex.Lock();
+  }
+
+  ~MutexAutoLock() { mMutex.Unlock(); }
+
+private:
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
+  Mutex& mMutex;
 };
 
 /* Set to true once the allocator has been initialized. */
@@ -1082,8 +1091,8 @@ static Mutex chunks_mtx;
  * address space.  Depending on function, different tree orderings are needed,
  * which is why there are two trees with the same contents.
  */
-static RedBlackTree<extent_node_t, ExtentTreeSzTrait> chunks_szad_mmap;
-static RedBlackTree<extent_node_t, ExtentTreeTrait> chunks_ad_mmap;
+static RedBlackTree<extent_node_t, ExtentTreeSzTrait> gChunksBySize;
+static RedBlackTree<extent_node_t, ExtentTreeTrait> gChunksByAddress;
 
 /* Protects huge allocation-related data structures. */
 static Mutex huge_mtx;
@@ -1092,8 +1101,6 @@ static Mutex huge_mtx;
 static RedBlackTree<extent_node_t, ExtentTreeTrait> huge;
 
 /* Huge allocation statistics. */
-static uint64_t		huge_nmalloc;
-static uint64_t		huge_ndalloc;
 static size_t		huge_allocated;
 static size_t		huge_mapped;
 
@@ -1166,14 +1173,14 @@ static size_t	opt_dirty_max = DIRTY_MAX_DEFAULT;
  * Begin forward declarations.
  */
 
-static void	*chunk_alloc(size_t size, size_t alignment, bool base, bool *zeroed=nullptr);
-static void	chunk_dealloc(void *chunk, size_t size, ChunkType chunk_type);
-static void	chunk_ensure_zero(void* ptr, size_t size, bool zeroed);
+static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase, bool* aZeroed = nullptr);
+static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
+static void chunk_ensure_zero(void* aPtr, size_t aSize, bool aZeroed);
 static arena_t	*arenas_extend();
 static void	*huge_malloc(size_t size, bool zero);
-static void	*huge_palloc(size_t size, size_t alignment, bool zero);
-static void	*huge_ralloc(void *ptr, size_t size, size_t oldsize);
-static void	huge_dalloc(void *ptr);
+static void* huge_palloc(size_t aSize, size_t aAlignment, bool aZero);
+static void* huge_ralloc(void* aPtr, size_t aSize, size_t aOldSize);
+static void huge_dalloc(void* aPtr);
 #ifdef XP_WIN
 extern "C"
 #else
@@ -1194,24 +1201,6 @@ FORK_HOOK void _malloc_postfork_child(void);
  * End forward declarations.
  */
 /******************************************************************************/
-
-static inline size_t
-load_acquire_z(size_t *p)
-{
-	volatile size_t result = *p;
-#  ifdef XP_WIN
-	/*
-	 * We use InterlockedExchange with a dummy value to insert a memory
-	 * barrier. This has been confirmed to generate the right instruction
-	 * and is also used by MinGW.
-	 */
-	volatile long dummy = 0;
-	InterlockedExchange(&dummy, 1);
-#  else
-	__sync_synchronize();
-#  endif
-	return result;
-}
 
 static void
 _malloc_message(const char *p)
@@ -1450,42 +1439,39 @@ base_pages_alloc(size_t minsize)
 	return (false);
 }
 
-static void *
-base_alloc(size_t size)
+static void*
+base_alloc(size_t aSize)
 {
-	void *ret;
-	size_t csize;
+  void* ret;
+  size_t csize;
 
-	/* Round size up to nearest multiple of the cacheline size. */
-	csize = CACHELINE_CEILING(size);
+  /* Round size up to nearest multiple of the cacheline size. */
+  csize = CACHELINE_CEILING(aSize);
 
-	base_mtx.Lock();
-	/* Make sure there's enough space for the allocation. */
-	if ((uintptr_t)base_next_addr + csize > (uintptr_t)base_past_addr) {
-		if (base_pages_alloc(csize)) {
-			base_mtx.Unlock();
-			return nullptr;
-		}
-	}
-	/* Allocate. */
-	ret = base_next_addr;
-	base_next_addr = (void *)((uintptr_t)base_next_addr + csize);
-	/* Make sure enough pages are committed for the new allocation. */
-	if ((uintptr_t)base_next_addr > (uintptr_t)base_next_decommitted) {
-		void *pbase_next_addr =
-		    (void *)(PAGE_CEILING((uintptr_t)base_next_addr));
+  MutexAutoLock lock(base_mtx);
+  /* Make sure there's enough space for the allocation. */
+  if ((uintptr_t)base_next_addr + csize > (uintptr_t)base_past_addr) {
+    if (base_pages_alloc(csize)) {
+      return nullptr;
+    }
+  }
+  /* Allocate. */
+  ret = base_next_addr;
+  base_next_addr = (void*)((uintptr_t)base_next_addr + csize);
+  /* Make sure enough pages are committed for the new allocation. */
+  if ((uintptr_t)base_next_addr > (uintptr_t)base_next_decommitted) {
+    void* pbase_next_addr = (void*)(PAGE_CEILING((uintptr_t)base_next_addr));
 
 #  ifdef MALLOC_DECOMMIT
-		pages_commit(base_next_decommitted, (uintptr_t)pbase_next_addr -
-		    (uintptr_t)base_next_decommitted);
+    pages_commit(base_next_decommitted, (uintptr_t)pbase_next_addr -
+        (uintptr_t)base_next_decommitted);
 #  endif
-		base_next_decommitted = pbase_next_addr;
-		base_committed += (uintptr_t)pbase_next_addr -
-		    (uintptr_t)base_next_decommitted;
-	}
-	base_mtx.Unlock();
+    base_next_decommitted = pbase_next_addr;
+    base_committed += (uintptr_t)pbase_next_addr -
+        (uintptr_t)base_next_decommitted;
+  }
 
-	return (ret);
+  return ret;
 }
 
 static void *
@@ -1518,14 +1504,19 @@ base_node_alloc(void)
 }
 
 static void
-base_node_dealloc(extent_node_t *node)
+base_node_dealloc(extent_node_t* aNode)
 {
-
-	base_mtx.Lock();
-	*(extent_node_t **)node = base_nodes;
-	base_nodes = node;
-	base_mtx.Unlock();
+  MutexAutoLock lock(base_mtx);
+  *(extent_node_t**)aNode = base_nodes;
+  base_nodes = aNode;
 }
+
+struct BaseNodeFreePolicy
+{
+  void operator()(extent_node_t* aPtr) { base_node_dealloc(aPtr); }
+};
+
+using UniqueBaseNode = mozilla::UniquePtr<extent_node_t, BaseNodeFreePolicy>;
 
 /*
  * End Utility functions/macros.
@@ -1742,7 +1733,7 @@ AddressRadixTree<Bits>::Get(void* aKey)
     ret = *slot;
   }
 #ifdef MOZ_DEBUG
-  mlock.Lock();
+  MutexAutoLock lock(mLock);
   /*
    * Suppose that it were possible for a jemalloc-allocated chunk to be
    * munmap()ped, followed by a different allocator in another thread re-using
@@ -1757,13 +1748,12 @@ AddressRadixTree<Bits>::Get(void* aKey)
     slot = GetSlot(aKey);
   }
   if (slot) {
-    // The Lock() call above should act as a memory barrier, forcing
+    // The MutexAutoLock above should act as a memory barrier, forcing
     // the compiler to emit a new read instruction for *slot.
     MOZ_ASSERT(ret == *slot);
   } else {
     MOZ_ASSERT(ret == nullptr);
   }
-  mlock.Unlock();
 #endif
   return ret;
 }
@@ -1772,12 +1762,11 @@ template <size_t Bits>
 bool
 AddressRadixTree<Bits>::Set(void* aKey, void* aValue)
 {
-  mLock.Lock();
+  MutexAutoLock lock(mLock);
   void** slot = GetSlot(aKey, /* create */ true);
   if (slot) {
     *slot = aValue;
   }
-  mLock.Unlock();
   return slot;
 }
 
@@ -1928,98 +1917,84 @@ pages_purge(void *addr, size_t length, bool force_zero)
 #endif
 }
 
-static void *
-chunk_recycle(RedBlackTree<extent_node_t, ExtentTreeSzTrait>* chunks_szad,
-              RedBlackTree<extent_node_t, ExtentTreeTrait>* chunks_ad,
-              size_t size, size_t alignment, bool base, bool *zeroed)
+static void*
+chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed)
 {
-	void *ret;
-	extent_node_t *node;
-	extent_node_t key;
-	size_t alloc_size, leadsize, trailsize;
-	ChunkType chunk_type;
+  extent_node_t key;
 
-	if (base) {
-		/*
-		 * This function may need to call base_node_{,de}alloc(), but
-		 * the current chunk allocation request is on behalf of the
-		 * base allocator.  Avoid deadlock (and if that weren't an
-		 * issue, potential for infinite recursion) by returning nullptr.
-		 */
-		return nullptr;
-	}
+  size_t alloc_size = aSize + aAlignment - chunksize;
+  /* Beware size_t wrap-around. */
+  if (alloc_size < aSize) {
+    return nullptr;
+  }
+  key.addr = nullptr;
+  key.size = alloc_size;
+  chunks_mtx.Lock();
+  extent_node_t* node = gChunksBySize.SearchOrNext(&key);
+  if (!node) {
+    chunks_mtx.Unlock();
+    return nullptr;
+  }
+  size_t leadsize =
+    ALIGNMENT_CEILING((uintptr_t)node->addr, aAlignment) - (uintptr_t)node->addr;
+  MOZ_ASSERT(node->size >= leadsize + aSize);
+  size_t trailsize = node->size - leadsize - aSize;
+  void* ret = (void*)((uintptr_t)node->addr + leadsize);
+  ChunkType chunk_type = node->chunk_type;
+  if (aZeroed) {
+    *aZeroed = (chunk_type == ZEROED_CHUNK);
+  }
+  /* Remove node from the tree. */
+  gChunksBySize.Remove(node);
+  gChunksByAddress.Remove(node);
+  if (leadsize != 0) {
+    /* Insert the leading space as a smaller chunk. */
+    node->size = leadsize;
+    gChunksBySize.Insert(node);
+    gChunksByAddress.Insert(node);
+    node = nullptr;
+  }
+  if (trailsize != 0) {
+    /* Insert the trailing space as a smaller chunk. */
+    if (!node) {
+      /*
+       * An additional node is required, but
+       * base_node_alloc() can cause a new base chunk to be
+       * allocated.  Drop chunks_mtx in order to avoid
+       * deadlock, and if node allocation fails, deallocate
+       * the result before returning an error.
+       */
+      chunks_mtx.Unlock();
+      node = base_node_alloc();
+      if (!node) {
+        chunk_dealloc(ret, aSize, chunk_type);
+        return nullptr;
+      }
+      chunks_mtx.Lock();
+    }
+    node->addr = (void*)((uintptr_t)(ret) + aSize);
+    node->size = trailsize;
+    node->chunk_type = chunk_type;
+    gChunksBySize.Insert(node);
+    gChunksByAddress.Insert(node);
+    node = nullptr;
+  }
 
-	alloc_size = size + alignment - chunksize;
-	/* Beware size_t wrap-around. */
-	if (alloc_size < size)
-		return nullptr;
-	key.addr = nullptr;
-	key.size = alloc_size;
-	chunks_mtx.Lock();
-	node = chunks_szad->SearchOrNext(&key);
-	if (!node) {
-		chunks_mtx.Unlock();
-		return nullptr;
-	}
-	leadsize = ALIGNMENT_CEILING((uintptr_t)node->addr, alignment) -
-	    (uintptr_t)node->addr;
-	MOZ_ASSERT(node->size >= leadsize + size);
-	trailsize = node->size - leadsize - size;
-	ret = (void *)((uintptr_t)node->addr + leadsize);
-	chunk_type = node->chunk_type;
-	if (zeroed) {
-		*zeroed = (chunk_type == ZEROED_CHUNK);
-	}
-	/* Remove node from the tree. */
-	chunks_szad->Remove(node);
-	chunks_ad->Remove(node);
-	if (leadsize != 0) {
-		/* Insert the leading space as a smaller chunk. */
-		node->size = leadsize;
-		chunks_szad->Insert(node);
-		chunks_ad->Insert(node);
-		node = nullptr;
-	}
-	if (trailsize != 0) {
-		/* Insert the trailing space as a smaller chunk. */
-		if (!node) {
-			/*
-			 * An additional node is required, but
-			 * base_node_alloc() can cause a new base chunk to be
-			 * allocated.  Drop chunks_mtx in order to avoid
-			 * deadlock, and if node allocation fails, deallocate
-			 * the result before returning an error.
-			 */
-			chunks_mtx.Unlock();
-			node = base_node_alloc();
-			if (!node) {
-				chunk_dealloc(ret, size, chunk_type);
-				return nullptr;
-			}
-			chunks_mtx.Lock();
-		}
-		node->addr = (void *)((uintptr_t)(ret) + size);
-		node->size = trailsize;
-		node->chunk_type = chunk_type;
-		chunks_szad->Insert(node);
-		chunks_ad->Insert(node);
-		node = nullptr;
-	}
+  gRecycledSize -= aSize;
 
-	recycled_size -= size;
+  chunks_mtx.Unlock();
 
-	chunks_mtx.Unlock();
-
-	if (node)
-		base_node_dealloc(node);
+  if (node) {
+    base_node_dealloc(node);
+  }
 #ifdef MALLOC_DECOMMIT
-	pages_commit(ret, size);
-	// pages_commit is guaranteed to zero the chunk.
-	if (zeroed) {
-		*zeroed = true;
-	}
+  pages_commit(ret, aSize);
+  // pages_commit is guaranteed to zero the chunk.
+  if (aZeroed) {
+    *aZeroed = true;
+  }
 #endif
-	return (ret);
+  return ret;
 }
 
 #ifdef XP_WIN
@@ -2041,187 +2016,169 @@ chunk_recycle(RedBlackTree<extent_node_t, ExtentTreeSzTrait>* chunks_szad,
  * guaranteed to be full of zeroes. It can be omitted when the caller doesn't
  * care about the result.
  */
-static void *
-chunk_alloc(size_t size, size_t alignment, bool base, bool *zeroed)
+static void*
+chunk_alloc(size_t aSize, size_t aAlignment, bool aBase, bool* aZeroed)
 {
-	void *ret;
+  void* ret = nullptr;
 
-	MOZ_ASSERT(size != 0);
-	MOZ_ASSERT((size & chunksize_mask) == 0);
-	MOZ_ASSERT(alignment != 0);
-	MOZ_ASSERT((alignment & chunksize_mask) == 0);
+  MOZ_ASSERT(aSize != 0);
+  MOZ_ASSERT((aSize & chunksize_mask) == 0);
+  MOZ_ASSERT(aAlignment != 0);
+  MOZ_ASSERT((aAlignment & chunksize_mask) == 0);
 
-	if (CAN_RECYCLE(size)) {
-		ret = chunk_recycle(&chunks_szad_mmap, &chunks_ad_mmap,
-			size, alignment, base, zeroed);
-		if (ret)
-			goto RETURN;
-	}
-	ret = chunk_alloc_mmap(size, alignment);
-	if (zeroed)
-		*zeroed = true;
-	if (ret) {
-		goto RETURN;
-	}
+  // Base allocations can't be fulfilled by recycling because of
+  // possible deadlock or infinite recursion.
+  if (CAN_RECYCLE(aSize) && !aBase) {
+    ret = chunk_recycle(aSize, aAlignment, aZeroed);
+  }
+  if (!ret) {
+    ret = chunk_alloc_mmap(aSize, aAlignment);
+    if (aZeroed) {
+      *aZeroed = true;
+    }
+  }
+  if (ret && !aBase) {
+    if (!gChunkRTree.Set(ret, ret)) {
+      chunk_dealloc(ret, aSize, UNKNOWN_CHUNK);
+      return nullptr;
+    }
+  }
 
-	/* All strategies for allocation failed. */
-	ret = nullptr;
-RETURN:
-
-	if (ret && base == false) {
-		if (!gChunkRTree.Set(ret, ret)) {
-			chunk_dealloc(ret, size, UNKNOWN_CHUNK);
-			return nullptr;
-		}
-	}
-
-	MOZ_ASSERT(CHUNK_ADDR2BASE(ret) == ret);
-	return (ret);
+  MOZ_ASSERT(CHUNK_ADDR2BASE(ret) == ret);
+  return ret;
 }
 
 static void
-chunk_ensure_zero(void* ptr, size_t size, bool zeroed)
+chunk_ensure_zero(void* aPtr, size_t aSize, bool aZeroed)
 {
-	if (zeroed == false)
-		memset(ptr, 0, size);
+  if (aZeroed == false) {
+    memset(aPtr, 0, aSize);
+  }
 #ifdef MOZ_DEBUG
-	else {
-		size_t i;
-		size_t *p = (size_t *)(uintptr_t)ret;
+  else {
+    size_t i;
+    size_t* p = (size_t*)(uintptr_t)aPtr;
 
-		for (i = 0; i < size / sizeof(size_t); i++)
-			MOZ_ASSERT(p[i] == 0);
-	}
+    for (i = 0; i < aSize / sizeof(size_t); i++) {
+      MOZ_ASSERT(p[i] == 0);
+    }
+  }
 #endif
 }
 
 static void
-chunk_record(RedBlackTree<extent_node_t, ExtentTreeSzTrait>* chunks_szad,
-             RedBlackTree<extent_node_t, ExtentTreeTrait>* chunks_ad,
-             void *chunk, size_t size, ChunkType chunk_type)
+chunk_record(void* aChunk, size_t aSize, ChunkType aType)
 {
-	extent_node_t *xnode, *node, *prev, *xprev, key;
+  extent_node_t key;
 
-	if (chunk_type != ZEROED_CHUNK) {
-		if (pages_purge(chunk, size, chunk_type == HUGE_CHUNK)) {
-			chunk_type = ZEROED_CHUNK;
-		}
-	}
+  if (aType != ZEROED_CHUNK) {
+    if (pages_purge(aChunk, aSize, aType == HUGE_CHUNK)) {
+      aType = ZEROED_CHUNK;
+    }
+  }
 
-	/*
-	 * Allocate a node before acquiring chunks_mtx even though it might not
-	 * be needed, because base_node_alloc() may cause a new base chunk to
-	 * be allocated, which could cause deadlock if chunks_mtx were already
-	 * held.
-	 */
-	xnode = base_node_alloc();
-	/* Use xprev to implement conditional deferred deallocation of prev. */
-	xprev = nullptr;
+  /*
+   * Allocate a node before acquiring chunks_mtx even though it might not
+   * be needed, because base_node_alloc() may cause a new base chunk to
+   * be allocated, which could cause deadlock if chunks_mtx were already
+   * held.
+   */
+  UniqueBaseNode xnode(base_node_alloc());
+  /* Use xprev to implement conditional deferred deallocation of prev. */
+  UniqueBaseNode xprev;
 
-	chunks_mtx.Lock();
-	key.addr = (void *)((uintptr_t)chunk + size);
-	node = chunks_ad->SearchOrNext(&key);
-	/* Try to coalesce forward. */
-	if (node && node->addr == key.addr) {
-		/*
-		 * Coalesce chunk with the following address range.  This does
-		 * not change the position within chunks_ad, so only
-		 * remove/insert from/into chunks_szad.
-		 */
-		chunks_szad->Remove(node);
-		node->addr = chunk;
-		node->size += size;
-		if (node->chunk_type != chunk_type) {
-			node->chunk_type = RECYCLED_CHUNK;
-		}
-		chunks_szad->Insert(node);
-	} else {
-		/* Coalescing forward failed, so insert a new node. */
-		if (!xnode) {
-			/*
-			 * base_node_alloc() failed, which is an exceedingly
-			 * unlikely failure.  Leak chunk; its pages have
-			 * already been purged, so this is only a virtual
-			 * memory leak.
-			 */
-			goto label_return;
-		}
-		node = xnode;
-		xnode = nullptr; /* Prevent deallocation below. */
-		node->addr = chunk;
-		node->size = size;
-		node->chunk_type = chunk_type;
-		chunks_ad->Insert(node);
-		chunks_szad->Insert(node);
-	}
+  /* RAII deallocates xnode and xprev defined above after unlocking
+   * in order to avoid potential dead-locks */
+  MutexAutoLock lock(chunks_mtx);
+  key.addr = (void*)((uintptr_t)aChunk + aSize);
+  extent_node_t* node = gChunksByAddress.SearchOrNext(&key);
+  /* Try to coalesce forward. */
+  if (node && node->addr == key.addr) {
+    /*
+     * Coalesce chunk with the following address range.  This does
+     * not change the position within gChunksByAddress, so only
+     * remove/insert from/into gChunksBySize.
+     */
+    gChunksBySize.Remove(node);
+    node->addr = aChunk;
+    node->size += aSize;
+    if (node->chunk_type != aType) {
+      node->chunk_type = RECYCLED_CHUNK;
+    }
+    gChunksBySize.Insert(node);
+  } else {
+    /* Coalescing forward failed, so insert a new node. */
+    if (!xnode) {
+      /*
+       * base_node_alloc() failed, which is an exceedingly
+       * unlikely failure.  Leak chunk; its pages have
+       * already been purged, so this is only a virtual
+       * memory leak.
+       */
+      return;
+    }
+    node = xnode.release();
+    node->addr = aChunk;
+    node->size = aSize;
+    node->chunk_type = aType;
+    gChunksByAddress.Insert(node);
+    gChunksBySize.Insert(node);
+  }
 
-	/* Try to coalesce backward. */
-	prev = chunks_ad->Prev(node);
-	if (prev && (void *)((uintptr_t)prev->addr + prev->size) ==
-	    chunk) {
-		/*
-		 * Coalesce chunk with the previous address range.  This does
-		 * not change the position within chunks_ad, so only
-		 * remove/insert node from/into chunks_szad.
-		 */
-		chunks_szad->Remove(prev);
-		chunks_ad->Remove(prev);
+  /* Try to coalesce backward. */
+  extent_node_t* prev = gChunksByAddress.Prev(node);
+  if (prev && (void*)((uintptr_t)prev->addr + prev->size) == aChunk) {
+    /*
+     * Coalesce chunk with the previous address range.  This does
+     * not change the position within gChunksByAddress, so only
+     * remove/insert node from/into gChunksBySize.
+     */
+    gChunksBySize.Remove(prev);
+    gChunksByAddress.Remove(prev);
 
-		chunks_szad->Remove(node);
-		node->addr = prev->addr;
-		node->size += prev->size;
-		if (node->chunk_type != prev->chunk_type) {
-			node->chunk_type = RECYCLED_CHUNK;
-		}
-		chunks_szad->Insert(node);
+    gChunksBySize.Remove(node);
+    node->addr = prev->addr;
+    node->size += prev->size;
+    if (node->chunk_type != prev->chunk_type) {
+      node->chunk_type = RECYCLED_CHUNK;
+    }
+    gChunksBySize.Insert(node);
 
-		xprev = prev;
-	}
+    xprev.reset(prev);
+  }
 
-	recycled_size += size;
-
-label_return:
-	chunks_mtx.Unlock();
-	/*
-	 * Deallocate xnode and/or xprev after unlocking chunks_mtx in order to
-	 * avoid potential deadlock.
-	 */
-	if (xnode)
-		base_node_dealloc(xnode);
-	if (xprev)
-		base_node_dealloc(xprev);
+  gRecycledSize += aSize;
 }
 
 static void
-chunk_dealloc(void *chunk, size_t size, ChunkType type)
+chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType)
 {
+  MOZ_ASSERT(aChunk);
+  MOZ_ASSERT(CHUNK_ADDR2BASE(aChunk) == aChunk);
+  MOZ_ASSERT(aSize != 0);
+  MOZ_ASSERT((aSize & chunksize_mask) == 0);
 
-	MOZ_ASSERT(chunk);
-	MOZ_ASSERT(CHUNK_ADDR2BASE(chunk) == chunk);
-	MOZ_ASSERT(size != 0);
-	MOZ_ASSERT((size & chunksize_mask) == 0);
+  gChunkRTree.Unset(aChunk);
 
-	gChunkRTree.Unset(chunk);
+  if (CAN_RECYCLE(aSize)) {
+    size_t recycled_so_far = gRecycledSize;
+    // In case some race condition put us above the limit.
+    if (recycled_so_far < gRecycleLimit) {
+      size_t recycle_remaining = gRecycleLimit - recycled_so_far;
+      size_t to_recycle;
+      if (aSize > recycle_remaining) {
+        to_recycle = recycle_remaining;
+        // Drop pages that would overflow the recycle limit
+        pages_trim(aChunk, aSize, 0, to_recycle);
+      } else {
+        to_recycle = aSize;
+      }
+      chunk_record(aChunk, to_recycle, aType);
+      return;
+    }
+  }
 
-	if (CAN_RECYCLE(size)) {
-		size_t recycled_so_far = load_acquire_z(&recycled_size);
-		// In case some race condition put us above the limit.
-		if (recycled_so_far < recycle_limit) {
-			size_t recycle_remaining = recycle_limit - recycled_so_far;
-			size_t to_recycle;
-			if (size > recycle_remaining) {
-				to_recycle = recycle_remaining;
-				// Drop pages that would overflow the recycle limit
-				pages_trim(chunk, size, 0, to_recycle);
-			} else {
-				to_recycle = size;
-			}
-			chunk_record(&chunks_szad_mmap, &chunks_ad_mmap, chunk, to_recycle, type);
-			return;
-		}
-	}
-
-	pages_unmap(chunk, size);
+  pages_unmap(aChunk, aSize);
 }
 
 #undef CAN_RECYCLE
@@ -3129,20 +3086,20 @@ arena_t::MallocSmall(size_t aSize, bool aZero)
   }
   MOZ_DIAGNOSTIC_ASSERT(aSize == bin->reg_size);
 
-  mLock.Lock();
-  if ((run = bin->runcur) && run->nfree > 0) {
-    ret = MallocBinEasy(bin, run);
-  } else {
-    ret = MallocBinHard(bin);
-  }
+  {
+    MutexAutoLock lock(mLock);
+    if ((run = bin->runcur) && run->nfree > 0) {
+      ret = MallocBinEasy(bin, run);
+    } else {
+      ret = MallocBinHard(bin);
+    }
 
-  if (!ret) {
-    mLock.Unlock();
-    return nullptr;
-  }
+    if (!ret) {
+      return nullptr;
+    }
 
-  mStats.allocated_small += aSize;
-  mLock.Unlock();
+    mStats.allocated_small += aSize;
+  }
 
   if (aZero == false) {
     if (opt_junk) {
@@ -3163,14 +3120,15 @@ arena_t::MallocLarge(size_t aSize, bool aZero)
 
   /* Large allocation. */
   aSize = PAGE_CEILING(aSize);
-  mLock.Lock();
-  ret = AllocRun(nullptr, aSize, true, aZero);
-  if (!ret) {
-    mLock.Unlock();
-    return nullptr;
+
+  {
+    MutexAutoLock lock(mLock);
+    ret = AllocRun(nullptr, aSize, true, aZero);
+    if (!ret) {
+      return nullptr;
+    }
+    mStats.allocated_large += aSize;
   }
-  mStats.allocated_large += aSize;
-  mLock.Unlock();
 
   if (aZero == false) {
     if (opt_junk) {
@@ -3217,39 +3175,39 @@ arena_t::Palloc(size_t aAlignment, size_t aSize, size_t aAllocSize)
   MOZ_ASSERT((aSize & pagesize_mask) == 0);
   MOZ_ASSERT((aAlignment & pagesize_mask) == 0);
 
-  mLock.Lock();
-  ret = AllocRun(nullptr, aAllocSize, true, false);
-  if (!ret) {
-    mLock.Unlock();
-    return nullptr;
-  }
-
-  chunk = (arena_chunk_t*)CHUNK_ADDR2BASE(ret);
-
-  offset = uintptr_t(ret) & (aAlignment - 1);
-  MOZ_ASSERT((offset & pagesize_mask) == 0);
-  MOZ_ASSERT(offset < aAllocSize);
-  if (offset == 0) {
-    TrimRunTail(chunk, (arena_run_t*)ret, aAllocSize, aSize, false);
-  } else {
-    size_t leadsize, trailsize;
-
-    leadsize = aAlignment - offset;
-    if (leadsize > 0) {
-      TrimRunHead(chunk, (arena_run_t*)ret, aAllocSize, aAllocSize - leadsize);
-      ret = (void*)(uintptr_t(ret) + leadsize);
+  {
+    MutexAutoLock lock(mLock);
+    ret = AllocRun(nullptr, aAllocSize, true, false);
+    if (!ret) {
+      return nullptr;
     }
 
-    trailsize = aAllocSize - leadsize - aSize;
-    if (trailsize != 0) {
-      /* Trim trailing space. */
-      MOZ_ASSERT(trailsize < aAllocSize);
-      TrimRunTail(chunk, (arena_run_t*)ret, aSize + trailsize, aSize, false);
-    }
-  }
+    chunk = (arena_chunk_t*)CHUNK_ADDR2BASE(ret);
 
-  mStats.allocated_large += aSize;
-  mLock.Unlock();
+    offset = uintptr_t(ret) & (aAlignment - 1);
+    MOZ_ASSERT((offset & pagesize_mask) == 0);
+    MOZ_ASSERT(offset < aAllocSize);
+    if (offset == 0) {
+      TrimRunTail(chunk, (arena_run_t*)ret, aAllocSize, aSize, false);
+    } else {
+      size_t leadsize, trailsize;
+
+      leadsize = aAlignment - offset;
+      if (leadsize > 0) {
+        TrimRunHead(chunk, (arena_run_t*)ret, aAllocSize, aAllocSize - leadsize);
+        ret = (void*)(uintptr_t(ret) + leadsize);
+      }
+
+      trailsize = aAllocSize - leadsize - aSize;
+      if (trailsize != 0) {
+        /* Trim trailing space. */
+        MOZ_ASSERT(trailsize < aAllocSize);
+        TrimRunTail(chunk, (arena_run_t*)ret, aSize + trailsize, aSize, false);
+      }
+    }
+
+    mStats.allocated_large += aSize;
+  }
 
   if (opt_junk) {
     memset(ret, kAllocJunk, aSize);
@@ -3391,14 +3349,14 @@ arena_salloc(const void *ptr)
  * + Check that ptr lies within a mapped chunk.
  */
 static inline size_t
-isalloc_validate(const void* ptr)
+isalloc_validate(const void* aPtr)
 {
   /* If the allocator is not initialized, the pointer can't belong to it. */
   if (malloc_initialized == false) {
     return 0;
   }
 
-  arena_chunk_t* chunk = (arena_chunk_t*)CHUNK_ADDR2BASE(ptr);
+  auto chunk = (arena_chunk_t*)CHUNK_ADDR2BASE(aPtr);
   if (!chunk) {
     return 0;
   }
@@ -3407,59 +3365,48 @@ isalloc_validate(const void* ptr)
     return 0;
   }
 
-  if (chunk != ptr) {
+  if (chunk != aPtr) {
     MOZ_DIAGNOSTIC_ASSERT(chunk->arena->mMagic == ARENA_MAGIC);
-    return arena_salloc(ptr);
-  } else {
-    size_t ret;
-    extent_node_t* node;
-    extent_node_t key;
-
-    /* Chunk. */
-    key.addr = (void*)chunk;
-    huge_mtx.Lock();
-    node = huge.Search(&key);
-    if (node)
-      ret = node->size;
-    else
-      ret = 0;
-    huge_mtx.Unlock();
-    return ret;
+    return arena_salloc(aPtr);
   }
+
+  extent_node_t key;
+
+  /* Chunk. */
+  key.addr = (void*)chunk;
+  MutexAutoLock lock(huge_mtx);
+  extent_node_t* node = huge.Search(&key);
+  if (node) {
+    return node->size;
+  }
+  return 0;
 }
 
 static inline size_t
-isalloc(const void *ptr)
+isalloc(const void* aPtr)
 {
-	size_t ret;
-	arena_chunk_t *chunk;
+  MOZ_ASSERT(aPtr);
 
-	MOZ_ASSERT(ptr);
+  auto chunk = (arena_chunk_t*)CHUNK_ADDR2BASE(aPtr);
+  if (chunk != aPtr) {
+    /* Region. */
+    MOZ_ASSERT(chunk->arena->mMagic == ARENA_MAGIC);
 
-	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(ptr);
-	if (chunk != ptr) {
-		/* Region. */
-		MOZ_ASSERT(chunk->arena->mMagic == ARENA_MAGIC);
+    return arena_salloc(aPtr);
+  }
 
-		ret = arena_salloc(ptr);
-	} else {
-		extent_node_t *node, key;
+  extent_node_t key;
 
-		/* Chunk (huge allocation). */
+  /* Chunk (huge allocation). */
 
-		huge_mtx.Lock();
+  MutexAutoLock lock(huge_mtx);
 
-		/* Extract from tree of huge allocations. */
-		key.addr = const_cast<void*>(ptr);
-		node = huge.Search(&key);
-		MOZ_DIAGNOSTIC_ASSERT(node);
+  /* Extract from tree of huge allocations. */
+  key.addr = const_cast<void*>(aPtr);
+  extent_node_t* node = huge.Search(&key);
+  MOZ_DIAGNOSTIC_ASSERT(node);
 
-		ret = node->size;
-
-		huge_mtx.Unlock();
-	}
-
-	return (ret);
+  return node->size;
 }
 
 template<> inline void
@@ -3478,16 +3425,15 @@ MozJemalloc::jemalloc_ptr_info(const void* aPtr, jemalloc_ptr_info_t* aInfo)
   // the second or subsequent chunk in a huge allocation.
   extent_node_t* node;
   extent_node_t key;
-  huge_mtx.Lock();
-  key.addr = const_cast<void*>(aPtr);
-  node = reinterpret_cast<
-    RedBlackTree<extent_node_t, ExtentTreeBoundsTrait>*>(&huge)->Search(&key);
-  if (node) {
-    *aInfo = { TagLiveHuge, node->addr, node->size };
-  }
-  huge_mtx.Unlock();
-  if (node) {
-    return;
+  {
+    MutexAutoLock lock(huge_mtx);
+    key.addr = const_cast<void*>(aPtr);
+    node = reinterpret_cast<
+      RedBlackTree<extent_node_t, ExtentTreeBoundsTrait>*>(&huge)->Search(&key);
+    if (node) {
+      *aInfo = { TagLiveHuge, node->addr, node->size };
+      return;
+    }
   }
 
   // It's not a huge allocation. Check if we have a known chunk.
@@ -3591,6 +3537,18 @@ MozJemalloc::jemalloc_ptr_info(const void* aPtr, jemalloc_ptr_info_t* aInfo)
   *aInfo = { tag, addr, size};
 }
 
+namespace Debug
+{
+  // Helper for debuggers. We don't want it to be inlined and optimized out.
+  MOZ_NEVER_INLINE jemalloc_ptr_info_t*
+  jemalloc_ptr_info(const void* aPtr)
+  {
+    static jemalloc_ptr_info_t info;
+    MozJemalloc::jemalloc_ptr_info(aPtr, &info);
+    return &info;
+  }
+}
+
 void
 arena_t::DallocSmall(arena_chunk_t* aChunk, void* aPtr, arena_chunk_map_t* aMapElm)
 {
@@ -3674,34 +3632,28 @@ arena_t::DallocLarge(arena_chunk_t* aChunk, void* aPtr)
 }
 
 static inline void
-arena_dalloc(void *ptr, size_t offset)
+arena_dalloc(void* aPtr, size_t aOffset)
 {
-	arena_chunk_t *chunk;
-	arena_t *arena;
-	size_t pageind;
-	arena_chunk_map_t *mapelm;
+  MOZ_ASSERT(aPtr);
+  MOZ_ASSERT(aOffset != 0);
+  MOZ_ASSERT(CHUNK_ADDR2OFFSET(aPtr) == aOffset);
 
-	MOZ_ASSERT(ptr);
-	MOZ_ASSERT(offset != 0);
-	MOZ_ASSERT(CHUNK_ADDR2OFFSET(ptr) == offset);
+  auto chunk = (arena_chunk_t*) ((uintptr_t)aPtr - aOffset);
+  auto arena = chunk->arena;
+  MOZ_ASSERT(arena);
+  MOZ_DIAGNOSTIC_ASSERT(arena->mMagic == ARENA_MAGIC);
 
-	chunk = (arena_chunk_t *) ((uintptr_t)ptr - offset);
-	arena = chunk->arena;
-	MOZ_ASSERT(arena);
-	MOZ_DIAGNOSTIC_ASSERT(arena->mMagic == ARENA_MAGIC);
-
-	arena->mLock.Lock();
-	pageind = offset >> pagesize_2pow;
-	mapelm = &chunk->map[pageind];
-	MOZ_DIAGNOSTIC_ASSERT((mapelm->bits & CHUNK_MAP_ALLOCATED) != 0);
-	if ((mapelm->bits & CHUNK_MAP_LARGE) == 0) {
-		/* Small allocation. */
-		arena->DallocSmall(chunk, ptr, mapelm);
-	} else {
-		/* Large allocation. */
-		arena->DallocLarge(chunk, ptr);
-	}
-	arena->mLock.Unlock();
+  MutexAutoLock lock(arena->mLock);
+  size_t pageind = aOffset >> pagesize_2pow;
+  arena_chunk_map_t* mapelm = &chunk->map[pageind];
+  MOZ_DIAGNOSTIC_ASSERT((mapelm->bits & CHUNK_MAP_ALLOCATED) != 0);
+  if ((mapelm->bits & CHUNK_MAP_LARGE) == 0) {
+    /* Small allocation. */
+    arena->DallocSmall(chunk, aPtr, mapelm);
+  } else {
+    /* Large allocation. */
+    arena->DallocLarge(chunk, aPtr);
+  }
 }
 
 static inline void
@@ -3728,10 +3680,9 @@ arena_t::RallocShrinkLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
    * Shrink the run, and make trailing pages available for other
    * allocations.
    */
-  mLock.Lock();
+  MutexAutoLock lock(mLock);
   TrimRunTail(aChunk, (arena_run_t*)aPtr, aOldSize, aSize, true);
   mStats.allocated_large -= aOldSize - aSize;
-  mLock.Unlock();
 }
 
 bool
@@ -3741,7 +3692,7 @@ arena_t::RallocGrowLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
   size_t pageind = (uintptr_t(aPtr) - uintptr_t(aChunk)) >> pagesize_2pow;
   size_t npages = aOldSize >> pagesize_2pow;
 
-  mLock.Lock();
+  MutexAutoLock lock(mLock);
   MOZ_DIAGNOSTIC_ASSERT(aOldSize == (aChunk->map[pageind].bits & ~pagesize_mask));
 
   /* Try to extend the run. */
@@ -3764,10 +3715,8 @@ arena_t::RallocGrowLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
         CHUNK_MAP_ALLOCATED;
 
     mStats.allocated_large += aSize - aOldSize;
-    mLock.Unlock();
     return false;
   }
-  mLock.Unlock();
 
   return true;
 }
@@ -3999,13 +3948,12 @@ arenas_extend()
     return arenas_fallback();
   }
 
-  arenas_lock.Lock();
+  MutexAutoLock lock(arenas_lock);
 
   // TODO: Use random Ids.
   ret->mId = narenas++;
   gArenaTree.Insert(ret);
 
-  arenas_lock.Unlock();
   return ret;
 }
 
@@ -4023,202 +3971,198 @@ huge_malloc(size_t size, bool zero)
 	return huge_palloc(size, chunksize, zero);
 }
 
-static void *
-huge_palloc(size_t size, size_t alignment, bool zero)
+static void*
+huge_palloc(size_t aSize, size_t aAlignment, bool aZero)
 {
-	void *ret;
-	size_t csize;
-	size_t psize;
-	extent_node_t *node;
-	bool zeroed;
+  void* ret;
+  size_t csize;
+  size_t psize;
+  extent_node_t* node;
+  bool zeroed;
 
-	/* Allocate one or more contiguous chunks for this request. */
+  /* Allocate one or more contiguous chunks for this request. */
 
-	csize = CHUNK_CEILING(size);
-	if (csize == 0) {
-		/* size is large enough to cause size_t wrap-around. */
-		return nullptr;
-	}
+  csize = CHUNK_CEILING(aSize);
+  if (csize == 0) {
+    /* size is large enough to cause size_t wrap-around. */
+    return nullptr;
+  }
 
-	/* Allocate an extent node with which to track the chunk. */
-	node = base_node_alloc();
-	if (!node)
-		return nullptr;
+  /* Allocate an extent node with which to track the chunk. */
+  node = base_node_alloc();
+  if (!node) {
+    return nullptr;
+  }
 
-	ret = chunk_alloc(csize, alignment, false, &zeroed);
-	if (!ret) {
-		base_node_dealloc(node);
-		return nullptr;
-	}
-	if (zero) {
-		chunk_ensure_zero(ret, csize, zeroed);
-	}
+  ret = chunk_alloc(csize, aAlignment, false, &zeroed);
+  if (!ret) {
+    base_node_dealloc(node);
+    return nullptr;
+  }
+  if (aZero) {
+    chunk_ensure_zero(ret, csize, zeroed);
+  }
 
-	/* Insert node into huge. */
-	node->addr = ret;
-	psize = PAGE_CEILING(size);
-	node->size = psize;
+  /* Insert node into huge. */
+  node->addr = ret;
+  psize = PAGE_CEILING(aSize);
+  node->size = psize;
 
-	huge_mtx.Lock();
-	huge.Insert(node);
-	huge_nmalloc++;
+  {
+    MutexAutoLock lock(huge_mtx);
+    huge.Insert(node);
 
-        /* Although we allocated space for csize bytes, we indicate that we've
-         * allocated only psize bytes.
-         *
-         * If DECOMMIT is defined, this is a reasonable thing to do, since
-         * we'll explicitly decommit the bytes in excess of psize.
-         *
-         * If DECOMMIT is not defined, then we're relying on the OS to be lazy
-         * about how it allocates physical pages to mappings.  If we never
-         * touch the pages in excess of psize, the OS won't allocate a physical
-         * page, and we won't use more than psize bytes of physical memory.
-         *
-         * A correct program will only touch memory in excess of how much it
-         * requested if it first calls malloc_usable_size and finds out how
-         * much space it has to play with.  But because we set node->size =
-         * psize above, malloc_usable_size will return psize, not csize, and
-         * the program will (hopefully) never touch bytes in excess of psize.
-         * Thus those bytes won't take up space in physical memory, and we can
-         * reasonably claim we never "allocated" them in the first place. */
-	huge_allocated += psize;
-	huge_mapped += csize;
-	huge_mtx.Unlock();
+    /* Although we allocated space for csize bytes, we indicate that we've
+     * allocated only psize bytes.
+     *
+     * If DECOMMIT is defined, this is a reasonable thing to do, since
+     * we'll explicitly decommit the bytes in excess of psize.
+     *
+     * If DECOMMIT is not defined, then we're relying on the OS to be lazy
+     * about how it allocates physical pages to mappings.  If we never
+     * touch the pages in excess of psize, the OS won't allocate a physical
+     * page, and we won't use more than psize bytes of physical memory.
+     *
+     * A correct program will only touch memory in excess of how much it
+     * requested if it first calls malloc_usable_size and finds out how
+     * much space it has to play with.  But because we set node->size =
+     * psize above, malloc_usable_size will return psize, not csize, and
+     * the program will (hopefully) never touch bytes in excess of psize.
+     * Thus those bytes won't take up space in physical memory, and we can
+     * reasonably claim we never "allocated" them in the first place. */
+    huge_allocated += psize;
+    huge_mapped += csize;
+  }
 
 #ifdef MALLOC_DECOMMIT
-	if (csize - psize > 0)
-		pages_decommit((void *)((uintptr_t)ret + psize), csize - psize);
+  if (csize - psize > 0)
+    pages_decommit((void*)((uintptr_t)ret + psize), csize - psize);
 #endif
 
-	if (zero == false) {
-		if (opt_junk)
+  if (aZero == false) {
+    if (opt_junk) {
 #  ifdef MALLOC_DECOMMIT
-			memset(ret, kAllocJunk, psize);
+      memset(ret, kAllocJunk, psize);
 #  else
-			memset(ret, kAllocJunk, csize);
+      memset(ret, kAllocJunk, csize);
 #  endif
-		else if (opt_zero)
+    } else if (opt_zero) {
 #  ifdef MALLOC_DECOMMIT
-			memset(ret, 0, psize);
+      memset(ret, 0, psize);
 #  else
-			memset(ret, 0, csize);
+      memset(ret, 0, csize);
 #  endif
-	}
+    }
+  }
 
-	return (ret);
+  return ret;
 }
 
-static void *
-huge_ralloc(void *ptr, size_t size, size_t oldsize)
+static void*
+huge_ralloc(void* aPtr, size_t aSize, size_t aOldSize)
 {
-	void *ret;
-	size_t copysize;
+  void* ret;
+  size_t copysize;
 
-	/* Avoid moving the allocation if the size class would not change. */
+  /* Avoid moving the allocation if the size class would not change. */
 
-	if (oldsize > arena_maxclass &&
-	    CHUNK_CEILING(size) == CHUNK_CEILING(oldsize)) {
-		size_t psize = PAGE_CEILING(size);
-		if (size < oldsize) {
-			memset((void *)((uintptr_t)ptr + size), kAllocPoison, oldsize
-			    - size);
-		}
+  if (aOldSize > arena_maxclass &&
+      CHUNK_CEILING(aSize) == CHUNK_CEILING(aOldSize)) {
+    size_t psize = PAGE_CEILING(aSize);
+    if (aSize < aOldSize) {
+      memset((void*)((uintptr_t)aPtr + aSize), kAllocPoison, aOldSize - aSize);
+    }
 #ifdef MALLOC_DECOMMIT
-		if (psize < oldsize) {
-			extent_node_t *node, key;
+    if (psize < aOldSize) {
+      extent_node_t key;
 
-			pages_decommit((void *)((uintptr_t)ptr + psize),
-			    oldsize - psize);
+      pages_decommit((void*)((uintptr_t)aPtr + psize), aOldSize - psize);
 
-			/* Update recorded size. */
-			huge_mtx.Lock();
-			key.addr = const_cast<void*>(ptr);
-			node = huge.Search(&key);
-			MOZ_ASSERT(node);
-			MOZ_ASSERT(node->size == oldsize);
-			huge_allocated -= oldsize - psize;
-			/* No need to change huge_mapped, because we didn't
-			 * (un)map anything. */
-			node->size = psize;
-			huge_mtx.Unlock();
-		} else if (psize > oldsize) {
-			pages_commit((void *)((uintptr_t)ptr + oldsize),
-			    psize - oldsize);
-                }
+      /* Update recorded size. */
+      MutexAutoLock lock(huge_mtx);
+      key.addr = const_cast<void*>(aPtr);
+      extent_node_t* node = huge.Search(&key);
+      MOZ_ASSERT(node);
+      MOZ_ASSERT(node->size == aOldSize);
+      huge_allocated -= aOldSize - psize;
+      /* No need to change huge_mapped, because we didn't (un)map anything. */
+      node->size = psize;
+    } else if (psize > aOldSize) {
+      pages_commit((void*)((uintptr_t)aPtr + aOldSize), psize - aOldSize);
+    }
 #endif
 
-                /* Although we don't have to commit or decommit anything if
-                 * DECOMMIT is not defined and the size class didn't change, we
-                 * do need to update the recorded size if the size increased,
-                 * so malloc_usable_size doesn't return a value smaller than
-                 * what was requested via realloc(). */
+    /* Although we don't have to commit or decommit anything if
+     * DECOMMIT is not defined and the size class didn't change, we
+     * do need to update the recorded size if the size increased,
+     * so malloc_usable_size doesn't return a value smaller than
+     * what was requested via realloc(). */
+    if (psize > aOldSize) {
+      /* Update recorded size. */
+      extent_node_t key;
+      MutexAutoLock lock(huge_mtx);
+      key.addr = const_cast<void*>(aPtr);
+      extent_node_t* node = huge.Search(&key);
+      MOZ_ASSERT(node);
+      MOZ_ASSERT(node->size == aOldSize);
+      huge_allocated += psize - aOldSize;
+      /* No need to change huge_mapped, because we didn't
+       * (un)map anything. */
+      node->size = psize;
+    }
 
-                if (psize > oldsize) {
-                        /* Update recorded size. */
-                        extent_node_t *node, key;
-                        huge_mtx.Lock();
-                        key.addr = const_cast<void*>(ptr);
-                        node = huge.Search(&key);
-                        MOZ_ASSERT(node);
-                        MOZ_ASSERT(node->size == oldsize);
-                        huge_allocated += psize - oldsize;
-			/* No need to change huge_mapped, because we didn't
-			 * (un)map anything. */
-                        node->size = psize;
-                        huge_mtx.Unlock();
-                }
+    if (opt_zero && aSize > aOldSize) {
+      memset((void*)((uintptr_t)aPtr + aOldSize), 0, aSize - aOldSize);
+    }
+    return aPtr;
+  }
 
-		if (opt_zero && size > oldsize) {
-			memset((void *)((uintptr_t)ptr + oldsize), 0, size
-			    - oldsize);
-		}
-		return (ptr);
-	}
+  /*
+   * If we get here, then aSize and aOldSize are different enough that we
+   * need to use a different size class.  In that case, fall back to
+   * allocating new space and copying.
+   */
+  ret = huge_malloc(aSize, false);
+  if (!ret) {
+    return nullptr;
+  }
 
-	/*
-	 * If we get here, then size and oldsize are different enough that we
-	 * need to use a different size class.  In that case, fall back to
-	 * allocating new space and copying.
-	 */
-	ret = huge_malloc(size, false);
-	if (!ret)
-		return nullptr;
-
-	copysize = (size < oldsize) ? size : oldsize;
+  copysize = (aSize < aOldSize) ? aSize : aOldSize;
 #ifdef VM_COPY_MIN
-	if (copysize >= VM_COPY_MIN)
-		pages_copy(ret, ptr, copysize);
-	else
+  if (copysize >= VM_COPY_MIN) {
+    pages_copy(ret, aPtr, copysize);
+  } else
 #endif
-		memcpy(ret, ptr, copysize);
-	idalloc(ptr);
-	return (ret);
+  {
+    memcpy(ret, aPtr, copysize);
+  }
+  idalloc(aPtr);
+  return ret;
 }
 
 static void
-huge_dalloc(void *ptr)
+huge_dalloc(void* aPtr)
 {
-	extent_node_t *node, key;
+  extent_node_t* node;
+  {
+    extent_node_t key;
+    MutexAutoLock lock(huge_mtx);
 
-	huge_mtx.Lock();
+    /* Extract from tree of huge allocations. */
+    key.addr = aPtr;
+    node = huge.Search(&key);
+    MOZ_ASSERT(node);
+    MOZ_ASSERT(node->addr == aPtr);
+    huge.Remove(node);
 
-	/* Extract from tree of huge allocations. */
-	key.addr = ptr;
-	node = huge.Search(&key);
-	MOZ_ASSERT(node);
-	MOZ_ASSERT(node->addr == ptr);
-	huge.Remove(node);
+    huge_allocated -= node->size;
+    huge_mapped -= CHUNK_CEILING(node->size);
+  }
 
-	huge_ndalloc++;
-	huge_allocated -= node->size;
-	huge_mapped -= CHUNK_CEILING(node->size);
+  /* Unmap chunk. */
+  chunk_dealloc(node->addr, CHUNK_CEILING(node->size), HUGE_CHUNK);
 
-	huge_mtx.Unlock();
-
-	/* Unmap chunk. */
-	chunk_dealloc(node->addr, CHUNK_CEILING(node->size), HUGE_CHUNK);
-
-	base_node_dealloc(node);
+  base_node_dealloc(node);
 }
 
 /*
@@ -4268,7 +4212,7 @@ malloc_init_hard(void)
   long result;
 
 #ifndef XP_WIN
-  gInitLock.Lock();
+  MutexAutoLock lock(gInitLock);
 #endif
 
   if (malloc_initialized) {
@@ -4276,9 +4220,6 @@ malloc_init_hard(void)
      * Another thread initialized the allocator before this one
      * acquired gInitLock.
      */
-#ifndef XP_WIN
-    gInitLock.Unlock();
-#endif
     return false;
   }
 
@@ -4372,18 +4313,13 @@ MALLOC_OUT:
   bin_maxclass = (pagesize >> 1);
   nsbins = pagesize_2pow - SMALL_MAX_2POW_DEFAULT - 1;
 
-  /* Set variables according to the value of CHUNK_2POW_DEFAULT. */
-  chunksize = (1LU << CHUNK_2POW_DEFAULT);
-  chunksize_mask = chunksize - 1;
   chunk_npages = (chunksize >> pagesize_2pow);
 
   arena_chunk_header_npages = calculate_arena_header_pages();
   arena_maxclass = calculate_arena_maxclass();
-
-  recycle_limit = CHUNK_RECYCLE_LIMIT * chunksize;
 #endif
 
-  recycled_size = 0;
+  gRecycledSize = 0;
 
   /* Various sanity checks that regard configuration. */
   MOZ_ASSERT(quantum >= sizeof(void *));
@@ -4393,14 +4329,12 @@ MALLOC_OUT:
 
   /* Initialize chunks data. */
   chunks_mtx.Init();
-  chunks_szad_mmap.Init();
-  chunks_ad_mmap.Init();
+  gChunksBySize.Init();
+  gChunksByAddress.Init();
 
   /* Initialize huge allocation data. */
   huge_mtx.Init();
   huge.Init();
-  huge_nmalloc = 0;
-  huge_ndalloc = 0;
   huge_allocated = 0;
   huge_mapped = 0;
 
@@ -4419,9 +4353,6 @@ MALLOC_OUT:
   arenas_extend();
   gMainArena = gArenaTree.First();
   if (!gMainArena) {
-#ifndef XP_WIN
-    gInitLock.Unlock();
-#endif
     return true;
   }
   /* arena_t::Init() sets this to a lower value for thread local arenas;
@@ -4439,14 +4370,14 @@ MALLOC_OUT:
 
   malloc_initialized = true;
 
+  // Dummy call so that the function is not removed by dead-code elimination
+  Debug::jemalloc_ptr_info(nullptr);
+
 #if !defined(XP_WIN) && !defined(XP_DARWIN)
   /* Prevent potential deadlock on malloc locks after fork. */
   pthread_atfork(_malloc_prefork, _malloc_postfork_parent, _malloc_postfork_child);
 #endif
 
-#ifndef XP_WIN
-  gInitLock.Unlock();
-#endif
   return false;
 }
 
@@ -4762,18 +4693,20 @@ MozJemalloc::jemalloc_stats(jemalloc_stats_t* aStats)
   non_arena_mapped = 0;
 
   /* Get huge mapped/allocated. */
-  huge_mtx.Lock();
-  non_arena_mapped += huge_mapped;
-  aStats->allocated += huge_allocated;
-  MOZ_ASSERT(huge_mapped >= huge_allocated);
-  huge_mtx.Unlock();
+  {
+    MutexAutoLock lock(huge_mtx);
+    non_arena_mapped += huge_mapped;
+    aStats->allocated += huge_allocated;
+    MOZ_ASSERT(huge_mapped >= huge_allocated);
+  }
 
   /* Get base mapped/allocated. */
-  base_mtx.Lock();
-  non_arena_mapped += base_mapped;
-  aStats->bookkeeping += base_committed;
-  MOZ_ASSERT(base_mapped >= base_committed);
-  base_mtx.Unlock();
+  {
+    MutexAutoLock lock(base_mtx);
+    non_arena_mapped += base_mapped;
+    aStats->bookkeeping += base_committed;
+    MOZ_ASSERT(base_mapped >= base_committed);
+  }
 
   arenas_lock.Lock();
   /* Iterate over arenas. */
@@ -4789,36 +4722,36 @@ MozJemalloc::jemalloc_stats(jemalloc_stats_t* aStats)
     arena_headers = 0;
     arena_unused = 0;
 
-    arena->mLock.Lock();
+    {
+      MutexAutoLock lock(arena->mLock);
 
-    arena_mapped = arena->mStats.mapped;
+      arena_mapped = arena->mStats.mapped;
 
-    /* "committed" counts dirty and allocated memory. */
-    arena_committed = arena->mStats.committed << pagesize_2pow;
+      /* "committed" counts dirty and allocated memory. */
+      arena_committed = arena->mStats.committed << pagesize_2pow;
 
-    arena_allocated = arena->mStats.allocated_small +
-                      arena->mStats.allocated_large;
+      arena_allocated = arena->mStats.allocated_small +
+                        arena->mStats.allocated_large;
 
-    arena_dirty = arena->mNumDirty << pagesize_2pow;
+      arena_dirty = arena->mNumDirty << pagesize_2pow;
 
-    for (j = 0; j < ntbins + nqbins + nsbins; j++) {
-      arena_bin_t* bin = &arena->mBins[j];
-      size_t bin_unused = 0;
+      for (j = 0; j < ntbins + nqbins + nsbins; j++) {
+        arena_bin_t* bin = &arena->mBins[j];
+        size_t bin_unused = 0;
 
-      for (auto mapelm : bin->runs.iter()) {
-        run = (arena_run_t*)(mapelm->bits & ~pagesize_mask);
-        bin_unused += run->nfree * bin->reg_size;
+        for (auto mapelm : bin->runs.iter()) {
+          run = (arena_run_t*)(mapelm->bits & ~pagesize_mask);
+          bin_unused += run->nfree * bin->reg_size;
+        }
+
+        if (bin->runcur) {
+          bin_unused += bin->runcur->nfree * bin->reg_size;
+        }
+
+        arena_unused += bin_unused;
+        arena_headers += bin->stats.curruns * bin->reg0_offset;
       }
-
-      if (bin->runcur) {
-        bin_unused += bin->runcur->nfree * bin->reg_size;
-      }
-
-      arena_unused += bin_unused;
-      arena_headers += bin->stats.curruns * bin->reg0_offset;
     }
-
-    arena->mLock.Unlock();
 
     MOZ_ASSERT(arena_mapped >= arena_committed);
     MOZ_ASSERT(arena_committed >= arena_allocated + arena_dirty);
@@ -4883,24 +4816,21 @@ hard_purge_chunk(arena_chunk_t *chunk)
 void
 arena_t::HardPurge()
 {
-  mLock.Lock();
+  MutexAutoLock lock(mLock);
 
   while (!mChunksMAdvised.isEmpty()) {
     arena_chunk_t* chunk = mChunksMAdvised.popFront();
     hard_purge_chunk(chunk);
   }
-
-  mLock.Unlock();
 }
 
 template<> inline void
 MozJemalloc::jemalloc_purge_freed_pages()
 {
-  arenas_lock.Lock();
+  MutexAutoLock lock(arenas_lock);
   for (auto arena : gArenaTree.iter()) {
     arena->HardPurge();
   }
-  arenas_lock.Unlock();
 }
 
 #else /* !defined MALLOC_DOUBLE_PURGE */
@@ -4917,13 +4847,11 @@ MozJemalloc::jemalloc_purge_freed_pages()
 template<> inline void
 MozJemalloc::jemalloc_free_dirty_pages(void)
 {
-  arenas_lock.Lock();
+  MutexAutoLock lock(arenas_lock);
   for (auto arena : gArenaTree.iter()) {
-    arena->mLock.Lock();
+    MutexAutoLock arena_lock(arena->mLock);
     arena->Purge(true);
-    arena->mLock.Unlock();
   }
-  arenas_lock.Unlock();
 }
 
 inline arena_t*
@@ -4931,9 +4859,8 @@ arena_t::GetById(arena_id_t aArenaId)
 {
   arena_t key;
   key.mId = aArenaId;
-  arenas_lock.Lock();
+  MutexAutoLock lock(arenas_lock);
   arena_t* result = gArenaTree.Search(&key);
-  arenas_lock.Unlock();
   MOZ_RELEASE_ASSERT(result);
   return result;
 }
@@ -4950,12 +4877,11 @@ template<> inline void
 MozJemalloc::moz_dispose_arena(arena_id_t aArenaId)
 {
   arena_t* arena = arena_t::GetById(aArenaId);
-  arenas_lock.Lock();
+  MutexAutoLock lock(arenas_lock);
   gArenaTree.Remove(arena);
   // The arena is leaked, and remaining allocations in it still are alive
   // until they are freed. After that, the arena will be empty but still
   // taking have at least a chunk taking address space. TODO: bug 1364359.
-  arenas_lock.Unlock();
 }
 
 #define MALLOC_DECL(name, return_type, ...) \

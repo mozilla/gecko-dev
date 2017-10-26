@@ -227,10 +227,39 @@ LocaleService::GetRegionalPrefsLocales(nsTArray<nsCString>& aRetVal)
 {
   bool useOSLocales = Preferences::GetBool("intl.regional_prefs.use_os_locales", false);
 
-  if (useOSLocales && OSPreferences::GetInstance()->GetRegionalPrefsLocales(aRetVal)) {
+  // If the user specified that they want to use OS Regional Preferences locales,
+  // try to retrieve them and use.
+  if (useOSLocales) {
+    if (OSPreferences::GetInstance()->GetRegionalPrefsLocales(aRetVal)) {
+      return;
+    }
+
+    // If we fail to retrieve them, return the app locales.
+    GetAppLocalesAsBCP47(aRetVal);
     return;
   }
 
+  // Otherwise, fetch OS Regional Preferences locales and compare the first one
+  // to the app locale. If the language subtag matches, we can safely use
+  // the OS Regional Preferences locale.
+  //
+  // This facilitates scenarios such as Firefox in "en-US" and User sets
+  // regional prefs to "en-GB".
+  nsAutoCString appLocale;
+  AutoTArray<nsCString, 10> regionalPrefsLocales;
+  LocaleService::GetInstance()->GetAppLocaleAsBCP47(appLocale);
+
+  if (!OSPreferences::GetInstance()->GetRegionalPrefsLocales(regionalPrefsLocales)) {
+    GetAppLocalesAsBCP47(aRetVal);
+    return;
+  }
+
+  if (LocaleService::LanguagesMatch(appLocale, regionalPrefsLocales[0])) {
+    aRetVal = regionalPrefsLocales;
+    return;
+  }
+
+  // Otherwise use the app locales.
   GetAppLocalesAsBCP47(aRetVal);
 }
 
@@ -263,6 +292,16 @@ LocaleService::GetRequestedLocales(nsTArray<nsCString>& aRetVal)
 {
   if (mRequestedLocales.IsEmpty()) {
     ReadRequestedLocales(mRequestedLocales);
+
+    // en-US is a LastResort locale. LastResort locale is a fallback locale
+    // for the requested locale chain. In the future we'll want to make the
+    // fallback chain differ per-locale. For now, it'll always fallback on en-US.
+    //
+    // Notice: This is not the same as DefaultLocale,
+    // which follows the default locale the build is in.
+    if (!mRequestedLocales.Contains("en-US")) {
+      mRequestedLocales.AppendElement("en-US");
+    }
   }
 
   aRetVal = mRequestedLocales;
@@ -942,7 +981,9 @@ NS_IMETHODIMP
 LocaleService::SetRequestedLocales(const char** aRequested,
                                    uint32_t aRequestedCount)
 {
-  MOZ_ASSERT(aRequestedCount < 2, "We can only handle one requested locale");
+  MOZ_ASSERT(aRequestedCount < 2 ||
+             (aRequestedCount == 2 && strcmp(aRequested[1], "en-US") == 0),
+      "We can only handle one requested locale (optionally with en-US last fallback)");
 
   if (aRequestedCount == 0) {
     Preferences::ClearUser(SELECTED_LOCALE_PREF);

@@ -779,27 +779,38 @@ DaysInMonth(int year, int month)
 }
 
 /*
- * Parse a string in one of the date-time formats given by the W3C
- * "NOTE-datetime" specification. These formats make up a restricted
- * profile of the ISO 8601 format. Quoted here:
+ * Parse a string according to the formats specified in section 20.3.1.16
+ * of the ECMAScript standard. These formats are based upon a simplification
+ * of the ISO 8601 Extended Format. As per the spec omitted month and day
+ * values are defaulted to '01', omitted HH:mm:ss values are defaulted to '00'
+ * and an omitted sss field is defaulted to '000'.
  *
- *   Any combination of the date formats with the time formats is
- *   allowed, and also either the date or the time can be missing.
+ * For cross compatibility we allow the following extensions.
  *
- *   The specification is silent on the meaning when fields are
- *   ommitted so the interpretations are a guess, but hopefully a
- *   reasonable one. We default the month to January, the day to the
- *   1st, and hours minutes and seconds all to 0. If the date is
- *   missing entirely then we assume 1970-01-01 so that the time can
- *   be aded to a date later. If the time is missing then we assume
- *   00:00 UTC.  If the time is present but the time zone field is
- *   missing then we use local time.
+ * These are:
  *
- * For the sake of cross compatibility with other implementations we
- * make a few exceptions to the standard: months, days, hours, minutes
- * and seconds may be either one or two digits long, and the 'T' from
- * the time part may be replaced with a space. Given that, a date time
- * like "1999-1-1 1:1:1" will parse successfully.
+ *   Standalone time part:
+ *     Any of the time formats below can be parsed without a date part.
+ *     E.g. "T19:00:00Z" will parse successfully. The date part will then
+ *     default to 1970-01-01.
+ *
+ *   'T' from the time part may be replaced with a space character:
+ *     "1970-01-01 12:00:00Z" will parse successfully. Note that only a single
+ *     space is permitted and this is not permitted in the standalone
+ *     version above.
+ *
+ *   One or more decimal digits for milliseconds:
+ *     The specification requires exactly three decimal digits for
+ *     the fractional part but we allow for one or more digits.
+ *
+ *   Time zone specifier without ':':
+ *     We allow the time zone to be specified without a ':' character.
+ *     E.g. "T19:00:00+0700" is equivalent to "T19:00:00+07:00".
+ *
+ *   One or two digits for months, days, hours, minutes and seconds:
+ *     The specification requires exactly two decimal digits for the fields
+ *     above. We allow for one or two decimal digits. I.e. "1970-1-1" is
+ *     equivalent to "1970-01-01".
  *
  * Date part:
  *
@@ -831,7 +842,7 @@ DaysInMonth(int year, int month)
  *   hh   = one or two digits of hour (00 through 23) (am/pm NOT allowed)
  *   mm   = one or two digits of minute (00 through 59)
  *   ss   = one or two digits of second (00 through 59)
- *   s    = one or more digits representing a decimal fraction of a second
+ *   sss  = one or more digits representing a decimal fraction of a second
  *   TZD  = time zone designator (Z or +hh:mm or -hh:mm or missing for local)
  */
 template <typename CharT>
@@ -2722,6 +2733,7 @@ FormatDate(JSContext* cx, double utcTime, FormatSpec format, MutableHandleValue 
     return true;
 }
 
+#if !EXPOSE_INTL_API
 static bool
 ToLocaleFormatHelper(JSContext* cx, HandleObject obj, const char* format, MutableHandleValue rval)
 {
@@ -2767,7 +2779,7 @@ ToLocaleFormatHelper(JSContext* cx, HandleObject obj, const char* format, Mutabl
     return true;
 }
 
-#if !EXPOSE_INTL_API
+
 /* ES5 15.9.5.5. */
 MOZ_ALWAYS_INLINE bool
 date_toLocaleString_impl(JSContext* cx, const CallArgs& args)
@@ -2837,56 +2849,6 @@ date_toLocaleTimeString(JSContext* cx, unsigned argc, Value* vp)
     return CallNonGenericMethod<IsDate, date_toLocaleTimeString_impl>(cx, args);
 }
 #endif /* !EXPOSE_INTL_API */
-
-MOZ_ALWAYS_INLINE bool
-date_toLocaleFormat_impl(JSContext* cx, const CallArgs& args)
-{
-    Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
-
-#if EXPOSE_INTL_API
-    if (!cx->compartment()->warnedAboutDateToLocaleFormat) {
-        if (!JS_ReportErrorFlagsAndNumberASCII(cx, JSREPORT_WARNING, GetErrorMessage, nullptr,
-                                               JSMSG_DEPRECATED_TOLOCALEFORMAT))
-        {
-            return false;
-        }
-        cx->compartment()->warnedAboutDateToLocaleFormat = true;
-    }
-#endif
-
-    if (args.length() == 0) {
-        /*
-         * Use '%#c' for windows, because '%c' is backward-compatible and non-y2k
-         * with msvc; '%#c' requests that a full year be used in the result string.
-         */
-        static const char format[] =
-#if defined(_WIN32) && !defined(__MWERKS__)
-                                       "%#c"
-#else
-                                       "%c"
-#endif
-                                       ;
-
-        return ToLocaleFormatHelper(cx, dateObj, format, args.rval());
-    }
-
-    RootedString fmt(cx, ToString<CanGC>(cx, args[0]));
-    if (!fmt)
-        return false;
-
-    JSAutoByteString fmtbytes(cx, fmt);
-    if (!fmtbytes)
-        return false;
-
-    return ToLocaleFormatHelper(cx, dateObj, fmtbytes.ptr(), args.rval());
-}
-
-static bool
-date_toLocaleFormat(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod<IsDate, date_toLocaleFormat_impl>(cx, args);
-}
 
 /* ES5 15.9.5.4. */
 MOZ_ALWAYS_INLINE bool
@@ -3044,7 +3006,6 @@ static const JSFunctionSpec date_methods[] = {
     JS_FN("setMilliseconds",     date_setMilliseconds,    1,0),
     JS_FN("setUTCMilliseconds",  date_setUTCMilliseconds, 1,0),
     JS_FN("toUTCString",         date_toGMTString,        0,0),
-    JS_FN("toLocaleFormat",      date_toLocaleFormat,     0,0),
 #if EXPOSE_INTL_API
     JS_SELF_HOSTED_FN(js_toLocaleString_str, "Date_toLocaleString", 0,0),
     JS_SELF_HOSTED_FN("toLocaleDateString", "Date_toLocaleDateString", 0,0),

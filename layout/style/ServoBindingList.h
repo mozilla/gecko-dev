@@ -138,6 +138,11 @@ SERVO_BINDING_FUNC(Servo_SelectorList_Matches, bool,
                    RawGeckoElementBorrowed, RawServoSelectorListBorrowed)
 SERVO_BINDING_FUNC(Servo_SelectorList_Closest, const RawGeckoElement*,
                    RawGeckoElementBorrowed, RawServoSelectorListBorrowed)
+SERVO_BINDING_FUNC(Servo_SelectorList_QueryFirst, const RawGeckoElement*,
+                   RawGeckoNodeBorrowed, RawServoSelectorListBorrowed)
+SERVO_BINDING_FUNC(Servo_SelectorList_QueryAll, void,
+                   RawGeckoNodeBorrowed, RawServoSelectorListBorrowed,
+                   nsSimpleContentList* content_list)
 SERVO_BINDING_FUNC(Servo_StyleSet_AddSizeOfExcludingThis, void,
                    mozilla::MallocSizeOf malloc_size_of,
                    mozilla::MallocSizeOf malloc_enclosing_size_of,
@@ -516,7 +521,8 @@ SERVO_BINDING_FUNC(Servo_MediaList_Matches, bool,
 SERVO_BINDING_FUNC(Servo_MediaList_GetText, void,
                    RawServoMediaListBorrowed list, nsAString* result)
 SERVO_BINDING_FUNC(Servo_MediaList_SetText, void,
-                   RawServoMediaListBorrowed list, const nsACString* text)
+                   RawServoMediaListBorrowed list, const nsACString* text,
+                   mozilla::dom::CallerType aCallerType)
 SERVO_BINDING_FUNC(Servo_MediaList_GetLength, uint32_t,
                    RawServoMediaListBorrowed list)
 SERVO_BINDING_FUNC(Servo_MediaList_GetMediumAt, bool,

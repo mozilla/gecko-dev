@@ -196,7 +196,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MessagePort,
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MessagePort)
-  NS_INTERFACE_MAP_ENTRY(nsIIPCBackgroundChildCreateCallback)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
@@ -234,50 +233,6 @@ private:
     MOZ_COUNT_DTOR(MessagePortWorkerHolder);
   }
 };
-
-class ForceCloseHelper final : public nsIIPCBackgroundChildCreateCallback
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  static void ForceClose(const MessagePortIdentifier& aIdentifier)
-  {
-    PBackgroundChild* actor =
-      mozilla::ipc::BackgroundChild::GetForCurrentThread();
-    if (actor) {
-      Unused << actor->SendMessagePortForceClose(aIdentifier.uuid(),
-                                                 aIdentifier.destinationUuid(),
-                                                 aIdentifier.sequenceId());
-      return;
-    }
-
-    RefPtr<ForceCloseHelper> helper = new ForceCloseHelper(aIdentifier);
-    if (NS_WARN_IF(!mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread(helper))) {
-      MOZ_CRASH();
-    }
-  }
-
-private:
-  explicit ForceCloseHelper(const MessagePortIdentifier& aIdentifier)
-    : mIdentifier(aIdentifier)
-  {}
-
-  ~ForceCloseHelper() {}
-
-  void ActorFailed() override
-  {
-    MOZ_CRASH("Failed to create a PBackgroundChild actor!");
-  }
-
-  void ActorCreated(mozilla::ipc::PBackgroundChild* aActor) override
-  {
-    ForceClose(mIdentifier);
-  }
-
-  const MessagePortIdentifier mIdentifier;
-};
-
-NS_IMPL_ISUPPORTS(ForceCloseHelper, nsIIPCBackgroundChildCreateCallback)
 
 } // namespace
 
@@ -356,7 +311,10 @@ MessagePort::Initialize(const nsID& aUUID,
   }
 
   if (mState == eStateEntangling) {
-    ConnectToPBackground();
+    if (!ConnectToPBackground()) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return;
+    }
   } else {
     MOZ_ASSERT(mState == eStateUnshippedEntangled);
   }
@@ -826,7 +784,11 @@ MessagePort::CloneAndDisentangle(MessagePortIdentifier& aIdentifier)
     MOZ_ASSERT(mMessagesForTheOtherPort.IsEmpty());
 
     // Disconnect the entangled port and connect it to PBackground.
-    mUnshippedEntangledPort->ConnectToPBackground();
+    if (!mUnshippedEntangledPort->ConnectToPBackground()) {
+      // We are probably shutting down. We cannot proceed.
+      return;
+    }
+
     mUnshippedEntangledPort = nullptr;
 
     // In this case, we don't need to be connected to the PBackground service.
@@ -839,7 +801,10 @@ MessagePort::CloneAndDisentangle(MessagePortIdentifier& aIdentifier)
     }
 
     // Register this component to PBackground.
-    ConnectToPBackground();
+    if (!ConnectToPBackground()) {
+      // We are probably shutting down. We cannot proceed.
+      return;
+    }
 
     mState = eStateEntanglingForDisentangle;
     return;
@@ -872,48 +837,30 @@ MessagePort::Closed()
   UpdateMustKeepAlive();
 }
 
-void
+bool
 MessagePort::ConnectToPBackground()
 {
   mState = eStateEntangling;
 
-  PBackgroundChild* actor =
-    mozilla::ipc::BackgroundChild::GetForCurrentThread();
-  if (actor) {
-    ActorCreated(actor);
-  } else {
-    if (NS_WARN_IF(
-        !mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread(this))) {
-      MOZ_CRASH();
-    }
+  mozilla::ipc::PBackgroundChild* actorChild =
+    mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actorChild)) {
+    return false;
   }
-}
-
-void
-MessagePort::ActorFailed()
-{
-  MOZ_CRASH("Failed to create a PBackgroundChild actor!");
-}
-
-void
-MessagePort::ActorCreated(mozilla::ipc::PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(aActor);
-  MOZ_ASSERT(!mActor);
-  MOZ_ASSERT(mIdentifier);
-  MOZ_ASSERT(mState == eStateEntangling ||
-             mState == eStateEntanglingForDisentangle ||
-             mState == eStateEntanglingForClose);
 
   PMessagePortChild* actor =
-    aActor->SendPMessagePortConstructor(mIdentifier->uuid(),
-                                        mIdentifier->destinationUuid(),
-                                        mIdentifier->sequenceId());
+    actorChild->SendPMessagePortConstructor(mIdentifier->uuid(),
+                                            mIdentifier->destinationUuid(),
+                                            mIdentifier->sequenceId());
+  if (NS_WARN_IF(!actor)) {
+    return false;
+  }
 
   mActor = static_cast<MessagePortChild*>(actor);
   MOZ_ASSERT(mActor);
 
   mActor->SetPort(this);
+  return true;
 }
 
 void
@@ -1003,7 +950,15 @@ MessagePort::RemoveDocFromBFCache()
 /* static */ void
 MessagePort::ForceClose(const MessagePortIdentifier& aIdentifier)
 {
-  ForceCloseHelper::ForceClose(aIdentifier);
+  mozilla::ipc::PBackgroundChild* actorChild =
+    mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actorChild)) {
+    MOZ_CRASH("Failed to create a PBackgroundChild actor!");
+  }
+
+  Unused << actorChild->SendMessagePortForceClose(aIdentifier.uuid(),
+                                                  aIdentifier.destinationUuid(),
+                                                  aIdentifier.sequenceId());
 }
 
 void
