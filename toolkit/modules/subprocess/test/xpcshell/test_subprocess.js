@@ -695,8 +695,8 @@ add_task(function* test_subprocess_environmentAppend() {
     },
   });
 
-  let valueFromBaseEnv = await read(proc.stdout);
-  let valueAppendedOnce = await read(proc.stdout);
+  let valueFromBaseEnv = yield read(proc.stdout);
+  let valueAppendedOnce = yield read(proc.stdout);
 
   equal(valueFromBaseEnv, "untouched", "Got expected $VALUE_FROM_BASE_ENV value");
   equal(valueAppendedOnce, "soon empty", "Got expected $VALUE_APPENDED_ONCE value");
@@ -711,8 +711,8 @@ add_task(function* test_subprocess_environmentAppend() {
     environmentAppend: true,
   });
 
-  valueFromBaseEnv = await read(proc.stdout);
-  valueAppendedOnce = await read(proc.stdout);
+  valueFromBaseEnv = yield read(proc.stdout);
+  valueAppendedOnce = yield read(proc.stdout);
 
   equal(valueFromBaseEnv, "untouched", "Got expected $VALUE_FROM_BASE_ENV value");
   equal(valueAppendedOnce, "", "Got expected $VALUE_APPENDED_ONCE value");
