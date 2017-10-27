@@ -37,10 +37,8 @@ IsMarkedBlack(NativeObject* obj)
         return true;
 
     gc::TenuredCell& tenured = obj->asTenured();
-    if (tenured.isMarked(gc::BLACK) || tenured.arena()->allocatedDuringIncremental)
-        return true;
-
-    return false;
+    return (tenured.isMarked(gc::BLACK) && !tenured.isMarked(gc::GRAY)) ||
+           tenured.arena()->allocatedDuringIncremental;
 }
 
 bool
