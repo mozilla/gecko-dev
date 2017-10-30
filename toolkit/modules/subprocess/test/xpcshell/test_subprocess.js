@@ -684,22 +684,20 @@ if (!AppConstants.isPlatformAndVersionAtMost("win", "5.2")) {
 
 
 add_task(function* test_subprocess_environmentAppend() {
-  env.set("VALUE_FROM_BASE_ENV", "untouched");
-
   let proc = yield Subprocess.call({
     command: PYTHON,
-    arguments: ["-u", TEST_SCRIPT, "env", "VALUE_FROM_BASE_ENV", "VALUE_APPENDED_ONCE"],
+    arguments: ["-u", TEST_SCRIPT, "env", "PATH", "FOO"],
     environmentAppend: true,
     environment: {
-      VALUE_APPENDED_ONCE: "soon empty",
+      FOO: "BAR",
     },
   });
 
-  let valueFromBaseEnv = yield read(proc.stdout);
-  let valueAppendedOnce = yield read(proc.stdout);
+  let path = yield read(proc.stdout);
+  let foo = yield read(proc.stdout);
 
-  equal(valueFromBaseEnv, "untouched", "Got expected $VALUE_FROM_BASE_ENV value");
-  equal(valueAppendedOnce, "soon empty", "Got expected $VALUE_APPENDED_ONCE value");
+  equal(path, env.get("PATH"), "Got expected $PATH value");
+  equal(foo, "BAR", "Got expected $FOO value");
 
   let {exitCode} = yield proc.wait();
 
@@ -707,15 +705,15 @@ add_task(function* test_subprocess_environmentAppend() {
 
   proc = yield Subprocess.call({
     command: PYTHON,
-    arguments: ["-u", TEST_SCRIPT, "env", "VALUE_FROM_BASE_ENV", "VALUE_APPENDED_ONCE"],
+    arguments: ["-u", TEST_SCRIPT, "env", "PATH", "FOO"],
     environmentAppend: true,
   });
 
-  valueFromBaseEnv = yield read(proc.stdout);
-  valueAppendedOnce = yield read(proc.stdout);
+  path = yield read(proc.stdout);
+  foo = yield read(proc.stdout);
 
-  equal(valueFromBaseEnv, "untouched", "Got expected $VALUE_FROM_BASE_ENV value");
-  equal(valueAppendedOnce, "", "Got expected $VALUE_APPENDED_ONCE value");
+  equal(path, env.get("PATH"), "Got expected $PATH value");
+  equal(foo, "", "Got expected $FOO value");
 
   ({exitCode} = yield proc.wait());
 
