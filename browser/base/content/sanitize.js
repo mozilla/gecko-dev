@@ -383,7 +383,7 @@ Sanitizer.prototype = {
 
         // QuotaManager
         let promises = [];
-        await new Promise(resolve => {
+        yield new Promise(resolve => {
           quotaManagerService.getUsage(request => {
             if (request.resultCode != Cr.NS_OK) {
               // We are probably shutting down. We don't want to propagate the
