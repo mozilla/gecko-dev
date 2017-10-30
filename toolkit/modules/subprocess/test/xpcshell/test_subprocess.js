@@ -659,38 +659,28 @@ add_task(function* test_subprocess_arguments() {
 });
 
 
-add_task(async function test_subprocess_environment() {
-  let environment =  {
-    FOO: "BAR",
-  };
-
-  // Our Windows environment can't handle launching python without
-  // PATH variables.
-  if (AppConstants.platform == "win") {
-    Object.assign(environment, {
-      PATH: env.get("PATH"),
-      PATHEXT: env.get("PATHEXT"),
+// Windows XP can't handle launching Python with a partial environment.
+if (!AppConstants.isPlatformAndVersionAtMost("win", "5.2")) {
+  add_task(function* test_subprocess_environment() {
+    let proc = yield Subprocess.call({
+      command: PYTHON,
+      arguments: ["-u", TEST_SCRIPT, "env", "PATH", "FOO"],
+      environment: {
+        FOO: "BAR",
+      },
     });
-  }
 
-  env.set("BAR", "BAZ");
+    let path = yield read(proc.stdout);
+    let foo = yield read(proc.stdout);
 
-  let proc = yield Subprocess.call({
-    command: PYTHON,
-    arguments: ["-u", TEST_SCRIPT, "env", "FOO", "BAR"],
-    environment,
+    equal(path, "", "Got expected $PATH value");
+    equal(foo, "BAR", "Got expected $FOO value");
+
+    let {exitCode} = yield proc.wait();
+
+    equal(exitCode, 0, "Got expected exit code");
   });
-
-  let foo = yield read(proc.stdout);
-  let bar = yield read(proc.stdout);
-
-  equal(foo, "BAR", "Got expected $FOO value");
-  equal(bar, "", "Got expected $BAR value");
-
-  let {exitCode} = yield proc.wait();
-
-  equal(exitCode, 0, "Got expected exit code");
-});
+}
 
 
 add_task(function* test_subprocess_environmentAppend() {
