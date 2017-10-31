@@ -3025,12 +3025,12 @@ nsWindow::GetEventTimeStamp(guint32 aEventTime)
     }
     if (!mIsX11Display) {
         // Wayland compositors use monotonic time to set timestamps.
-        int64_t refTime = g_get_monotonic_time() / 1000;
-        int64_t refTimeTruncated = (guint32)refTime;
-        int64_t timeStampTime = refTime - (refTimeTruncated - (int64_t)aEventTime);
+        int64_t timestampTime = g_get_monotonic_time() / 1000;
+        guint32 refTimeTruncated = guint32(timestampTime);
 
+        timestampTime -= refTimeTruncated - aEventTime;
         int64_t tick =
-           BaseTimeDurationPlatformUtils::TicksFromMilliseconds(timestampTime);
+            BaseTimeDurationPlatformUtils::TicksFromMilliseconds(timestampTime);
         return TimeStamp::FromSystemTime(tick);
     } else {
         CurrentX11TimeGetter* getCurrentTime = GetCurrentTimeGetter();
