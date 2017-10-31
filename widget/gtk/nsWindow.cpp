@@ -3020,11 +3020,13 @@ nsWindow::GetEventTimeStamp(guint32 aEventTime)
         return TimeStamp::Now();
     }
     if (!mIsX11Display) {
-        // Wayland uses SYSTEM_TIME_MONOTONIC.
-        // Our posix implemententaion of TimeStamp::Now uses SYSTEM_TIME_MONOTONIC
-        //  too. Due to same implementation, we can use this via FromSystemTime.
+        // Wayland compositors use monotonic time to set timestamps.
+        int64_t refTime = g_get_monotonic_time() / 1000;
+        int64_t refTimeTruncated = (guint32)refTime;
+        int64_t timeStampTime = refTime - (refTimeTruncated - (int64_t)aEventTime);
+
         int64_t tick =
-           BaseTimeDurationPlatformUtils::TicksFromMilliseconds(aEventTime);
+           BaseTimeDurationPlatformUtils::TicksFromMilliseconds(timestampTime);
         return TimeStamp::FromSystemTime(tick);
     } else {
         CurrentX11TimeGetter* getCurrentTime = GetCurrentTimeGetter();
