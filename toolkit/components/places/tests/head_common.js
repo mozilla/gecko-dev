@@ -72,7 +72,7 @@ XPCOMUtils.defineLazyGetter(this, "SMALLSVG_DATA_URI", function() {
 var gTestDir = do_get_cwd();
 
 // Initialize profile.
-var gProfD = do_get_profile(true);
+var gProfD = do_get_profile();
 
 // Remove any old database.
 clearDB();
