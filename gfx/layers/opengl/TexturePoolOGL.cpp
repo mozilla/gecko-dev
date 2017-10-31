@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,10 +14,6 @@
 #include "nsDebug.h"                    // for NS_ASSERTION, NS_ERROR, etc
 #include "nsDeque.h"                    // for nsDeque
 #include "nsThreadUtils.h"
-
-#ifdef MOZ_WIDGET_ANDROID
-#include "GeneratedJNINatives.h"
-#endif
 
 static const unsigned int TEXTURE_POOL_SIZE = 10;
 static const unsigned int TEXTURE_REFILL_THRESHOLD = TEXTURE_POOL_SIZE / 2;
@@ -39,19 +37,6 @@ enum class PoolState : uint8_t {
 static PoolState sPoolState = PoolState::NOT_INITIALIZE;
 
 static bool sHasPendingFillTask = false;
-
-#ifdef MOZ_WIDGET_ANDROID
-
-class GeckoSurfaceTextureSupport final
-    : public java::GeckoSurfaceTexture::Natives<GeckoSurfaceTextureSupport>
-{
-public:
-  static int32_t NativeAcquireTexture() {
-    return TexturePoolOGL::AcquireTexture();
-  }
-};
-
-#endif // MOZ_WIDGET_ANDROID
 
 void TexturePoolOGL::MaybeFillTextures()
 {
@@ -170,11 +155,6 @@ void TexturePoolOGL::Init()
   sMonitor = new Monitor("TexturePoolOGL.sMonitor");
   sTextures = new nsDeque();
 
-#ifdef MOZ_WIDGET_ANDROID
-  if (jni::IsAvailable()) {
-    GeckoSurfaceTextureSupport::Init();
-  }
-#endif
   sPoolState = PoolState::INITIALIZED;
 }
 

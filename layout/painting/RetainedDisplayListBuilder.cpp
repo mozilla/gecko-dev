@@ -1,6 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=2 sw=2 et tw=78:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
@@ -53,6 +53,9 @@ void MarkFramesWithItemsAndImagesModified(nsDisplayList* aList)
 
       if (invalidate) {
         i->FrameForInvalidation()->MarkNeedsDisplayItemRebuild();
+        if (i->GetDependentFrame()) {
+          i->GetDependentFrame()->MarkNeedsDisplayItemRebuild();
+        }
       }
     }
     if (i->GetChildren()) {
@@ -390,6 +393,14 @@ RetainedDisplayListBuilder::MergeDisplayLists(nsDisplayList* aNewList,
         nsDisplayItem* old = nullptr;
         while ((old = aOldList->RemoveBottom()) && !IsSameItem(newItem, old)) {
           if (!IsAnyAncestorModified(old->FrameForInvalidation())) {
+            // Recurse into the child list (without a matching new list) to
+            // ensure that we find and remove any invalidated items.
+            if (old->GetChildren()) {
+              nsDisplayList empty(&mBuilder);
+              MergeDisplayLists(&empty, old->GetChildren(),
+                                old->GetChildren());
+              old->UpdateBounds(&mBuilder);
+            }
             ReuseItem(old);
           } else {
             oldListLookup.Remove({ old->Frame(), old->GetPerFrameKey() });
@@ -727,11 +738,15 @@ RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
 
   if (mPreviousCaret != mBuilder.GetCaretFrame()) {
     if (mPreviousCaret) {
-      mBuilder.MarkFrameModifiedDuringBuilding(mPreviousCaret);
+      if (mBuilder.MarkFrameModifiedDuringBuilding(mPreviousCaret)) {
+        modifiedFrames.AppendElement(mPreviousCaret);
+      }
     }
 
     if (mBuilder.GetCaretFrame()) {
-      mBuilder.MarkFrameModifiedDuringBuilding(mBuilder.GetCaretFrame());
+      if (mBuilder.MarkFrameModifiedDuringBuilding(mBuilder.GetCaretFrame())) {
+        modifiedFrames.AppendElement(mBuilder.GetCaretFrame());
+      }
     }
 
     mPreviousCaret = mBuilder.GetCaretFrame();
@@ -760,7 +775,7 @@ RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
 
       //printf_stderr("Painting --- Modified list (dirty %d,%d,%d,%d):\n",
       //      modifiedDirty.x, modifiedDirty.y, modifiedDirty.width, modifiedDirty.height);
-      //nsFrame::PrintDisplayList(&builder, modifiedDL);
+      //nsFrame::PrintDisplayList(&mBuilder, modifiedDL);
 
     } else {
       // TODO: We can also skip layer building and painting if
@@ -777,7 +792,7 @@ RetainedDisplayListBuilder::AttemptPartialUpdate(nscolor aBackstop)
     MergeDisplayLists(&modifiedDL, &mList, &mList);
 
     //printf_stderr("Painting --- Merged list:\n");
-    //nsFrame::PrintDisplayList(&builder, list);
+    //nsFrame::PrintDisplayList(&mBuilder, mList);
 
     merged = true;
   }

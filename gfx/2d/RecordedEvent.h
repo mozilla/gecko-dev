@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -89,6 +90,7 @@ public:
   virtual GradientStops *LookupGradientStops(ReferencePtr aRefPtr) = 0;
   virtual ScaledFont *LookupScaledFont(ReferencePtr aRefPtr) = 0;
   virtual UnscaledFont* LookupUnscaledFont(ReferencePtr aRefPtr) = 0;
+  virtual UnscaledFont* LookupUnscaledFontByIndex(size_t aIndex) { return nullptr; }
   virtual NativeFontResource *LookupNativeFontResource(uint64_t aKey) = 0;
   virtual void AddDrawTarget(ReferencePtr aRefPtr, DrawTarget *aDT) = 0;
   virtual void RemoveDrawTarget(ReferencePtr aRefPtr) = 0;
@@ -241,6 +243,7 @@ public:
     GRADIENTSTOPSDESTRUCTION,
     SNAPSHOT,
     SCALEDFONTCREATION,
+    SCALEDFONTCREATIONBYINDEX,
     SCALEDFONTDESTRUCTION,
     MASKSURFACE,
     FILTERNODECREATION,
@@ -311,6 +314,10 @@ protected:
   friend class DrawEventRecorderPrivate;
   friend class DrawEventRecorderFile;
   friend class DrawEventRecorderMemory;
+  static void RecordUnscaledFont(UnscaledFont *aUnscaledFont, std::ostream *aOutput);
+  static void RecordUnscaledFont(UnscaledFont *aUnscaledFont, MemStream &aOutput);
+  template<class S>
+  static void RecordUnscaledFontImpl(UnscaledFont *aUnscaledFont, S &aOutput);
 
   MOZ_IMPLICIT RecordedEvent(int32_t aType) : mType(aType)
   {}

@@ -25,6 +25,7 @@ android-api-16/debug:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -43,6 +44,11 @@ android-x86/opt:
         max-run-time: 7200
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
+            # Increase the timeout because nsContentUtils.o takes a ridiculously
+            # long time to compile for x86 when using the current NDKs.  This
+            # will eventually get fixed, but for now we have to live with this.
+            # See https://github.com/android-ndk/ndk/issues/522 for more context.
+            SCCACHE_IDLE_TIMEOUT: "1500"
     run:
         using: mozharness
         actions: [get-secrets build multi-l10n update]
@@ -56,6 +62,7 @@ android-x86/opt:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -77,6 +84,11 @@ android-x86-nightly/opt:
         max-run-time: 7200
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
+            # Increase the timeout because nsContentUtils.o takes a ridiculously
+            # long time to compile for x86 when using the current NDKs.  This
+            # will eventually get fixed, but for now we have to live with this.
+            # See https://github.com/android-ndk/ndk/issues/522 for more context.
+            SCCACHE_IDLE_TIMEOUT: "1500"
     run:
         using: mozharness
         actions: [get-secrets build multi-l10n update]
@@ -91,6 +103,7 @@ android-x86-nightly/opt:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -122,6 +135,7 @@ android-api-16/opt:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -157,6 +171,7 @@ android-api-16-nightly/opt:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -175,6 +190,11 @@ android-x86-old-id/opt:
         max-run-time: 7200
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
+            # Increase the timeout because nsContentUtils.o takes a ridiculously
+            # long time to compile for x86 when using the current NDKs.  This
+            # will eventually get fixed, but for now we have to live with this.
+            # See https://github.com/android-ndk/ndk/issues/522 for more context.
+            SCCACHE_IDLE_TIMEOUT: "1500"
     run:
         using: mozharness
         actions: [get-secrets build multi-l10n update]
@@ -189,6 +209,7 @@ android-x86-old-id/opt:
     run-on-projects: [ 'mozilla-central' ]
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -210,6 +231,11 @@ android-x86-old-id-nightly/opt:
         max-run-time: 7200
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
+            # Increase the timeout because nsContentUtils.o takes a ridiculously
+            # long time to compile for x86 when using the current NDKs.  This
+            # will eventually get fixed, but for now we have to live with this.
+            # See https://github.com/android-ndk/ndk/issues/522 for more context.
+            SCCACHE_IDLE_TIMEOUT: "1500"
     run:
         using: mozharness
         actions: [get-secrets build multi-l10n update]
@@ -225,6 +251,7 @@ android-x86-old-id-nightly/opt:
     run-on-projects: [ 'mozilla-central' ]
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -257,6 +284,7 @@ android-api-16-old-id/opt:
     run-on-projects: [ 'mozilla-central' ]
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -293,6 +321,7 @@ android-api-16-old-id-nightly/opt:
     run-on-projects: [ 'mozilla-central' ]
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -337,6 +366,7 @@ android-api-16-gradle/opt:
     toolchains:
         - android-gradle-dependencies
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -368,6 +398,7 @@ android-aarch64/opt:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar
@@ -403,6 +434,7 @@ android-aarch64-nightly/opt:
         tooltool-downloads: internal
     toolchains:
         - android-sdk-linux
+        - linux64-clang
         - linux64-rust-android
         - linux64-sccache
         - proguard-jar

@@ -7,8 +7,6 @@
 #ifndef gc_ZoneGroup_h
 #define gc_ZoneGroup_h
 
-#include "jsgc.h"
-
 #include "gc/Statistics.h"
 #include "vm/Caches.h"
 #include "vm/Stack.h"
@@ -51,6 +49,7 @@ class ZoneGroup
 
     void enter(JSContext* cx);
     void leave();
+    bool canEnterWithoutYielding(JSContext* cx);
     bool ownedByCurrentThread();
 
     // All zones in the group.

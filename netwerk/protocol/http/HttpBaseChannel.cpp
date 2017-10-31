@@ -3600,6 +3600,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     newTimedChannel->SetTimingEnabled(mTimingEnabled);
 
     if (redirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL) {
+      newTimedChannel->SetRedirectCount(mRedirectCount);
       int8_t newCount = mInternalRedirectCount + 1;
       newTimedChannel->SetInternalRedirectCount(
         std::max(newCount, mInternalRedirectCount));
@@ -3607,6 +3608,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
       int8_t newCount = mRedirectCount + 1;
       newTimedChannel->SetRedirectCount(
         std::max(newCount, mRedirectCount));
+      newTimedChannel->SetInternalRedirectCount(mInternalRedirectCount);
     }
 
     // If the RedirectStart is null, we will use the AsyncOpen value of the
@@ -4132,6 +4134,14 @@ HttpBaseChannel::GetPerformance()
     return nullptr;
   }
 
+  // We only add to the document's performance object if it has the same
+  // principal as the one triggering the load. This is to prevent navigations
+  // triggered _by_ the iframe from showing up in the parent document's
+  // performance entries if they have different origins.
+  if (!mLoadInfo->TriggeringPrincipal()->Equals(loadingDocument->NodePrincipal())) {
+    return nullptr;
+  }
+
   nsCOMPtr<nsPIDOMWindowInner> innerWindow = loadingDocument->GetInnerWindow();
   if (!innerWindow) {
     return nullptr;
@@ -4337,6 +4347,50 @@ HttpBaseChannel::SetLastRedirectFlags(uint32_t aValue)
 {
   mLastRedirectFlags = aValue;
   return NS_OK;
+}
+
+nsresult
+HttpBaseChannel::CheckRedirectLimit(uint32_t aRedirectFlags) const
+{
+  if (aRedirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL) {
+    // Some platform features, like Service Workers, depend on internal
+    // redirects.  We should allow some number of internal redirects above
+    // and beyond the normal redirect limit so these features continue
+    // to work.
+    static const int8_t kMinInternalRedirects = 5;
+
+    if (mInternalRedirectCount >= (mRedirectionLimit + kMinInternalRedirects)) {
+      LOG(("internal redirection limit reached!\n"));
+      return NS_ERROR_REDIRECT_LOOP;
+    }
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(aRedirectFlags & (nsIChannelEventSink::REDIRECT_TEMPORARY |
+                               nsIChannelEventSink::REDIRECT_PERMANENT |
+                               nsIChannelEventSink::REDIRECT_STS_UPGRADE));
+
+  if (mRedirectCount >= mRedirectionLimit) {
+    LOG(("redirection limit reached!\n"));
+    return NS_ERROR_REDIRECT_LOOP;
+  }
+
+  return NS_OK;
+}
+
+// NOTE: This function duplicates code from nsBaseChannel. This will go away
+// once HTTP uses nsBaseChannel (part of bug 312760)
+/* static */ void
+HttpBaseChannel::CallTypeSniffers(void *aClosure, const uint8_t *aData,
+                                  uint32_t aCount)
+{
+  nsIChannel *chan = static_cast<nsIChannel*>(aClosure);
+
+  nsAutoCString newType;
+  NS_SniffContent(NS_CONTENT_SNIFFER_CATEGORY, chan, aData, aCount, newType);
+  if (!newType.IsEmpty()) {
+    chan->SetContentType(newType);
+  }
 }
 
 } // namespace net

@@ -97,6 +97,17 @@ protected:
     return -ENOSYS;
   }
 
+  // Convert Unix-style "return -1 and set errno" APIs back into the
+  // Linux ABI "return -err" style.
+  static intptr_t ConvertError(long rv) {
+    return rv < 0 ? -errno : rv;
+  }
+
+  template<typename... Args>
+  static intptr_t DoSyscall(long nr, Args... args) {
+    return ConvertError(syscall(nr, args...));
+  }
+
 private:
   // Bug 1093893: Translate tkill to tgkill for pthread_kill; fixed in
   // bionic commit 10c8ce59a (in JB and up; API level 16 = Android 4.1).
@@ -104,7 +115,7 @@ private:
   static intptr_t TKillCompatTrap(const sandbox::arch_seccomp_data& aArgs,
                                   void *aux)
   {
-    return syscall(__NR_tgkill, getpid(), aArgs.args[0], aArgs.args[1]);
+    return DoSyscall(__NR_tgkill, getpid(), aArgs.args[0], aArgs.args[1]);
   }
 
   static intptr_t SetNoNewPrivsTrap(ArgsRef& aArgs, void* aux) {
@@ -525,10 +536,41 @@ private:
     auto fds = reinterpret_cast<int*>(aArgs.args[3]);
     // Return sequential packet sockets instead of the expected
     // datagram sockets; see bug 1355274 for details.
-    if (socketpair(AF_UNIX, SOCK_SEQPACKET, 0, fds) != 0) {
+    return ConvertError(socketpair(AF_UNIX, SOCK_SEQPACKET, 0, fds));
+  }
+
+  static intptr_t StatFsTrap(ArgsRef aArgs, void* aux) {
+    // Warning: the kernel interface is not the C interface.  The
+    // structs are different (<asm/statfs.h> vs. <sys/statfs.h>), and
+    // the statfs64 version takes an additional size parameter.
+    auto path = reinterpret_cast<const char*>(aArgs.args[0]);
+    int fd = open(path, O_RDONLY | O_LARGEFILE);
+    if (fd < 0) {
       return -errno;
     }
-    return 0;
+
+    intptr_t rv;
+    switch (aArgs.nr) {
+    case __NR_statfs: {
+      auto buf = reinterpret_cast<void*>(aArgs.args[1]);
+      rv = DoSyscall(__NR_fstatfs, fd, buf);
+      break;
+    }
+#ifdef __NR_statfs64
+    case __NR_statfs64: {
+      auto sz = static_cast<size_t>(aArgs.args[1]);
+      auto buf = reinterpret_cast<void*>(aArgs.args[2]);
+      rv = DoSyscall(__NR_fstatfs64, fd, sz, buf);
+      break;
+    }
+#endif
+    default:
+      MOZ_ASSERT(false);
+      rv = -ENOSYS;
+    }
+
+    close(fd);
+    return rv;
   }
 
 public:
@@ -599,6 +641,14 @@ public:
     default:
       return SandboxPolicyCommon::EvaluateIpcCall(aCall);
     }
+  }
+#endif
+
+#ifdef MOZ_PULSEAUDIO
+  ResultExpr PrctlPolicy() const override {
+    Arg<int> op(0);
+    return If(op == PR_GET_NAME, Allow())
+      .Else(SandboxPolicyCommon::PrctlPolicy());
   }
 #endif
 
@@ -675,12 +725,13 @@ public:
     case __NR_getppid:
       return Trap(GetPPidTrap, nullptr);
 
+    CASES_FOR_statfs:
+      return Trap(StatFsTrap, nullptr);
+
       // Filesystem syscalls that need more work to determine who's
       // using them, if they need to be, and what we intend to about it.
     case __NR_getcwd:
-    CASES_FOR_statfs:
     CASES_FOR_fstatfs:
-    case __NR_quotactl:
     CASES_FOR_fchown:
     case __NR_fchmod:
     case __NR_flock:
@@ -739,9 +790,6 @@ public:
         // ffmpeg, and anything else that calls isatty(), will be told
         // that nothing is a typewriter:
         .ElseIf(request == TCGETS, Error(ENOTTY))
-        // Bug 1408498: libgio uses FIONREAD on inotify fds.
-        // (We should stop using inotify: bug 1408497.)
-        .ElseIf(request == FIONREAD, Allow())
         // Allow anything that isn't a tty ioctl, for now; bug 1302711
         // will cover changing this to a default-deny policy.
         .ElseIf(shifted_type != kTtyIoctls, Allow())
@@ -771,7 +819,12 @@ public:
               If((flags & ~allowed_flags) == 0, Allow())
               .Else(InvalidSyscall()))
         .Case(F_DUPFD_CLOEXEC, Allow())
-        // Pulseaudio uses F_SETLKW.
+        // Nvidia GL and fontconfig (newer versions) use fcntl file locking.
+        .Case(F_SETLK, Allow())
+#ifdef F_SETLK64
+        .Case(F_SETLK64, Allow())
+#endif
+        // Pulseaudio uses F_SETLKW, as does fontconfig.
         .Case(F_SETLKW, Allow())
 #ifdef F_SETLKW64
         .Case(F_SETLKW64, Allow())
@@ -870,11 +923,14 @@ public:
       // fork() fails; see bug 227246 and bug 1299581.
       return Error(ECHILD);
 
-    case __NR_eventfd2:
+      // inotify_{add,rm}_watch take filesystem paths.  Pretend the
+      // kernel doesn't support inotify; note that this could make
+      // libgio attempt network connections for FAM.
     case __NR_inotify_init:
     case __NR_inotify_init1:
-    case __NR_inotify_add_watch:
-    case __NR_inotify_rm_watch:
+      return Error(ENOSYS);
+
+    case __NR_eventfd2:
       return Allow();
 
 #ifdef __NR_memfd_create
@@ -1004,13 +1060,13 @@ class GMPSandboxPolicy : public SandboxPolicyCommon {
   {
     const pid_t tid = syscall(__NR_gettid);
     if (aArgs.args[0] == static_cast<uint64_t>(tid)) {
-      return syscall(aArgs.nr,
-                     0,
-                     aArgs.args[1],
-                     aArgs.args[2],
-                     aArgs.args[3],
-                     aArgs.args[4],
-                     aArgs.args[5]);
+      return DoSyscall(aArgs.nr,
+                       0,
+                       aArgs.args[1],
+                       aArgs.args[2],
+                       aArgs.args[3],
+                       aArgs.args[4],
+                       aArgs.args[5]);
     }
     SANDBOX_LOG_ERROR("unsupported tid in SchedTrap");
     return BlockedSyscallTrap(aArgs, nullptr);

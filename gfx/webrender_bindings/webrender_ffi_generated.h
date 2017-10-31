@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Generated with cbindgen:0.1.25 */
+/* Generated with cbindgen:0.1.29 */
 
 /* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen.
  * To generate this file:
@@ -132,6 +132,31 @@ enum class LineStyle : uint8_t {
   Sentinel /* this must be last for serialization purposes. */
 };
 
+// An enum representing the available verbosity level filters of the logging
+// framework.
+//
+// A `LogLevelFilter` may be compared directly to a [`LogLevel`](enum.LogLevel.html).
+// Use this type to [`get()`](struct.MaxLogLevelFilter.html#method.get) and
+// [`set()`](struct.MaxLogLevelFilter.html#method.set) the
+// [`MaxLogLevelFilter`](struct.MaxLogLevelFilter.html), or to match with the getter
+// [`max_log_level()`](fn.max_log_level.html).
+enum class LogLevelFilter : uintptr_t {
+  // A level lower than all log levels.
+  Off = 0,
+  // Corresponds to the `Error` log level.
+  Error = 1,
+  // Corresponds to the `Warn` log level.
+  Warn = 2,
+  // Corresponds to the `Info` log level.
+  Info = 3,
+  // Corresponds to the `Debug` log level.
+  Debug = 4,
+  // Corresponds to the `Trace` log level.
+  Trace = 5,
+
+  Sentinel /* this must be last for serialization purposes. */
+};
+
 enum class MixBlendMode : uint32_t {
   Normal = 0,
   Multiply = 1,
@@ -224,9 +249,38 @@ struct WrState;
 
 struct WrThreadPool;
 
-typedef Vec_u8 VecU8;
+struct IdNamespace {
+  uint32_t mHandle;
+
+  bool operator==(const IdNamespace& aOther) const {
+    return mHandle == aOther.mHandle;
+  }
+  bool operator!=(const IdNamespace& aOther) const {
+    return mHandle != aOther.mHandle;
+  }
+  bool operator<(const IdNamespace& aOther) const {
+    return mHandle < aOther.mHandle;
+  }
+  bool operator<=(const IdNamespace& aOther) const {
+    return mHandle <= aOther.mHandle;
+  }
+};
+
+struct FontKey {
+  IdNamespace mNamespace;
+  uint32_t mHandle;
+
+  bool operator==(const FontKey& aOther) const {
+    return mNamespace == aOther.mNamespace &&
+           mHandle == aOther.mHandle;
+  }
+};
+
+typedef FontKey WrFontKey;
 
 typedef Arc_VecU8 ArcVecU8;
+
+typedef Vec_u8 VecU8;
 
 struct Epoch {
   uint32_t mHandle;
@@ -319,6 +373,17 @@ struct WrOpacityProperty {
   }
 };
 
+// A 3d transform stored as a 4 by 4 matrix in row-major order in memory.
+//
+// Transforms can be parametrized over the source and destination units, to describe a
+// transformation from a space to another.
+// For example, `TypedTransform3D<f32, WordSpace, ScreenSpace>::transform_point3d`
+// takes a `TypedPoint3D<f32, WordSpace>` and returns a `TypedPoint3D<f32, ScreenSpace>`.
+//
+// Transforms expose a set of convenience methods for pre- and post-transformations.
+// A pre-transformation corresponds to adding an operation that is applied before
+// the rest of the transformation, while a post-transformation adds an operation
+// that is applied after.
 struct TypedTransform3D_f32__LayoutPixel__LayoutPixel {
   float m11;
   float m12;
@@ -364,23 +429,6 @@ struct WrTransformProperty {
   LayoutTransform transform;
 };
 
-struct IdNamespace {
-  uint32_t mHandle;
-
-  bool operator==(const IdNamespace& aOther) const {
-    return mHandle == aOther.mHandle;
-  }
-  bool operator!=(const IdNamespace& aOther) const {
-    return mHandle != aOther.mHandle;
-  }
-  bool operator<(const IdNamespace& aOther) const {
-    return mHandle < aOther.mHandle;
-  }
-  bool operator<=(const IdNamespace& aOther) const {
-    return mHandle <= aOther.mHandle;
-  }
-};
-
 typedef IdNamespace WrIdNamespace;
 
 // Represents RGBA screen colors with floating point numbers.
@@ -401,6 +449,7 @@ struct ColorF {
   }
 };
 
+// A 2d Point tagged with a unit.
 struct TypedPoint2D_f32__LayerPixel {
   float x;
   float y;
@@ -570,6 +619,7 @@ struct NinePatchDescriptor {
   }
 };
 
+// A 2d Vector tagged with a unit.
 struct TypedVector2D_f32__LayerPixel {
   float x;
   float y;
@@ -640,6 +690,8 @@ struct GlyphOptions {
 
 typedef YuvColorSpace WrYuvColorSpace;
 
+typedef LogLevelFilter WrLogLevelFilter;
+
 struct ByteSlice {
   const uint8_t *buffer;
   size_t len;
@@ -650,6 +702,7 @@ struct ByteSlice {
   }
 };
 
+// A 2d Point tagged with a unit.
 struct TypedPoint2D_u16__Tiles {
   uint16_t x;
   uint16_t y;
@@ -758,18 +811,6 @@ struct WrImageDescriptor {
 
 typedef ExternalImageType WrExternalImageBufferType;
 
-struct FontKey {
-  IdNamespace mNamespace;
-  uint32_t mHandle;
-
-  bool operator==(const FontKey& aOther) const {
-    return mNamespace == aOther.mNamespace &&
-           mHandle == aOther.mHandle;
-  }
-};
-
-typedef FontKey WrFontKey;
-
 struct FontInstanceOptions {
   FontRenderMode render_mode;
   SubpixelDirection subpx_dir;
@@ -796,10 +837,10 @@ struct FontInstancePlatformOptions {
 
 #if defined(XP_MACOSX)
 struct FontInstancePlatformOptions {
-  uint32_t unused;
+  bool font_smoothing;
 
   bool operator==(const FontInstancePlatformOptions& aOther) const {
-    return unused == aOther.unused;
+    return font_smoothing == aOther.font_smoothing;
   }
 };
 #endif
@@ -858,6 +899,18 @@ typedef TypedRect_u32__DevicePixel DeviceUintRect;
  *      a. Alternatively, you can clone `https://github.com/rlhunt/cbindgen` and use a tagged release
  *   2. Run `rustup run nightly cbindgen toolkit/library/rust/ --crate webrender_bindings -o gfx/webrender_bindings/webrender_ffi_generated.h`
  */
+
+extern void AddFontData(WrFontKey aKey,
+                        const uint8_t *aData,
+                        size_t aSize,
+                        uint32_t aIndex,
+                        const ArcVecU8 *aVec);
+
+extern void DeleteFontData(WrFontKey aKey);
+
+extern void gecko_printf_stderr_output(const char *aMsg);
+
+extern void gfx_critical_error(const char *aMsg);
 
 extern void gfx_critical_note(const char *aMsg);
 
@@ -1240,6 +1293,10 @@ WR_INLINE
 void wr_dp_save(WrState *aState)
 WR_FUNC;
 
+WR_INLINE
+void wr_init_external_log_handler(WrLogLevelFilter aLogFilter)
+WR_FUNC;
+
 extern bool wr_moz2d_render_cb(ByteSlice aBlob,
                                uint32_t aWidth,
                                uint32_t aHeight,
@@ -1417,6 +1474,10 @@ void wr_scroll_layer_with_id(DocumentHandle *aDh,
                              WrPipelineId aPipelineId,
                              uint64_t aScrollId,
                              LayoutPoint aNewScrollOrigin)
+WR_FUNC;
+
+WR_INLINE
+void wr_shutdown_external_log_handler()
 WR_FUNC;
 
 WR_INLINE

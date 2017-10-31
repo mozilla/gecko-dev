@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -71,11 +72,18 @@ RenderMacIOSurfaceTextureHostOGL::GetSize(uint8_t aChannelIndex) const
                       mSurface->GetDevicePixelHeight(aChannelIndex));
 }
 
-bool
-RenderMacIOSurfaceTextureHostOGL::Lock()
+wr::WrExternalImage
+RenderMacIOSurfaceTextureHostOGL::Lock(uint8_t aChannelIndex, gl::GLContext* aGL)
 {
+  if (mGL.get() != aGL) {
+    // release the texture handle in the previous gl context
+    DeleteTextureHandle();
+    mGL = aGL;
+    mGL->MakeCurrent();
+  }
+
   if (!mSurface || !mGL || !mGL->MakeCurrent()) {
-    return false;
+    return NativeTextureToWrExternalImage(0, 0, 0, 0, 0);
   }
 
   if (!mTextureHandles[0]) {
@@ -89,24 +97,15 @@ RenderMacIOSurfaceTextureHostOGL::Lock()
     }
   }
 
-  return true;
+  gfx::IntSize size = GetSize(aChannelIndex);
+  return NativeTextureToWrExternalImage(GetGLHandle(aChannelIndex), 0, 0,
+                                        size.width, size.height);
 }
 
 void
 RenderMacIOSurfaceTextureHostOGL::Unlock()
 {
 
-}
-
-void
-RenderMacIOSurfaceTextureHostOGL::SetGLContext(gl::GLContext* aContext)
-{
-  if (mGL.get() != aContext) {
-    // release the texture handle in the previous gl context
-    DeleteTextureHandle();
-    mGL = aContext;
-    mGL->MakeCurrent();
-  }
 }
 
 void

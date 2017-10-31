@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -12,7 +13,7 @@ namespace gfx {
 
 using namespace std;
 
-DrawEventRecorderPrivate::DrawEventRecorderPrivate()
+DrawEventRecorderPrivate::DrawEventRecorderPrivate() : mExternalFonts(false)
 {
 }
 
@@ -79,10 +80,41 @@ DrawEventRecorderMemory::DrawEventRecorderMemory()
   WriteHeader(mOutputStream);
 }
 
+DrawEventRecorderMemory::DrawEventRecorderMemory(const SerializeResourcesFn &aFn) :
+  mSerializeCallback(aFn)
+{
+  mExternalFonts = true;
+  WriteHeader(mOutputStream);
+}
+
+
 void
 DrawEventRecorderMemory::Flush()
 {
 }
+
+void
+DrawEventRecorderMemory::FlushItem(IntRect aRect)
+{
+  DetatchResources();
+  WriteElement(mIndex, mOutputStream.mLength);
+  mSerializeCallback(mOutputStream, mUnscaledFonts);
+  WriteElement(mIndex, mOutputStream.mLength);
+  ClearResources();
+}
+
+void
+DrawEventRecorderMemory::Finish()
+{
+  size_t indexOffset = mOutputStream.mLength;
+  // write out the index
+  mOutputStream.write(mIndex.mData, mIndex.mLength);
+  mIndex = MemStream();
+  // write out the offset of the Index to the end of the output stream
+  WriteElement(mOutputStream, indexOffset);
+  ClearResources();
+}
+
 
 size_t
 DrawEventRecorderMemory::RecordingSize()
@@ -94,6 +126,7 @@ void
 DrawEventRecorderMemory::WipeRecording()
 {
   mOutputStream = MemStream();
+  mIndex = MemStream();
 
   WriteHeader(mOutputStream);
 }

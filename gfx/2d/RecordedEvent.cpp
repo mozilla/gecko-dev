@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -88,6 +89,8 @@ RecordedEvent::GetEventName(EventType aType)
     return "Snapshot";
   case SCALEDFONTCREATION:
     return "ScaledFontCreation";
+  case SCALEDFONTCREATIONBYINDEX:
+    return "ScaledFontCreationByIndex";
   case SCALEDFONTDESTRUCTION:
     return "ScaledFontDestruction";
   case MASKSURFACE:
@@ -113,6 +116,40 @@ RecordedEvent::GetEventName(EventType aType)
   default:
     return "Unknown";
   }
+}
+
+template<class S>
+void RecordedEvent::RecordUnscaledFontImpl(UnscaledFont *aUnscaledFont, S& aOutput) {
+  RecordedFontData fontData(aUnscaledFont);
+  RecordedFontDetails fontDetails;
+  if (fontData.GetFontDetails(fontDetails)) {
+    // Try to serialise the whole font, just in case this is a web font that
+    // is not present on the system.
+    WriteElement(aOutput, fontData.mType);
+    fontData.RecordToStream(aOutput);
+
+    auto r = RecordedUnscaledFontCreation(aUnscaledFont, fontDetails);
+    WriteElement(aOutput, r.mType);
+    r.RecordToStream(aOutput);
+  } else {
+    // If that fails, record just the font description and try to load it from
+    // the system on the other side.
+    RecordedFontDescriptor fontDesc(aUnscaledFont);
+    if (fontDesc.IsValid()) {
+      WriteElement(aOutput, fontDesc.RecordedEvent::mType);
+      fontDesc.RecordToStream(aOutput);
+    } else {
+      gfxWarning() << "DrawTargetRecording::FillGlyphs failed to serialise UnscaledFont";
+    }
+  }
+}
+
+void RecordedEvent::RecordUnscaledFont(UnscaledFont *aUnscaledFont, std::ostream *aOutput) {
+  RecordUnscaledFontImpl(aUnscaledFont, *aOutput);
+}
+
+void RecordedEvent::RecordUnscaledFont(UnscaledFont *aUnscaledFont, MemStream &aOutput) {
+  RecordUnscaledFontImpl(aUnscaledFont, aOutput);
 }
 
 already_AddRefed<DrawTarget>

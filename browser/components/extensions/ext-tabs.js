@@ -268,6 +268,8 @@ this.tabs = class extends ExtensionAPI {
             } else if (event.type == "TabBrowserInserted" &&
                        !event.detail.insertedOnTabCreation) {
               needed.push("discarded");
+            } else if (event.type == "TabBrowserDiscarded") {
+              needed.push("discarded");
             }
 
             let tab = tabManager.getWrapper(event.originalTarget);
@@ -292,12 +294,14 @@ this.tabs = class extends ExtensionAPI {
             }
           };
 
-          let isArticleChangeListener = (eventName, event) => {
-            let {gBrowser} = event.target.ownerGlobal;
-            let tab = tabManager.getWrapper(
-              gBrowser.getTabForBrowser(event.target));
+          let isArticleChangeListener = (messageName, message) => {
+            let {gBrowser} = message.target.ownerGlobal;
+            let nativeTab = gBrowser.getTabForBrowser(message.target);
 
-            fireForTab(tab, {isArticle: event.data.isArticle});
+            if (nativeTab) {
+              let tab = tabManager.getWrapper(nativeTab);
+              fireForTab(tab, {isArticle: message.data.isArticle});
+            }
           };
 
           windowTracker.addListener("status", statusListener);
@@ -305,6 +309,7 @@ this.tabs = class extends ExtensionAPI {
           windowTracker.addListener("TabPinned", listener);
           windowTracker.addListener("TabUnpinned", listener);
           windowTracker.addListener("TabBrowserInserted", listener);
+          windowTracker.addListener("TabBrowserDiscarded", listener);
 
           tabTracker.on("tab-isarticle", isArticleChangeListener);
 
@@ -314,6 +319,7 @@ this.tabs = class extends ExtensionAPI {
             windowTracker.removeListener("TabPinned", listener);
             windowTracker.removeListener("TabUnpinned", listener);
             windowTracker.removeListener("TabBrowserInserted", listener);
+            windowTracker.removeListener("TabBrowserDiscarded", listener);
             tabTracker.off("tab-isarticle", isArticleChangeListener);
           };
         }).api(),
@@ -441,6 +447,17 @@ this.tabs = class extends ExtensionAPI {
           for (let tabId of tabs) {
             let nativeTab = tabTracker.getTab(tabId);
             nativeTab.ownerGlobal.gBrowser.removeTab(nativeTab);
+          }
+        },
+
+        async discard(tabIds) {
+          if (!Array.isArray(tabIds)) {
+            tabIds = [tabIds];
+          }
+          let tabs = tabIds.map(tabId => tabTracker.getTab(tabId));
+
+          for (let tab of tabs) {
+            tab.ownerGlobal.gBrowser.discardBrowser(tab.linkedBrowser);
           }
         },
 
@@ -847,8 +864,8 @@ this.tabs = class extends ExtensionAPI {
                 // OK clicked (retval == 0) or replace confirmed (retval == 2)
                 try {
                   let fstream = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
-                  fstream.init(picker.file, 0x2A, 0x1B6, 0);  // write|create|truncate, file permissions rw-rw-rw- = 0666 = 0x1B6
-                  fstream.close();  // unlock file
+                  fstream.init(picker.file, 0x2A, 0x1B6, 0); // write|create|truncate, file permissions rw-rw-rw- = 0666 = 0x1B6
+                  fstream.close(); // unlock file
                 } catch (e) {
                   resolve(retval == 0 ? "not_saved" : "not_replaced");
                   return;

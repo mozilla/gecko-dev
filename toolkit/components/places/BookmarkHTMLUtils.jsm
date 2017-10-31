@@ -501,7 +501,7 @@ BookmarkImporter.prototype = {
 
     frame.previousFeed = null;
     frame.previousItem = null;
-    frame.previousText = "";  // Will hold link text, clear it.
+    frame.previousText = ""; // Will hold link text, clear it.
 
     // Get the attributes we care about.
     let href = this._safeTrim(aElt.getAttribute("href"));
@@ -627,7 +627,7 @@ BookmarkImporter.prototype = {
   _handleContainerEnd: function handleContainerEnd() {
     let frame = this._curFrame;
     if (frame.containerNesting > 0)
-      frame.containerNesting --;
+      frame.containerNesting--;
     if (this._frames.length > 1 && frame.containerNesting == 0) {
       this._frames.pop();
     }
@@ -920,7 +920,7 @@ BookmarkImporter.prototype = {
 
       // Give the tree the source.
       tree.source = this._source;
-      await PlacesUtils.bookmarks.insertTree(tree);
+      await PlacesUtils.bookmarks.insertTree(tree, { fixupOrSkipInvalidEntries: true });
       insertFaviconsForTree(tree);
     }
   },

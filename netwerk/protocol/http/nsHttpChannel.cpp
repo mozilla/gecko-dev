@@ -1320,20 +1320,6 @@ nsHttpChannel::SetupTransaction()
     return rv;
 }
 
-// NOTE: This function duplicates code from nsBaseChannel. This will go away
-// once HTTP uses nsBaseChannel (part of bug 312760)
-static void
-CallTypeSniffers(void *aClosure, const uint8_t *aData, uint32_t aCount)
-{
-  nsIChannel *chan = static_cast<nsIChannel*>(aClosure);
-
-  nsAutoCString newType;
-  NS_SniffContent(NS_CONTENT_SNIFFER_CATEGORY, chan, aData, aCount, newType);
-  if (!newType.IsEmpty()) {
-    chan->SetContentType(newType);
-  }
-}
-
 // Helper Function to report messages to the console when loading
 // a resource was blocked due to a MIME type mismatch.
 void
@@ -2637,6 +2623,11 @@ nsHttpChannel::ContinueProcessResponse2(nsresult rv)
             mAuthRetryPending = true; // see DoAuthRetry
         }
         break;
+
+    case 425:
+        // Do not cache 425.
+        CloseCacheEntry(false);
+        MOZ_FALLTHROUGH; // process normally
     default:
         rv = ProcessNormal();
         MaybeInvalidateCacheEntryForSubsequentGet();
@@ -5565,6 +5556,9 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     if (NS_FAILED(rv))
         return rv;
 
+    rv = CheckRedirectLimit(redirectFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
     if (!httpChannel)
         return NS_OK; // no other options to set
@@ -5604,11 +5598,6 @@ nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType)
     nsAutoCString locationBuf;
     if (NS_EscapeURL(location.get(), -1, esc_OnlyNonASCII, locationBuf))
         location = locationBuf;
-
-    if (mRedirectCount >= mRedirectionLimit || mInternalRedirectCount >= mRedirectionLimit) {
-        LOG(("redirection limit reached!\n"));
-        return NS_ERROR_REDIRECT_LOOP;
-    }
 
     mRedirectType = redirectType;
 

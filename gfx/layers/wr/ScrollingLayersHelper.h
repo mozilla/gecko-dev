@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -44,6 +45,8 @@ public:
   ~ScrollingLayersHelper();
 
 private:
+  typedef std::pair<FrameMetrics::ViewID, Maybe<wr::WrClipId>> ClipAndScroll;
+
   std::pair<Maybe<FrameMetrics::ViewID>, Maybe<wr::WrClipId>>
   DefineClipChain(nsDisplayItem* aItem,
                   const ActiveScrolledRoot* aAsr,
@@ -64,6 +67,8 @@ private:
                       const DisplayItemClipChain* aChain,
                       int32_t aAppUnitsPerDevPixel,
                       const StackingContextHelper& aSc);
+
+  Maybe<ClipAndScroll> EnclosingClipAndScroll() const;
 
   // Note: two DisplayItemClipChain* A and B might actually be "equal" (as per
   // DisplayItemClipChain::Equal(A, B)) even though they are not the same pointer
@@ -90,7 +95,7 @@ private:
 
     Maybe<FrameMetrics::ViewID> mScrollId;
     Maybe<wr::WrClipId> mClipId;
-    Maybe<std::pair<FrameMetrics::ViewID, Maybe<wr::WrClipId>>> mClipAndScroll;
+    Maybe<ClipAndScroll> mClipAndScroll;
 
     void Apply(wr::DisplayListBuilder* aBuilder);
     void Unapply(wr::DisplayListBuilder* aBuilder);

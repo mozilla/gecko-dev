@@ -233,11 +233,6 @@ static nsString* lastRunCrashID = nullptr;
 static char* androidUserSerial = nullptr;
 #endif
 
-// these are just here for readability
-static const char kTimeSinceLastCrashParameter[] = "SecondsSinceLastCrash=";
-static const int kTimeSinceLastCrashParameterLen =
-                                     sizeof(kTimeSinceLastCrashParameter)-1;
-
 // this holds additional data sent via the API
 static Mutex* crashReporterAPILock;
 static Mutex* notesFieldLock;
@@ -247,6 +242,7 @@ static nsCString* crashEventAPIData = nullptr;
 static nsCString* notesField = nullptr;
 static bool isGarbageCollecting;
 static uint32_t eventloopNestingLevel = 0;
+static bool minidumpAnalysisAllThreads = false;
 
 // Avoid a race during application termination.
 static Mutex* dumpSafetyLock;
@@ -480,7 +476,7 @@ bool SimpleNoCLibDtoA(double aValue, char* aBuffer, int aBufferLength)
 namespace CrashReporter {
 
 #ifdef XP_LINUX
-inline void
+static inline void
 my_inttostring(intmax_t t, char* buffer, size_t buffer_length)
 {
   my_memset(buffer, 0, buffer_length);
@@ -560,25 +556,10 @@ void AnnotateTexturesSize(size_t size)
   gTexturesSize = size;
 }
 
-static size_t gNumOfPendingIPC = 0;
-static uint32_t gTopPendingIPCCount = 0;
-static const char* gTopPendingIPCName = nullptr;
-static uint32_t gTopPendingIPCType = 0;
-
-void AnnotatePendingIPC(size_t aNumOfPendingIPC,
-                        uint32_t aTopPendingIPCCount,
-                        const char* aTopPendingIPCName,
-                        uint32_t aTopPendingIPCType)
-{
-  gNumOfPendingIPC = aNumOfPendingIPC;
-  gTopPendingIPCCount = aTopPendingIPCCount;
-  gTopPendingIPCName = aTopPendingIPCName;
-  gTopPendingIPCType = aTopPendingIPCType;
-}
-
 #ifndef XP_WIN
 // Like Windows CopyFile for *nix
-bool copy_file(const char* from, const char* to)
+static bool
+copy_file(const char* from, const char* to)
 {
   const int kBufSize = 4096;
   int fdfrom = sys_open(from, O_RDONLY, 0);
@@ -719,7 +700,7 @@ private:
 #endif
 
 template<int N>
-void
+static void
 WriteLiteral(PlatformWriter& pw, const char (&str)[N])
 {
   pw.WriteBuffer(str, N - 1);
@@ -775,7 +756,7 @@ OpenAPIData(PlatformWriter& aWriter,
 }
 
 #ifdef XP_WIN
-void
+static void
 WriteGlobalMemoryStatus(PlatformWriter* apiData, PlatformWriter* eventFile)
 {
   char buffer[128];
@@ -818,7 +799,8 @@ WriteGlobalMemoryStatus(PlatformWriter* apiData, PlatformWriter* eventFile)
  *        to the launched program
  */
 static bool
-LaunchProgram(const XP_CHAR* aProgramPath, const XP_CHAR* aMinidumpPath)
+LaunchProgram(const XP_CHAR* aProgramPath, const XP_CHAR* aMinidumpPath,
+              bool aAllThreads)
 {
 #ifdef XP_WIN
   XP_CHAR cmdLine[CMDLINE_SIZE];
@@ -827,7 +809,11 @@ LaunchProgram(const XP_CHAR* aProgramPath, const XP_CHAR* aMinidumpPath)
   size_t size = CMDLINE_SIZE;
   p = Concat(cmdLine, L"\"", &size);
   p = Concat(p, aProgramPath, &size);
-  p = Concat(p, L"\" \"", &size);
+  p = Concat(p, L"\" ", &size);
+  if (aAllThreads) {
+    p = Concat(p, L"--full ", &size);
+  }
+  p = Concat(p, L"\"", &size);
   p = Concat(p, aMinidumpPath, &size);
   Concat(p, L"\"", &size);
 
@@ -847,11 +833,19 @@ LaunchProgram(const XP_CHAR* aProgramPath, const XP_CHAR* aMinidumpPath)
   setenv("DYLD_LIBRARY_PATH", libraryPath, /* overwrite */ 1);
 
   pid_t pid = 0;
-  char* const my_argv[] = {
+  char* my_argv[] = {
     const_cast<char*>(aProgramPath),
     const_cast<char*>(aMinidumpPath),
+    nullptr,
     nullptr
   };
+
+  char fullArg[] = "--full";
+
+  if (aAllThreads) {
+    my_argv[2] = my_argv[1];
+    my_argv[1] = fullArg;
+  }
 
   char **env = nullptr;
   char ***nsEnv = _NSGetEnviron();
@@ -873,8 +867,14 @@ LaunchProgram(const XP_CHAR* aProgramPath, const XP_CHAR* aMinidumpPath)
     // need to clobber this, as libcurl might load NSS,
     // and we want it to load the system NSS.
     unsetenv("LD_LIBRARY_PATH");
-    Unused << execl(aProgramPath,
-                    aProgramPath, aMinidumpPath, (char*)0);
+
+    if (aAllThreads) {
+      Unused << execl(aProgramPath,
+                      aProgramPath, "--full", aMinidumpPath, (char*)0);
+    } else {
+      Unused << execl(aProgramPath,
+                      aProgramPath, aMinidumpPath, (char*)0);
+    }
     _exit(1);
   }
 #endif // XP_MACOSX
@@ -936,7 +936,8 @@ LaunchCrashReporterActivity(XP_CHAR* aProgramPath, XP_CHAR* aMinidumpPath,
 
 #endif
 
-bool MinidumpCallback(
+static bool
+MinidumpCallback(
 #ifdef XP_LINUX
                       const MinidumpDescriptor& descriptor,
 #else
@@ -1004,19 +1005,6 @@ bool MinidumpCallback(
   char texturesSizeBuffer[32] = "";
   if (gTexturesSize) {
     XP_STOA(gTexturesSize, texturesSizeBuffer, 10);
-  }
-
-  char numOfPendingIPCBuffer[32] = "";
-  char topPendingIPCCountBuffer[32] = "";
-  char topPendingIPCTypeBuffer[11] = "0x";
-  if (gNumOfPendingIPC) {
-    XP_STOA(gNumOfPendingIPC, numOfPendingIPCBuffer, 10);
-    if (gTopPendingIPCCount) {
-      XP_STOA(gTopPendingIPCCount, topPendingIPCCountBuffer, 10);
-    }
-    if (gTopPendingIPCType) {
-      XP_STOA(gTopPendingIPCType, &topPendingIPCTypeBuffer[2], 16);
-    }
   }
 
   // calculate time since last crash (if possible), and store
@@ -1177,23 +1165,6 @@ bool MinidumpCallback(
       WriteAnnotation(eventFile, "TextureUsage", texturesSizeBuffer);
     }
 
-    if (numOfPendingIPCBuffer[0]) {
-      WriteAnnotation(apiData, "NumberOfPendingIPC", numOfPendingIPCBuffer);
-      WriteAnnotation(eventFile, "NumberOfPendingIPC", numOfPendingIPCBuffer);
-      if (topPendingIPCCountBuffer[0]) {
-        WriteAnnotation(apiData, "TopPendingIPCCount", topPendingIPCCountBuffer);
-        WriteAnnotation(eventFile, "TopPendingIPCCount", topPendingIPCCountBuffer);
-      }
-      if (gTopPendingIPCName) {
-        WriteAnnotation(apiData, "TopPendingIPCName", gTopPendingIPCName);
-        WriteAnnotation(eventFile, "TopPendingIPCName", gTopPendingIPCName);
-      }
-      if (topPendingIPCTypeBuffer[2]) {
-        WriteAnnotation(apiData, "TopPendingIPCType", topPendingIPCTypeBuffer);
-        WriteAnnotation(eventFile, "TopPendingIPCType", topPendingIPCTypeBuffer);
-      }
-    }
-
     if (memoryReportPath) {
       WriteLiteral(apiData, "ContainsMemoryReport=1\n");
       WriteLiteral(eventFile, "ContainsMemoryReport=1\n");
@@ -1224,7 +1195,8 @@ bool MinidumpCallback(
   returnValue = LaunchCrashReporterActivity(crashReporterPath, minidumpPath,
                                             succeeded);
 #else // Windows, Mac, Linux, etc...
-  returnValue = LaunchProgram(crashReporterPath, minidumpPath);
+  returnValue = LaunchProgram(crashReporterPath, minidumpPath,
+                              minidumpAnalysisAllThreads);
 #ifdef XP_WIN
   TerminateProcess(GetCurrentProcess(), 1);
 #endif
@@ -1415,32 +1387,6 @@ PrepareChildExceptionTimeAnnotations()
     WriteAnnotation(apiData, "MozCrashReason", gMozCrashReason);
   }
 
-  char numOfPendingIPCBuffer[32] = "";
-  char topPendingIPCCountBuffer[32] = "";
-  char topPendingIPCTypeBuffer[11] = "0x";
-  if (gNumOfPendingIPC) {
-    XP_STOA(gNumOfPendingIPC, numOfPendingIPCBuffer, 10);
-    if (gTopPendingIPCCount) {
-      XP_STOA(gTopPendingIPCCount, topPendingIPCCountBuffer, 10);
-    }
-    if (gTopPendingIPCType) {
-      XP_STOA(gTopPendingIPCType, &topPendingIPCTypeBuffer[2], 16);
-    }
-  }
-
-  if (numOfPendingIPCBuffer[0]) {
-    WriteAnnotation(apiData, "NumberOfPendingIPC", numOfPendingIPCBuffer);
-    if (topPendingIPCCountBuffer[0]) {
-      WriteAnnotation(apiData, "TopPendingIPCCount", topPendingIPCCountBuffer);
-    }
-    if (gTopPendingIPCName) {
-      WriteAnnotation(apiData, "TopPendingIPCName", gTopPendingIPCName);
-    }
-    if (topPendingIPCTypeBuffer[2]) {
-      WriteAnnotation(apiData, "TopPendingIPCType", topPendingIPCTypeBuffer);
-    }
-  }
-
   std::function<void(const char*)> getThreadAnnotationCB =
     [&] (const char * aAnnotation) -> void {
     if (aAnnotation) {
@@ -1514,7 +1460,8 @@ ChildFPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
   return result;
 }
 
-MINIDUMP_TYPE GetMinidumpType()
+static MINIDUMP_TYPE
+GetMinidumpType()
 {
   MINIDUMP_TYPE minidump_type = MiniDumpWithFullMemoryInfo;
 
@@ -1570,7 +1517,8 @@ ChildFilter(void* context)
   return result;
 }
 
-void TerminateHandler()
+static void
+TerminateHandler()
 {
   MOZ_CRASH("Unhandled exception");
 }
@@ -2028,8 +1976,7 @@ SetupCrashReporterDirectory(nsIFile* aAppDataDirectory,
 // time since last crash, which must be calculated at
 // crash time.
 // If any piece of data doesn't exist, initialize it first.
-nsresult SetupExtraData(nsIFile* aAppDataDirectory,
-                        const nsACString& aBuildID)
+nsresult SetupExtraData(nsIFile* aAppDataDirectory, const nsACString& aBuildID)
 {
   nsCOMPtr<nsIFile> dataDirectory;
   nsresult rv = SetupCrashReporterDirectory(
@@ -2233,10 +2180,6 @@ static void ReplaceChar(nsCString& str, const nsACString& character,
   }
 }
 
-// This function is miscompiled with MSVC 2005/2008 when PGO is on.
-#ifdef _MSC_VER
-#pragma optimize("", off)
-#endif
 static nsresult
 EscapeAnnotation(const nsACString& key, const nsACString& data, nsCString& escapedData)
 {
@@ -2257,9 +2200,6 @@ EscapeAnnotation(const nsACString& key, const nsACString& data, nsCString& escap
               NS_LITERAL_CSTRING("\\n"));
   return NS_OK;
 }
-#ifdef _MSC_VER
-#pragma optimize("", on)
-#endif
 
 class DelayedNote
 {
@@ -2373,6 +2313,11 @@ void SetEventloopNestingLevel(uint32_t level)
   eventloopNestingLevel = level;
 }
 
+void SetMinidumpAnalysisAllThreads()
+{
+  minidumpAnalysisAllThreads = true;
+}
+
 nsresult AppendAppNotesToCrashReport(const nsACString& data)
 {
   if (!GetEnabled())
@@ -2409,7 +2354,8 @@ nsresult AppendAppNotesToCrashReport(const nsACString& data)
 }
 
 // Returns true if found, false if not found.
-bool GetAnnotation(const nsACString& key, nsACString& data)
+static bool
+GetAnnotation(const nsACString& key, nsACString& data)
 {
   if (!gExceptionHandler)
     return false;
@@ -3131,7 +3077,7 @@ WriteAnnotation(PRFileDesc* fd, const nsACString& key, const nsACString& value)
 }
 
 template<int N>
-void
+static void
 WriteLiteral(PRFileDesc* fd, const char (&str)[N])
 {
   PR_Write(fd, str, N - 1);
@@ -3676,7 +3622,7 @@ UnregisterInjectorCallback(DWORD processID)
 
 #endif // MOZ_CRASHREPORTER_INJECTOR
 
-bool
+static bool
 CheckForLastRunCrash()
 {
   if (lastRunCrashID)
@@ -4079,7 +4025,7 @@ bool TakeMinidump(nsIFile** aResult, bool aMoveToPending)
   return true;
 }
 
-inline void
+static inline void
 NotifyDumpResult(bool aResult,
                  bool aAsync,
                  std::function<void(bool)>&& aCallback,
@@ -4099,7 +4045,7 @@ NotifyDumpResult(bool aResult,
   }
 }
 
-void
+static void
 CreatePairedChildMinidumpAsync(ProcessHandle aTargetPid,
                                ThreadId aTargetBlamedThread,
                                nsCString aIncomingPairName,

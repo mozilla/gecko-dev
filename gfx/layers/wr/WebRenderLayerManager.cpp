@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -28,6 +29,7 @@ namespace layers {
 WebRenderLayerManager::WebRenderLayerManager(nsIWidget* aWidget)
   : mWidget(aWidget)
   , mLatestTransactionId(0)
+  , mWindowOverlayChanged(false)
   , mNeedsComposite(false)
   , mIsFirstPaint(false)
   , mTarget(nullptr)
@@ -174,6 +176,16 @@ WebRenderLayerManager::BeginTransaction()
 bool
 WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
 {
+  if (mWindowOverlayChanged) {
+    // If the window overlay changed then we can't do an empty transaction
+    // because we need to repaint the window overlay which we only currently
+    // support in a full transaction.
+    // XXX If we end up hitting this branch a lot we can probably optimize it
+    // by just sending an updated window overlay image instead of rebuilding
+    // the entire WR display list.
+    return false;
+  }
+
   // With the WebRenderLayerManager we reject attempts to set most kind of
   // "pending data" for empty transactions. Any place that attempts to update
   // transforms or scroll offset, for example, will get failure return values
@@ -249,7 +261,6 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
   WrBridge()->RemoveExpiredFontKeys();
 
   AUTO_PROFILER_TRACING("Paint", "RenderLayers");
-  mTransactionIncomplete = false;
 
 #if 0
   // Useful for debugging, it dumps the display list *before* we try to build
@@ -276,16 +287,9 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
                                                   contentSize);
 
   mWidget->AddWindowOverlayWebRenderCommands(WrBridge(), builder, resourceUpdates);
-  WrBridge()->ClearReadLocks();
+  mWindowOverlayChanged = false;
 
-  // We can't finish this transaction so return. This usually
-  // happens in an empty transaction where we can't repaint a painted layer.
-  // In this case, leave the transaction open and let a full transaction happen.
-  if (mTransactionIncomplete) {
-    DiscardLocalImages();
-    WrBridge()->ProcessWebRenderParentCommands();
-    return;
-  }
+  WrBridge()->ClearReadLocks();
 
   if (AsyncPanZoomEnabled()) {
     mScrollData.SetFocusTarget(mFocusTarget);

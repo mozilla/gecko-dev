@@ -923,6 +923,35 @@ HTMLEditRules::GetAlignment(bool* aMixed,
       // of html tables regarding to text alignment
       return NS_OK;
     }
+
+    if (htmlEditor->mCSSEditUtils->IsCSSEditableProperty(nodeToExamine, nullptr,
+                                                         nsGkAtoms::align)) {
+      nsAutoString value;
+      htmlEditor->mCSSEditUtils->GetSpecifiedProperty(*nodeToExamine,
+                                                      *nsGkAtoms::textAlign,
+                                                      value);
+      if (!value.IsEmpty()) {
+        if (value.EqualsLiteral("center")) {
+          *aAlign = nsIHTMLEditor::eCenter;
+          return NS_OK;
+        }
+        if (value.EqualsLiteral("right")) {
+          *aAlign = nsIHTMLEditor::eRight;
+          return NS_OK;
+        }
+        if (value.EqualsLiteral("justify")) {
+          *aAlign = nsIHTMLEditor::eJustify;
+          return NS_OK;
+        }
+        if (value.EqualsLiteral("left")) {
+          *aAlign = nsIHTMLEditor::eLeft;
+          return NS_OK;
+        }
+        // XXX
+        // text-align: start and end aren't supported yet
+      }
+    }
+
     if (HTMLEditUtils::SupportsAlignAttr(*nodeToExamine)) {
       // Check for alignment
       nsAutoString typeAttrVal;
@@ -1508,6 +1537,35 @@ HTMLEditRules::WillLoadHTML(Selection* aSelection,
   return NS_OK;
 }
 
+bool
+HTMLEditRules::CanContainParagraph(Element& aElement) const
+{
+  if (NS_WARN_IF(!mHTMLEditor)) {
+    return false;
+  }
+
+  if (mHTMLEditor->CanContainTag(aElement, *nsGkAtoms::p)) {
+    return true;
+  }
+
+  // Even if the element cannot have a <p> element as a child, it can contain
+  // <p> element as a descendant if it's one of the following elements.
+  if (aElement.IsAnyOfHTMLElements(nsGkAtoms::ol,
+                                   nsGkAtoms::ul,
+                                   nsGkAtoms::dl,
+                                   nsGkAtoms::table,
+                                   nsGkAtoms::thead,
+                                   nsGkAtoms::tbody,
+                                   nsGkAtoms::tfoot,
+                                   nsGkAtoms::tr)) {
+    return true;
+  }
+
+  // XXX Otherwise, Chromium checks the CSS box is a block, but we don't do it
+  //     for now.
+  return false;
+}
+
 nsresult
 HTMLEditRules::WillInsertBreak(Selection& aSelection,
                                bool* aCancel,
@@ -1556,10 +1614,6 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
     return NS_OK;
   }
 
-  // Identify the block
-  nsCOMPtr<Element> blockParent = htmlEditor->GetBlock(node);
-  NS_ENSURE_TRUE(blockParent, NS_ERROR_FAILURE);
-
   // If the active editing host is an inline element, or if the active editing
   // host is the block parent itself and we're configured to use <br> as a
   // paragraph separator, just append a <br>.
@@ -1567,23 +1621,53 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
   if (NS_WARN_IF(!host)) {
     return NS_ERROR_FAILURE;
   }
-  ParagraphSeparator separator = mHTMLEditor->GetDefaultParagraphSeparator();
-  if (!IsBlockNode(*host) ||
-      // The nodes that can contain p and div are the same.  If the editing
-      // host is a <p> or similar, we have to just insert a newline.
-      (!mHTMLEditor->CanContainTag(*host, *nsGkAtoms::p) &&
-       // These can't contain <p> as a child, but can as a descendant, so we
-       // don't have to fall back to inserting a newline.
-       !host->IsAnyOfHTMLElements(nsGkAtoms::ol, nsGkAtoms::ul, nsGkAtoms::dl,
-                                  nsGkAtoms::table, nsGkAtoms::thead,
-                                  nsGkAtoms::tbody, nsGkAtoms::tfoot,
-                                  nsGkAtoms::tr)) ||
-      (host == blockParent && separator == ParagraphSeparator::br)) {
+
+  // Look for the nearest parent block.  However, don't return error even if
+  // there is no block parent here because in such case, i.e., editing host
+  // is an inline element, we should insert <br> simply.
+  RefPtr<Element> blockParent = HTMLEditor::GetBlock(node, host);
+
+  ParagraphSeparator separator = htmlEditor->GetDefaultParagraphSeparator();
+  bool insertBRElement;
+  // If there is no block parent in the editing host, i.e., the editing host
+  // itself is also a non-block element, we should insert a <br> element.
+  if (!blockParent) {
+    // XXX Chromium checks if the CSS box of the editing host is block.
+    insertBRElement = true;
+  }
+  // If only the editing host is block, and the default paragraph separator
+  // is <br> or the editing host cannot contain a <p> element, we should
+  // insert a <br> element.
+  else if (host == blockParent) {
+    insertBRElement =
+      separator == ParagraphSeparator::br || !CanContainParagraph(*host);
+  }
+  // If the nearest block parent is a single-line container declared in
+  // the execCommand spec and not the editing host, we should separate the
+  // block even if the default paragraph separator is <br> element.
+  else if (HTMLEditUtils::IsSingleLineContainer(*blockParent)) {
+    insertBRElement = false;
+  }
+  // Otherwise, unless there is no block ancestor which can contain <p>
+  // element, we shouldn't insert a <br> element here.
+  else {
+    insertBRElement = true;
+    for (Element* blockAncestor = blockParent;
+         blockAncestor && insertBRElement;
+         blockAncestor = HTMLEditor::GetBlockNodeParent(blockAncestor, host)) {
+      insertBRElement = !CanContainParagraph(*blockAncestor);
+    }
+  }
+
+  // If we cannot insert a <p>/<div> element at the selection, we should insert
+  // a <br> element instead.
+  if (insertBRElement) {
     nsresult rv = StandardBreakImpl(node, offset, aSelection);
     NS_ENSURE_SUCCESS(rv, rv);
     *aHandled = true;
     return NS_OK;
   }
+
   if (host == blockParent && separator != ParagraphSeparator::br) {
     // Insert a new block first
     MOZ_ASSERT(separator == ParagraphSeparator::div ||
@@ -1592,7 +1676,8 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
                                  ParagraphSeparatorElement(separator));
     // We warn on failure, but don't handle it, because it might be harmless.
     // Instead we just check that a new block was actually created.
-    Unused << NS_WARN_IF(NS_FAILED(rv));
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "HTMLEditRules::MakeBasicBlock() failed");
 
     // Reinitialize node/offset in case they're not inside the new block
     if (NS_WARN_IF(!aSelection.GetRangeAt(0) ||
@@ -1603,7 +1688,7 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
     child = aSelection.GetRangeAt(0)->GetChildAtStartOffset();
     offset = aSelection.GetRangeAt(0)->StartOffset();
 
-    blockParent = mHTMLEditor->GetBlock(node);
+    blockParent = mHTMLEditor->GetBlock(node, host);
     if (NS_WARN_IF(!blockParent)) {
       return NS_ERROR_UNEXPECTED;
     }
@@ -4960,8 +5045,6 @@ HTMLEditRules::AlignBlockContents(nsIDOMNode* aNode,
   NS_ENSURE_TRUE(node && alignType, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsIContent> firstChild, lastChild;
 
-  bool useCSS = mHTMLEditor->IsCSSEnabled();
-
   NS_ENSURE_STATE(mHTMLEditor);
   firstChild = mHTMLEditor->GetFirstEditableChild(*node);
   NS_ENSURE_STATE(mHTMLEditor);
@@ -4973,21 +5056,12 @@ HTMLEditRules::AlignBlockContents(nsIDOMNode* aNode,
     // the cell already has a div containing all of its content: just
     // act on this div.
     RefPtr<Element> divElem = firstChild->AsElement();
-    if (useCSS) {
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsresult rv = mHTMLEditor->SetAttributeOrEquivalent(divElem,
-                                                          nsGkAtoms::align,
-                                                          *alignType, false);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-    } else {
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsresult rv = mHTMLEditor->SetAttribute(divElem, nsGkAtoms::align,
-                                              *alignType);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
+    NS_ENSURE_STATE(mHTMLEditor);
+    nsresult rv = mHTMLEditor->SetAttributeOrEquivalent(divElem,
+                                                        nsGkAtoms::align,
+                                                        *alignType, false);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
   } else {
     // else we need to put in a div, set the alignment, and toss in all the children
@@ -4996,21 +5070,12 @@ HTMLEditRules::AlignBlockContents(nsIDOMNode* aNode,
                                                       node->GetFirstChild());
     NS_ENSURE_STATE(divElem);
     // set up the alignment on the div
-    if (useCSS) {
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsresult rv =
-        mHTMLEditor->SetAttributeOrEquivalent(divElem, nsGkAtoms::align,
-                                              *alignType, false);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-    } else {
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsresult rv =
-        mHTMLEditor->SetAttribute(divElem, nsGkAtoms::align, *alignType);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
+    NS_ENSURE_STATE(mHTMLEditor);
+    nsresult rv =
+      mHTMLEditor->SetAttributeOrEquivalent(divElem, nsGkAtoms::align,
+                                            *alignType, false);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
     // tuck the children into the end of the active div
     while (lastChild && (lastChild != divElem)) {
@@ -5123,7 +5188,7 @@ HTMLEditRules::CheckForEmptyBlock(nsINode* aStartNode,
           NS_ENSURE_SUCCESS(rv, rv);
         }
       } else if (aAction != nsIEditor::eNone) {
-        NS_RUNTIMEABORT("CheckForEmptyBlock doesn't support this action yet");
+        MOZ_CRASH("CheckForEmptyBlock doesn't support this action yet");
       }
     }
     NS_ENSURE_STATE(htmlEditor);
@@ -8718,18 +8783,19 @@ HTMLEditRules::AlignBlock(Element& aElement,
   if (htmlEditor->IsCSSEnabled()) {
     // Let's use CSS alignment; we use margin-left and margin-right for tables
     // and text-align for other block-level elements
-    rv = htmlEditor->SetAttributeOrEquivalent(
-                       &aElement, nsGkAtoms::align, aAlignType, false);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    // HTML case; this code is supposed to be called ONLY if the element
-    // supports the align attribute but we'll never know...
-    if (HTMLEditUtils::SupportsAlignAttr(aElement)) {
-      rv = htmlEditor->SetAttribute(&aElement, nsGkAtoms::align, aAlignType);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
+    return htmlEditor->SetAttributeOrEquivalent(
+                         &aElement, nsGkAtoms::align, aAlignType, false);
   }
-  return NS_OK;
+
+  // HTML case; this code is supposed to be called ONLY if the element
+  // supports the align attribute but we'll never know...
+  if (NS_WARN_IF(!HTMLEditUtils::SupportsAlignAttr(aElement))) {
+    // XXX error?
+    return NS_OK;
+  }
+
+  return htmlEditor->SetAttributeOrEquivalent(&aElement, nsGkAtoms::align,
+                                              aAlignType, false);
 }
 
 nsresult

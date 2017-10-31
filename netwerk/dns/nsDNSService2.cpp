@@ -499,7 +499,7 @@ NS_IMPL_ISUPPORTS(nsDNSService, nsIDNSService, nsPIDNSService, nsIObserver,
  ******************************************************************************/
 static nsDNSService *gDNSService;
 
-nsIDNSService*
+already_AddRefed<nsIDNSService>
 nsDNSService::GetXPCOMSingleton()
 {
     if (IsNeckoChild()) {
@@ -509,25 +509,23 @@ nsDNSService::GetXPCOMSingleton()
     return GetSingleton();
 }
 
-nsDNSService*
+already_AddRefed<nsDNSService>
 nsDNSService::GetSingleton()
 {
     NS_ASSERTION(!IsNeckoChild(), "not a parent process");
 
     if (gDNSService) {
-        NS_ADDREF(gDNSService);
-        return gDNSService;
+        return do_AddRef(gDNSService);
     }
 
-    gDNSService = new nsDNSService();
-    if (gDNSService) {
-        NS_ADDREF(gDNSService);
-        if (NS_FAILED(gDNSService->Init())) {
-              NS_RELEASE(gDNSService);
-        }
+    auto dns = MakeRefPtr<nsDNSService>();
+    gDNSService = dns.get();
+    if (NS_FAILED(dns->Init())) {
+        gDNSService = nullptr;
+        return nullptr;
     }
 
-    return gDNSService;
+    return dns.forget();
 }
 
 NS_IMETHODIMP
@@ -547,9 +545,9 @@ nsDNSService::Init()
     int      proxyType        = nsIProtocolProxyService::PROXYCONFIG_DIRECT;
     bool     notifyResolution = false;
 
-    nsCString ipv4OnlyDomains;
-    nsCString localDomains;
-    nsCString forceResolve;
+    nsAutoCString ipv4OnlyDomains;
+    nsAutoCString localDomains;
+    nsAutoCString forceResolve;
 
     // read prefs
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
@@ -564,9 +562,9 @@ nsDNSService::Init()
 
         // ASSUMPTION: pref branch does not modify out params on failure
         prefs->GetBoolPref(kPrefDisableIPv6, &disableIPv6);
-        prefs->GetCharPref(kPrefIPv4OnlyDomains, getter_Copies(ipv4OnlyDomains));
-        prefs->GetCharPref(kPrefDnsLocalDomains, getter_Copies(localDomains));
-        prefs->GetCharPref(kPrefDnsForceResolve, getter_Copies(forceResolve));
+        prefs->GetCharPref(kPrefIPv4OnlyDomains, ipv4OnlyDomains);
+        prefs->GetCharPref(kPrefDnsLocalDomains, localDomains);
+        prefs->GetCharPref(kPrefDnsForceResolve, forceResolve);
         prefs->GetBoolPref(kPrefDnsOfflineLocalhost, &offlineLocalhost);
         prefs->GetBoolPref(kPrefDisablePrefetch, &disablePrefetch);
         prefs->GetBoolPref(kPrefBlockDotOnion, &blockDotOnion);

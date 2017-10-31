@@ -38,12 +38,18 @@ with Files('*gradle*'):
     BUG_COMPONENT = ('Firefox for Android', 'Build Config & IDE Support')
     SCHEDULES.exclusive = ['android']
 
+with Files('*.json'):
+    BUG_COMPONENT = ('Core', 'Build Config')
+
 with Files('**/l10n.toml'):
     BUG_COMPONENT = ('Core', 'Localization')
     FINAL = True
 
 with Files('README.txt'):
     BUG_COMPONENT = ('Core', 'General')
+
+with Files("nsprpub/**"):
+    BUG_COMPONENT = ("NSPR", "NSPR")
 
 with Files('**/Makefile.in'):
     BUG_COMPONENT = ('Core', 'Build Config')
@@ -85,6 +91,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] or not CONFIG['MOZ_BUILD_APP']:
         'layout/tools/reftest/selftest/python.ini',
         'testing/marionette/harness/marionette_harness/tests/harness_unit/python.ini',
         'testing/mochitest/tests/python/python.ini',
+        'testing/talos/talos/unittests/python.ini'
     ]
 
     CONFIGURE_SUBST_FILES += [

@@ -2342,16 +2342,7 @@ pref("intl.ime.hack.on_ime_unaware_apps.fire_key_events_for_composition", false)
 // ideographic space will be ignored (i.e., commits with empty string).
 pref("intl.ime.remove_placeholder_character_at_commit", false);
 
-#ifdef ENABLE_INTL_API
 pref("intl.uidirection", -1); // -1 to set from locale; 0 for LTR; 1 for RTL
-#else
-// these locales have right-to-left UI
-pref("intl.uidirection.ar", "rtl");
-pref("intl.uidirection.he", "rtl");
-pref("intl.uidirection.fa", "rtl");
-pref("intl.uidirection.ug", "rtl");
-pref("intl.uidirection.ur", "rtl");
-#endif
 
 // use en-US hyphenation by default for content tagged with plain lang="en"
 pref("intl.hyphenation-alias.en", "en-us");
@@ -5810,13 +5801,19 @@ pref("media.block-autoplay-until-in-foreground", true);
 // Is Stylo CSS support built and enabled?
 // Only define these prefs if Stylo support is actually built in.
 #ifdef MOZ_STYLO
-pref("layout.css.stylo-blocklist.enabled", true);
+// XXX: We should flip this pref to true once the blocked_domains is non-empty.
+pref("layout.css.stylo-blocklist.enabled", false);
 pref("layout.css.stylo-blocklist.blocked_domains", "");
 #ifdef MOZ_STYLO_ENABLE
 pref("layout.css.servo.enabled", true);
 #else
 pref("layout.css.servo.enabled", false);
 #endif
+// Whether Stylo is enabled for chrome document?
+// If Stylo is not enabled, this pref doesn't take any effect.
+// Note that this pref is only read once when requested. Changing it
+// at runtime may have no effect.
+pref("layout.css.servo.chrome.enabled", false);
 #endif
 
 // HSTS Priming
@@ -5942,5 +5939,5 @@ pref("layers.omtp.enabled", true);
 #else
 pref("layers.omtp.enabled", false);
 #endif
-pref("layers.omtp.release-capture-on-main-thread", true);
+pref("layers.omtp.release-capture-on-main-thread", false);
 pref("layers.omtp.force-sync", false);

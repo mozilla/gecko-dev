@@ -29,6 +29,8 @@ def test_dict():
 
 class Test(object):
     """abstract base class for a Talos test case"""
+    __test__ = False  # not pytest
+
     cycles = None  # number of cycles
     keys = []
     desktop = True
@@ -718,7 +720,6 @@ class dromaeo_dom(dromaeo):
     gecko_profile_interval = 2
     gecko_profile_entries = 10000000
     tpmanifest = '${talos}/tests/dromaeo/dom.manifest'
-    tpdisable_e10s = True
     unit = 'score'
 
 

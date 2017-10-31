@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -10,6 +11,43 @@
 
 namespace mozilla {
 namespace gfx {
+
+bool
+SourceSurfaceSharedDataWrapper::Init(const IntSize& aSize,
+                                     int32_t aStride,
+                                     SurfaceFormat aFormat,
+                                     const SharedMemoryBasic::Handle& aHandle,
+                                     base::ProcessId aCreatorPid)
+{
+  MOZ_ASSERT(!mBuf);
+  mSize = aSize;
+  mStride = aStride;
+  mFormat = aFormat;
+  mCreatorPid = aCreatorPid;
+
+  size_t len = GetAlignedDataLength();
+  mBuf = MakeAndAddRef<SharedMemoryBasic>();
+  if (NS_WARN_IF(!mBuf->SetHandle(aHandle, ipc::SharedMemory::RightsReadOnly)) ||
+      NS_WARN_IF(!mBuf->Map(len))) {
+    mBuf = nullptr;
+    return false;
+  }
+
+  mBuf->CloseHandle();
+  return true;
+}
+
+void
+SourceSurfaceSharedDataWrapper::Init(SourceSurfaceSharedData* aSurface)
+{
+  MOZ_ASSERT(!mBuf);
+  MOZ_ASSERT(aSurface);
+  mSize = aSurface->mSize;
+  mStride = aSurface->mStride;
+  mFormat = aSurface->mFormat;
+  mCreatorPid = base::GetCurrentProcId();
+  mBuf = aSurface->mBuf;
+}
 
 bool
 SourceSurfaceSharedData::Init(const IntSize &aSize,
@@ -67,6 +105,7 @@ SourceSurfaceSharedData::ShareToProcess(base::ProcessId aPid,
                                         SharedMemoryBasic::Handle& aHandle)
 {
   MutexAutoLock lock(mMutex);
+  MOZ_ASSERT(mHandleCount > 0);
 
   if (mClosed) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -86,6 +125,9 @@ SourceSurfaceSharedData::CloseHandleInternal()
   mMutex.AssertCurrentThreadOwns();
 
   if (mClosed) {
+    MOZ_ASSERT(mHandleCount == 0);
+    MOZ_ASSERT(mFinalized);
+    MOZ_ASSERT(mShared);
     return;
   }
 
@@ -99,6 +141,7 @@ bool
 SourceSurfaceSharedData::ReallocHandle()
 {
   MutexAutoLock lock(mMutex);
+  MOZ_ASSERT(mHandleCount > 0);
   MOZ_ASSERT(mClosed);
   MOZ_ASSERT(mFinalized);
 

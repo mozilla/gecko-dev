@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -132,24 +132,16 @@ struct CustomElementData
   // e.g., create an element, insert a node.
   AutoTArray<UniquePtr<CustomElementReaction>, 3> mReactionQueue;
 
-  RefPtr<CustomElementDefinition> mCustomElementDefinition;
+  void SetCustomElementDefinition(CustomElementDefinition* aDefinition);
+  CustomElementDefinition* GetCustomElementDefinition();
 
-  void
-  SetCustomElementDefinition(CustomElementDefinition* aDefinition)
-  {
-    MOZ_ASSERT(!mCustomElementDefinition);
-
-    mCustomElementDefinition = aDefinition;
-  }
-
-  CustomElementDefinition*
-  GetCustomElementDefinition()
-  {
-    return mCustomElementDefinition;
-  }
+  void Traverse(nsCycleCollectionTraversalCallback& aCb) const;
+  void Unlink();
 
 private:
   virtual ~CustomElementData() {}
+
+  RefPtr<CustomElementDefinition> mCustomElementDefinition;
 };
 
 #define ALEADY_CONSTRUCTED_MARKER nullptr
@@ -169,7 +161,8 @@ struct CustomElementDefinition
                           mozilla::dom::LifecycleCallbacks* aCallbacks,
                           uint32_t aDocOrder);
 
-  // The type (name) for this custom element.
+  // The type (name) for this custom element, for <button is="x-foo"> or <x-foo>
+  // this would be x-foo.
   RefPtr<nsAtom> mType;
 
   // The localname to (e.g. <button is=type> -- this would be button).

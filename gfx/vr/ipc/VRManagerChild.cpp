@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -94,8 +93,7 @@ VRManagerChild::InitForContent(Endpoint<PVRManagerChild>&& aEndpoint)
 
   RefPtr<VRManagerChild> child(new VRManagerChild());
   if (!aEndpoint.Bind(child)) {
-    NS_RUNTIMEABORT("Couldn't Open() Compositor channel.");
-    return false;
+    MOZ_CRASH("Couldn't Open() Compositor channel.");
   }
   sVRManagerChildSingleton = child;
   return true;
@@ -132,8 +130,7 @@ VRManagerChild::InitWithGPUProcess(Endpoint<PVRManagerChild>&& aEndpoint)
 
   sVRManagerChildSingleton = new VRManagerChild();
   if (!aEndpoint.Bind(sVRManagerChildSingleton)) {
-    NS_RUNTIMEABORT("Couldn't Open() Compositor channel.");
-    return;
+    MOZ_CRASH("Couldn't Open() Compositor channel.");
   }
 }
 

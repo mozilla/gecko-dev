@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -48,14 +49,40 @@ public:
   CreateSameProcessWidgetCompositorBridge(LayerManager* aLayerManager,
                                           uint32_t aNamespace);
 
+  static CompositorManagerChild* GetInstance()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    return sInstance;
+  }
+
+  bool CanSend() const
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mCanSend;
+  }
+
   uint32_t GetNextResourceId()
   {
+    MOZ_ASSERT(NS_IsMainThread());
     return ++mResourceId;
   }
 
   uint32_t GetNamespace() const
   {
     return mNamespace;
+  }
+
+  bool OwnsExternalImageId(const wr::ExternalImageId& aId) const
+  {
+    return mNamespace == static_cast<uint32_t>(wr::AsUint64(aId) >> 32);
+  }
+
+  wr::ExternalImageId GetNextExternalImageId()
+  {
+    uint64_t id = GetNextResourceId();
+    MOZ_RELEASE_ASSERT(id != 0);
+    id |= (static_cast<uint64_t>(mNamespace) << 32);
+    return wr::ToExternalImageId(id);
   }
 
   void ActorDestroy(ActorDestroyReason aReason) override;
@@ -83,12 +110,6 @@ private:
 
   ~CompositorManagerChild() override
   {
-  }
-
-  bool CanSend() const
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    return mCanSend;
   }
 
   void DeallocPCompositorManagerChild() override;

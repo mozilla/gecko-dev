@@ -1,4 +1,5 @@
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -636,6 +637,17 @@ Factory::CreateScaledFontForFontconfigFont(cairo_scaled_font_t* aScaledFont, FcP
                                            const RefPtr<UnscaledFont>& aUnscaledFont, Float aSize)
 {
   return MakeAndAddRef<ScaledFontFontconfig>(aScaledFont, aPattern, aUnscaledFont, aSize);
+}
+#endif
+
+#ifdef XP_DARWIN
+already_AddRefed<ScaledFont>
+Factory::CreateScaledFontForMacFont(CGFontRef aCGFont,
+                                    const RefPtr<UnscaledFont>& aUnscaledFont,
+                                    Float aSize,
+                                    bool aUseFontSmoothing)
+{
+  return MakeAndAddRef<ScaledFontMac>(aCGFont, aUnscaledFont, aSize, aUseFontSmoothing);
 }
 #endif
 

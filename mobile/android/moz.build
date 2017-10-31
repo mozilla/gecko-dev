@@ -8,9 +8,6 @@ with Files('**'):
     BUG_COMPONENT = ('Firefox for Android', 'Build Config & IDE Support')
     SCHEDULES.exclusive = ['android']
 
-with Files('bouncer/**'):
-    BUG_COMPONENT = ('Firefox for Android', 'Distributions')
-
 with Files('branding/**'):
     BUG_COMPONENT = ('Firefox for Android', 'General')
 
@@ -37,9 +34,6 @@ with Files('geckoview_example/**'):
 
 with Files('gradle/**'):
     BUG_COMPONENT = ('Firefox for Android', 'Build Config & IDE Support')
-
-with Files('search/**'):
-    BUG_COMPONENT = ('Firefox for Android', 'Search Activity')
 
 with Files('services/**'):
     BUG_COMPONENT = ('Android Background Services', 'Android Sync')
@@ -71,9 +65,6 @@ DIRS += [
     'app',
     'fonts',
 ]
-
-if CONFIG['MOZ_ANDROID_PACKAGE_INSTALL_BOUNCER']:
-    DIRS += ['bouncer'] # No ordering implied with respect to base.
 
 TEST_DIRS += [
     'tests',

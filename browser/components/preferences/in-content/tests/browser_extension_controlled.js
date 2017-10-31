@@ -48,6 +48,7 @@ function waitForMutation(target, opts, cb) {
 
 function waitForMessageChange(messageId, cb) {
   return waitForMutation(
+    // eslint-disable-next-line mozilla/no-cpows-in-tests
     gBrowser.contentDocument.getElementById(messageId),
     { attributes: true, attributeFilter: ["hidden"] }, cb);
 }
@@ -62,6 +63,7 @@ function waitForMessageShown(messageId) {
 
 add_task(async function testExtensionControlledHomepage() {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {leaveOpen: true});
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
   let doc = gBrowser.contentDocument;
   is(gBrowser.currentURI.spec, "about:preferences#general",
      "#general should be in the URI for about:preferences");
@@ -111,6 +113,7 @@ add_task(async function testExtensionControlledHomepage() {
 
 add_task(async function testPrefLockedHomepage() {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {leaveOpen: true});
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
   let doc = gBrowser.contentDocument;
   is(gBrowser.currentURI.spec, "about:preferences#general",
      "#general should be in the URI for about:preferences");
@@ -242,6 +245,7 @@ add_task(async function testPrefLockedHomepage() {
 
 add_task(async function testExtensionControlledNewTab() {
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {leaveOpen: true});
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
   let doc = gBrowser.contentDocument;
   is(gBrowser.currentURI.spec, "about:preferences#general",
      "#general should be in the URI for about:preferences");
@@ -274,11 +278,14 @@ add_task(async function testExtensionControlledNewTab() {
   is(controlledContent.hidden, true, "The extension controlled row is hidden");
 
   await BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  let addon = await AddonManager.getAddonByID("@set_newtab");
+  addon.uninstall();
 });
 
 add_task(async function testExtensionControlledHomepageUninstalledAddon() {
   async function checkHomepageEnabled() {
     await openPreferencesViaOpenPreferencesAPI("paneGeneral", {leaveOpen: true});
+    // eslint-disable-next-line mozilla/no-cpows-in-tests
     let doc = gBrowser.contentDocument;
     is(gBrowser.currentURI.spec, "about:preferences#general",
       "#general should be in the URI for about:preferences");

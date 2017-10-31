@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -173,12 +174,6 @@ public:
     mIsOpenInParentProcess = aVal;
   }
 
-  void GetPreviewText(nsAString& aValue) override
-  {
-    aValue = mPreviewText;
-  }
-  void SetPreviewText(const nsAString& aValue) override;
-
   // nsISelectControlFrame
   NS_IMETHOD AddOption(int32_t index) override;
   NS_IMETHOD RemoveOption(int32_t index) override;
@@ -304,7 +299,6 @@ protected:
   int32_t               mRecentSelectedIndex;
   int32_t               mDisplayedIndex;
   nsString              mDisplayedOptionTextOrPreview;
-  nsString              mPreviewText;
 
   // make someone to listen to the button. If its programmatically pressed by someone like Accessibility
   // then open or close the combo box.

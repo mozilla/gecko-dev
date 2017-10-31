@@ -51,6 +51,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   RecentWindow: "resource:///modules/RecentWindow.jsm",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
   SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
+  SchedulePressure: "resource:///modules/SchedulePressure.jsm",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.jsm",
   SimpleServiceDiscovery: "resource://gre/modules/SimpleServiceDiscovery.jsm",
   SitePermissions: "resource:///modules/SitePermissions.jsm",
@@ -2384,7 +2385,7 @@ function BrowserCloseTabOrWindow() {
 
 function BrowserTryToCloseWindow() {
   if (WindowIsClosing())
-    window.close();     // WindowIsClosing does all the necessary checks
+    window.close(); // WindowIsClosing does all the necessary checks
 }
 
 function loadURI(uri, referrer, postData, allowThirdPartyFixup, referrerPolicy,
@@ -4626,7 +4627,7 @@ var XULBrowserWindow = {
 
     if (aWebProgress.isTopLevel) {
       if ((location == "about:blank" && checkEmptyPageOrigin()) ||
-          location == "") {  // Second condition is for new tabs, otherwise
+          location == "") { // Second condition is for new tabs, otherwise
                              // reload function is enabled until tab is refreshed.
         this.reloadCommand.setAttribute("disabled", "true");
       } else {
@@ -8040,6 +8041,7 @@ var gIdentityHandler = {
       let menupopup = document.createElement("menupopup");
       let block = document.createElement("vbox");
       block.setAttribute("id", "identity-popup-popup-container");
+      menulist.setAttribute("sizetopopup", "none");
       menulist.setAttribute("class", "identity-popup-popup-menulist");
       menulist.setAttribute("id", "identity-popup-popup-menulist");
 
@@ -8805,7 +8807,7 @@ var ToolbarIconColor = {
 
   handleEvent(event) {
     switch (event.type) {
-      case "activate":  // falls through
+      case "activate": // falls through
       case "deactivate":
         this.inferFromText(event.type);
         break;

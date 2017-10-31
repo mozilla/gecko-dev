@@ -20,21 +20,13 @@ function log(msg) {
   Services.console.logStringMessage(msg);
 }
 
-function getRootWindow(win) {
-  // Get the root xul window.
-  return win.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDocShell).QueryInterface(Ci.nsIDocShellTreeItem)
-            .rootTreeItem.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindow);
-}
-
 function Prompt(aOptions) {
   this.window = "window" in aOptions ? aOptions.window : null;
 
   this.msg = { async: true };
 
   if (this.window) {
-    let window = getRootWindow(this.window);
+    let window = GeckoViewUtils.getChromeWindow(this.window);
     let tab = window &&
               window.document.documentElement
                     .getAttribute("windowtype") === "navigator:browser" &&
@@ -260,7 +252,7 @@ var DoorHanger = {
   },
 
   show: function(aWindow, aMessage, aValue, aButtons, aOptions, aCategory) {
-    let chromeWin = getRootWindow(aWindow);
+    let chromeWin = GeckoViewUtils.getChromeWindow(aWindow);
     if (chromeWin.NativeWindow && chromeWin.NativeWindow.doorhanger) {
       // We're dealing with browser.js.
       return chromeWin.NativeWindow.doorhanger.show(
@@ -286,14 +278,20 @@ var DoorHanger = {
       buttons: aButtons,
       options: aOptions || {},
       category: aCategory,
+      defaultCallback: (aOptions && aOptions.defaultCallback) ? -1 : undefined,
     }).then(response => {
+      if (response.callback === -1) {
+        // Default case.
+        aOptions.defaultCallback(response.checked, response.inputs);
+        return;
+      }
       // Pass the value of the optional checkbox to the callback
       callbacks[response.callback](response.checked, response.inputs);
     });
   },
 
   hide: function(aWindow, aValue) {
-    let chromeWin = getRootWindow(aWindow);
+    let chromeWin = GeckoViewUtils.getChromeWindow(aWindow);
     if (chromeWin.NativeWindow && chromeWin.NativeWindow.doorhanger) {
       // We're dealing with browser.js.
       return chromeWin.NativeWindow.doorhanger.hide(

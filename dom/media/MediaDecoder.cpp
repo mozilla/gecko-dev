@@ -55,8 +55,7 @@ LazyLogModule gMediaDecoderLog("MediaDecoder");
 #define LOG(x, ...) \
   MOZ_LOG(gMediaDecoderLog, LogLevel::Debug, ("Decoder=%p " x, this, ##__VA_ARGS__))
 
-#define DUMP(x, ...) \
-  printf_stderr("%s\n", nsPrintfCString("Decoder=%p " x, this, ##__VA_ARGS__).get())
+#define DUMP(x, ...) printf_stderr(x "\n", ##__VA_ARGS__)
 
 #define NS_DispatchToMainThread(...) CompileError_UseAbstractMainThreadInstead
 
@@ -159,7 +158,18 @@ class MediaDecoder::BackgroundVideoDecodingPermissionObserver final :
       if (observerService) {
         observerService->AddObserver(this, "unselected-tab-hover", false);
         mIsRegisteredForEvent = true;
-        EnableEvent();
+        if (nsContentUtils::IsInStableOrMetaStableState()) {
+          // Events shall not be fired synchronously to prevent anything visible
+          // from the scripts while we are in stable state.
+          if (nsCOMPtr<nsIDocument> doc = GetOwnerDoc()) {
+            doc->Dispatch(TaskCategory::Other,
+              NewRunnableMethod(
+                "MediaDecoder::BackgroundVideoDecodingPermissionObserver::EnableEvent",
+                this, &MediaDecoder::BackgroundVideoDecodingPermissionObserver::EnableEvent));
+          }
+        } else {
+          EnableEvent();
+        }
       }
     }
 
@@ -171,7 +181,18 @@ class MediaDecoder::BackgroundVideoDecodingPermissionObserver final :
         mIsRegisteredForEvent = false;
         mDecoder->mIsBackgroundVideoDecodingAllowed = false;
         mDecoder->UpdateVideoDecodeMode();
-        DisableEvent();
+        if (nsContentUtils::IsInStableOrMetaStableState()) {
+          // Events shall not be fired synchronously to prevent anything visible
+          // from the scripts while we are in stable state.
+          if (nsCOMPtr<nsIDocument> doc = GetOwnerDoc()) {
+            doc->Dispatch(TaskCategory::Other,
+              NewRunnableMethod(
+                "MediaDecoder::BackgroundVideoDecodingPermissionObserver::DisableEvent",
+                this, &MediaDecoder::BackgroundVideoDecodingPermissionObserver::DisableEvent));
+          }
+        } else {
+          DisableEvent();
+        }
       }
     }
   private:
@@ -1522,11 +1543,14 @@ nsCString
 MediaDecoder::GetDebugInfo()
 {
   return nsPrintfCString(
-    "MediaDecoder State: channels=%u rate=%u hasAudio=%d hasVideo=%d "
-    "mPlayState=%s mdsm=%p",
-    mInfo ? mInfo->mAudio.mChannels : 0, mInfo ? mInfo->mAudio.mRate : 0,
-    mInfo ? mInfo->HasAudio() : 0, mInfo ? mInfo->HasVideo() : 0,
-    PlayStateStr(), GetStateMachine());
+    "MediaDecoder=%p: channels=%u rate=%u hasAudio=%d hasVideo=%d "
+    "mPlayState=%s",
+    this,
+    mInfo ? mInfo->mAudio.mChannels : 0,
+    mInfo ? mInfo->mAudio.mRate : 0,
+    mInfo ? mInfo->HasAudio() : 0,
+    mInfo ? mInfo->HasVideo() : 0,
+    PlayStateStr());
 }
 
 void
@@ -1547,14 +1571,13 @@ MediaDecoder::DumpDebugInfo()
     return;
   }
 
-  RefPtr<MediaDecoder> self = this;
   GetStateMachine()->RequestDebugInfo()->Then(
     SystemGroup::AbstractMainThreadFor(TaskCategory::Other), __func__,
-    [this, self, str] (const nsACString& aString) {
+    [str] (const nsACString& aString) {
       DUMP("%s", str.get());
       DUMP("%s", aString.Data());
     },
-    [this, self, str] () {
+    [str] () {
       DUMP("%s", str.get());
     });
 }

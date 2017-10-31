@@ -235,6 +235,9 @@ pref("general.autoScroll", true);
 #endif
 
 pref("browser.stopReloadAnimation.enabled", true);
+pref("browser.schedulePressure.enabled", true);
+pref("browser.schedulePressure.defaultCount", 3);
+pref("browser.schedulePressure.timeoutMs", 1000);
 
 // UI density of the browser chrome. This mostly affects toolbarbutton
 // and urlbar spacing. The possible values are 0=normal, 1=compact, 2=touch.
@@ -693,7 +696,7 @@ pref("accessibility.typeaheadfind.flashBar", 1);
 
 // Accessibility indicator preferences such as support URL, enabled flag.
 pref("accessibility.support.url", "https://support.mozilla.org/%LOCALE%/kb/accessibility-services");
-pref("accessibility.indicator.enabled", true);
+pref("accessibility.indicator.enabled", false);
 
 pref("plugins.click_to_play", true);
 pref("plugins.testmode", false);

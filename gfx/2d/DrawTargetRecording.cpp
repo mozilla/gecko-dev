@@ -1,6 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -332,32 +332,34 @@ DrawTargetRecording::FillGlyphs(ScaledFont *aFont,
   UserDataKey* userDataKey = reinterpret_cast<UserDataKey*>(mRecorder.get());
   if (!aFont->GetUserData(userDataKey)) {
     UnscaledFont* unscaledFont = aFont->GetUnscaledFont();
-    if (!mRecorder->HasStoredObject(unscaledFont)) {
-      RecordedFontData fontData(unscaledFont);
-      RecordedFontDetails fontDetails;
-      if (fontData.GetFontDetails(fontDetails)) {
-        // Try to serialise the whole font, just in case this is a web font that
-        // is not present on the system.
-        if (!mRecorder->HasStoredFontData(fontDetails.fontDataKey)) {
-          mRecorder->RecordEvent(fontData);
-          mRecorder->AddStoredFontData(fontDetails.fontDataKey);
-        }
-        mRecorder->RecordEvent(RecordedUnscaledFontCreation(unscaledFont, fontDetails));
-      } else {
-        // If that fails, record just the font description and try to load it from
-        // the system on the other side.
-        RecordedFontDescriptor fontDesc(unscaledFont);
-        if (fontDesc.IsValid()) {
-          mRecorder->RecordEvent(fontDesc);
-        } else {
-          gfxWarning() << "DrawTargetRecording::FillGlyphs failed to serialise UnscaledFont";
-        }
+    if (mRecorder->WantsExternalFonts()) {
+      size_t index = mRecorder->GetUnscaledFontIndex(unscaledFont);
+      mRecorder->RecordEvent(RecordedScaledFontCreationByIndex(aFont, index));
+    } else {
+      if (!mRecorder->HasStoredObject(unscaledFont)) {
+	RecordedFontData fontData(unscaledFont);
+	RecordedFontDetails fontDetails;
+	if (fontData.GetFontDetails(fontDetails)) {
+	  // Try to serialise the whole font, just in case this is a web font that
+	  // is not present on the system.
+	  if (!mRecorder->HasStoredFontData(fontDetails.fontDataKey)) {
+	    mRecorder->RecordEvent(fontData);
+	    mRecorder->AddStoredFontData(fontDetails.fontDataKey);
+	  }
+	  mRecorder->RecordEvent(RecordedUnscaledFontCreation(unscaledFont, fontDetails));
+	} else {
+	  // If that fails, record just the font description and try to load it from
+	  // the system on the other side.
+	  RecordedFontDescriptor fontDesc(unscaledFont);
+	  if (fontDesc.IsValid()) {
+	    mRecorder->RecordEvent(fontDesc);
+	  } else {
+	    gfxWarning() << "DrawTargetRecording::FillGlyphs failed to serialise UnscaledFont";
+	  }
+	}
+	mRecorder->AddStoredObject(unscaledFont);
       }
-      mRecorder->AddStoredObject(unscaledFont);
     }
-
-    mRecorder->RecordEvent(RecordedScaledFontCreation(aFont, unscaledFont));
-
     RecordingFontUserData *userData = new RecordingFontUserData;
     userData->refPtr = aFont;
     userData->recorder = mRecorder;

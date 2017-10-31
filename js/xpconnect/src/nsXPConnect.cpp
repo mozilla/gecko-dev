@@ -73,7 +73,7 @@ nsXPConnect::nsXPConnect()
 
     XPCJSContext* xpccx = XPCJSContext::NewXPCJSContext(nullptr);
     if (!xpccx) {
-        NS_RUNTIMEABORT("Couldn't create XPCJSContext.");
+        MOZ_CRASH("Couldn't create XPCJSContext.");
     }
     gPrimaryContext = xpccx;
     mRuntime = xpccx->Runtime();
@@ -141,12 +141,10 @@ nsXPConnect::InitStatics()
     gSelf->mRuntime->InitSingletonScopes();
 }
 
-nsXPConnect*
+already_AddRefed<nsXPConnect>
 nsXPConnect::GetSingleton()
 {
-    nsXPConnect* xpc = nsXPConnect::XPConnect();
-    NS_IF_ADDREF(xpc);
-    return xpc;
+    return do_AddRef(nsXPConnect::XPConnect());
 }
 
 // static

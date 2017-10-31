@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -151,25 +152,22 @@ AsyncImagePipelineManager::UpdateImageKeys(wr::ResourceUpdateQueue& aResources,
 {
   MOZ_ASSERT(aKeys.IsEmpty());
   MOZ_ASSERT(aPipeline);
-  if (!aPipeline->mInitialised) {
-    return Nothing();
-  }
 
   TextureHost* texture = aPipeline->mImageHost->GetAsTextureHostForComposite();
   TextureHost* previousTexture = aPipeline->mCurrentTexture.get();
 
-  if (!aPipeline->mIsChanged && texture == previousTexture) {
+  if (texture == previousTexture) {
     // The texture has not changed, just reuse previous ImageKeys.
-    // No need to update DisplayList.
+    aKeys = aPipeline->mKeys;
     return Nothing();
   }
 
   if (!texture) {
     // We don't have a new texture, there isn't much we can do.
+    aKeys = aPipeline->mKeys;
     return Nothing();
   }
 
-  aPipeline->mIsChanged = false;
   aPipeline->mCurrentTexture = texture;
 
   WebRenderTextureHost* wrTexture = texture->AsWebRenderTextureHost();
@@ -268,7 +266,11 @@ AsyncImagePipelineManager::ApplyAsyncImages()
     nsTArray<wr::ImageKey> keys;
     auto op = UpdateImageKeys(resourceUpdates, pipeline, keys);
 
-    if (op != Some(TextureHost::ADD_IMAGE)) {
+    bool updateDisplayList = pipeline->mInitialised &&
+                             (pipeline->mIsChanged || op == Some(TextureHost::ADD_IMAGE)) &&
+                             !!pipeline->mCurrentTexture;
+
+    if (!updateDisplayList) {
       // We don't need to update the display list, either because we can't or because
       // the previous one is still up to date.
       // We may, however, have updated some resources.
@@ -278,6 +280,7 @@ AsyncImagePipelineManager::ApplyAsyncImages()
       }
       continue;
     }
+    pipeline->mIsChanged = false;
 
     wr::LayoutSize contentSize { pipeline->mScBounds.Width(), pipeline->mScBounds.Height() };
     wr::DisplayListBuilder builder(pipelineId, contentSize);

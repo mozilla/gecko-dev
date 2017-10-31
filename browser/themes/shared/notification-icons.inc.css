@@ -65,10 +65,6 @@
   list-style-image: url(chrome://browser/skin/notification-icons/indexedDB.svg);
 }
 
-.indexedDB-icon.blocked-permission-icon {
-  list-style-image: url(chrome://browser/skin/notification-icons/indexedDB-blocked.svg);
-}
-
 .login-icon {
   list-style-image: url(chrome://browser/skin/notification-icons/login.svg);
 }
@@ -161,7 +157,7 @@ html|*#webRTC-previewVideo {
 }
 
 .identity-popup-popup-menulist {
-  width: 72px;
+  min-width: 6.5em;
 }
 
 /* EME */

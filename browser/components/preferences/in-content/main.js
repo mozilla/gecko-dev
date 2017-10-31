@@ -559,23 +559,23 @@ var gMainPane = {
     }
   },
 
-  onGetStarted(aEvent) {
-    if (AppConstants.MOZ_DEV_EDITION) {
-      const Cc = Components.classes, Ci = Components.interfaces;
-      let win = Services.wm.getMostRecentWindow("navigator:browser");
-
-      fxAccounts.getSignedInUser().then(data => {
-        if (win) {
-          if (data) {
-            // We have a user, open Sync preferences in the same tab
-            win.openUILinkIn("about:preferences#sync", "current");
-            return;
-          }
-          let accountsTab = win.gBrowser.addTab("about:accounts?action=signin&entrypoint=dev-edition-setup");
-          win.gBrowser.selectedTab = accountsTab;
-        }
-      });
+  async onGetStarted(aEvent) {
+    if (!AppConstants.MOZ_DEV_EDITION) {
+      return;
     }
+    const win = Services.wm.getMostRecentWindow("navigator:browser");
+    if (!win) {
+      return;
+    }
+    const user = await fxAccounts.getSignedInUser();
+    if (user) {
+      // We have a user, open Sync preferences in the same tab
+      win.openUILinkIn("about:preferences#sync", "current");
+      return;
+    }
+    let url = await fxAccounts.promiseAccountsSignInURI("dev-edition-setup");
+    let accountsTab = win.gBrowser.addTab(url);
+    win.gBrowser.selectedTab = accountsTab;
   },
 
   // HOME PAGE
@@ -1249,11 +1249,11 @@ var gMainPane = {
       var autoPref = document.getElementById("app.update.auto");
       var radiogroup = document.getElementById("updateRadioGroup");
 
-      if (!enabledPref.value)   // Don't care for autoPref.value in this case.
-        radiogroup.value = "manual";    // 3. Never check for updates.
-      else if (autoPref.value)  // enabledPref.value && autoPref.value
-        radiogroup.value = "auto";      // 1. Automatically install updates
-      else                      // enabledPref.value && !autoPref.value
+      if (!enabledPref.value) // Don't care for autoPref.value in this case.
+        radiogroup.value = "manual"; // 3. Never check for updates.
+      else if (autoPref.value) // enabledPref.value && autoPref.value
+        radiogroup.value = "auto"; // 1. Automatically install updates
+      else // enabledPref.value && !autoPref.value
         radiogroup.value = "checkOnly"; // 2. Check, but let me choose
 
       var canCheck = Components.classes["@mozilla.org/updates/update-service;1"].
@@ -1294,7 +1294,7 @@ var gMainPane = {
       var autoPref = document.getElementById("app.update.auto");
       var radiogroup = document.getElementById("updateRadioGroup");
       switch (radiogroup.value) {
-        case "auto":      // 1. Automatically install updates for Desktop only
+        case "auto": // 1. Automatically install updates for Desktop only
           enabledPref.value = true;
           autoPref.value = true;
           break;
@@ -1302,7 +1302,7 @@ var gMainPane = {
           enabledPref.value = true;
           autoPref.value = false;
           break;
-        case "manual":    // 3. Never check for updates.
+        case "manual": // 3. Never check for updates.
           enabledPref.value = false;
           autoPref.value = false;
       }
@@ -1341,15 +1341,7 @@ var gMainPane = {
 
   // nsISupports
 
-  QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsIObserver) ||
-      aIID.equals(Ci.nsIDOMEventListener ||
-        aIID.equals(Ci.nsISupports)))
-      return this;
-
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  },
-
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsIDOMEventListener]),
 
   // nsIObserver
 

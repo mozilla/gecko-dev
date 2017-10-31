@@ -15,11 +15,11 @@
 #endif
               android:targetSdkVersion="@ANDROID_TARGET_SDK@"/>
 
-<!-- The bouncer APK and the main APK should define the same set of
-     <permission>, <uses-permission>, and <uses-feature> elements.  This reduces
-     the likelihood of permission-related surprises when installing the main APK
-     on top of a pre-installed bouncer APK.  Add such shared elements in the
-     fileincluded here, so that they can be referenced by both APKs. -->
+
+<!--
+    The separated permission file is for bouncer.apk. Since it's removed,
+     we can merge the permission declaration back. See Bug 1411809.
+ -->
 #include FennecManifest_permissions.xml.in
 
     <application android:label="@string/moz_app_displayname"
@@ -263,9 +263,6 @@
         </receiver>
 
 #include ../services/manifests/FxAccountAndroidManifest_activities.xml.in
-#ifdef MOZ_ANDROID_SEARCH_ACTIVITY
-#include ../search/manifests/SearchAndroidManifest_activities.xml.in
-#endif
 
 #ifdef MOZ_CRASHREPORTER
   <activity android:name="org.mozilla.gecko.CrashReporter"
@@ -418,9 +415,6 @@
             android:exported="false" />
 
 
-#ifdef MOZ_ANDROID_SEARCH_ACTIVITY
-#include ../search/manifests/SearchAndroidManifest_services.xml.in
-#endif
 #ifdef MOZ_ANDROID_MLS_STUMBLER
 #include ../stumbler/manifests/StumblerManifest_services.xml.in
 #endif

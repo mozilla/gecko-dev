@@ -78,7 +78,7 @@ public:
   static void InitializeUserPrefs();
 
   // Returns the singleton instance which is addreffed.
-  static Preferences* GetInstanceForService();
+  static already_AddRefed<Preferences> GetInstanceForService();
 
   // Finallizes global members.
   static void Shutdown();
@@ -334,7 +334,7 @@ public:
   static int64_t SizeOfIncludingThisAndOtherStuff(
     mozilla::MallocSizeOf aMallocSizeOf);
 
-  static void DirtyCallback();
+  static void HandleDirty();
 
   // Explicitly choosing synchronous or asynchronous (if allowed) preferences
   // file write. Only for the default file.  The guarantee for the "blocking"

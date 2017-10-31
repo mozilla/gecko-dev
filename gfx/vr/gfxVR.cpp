@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -129,3 +130,21 @@ VRSystemManager::NewHandChangeEvent(uint32_t aIndex,
   vm->NotifyGamepadChange<dom::GamepadHandInformation>(aIndex, a);
 }
 
+void
+VRHMDSensorState::CalcViewMatrices(const gfx::Matrix4x4* aHeadToEyeTransforms)
+{
+
+  gfx::Matrix4x4 matHead;
+  if (flags & VRDisplayCapabilityFlags::Cap_Orientation) {
+    matHead.SetRotationFromQuaternion(gfx::Quaternion(orientation[0], orientation[1],
+                                                      orientation[2], orientation[3]));
+  }
+  matHead.PreTranslate(-position[0], -position[1], -position[2]);
+
+  gfx::Matrix4x4 matView = matHead * aHeadToEyeTransforms[VRDisplayInfo::Eye_Left];
+  matView.Normalize();
+  memcpy(leftViewMatrix, matView.components, sizeof(matView.components));
+  matView = matHead * aHeadToEyeTransforms[VRDisplayInfo::Eye_Right];
+  matView.Normalize();
+  memcpy(rightViewMatrix, matView.components, sizeof(matView.components));
+}

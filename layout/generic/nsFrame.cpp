@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim:cindent:ts=2:et:sw=2:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1486,10 +1486,9 @@ nsIFrame::HasAnimationOfTransform(EffectSet* aEffectSet) const
   EffectSet* effects =
     aEffectSet ? aEffectSet : EffectSet::GetEffectSet(this);
 
-  return mContent &&
+  return IsPrimaryFrame() &&
     nsLayoutUtils::HasAnimationOfProperty(effects, eCSSProperty_transform) &&
-    IsFrameOfType(eSupportsCSSTransforms) &&
-    IsPrimaryFrame();
+    IsFrameOfType(eSupportsCSSTransforms);
 }
 
 bool
@@ -10778,10 +10777,12 @@ nsIFrame::GetPseudoElement(CSSPseudoElementType aType)
 }
 
 static bool
-IsFrameScrolledOutOfView(nsIFrame *aFrame)
+IsFrameScrolledOutOfView(nsIFrame* aTarget,
+                         const nsRect& aTargetRect,
+                         nsIFrame* aParent)
 {
   nsIScrollableFrame* scrollableFrame =
-    nsLayoutUtils::GetNearestScrollableFrame(aFrame,
+    nsLayoutUtils::GetNearestScrollableFrame(aParent,
       nsLayoutUtils::SCROLLABLE_SAME_DOC |
       nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
   if (!scrollableFrame) {
@@ -10789,11 +10790,10 @@ IsFrameScrolledOutOfView(nsIFrame *aFrame)
   }
 
   nsIFrame *scrollableParent = do_QueryFrame(scrollableFrame);
-  nsRect rect = aFrame->GetVisualOverflowRectRelativeToSelf();
 
   nsRect transformedRect =
-    nsLayoutUtils::TransformFrameRectToAncestor(aFrame,
-                                                rect,
+    nsLayoutUtils::TransformFrameRectToAncestor(aTarget,
+                                                aTargetRect,
                                                 scrollableParent);
 
   nsRect scrollableRect = scrollableParent->GetVisualOverflowRect();
@@ -10815,13 +10815,14 @@ IsFrameScrolledOutOfView(nsIFrame *aFrame)
     return false;
   }
 
-  return IsFrameScrolledOutOfView(parent);
+  return IsFrameScrolledOutOfView(aTarget, aTargetRect, parent);
 }
 
 bool
 nsIFrame::IsScrolledOutOfView()
 {
-  return IsFrameScrolledOutOfView(this);
+  nsRect rect = GetVisualOverflowRectRelativeToSelf();
+  return IsFrameScrolledOutOfView(this, rect, this);
 }
 
 gfx::Matrix

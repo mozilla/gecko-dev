@@ -840,30 +840,25 @@ nsComputedDOMStyle::GetPresShellForContent(const nsIContent* aContent)
 DeclarationBlock*
 nsComputedDOMStyle::GetCSSDeclaration(Operation)
 {
-  NS_RUNTIMEABORT("called nsComputedDOMStyle::GetCSSDeclaration");
-  return nullptr;
+  MOZ_CRASH("called nsComputedDOMStyle::GetCSSDeclaration");
 }
 
 nsresult
 nsComputedDOMStyle::SetCSSDeclaration(DeclarationBlock*)
 {
-  NS_RUNTIMEABORT("called nsComputedDOMStyle::SetCSSDeclaration");
-  return NS_ERROR_FAILURE;
+  MOZ_CRASH("called nsComputedDOMStyle::SetCSSDeclaration");
 }
 
 nsIDocument*
 nsComputedDOMStyle::DocToUpdate()
 {
-  NS_RUNTIMEABORT("called nsComputedDOMStyle::DocToUpdate");
-  return nullptr;
+  MOZ_CRASH("called nsComputedDOMStyle::DocToUpdate");
 }
 
 void
 nsComputedDOMStyle::GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv)
 {
-  NS_RUNTIMEABORT("called nsComputedDOMStyle::GetCSSParsingEnvironment");
-  // Just in case NS_RUNTIMEABORT ever stops killing us for some reason
-  aCSSParseEnv.mPrincipal = nullptr;
+  MOZ_CRASH("called nsComputedDOMStyle::GetCSSParsingEnvironment");
 }
 
 nsDOMCSSDeclaration::ServoCSSParsingEnvironment
@@ -954,15 +949,15 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
   mFlushedPendingReflows = aNeedsLayoutFlush;
 #endif
 
+  nsCOMPtr<nsIPresShell> presShellForContent = GetPresShellForContent(mContent);
+  if (presShellForContent && presShellForContent != document->GetShell()) {
+    presShellForContent->FlushPendingNotifications(FlushType::Style);
+  }
+
   mPresShell = document->GetShell();
   if (!mPresShell || !mPresShell->GetPresContext()) {
     ClearStyleContext();
     return;
-  }
-
-  nsCOMPtr<nsIPresShell> presShellForContent = GetPresShellForContent(mContent);
-  if (presShellForContent && presShellForContent != mPresShell) {
-    presShellForContent->FlushPendingNotifications(FlushType::Style);
   }
 
   // We need to use GetUndisplayedRestyleGeneration instead of

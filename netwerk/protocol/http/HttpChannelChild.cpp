@@ -681,6 +681,12 @@ HttpChannelChild::DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     Cancel(NS_ERROR_FAILURE);
     return;
   }
+
+  if (mSynthesizedResponsePump && mLoadFlags & LOAD_CALL_CONTENT_SNIFFERS) {
+    mSynthesizedResponsePump->PeekStream(CallTypeSniffers,
+                                         static_cast<nsIChannel*>(this));
+  }
+
   nsresult rv = mListener->OnStartRequest(aRequest, aContext);
   if (NS_FAILED(rv)) {
     Cancel(rv);
@@ -1096,10 +1102,12 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
 
   CleanupBackgroundChannel();
 
-  // DocumentChannelCleanup actually nulls out mCacheEntry in the parent, which
-  // we might need later to open the Alt-Data output stream, so just return here
+  // If there is a possibility we might want to write alt data to the cache
+  // entry, we keep the channel alive. We still send the DocumentChannelCleanup
+  // message but request the cache entry to be kept by the parent.
   if (!mPreferredCachedAltDataType.IsEmpty()) {
     mKeptAlive = true;
+    SendDocumentChannelCleanup(false); // don't clear cache entry
     return;
   }
 
@@ -1108,7 +1116,7 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
     // If IPDL is already closed, then do nothing.
     if (mIPCOpen) {
       mKeptAlive = true;
-      SendDocumentChannelCleanup();
+      SendDocumentChannelCleanup(true);
     }
   } else {
     // The parent process will respond by sending a DeleteSelf message and
@@ -3615,7 +3623,20 @@ HttpChannelChild::OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>&
   }
 
   if (nsHttpChannel::WillRedirect(mResponseHead)) {
+    // Normally we handle redirect limits in the parent process.  The way
+    // e10s synthesized redirects work, however, the parent process does not
+    // get an accurate redirect count.  Therefore we need to enforce it here.
+    rv = CheckRedirectLimit(nsIChannelEventSink::REDIRECT_TEMPORARY);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      Cancel(rv);
+      return;
+    }
+
     mShouldInterceptSubsequentRedirect = true;
+    if (mInterceptListener) {
+      mInterceptListener->Cleanup();
+      mInterceptListener = nullptr;
+    }
     // Continue with the original cross-process request
     rv = ContinueAsyncOpen();
     return;
