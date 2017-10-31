@@ -9,7 +9,8 @@
 #include "nsRemoteClient.h"
 #if defined(MOZ_WAYLAND) && defined(MOZ_ENABLE_DBUS)
 #define  ENABLE_REMOTE_DBUS 1
-#include "mozilla/ipc/DBusConnectionRefPtr.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/DBusHelpers.h"
 #endif
 
 class XRemoteClient : public nsRemoteClient

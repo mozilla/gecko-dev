@@ -20,7 +20,8 @@
 #include "nsXRemoteService.h"
 #include "mozilla/Attributes.h"
 #ifdef ENABLE_REMOTE_DBUS
-#include "mozilla/ipc/DBusConnectionRefPtr.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/DBusHelpers.h"
 #endif
 
 
