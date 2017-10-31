@@ -155,23 +155,23 @@ nsWaylandDisplay::GetShm()
 {
   MOZ_ASSERT(mThreadId == PR_GetCurrentThread());
 
-  // wl_shm is not provided by Gtk so we need to query wayland directly
-  wl_registry* registry = wl_display_get_registry(mDisplay);
-  wl_registry_add_listener(registry, &registry_listener, this);
+  if (!mShm) {
+    // wl_shm is not provided by Gtk so we need to query wayland directly
+    // See weston/simple-shm.c and create_display() for reference.
+    wl_registry* registry = wl_display_get_registry(mDisplay);
+    wl_registry_add_listener(registry, &registry_listener, this);
 
-  if (mEventQueue) {
-    wl_proxy_set_queue((struct wl_proxy *)registry, mEventQueue);
-    // We need two roundtrips here to get the registry info
-    wl_display_dispatch_queue(mDisplay, mEventQueue);
-    wl_display_roundtrip_queue(mDisplay, mEventQueue);
-    wl_display_roundtrip_queue(mDisplay, mEventQueue);
-  } else {
-    wl_display_dispatch(mDisplay);
-    wl_display_roundtrip(mDisplay);
-    wl_display_roundtrip(mDisplay);
+    if (mEventQueue) {
+      // We're running in compositor thread so route the events
+      // to the compositor event queue.
+      wl_proxy_set_queue((struct wl_proxy *)registry, mEventQueue);
+      wl_display_roundtrip_queue(mDisplay, mEventQueue);
+    } else {
+      wl_display_roundtrip(mDisplay);
+    }
+    MOZ_RELEASE_ASSERT(mShm, "Wayland registry query failed!");
   }
 
-  MOZ_RELEASE_ASSERT(mShm, "Wayland registry query failed!");
   return(mShm);
 }
 
@@ -202,10 +202,10 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display *aDisplay)
 {
   mThreadId = PR_GetCurrentThread();
   mDisplay = aDisplay;
-
   // gfx::SurfaceFormat::B8G8R8A8 is a basic Wayland format
-  // and should be always present.
+  // and is always present.
   mFormat = gfx::SurfaceFormat::B8G8R8A8;
+  mShm = nullptr;
 
   if (NS_IsMainThread()) {
     // Use default event queue in main thread operated by Gtk.
