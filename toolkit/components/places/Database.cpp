@@ -766,6 +766,11 @@ Database::InitSchema(bool* aDatabaseMigrated)
     //       The only thing we will do for downgrades is setting back the schema
     //       version, so that next upgrades will run again the migration step.
 
+    if (currentSchemaVersion > 36) {
+      // These versions are not downgradable.
+      return NS_ERROR_FILE_CORRUPTED;
+    }
+
     if (currentSchemaVersion < DATABASE_SCHEMA_VERSION) {
       *aDatabaseMigrated = true;
 
