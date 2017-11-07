@@ -63,6 +63,7 @@ DOMStorageObserver::Init()
   obs->AddObserver(sSelf, "browser:purge-domain-data", true);
   obs->AddObserver(sSelf, "last-pb-context-exited", true);
   obs->AddObserver(sSelf, "clear-origin-attributes-data", true);
+  obs->AddObserver(sSelf, "extension:purge-localStorage", true);
 
   // Shutdown
   obs->AddObserver(sSelf, "profile-after-change", true);
@@ -224,6 +225,17 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
     NS_ENSURE_SUCCESS(rv, rv);
 
     Notify("session-only-cleared", NS_ConvertUTF8toUTF16(originSuffix), originScope);
+
+    return NS_OK;
+  }
+
+  if (!strcmp(aTopic, "extension:purge-localStorage")) {
+    DOMStorageDBBridge* db = DOMStorageCache::StartDatabase();
+    NS_ENSURE_TRUE(db, NS_ERROR_FAILURE);
+
+    db->AsyncClearAll();
+
+    Notify("extension:purge-localStorage-caches");
 
     return NS_OK;
   }
