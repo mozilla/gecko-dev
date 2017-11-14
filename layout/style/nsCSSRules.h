@@ -53,6 +53,7 @@ private:
   ~MediaRule();
 public:
 
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaRule, GroupRule)
   NS_DECL_ISUPPORTS_INHERITED
 
   // Rule methods

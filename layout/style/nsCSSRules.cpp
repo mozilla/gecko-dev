@@ -202,8 +202,6 @@ ImportRule::~ImportRule()
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ImportRule)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(ImportRule)
 
-NS_IMPL_CYCLE_COLLECTION(ImportRule, mMedia, mChildSheet)
-
 // QueryInterface implementation for ImportRule
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ImportRule)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSRule)
@@ -213,6 +211,21 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ImportRule)
 NS_INTERFACE_MAP_END
 
 IMPL_STYLE_RULE_INHERIT(ImportRule, Rule)
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(ImportRule)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ImportRule)
+  if (tmp->mChildSheet) {
+    tmp->mChildSheet->SetOwnerRule(nullptr);
+    tmp->mChildSheet = nullptr;
+  }
+  tmp->mMedia = nullptr;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ImportRule)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMedia)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mChildSheet)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 #ifdef DEBUG
 /* virtual */ void
@@ -614,6 +627,19 @@ NS_INTERFACE_MAP_BEGIN(MediaRule)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, mozilla::css::Rule)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CSSMediaRule)
 NS_INTERFACE_MAP_END_INHERITING(GroupRule)
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(MediaRule)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MediaRule, GroupRule)
+  if (tmp->mMedia) {
+    tmp->mMedia->SetStyleSheet(nullptr);
+    tmp->mMedia = nullptr;
+  }
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MediaRule, GroupRule)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMedia)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 /* virtual */ void
 MediaRule::SetStyleSheet(CSSStyleSheet* aSheet)
