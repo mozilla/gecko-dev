@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<!--
+  Window creates a SharedArrayBuffer that passes to a popup Window.
+  The pop window modifies the SharedArrayBuffer and sends it back to the
+  parent Window which checks the buffer was successfully modified.
+-->
+
+<script>
+
+window.addEventListener('load', function() {
+	async_test(function(t) {
+	  let popup = window.open('empty.html', 'empty');
+    popup.onmessage = function(e) {
+			// Receive SharedArrayBuffer.
+			let sab = e.data[0];
+			let ia = new Int32Array(sab);
+			// Change ia[0] to 1 and send back SharedArrayBuffer.
+			ia[0] = 1;
+			postMessage([ia.buffer], '*');
+    }
+		window.onmessage = t.step_func_done(function(e) {
+			let sab = e.data[0];
+			let ia = new Int32Array(sab);
+			// Check ia[0] was changed to 1.
+			assert_equals(ia[0], 1);
+		});
+		let ia = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+		popup.postMessage([ia.buffer], '*');
+	}, "window-and-child-window-can-share-shared-array-buffer");
+});
+
+</script>
