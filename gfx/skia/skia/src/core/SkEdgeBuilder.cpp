@@ -150,8 +150,10 @@ int SkEdgeBuilder::buildPoly(const SkPath& path, const SkIRect* iclip, int shift
         // clipping can turn 1 line into (up to) kMaxClippedLineSegments, since
         // we turn portions that are clipped out on the left/right into vertical
         // segments.
+        SkASSERT_RELEASE(maxEdgeCount <= std::numeric_limits<int>::max() / SkLineClipper::kMaxClippedLineSegments);
         maxEdgeCount *= SkLineClipper::kMaxClippedLineSegments;
     }
+    SkASSERT_RELEASE((size_t)maxEdgeCount <= std::numeric_limits<size_t>::max() / (sizeof(SkEdge) + sizeof(SkEdge*)));
     size_t maxEdgeSize = maxEdgeCount * sizeof(SkEdge);
     size_t maxEdgePtrSize = maxEdgeCount * sizeof(SkEdge*);
 
