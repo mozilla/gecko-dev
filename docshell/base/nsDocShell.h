@@ -113,6 +113,7 @@ public:
 
   RefPtr<nsDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURI;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
   int32_t mDelay;
   bool mRepeat;
   bool mMetaRefresh;
@@ -243,7 +244,8 @@ public:
   // the timer involved out of mRefreshURIList if it's there.
   // aTimer must not be null.
   nsresult ForceRefreshURIFromTimer(nsIURI* aURI, int32_t aDelay,
-                                    bool aMetaRefresh, nsITimer* aTimer);
+                                    bool aMetaRefresh, nsITimer* aTimer,
+                                    nsIPrincipal* aPrincipal);
 
   friend class OnLinkClickEvent;
 

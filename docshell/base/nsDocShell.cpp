@@ -6698,8 +6698,10 @@ nsDocShell::ScrollByPages(int32_t aNumPages)
 //*****************************************************************************
 
 NS_IMETHODIMP
-nsDocShell::RefreshURI(nsIURI* aURI, int32_t aDelay, bool aRepeat,
-                       bool aMetaRefresh)
+nsDocShell::RefreshURI(nsIURI* aURI,
+                       int32_t aDelay, bool aRepeat,
+                       bool aMetaRefresh,
+                       nsIPrincipal* aPrincipal)
 {
   NS_ENSURE_ARG(aURI);
 
@@ -6733,6 +6735,7 @@ nsDocShell::RefreshURI(nsIURI* aURI, int32_t aDelay, bool aRepeat,
   nsCOMPtr<nsISupports> dataRef = refreshTimer;  // Get the ref count to 1
 
   refreshTimer->mDocShell = this;
+  refreshTimer->mPrincipal = aPrincipal;
   refreshTimer->mURI = aURI;
   refreshTimer->mDelay = aDelay;
   refreshTimer->mRepeat = aRepeat;
@@ -6762,7 +6765,8 @@ nsresult
 nsDocShell::ForceRefreshURIFromTimer(nsIURI* aURI,
                                      int32_t aDelay,
                                      bool aMetaRefresh,
-                                     nsITimer* aTimer)
+                                     nsITimer* aTimer,
+                                     nsIPrincipal* aPrincipal)
 {
   NS_PRECONDITION(aTimer, "Must have a timer here");
 
@@ -6780,11 +6784,11 @@ nsDocShell::ForceRefreshURIFromTimer(nsIURI* aURI,
     }
   }
 
-  return ForceRefreshURI(aURI, aDelay, aMetaRefresh);
+  return ForceRefreshURI(aURI, aDelay, aMetaRefresh, aPrincipal);
 }
 
 NS_IMETHODIMP
-nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh)
+nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh, nsIPrincipal* aPrincipal)
 {
   NS_ENSURE_ARG(aURI);
 
@@ -6832,11 +6836,18 @@ nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh)
     loadInfo->SetLoadType(nsIDocShellLoadInfo::loadRefresh);
   }
 
+  // If the principal is null, the refresh will have a triggeringPrincipal
+  // derived from the referrer URI, or will be set to the system principal
+  // if there is no refererrer. See LoadURI()
+  if (aPrincipal) {
+    loadInfo->SetTriggeringPrincipal(aPrincipal);
+  }
+
   /*
    * LoadURI(...) will cancel all refresh timers... This causes the
    * Timer and its refreshData instance to be released...
    */
-  LoadURI(aURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_NONE, true);
+  LoadURI(aURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_DISALLOW_INHERIT_PRINCIPAL, true);
 
   return NS_OK;
 }
@@ -7072,7 +7083,7 @@ nsDocShell::SetupRefreshURIFromHeader(nsIURI* aBaseURI,
           return NS_ERROR_FAILURE;
         }
 
-        rv = RefreshURI(uri, seconds * 1000, false, true);
+        rv = RefreshURI(uri, seconds * 1000, false, true, aPrincipal);
       }
     }
   }
@@ -13477,7 +13488,7 @@ nsRefreshTimer::Notify(nsITimer* aTimer)
     // Get the delay count to determine load type
     uint32_t delay = 0;
     aTimer->GetDelay(&delay);
-    mDocShell->ForceRefreshURIFromTimer(mURI, delay, mMetaRefresh, aTimer);
+    mDocShell->ForceRefreshURIFromTimer(mURI, delay, mMetaRefresh, aTimer, mPrincipal);
   }
   return NS_OK;
 }
