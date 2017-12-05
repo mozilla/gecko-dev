@@ -189,6 +189,10 @@ nsUrlClassifierDBServiceWorker::DoLocalLookup(const nsACString& spec,
                                               const nsACString& tables,
                                               LookupResultArray* results)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   MOZ_ASSERT(!NS_IsMainThread(), "DoLocalLookup must be on background thread");
   if (!results) {
     return NS_ERROR_FAILURE;
@@ -304,6 +308,10 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
 nsresult
 nsUrlClassifierDBServiceWorker::HandlePendingLookups()
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   MutexAutoLock lock(mPendingLookupLock);
   while (mPendingLookups.Length() > 0) {
     PendingLookup lookup = mPendingLookups[0];
@@ -326,6 +334,10 @@ nsUrlClassifierDBServiceWorker::AddNoise(const Prefix aPrefix,
                                          uint32_t aCount,
                                          LookupResultArray& results)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   if (aCount < 1) {
     return NS_OK;
   }
@@ -355,14 +367,19 @@ nsUrlClassifierDBServiceWorker::Lookup(nsIPrincipal* aPrincipal,
                                        const nsACString& aTables,
                                        nsIUrlClassifierCallback* c)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   return HandlePendingLookups();
 }
 
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::GetTables(nsIUrlClassifierCallback* c)
 {
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
 
   nsresult rv = OpenDb();
   if (NS_FAILED(rv)) {
@@ -436,8 +453,9 @@ nsUrlClassifierDBServiceWorker::BeginStream(const nsACString &table)
   LOG(("nsUrlClassifierDBServiceWorker::BeginStream"));
   MOZ_ASSERT(!NS_IsMainThread(), "Streaming must be on the background thread");
 
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
 
   NS_ENSURE_STATE(mUpdateObserver);
   NS_ENSURE_STATE(!mInStream);
@@ -516,8 +534,9 @@ nsUrlClassifierDBServiceWorker::BeginStream(const nsACString &table)
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::UpdateStream(const nsACString& chunk)
 {
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
 
   NS_ENSURE_STATE(mInStream);
 
@@ -583,8 +602,10 @@ nsUrlClassifierDBServiceWorker::FinishStream()
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::FinishUpdate()
 {
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
+
   NS_ENSURE_STATE(mUpdateObserver);
 
   if (NS_SUCCEEDED(mUpdateStatus)) {
@@ -735,6 +756,10 @@ nsUrlClassifierDBServiceWorker::CloseDb()
 nsresult
 nsUrlClassifierDBServiceWorker::CacheCompletions(CacheResultArray *results)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   LOG(("nsUrlClassifierDBServiceWorker::CacheCompletions [%p]", this));
   if (!mClassifier)
     return NS_OK;
@@ -814,6 +839,10 @@ nsUrlClassifierDBServiceWorker::CacheMisses(PrefixArray *results)
 nsresult
 nsUrlClassifierDBServiceWorker::OpenDb()
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   MOZ_ASSERT(!NS_IsMainThread(), "Must initialize DB on background thread");
   // Connection already open, don't do anything.
   if (mClassifier) {
@@ -1323,8 +1352,9 @@ nsUrlClassifierDBService::Init()
   if (!observerService)
     return NS_ERROR_FAILURE;
 
+  // The application is about to quit
+  observerService->AddObserver(this, "quit-application", false);
   observerService->AddObserver(this, "profile-before-change", false);
-  observerService->AddObserver(this, "xpcom-shutdown-threads", false);
 
   // XXX: Do we *really* need to be able to change all of these at runtime?
   // Note: These observers should only be added when everything else above has
@@ -1429,6 +1459,10 @@ nsUrlClassifierDBService::ClassifyLocalWithTables(nsIURI *aURI,
                                                   const nsACString & aTables,
                                                   nsACString & aTableResults)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
   MOZ_ASSERT(NS_IsMainThread(), "ClassifyLocalWithTables must be on main thread");
 
@@ -1743,9 +1777,23 @@ nsUrlClassifierDBService::Observe(nsISupports *aSubject, const char *aTopic,
       gFreshnessGuarantee = Preferences::GetInt(CONFIRM_AGE_PREF,
         CONFIRM_AGE_DEFAULT_SEC);
     }
-  } else if (!strcmp(aTopic, "profile-before-change") ||
-             !strcmp(aTopic, "xpcom-shutdown-threads")) {
+  } else if (!strcmp(aTopic, "quit-application")) {
     Shutdown();
+  } else if (!strcmp(aTopic, "profile-before-change")) {
+    // Unit test does not receive "quit-application",
+    // need call shutdown in this case
+    Shutdown();
+    LOG(("joining background thread"));
+    mWorkerProxy = nullptr;
+
+    if (!gDbBackgroundThread) {
+      return NS_OK;
+    }
+
+    nsIThread *backgroundThread = gDbBackgroundThread;
+    gDbBackgroundThread = nullptr;
+    backgroundThread->Shutdown();
+    NS_RELEASE(backgroundThread);
   } else {
     return NS_ERROR_UNEXPECTED;
   }
@@ -1759,8 +1807,11 @@ nsUrlClassifierDBService::Shutdown()
 {
   LOG(("shutting down db service\n"));
 
-  if (!gDbBackgroundThread)
+  if (!gDbBackgroundThread || gShuttingDownThread) {
     return NS_OK;
+  }
+
+  gShuttingDownThread = true;
 
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_SHUTDOWN_TIME> timer;
 
@@ -1793,18 +1844,6 @@ nsUrlClassifierDBService::Shutdown()
     rv = mWorkerProxy->CloseDb();
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to post close db event");
   }
-
-  mWorkerProxy = nullptr;
-
-  LOG(("joining background thread"));
-
-  gShuttingDownThread = true;
-
-  nsIThread *backgroundThread = gDbBackgroundThread;
-  gDbBackgroundThread = nullptr;
-  backgroundThread->Shutdown();
-  NS_RELEASE(backgroundThread);
-
   return NS_OK;
 }
 
@@ -1814,3 +1853,9 @@ nsUrlClassifierDBService::BackgroundThread()
   return gDbBackgroundThread;
 }
 
+// static
+bool
+nsUrlClassifierDBService::ShutdownHasStarted()
+{
+  return gShuttingDownThread;
+}

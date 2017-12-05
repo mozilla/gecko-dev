@@ -22,6 +22,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/TypedEnumBits.h"
 #include "nsIUrlClassifierUtils.h"
+#include "nsUrlClassifierDBService.h"
 
 // MOZ_LOG=UrlClassifierDbService:5
 extern mozilla::LazyLogModule gUrlClassifierDbServiceLog;
@@ -334,6 +335,11 @@ Classifier::DeleteTables(nsIFile* aDirectory, const nsTArray<nsCString>& aTables
 void
 Classifier::AbortUpdateAndReset(const nsCString& aTable)
 {
+  // We don't need to reset while shutting down. It will only slow us down.
+  if (nsUrlClassifierDBService::ShutdownHasStarted()) {
+    return;
+  }
+
   LOG(("Abort updating table %s.", aTable.get()));
 
   // ResetTables will clear both in-memory & on-disk data.
@@ -913,6 +919,10 @@ nsresult
 Classifier::UpdateHashStore(nsTArray<TableUpdate*>* aUpdates,
                             const nsACString& aTable)
 {
+  if (nsUrlClassifierDBService::ShutdownHasStarted()) {
+    return NS_ERROR_ABORT;
+  }
+
   LOG(("Classifier::UpdateHashStore(%s)", PromiseFlatCString(aTable).get()));
 
   HashStore store(aTable, GetProvider(aTable), mRootStoreDirectory);
@@ -1009,6 +1019,10 @@ nsresult
 Classifier::UpdateTableV4(nsTArray<TableUpdate*>* aUpdates,
                           const nsACString& aTable)
 {
+  if (nsUrlClassifierDBService::ShutdownHasStarted()) {
+    return NS_ERROR_ABORT;
+  }
+
   LOG(("Classifier::UpdateTableV4(%s)", PromiseFlatCString(aTable).get()));
 
   if (!CheckValidUpdate(aUpdates, aTable)) {
