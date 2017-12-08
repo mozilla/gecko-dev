@@ -133,6 +133,8 @@ void
 MediaDecoder::InitStatics()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  // Eagerly init gMediaDecoderLog to work around bug 1415441.
+  MOZ_LOG(gMediaDecoderLog, LogLevel::Info, ("MediaDecoder::InitStatics"));
 }
 
 NS_IMPL_ISUPPORTS(MediaMemoryTracker, nsIMemoryReporter)
