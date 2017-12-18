@@ -301,6 +301,7 @@ var AboutTabCrashed = {
       includeURL,
       URL,
       autoSubmit,
+      hasReport: this.hasReport,
     });
   },
 };
