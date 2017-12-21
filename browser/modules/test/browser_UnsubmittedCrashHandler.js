@@ -349,7 +349,7 @@ add_task(function* test_can_submit_several() {
  * and sends the pending crash reports.
  */
 add_task(function* test_can_submit_always() {
-  let pref = "browser.crashReports.unsubmittedCheck.autoSubmit";
+  let pref = "browser.crashReports.unsubmittedCheck.autoSubmit2";
   Assert.equal(Services.prefs.getBoolPref(pref), false,
                "We should not be auto-submitting by default");
 
@@ -393,7 +393,7 @@ add_task(function* test_can_submit_always() {
  */
 add_task(function* test_can_auto_submit() {
   yield SpecialPowers.pushPrefEnv({ set: [
-    ["browser.crashReports.unsubmittedCheck.autoSubmit", true],
+    ["browser.crashReports.unsubmittedCheck.autoSubmit2", true],
   ]});
 
   let reportIDs = yield createPendingCrashReports(3);

@@ -147,7 +147,7 @@ add_task(function* test_background_crash_simple() {
  */
 add_task(function* test_background_crash_autosubmit_backlogged() {
   yield SpecialPowers.pushPrefEnv({
-    set: [["browser.crashReports.unsubmittedCheck.autoSubmit", true]],
+    set: [["browser.crashReports.unsubmittedCheck.autoSubmit2", true]],
   });
 
   yield setupBackgroundTabs(function*([tab1, tab2]) {

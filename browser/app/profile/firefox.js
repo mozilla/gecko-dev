@@ -1562,7 +1562,7 @@ pref("browser.crashReports.unsubmittedCheck.enabled", false);
 // without a user choice before we suppress the notification for
 // some number of days.
 pref("browser.crashReports.unsubmittedCheck.chancesUntilSuppress", 4);
-pref("browser.crashReports.unsubmittedCheck.autoSubmit", false);
+pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
 
 #ifdef NIGHTLY_BUILD
 // Enable the (fairly costly) client/server validation on nightly only. The other prefs
