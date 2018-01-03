@@ -6,7 +6,7 @@
 007sascha.de: did not receive HSTS header
 01100010011001010111001101110100.com: could not connect to host
 020wifi.nl: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
-0222aa.com: could not connect to host
+0222aa.com: did not receive HSTS header
 048.ag: could not connect to host
 050508.com: could not connect to host
 06se.com: could not connect to host
@@ -27,7 +27,6 @@
 0x90.fi: could not connect to host
 0xa.in: could not connect to host
 0xb612.org: could not connect to host
-10000v.ru: could not connect to host
 1017scribes.com: could not connect to host
 1018hosting.nl: did not receive HSTS header
 1022996493.rsc.cdn77.org: could not connect to host
@@ -148,7 +147,6 @@
 4x4.lk: could not connect to host
 50millionablaze.org: could not connect to host
 513vpn.net: did not receive HSTS header
-517vpn.cn: could not connect to host
 518maicai.com: did not receive HSTS header
 540.co: did not receive HSTS header
 54bf.com: could not connect to host
@@ -338,7 +336,7 @@ afyou.co.kr: could not connect to host
 agalaxyfarfaraway.co.uk: could not connect to host
 agatheetraphael.fr: could not connect to host
 agbremen.de: did not receive HSTS header
-agdalieso.com.ba: did not receive HSTS header
+agdalieso.com.ba: could not connect to host
 agentseeker.ca: could not connect to host
 agevio.com: could not connect to host
 agonswim.com: could not connect to host
@@ -357,8 +355,10 @@ aidikofflaw.com: did not receive HSTS header
 aids.gov: did not receive HSTS header
 aifreeze.ru: could not connect to host
 aify.eu: could not connect to host
+aiicy.org: could not connect to host
 aim-consultants.com: could not connect to host
 ainrb.com: could not connect to host
+aintevenmad.ch: could not connect to host
 aip-marine.com: could not connect to host
 aiponne.com: could not connect to host
 airlea.com: could not connect to host
@@ -382,6 +382,7 @@ akkadia.cc: could not connect to host
 akombakom.net: could not connect to host
 akoww.de: could not connect to host
 akselimedia.fi: did not receive HSTS header
+akstudentsfirst.org: could not connect to host
 aktivist.in: did not receive HSTS header
 akul.co.in: could not connect to host
 al-f.net: could not connect to host
@@ -413,6 +414,7 @@ alexandre.sh: did not receive HSTS header
 alexberts.ch: could not connect to host
 alexdodge.ca: could not connect to host
 alexei.su: could not connect to host
+alexismeza.com: could not connect to host
 alexismeza.com.mx: could not connect to host
 alexismeza.dk: could not connect to host
 alexismeza.es: could not connect to host
@@ -442,6 +444,7 @@ allods-zone.ru: could not connect to host
 alloffice.com.ua: did not receive HSTS header
 alloinformatique.net: could not connect to host
 allrealty.co.za: could not connect to host
+allscammers.exposed: could not connect to host
 allsortscastles.co.uk: did not receive HSTS header
 allstarswithus.com: could not connect to host
 aloalabs.com: did not receive HSTS header
@@ -504,10 +507,11 @@ analytic-s.ml: could not connect to host
 analyticsinmotion.net: could not connect to host
 anankecosmetics.com: did not receive HSTS header
 anchorgrounds.com: could not connect to host
-ancientcraft.eu: could not connect to host
+ancientcraft.eu: did not receive HSTS header
 ancientkarma.com: could not connect to host
 andere-gedanken.net: max-age too low: 10
 anderslind.dk: could not connect to host
+andiplusben.com: could not connect to host
 andre-ballensiefen.de: did not receive HSTS header
 andreas-kluge.eu: could not connect to host
 andreasanti.net: did not receive HSTS header
@@ -528,6 +532,7 @@ andrewyg.net: could not connect to host
 andreypopp.com: did not receive HSTS header
 androidprosmart.com: could not connect to host
 androled.fr: max-age too low: 5184000
+andromedacenter.com: could not connect to host
 andronika.net: could not connect to host
 androoz.se: could not connect to host
 andyclark.io: could not connect to host
@@ -544,7 +549,7 @@ animal-nature-human.com: did not receive HSTS header
 anime1video.tk: could not connect to host
 animeday.ml: could not connect to host
 animesfusion.com.br: could not connect to host
-animurecs.com: could not connect to host
+animurecs.com: did not receive HSTS header
 aniplus.cf: could not connect to host
 aniplus.gq: could not connect to host
 aniplus.ml: could not connect to host
@@ -560,7 +565,6 @@ annahmeschluss.de: did not receive HSTS header
 annetaan.fi: could not connect to host
 annonasoftware.com: could not connect to host
 anomaly.ws: did not receive HSTS header
-anonrea.ch: could not connect to host
 anonymo.co.uk: could not connect to host
 anonymo.uk: could not connect to host
 anonymousstatecollegelulzsec.com: could not connect to host
@@ -641,14 +645,12 @@ ardorlabs.se: could not connect to host
 area3.org: could not connect to host
 arent.kz: could not connect to host
 arewedubstepyet.com: did not receive HSTS header
-areyouever.me: did not receive HSTS header
 argennon.xyz: could not connect to host
 argh.io: could not connect to host
 arguggi.co.uk: could not connect to host
 ariacreations.net: did not receive HSTS header
 arislight.com: could not connect to host
 arkadiyt.com: did not receive HSTS header
-arlatools.com: could not connect to host
 arlen.io: could not connect to host
 arlen.se: could not connect to host
 armenians.online: could not connect to host
@@ -673,13 +675,16 @@ art2web.net: could not connect to host
 artartefatos.com.br: could not connect to host
 artegusto.ru: did not receive HSTS header
 artesupra.com: did not receive HSTS header
+artetrama.com: could not connect to host
 arthan.me: could not connect to host
+articaexports.com: could not connect to host
 artifex21.com: could not connect to host
 artifex21.fr: could not connect to host
 artiming.com: could not connect to host
 artisanhd.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 artisavotins.com: could not connect to host
 artisense.de: could not connect to host
+artisticedgegranite.net: could not connect to host
 artistnetwork.nl: did not receive HSTS header
 arto.bg: did not receive HSTS header
 arturkohut.com: could not connect to host
@@ -815,12 +820,11 @@ ayahuascaadvisor.com: could not connect to host
 ayor.jp: could not connect to host
 ayor.tech: could not connect to host
 ayuru.info: could not connect to host
-azamra.com: could not connect to host
+azamra.com: did not receive HSTS header
 azazy.net: max-age too low: 2592000
 azirevpn.com: did not receive HSTS header
 azlo.com: did not receive HSTS header
 azprep.us: could not connect to host
-b-b-law.com: did not receive HSTS header
 b-landia.net: did not receive HSTS header
 b-rickroll-e.pw: could not connect to host
 b-space.de: did not receive HSTS header
@@ -828,7 +832,6 @@ b2bpromoteit.com: did not receive HSTS header
 b303.me: did not receive HSTS header
 b3orion.com: max-age too low: 0
 b8a.me: could not connect to host
-baalsworld.de: could not connect to host
 baas-becking.biology.utah.edu: could not connect to host
 babelfisch.eu: could not connect to host
 baby-click.de: did not receive HSTS header
@@ -856,6 +859,7 @@ bair.io: could not connect to host
 baito-j.jp: did not receive HSTS header
 baiyangliu.com: could not connect to host
 baka.network: could not connect to host
+bakaweb.fr: could not connect to host
 bakhansen.com: did not receive HSTS header
 bakingstone.com: could not connect to host
 bakkerdesignandbuild.com: did not receive HSTS header
@@ -887,11 +891,11 @@ baobaobooks.net: did not receive HSTS header
 baobeiglass.com: did not receive HSTS header
 barcel.com.mx: max-age too low: 86400
 barely.sexy: did not receive HSTS header
-bariller.fr: could not connect to host
 barracuda.blog: could not connect to host
 barreaudenice.com: could not connect to host
 barrelhead.org: could not connect to host
 barrut.me: did not receive HSTS header
+bars.kh.ua: could not connect to host
 barshout.co.uk: could not connect to host
 barss.io: could not connect to host
 bartbania.com: did not receive HSTS header
@@ -900,6 +904,7 @@ bashcode.ninja: could not connect to host
 basicsolutionsus.com: did not receive HSTS header
 basilisk.io: could not connect to host
 bassh.net: did not receive HSTS header
+batfoundry.com: could not connect to host
 baud.ninja: could not connect to host
 baudairenergyservices.com: did not receive HSTS header
 baum.ga: could not connect to host
@@ -952,9 +957,10 @@ beetleroadstories.com: could not connect to host
 befundup.com: could not connect to host
 behere.be: could not connect to host
 beholdthehurricane.com: could not connect to host
-beier.io: did not receive HSTS header
+beier.io: could not connect to host
 beikeil.de: max-age too low: 86400
 belairsewvac.com: could not connect to host
+belegit.org: could not connect to host
 belewpictures.com: could not connect to host
 belgien.guide: could not connect to host
 belize-firmengruendung.com: could not connect to host
@@ -992,7 +998,6 @@ berthelier.me: could not connect to host
 besixdouze.world: could not connect to host
 besola.de: did not receive HSTS header
 bestbeards.ca: could not connect to host
-bestbridal.top: could not connect to host
 bestcellular.com: did not receive HSTS header
 besthost.cz: did not receive HSTS header
 besthotsales.com: could not connect to host
@@ -1030,6 +1035,7 @@ bgcparkstad.nl: did not receive HSTS header
 bgmn.net: could not connect to host
 bhatia.at: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 biapinheiro.com.br: max-age too low: 5184000
+bible-maroc.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 biblerhymes.com: did not receive HSTS header
 bidon.ca: did not receive HSTS header
 bie.edu: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
@@ -1053,7 +1059,6 @@ bildiri.ci: did not receive HSTS header
 bildschirmflackern.de: did not receive HSTS header
 biletua.de: could not connect to host
 bilimoe.com: could not connect to host
-billaud.eu.org: could not connect to host
 billin.net: did not receive HSTS header
 billkiss.com: could not connect to host
 billninja.com: did not receive HSTS header
@@ -1087,6 +1092,7 @@ bitcoinjpn.com: could not connect to host
 bitcoinprivacy.net: did not receive HSTS header
 bitcoinworld.me: did not receive HSTS header
 bitconcepts.co.uk: could not connect to host
+bitenose.com: could not connect to host
 biteoftech.com: did not receive HSTS header
 bitf.ly: could not connect to host
 bitfactory.ws: could not connect to host
@@ -1213,7 +1219,6 @@ borrelioz.com: did not receive HSTS header
 borscheid-wenig.com: did not receive HSTS header
 boschee.net: could not connect to host
 botox.bz: did not receive HSTS header
-botstack.host: did not receive HSTS header
 bounceboxspc.com: did not receive HSTS header
 bouncecoffee.com: did not receive HSTS header
 bouncelanduk.co.uk: did not receive HSTS header
@@ -1254,6 +1259,7 @@ brasilien.guide: could not connect to host
 brasilmorar.com: could not connect to host
 bravehearts.org.au: did not receive HSTS header
 bravz.de: could not connect to host
+breathingblanket.com: could not connect to host
 brenden.net.au: could not connect to host
 bress.cloud: could not connect to host
 brettpemberton.xyz: did not receive HSTS header
@@ -1276,6 +1282,7 @@ brookframework.org: could not connect to host
 browserid.org: could not connect to host
 brrd.io: did not receive HSTS header
 brrr.fr: could not connect to host
+bruckner.li: could not connect to host
 brunix.net: did not receive HSTS header
 brunohenc.from.hr: could not connect to host
 brunoonline.co.uk: could not connect to host
@@ -1325,7 +1332,6 @@ bulletpoint.cz: could not connect to host
 bullterrier.me: could not connect to host
 bulmafox.com: could not connect to host
 bumarkamoda.com: did not receive HSTS header
-bumshow.ru: could not connect to host
 bunaken.asia: did not receive HSTS header
 bunbomenu.de: could not connect to host
 bunsenlabs.org: max-age too low: 2592000
@@ -1355,6 +1361,7 @@ butterfieldstraining.com: did not receive HSTS header
 buvinghausen.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 buybaby.eu: did not receive HSTS header
 buyfox.de: did not receive HSTS header
+buyingsellingflorida.com: could not connect to host
 buynowdepot.com: did not receive HSTS header
 buyshoe.org: could not connect to host
 buzzconcert.com: could not connect to host
@@ -1365,7 +1372,6 @@ bwear4all.de: could not connect to host
 by1898.com: could not connect to host
 by4cqb.cn: could not connect to host
 bydisk.com: could not connect to host
-bynet.cz: could not connect to host
 bynumlaw.net: did not receive HSTS header
 bypass.kr: could not connect to host
 bypassed.bid: could not connect to host
@@ -1430,7 +1436,6 @@ calvin.me: max-age too low: 2592000
 calvinallen.net: did not receive HSTS header
 calypsogames.net: did not receive HSTS header
 camashop.de: did not receive HSTS header
-camaya.net: could not connect to host
 cambridgeanalytica.net: could not connect to host
 cambridgeanalytica.org: did not receive HSTS header
 camda.online: could not connect to host
@@ -1443,6 +1448,7 @@ campaignelves.com: did not receive HSTS header
 campbellsoftware.co.uk: could not connect to host
 campfire.co.il: did not receive HSTS header
 campingcarlovers.com: could not connect to host
+campistry.net: could not connect to host
 campusdrugprevention.gov: did not receive HSTS header
 camsanalytics.com: could not connect to host
 canadabread.com: max-age too low: 86400
@@ -1487,7 +1493,6 @@ carwashvapeur.be: could not connect to host
 casc.cz: did not receive HSTS header
 casedi.org: max-age too low: 0
 casefall.com: could not connect to host
-cash-4x4.com: did not receive HSTS header
 cash-pos.com: could not connect to host
 cashmyphone.ch: could not connect to host
 casino-cashflow.ru: did not receive HSTS header
@@ -1509,6 +1514,7 @@ caveclan.org: did not receive HSTS header
 cavedevs.de: could not connect to host
 cavedroid.xyz: could not connect to host
 cayafashion.de: did not receive HSTS header
+cbdev.de: could not connect to host
 cbengineeringinc.com: could not connect to host
 cbhq.net: could not connect to host
 ccblog.de: did not receive HSTS header
@@ -1518,6 +1524,7 @@ cctech.ph: could not connect to host
 cctld.com: could not connect to host
 cd0.us: could not connect to host
 cdcpartners.gov: could not connect to host
+cdeck.net: could not connect to host
 cdnb.co: could not connect to host
 cdndepo.com: could not connect to host
 cdnk39.com: could not connect to host
@@ -1578,7 +1585,6 @@ chaouby.com: could not connect to host
 chargejuice.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 charityclear.com: did not receive HSTS header
 charitystreet.co.uk: could not connect to host
-charlenevondell.com: could not connect to host
 charliemcneive.com: did not receive HSTS header
 charlipopkids.com.au: could not connect to host
 charnleyhouse.co.uk: did not receive HSTS header
@@ -1639,7 +1645,6 @@ chrisfaber.com: could not connect to host
 chriskirchner.de: did not receive HSTS header
 chriskyrouac.com: could not connect to host
 chrisopperwall.com: did not receive HSTS header
-chrispstreet.com: did not receive HSTS header
 chrisself.xyz: did not receive HSTS header
 christiaandruif.nl: could not connect to host
 christianbro.gq: could not connect to host
@@ -1654,10 +1659,11 @@ chromaryu.net: could not connect to host
 chrome: could not connect to host
 chrome-devtools-frontend.appspot.com: did not receive HSTS header (error ignored - included regardless)
 chrome.google.com: did not receive HSTS header (error ignored - included regardless)
+chronology.no: did not receive HSTS header
 chrst.ph: could not connect to host
 chs.us: did not receive HSTS header
-chsh.moe: could not connect to host
 chua.cf: could not connect to host
+chua.family: could not connect to host
 chuckame.fr: did not receive HSTS header
 chulado.com: did not receive HSTS header
 churchux.co: did not receive HSTS header
@@ -1673,6 +1679,7 @@ cim2b.de: could not connect to host
 cima-idf.fr: could not connect to host
 cimalando.eu: could not connect to host
 cinartelorgu.com: did not receive HSTS header
+cinema5.ru: did not receive HSTS header
 cinemysticism.com: could not connect to host
 cintdirect.com: could not connect to host
 cioconference.co.nz: could not connect to host
@@ -1769,6 +1776,7 @@ co-yutaka.com: could not connect to host
 coach-sportif.paris: could not connect to host
 cobaltlp.com: could not connect to host
 cobrax.net: could not connect to host
+cocaine.ninja: could not connect to host
 coccolebenessere.it: could not connect to host
 cocktailfuture.fr: could not connect to host
 coco-cool.fr: could not connect to host
@@ -1806,7 +1814,6 @@ cohesive.io: could not connect to host
 coinbit.trade: did not receive HSTS header
 coindam.com: could not connect to host
 colasjourdain.fr: did not receive HSTS header
-coldfff.com: could not connect to host
 coldlostsick.net: could not connect to host
 colearnr.com: could not connect to host
 collabra.email: did not receive HSTS header
@@ -1819,12 +1826,10 @@ collins.press: did not receive HSTS header
 collinsartworks.com: did not receive HSTS header
 collision.fyi: could not connect to host
 colmexpro.com: did not receive HSTS header
-colo-tech.com: could not connect to host
 colognegaming.net: could not connect to host
 coloradocomputernetworking.net: could not connect to host
 colorlib.com: did not receive HSTS header
 colorunhas.com.br: could not connect to host
-comalia.com: could not connect to host
 comeoncolleen.com: did not receive HSTS header
 comfortdom.ua: did not receive HSTS header
 comfortticket.de: did not receive HSTS header
@@ -1844,7 +1849,6 @@ compalytics.com: could not connect to host
 comparamejor.com: did not receive HSTS header
 comparejewelleryprices.co.uk: could not connect to host
 comparetravelinsurance.com.au: did not receive HSTS header
-comparexcloudcenter.com: could not connect to host
 compassionate-biology.com: could not connect to host
 compiledworks.com: could not connect to host
 completesportperformance.com: did not receive HSTS header
@@ -1853,7 +1857,6 @@ complt.xyz: could not connect to host
 complymd.com: did not receive HSTS header
 comprehensiveihc.com: could not connect to host
 compsmag.com: did not receive HSTS header
-compubench.com: could not connect to host
 compucorner.com.mx: could not connect to host
 computertal.de: could not connect to host
 concentrade.de: did not receive HSTS header
@@ -1933,7 +1936,6 @@ cosmiatria.pe: did not receive HSTS header
 cosplayer.com: could not connect to host
 costow.club: could not connect to host
 coughlan.de: did not receive HSTS header
-coumoul.fr: could not connect to host
 count.sh: could not connect to host
 couponcodeq.com: could not connect to host
 couragewhispers.ca: could not connect to host
@@ -1963,12 +1965,14 @@ crazyhotseeds.com: did not receive HSTS header
 crbug.com: did not receive HSTS header (error ignored - included regardless)
 creaescola.com: did not receive HSTS header
 create-test-publish.co.uk: could not connect to host
+creative-coder.de: could not connect to host
 creative-wave.fr: could not connect to host
 creativeapple.ltd: did not receive HSTS header
 creativeartifice.com: did not receive HSTS header
 creativecommonscatpictures.com: could not connect to host
 creativephysics.ml: could not connect to host
 creativeplayuk.com: did not receive HSTS header
+creativesprite.com: did not receive HSTS header
 crecket.me: could not connect to host
 creditclear.com.au: did not receive HSTS header
 crendontech.com: could not connect to host
@@ -2056,8 +2060,6 @@ customadesign.com: did not receive HSTS header
 customfilmworks.com: could not connect to host
 cutorrent.com: could not connect to host
 cuvva.insure: did not receive HSTS header
-cviip.ca: could not connect to host
-cviip.com: could not connect to host
 cvjm-memmingen.de: did not receive HSTS header
 cvtparking.co.uk: did not receive HSTS header
 cwage.com: could not connect to host
@@ -2066,7 +2068,6 @@ cyber-computer.club: could not connect to host
 cyber-konzept.de: did not receive HSTS header
 cybercecurity.com: did not receive HSTS header
 cyberfrancais.ro: did not receive HSTS header
-cybergrx.com: could not connect to host
 cyberlab.kiev.ua: did not receive HSTS header
 cyberlab.team: did not receive HSTS header
 cyberpeace.nl: could not connect to host
@@ -2090,7 +2091,6 @@ czbix.com: did not receive HSTS header
 czlx.co: could not connect to host
 d-rickroll-e.pw: could not connect to host
 d1ves.io: did not receive HSTS header
-d2s.uk: could not connect to host
 d4rkdeagle.tk: could not connect to host
 d8studio.net: could not connect to host
 dabbot.org: did not receive HSTS header
@@ -2104,6 +2104,7 @@ dailystormerpodcasts.com: could not connect to host
 daimadi.com: could not connect to host
 daisuki.pw: did not receive HSTS header
 dakerealestate.com: did not receive HSTS header
+dakl-shop.de: did not receive HSTS header
 dakrib.net: could not connect to host
 daku.gdn: could not connect to host
 dalingk.co: could not connect to host
@@ -2129,11 +2130,13 @@ dannycrichton.com: did not receive HSTS header
 danrl.de: could not connect to host
 danwillenberg.com: did not receive HSTS header
 daolerp.xyz: could not connect to host
+darchoods.net: could not connect to host
 dargasia.is: could not connect to host
 dario.im: could not connect to host
 dariosirangelo.me: did not receive HSTS header
 dark-x.cf: could not connect to host
-darkag.ovh: did not receive HSTS header
+darkag.ovh: could not connect to host
+darkanzali.pl: max-age too low: 0
 darkfriday.ddns.net: could not connect to host
 darkhole.cn: did not receive HSTS header
 darkkeepers.dk: max-age too low: 172800
@@ -2155,7 +2158,7 @@ data.haus: could not connect to host
 data.qld.gov.au: did not receive HSTS header
 datarank.com: max-age too low: 0
 dataretention.solutions: could not connect to host
-datascience.cafe: could not connect to host
+datascience.cafe: did not receive HSTS header
 datasnitch.co.uk: could not connect to host
 datatekniikka.com: could not connect to host
 datedeposit.com: could not connect to host
@@ -2198,7 +2201,6 @@ dcw.io: did not receive HSTS header
 ddatsh.com: could not connect to host
 dden.website: could not connect to host
 dden.xyz: could not connect to host
-ddepot.us: did not receive HSTS header
 de-servers.de: could not connect to host
 deadsoul.net: max-age too low: 0
 debank.tv: did not receive HSTS header
@@ -2280,16 +2282,19 @@ detecte.ch: could not connect to host
 detectefuite.ch: could not connect to host
 detector.exposed: could not connect to host
 detest.org: could not connect to host
-detoxetmoi.com: did not receive HSTS header
 detteflies.com: max-age too low: 7889238
 detutorial.com: max-age too low: 36000
+deux.solutions: could not connect to host
 deuxsol.co: could not connect to host
+deuxsol.com: could not connect to host
+deuxsolutions.com: could not connect to host
 deuxvia.com: could not connect to host
 dev: could not connect to host
 dev-aegon.azurewebsites.net: did not receive HSTS header
 dev-bluep.pantheonsite.io: did not receive HSTS header
 dev-talk.eu: could not connect to host
 devafterdark.com: could not connect to host
+devcu.net: could not connect to host
 develop.fitness: could not connect to host
 developersclub.website: could not connect to host
 developyourelement.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
@@ -2302,9 +2307,9 @@ devnull.team: could not connect to host
 devopps.me: did not receive HSTS header
 devops.moe: could not connect to host
 devopsconnected.com: could not connect to host
-devpsy.info: could not connect to host
 devtub.com: did not receive HSTS header
 devuan.org: did not receive HSTS header
+dewebwerf.nl: did not receive HSTS header
 dewin.io: could not connect to host
 dfnet.ml: did not receive HSTS header
 dfrance.com.br: could not connect to host
@@ -2344,6 +2349,7 @@ digired.xyz: could not connect to host
 digitalbank.kz: could not connect to host
 digitaldaddy.net: could not connect to host
 digitalero.rip: did not receive HSTS header
+digitalhurricane.io: could not connect to host
 digitaljungle.net: could not connect to host
 digitalnonplus.com: could not connect to host
 digitalquery.com: did not receive HSTS header
@@ -2387,7 +2393,6 @@ ditch.ch: could not connect to host
 ditrutoancau.vn: could not connect to host
 dittvertshus.no: could not connect to host
 diva-ey.com: could not connect to host
-diversity-spielzeug.de: could not connect to host
 divvymonkey.com: did not receive HSTS header
 divvyradio.com: did not receive HSTS header
 dixiediner.com: did not receive HSTS header
@@ -2496,7 +2501,6 @@ drainagebuizen.nl: did not receive HSTS header
 drakefortreasurer.sexy: could not connect to host
 drakenson.de: did not receive HSTS header
 dralexjimenez.com: did not receive HSTS header
-dranek.com: could not connect to host
 drastosasports.com.br: could not connect to host
 drawvesly.ovh: did not receive HSTS header
 drdevil.ru: could not connect to host
@@ -2559,15 +2563,15 @@ duerls.de: did not receive HSTS header
 duesee.org: could not connect to host
 dukec.me: did not receive HSTS header
 duks.com.br: could not connect to host
-dullsir.com: did not receive HSTS header
+dullsir.com: could not connect to host
 dune.io: did not receive HSTS header
+dunea.nl: did not receive HSTS header
 dungi.org: could not connect to host
 duo.money: could not connect to host
 duole30.com: did not receive HSTS header
 duongpho.com: did not receive HSTS header
 durangoenergyllc.com: could not connect to host
 duskopy.top: could not connect to host
-dutchessuganda.com: did not receive HSTS header
 dutchrank.com: did not receive HSTS header
 duuu.ch: could not connect to host
 dwhd.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
@@ -2577,9 +2581,8 @@ dycontrol.de: could not connect to host
 dylanscott.com.au: did not receive HSTS header
 dymersion.com: did not receive HSTS header
 dynamic-innovations.net: could not connect to host
-dynamize.solutions: could not connect to host
+dynamize.solutions: did not receive HSTS header
 dyrkar.com: did not receive HSTS header
-dyz.pw: could not connect to host
 dzimejl.sk: did not receive HSTS header
 dzlibs.io: could not connect to host
 e-aut.net: could not connect to host
@@ -2693,7 +2696,6 @@ eigo.work: could not connect to host
 einhorn.space: could not connect to host
 einsatzstiefel.info: could not connect to host
 ekbanden.nl: could not connect to host
-ekong366.com: could not connect to host
 eksik.com: did not receive HSTS header
 el-soul.com: did not receive HSTS header
 elaintehtaat.fi: could not connect to host
@@ -2705,7 +2707,6 @@ elastic7.uk: could not connect to host
 elbetech.net: could not connect to host
 elblein.de: did not receive HSTS header
 eldisagjapi.com: could not connect to host
-electricalcontrolpanels.co.uk: could not connect to host
 electricant.com: did not receive HSTS header
 electricant.nl: did not receive HSTS header
 electricianforum.co.uk: did not receive HSTS header
@@ -2724,6 +2725,7 @@ elgacien.de: could not connect to host
 elglobo.com.mx: max-age too low: 86400
 elia.cloud: could not connect to host
 elimdengelen.com: did not receive HSTS header
+eliott.be: could not connect to host
 elite-porno.ru: could not connect to host
 elitecovering.fr: did not receive HSTS header
 elitefishtank.com: could not connect to host
@@ -2742,6 +2744,7 @@ email.lookout.com: could not connect to host
 email2rss.net: could not connect to host
 emanatepixels.com: could not connect to host
 emanga.su: could not connect to host
+embox.net: could not connect to host
 embroidered-stuff.com: could not connect to host
 emeldi-commerce.com: max-age too low: 0
 emesolutions.net: did not receive HSTS header
@@ -2760,6 +2763,7 @@ employeestore.org: did not receive HSTS header
 employer.gov: could not connect to host
 empty-r.com: could not connect to host
 emptypath.com: did not receive HSTS header
+emrenovation.com: could not connect to host
 enaah.de: did not receive HSTS header
 enaia.fr: did not receive HSTS header
 encode.space: could not connect to host
@@ -2797,6 +2801,7 @@ enum.eu.org: could not connect to host
 enumify.com: could not connect to host
 enviapresentes.com.br: could not connect to host
 envygeeks.com: could not connect to host
+envygeeks.io: could not connect to host
 eol34.com: could not connect to host
 eoldb.org: could not connect to host
 epanurse.com: could not connect to host
@@ -2814,7 +2819,6 @@ equityflows.com: did not receive HSTS header
 er-music.com: could not connect to host
 erawanarifnugroho.com: could not connect to host
 eressea.xyz: could not connect to host
-erethon.com: could not connect to host
 ergorium.com: max-age too low: 0
 ergorium.eu: max-age too low: 0
 ericbond.net: could not connect to host
@@ -2881,10 +2885,10 @@ etproxy.tech: could not connect to host
 etrker.com: did not receive HSTS header
 ets2mp.de: did not receive HSTS header
 etsysecure.com: could not connect to host
+ettebiz.com: did not receive HSTS header
 etula.ga: could not connect to host
 etula.me: could not connect to host
 euanbaines.com: did not receive HSTS header
-euchre.us: could not connect to host
 eucl3d.com: did not receive HSTS header
 euclideanpostulates.xyz: could not connect to host
 eucollegetours.com: could not connect to host
@@ -2912,6 +2916,7 @@ everytrycounts.gov: could not connect to host
 eveseat.net: could not connect to host
 eveshaiwu.com: could not connect to host
 evi.be: did not receive HSTS header
+evileden.com: could not connect to host
 evilsay.com: could not connect to host
 evin.ml: could not connect to host
 evio.com: could not connect to host
@@ -2931,7 +2936,6 @@ exo.do: could not connect to host
 exousiakaidunamis.xyz: could not connect to host
 expertmile.com: did not receive HSTS header
 exploit-db.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
-exploravacations.in: did not receive HSTS header
 expo-designers.com: did not receive HSTS header
 expressfinance.co.za: did not receive HSTS header
 extrathemeshowcase.net: could not connect to host
@@ -2945,6 +2949,7 @@ eyasc.nl: could not connect to host
 eye-carat.com: did not receive HSTS header
 eyedarts.com: did not receive HSTS header
 eyeglassuniverse.com: did not receive HSTS header
+eyes-of-universe.eu: did not receive HSTS header
 eyesoccer-didikh.rhcloud.com: could not connect to host
 eyesonly.cc: did not receive HSTS header
 eytosh.net: could not connect to host
@@ -3006,10 +3011,9 @@ fantasyfootballpundit.com: did not receive HSTS header
 fanyl.cn: could not connect to host
 farces.com: did not receive HSTS header
 faretravel.co.uk: could not connect to host
-farkas.bz: could not connect to host
+farid.is: could not connect to host
 farm24.co.uk: could not connect to host
 farmaciaformula.com.br: could not connect to host
-farsil.eu: could not connect to host
 farwat.ru: did not receive HSTS header
 fashion.net: did not receive HSTS header
 fashioncare.cz: did not receive HSTS header
@@ -3026,11 +3030,10 @@ fastworx.com: could not connect to host
 fatgeekflix.net: could not connect to host
 fatherhood.gov: did not receive HSTS header
 fatlossguide.xyz: could not connect to host
-fator25.com.br: did not receive HSTS header
+fator25.com.br: could not connect to host
 fatwin.pw: could not connect to host
 fatzebra.com.au: max-age too low: 0
 fayolle.info: did not receive HSTS header
-fbi.pw: could not connect to host
 fbox.li: could not connect to host
 fcsic.gov: max-age too low: 2592000
 fdj.im: could not connect to host
@@ -3077,6 +3080,7 @@ ficklenote.net: could not connect to host
 fics-twosigma.com: could not connect to host
 fideleslaici.com: did not receive HSTS header
 fiendishmasterplan.com: did not receive HSTS header
+fierman.net: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 fifieldtech.com: could not connect to host
 fiftyshadesofluca.ml: could not connect to host
 fig.co: did not receive HSTS header
@@ -3116,7 +3120,6 @@ fireorbit.de: did not receive HSTS header
 firexarxa.de: could not connect to host
 firmament.space: could not connect to host
 firmenverzeichnis.nu: could not connect to host
-first4it.com: could not connect to host
 firstdogonthemoon.com.au: did not receive HSTS header
 firstforex.co.uk: did not receive HSTS header
 firstlook.org: did not receive HSTS header
@@ -3133,6 +3136,7 @@ fivestepfunnels.com: could not connect to host
 fivezerocreative.com: did not receive HSTS header
 fix-the-timeline.com: could not connect to host
 fix-the-timeline.org: could not connect to host
+fixate.ru: could not connect to host
 fixico-staging.nl: could not connect to host
 fixingdns.com: could not connect to host
 fixmyglitch.com: could not connect to host
@@ -3154,6 +3158,7 @@ fl0999.com: did not receive HSTS header
 flags.ninja: could not connect to host
 flairbros.at: could not connect to host
 flajshans.cz: did not receive HSTS header
+flam.io: could not connect to host
 flamewall.net: could not connect to host
 flamingkeys.com.au: could not connect to host
 flareon.net: could not connect to host
@@ -3170,7 +3175,6 @@ floorball-haunwoehr.de: did not receive HSTS header
 florafiora.com.br: did not receive HSTS header
 florian-lillpopp.de: max-age too low: 10
 florianlillpopp.de: max-age too low: 10
-floriantanner.ch: could not connect to host
 floridaescapes.co.uk: did not receive HSTS header
 flouartistique.ch: could not connect to host
 flow.pe: could not connect to host
@@ -3182,7 +3186,6 @@ fluidojobs.com: could not connect to host
 flukethoughts.com: could not connect to host
 flurrybridge.com: did not receive HSTS header
 flushstudios.com: did not receive HSTS header
-fluxfingers.net: did not receive HSTS header
 flyaces.com: could not connect to host
 flygpost.com: could not connect to host
 flyingdoggy.net: could not connect to host
@@ -3203,6 +3206,7 @@ foodies.my: did not receive HSTS header
 foodievenues.com: could not connect to host
 foodplantengineering.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 foodsafetyworkinggroup.gov: could not connect to host
+fooishbar.org: could not connect to host
 footballmapped.com: could not connect to host
 footlegende.fr: did not receive HSTS header
 forafifty.co.za: could not connect to host
@@ -3216,6 +3220,7 @@ forestfinance.fr: did not receive HSTS header
 foreveralone.io: could not connect to host
 forewordreviews.com: did not receive HSTS header
 forex-dan.com: did not receive HSTS header
+forextimes.ru: could not connect to host
 forgix.com: could not connect to host
 formazioneopen.it: could not connect to host
 formersessalaries.com: could not connect to host
@@ -3259,6 +3264,7 @@ franzt.ovh: could not connect to host
 frasesdeamizade.pt: could not connect to host
 frasys.io: did not receive HSTS header
 fraudempire.com: could not connect to host
+frebib.net: could not connect to host
 fredliang.cn: could not connect to host
 fredtec.ru: could not connect to host
 freeflow.tv: could not connect to host
@@ -3309,7 +3315,6 @@ fstfy.de: could not connect to host
 ftctele.com: could not connect to host
 fteproxy.org: did not receive HSTS header
 ftpi.ml: could not connect to host
-fuchsy.com: could not connect to host
 fuckbilibili.com: could not connect to host
 fuckcf.cf: could not connect to host
 fuckgfw233.org: could not connect to host
@@ -3343,6 +3348,7 @@ futurestarsusa.org: did not receive HSTS header
 futuretechnologi.es: could not connect to host
 futureyouhealth.com: did not receive HSTS header
 fuvpn.com: could not connect to host
+fuwafuwa.moe: could not connect to host
 fws.gov: did not receive HSTS header
 fx-rk.com: did not receive HSTS header
 fyfywka.com: max-age too low: 86400
@@ -3361,7 +3367,6 @@ g4w.co: could not connect to host (error ignored - included regardless)
 g5led.nl: could not connect to host
 g77.ca: could not connect to host
 gabber.scot: could not connect to host
-gabethebabetv.com: could not connect to host
 gabi.com.es: could not connect to host
 gabi.soy: did not receive HSTS header
 gabi.uno: could not connect to host
@@ -3411,7 +3416,7 @@ gamesurferapp.com: could not connect to host
 gameswitchers.uk: could not connect to host
 gametium.com: could not connect to host
 gametium.es: could not connect to host
-gamingmedia.eu: did not receive HSTS header
+gamingmedia.eu: could not connect to host
 gamishou.fr: could not connect to host
 gamoice.com: did not receive HSTS header
 gampenhof.de: did not receive HSTS header
@@ -3419,7 +3424,6 @@ garageon.net: did not receive HSTS header
 garciamartin.me: could not connect to host
 garcinia--cambogia.com: could not connect to host
 garden.trade: could not connect to host
-garedtech.com: did not receive HSTS header
 gasbarkenora.com: could not connect to host
 gasnews.net: could not connect to host
 gasser-daniel.ch: did not receive HSTS header
@@ -3448,6 +3452,7 @@ geemo.top: could not connect to host
 gehrke.nrw: could not connect to host
 geigr.de: could not connect to host
 geli-graphics.com: did not receive HSTS header
+gemeentemolenwaard.nl: could not connect to host
 gemsoftheworld.org: could not connect to host
 gemuplay.com: could not connect to host
 generationnext.pl: could not connect to host
@@ -3522,7 +3527,6 @@ gfm.tech: could not connect to host
 gfoss.gr: could not connect to host
 gfournier.ca: could not connect to host
 gfwsb.ml: could not connect to host
-gfxbench.com: could not connect to host
 gglks.com: could not connect to host
 ggrks-asano.com: could not connect to host
 ggss.cf: could not connect to host
@@ -3532,7 +3536,6 @@ gheorghesarcov.ga: could not connect to host
 gheorghesarcov.tk: could not connect to host
 ghi.gov: could not connect to host
 ghkim.net: could not connect to host
-ghostblog.info: could not connect to host
 giakki.eu: could not connect to host
 gianlucapartengo.photography: did not receive HSTS header
 gibraltar-firma.com: did not receive HSTS header
@@ -3568,6 +3571,7 @@ glasner.photo: could not connect to host
 glass.google.com: did not receive HSTS header (error ignored - included regardless)
 glasslikes.com: did not receive HSTS header
 glentakahashi.com: could not connect to host
+glittersjabloon.nl: did not receive HSTS header
 glitzmirror.com: could not connect to host
 global-adult-webcams.com: did not receive HSTS header
 globalado.com: could not connect to host
@@ -3585,7 +3589,9 @@ glws.org: did not receive HSTS header
 gm-assicurazioni.it: could not connect to host
 gmail.com: did not receive HSTS header (error ignored - included regardless)
 gmantra.org: could not connect to host
+gmanukyan.com: could not connect to host
 gmat.ovh: could not connect to host
+gmind.ovh: could not connect to host
 gmoes.at: max-age too low: 600000
 gnom.me: could not connect to host
 go.ax: did not receive HSTS header
@@ -3631,7 +3637,7 @@ goozz.nl: did not receive HSTS header
 gopay.cz: did not receive HSTS header
 gopokego.cz: could not connect to host
 goranrango.ch: could not connect to host
-gorgiaxx.com: could not connect to host
+gorgiaxx.com: did not receive HSTS header
 gorilla-gym.site: could not connect to host
 gorillow.com: could not connect to host
 gosharewood.com: did not receive HSTS header
@@ -3646,6 +3652,7 @@ gotowned.org: max-age too low: 0
 gotspot.com: could not connect to host
 gottcode.org: did not receive HSTS header
 gottfridsberg.org: could not connect to host
+gourmettia.com: did not receive HSTS header
 gouv.ovh: did not receive HSTS header
 gov.ax: could not connect to host
 goverage.org: did not receive HSTS header
@@ -3657,6 +3664,7 @@ gpo.gov: did not receive HSTS header
 gpstuner.com: did not receive HSTS header
 graavaapi.elasticbeanstalk.com: could not connect to host
 gracebaking.com: max-age too low: 86400
+gracechurchpc.net: did not receive HSTS header
 gracesofgrief.com: could not connect to host
 grachtenpandverkopen.nl: could not connect to host
 gradsm-ci.net: could not connect to host
@@ -3746,6 +3754,7 @@ guguke.net: did not receive HSTS header
 guilde-vindicta.fr: did not receive HSTS header
 guillaume-leduc.fr: did not receive HSTS header
 guillaumematheron.fr: did not receive HSTS header
+guillaumeperrin.io: could not connect to host
 guineafruitcorp.com: could not connect to host
 gulch.in.ua: did not receive HSTS header
 gulenet.com: could not connect to host
@@ -3763,6 +3772,7 @@ guso.ml: could not connect to host
 guso.site: could not connect to host
 guso.tech: could not connect to host
 gussi.is: did not receive HSTS header
+gvchannel.xyz: could not connect to host
 gvpt.sk: did not receive HSTS header
 gvt2.com: could not connect to host (error ignored - included regardless)
 gvt3.com: could not connect to host (error ignored - included regardless)
@@ -3775,6 +3785,7 @@ gyboche.com: could not connect to host
 gyboche.science: could not connect to host
 gycis.me: could not connect to host
 gylauto.fr: could not connect to host
+gym-old.de: max-age too low: 0
 gypthecat.com: did not receive HSTS header
 gyz.io: could not connect to host
 h-og.com: could not connect to host
@@ -3785,6 +3796,7 @@ h3artbl33d.nl: could not connect to host
 haarkliniek.com: did not receive HSTS header
 habbo.life: did not receive HSTS header
 habbotalk.nl: could not connect to host
+habeo.si: could not connect to host
 hablemosdetecnologia.com.ve: could not connect to host
 hac30.com: could not connect to host
 hack.cz: could not connect to host
@@ -3818,6 +3830,7 @@ haku.moe: could not connect to host
 hakugin.me: could not connect to host
 hakugin.org: could not connect to host
 halcyonsbastion.com: could not connect to host
+halkyon.net: could not connect to host
 halo.red: could not connect to host
 halyul.cc: did not receive HSTS header
 halyul.com: did not receive HSTS header
@@ -3846,19 +3859,17 @@ haomwei.com: could not connect to host
 haoyugao.com: could not connect to host
 haozi.me: could not connect to host
 hapijs.cn: could not connect to host
-hapissl.com: could not connect to host
-hapivm.com: could not connect to host
 happix.nl: did not receive HSTS header
 happycoder.net: did not receive HSTS header
 happyfabric.me: did not receive HSTS header
 happygastro.com: could not connect to host
-hapvm.com: could not connect to host
 harambe.site: could not connect to host
 harbourweb.net: did not receive HSTS header
 hardline.xyz: could not connect to host
 haribosupermix.com: could not connect to host
 harisht.me: could not connect to host
 harlentimberproducts.co.uk: did not receive HSTS header
+harmfarm.nl: could not connect to host
 harmonycosmetic.com: max-age too low: 300
 harristony.com: could not connect to host
 harrypottereditor.net: could not connect to host
@@ -3874,7 +3885,7 @@ hash-list.com: could not connect to host
 hashnode.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 hashplex.com: could not connect to host
 hasilocke.de: did not receive HSTS header
-hasinase.de: did not receive HSTS header
+hasinase.de: could not connect to host
 haste.ch: could not connect to host
 hastherebeenamassshooting.today: could not connect to host
 hatoko.net: could not connect to host
@@ -3934,13 +3945,11 @@ heavystresser.com: could not connect to host
 hebaus.com: could not connect to host
 heidilein.info: did not receive HSTS header
 heimnetze.org: could not connect to host
-heimonen.eu: did not receive HSTS header
 heisenberg.co: could not connect to host
 hejsupport.se: could not connect to host
 helencrump.co.uk: did not receive HSTS header
 helgakristoffer.com: could not connect to host
 helgakristoffer.wedding: could not connect to host
-hell.sh: could not connect to host
 hellofilters.com: could not connect to host
 hellomouse.tk: could not connect to host
 helloworldhost.com: did not receive HSTS header
@@ -3980,11 +3989,6 @@ heyguevara.com: could not connect to host
 heywoodtown.co.uk: did not receive HSTS header
 hfcbank.com.gh: did not receive HSTS header
 hfi.me: could not connect to host
-hg71805.com: could not connect to host
-hg71813.com: could not connect to host
-hg71833.com: could not connect to host
-hg71851.com: could not connect to host
-hg71857.com: could not connect to host
 hg881.com: could not connect to host
 hibilog.com: could not connect to host
 hicn.gq: could not connect to host
@@ -4049,8 +4053,8 @@ homedna.com: did not receive HSTS header
 homeexx.com: did not receive HSTS header
 homeownersassociationmanagementla.com: did not receive HSTS header
 homeseller.co.uk: could not connect to host
-hometownmall.com: did not receive HSTS header
-homeyantra.com: max-age too low: 86400
+hometownmall.com: max-age too low: 0
+homeyantra.com: did not receive HSTS header
 honeytracks.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 hong.io: could not connect to host
 hongyd.online: could not connect to host
@@ -4060,7 +4064,6 @@ hoodoo.io: could not connect to host
 hoodoo.tech: could not connect to host
 hookandloom.com: did not receive HSTS header
 hoopsacademyusa.com: could not connect to host
-hooray.beer: could not connect to host
 hoovism.com: did not receive HSTS header
 hoowhen.cn: could not connect to host
 hopglass.eu: could not connect to host
@@ -4109,7 +4112,6 @@ hsir.me: could not connect to host
 hsts.com.br: could not connect to host
 hsts.date: could not connect to host
 hszhyy120.com: could not connect to host
-htaccessbook.com: did not receive HSTS header
 html-lab.tk: could not connect to host
 http418.xyz: could not connect to host
 httphacker.com: could not connect to host
@@ -4118,7 +4120,6 @@ httpstatuscode418.xyz: could not connect to host
 huangh.com: could not connect to host
 huarongdao.com: did not receive HSTS header
 hubert.systems: did not receive HSTS header
-hudrydum.cz: could not connect to host
 hugocollignon.fr: could not connect to host
 huiser.nl: could not connect to host
 hukkatavara.com: could not connect to host
@@ -4137,7 +4138,6 @@ huren.nl: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_F
 huskybutt.dog: could not connect to host
 huwjones.me: could not connect to host
 huzu.com: did not receive HSTS header
-hwaddress.com: could not connect to host
 hyakumachi.com: did not receive HSTS header
 hyatt.com: did not receive HSTS header
 hydra.ws: could not connect to host
@@ -4228,7 +4228,6 @@ igd.chat: did not receive HSTS header
 igforums.com: could not connect to host
 igiftcards.nl: did not receive HSTS header
 ignatisd.gr: did not receive HSTS header
-iguana.com.ec: did not receive HSTS header
 igule.net: could not connect to host
 ihotel.io: did not receive HSTS header
 ihrlotto.de: could not connect to host
@@ -4254,8 +4253,9 @@ ilikfreshweedstores.com: did not receive HSTS header
 ilmconpm.de: could not connect to host
 ilona.graphics: did not receive HSTS header
 iluvscotland.co.uk: max-age too low: 7889238
+ilya.pp.ua: could not connect to host
+image.tf: could not connect to host
 imakepoems.net: could not connect to host
-imarkethost.co.uk: did not receive HSTS header
 ime.moe: could not connect to host
 imed.com.pt: did not receive HSTS header
 imed.pt: did not receive HSTS header
@@ -4363,7 +4363,6 @@ instant-hack.com: did not receive HSTS header
 instantdev.io: could not connect to host
 instaquiz.ru: could not connect to host
 instasex.ch: could not connect to host
-institutmaupertuis.hopto.org: could not connect to host
 institutoflordelavida.com: could not connect to host
 instruktor.io: could not connect to host
 insurance321.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
@@ -4403,7 +4402,6 @@ investor.gov: did not receive HSTS header
 investorloanshub.com: could not connect to host
 invictusmc.uk: could not connect to host
 inviosolutions.com: max-age too low: 0
-invisible-college.com: could not connect to host
 invite24.pro: could not connect to host
 iolife.dk: could not connect to host
 ionas-law.ro: did not receive HSTS header
@@ -4458,6 +4456,7 @@ iseulde.com: did not receive HSTS header
 ishadowsocks.ltd: could not connect to host
 ishangirdhar.com: could not connect to host
 ishillaryclintoninprisonyet.com: could not connect to host
+isisfighters.info: could not connect to host
 isitamor.pm: could not connect to host
 iskai.net: did not receive HSTS header
 iskaz.rs: did not receive HSTS header
@@ -4496,6 +4495,7 @@ itsatrap.nl: could not connect to host
 itsecurityassurance.pw: could not connect to host
 itsg-faq.de: could not connect to host
 itshost.ru: could not connect to host
+itspawned.com: could not connect to host
 itu2015.de: could not connect to host
 ius.io: did not receive HSTS header
 iuscommunity.org: did not receive HSTS header
@@ -4520,7 +4520,6 @@ j-rickroll-a.pw: could not connect to host
 j0ng.xyz: could not connect to host
 ja-publications.com: did not receive HSTS header
 jaan.su: could not connect to host
-jaaxypro.com: could not connect to host
 jackalworks.com: could not connect to host
 jackdoan.com: did not receive HSTS header
 jackfahnestock.com: could not connect to host
@@ -4551,6 +4550,7 @@ jamesforman.co.nz: did not receive HSTS header
 jameshale.me: did not receive HSTS header
 jamesheald.com: could not connect to host
 jamesmaurer.com: did not receive HSTS header
+jamesmorrison.me: did not receive HSTS header
 jami.am: could not connect to host
 jamourtney.com: could not connect to host
 jan-cermak.cz: did not receive HSTS header
@@ -4570,7 +4570,6 @@ jaqen.ch: could not connect to host
 jardins-utopie.net: could not connect to host
 jaredbates.net: did not receive HSTS header
 jaredfraser.com: could not connect to host
-jarnail.ca: did not receive HSTS header
 jaroslavtrsek.cz: did not receive HSTS header
 jarsater.com: could not connect to host
 jartza.org: could not connect to host
@@ -4662,6 +4661,8 @@ jirav.io: could not connect to host
 jisaku-homepage.com: did not receive HSTS header
 jitsi.org: did not receive HSTS header
 jiyue.com: did not receive HSTS header
+jjf.org.au: did not receive HSTS header
+jka.io: did not receive HSTS header
 jkb.pics: could not connect to host
 jkbuster.com: could not connect to host
 jkng.eu: could not connect to host
@@ -4702,7 +4703,6 @@ jondarby.com: did not receive HSTS header
 jongha.me: could not connect to host
 jonn.me: could not connect to host
 jonnichols.info: did not receive HSTS header
-jonpads.com: could not connect to host
 jonsno.ws: could not connect to host
 joostbovee.nl: did not receive HSTS header
 jordanstrustcompany.cn: could not connect to host
@@ -4843,7 +4843,6 @@ kawaiiku.de: could not connect to host
 kayipmurekkep.com: could not connect to host
 kayscs.com: could not connect to host
 kcluster.io: could not connect to host
-kcptun.com: could not connect to host
 kd-plus.pp.ua: could not connect to host
 kdata.it: did not receive HSTS header
 kdbx.online: could not connect to host
@@ -4860,7 +4859,7 @@ kefaloniatoday.com: did not receive HSTS header
 kelm.me: could not connect to host
 kenkoelectric.com: did not receive HSTS header
 kentacademiestrust.org.uk: did not receive HSTS header
-kenvix.com: did not receive HSTS header
+kenvix.com: could not connect to host
 kerangalam.com: did not receive HSTS header
 kerksanders.nl: did not receive HSTS header
 kermadec.blog: could not connect to host
@@ -4869,6 +4868,7 @@ kernl.us: did not receive HSTS header
 keskeces.com: did not receive HSTS header
 kevindekoninck.com: could not connect to host
 keymaster.lookout.com: did not receive HSTS header
+keyserver.sexy: could not connect to host
 kfbrussels.be: could not connect to host
 kg-rating.com: could not connect to host
 kgb.us: could not connect to host
@@ -4887,6 +4887,7 @@ kiedys.net: could not connect to host
 kiel-media.de: did not receive HSTS header
 kieranjones.uk: did not receive HSTS header
 kieranweightman.me: could not connect to host
+kievradio.com: could not connect to host
 kimana.pe: could not connect to host
 kimberg.co.uk: could not connect to host
 kimpost.org: could not connect to host
@@ -4896,11 +4897,11 @@ kinderwagen-test24.de: could not connect to host
 kindlyfire.com: could not connect to host
 kindof.ninja: could not connect to host
 kinepolis-studio.ga: could not connect to host
+kingbird.me: could not connect to host
 kingclass.cn: could not connect to host
 kingmanhall.org: could not connect to host
 kingopen.cn: max-age too low: 0
 kinkdr.com: could not connect to host
-kinnikinnick.com: could not connect to host
 kinniyaonlus.com: did not receive HSTS header
 kinnon.enterprises: could not connect to host
 kintoandar.com: max-age too low: 0
@@ -4945,6 +4946,7 @@ klaxn.org: could not connect to host
 klean-ritekc.com: did not receive HSTS header
 kleertjesvoordelig.nl: could not connect to host
 kleinerarchitekturfuehrer.de: could not connect to host
+klempnershop.eu: did not receive HSTS header
 kleppe.co: could not connect to host
 kletterkater.com: did not receive HSTS header
 klicktojob.de: could not connect to host
@@ -4953,7 +4955,6 @@ kloentrup.de: max-age too low: 604800
 klunkergarten.org: could not connect to host
 knapen.io: max-age too low: 604800
 knccloud.com: could not connect to host
-kngk-transavto.ru: could not connect to host
 knigadel.com: did not receive HSTS header
 knightsbridgegroup.org: could not connect to host
 knightsweep.com: could not connect to host
@@ -4973,7 +4974,6 @@ koenvdheuvel.me: did not receive HSTS header
 koerperimpuls.ch: did not receive HSTS header
 koik.io: could not connect to host
 kojima-life.co.jp: max-age too low: 0
-kojipkgs.fedoraproject.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 kokenmetaanbiedingen.nl: could not connect to host
 kola-entertainments.de: did not receive HSTS header
 kolaykaydet.com: did not receive HSTS header
@@ -4994,9 +4994,9 @@ kori.ml: did not receive HSTS header
 koriyoukai.net: did not receive HSTS header
 kornersafe.com: did not receive HSTS header
 korni22.org: did not receive HSTS header
-korobi.io: could not connect to host
 korsanparti.org: could not connect to host
 kostuumstore.nl: could not connect to host
+kotausaha.com: could not connect to host
 kotois.com: could not connect to host
 kotonehoko.net: could not connect to host
 kotorimusic.ga: could not connect to host
@@ -5043,6 +5043,7 @@ kucom.it: could not connect to host
 kudo.co.id: did not receive HSTS header
 kuechenplan.online: could not connect to host
 kueulangtahunanak.net: could not connect to host
+kuko-crews.org: could not connect to host
 kum.com: could not connect to host
 kummerlaender.eu: did not receive HSTS header
 kupelne-ptacek.sk: could not connect to host
@@ -5086,6 +5087,7 @@ labs.directory: could not connect to host
 labs.moscow: did not receive HSTS header
 lacarpesaintaubinoise.fr: did not receive HSTS header
 lacasa.fr: could not connect to host
+lacasabelucci.com: could not connect to host
 lacasseroy.com: could not connect to host
 lacaverne.nl: could not connect to host
 lacentral.com: did not receive HSTS header
@@ -5114,6 +5116,7 @@ lanboll.com: could not connect to host
 lancehoteis.com: did not receive HSTS header
 lancehoteis.com.br: did not receive HSTS header
 land-links.org: did not receive HSTS header
+landell.ml: could not connect to host
 landgoedverkopen.nl: could not connect to host
 landhuisverkopen.nl: could not connect to host
 landinfo.no: max-age too low: 86400
@@ -5195,6 +5198,7 @@ lennartheinrich.de: could not connect to host
 lenovogaming.com: could not connect to host
 lentri.com: did not receive HSTS header
 leob.in: could not connect to host
+leolana.com: could not connect to host
 leon-jaekel.com: could not connect to host
 leonardcamacho.me: could not connect to host
 leonhooijer.nl: could not connect to host
@@ -5226,7 +5230,6 @@ level-10.net: did not receive HSTS header
 levelum.com: did not receive HSTS header
 leveredge.net: could not connect to host
 levert.ch: could not connect to host
-lewisjuggins.co.uk: did not receive HSTS header
 lexpierce.social: could not connect to host
 lez-cuties.com: could not connect to host
 lezdomsm.com: could not connect to host
@@ -5246,6 +5249,7 @@ liamjack.fr: could not connect to host
 lianye.in: could not connect to host
 lianyexiuchang.in: could not connect to host
 liaoshuma.com: could not connect to host
+liautard.fr: could not connect to host
 libanco.com: could not connect to host
 libertas-tech.com: could not connect to host
 libertyrp.org: did not receive HSTS header
@@ -5313,7 +5317,7 @@ linuxforyou.com: could not connect to host
 linuxgeek.ro: could not connect to host
 linuxmint.cz: could not connect to host
 linuxmonitoring.net: did not receive HSTS header
-lipo.lol: could not connect to host
+lipo.lol: did not receive HSTS header
 liquid.solutions: did not receive HSTS header
 liquorsanthe.in: could not connect to host
 lisaco.de: could not connect to host
@@ -5333,7 +5337,6 @@ livedemo.io: could not connect to host
 livej.am: could not connect to host
 liverewrite.com: could not connect to host
 liviababynet.com.br: could not connect to host
-livnev.me: could not connect to host
 livrariahugodesaovitor.com.br: did not receive HSTS header
 lixiang.one: could not connect to host
 lixingcong.com: could not connect to host
@@ -5402,6 +5405,7 @@ lothuytinhsi.com: could not connect to host
 lotos-ag.ch: did not receive HSTS header
 lotsencafe.de: did not receive HSTS header
 lotuscloud.org: could not connect to host
+lotz.li: did not receive HSTS header
 louiewatch.com: could not connect to host
 loveable.de: could not connect to host
 loveandloyalty.se: could not connect to host
@@ -5409,6 +5413,7 @@ lovelifelovelive.com: could not connect to host
 lovelyblogacademy.com: did not receive HSTS header
 lovelycorral.com: did not receive HSTS header
 lovelyfriends.org: did not receive HSTS header
+lovemomiji.com: did not receive HSTS header
 loveto.at: could not connect to host
 lovingearth.net: max-age too low: 0
 lowhangingfruitgrabber.com: could not connect to host
@@ -5489,13 +5494,14 @@ macdj.tk: could not connect to host
 macedopesca.com.br: did not receive HSTS header
 macgeneral.de: did not receive HSTS header
 mach1club.com: did not receive HSTS header
+machbach.net: could not connect to host
 macsandcheesedreams.com: could not connect to host
 macustar.eu: could not connect to host
 madars.org: did not receive HSTS header
 maddin.ga: could not connect to host
 madebyfalcon.co.uk: did not receive HSTS header
 madebymagnitude.com: did not receive HSTS header
-madeinorder.com: did not receive HSTS header
+madeinorder.com: could not connect to host
 madeintucson.org: could not connect to host
 mademoiselle-emma.be: did not receive HSTS header
 mademoiselle-emma.fr: did not receive HSTS header
@@ -5503,6 +5509,7 @@ maderwin.com: did not receive HSTS header
 madesoftware.com.br: did not receive HSTS header
 mafamane.com: could not connect to host
 mafiareturns.com: max-age too low: 2592000
+magazin3513.com: did not receive HSTS header
 magenx.com: did not receive HSTS header
 magia360.com: did not receive HSTS header
 magnacumlaude.co: could not connect to host
@@ -5537,6 +5544,7 @@ malesbdsm.com: could not connect to host
 malfait.nl: could not connect to host
 malgraph.net: could not connect to host
 maljaars-media.nl: could not connect to host
+mallach.net: could not connect to host
 malmstroms-co.se: could not connect to host
 maltes.website: could not connect to host
 malwaretips.com: did not receive HSTS header
@@ -5557,7 +5565,7 @@ manageforall.com: could not connect to host
 manageforall.de: could not connect to host
 managemynetsuite.com: did not receive HSTS header
 manageprojects.com: did not receive HSTS header
-manantial.mx: could not connect to host
+manantial.mx: did not receive HSTS header
 mandpress.com: did not receive HSTS header
 mangazuki.co: did not receive HSTS header
 maniadeprazer.com.br: could not connect to host
@@ -5574,10 +5582,12 @@ manududu.com.br: did not receive HSTS header
 maomaofuli.vip: could not connect to host
 maple5.com: did not receive HSTS header
 mapresidentielle.fr: did not receive HSTS header
+marabumadrid.com: did not receive HSTS header
 marbinvest.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 marcelmarnitz.com: could not connect to host
 marcelparra.com: could not connect to host
 marchagen.nl: did not receive HSTS header
+marche-nordic-jorat.ch: could not connect to host
 marco01809.net: could not connect to host
 marcoececilia.it: did not receive HSTS header
 marcofinke.de: could not connect to host
@@ -5607,6 +5617,7 @@ markrobin.de: did not receive HSTS header
 marksill.com: could not connect to host
 marktboten.de: did not receive HSTS header
 markus-dev.com: did not receive HSTS header
+markusabraham.com: did not receive HSTS header
 markusweimar.de: did not receive HSTS header
 marleyresort.com: did not receive HSTS header
 marriottvetcareers.com: could not connect to host
@@ -5685,7 +5696,6 @@ maxserver.com: did not receive HSTS header
 maxtruxa.com: could not connect to host
 maya.mg: could not connect to host
 maynardnetworks.com: could not connect to host
-mazurlabs.tk: did not receive HSTS header
 mazyun.com: max-age too low: 3600
 mazz-tech.com: could not connect to host
 mbconsultancy.nu: did not receive HSTS header
@@ -5766,7 +5776,6 @@ memorytrace.space: could not connect to host
 menchez.me: could not connect to host
 menkyo-blog.com: did not receive HSTS header
 mensmaximus.de: did not receive HSTS header
-mentax.net: could not connect to host
 menthix.net: could not connect to host
 menudrivetest.com: could not connect to host
 menzaijia.com: could not connect to host
@@ -5831,7 +5840,6 @@ michiganmetalartwork.com: max-age too low: 7889238
 miconware.de: could not connect to host
 micro-dv.ru: could not connect to host
 micro-rain-systems.com: did not receive HSTS header
-microbiote-insectes-vecteurs.group: could not connect to host
 microme.ga: could not connect to host
 micropple.net: could not connect to host
 microtalk.org: could not connect to host
@@ -5893,6 +5901,7 @@ minecraftforums.ml: could not connect to host
 minecraftserverz.com: could not connect to host
 minecraftvoter.com: could not connect to host
 mineover.es: could not connect to host
+minesouls.fr: did not receive HSTS header
 mingo.nl: max-age too low: 2592000
 mingy.ddns.net: could not connect to host
 minh.at: could not connect to host
@@ -5900,7 +5909,6 @@ mini-piraten.de: did not receive HSTS header
 minikneet.nl: could not connect to host
 minimaliston.com: did not receive HSTS header
 minimoo.se: could not connect to host
-minimvc.com: could not connect to host
 minis-hip.de: max-age too low: 172800
 minitruckin.net: could not connect to host
 minkondom.nu: did not receive HSTS header
@@ -5913,7 +5921,6 @@ mirindadomo.ru: did not receive HSTS header
 mironized.com: did not receive HSTS header
 mirrorx.com: did not receive HSTS header
 misconfigured.io: could not connect to host
-miscreant.me: could not connect to host
 misgluteosperfectos.com: did not receive HSTS header
 misiondelosangeles-mailing.com: did not receive HSTS header
 missrain.tw: could not connect to host
@@ -5923,7 +5930,6 @@ misterl.net: did not receive HSTS header
 mitarbeiter-pc.de: did not receive HSTS header
 mitchellrenouf.ca: could not connect to host
 mitm-software.badssl.com: could not connect to host
-mitsign.com: could not connect to host
 mittenhacks.com: could not connect to host
 mivcon.net: could not connect to host
 miweb.cr: did not receive HSTS header
@@ -5940,9 +5946,9 @@ mlcdn.co: could not connect to host
 mlp.ee: did not receive HSTS header
 mlpchan.net: could not connect to host
 mlpepilepsy.org: could not connect to host
+mm13.at: could not connect to host
 mmgazhomeloans.com: could not connect to host
 mmmm.com: could not connect to host
-mmstick.tk: could not connect to host
 mnemotiv.com: could not connect to host
 mnetworkingsolutions.co.uk: could not connect to host
 mnmt.no: did not receive HSTS header
@@ -6004,6 +6010,8 @@ mondopoint.com: did not receive HSTS header
 mondwandler.de: could not connect to host
 moneromerchant.com: could not connect to host
 moneycrownmedia.com: could not connect to host
+mongla168.net: could not connect to host
+mongla88.net: could not connect to host
 monika-sokol.de: did not receive HSTS header
 monitaure.io: could not connect to host
 monitman.com: did not receive HSTS header
@@ -6072,6 +6080,7 @@ mpkossen.com: did not receive HSTS header
 mpserver12.org: could not connect to host
 mqas.net: could not connect to host
 mr-hosting.com: could not connect to host
+mrafrohead.com: could not connect to host
 mrawe.com: could not connect to host
 mrdani.net: could not connect to host
 mredsanders.net: did not receive HSTS header
@@ -6094,7 +6103,6 @@ mtamaki.com: could not connect to host
 mtdn.jp: could not connect to host
 mtg-esport.de: did not receive HSTS header
 mtn.cc: could not connect to host
-muchohentai.com: did not receive HSTS header
 muevetumundo.com.mx: max-age too low: 86400
 mujadin.se: did not receive HSTS header
 mullen.net.au: did not receive HSTS header
@@ -6140,7 +6148,7 @@ mybudget.xyz: could not connect to host
 mybuilderinlondon.co.uk: did not receive HSTS header
 mybusiness.cm: did not receive HSTS header
 mycamda.com: could not connect to host
-mychocolateweightloss.com: did not receive HSTS header
+mychocolateweightloss.com: could not connect to host
 myclientsplus.com: did not receive HSTS header
 mycollab.net: could not connect to host
 mycoted.com: did not receive HSTS header
@@ -6185,7 +6193,7 @@ mysecretrewards.com: could not connect to host
 myspa.asia: did not receive HSTS header
 mystery-science-theater-3000.de: did not receive HSTS header
 mysteryblog.de: did not receive HSTS header
-mythlogic.com: did not receive HSTS header
+mythlogic.com: could not connect to host
 mythslegendscollection.com: did not receive HSTS header
 mytravelblog.de: could not connect to host
 mytweeps.com: did not receive HSTS header
@@ -6219,6 +6227,7 @@ named.ga: could not connect to host
 nametaken-cloud.duckdns.org: could not connect to host
 namethatbone.com: could not connect to host
 namorico.me: could not connect to host
+nan.ci: did not receive HSTS header
 nan.zone: could not connect to host
 nandex.org: could not connect to host
 naniki.co.uk: did not receive HSTS header
@@ -6238,6 +6247,7 @@ natalia-fadeeva.ru: could not connect to host
 natalia.io: could not connect to host
 natalieandjoshua.com: could not connect to host
 natalt.org: did not receive HSTS header
+natanaelys.com: could not connect to host
 nathanmfarrugia.com: did not receive HSTS header
 nationalmall.gov: could not connect to host
 nationwidevehiclecontracts.co.uk: did not receive HSTS header
@@ -6252,17 +6262,16 @@ naval.tf: could not connect to host
 navjobs.com: did not receive HSTS header
 nba2k.cn: could not connect to host
 nba2k.com.cn: could not connect to host
-nba2k.net: could not connect to host
 nbalive.cn: could not connect to host
 nbb.io: could not connect to host
 nbg-ha.de: could not connect to host
 ncc60205.info: could not connect to host
 ncdesigns-studio.com: could not connect to host
 ncpc.gov: could not connect to host
-nct.org.uk: did not receive HSTS header
+nct.org.uk: could not connect to host
 nctx.co.uk: did not receive HSTS header
 ndtmarket.place: could not connect to host
-near.st: could not connect to host
+near.st: did not receive HSTS header
 nearbiwa.com: did not receive HSTS header
 neartothesky.com: could not connect to host
 neavision.de: did not receive HSTS header
@@ -6271,6 +6280,7 @@ nebulousenhanced.com: could not connect to host
 nedcf.org.uk: could not connect to host
 nedwave.com: did not receive HSTS header
 nedzad.me: could not connect to host
+neel.ch: could not connect to host
 neels.ch: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 neer.io: could not connect to host
 neftaly.com: did not receive HSTS header
@@ -6279,10 +6289,8 @@ negativzinsen.info: did not receive HSTS header
 neilgreen.net: did not receive HSTS header
 neko-life.com: did not receive HSTS header
 neko-system.com: did not receive HSTS header
-nekoku.io: could not connect to host
 nemno.de: could not connect to host
 nemovement.org: could not connect to host
-nemunai.re: could not connect to host
 neoani.me: could not connect to host
 neofelhz.space: could not connect to host
 neonisi.com: could not connect to host
@@ -6291,6 +6299,7 @@ neosolution.ca: did not receive HSTS header
 nephy.jp: could not connect to host
 nepustil.net: did not receive HSTS header
 nerd42.de: could not connect to host
+nerdhouse.io: could not connect to host
 neris.io: could not connect to host
 nerpa-club.ru: did not receive HSTS header
 nestedquotes.ca: could not connect to host
@@ -6299,10 +6308,8 @@ net2o.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_
 net2o.de: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 net2o.net: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 net4it.de: did not receive HSTS header
-netba.net: could not connect to host
 netbox.cc: could not connect to host
 netbrief.ml: did not receive HSTS header
-netdex.co: could not connect to host
 netherwind.eu: did not receive HSTS header
 netlilo.com: could not connect to host
 netloanusa.com: could not connect to host
@@ -6357,7 +6364,6 @@ nginxnudes.com: could not connect to host
 nglr.org: could not connect to host
 ngt-service.ru: did not receive HSTS header
 ngtoys.com.br: could not connect to host
-ngxpkg.com: could not connect to host
 niagarafalls.ca: did not receive HSTS header
 nibiisclaim.com: could not connect to host
 nicesco.re: did not receive HSTS header
@@ -6371,11 +6377,13 @@ nicolasbettag.me: did not receive HSTS header
 nicolasdutour.com: did not receive HSTS header
 niconiconi.xyz: could not connect to host
 niconode.com: could not connect to host
+nidro.de: could not connect to host
 nidux.com: did not receive HSTS header
 niduxcomercial.com: could not connect to host
 nien.chat: could not connect to host
 nienfun.com: could not connect to host
 nifpnet.nl: did not receive HSTS header
+nigger.racing: could not connect to host
 nightsnack.cf: could not connect to host
 niho.jp: did not receive HSTS header
 nikcub.com: could not connect to host
@@ -6442,7 +6450,6 @@ northcutt.com: did not receive HSTS header
 northwest-events.co.uk: did not receive HSTS header
 nosecretshop.com: could not connect to host
 nostraspace.com: did not receive HSTS header
-notablog.xyz: could not connect to host
 notadd.io: could not connect to host
 notarankastojkovic.me: could not connect to host
 notarobot.fr: could not connect to host
@@ -6560,11 +6567,9 @@ ofcourselanguages.com: could not connect to host
 ofer.site: did not receive HSTS header
 off-the-clock.us: could not connect to host
 offenedialoge.de: max-age too low: 2592000
-offgames.io: could not connect to host
 offgames.pro: could not connect to host
 office-ruru.com: could not connect to host
 officeclub.com.mx: did not receive HSTS header
-officium.tech: did not receive HSTS header
 offshore-firma.org: could not connect to host
 offshore-unternehmen.com: could not connect to host
 offshorefirma-gruenden.com: could not connect to host
@@ -6650,7 +6655,6 @@ onsitemassageco.com: did not receive HSTS header
 onstud.com: could not connect to host
 ontimestamp.com: did not receive HSTS header
 ontras.com: could not connect to host
-onviga.de: did not receive HSTS header
 onwie.fr: could not connect to host
 onyxwall.com: could not connect to host
 onyxwall.link: could not connect to host
@@ -6714,6 +6718,7 @@ oscreen.me: could not connect to host
 oscreen.org: could not connect to host
 oscsdp.cz: could not connect to host
 osdls.gov: could not connect to host
+oskuro.net: could not connect to host
 oslfoundation.org: could not connect to host
 osmanlitorunu.com: could not connect to host
 osp.cx: could not connect to host
@@ -6824,7 +6829,7 @@ parabhairavayoga.com: max-age too low: 0
 pardnoy.com: could not connect to host
 parent5446.us: could not connect to host
 parentmail.co.uk: did not receive HSTS header
-parfum-baza.ru: did not receive HSTS header
+parfum-baza.ru: could not connect to host
 paris-cyber.fr: did not receive HSTS header
 parisvox.info: did not receive HSTS header
 parithy.net: could not connect to host
@@ -6915,6 +6920,7 @@ pemberton.at: did not receive HSTS header
 pengui.uk: could not connect to host
 penguinclientsystem.com: did not receive HSTS header
 pennylane.me.uk: did not receive HSTS header
+pensanisso.com: could not connect to host
 pentagram.me: did not receive HSTS header
 pentano.net: could not connect to host
 people-mozilla.org: could not connect to host
@@ -7063,7 +7069,6 @@ playmaker.io: could not connect to host
 playmaza.live: did not receive HSTS header
 playnation.io: did not receive HSTS header
 playsharp.com: could not connect to host
-pleaseuseansnisupportedbrowser.ml: could not connect to host
 pleasure.forsale: could not connect to host
 pleier-it.de: did not receive HSTS header
 pleier.it: did not receive HSTS header
@@ -7077,7 +7082,6 @@ plothost.com: did not receive HSTS header
 ploup.net: could not connect to host
 ploxel.com: did not receive HSTS header
 pluff.nl: did not receive HSTS header
-plugin-planet.com: did not receive HSTS header
 plur.com.au: did not receive HSTS header
 plus-digital.net: did not receive HSTS header
 plus-u.com.au: did not receive HSTS header
@@ -7123,6 +7127,7 @@ pontokay.com.br: could not connect to host
 pontualcomp.com: could not connect to host
 pony.today: did not receive HSTS header
 ponythread.com: did not receive HSTS header
+ponzi.life: could not connect to host
 poolinstallers.co.za: could not connect to host
 poolsandstuff.com: did not receive HSTS header
 poon.tech: could not connect to host
@@ -7130,13 +7135,13 @@ popi.se: did not receive HSTS header
 popkins.ml: could not connect to host
 poris.web.id: could not connect to host
 porno-gif.ru: did not receive HSTS header
-pornstars.me: did not receive HSTS header
-portalisapres.cl: could not connect to host
+pornstars.me: could not connect to host
 portalm.tk: could not connect to host
 portalplatform.net: could not connect to host
 portaluniversalista.org: could not connect to host
 portalzine.de: did not receive HSTS header
 poshpak.com: max-age too low: 86400
+postback.io: did not receive HSTS header
 postcodewise.co.uk: did not receive HSTS header
 posterspy.com: did not receive HSTS header
 postscheduler.org: could not connect to host
@@ -7196,6 +7201,7 @@ prilock.com: did not receive HSTS header
 prinbanat.ngo: did not receive HSTS header
 princessbackpack.de: could not connect to host
 printerest.io: could not connect to host
+printerleasing.be: did not receive HSTS header
 printersonline.be: did not receive HSTS header
 printery.be: did not receive HSTS header
 printfn.com: could not connect to host
@@ -7222,7 +7228,6 @@ profpay.com: could not connect to host
 profundr.com: could not connect to host
 profusion.io: did not receive HSTS header
 progblog.net: could not connect to host
-programsupport300procent.com: could not connect to host
 progress-technologies.com: could not connect to host
 progressivecfo.co.nz: could not connect to host
 prohostonline.fi: could not connect to host
@@ -7238,7 +7243,7 @@ projetoresecia.com: could not connect to host
 prokop.ovh: could not connect to host
 promarketer.net: did not receive HSTS header
 promecon-gmbh.de: did not receive HSTS header
-prontocleaners.co.uk: could not connect to host
+prontocleaners.co.uk: did not receive HSTS header
 prontolight.com: did not receive HSTS header
 prontomovers.co.uk: could not connect to host
 propactrading.com: could not connect to host
@@ -7257,7 +7262,6 @@ proxybay.top: did not receive HSTS header
 proxydesk.eu: could not connect to host
 proxydesk.net: could not connect to host
 proxyowl.pw: could not connect to host
-proxyportal.me: did not receive HSTS header
 proxyrox.com: could not connect to host
 proxyweb.us: did not receive HSTS header
 prpsss.com: could not connect to host
@@ -7284,7 +7288,6 @@ publications.qld.gov.au: did not receive HSTS header
 publicidadnovagrass.com.mx: did not receive HSTS header
 publicspeakingcamps.com: could not connect to host
 publimepa.it: could not connect to host
-publiq.space: could not connect to host
 puentes.info: did not receive HSTS header
 pugilares.com.pl: could not connect to host
 pugliese.fr: could not connect to host
@@ -7327,7 +7330,7 @@ qbnt.ca: could not connect to host
 qccqld.org.au: could not connect to host
 qforum.org: could not connect to host
 qiannews.net: could not connect to host
-qiliang.wang: could not connect to host
+qiliang.wang: did not receive HSTS header
 qingxuan.info: could not connect to host
 qinxi1992.com: could not connect to host
 qionglu.pw: could not connect to host
@@ -7351,7 +7354,6 @@ qrlfinancial.com: could not connect to host
 qscloud.de: could not connect to host
 qswoo.org: could not connect to host
 qto.net: could not connect to host
-qtxh.net: could not connect to host
 quail.solutions: could not connect to host
 quakerlens.com: did not receive HSTS header
 quality1.com.br: did not receive HSTS header
@@ -7386,17 +7388,18 @@ r15.me: did not receive HSTS header
 r3bl.me: did not receive HSTS header
 ra-schaal.de: did not receive HSTS header
 raajheshkannaa.com: could not connect to host
+rabbitvcactus.eu: could not connect to host
 rabota-x.ru: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 rackblue.com: could not connect to host
 radicaleducation.net: could not connect to host
 radioheteroglossia.com: did not receive HSTS header
+radishmoon.com: max-age too low: 0
 rafaelcz.de: could not connect to host
 ragingserenity.com: did not receive HSTS header
 raiblockscommunity.net: could not connect to host
 raidstone.com: could not connect to host
 raidstone.net: could not connect to host
 raidstone.rocks: could not connect to host
-railjob.cn: could not connect to host
 rainbin.com: could not connect to host
 rainbowbarracuda.com: could not connect to host
 rally-vysledky.cz: could not connect to host
@@ -7439,14 +7442,12 @@ rawet.se: could not connect to host
 rawoil.com: could not connect to host
 rawstorieslondon.com: could not connect to host
 raxion.cf: could not connect to host
-raycarruthersphotography.co.uk: could not connect to host
 raydan.space: could not connect to host
 raydobe.me: could not connect to host
 raytron.org: could not connect to host
 razeencheng.com: could not connect to host
 razlaw.name: did not receive HSTS header
 razzolini.com.br: could not connect to host
-rb-china.net: did not receive HSTS header
 rbhighinc.org: could not connect to host
 rbose.org: could not connect to host
 rbqcloud.com: did not receive HSTS header
@@ -7460,6 +7461,7 @@ rcpcbd.com: could not connect to host
 rcraigmurphy.net: did not receive HSTS header
 rcvd.io: did not receive HSTS header
 rdfz.tech: could not connect to host
+rdns.cc: could not connect to host
 rdns.im: did not receive HSTS header
 rdyrda.fr: could not connect to host
 re-customer.net: did not receive HSTS header
@@ -7474,7 +7476,6 @@ reagir43.fr: did not receive HSTS header
 reaiaer.com: could not connect to host
 real-compare.com: could not connect to host
 realcli.com: could not connect to host
-realhorsegirls.net: could not connect to host
 realmic.net: could not connect to host
 realmofespionage.com: could not connect to host
 realraghavgupta.com: could not connect to host
@@ -7580,7 +7581,6 @@ retroarms.cz: did not receive HSTS header
 retube.ga: could not connect to host
 returnofwar.com: could not connect to host
 revapost.ch: could not connect to host
-revayd.net: could not connect to host
 revealdata.com: did not receive HSTS header
 revelaciones.tv: could not connect to host
 revello.org: did not receive HSTS header
@@ -7599,13 +7599,13 @@ rhering.de: could not connect to host
 rhodosdreef.nl: could not connect to host
 riaucybersolution.net: did not receive HSTS header
 ribopierre.fr: could not connect to host
+riceglue.com: could not connect to host
 richeza.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 richiemail.net: could not connect to host
 richmondsunlight.com: did not receive HSTS header
 richmtdriver.com: could not connect to host
 richsiciliano.com: could not connect to host
 richterphilipp.com: could not connect to host
-rickmartensen.nl: could not connect to host
 rid-wan.com: could not connect to host
 rideaudiscount.com: did not receive HSTS header
 rideforwade.com: could not connect to host
@@ -7626,9 +7626,9 @@ ringh.am: could not connect to host
 rionewyork.com.br: could not connect to host
 ripa.io: did not receive HSTS header
 rippleunion.com: could not connect to host
-ris.fi: could not connect to host
 riskmgt.com.au: could not connect to host
 rithm.ch: could not connect to host
+rivierasaints.ch: did not receive HSTS header
 rivlo.com: could not connect to host
 rizon.me: could not connect to host
 rj.gg: could not connect to host
@@ -7664,7 +7664,6 @@ roeper.party: could not connect to host
 roesemann.email: could not connect to host
 rofrank.space: could not connect to host
 roguelikecenter.fr: did not receive HSTS header
-roguetechhub.org: could not connect to host
 rohanbassett.com: could not connect to host
 rohlik.cz: did not receive HSTS header
 roketix.co.uk: did not receive HSTS header
@@ -7697,6 +7696,7 @@ rotozen.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERRO
 rotter-dam.nl: did not receive HSTS header
 rotterdamjazz.info: could not connect to host
 rough.nu: could not connect to host
+roulons-autrement.com: could not connect to host
 roundtheme.com: did not receive HSTS header
 rous.se: could not connect to host
 rouvray.org: could not connect to host
@@ -7711,16 +7711,16 @@ rozalynne-dawn.ga: could not connect to host
 rozeapp.nl: could not connect to host
 rpasafrica.com: could not connect to host
 rr.in.th: could not connect to host
-rrke.cc: could not connect to host
+rrke.cc: did not receive HSTS header
 rs-devdemo.host: could not connect to host
 rsajeey.info: could not connect to host
 rsampaio.info: did not receive HSTS header
-rsauget.fr: could not connect to host
 rsblake.net: could not connect to host
 rsf.io: could not connect to host
 rsldb.com: could not connect to host
 rsmaps.org: could not connect to host
 rtc.fun: could not connect to host
+ruanmi.de: could not connect to host
 rubbereggs.ca: could not connect to host
 rubecodeberg.com: could not connect to host
 rubendv.be: could not connect to host
@@ -7779,7 +7779,6 @@ saferedirectlink.com: could not connect to host
 safersurfing.eu: did not receive HSTS header
 safetyrisk.net: did not receive HSTS header
 safewings-nh.nl: could not connect to host
-safezone.cc: did not receive HSTS header
 safing.me: did not receive HSTS header
 sagarhandicraft.com: could not connect to host
 sageth.com: max-age too low: 0
@@ -7831,6 +7830,8 @@ sarahsweger.com: could not connect to host
 sarakas.com: could not connect to host
 saraleebread.com: max-age too low: 86400
 sarangsemutbandung.com: could not connect to host
+sarindia.com: could not connect to host
+sarindia.de: could not connect to host
 sarisonproductions.com: did not receive HSTS header
 sarkarischeme.in: could not connect to host
 sarndipity.com: could not connect to host
@@ -8037,6 +8038,10 @@ serbien.guide: could not connect to host
 serenitycreams.com: did not receive HSTS header
 serfdom.io: did not receive HSTS header
 serized.pw: could not connect to host
+serve-a.com.au: could not connect to host
+servea.com.au: could not connect to host
+serveatechnologies.com: could not connect to host
+servecrypt.com: could not connect to host
 servecrypt.net: could not connect to host
 server-essentials.com: could not connect to host
 serverangels.co.uk: did not receive HSTS header
@@ -8047,6 +8052,7 @@ serverlauget.no: could not connect to host
 servermonkey.nl: could not connect to host
 servfefe.com: could not connect to host
 servicevie.com: did not receive HSTS header
+servpanel.de: could not connect to host
 servu.de: did not receive HSTS header
 seryo.moe: could not connect to host
 seryo.net: could not connect to host
@@ -8056,7 +8062,6 @@ sessionslogning.dk: could not connect to host
 setphaserstostun.org: could not connect to host
 setuid.de: could not connect to host
 setuid.io: did not receive HSTS header
-sexpay.net: could not connect to host
 seyahatsagliksigortalari.com: could not connect to host
 sfashion.si: did not receive HSTS header
 sfhobbies.com.br: could not connect to host
@@ -8183,6 +8188,7 @@ silver-drachenkrieger.de: did not receive HSTS header
 silverhome.ninja: could not connect to host
 silverpvp.com: could not connect to host
 silvistefi.com: could not connect to host
+sim-sim.appspot.com: did not receive HSTS header
 simbast.com: could not connect to host
 simbihaiti.com: max-age too low: 7889238
 simbolo.co.uk: could not connect to host
@@ -8230,6 +8236,7 @@ siterip.org: could not connect to host
 sites.google.com: did not receive HSTS header (error ignored - included regardless)
 sitesforward.com: did not receive HSTS header
 sitesten.com: did not receive HSTS header
+sittinginoblivion.com: did not receive HSTS header
 sizingservers.be: did not receive HSTS header
 sizzle.co.uk: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
 skandiabanken.no: did not receive HSTS header
@@ -8281,7 +8288,6 @@ slope.haus: could not connect to host
 slopeedge.com: did not receive HSTS header
 slovakiana.sk: did not receive HSTS header
 slovoice.org: could not connect to host
-slowgames.xyz: could not connect to host
 sluplift.com: did not receive HSTS header
 slycurity.de: did not receive HSTS header
 slytech.ch: could not connect to host
@@ -8364,7 +8370,6 @@ soll-i.ch: did not receive HSTS header
 solosmusic.xyz: could not connect to host
 solsystems.ru: could not connect to host
 solutive.fi: did not receive HSTS header
-somali-derp.com: could not connect to host
 some.rip: max-age too low: 6307200
 someshit.xyz: could not connect to host
 something-else.cf: could not connect to host
@@ -8379,7 +8384,6 @@ soply.com: did not receive HSTS header
 soporte.cc: could not connect to host
 sorensen-online.com: could not connect to host
 sortaweird.net: could not connect to host
-soruly.com: could not connect to host
 sosaka.ml: could not connect to host
 sosiolog.com: did not receive HSTS header
 sotor.de: did not receive HSTS header
@@ -8414,7 +8418,6 @@ spangehlassociates.com: did not receive HSTS header
 spanien.guide: could not connect to host
 sparelib.com: could not connect to host
 spark.team: could not connect to host
-sparkbase.cn: could not connect to host
 sparklingsparklers.com: did not receive HSTS header
 sparmedo.de: did not receive HSTS header
 sparsa.army: could not connect to host
@@ -8483,7 +8486,6 @@ srrr.ca: could not connect to host
 srvonfire.com: could not connect to host
 ss-free.net: could not connect to host
 ss.wtf: could not connect to host
-ssky.cn: could not connect to host
 ssl.panoramio.com: did not receive HSTS header
 ssl.rip: could not connect to host
 ssmato.me: could not connect to host
@@ -8500,6 +8502,7 @@ stadtgartenla.com: could not connect to host
 staffjoy.com: did not receive HSTS header
 staffjoystaging.com: could not connect to host
 stahl.xyz: could not connect to host
+stair.ch: did not receive HSTS header
 stalkerhispano.com: max-age too low: 0
 stalschermer.nl: could not connect to host
 stamonicatourandtravel.com: could not connect to host
@@ -8583,7 +8586,7 @@ stormhub.org: could not connect to host
 stormyyd.com: did not receive HSTS header
 stqry.com: did not receive HSTS header
 str0.at: did not receive HSTS header
-strasweb.fr: could not connect to host
+strasweb.fr: did not receive HSTS header
 strbt.de: could not connect to host
 strchr.com: did not receive HSTS header
 stream.pub: could not connect to host
@@ -8611,19 +8614,16 @@ studybay.com: did not receive HSTS header
 studydrive.net: did not receive HSTS header
 studyhub.cf: did not receive HSTS header
 stugb.de: did not receive HSTS header
-stuntmen.xyz: could not connect to host
 stupendous.net: could not connect to host
 sturbock.me: did not receive HSTS header
 sturdio.com.br: could not connect to host
 stylenda.com: could not connect to host
 stylle.me: could not connect to host
 stytt.com: could not connect to host
-sub.media: did not receive HSTS header
 subbing.work: could not connect to host
 subdimension.org: did not receive HSTS header
 subeesu.com: could not connect to host
 subhacker.net: did not receive HSTS header
-submedia.tv: did not receive HSTS header
 subsys.no: did not receive HSTS header
 subtitle.rip: could not connect to host
 subwayz.de: did not receive HSTS header
@@ -8659,6 +8659,7 @@ super-ripped-power.com: could not connect to host
 super-slim-coffee.com: could not connect to host
 superbabysitting.ch: could not connect to host
 superbike.tw: could not connect to host
+superbowlkneel.com: could not connect to host
 supercreepsvideo.com: could not connect to host
 supereight.net: did not receive HSTS header
 superiorfloridavacation.com: did not receive HSTS header
@@ -8727,7 +8728,7 @@ syspen.space: did not receive HSTS header
 sysrq.tech: could not connect to host
 syss.de: did not receive HSTS header
 systemd.me: could not connect to host
-syy.hk: could not connect to host
+syy.hk: did not receive HSTS header
 szaszm.tk: max-age too low: 0
 t-complex.space: could not connect to host
 t-ken.xyz: could not connect to host
@@ -8791,6 +8792,7 @@ tavoittaja.fi: did not receive HSTS header
 tavopica.lt: did not receive HSTS header
 taxbench.com: could not connect to host
 taxsnaps.co.nz: did not receive HSTS header
+tazj.in: did not receive HSTS header
 tazz.in: could not connect to host
 tbspace.de: did not receive HSTS header
 tc-bonito.de: did not receive HSTS header
@@ -8800,7 +8802,6 @@ tcdw.net: did not receive HSTS header
 tcl.ath.cx: did not receive HSTS header
 tcomms.org: max-age too low: 0
 tcp.expert: did not receive HSTS header
-tcptun.com: could not connect to host
 tcpweb.net: could not connect to host
 tcwebvn.com: could not connect to host
 tdsb.cf: could not connect to host
@@ -8825,7 +8826,7 @@ tearoy.faith: could not connect to host
 tebieer.com: could not connect to host
 tech-blog.fr: did not receive HSTS header
 tech-finder.fr: could not connect to host
-tech55i.com: did not receive HSTS header
+tech55i.com: could not connect to host
 techandtux.de: could not connect to host
 techask.it: could not connect to host
 techassist.io: did not receive HSTS header
@@ -8973,7 +8974,6 @@ theitsage.com: did not receive HSTS header
 thejobauction.com: did not receive HSTS header
 thejserver.de: could not connect to host
 thelapine.ca: did not receive HSTS header
-thelinuxtree.net: did not receive HSTS header
 themadmechanic.net: could not connect to host
 themanufacturingmarketingagency.com: could not connect to host
 themarble.co: could not connect to host
@@ -9024,6 +9024,7 @@ thinkcash.nl: could not connect to host
 thinkcoding.de: could not connect to host
 thinkcoding.org: could not connect to host
 thinkdo.jp: could not connect to host
+thinkingplanet.net: did not receive HSTS header
 thinlyveiledcontempt.com: could not connect to host
 thirdpartytrade.com: did not receive HSTS header
 thirty5.net: did not receive HSTS header
@@ -9042,7 +9043,6 @@ thomasmeester.nl: did not receive HSTS header
 thomasnet.fr: could not connect to host
 thomasschweizer.net: could not connect to host
 thorncreek.net: did not receive HSTS header
-threv.net: could not connect to host
 thriveapproach.co.uk: did not receive HSTS header
 thrivewellnesshub.co.za: did not receive HSTS header
 throughthelookingglasslens.co.uk: could not connect to host
@@ -9084,7 +9084,6 @@ timeserver2.de: could not connect to host
 timeserver3.de: could not connect to host
 timestamp.io: did not receive HSTS header
 timhjalpen.se: could not connect to host
-timmyrs.de: could not connect to host
 timnash.co.uk: did not receive HSTS header
 timotrans.de: did not receive HSTS header
 timotrans.eu: did not receive HSTS header
@@ -9096,7 +9095,6 @@ timwittenberg.com: could not connect to host
 tinchbear.xyz: could not connect to host
 tindewen.net: could not connect to host
 tink.network: could not connect to host
-tintenprofi.de: max-age too low: 6307200
 tipsyk.ru: could not connect to host
 tiredofeating.com: could not connect to host
 tiremoni.ch: did not receive HSTS header
@@ -9111,7 +9109,6 @@ tjeckien.guide: could not connect to host
 tkappertjedemetamorfose.nl: could not connect to host
 tkarstens.de: did not receive HSTS header
 tkonstantopoulos.tk: could not connect to host
-tlach.cz: did not receive HSTS header
 tlcdn.net: could not connect to host
 tlo.hosting: could not connect to host
 tlo.link: could not connect to host
@@ -9142,7 +9139,6 @@ todapolitica.com: did not receive HSTS header
 todesschaf.org: could not connect to host
 todo.is: did not receive HSTS header
 todobazar.es: could not connect to host
-todoscomciro.com: did not receive HSTS header
 todosrv.com: could not connect to host
 tofu.im: could not connect to host
 togelonlinecommunity.com: did not receive HSTS header
@@ -9157,6 +9153,7 @@ tollmanz.com: did not receive HSTS header
 tollsjekk.no: could not connect to host
 tolud.com: did not receive HSTS header
 tom.run: did not receive HSTS header
+tomatenaufdenaugen.de: could not connect to host
 tomeara.net: could not connect to host
 tomevans.io: did not receive HSTS header
 tomlankhorst.nl: did not receive HSTS header
@@ -9233,6 +9230,7 @@ tradinghope.com: could not connect to host
 traditional-knowledge.tk: did not receive HSTS header
 tradiz.org: could not connect to host
 trafficquality.org: could not connect to host
+traffictigers.com: could not connect to host
 traindb.nl: did not receive HSTS header
 training4girls.ru: could not connect to host
 traininglist.org: did not receive HSTS header
@@ -9305,10 +9303,8 @@ tsutsumi-kogyo.jp: could not connect to host
 ttackmedical.com.br: could not connect to host
 tts.co.nz: did not receive HSTS header
 tuamoronline.com: could not connect to host
-tubanten.nl: could not connect to host
 tubbutec.de: did not receive HSTS header
 tubepro.de: did not receive HSTS header
-tuberecht.de: could not connect to host
 tubetoon.com: did not receive HSTS header
 tubetooncartoons.com: did not receive HSTS header
 tubex.ga: could not connect to host
@@ -9329,8 +9325,8 @@ turtlementors.com: could not connect to host
 tusb.ml: did not receive HSTS header
 tussengelegenwoningverkopen.nl: could not connect to host
 tuthowto.com: did not receive HSTS header
-tutiendaroja.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
-tutiendarosa.com: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-esr52-l64-periodicupdate-000/getHSTSPreloadList.js :: processStsHeader :: line 121"  data: no]
+tutiendaroja.com: did not receive HSTS header
+tutiendarosa.com: did not receive HSTS header
 tuturulianda.com: did not receive HSTS header
 tuvalie.com: could not connect to host
 tuxcall.de: could not connect to host
@@ -9369,6 +9365,7 @@ twitter.ax: could not connect to host
 twogo.com: did not receive HSTS header
 twolinepassbrewing.com: could not connect to host
 twolivelife.com: could not connect to host
+tworaz.net: could not connect to host
 twotube.ie: could not connect to host
 tx041cap.org: did not receive HSTS header
 txclimbers.com: could not connect to host
@@ -9458,7 +9455,6 @@ underkin.com: could not connect to host
 underskatten.tk: could not connect to host
 unefuite.ch: could not connect to host
 unfiltered.nyc: could not connect to host
-unfuddle.cn: could not connect to host
 ungern.guide: could not connect to host
 unhu.fr: could not connect to host
 uni-games.com: could not connect to host
@@ -9505,6 +9501,7 @@ ur-lauber.de: did not receive HSTS header
 urandom.eu.org: did not receive HSTS header
 urban-garden.lt: could not connect to host
 urban-garden.lv: could not connect to host
+urbanstylestaging.com: did not receive HSTS header
 urbpic.com: could not connect to host
 urcentral.org: could not connect to host
 urlchomp.com: did not receive HSTS header
@@ -9565,6 +9562,8 @@ vaddder.com: could not connect to host
 vadik.me: could not connect to host
 vadodesign.nl: did not receive HSTS header
 vaeplatform.com: could not connect to host
+valaeris.de: could not connect to host
+valasi.eu: could not connect to host
 valecnatechnika.cz: could not connect to host
 valenhub.com: could not connect to host
 valenhub.es: could not connect to host
@@ -9609,6 +9608,7 @@ veggiesbourg.fr: did not receive HSTS header
 vegis.ro: did not receive HSTS header
 vehent.org: did not receive HSTS header
 vehicleuplift.co.uk: did not receive HSTS header
+veilletechno-it.info: could not connect to host
 velen.io: could not connect to host
 velonustraduction.com: did not receive HSTS header
 vemokin.net: could not connect to host
@@ -9659,13 +9659,14 @@ videoueberwachung-set.de: did not receive HSTS header
 videov.tk: could not connect to host
 vider.ga: could not connect to host
 vidid.net: did not receive HSTS header
-vidlyoficial.com: did not receive HSTS header
+vidister.de: could not connect to host
 vidz.ga: could not connect to host
 vietnamchevrolet.net: did not receive HSTS header
 vietnamphotographytours.com: could not connect to host
 vigilo.cf: could not connect to host
 vigilo.ga: could not connect to host
 vijos.org: did not receive HSTS header
+vikasbabyworld.de: could not connect to host
 viktor-machnik.de: could not connect to host
 viktorsvantesson.net: did not receive HSTS header
 vilight.com.br: could not connect to host
@@ -9691,7 +9692,6 @@ vinsetchampagne.fr: did not receive HSTS header
 vintageheartcoffee.com: max-age too low: 0
 vio.no: did not receive HSTS header
 violenceinterrupted.org: did not receive HSTS header
-viosey.com: could not connect to host
 viperdns.com: could not connect to host
 viphospitality.se: could not connect to host
 viplentes.com.br: did not receive HSTS header
@@ -9727,24 +9727,19 @@ vlora.city: could not connect to host
 vm0.eu: could not connect to host
 vmrdev.com: could not connect to host
 voceinveste.com: did not receive HSTS header
-vodpay.com: could not connect to host
-vodpay.net: could not connect to host
-vodpay.org: could not connect to host
 voeux.io: could not connect to host
+vogt.tech: could not connect to host
 voicesuk.co.uk: did not receive HSTS header
-voidpay.com: could not connect to host
-voidpay.net: could not connect to host
-voidpay.org: could not connect to host
 voidserv.net: could not connect to host
 volcain.io: could not connect to host
 volcrado.com: did not receive HSTS header
-voliere-info.nl: did not receive HSTS header
 volkden.com: could not connect to host
 vonavy-cukor.sk: could not connect to host
 vonavycukor.sk: could not connect to host
 vooreenveiligthuis.nl: did not receive HSTS header
 voorjou.com: did not receive HSTS header
 vorangerie.com: could not connect to host
+vorlif.org: could not connect to host
 vortexhobbies.com: did not receive HSTS header
 vosjesweb.nl: could not connect to host
 votresiteweb.ch: could not connect to host
@@ -9758,7 +9753,6 @@ vplssolutions.com: did not receive HSTS header
 vpn-byen.dk: did not receive HSTS header
 vpn.pics: did not receive HSTS header
 vpnhot.com: could not connect to host
-vpnzoom.com: could not connect to host
 vps-szerver-berles.hu: could not connect to host
 vpsmojo.com: could not connect to host
 vratny.space: could not connect to host
@@ -9817,8 +9811,8 @@ wanda97.com: could not connect to host
 wanda98.com: could not connect to host
 wangjun.me: did not receive HSTS header
 wangkezun.com: could not connect to host
-wangqiliang.cn: could not connect to host
-wangqiliang.org: could not connect to host
+wangqiliang.cn: did not receive HSTS header
+wangqiliang.org: did not receive HSTS header
 wangqiliang.xn--fiqs8s: could not connect to host
 wangzuan168.cc: could not connect to host
 wapjt.cn: could not connect to host
@@ -9835,15 +9829,12 @@ warrencreative.com: did not receive HSTS header
 warsentech.com: could not connect to host
 warsh.moe: did not receive HSTS header
 warumsuchen.at: max-age too low: 0
-wasi-net.de: could not connect to host
-wasielewski.com.de: could not connect to host
 watchium.com: did not receive HSTS header
 watchweasel.com: could not connect to host
 waterforlife.net.au: did not receive HSTS header
 waterpoint.com.br: could not connect to host
 watersportmarkt.net: did not receive HSTS header
 watsonhall.uk: could not connect to host
-wattechweb.com: did not receive HSTS header
 wave.is: could not connect to host
 wavefloatrooms.com: did not receive HSTS header
 wavefrontsystemstech.com: could not connect to host
@@ -9910,11 +9901,12 @@ weekly.fyi: could not connect to host
 wegenaer.nl: could not connect to host
 weiler.xyz: could not connect to host
 wein.co.kr: could not connect to host
+weiyuz.com: max-age too low: 6585555
 wejumall.com: could not connect to host
 wekibe.de: could not connect to host
 welby.cat: could not connect to host
 welkers.org: could not connect to host
-wellastore.ru: did not receive HSTS header
+wellastore.ru: could not connect to host
 wellcomp.com.br: did not receive HSTS header
 wellies.com.au: max-age too low: 7889238
 wellness.so: could not connect to host
@@ -9952,6 +9944,7 @@ wewillgo.org: did not receive HSTS header
 wewlad.me: did not receive HSTS header
 weyland.tech: could not connect to host
 wftda.com: did not receive HSTS header
+wg-tools.de: could not connect to host
 whatnext.limited: did not receive HSTS header
 whats.io: could not connect to host
 whatsstalk.me: could not connect to host
@@ -10009,7 +10002,7 @@ winshiplending.com: did not receive HSTS header
 winsufi.biz: could not connect to host
 wintercircle.co: did not receive HSTS header
 wipc.net: could not connect to host
-wipply.com: could not connect to host
+wipply.com: did not receive HSTS header
 wirc.gr: could not connect to host
 wireframesoftware.com: could not connect to host
 wisak.eu: could not connect to host
@@ -10059,6 +10052,7 @@ word-grabber.com: did not receive HSTS header
 work-and-jockel.de: did not receive HSTS header
 workemy.com: could not connect to host
 workfone.io: did not receive HSTS header
+workingclassmedia.com: did not receive HSTS header
 workpermit.com.vn: could not connect to host
 worldfree4.org: could not connect to host
 worldlist.org: could not connect to host
@@ -10071,7 +10065,6 @@ wowinvasion.com: did not receive HSTS header
 wp-fastsearch.de: could not connect to host
 wp-rescue.com.au: did not receive HSTS header
 wp-stack.pro: could not connect to host
-wp-tao.com: did not receive HSTS header
 wp6.pw: could not connect to host
 wpblog.com.tw: could not connect to host
 wpcarer.pro: could not connect to host
@@ -10232,7 +10225,6 @@ xn--neb-tma3u8u.xyz: could not connect to host
 xn--p8jskj.jp: did not receive HSTS header
 xn--pck4e3a2ex597b4ml.xyz: did not receive HSTS header
 xn--qckqc0nxbyc4cdb4527err7c.biz: did not receive HSTS header
-xn--rlcus7b3d.xn--xkc2dl3a5ee0h: could not connect to host
 xn--srenpind-54a.dk: could not connect to host
 xn--t8j2a3042d.xyz: could not connect to host
 xn--u9jy16ncfao19mo8i.nagoya: did not receive HSTS header
@@ -10240,6 +10232,7 @@ xn--uist1idrju3i.jp: did not receive HSTS header
 xn--w22a.jp: did not receive HSTS header
 xn--wmq.jp: did not receive HSTS header
 xn--xdtx3pfzbiw3ar8e7yedqrhui.com: could not connect to host
+xn--xz1a.jp: could not connect to host
 xn--yj8h0m.ws: could not connect to host
 xn--ykrp42k.com: could not connect to host
 xn--yoamomisuasbcn-ynb.com: could not connect to host
@@ -10253,7 +10246,6 @@ xor-a.net: could not connect to host
 xperiacodes.com: could not connect to host
 xpi.fr: could not connect to host
 xpj.sx: could not connect to host
-xpjcunkuan.com: did not receive HSTS header
 xpwn.cz: could not connect to host
 xqin.net: could not connect to host
 xrp.pw: could not connect to host
@@ -10285,7 +10277,6 @@ yarchives.jp: could not connect to host
 yard-fu.com: could not connect to host
 yardbird.us: could not connect to host
 yarnhookup.com: did not receive HSTS header
-yarogneva.ru: could not connect to host
 yasinaydin.net: did not receive HSTS header
 yasutomonodokoiko.com: did not receive HSTS header
 yaucy.win: could not connect to host
@@ -10308,7 +10299,6 @@ yestees.com: did not receive HSTS header
 yetcore.io: could not connect to host
 yffengshi.ml: could not connect to host
 yggdar.ga: could not connect to host
-yhb.io: could not connect to host
 yhori.xyz: could not connect to host
 yhrd.org: did not receive HSTS header
 yibin0831.com: could not connect to host
@@ -10324,7 +10314,7 @@ yippie.nl: could not connect to host
 yizhu.com: could not connect to host
 yjsoft.me: did not receive HSTS header
 ynode.co: did not receive HSTS header
-ynsn.nl: did not receive HSTS header
+ynsn.nl: could not connect to host
 yntongji.com: could not connect to host
 yob.vn: could not connect to host
 yobst.tk: could not connect to host
@@ -10346,6 +10336,7 @@ youcaitian.com: did not receive HSTS header
 youcontrol.ru: could not connect to host
 youfencun.com: did not receive HSTS header
 youlog.net: could not connect to host
+youmonit.me: could not connect to host
 youngandunited.nl: did not receive HSTS header
 youon.tokyo: could not connect to host
 yourbapp.ch: could not connect to host
@@ -10371,13 +10362,13 @@ yuko.moe: could not connect to host
 yukonrefugees.com: could not connect to host
 yum.beer: could not connect to host
 yummyfamilyrecipes.com: could not connect to host
-yuna.love: did not receive HSTS header
 yunpan.blue: did not receive HSTS header
 yuntama.xyz: could not connect to host
 yunzhan.io: did not receive HSTS header
 yunzhu.li: did not receive HSTS header
 yunzhu.org: could not connect to host
 yurimoens.be: could not connect to host
+yuriykuzmin.com: did not receive HSTS header
 yutabon.com: could not connect to host
 yuushou.com: could not connect to host
 yux.fr: could not connect to host
@@ -10388,7 +10379,7 @@ z3liff.com: could not connect to host
 z3liff.net: could not connect to host
 zachbolinger.com: could not connect to host
 zadieheimlich.com: did not receive HSTS header
-zahyantechnologies.com: could not connect to host
+zahyantechnologies.com: did not receive HSTS header
 zajazd.biz: could not connect to host
 zakoncontrol.com: did not receive HSTS header
 zamorano.edu: could not connect to host
@@ -10399,7 +10390,6 @@ zaoext.com: could not connect to host
 zaoshanghao-dajia.rhcloud.com: could not connect to host
 zap.yt: did not receive HSTS header
 zarooba.com: could not connect to host
-zary.me: did not receive HSTS header
 zavca.com: did not receive HSTS header
 zbasenem.pl: did not receive HSTS header
 zbchen.com: could not connect to host
@@ -10494,18 +10484,18 @@ zoommailing.com: did not receive HSTS header
 zoorigin.com: did not receive HSTS header
 zorasvobodova.cz: did not receive HSTS header
 zortium.report: could not connect to host
-zorz.info: could not connect to host
 zoznamrealit.sk: did not receive HSTS header
 zqhong.com: could not connect to host
 zqjs.tk: could not connect to host
+zqwqz.com: max-age too low: 0
 zrt.io: did not receive HSTS header
 ztan.tk: could not connect to host
 ztcaoll222.cn: did not receive HSTS header
 ztytian.com: could not connect to host
 zubel.it: did not receive HSTS header
-zuckerfloh.de: could not connect to host
 zudomc.me: could not connect to host
 zuehlcke.de: could not connect to host
+zunftmarke.de: did not receive HSTS header
 zuram.net: could not connect to host
 zuviel.space: could not connect to host
 zvncloud.com: did not receive HSTS header
