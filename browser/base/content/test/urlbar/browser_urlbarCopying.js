@@ -4,6 +4,14 @@
 const trimPref = "browser.urlbar.trimURLs";
 const phishyUserPassPref = "network.http.phishy-userpass-length";
 
+function toUnicode(input) {
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  converter.charset = "UTF-8";
+
+  return converter.ConvertToUnicode(input);
+}
+
 function test() {
 
   let tab = gBrowser.selectedTab = gBrowser.addTab();
