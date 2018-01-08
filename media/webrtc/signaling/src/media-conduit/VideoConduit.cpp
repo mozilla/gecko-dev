@@ -319,7 +319,7 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
 
   // Release AudioConduit first by dropping reference on MainThread, where it expects to be
   SyncTo(nullptr);
-  Destroy();
+  MOZ_ASSERT(!mSendStream && !mRecvStream, "Call DeleteStreams prior to ~WebrtcVideoConduit.");
 }
 
 MediaConduitErrorCode
@@ -1216,7 +1216,7 @@ WebrtcVideoConduit::Init()
 }
 
 void
-WebrtcVideoConduit::Destroy()
+WebrtcVideoConduit::DeleteStreams()
 {
   // We can't delete the VideoEngine until all these are released!
   // And we can't use a Scoped ptr, since the order is arbitrary
