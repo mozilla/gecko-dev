@@ -11,19 +11,9 @@
           "google", "yahoo", "amazondotcom", "bing", "ddg", "twitter", "wikipedia"
         ]
       },
-      "US": {
-        "visibleDefaultEngines": [
-          "yahoo", "google-nocodes", "bing", "amazondotcom", "ddg", "twitter", "wikipedia"
-        ]
-      },
-      "CA": {
-        "visibleDefaultEngines": [
-          "google-nocodes", "yahoo", "bing", "amazondotcom", "ddg", "twitter", "wikipedia"
-        ]
-      },
       "experimental-hidden": {
         "visibleDefaultEngines": [
-          "yahoo-en-CA", "yandex-en"
+          "yahoo-en-CA", "yandex-en", "google-2018"
         ]
       }
     },
@@ -815,26 +805,6 @@
           "baidu", "google-nocodes", "bing", "ddg", "wikipedia-zh-CN", "amazondotcn"
         ]
       },
-      "TW": {
-        "visibleDefaultEngines": [
-          "baidu", "google-nocodes", "bing", "ddg", "wikipedia-zh-CN", "amazondotcn"
-        ]
-      },
-      "HK": {
-        "visibleDefaultEngines": [
-          "baidu", "google-nocodes", "bing", "ddg", "wikipedia-zh-CN", "amazondotcn"
-        ]
-      },
-      "US": {
-        "visibleDefaultEngines": [
-          "baidu", "google-nocodes", "bing", "ddg", "wikipedia-zh-CN", "amazondotcn"
-        ]
-      },
-      "CA": {
-        "visibleDefaultEngines": [
-          "baidu", "google-nocodes", "bing", "ddg", "wikipedia-zh-CN", "amazondotcn"
-        ]
-      },
       "KZ": {
         "visibleDefaultEngines": [
           "baidu", "google-nocodes", "bing", "ddg", "wikipedia-zh-CN", "amazondotcn"
@@ -865,16 +835,6 @@
       "default": {
         "visibleDefaultEngines": [
           "yahoo-zh-TW", "google", "ddg", "findbook-zh-TW", "wikipedia-zh-TW", "yahoo-zh-TW-HK", "yahoo-bid-zh-TW", "yahoo-answer-zh-TW"
-        ]
-      },
-      "TW": {
-        "visibleDefaultEngines": [
-          "yahoo-zh-TW", "google-nocodes", "ddg", "findbook-zh-TW", "wikipedia-zh-TW", "yahoo-zh-TW-HK", "yahoo-bid-zh-TW", "yahoo-answer-zh-TW"
-        ]
-      },
-      "HK": {
-        "visibleDefaultEngines": [
-          "yahoo-zh-TW-HK", "google-nocodes", "ddg", "findbook-zh-TW", "wikipedia-zh-TW", "yahoo-zh-TW", "yahoo-bid-zh-TW", "yahoo-answer-zh-TW"
         ]
       }
     }

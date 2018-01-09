@@ -11,7 +11,8 @@ function test() {
   let engine = Services.search.getEngineByName("Google");
   ok(engine, "Google");
 
-  let base = "https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8";
+  let base = "https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&client=firefox-b";
+  let keywordBase = base + "-ab";
 
   let url;
 
@@ -21,7 +22,7 @@ function test() {
   url = engine.getSubmission("foo", null, "contextmenu").uri.spec;
   is(url, base, "Check context menu search URL for 'foo'");
   url = engine.getSubmission("foo", null, "keyword").uri.spec;
-  is(url, base, "Check keyword search URL for 'foo'");
+  is(url, keywordBase, "Check keyword search URL for 'foo'");
   url = engine.getSubmission("foo", null, "searchbar").uri.spec;
   is(url, base, "Check search bar search URL for 'foo'");
   url = engine.getSubmission("foo", null, "homepage").uri.spec;
@@ -45,7 +46,7 @@ function test() {
     name: "Google",
     alias: null,
     description: "Google Search",
-    searchForm: "https://www.google.com/search?q=&ie=utf-8&oe=utf-8",
+    searchForm: "https://www.google.com/search?q=&ie=utf-8&oe=utf-8&client=firefox-b",
     hidden: false,
     wrappedJSObject: {
       queryCharset: "UTF-8",
@@ -76,6 +77,16 @@ function test() {
               "name": "oe",
               "value": "utf-8",
               "purpose": undefined,
+            },
+            {
+              "name": "client",
+              "value": "firefox-b-ab",
+              "purpose": "keyword",
+            },
+            {
+              "name": "client",
+              "value": "firefox-b",
+              "purpose": "searchbar",
             },
           ],
           mozparams: {
