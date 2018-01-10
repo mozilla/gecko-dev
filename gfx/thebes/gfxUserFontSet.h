@@ -633,6 +633,10 @@ public:
     void GetFamilyNameAndURIForLogging(nsACString& aFamilyName,
                                        nsACString& aURI);
 
+#ifdef DEBUG
+    gfxUserFontSet* GetUserFontSet() const { return mFontSet; }
+#endif
+
 protected:
     const uint8_t* SanitizeOpenTypeData(const uint8_t* aData,
                                         uint32_t aLength,
