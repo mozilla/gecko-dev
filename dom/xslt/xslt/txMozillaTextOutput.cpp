@@ -154,7 +154,7 @@ txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument,
     NS_ASSERTION(mDocument, "Need document");
 
     // Reset and set up document
-    URIUtils::ResetWithSource(mDocument, aSourceDocument);
+    URIUtils::ResetWithSource(mDocument, source);
 
     // Set the charset
     if (!mOutputFormat.mEncoding.IsEmpty()) {
