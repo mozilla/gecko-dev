@@ -1515,6 +1515,11 @@ nsUrlClassifierDBService::LookupURI(nsIPrincipal* aPrincipal,
     return NS_OK;
   }
 
+  if (gShuttingDownThread) {
+    *didLookup = false;
+    return NS_ERROR_ABORT;
+  }
+
   nsCOMPtr<nsIURI> uri;
   nsresult rv = aPrincipal->GetURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
