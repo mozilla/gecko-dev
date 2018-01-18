@@ -1594,6 +1594,8 @@ OpenEntryForRead(nsIPrincipal* aPrincipal,
                  const uint8_t** aMemory,
                  intptr_t* aHandle)
 {
+  return false;
+
   if (size_t(aLimit - aBegin) < sMinCachedModuleLength) {
     return false;
   }
@@ -1657,6 +1659,8 @@ OpenEntryForWrite(nsIPrincipal* aPrincipal,
                   uint8_t** aMemory,
                   intptr_t* aHandle)
 {
+  return JS::AsmJSCache_ESR52;
+
   if (size_t(aEnd - aBegin) < sMinCachedModuleLength) {
     return JS::AsmJSCache_ModuleTooSmall;
   }

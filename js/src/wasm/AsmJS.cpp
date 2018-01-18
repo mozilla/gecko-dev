@@ -8661,6 +8661,9 @@ BuildConsoleMessage(ExclusiveContext* cx, unsigned time, JS::AsmJSCacheResult ca
       case JS::AsmJSCache_Disabled_PrivateBrowsing:
         cacheString = "caching disabled by private browsing mode";
         break;
+      case JS::AsmJSCache_ESR52:
+        cacheString = "caching disabled in Firefox ESR52";
+        break;
       case JS::AsmJSCache_LIMIT:
         MOZ_CRASH("bad AsmJSCacheResult");
         break;
