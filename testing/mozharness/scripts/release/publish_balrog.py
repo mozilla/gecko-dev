@@ -17,6 +17,7 @@ import sys
 sys.path.insert(1, os.path.dirname(os.path.dirname(sys.path[0])))
 from mozharness.base.vcs.vcsbase import MercurialScript
 from mozharness.mozilla.buildbot import BuildbotMixin
+from mozharness.base.log import FATAL
 
 # PublishBalrog {{{1
 
@@ -106,13 +107,14 @@ class PublishBalrog(MercurialScript, BuildbotMixin):
             "--verbose",
         ])
         for r in channel_config["publish_rules"]:
-            cmd.extend(["--rules", r])
+            cmd.extend(["--rules", str(r)])
         if self.config.get("schedule_at"):
             cmd.extend(["--schedule-at", self.config["schedule_at"]])
         if self.config.get("background_rate"):
             cmd.extend(["--background-rate", str(self.config["background_rate"])])
 
-        self.retry(lambda: self.run_command(cmd, halt_on_failure=True))
+        self.retry(lambda: self.run_command(cmd, halt_on_failure=True),
+                   error_level=FATAL)
 
 # __main__ {{{1
 if __name__ == '__main__':
