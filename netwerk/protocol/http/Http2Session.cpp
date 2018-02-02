@@ -1019,6 +1019,15 @@ Http2Session::CleanupStream(Http2Stream *aStream, nsresult aResult,
     return;
   }
 
+  Http2PushedStream *pushSource = aStream->PushSource();
+  if (pushSource) {
+    // aStream is a synthetic  attached to an even push
+    MOZ_ASSERT(pushSource->GetConsumerStream() == aStream);
+    MOZ_ASSERT(!aStream->StreamID());
+    MOZ_ASSERT(!(pushSource->StreamID() & 0x1));
+    aStream->ClearPushSource();
+  }
+
   if (aStream->DeferCleanup(aResult)) {
     LOG3(("Http2Session::CleanupStream 0x%X deferred\n", aStream->StreamID()));
     return;
@@ -1027,15 +1036,6 @@ Http2Session::CleanupStream(Http2Stream *aStream, nsresult aResult,
   if (!VerifyStream(aStream)) {
     LOG3(("Http2Session::CleanupStream failed to verify stream\n"));
     return;
-  }
-
-  Http2PushedStream *pushSource = aStream->PushSource();
-  if (pushSource) {
-    // aStream is a synthetic  attached to an even push
-    MOZ_ASSERT(pushSource->GetConsumerStream() == aStream);
-    MOZ_ASSERT(!aStream->StreamID());
-    MOZ_ASSERT(!(pushSource->StreamID() & 0x1));
-    pushSource->SetConsumerStream(nullptr);
   }
 
   // don't reset a stream that has recevied a fin or rst
