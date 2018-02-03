@@ -330,7 +330,7 @@ function run_test() {
         .getService(Ci.nsIIOService);
 
     Services.prefs.setIntPref("network.http.speculative-parallel-limit", 6);
-    registerCleanupFunction(() => {
+    do_register_cleanup(() => {
       Services.prefs.clearUserPref("network.http.speculative-parallel-limit");
     });
 
