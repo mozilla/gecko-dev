@@ -6806,9 +6806,17 @@ nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh, nsI
    */
   loadInfo->SetReferrer(mCurrentURI);
 
-  /* Don't ever "guess" on which principal to use to avoid picking
-   * the current principal.
-   */
+  // Set the triggering pricipal to aPrincipal if available, or current
+  // document's principal otherwise.
+  nsCOMPtr<nsIPrincipal> principal = aPrincipal;
+  if (!principal) {
+    nsCOMPtr<nsIDocument> doc = GetDocument();
+    if (!doc) {
+      return NS_ERROR_FAILURE;
+    }
+    principal = doc->NodePrincipal();
+  }
+  loadInfo->SetTriggeringPrincipal(principal);
   loadInfo->SetPrincipalIsExplicit(true);
 
   /* Check if this META refresh causes a redirection
@@ -6834,13 +6842,6 @@ nsDocShell::ForceRefreshURI(nsIURI* aURI, int32_t aDelay, bool aMetaRefresh, nsI
     }
   } else {
     loadInfo->SetLoadType(nsIDocShellLoadInfo::loadRefresh);
-  }
-
-  // If the principal is null, the refresh will have a triggeringPrincipal
-  // derived from the referrer URI, or will be set to the system principal
-  // if there is no refererrer. See LoadURI()
-  if (aPrincipal) {
-    loadInfo->SetTriggeringPrincipal(aPrincipal);
   }
 
   /*
