@@ -1771,8 +1771,8 @@ HttpChannelParent::UpdateAndSerializeSecurityInfo(nsACString& aSerializedSecurit
 bool
 HttpChannelParent::DoSendDeleteSelf()
 {
-  bool rv = SendDeleteSelf();
   mIPCClosed = true;
+  bool rv = SendDeleteSelf();
   return rv;
 }
 
