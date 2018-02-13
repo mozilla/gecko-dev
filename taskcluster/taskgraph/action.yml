@@ -20,7 +20,7 @@ scopes:
   - "docker-worker:cache:level-1-*"
   - "docker-worker:cache:tooltool-cache"
   - "secrets:get:project/taskcluster/gecko/hgfingerprint"
-  - "assume:repo:hg.mozilla.org/try:*"
+  - "assume:repo:hg.mozilla.org/try:branch:default"
 
 routes:
   - "tc-treeherder.v2.{{project}}.{{head_rev}}.{{pushlog_id}}"
