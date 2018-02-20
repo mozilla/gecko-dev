@@ -460,6 +460,18 @@ DOMSVGPathSegList::ReplaceItem(DOMSVGPathSeg& aNewItem,
   float segAsRaw[1 + NS_SVG_PATH_SEG_MAX_ARGS];
   domItem->ToSVGPathSegEncodedData(segAsRaw);
 
+  if (AnimListMirrorsBaseList()) {
+    // The anim val list is in sync with the base val list - remove mirroring
+    // animVal item if necessary.  We do this *before* touching InternalList()
+    // so the removed item can correctly store its internal value.
+    DOMSVGPathSegList* animVal =
+      GetDOMWrapperIfExists(InternalAList().GetAnimValKey());
+    if (animVal->ItemAt(aIndex)) {
+      animVal->ItemAt(aIndex)->RemovingFromList();
+      animVal->ItemAt(aIndex) = nullptr;
+    }
+  }
+
   if (!InternalList().mData.ReplaceElementsAt(internalIndex, 1 + oldArgCount,
                                               segAsRaw, 1 + newArgCount,
                                               fallible)) {
@@ -474,8 +486,13 @@ DOMSVGPathSegList::ReplaceItem(DOMSVGPathSeg& aNewItem,
 
   int32_t delta = newArgCount - oldArgCount;
   if (delta != 0) {
-    for (uint32_t i = aIndex + 1; i < LengthNoFlush(); ++i) {
-      mItems[i].mInternalDataIndex += delta;
+    // Sync up the internal indexes of all ItemProxys that come after aIndex:
+    UpdateListIndicesFromIndex(aIndex + 1, delta);
+    if (AnimListMirrorsBaseList()) {
+      // The anim val list is in sync with the base val list
+      DOMSVGPathSegList* animVal =
+        GetDOMWrapperIfExists(InternalAList().GetAnimValKey());
+      animVal->UpdateListIndicesFromIndex(aIndex + 1, delta);
     }
   }
 
