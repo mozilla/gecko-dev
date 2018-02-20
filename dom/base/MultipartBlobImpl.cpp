@@ -17,6 +17,7 @@
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsIXPConnect.h"
+#include "mozilla/TimerClamping.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -270,8 +271,7 @@ MultipartBlobImpl::SetLengthAndModifiedDate(ErrorResult& aRv)
     //   var x = new Date(); var f = new File(...);
     //   x.getTime() < f.dateModified.getTime()
     // could fail.
-    mLastModificationDate =
-      lastModifiedSet ? lastModified * PR_USEC_PER_MSEC : JS_Now();
+    mLastModificationDate = TimerClamping::ReduceUsTimeValue(lastModifiedSet ? lastModified * PR_USEC_PER_MSEC : JS_Now());
   }
 }
 

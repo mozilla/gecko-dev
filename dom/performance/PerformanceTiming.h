@@ -10,6 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "nsContentUtils.h"
 #include "nsDOMNavigationTiming.h"
+#include "mozilla/TimerClamping.h"
 #include "nsWrapperCache.h"
 #include "Performance.h"
 
@@ -68,10 +69,10 @@ public:
    *          page), if the given TimeStamp is valid. Otherwise, it will return
    *          the FetchStart timing value.
    */
-  inline DOMHighResTimeStamp TimeStampToDOMHighResOrFetchStart(TimeStamp aStamp)
+  inline DOMHighResTimeStamp TimeStampToReducedDOMHighResOrFetchStart(TimeStamp aStamp)
   {
     return (!aStamp.IsNull())
-        ? TimeStampToDOMHighRes(aStamp)
+        ? TimerClamping::ReduceMsTimeValue(TimeStampToDOMHighRes(aStamp))
         : FetchStartHighRes();
   }
 
@@ -119,7 +120,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetNavigationStart();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetNavigationStart());
   }
 
   DOMTimeMilliSec UnloadEventStart()
@@ -127,7 +128,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetUnloadEventStart();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetUnloadEventStart());
   }
 
   DOMTimeMilliSec UnloadEventEnd()
@@ -135,7 +136,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetUnloadEventEnd();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetUnloadEventEnd());
   }
 
   uint16_t GetRedirectCount() const;
@@ -183,7 +184,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetDomLoading();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetDomLoading());
   }
 
   DOMTimeMilliSec DomInteractive() const
@@ -191,7 +192,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetDomInteractive();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetDomInteractive());
   }
 
   DOMTimeMilliSec DomContentLoadedEventStart() const
@@ -199,7 +200,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetDomContentLoadedEventStart();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetDomContentLoadedEventStart());
   }
 
   DOMTimeMilliSec DomContentLoadedEventEnd() const
@@ -207,7 +208,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetDomContentLoadedEventEnd();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetDomContentLoadedEventEnd());
   }
 
   DOMTimeMilliSec DomComplete() const
@@ -215,7 +216,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetDomComplete();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetDomComplete());
   }
 
   DOMTimeMilliSec LoadEventStart() const
@@ -223,7 +224,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetLoadEventStart();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetLoadEventStart());
   }
 
   DOMTimeMilliSec LoadEventEnd() const
@@ -231,7 +232,7 @@ public:
     if (!nsContentUtils::IsPerformanceTimingEnabled()) {
       return 0;
     }
-    return GetDOMTiming()->GetLoadEventEnd();
+    return TimerClamping::ReduceMsTimeValue(GetDOMTiming()->GetLoadEventEnd());
   }
 
 private:

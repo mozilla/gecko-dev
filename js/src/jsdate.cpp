@@ -1232,7 +1232,10 @@ date_parse(JSContext* cx, unsigned argc, Value* vp)
 static ClippedTime
 NowAsMillis()
 {
-    return TimeClip(static_cast<double>(PRMJ_Now()) / PRMJ_USEC_PER_MSEC);
+    const double maxResolutionMs = 2;
+    double timestamp = static_cast<double>(PRMJ_Now()) / PRMJ_USEC_PER_MSEC;
+    timestamp = floor(timestamp / maxResolutionMs) * maxResolutionMs;
+    return TimeClip(timestamp);
 }
 
 bool

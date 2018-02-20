@@ -30,6 +30,7 @@
 #include "nsContentUtils.h"
 #include "nsDocShell.h"
 #include "nsProxyRelease.h"
+#include "mozilla/TimerClamping.h"
 #include "mozilla/ConsoleTimelineMarker.h"
 #include "mozilla/TimestampTimelineMarker.h"
 
@@ -1338,7 +1339,7 @@ Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
       TimeDuration duration =
         mozilla::TimeStamp::Now() - workerPrivate->NowBaseTimeStamp();
 
-      monotonicTimer = duration.ToMilliseconds();
+      monotonicTimer = TimerClamping::ReduceMsTimeValue(duration.ToMilliseconds());
     }
   }
 

@@ -29,6 +29,7 @@
 #include "nsStringStream.h"
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
+#include "mozilla/TimerClamping.h"
 #include "mozilla/SHA1.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Preferences.h"
@@ -727,7 +728,7 @@ BlobImplBase::GetLastModified(ErrorResult& aRv)
     mLastModificationDate = PR_Now();
   }
 
-  return mLastModificationDate / PR_USEC_PER_MSEC;
+  return TimerClamping::ReduceUsTimeValue(mLastModificationDate) / PR_USEC_PER_MSEC;
 }
 
 void

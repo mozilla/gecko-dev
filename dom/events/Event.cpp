@@ -32,6 +32,7 @@
 #include "nsJSEnvironment.h"
 #include "nsLayoutUtils.h"
 #include "nsPIWindowRoot.h"
+#include "mozilla/TimerClamping.h"
 #include "WorkerPrivate.h"
 
 namespace mozilla {
@@ -1084,6 +1085,12 @@ Event::DefaultPrevented(JSContext* aCx) const
 
 double
 Event::TimeStamp() const
+{
+  return TimerClamping::ReduceMsTimeValue(TimeStampImpl());
+}
+
+double
+Event::TimeStampImpl() const
 {
   if (!sReturnHighResTimeStamp) {
     return static_cast<double>(mEvent->mTime);

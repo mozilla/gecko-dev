@@ -143,6 +143,7 @@ EXPORTS.mozilla += [
     'CORSMode.h',
     'FeedWriterEnabled.h',
     'TextInputProcessor.h',
+    'TimerClamping.h',
     'UseCounter.h',
 ]
 
@@ -363,6 +364,7 @@ UNIFIED_SOURCES += [
     'TextInputProcessor.cpp',
     'ThirdPartyUtil.cpp',
     'Timeout.cpp',
+    'TimerClamping.cpp',
     'TreeWalker.cpp',
     'WebKitCSSMatrix.cpp',
     'WebSocket.cpp',
