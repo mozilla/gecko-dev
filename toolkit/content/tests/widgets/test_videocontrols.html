@@ -229,7 +229,7 @@ function runTest(event) {
       is(event.type, "seeked", "checking event type");
       ok(true, "video position is at " + video.currentTime);
       var expectedTime = videoDuration / 2;
-      ok(Math.abs(video.currentTime - expectedTime) < 0.1, "checking expected playback position");
+      ok(Math.abs(video.currentTime - expectedTime) < 0.1, "checking expected playback position Math.abs(" + video.currentTime + " - " + expectedTime + ") < .1");
 
       SimpleTest.executeSoon(() => {
         synthesizeMouse(video, scrubberOffsetX + (scrubberWidth / 4), scrubberCenterY, { });

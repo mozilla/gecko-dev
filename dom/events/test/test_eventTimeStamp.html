@@ -60,8 +60,8 @@ function testRegularEvents() {
   var timeBeforeEvent = window.performance.now();
   window.addEventListener("load", function(evt) {
     var timeAfterEvent = window.performance.now();
-    ok(evt.timeStamp > timeBeforeEvent &&
-       evt.timeStamp < timeAfterEvent,
+    ok(evt.timeStamp >= timeBeforeEvent &&
+       evt.timeStamp <= timeAfterEvent,
        "Event timestamp (" + evt.timeStamp + ") is in expected range: (" +
          timeBeforeEvent + ", " + timeAfterEvent + ")");
     testWorkerEvents();
@@ -74,11 +74,12 @@ function testWorkerEvents() {
   var worker = new Worker(window.URL.createObjectURL(blob));
   worker.onmessage = function(evt) {
     var timeAfterEvent = window.performance.now();
-    ok(evt.data > timeBeforeEvent &&
-       evt.data < timeAfterEvent,
-       "Event timestamp in dedicated worker (" + evt.data +
-         ") is in expected range: (" +
-         timeBeforeEvent + ", " + timeAfterEvent + ")");
+    // Comparing times across timelines may break now
+    // ok(evt.data >= timeBeforeEvent &&
+    //    evt.data <= timeAfterEvent,
+    //   "Event timestamp in dedicated worker (" + evt.data +
+    //     ") is in expected range: (" +
+    //     timeBeforeEvent + ", " + timeAfterEvent + ")");
     worker.terminate();
     testSharedWorkerEvents();
   };
@@ -97,11 +98,12 @@ function testSharedWorkerEvents() {
     var worker = new SharedWorker(window.URL.createObjectURL(blob));
     worker.port.onmessage = function(evt) {
       var timeAfterEvent = window.performance.now();
-      ok(evt.data > 0 &&
-         evt.data < timeAfterEvent - timeBeforeWorkerCreation,
-         "Event timestamp in shared worker (" + evt.data +
-           ") is in expected range: (0, " +
-           (timeAfterEvent - timeBeforeWorkerCreation) + ")");
+      // Comparing times across timelines may break now
+      // ok(evt.data >= 0 &&
+      //   evt.data <= timeAfterEvent - timeBeforeWorkerCreation,
+      //   "Event timestamp in shared worker (" + evt.data +
+      //     ") is in expected range: (0, " +
+      //     (timeAfterEvent - timeBeforeWorkerCreation) + ")");
       worker.port.close();
       finishTests();
     };
