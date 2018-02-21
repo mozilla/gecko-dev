@@ -5,6 +5,7 @@ sphinx/opt:
         kind: test
         tier: 1
         platform: lint/opt
+    run-on-projects: ['trunk', 'try']
     worker-type: aws-provisioner-v1/b2gtest
     worker:
         implementation: docker-worker
