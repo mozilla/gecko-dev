@@ -25,10 +25,6 @@
 #include "mozilla/layers/MacIOSurfaceTextureHostOGL.h"
 #endif
 
-#ifdef GL_PROVIDER_GLX
-#include "mozilla/layers/X11TextureHost.h"
-#endif
-
 using namespace mozilla::gl;
 using namespace mozilla::gfx;
 
@@ -44,12 +40,6 @@ CreateTextureHostOGL(const SurfaceDescriptor& aDesc,
 {
   RefPtr<TextureHost> result;
   switch (aDesc.type()) {
-    case SurfaceDescriptor::TSurfaceDescriptorBuffer: {
-      result = CreateBackendIndependentTextureHost(aDesc,
-                                                   aDeallocator, aFlags);
-      break;
-    }
-
 #ifdef MOZ_WIDGET_ANDROID
     case SurfaceDescriptor::TSurfaceTextureDescriptor: {
       const SurfaceTextureDescriptor& desc = aDesc.get_SurfaceTextureDescriptor();
@@ -79,14 +69,6 @@ CreateTextureHostOGL(const SurfaceDescriptor& aDesc,
     }
 #endif
 
-#ifdef GL_PROVIDER_GLX
-    case SurfaceDescriptor::TSurfaceDescriptorX11: {
-      const auto& desc = aDesc.get_SurfaceDescriptorX11();
-      result = new X11TextureHost(aFlags, desc);
-      break;
-    }
-#endif
-
     case SurfaceDescriptor::TSurfaceDescriptorSharedGLTexture: {
       const auto& desc = aDesc.get_SurfaceDescriptorSharedGLTexture();
       result = new GLTextureHost(aFlags, desc.texture(),
@@ -96,7 +78,10 @@ CreateTextureHostOGL(const SurfaceDescriptor& aDesc,
                                  desc.hasAlpha());
       break;
     }
-    default: return nullptr;
+    default: {
+      MOZ_ASSERT_UNREACHABLE("Unsupported SurfaceDescriptor type");
+      break;
+    }
   }
   return result.forget();
 }

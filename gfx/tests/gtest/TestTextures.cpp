@@ -5,6 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "TestLayers.h"
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Tools.h"
@@ -147,7 +148,8 @@ void TestTextureClientSurface(TextureClient* texture, gfxImageSurface* surface) 
   ASSERT_NE(descriptor.type(), SurfaceDescriptor::Tnull_t);
 
   // host deserialization
-  RefPtr<TextureHost> host = CreateBackendIndependentTextureHost(descriptor, nullptr,
+  RefPtr<TestSurfaceAllocator> deallocator = new TestSurfaceAllocator();
+  RefPtr<TextureHost> host = CreateBackendIndependentTextureHost(descriptor, deallocator,
                                                                  texture->GetFlags());
 
   ASSERT_TRUE(host.get() != nullptr);
@@ -191,7 +193,8 @@ void TestTextureClientYCbCr(TextureClient* client, PlanarYCbCrData& ycbcrData) {
   ASSERT_EQ(ycbcrDesc.stereoMode(), ycbcrData.mStereoMode);
 
   // host deserialization
-  RefPtr<TextureHost> textureHost = CreateBackendIndependentTextureHost(descriptor, nullptr,
+  RefPtr<TestSurfaceAllocator> deallocator = new TestSurfaceAllocator();
+  RefPtr<TextureHost> textureHost = CreateBackendIndependentTextureHost(descriptor, deallocator,
                                                                         client->GetFlags());
 
   RefPtr<BufferTextureHost> host = static_cast<BufferTextureHost*>(textureHost.get());

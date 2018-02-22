@@ -632,10 +632,6 @@ CreateTextureHostD3D11(const SurfaceDescriptor& aDesc,
 {
   RefPtr<TextureHost> result;
   switch (aDesc.type()) {
-    case SurfaceDescriptor::TSurfaceDescriptorBuffer: {
-      result = CreateBackendIndependentTextureHost(aDesc, aDeallocator, aFlags);
-      break;
-    }
     case SurfaceDescriptor::TSurfaceDescriptorD3D10: {
       result = new DXGITextureHostD3D11(aFlags,
                                         aDesc.get_SurfaceDescriptorD3D10());
@@ -647,7 +643,7 @@ CreateTextureHostD3D11(const SurfaceDescriptor& aDesc,
       break;
     }
     default: {
-      NS_WARNING("Unsupported SurfaceDescriptor type");
+      MOZ_ASSERT_UNREACHABLE("Unsupported SurfaceDescriptor type");
     }
   }
   return result.forget();

@@ -28,6 +28,8 @@ MacIOSurfaceTextureHostOGL::~MacIOSurfaceTextureHostOGL()
 GLTextureSource*
 MacIOSurfaceTextureHostOGL::CreateTextureSourceForPlane(size_t aPlane)
 {
+  MOZ_ASSERT(mSurface);
+
   GLuint textureHandle;
   gl::GLContext* gl = mCompositor->gl();
   gl->fGenTextures(1, &textureHandle);
@@ -84,11 +86,17 @@ MacIOSurfaceTextureHostOGL::SetCompositor(Compositor* aCompositor)
 
 gfx::SurfaceFormat
 MacIOSurfaceTextureHostOGL::GetFormat() const {
+  if (!mSurface) {
+    return gfx::SurfaceFormat::UNKNOWN;
+  }
   return mSurface->GetFormat();
 }
 
 gfx::SurfaceFormat
 MacIOSurfaceTextureHostOGL::GetReadFormat() const {
+  if (!mSurface) {
+    return gfx::SurfaceFormat::UNKNOWN;
+  }
   return mSurface->GetReadFormat();
 }
 

@@ -100,15 +100,9 @@ TextureHost::CreateIPDLActor(HostIPCAllocator* aAllocator,
                              TextureFlags aFlags,
                              uint64_t aSerial)
 {
-  if (aSharedData.type() == SurfaceDescriptor::TSurfaceDescriptorBuffer &&
-      aSharedData.get_SurfaceDescriptorBuffer().data().type() == MemoryOrShmem::Tuintptr_t &&
-      !aAllocator->IsSameProcess())
-  {
-    NS_ERROR("A client process is trying to peek at our address space using a MemoryTexture!");
-    return nullptr;
-  }
   TextureParent* actor = new TextureParent(aAllocator, aSerial);
   if (!actor->Init(aSharedData, aLayersBackend, aFlags)) {
+    actor->ActorDestroy(ipc::IProtocol::ActorDestroyReason::FailedConstructor);
     delete actor;
     return nullptr;
   }
@@ -210,6 +204,11 @@ TextureHost::Create(const SurfaceDescriptor& aDesc,
 
 #ifdef MOZ_X11
     case SurfaceDescriptor::TSurfaceDescriptorX11: {
+      if (!aDeallocator->IsSameProcess()) {
+        NS_ERROR("A client process is trying to peek at our address space using a X11Texture!");
+        return nullptr;
+      }
+
       const SurfaceDescriptorX11& desc = aDesc.get_SurfaceDescriptorX11();
       return MakeAndAddRef<X11TextureHost>(aFlags, desc);
     }
@@ -244,13 +243,49 @@ CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
       const MemoryOrShmem& data = bufferDesc.data();
       switch (data.type()) {
         case MemoryOrShmem::TShmem: {
-          result = new ShmemTextureHost(data.get_Shmem(),
-                                        bufferDesc.desc(),
-                                        aDeallocator,
-                                        aFlags);
+          const ipc::Shmem& shmem = data.get_Shmem();
+          const BufferDescriptor& desc = bufferDesc.desc();
+          if (!shmem.IsReadable()) {
+            // We failed to map the shmem so we can't verify its size. This
+            // should not be a fatal error, so just create the texture with
+            // nothing backing it.
+            result = new ShmemTextureHost(shmem, desc, aDeallocator, aFlags);
+            break;
+          }
+
+          size_t bufSize = shmem.Size<char>();
+          size_t reqSize = SIZE_MAX;
+          switch (desc.type()) {
+            case BufferDescriptor::TYCbCrDescriptor: {
+              const YCbCrDescriptor& ycbcr = desc.get_YCbCrDescriptor();
+              reqSize =
+                ImageDataSerializer::ComputeYCbCrBufferSize(ycbcr.ySize(), ycbcr.cbCrSize());
+              break;
+            }
+            case BufferDescriptor::TRGBDescriptor: {
+              const RGBDescriptor& rgb = desc.get_RGBDescriptor();
+              reqSize = ImageDataSerializer::ComputeRGBBufferSize(rgb.size(), rgb.format());
+              break;
+            }
+            default:
+              gfxCriticalError() << "Bad buffer host descriptor " << (int)desc.type();
+              MOZ_CRASH("GFX: Bad descriptor");
+          }
+
+          if (bufSize < reqSize) {
+            NS_ERROR("A client process gave a shmem too small to fit for its descriptor!");
+            return nullptr;
+          }
+
+          result = new ShmemTextureHost(shmem, desc, aDeallocator, aFlags);
           break;
         }
         case MemoryOrShmem::Tuintptr_t: {
+          if (!aDeallocator->IsSameProcess()) {
+            NS_ERROR("A client process is trying to peek at our address space using a MemoryTexture!");
+            return nullptr;
+          }
+
           result = new MemoryTextureHost(reinterpret_cast<uint8_t*>(data.get_uintptr_t()),
                                          bufferDesc.desc(),
                                          aFlags);
@@ -268,6 +303,11 @@ CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
     }
 #ifdef XP_WIN
     case SurfaceDescriptor::TSurfaceDescriptorDIB: {
+      if (!aDeallocator->IsSameProcess()) {
+        NS_ERROR("A client process is trying to peek at our address space using a DIBTexture!");
+        return nullptr;
+      }
+
       result = new DIBTextureHost(aFlags, aDesc);
       break;
     }
