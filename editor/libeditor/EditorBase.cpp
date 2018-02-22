@@ -175,7 +175,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(EditorBase)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEditorObservers)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocStateListeners)
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEventTarget)
- NS_IMPL_CYCLE_COLLECTION_UNLINK(mEventListener)
+
+ if (tmp->mEventListener) {
+   EditorEventListener* listener =
+    reinterpret_cast<EditorEventListener*>(tmp->mEventListener.get());
+   listener->Disconnect();
+   tmp->mEventListener = nullptr;
+ }
+
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSavedSel);
  NS_IMPL_CYCLE_COLLECTION_UNLINK(mRangeUpdater);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
