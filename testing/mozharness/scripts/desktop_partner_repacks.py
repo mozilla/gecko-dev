@@ -108,7 +108,8 @@ class DesktopPartnerRepacks(ReleaseMixin, BuildbotMixin, PurgeMixin,
                 if not self.buildbot_config:
                     self.fatal("Unable to load properties from file: %s" % self.config.get('buildbot_json_path'))
             props = self.buildbot_config["properties"]
-            for prop in ['version', 'build_number', 'revision', 'repo_file', 'repack_manifests_url', 'partner']:
+            for prop in ['version', 'build_number', 'revision', 'repo_file',
+                         'repo_url', 'repack_manifests_url', 'partner']:
                 if props.get(prop):
                     self.info("Overriding %s with %s" % (prop, props[prop]))
                     self.config[prop] = props.get(prop)
@@ -119,6 +120,8 @@ class DesktopPartnerRepacks(ReleaseMixin, BuildbotMixin, PurgeMixin,
             self.fatal("Build number (-n) not supplied.")
         if 'repo_file' not in self.config:
             self.fatal("repo_file not supplied.")
+        if 'repo_url' not in self.config:
+            self.fatal("repo_url not supplied.")
         if 'repack_manifests_url' not in self.config:
             self.fatal("repack_manifests_url not supplied.")
 
@@ -147,6 +150,7 @@ class DesktopPartnerRepacks(ReleaseMixin, BuildbotMixin, PurgeMixin,
 
     def _repo_init(self, repo):
         status = self.run_command([repo, "init", "--no-repo-verify",
+                                   "--repo-url", self.config['repo_url'],
                                    "-u", self.config['repack_manifests_url']],
                                   cwd=self.query_abs_dirs()['abs_work_dir'])
         if status:
