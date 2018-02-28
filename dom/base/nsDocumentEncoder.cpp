@@ -481,7 +481,7 @@ nsDocumentEncoder::SerializeToStringRecursive(nsINode* aNode,
   }
 
   if (!aDontSerializeRoot) {
-    rv = SerializeNodeEnd(node, aStr);
+    rv = SerializeNodeEnd(maybeFixedNode, aStr);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
