@@ -211,12 +211,21 @@ nsUnicodeToBIG5::GetMaxLength(const char16_t* aSrc,
                               int32_t aSrcLength,
                               int32_t* aDestLength)
 {
-  *aDestLength = (aSrcLength * 2) +
-                 (mPendingTrail ? 1 : 0) +
-                 // If the lead ends up being paired, the bytes produced
-                 // are already included above.
-                 // If not, it produces a single '?'.
-                 (mUtf16Lead ? 1 : 0);
+  mozilla::CheckedInt32 length = aSrcLength;
+  length *= 2;
+  if (mPendingTrail) {
+    length += 1;
+  }
+  // If the lead ends up being paired, the bytes produced
+  // are already included above.
+  // If not, it produces a single '?'.
+  if (mUtf16Lead) {
+    length += 1;
+  }
+  if (!length.isValid()) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  *aDestLength = length.value();
   return NS_OK;
 }
 
