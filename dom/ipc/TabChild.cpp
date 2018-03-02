@@ -22,6 +22,7 @@
 #include "mozilla/dom/indexedDB/PIndexedDBPermissionRequestChild.h"
 #include "mozilla/plugins/PluginWidgetChild.h"
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/ipc/DocumentRendererChild.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/layers/APZChild.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
@@ -2003,6 +2004,57 @@ TabChild::DeallocPDocAccessibleChild(a11y::PDocAccessibleChild* aChild)
   delete static_cast<mozilla::a11y::DocAccessibleChild*>(aChild);
 #endif
   return true;
+}
+
+PDocumentRendererChild*
+TabChild::AllocPDocumentRendererChild(const nsRect& documentRect,
+                                      const mozilla::gfx::Matrix& transform,
+                                      const nsString& bgcolor,
+                                      const uint32_t& renderFlags,
+                                      const bool& flushLayout,
+                                      const nsIntSize& renderSize)
+{
+    return new DocumentRendererChild();
+}
+
+bool
+TabChild::DeallocPDocumentRendererChild(PDocumentRendererChild* actor)
+{
+    delete actor;
+    return true;
+}
+
+bool
+TabChild::RecvPDocumentRendererConstructor(PDocumentRendererChild* actor,
+                                           const nsRect& documentRect,
+                                           const mozilla::gfx::Matrix& transform,
+                                           const nsString& bgcolor,
+                                           const uint32_t& renderFlags,
+                                           const bool& flushLayout,
+                                           const nsIntSize& renderSize)
+{
+    DocumentRendererChild *render = static_cast<DocumentRendererChild *>(actor);
+
+    nsCOMPtr<nsIWebBrowser> browser = do_QueryInterface(WebNavigation());
+    if (!browser)
+        return true; // silently ignore
+    nsCOMPtr<mozIDOMWindowProxy> window;
+    if (NS_FAILED(browser->GetContentDOMWindow(getter_AddRefs(window))) ||
+        !window)
+    {
+        return true; // silently ignore
+    }
+
+    nsCString data;
+    bool ret = render->RenderDocument(nsPIDOMWindowOuter::From(window),
+                                      documentRect, transform,
+                                      bgcolor,
+                                      renderFlags, flushLayout,
+                                      renderSize, data);
+    if (!ret)
+        return true; // silently ignore
+
+    return PDocumentRendererChild::Send__delete__(actor, renderSize, data);
 }
 
 PColorPickerChild*
