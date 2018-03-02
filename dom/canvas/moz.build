@@ -25,11 +25,6 @@ EXPORTS += [
     'nsICanvasRenderingContextInternal.h',
 ]
 
-EXPORTS.mozilla.ipc += [
-    'DocumentRendererChild.h',
-    'DocumentRendererParent.h',
-]
-
 EXPORTS.mozilla.dom += [
     'CanvasGradient.h',
     'CanvasPath.h',
@@ -52,8 +47,6 @@ UNIFIED_SOURCES += [
     'CanvasRenderingContext2D.cpp',
     'CanvasRenderingContextHelper.cpp',
     'CanvasUtils.cpp',
-    'DocumentRendererChild.cpp',
-    'DocumentRendererParent.cpp',
     'ImageBitmap.cpp',
     'ImageBitmapColorUtils.cpp',
     'ImageBitmapRenderingContext.cpp',
