@@ -15,6 +15,7 @@ namespace mozilla {
 template<typename> class LinkedList;
 class WebGLContext;
 
+
 ////
 
 // This class is a mixin for objects that are tied to a specific
@@ -355,11 +356,22 @@ ImplCycleCollectionUnlink(mozilla::WebGLRefPtr<T>& field)
 template <typename T>
 inline void
 ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,
+                            mozilla::WebGLRefPtr<T>& field,
+                            const char* name,
+                            uint32_t flags = 0)
+{
+    CycleCollectionNoteChild(callback, field.get(), name, flags);
+}
+
+template <typename T>
+inline void
+ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,
                             const mozilla::WebGLRefPtr<T>& field,
                             const char* name,
                             uint32_t flags = 0)
 {
     CycleCollectionNoteChild(callback, field.get(), name, flags);
 }
+
 
 #endif

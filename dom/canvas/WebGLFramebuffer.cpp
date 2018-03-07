@@ -17,7 +17,9 @@
 #include "WebGLContextUtils.h"
 #include "WebGLExtensions.h"
 #include "WebGLRenderbuffer.h"
+#include "WebGLShader.h"
 #include "WebGLTexture.h"
+#include "WebGLObjectModel.h"
 
 namespace mozilla {
 
@@ -1939,6 +1941,7 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,
         ImplCycleCollectionTraverse(callback, cur, name, flags);
     }
 }
+
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WebGLFramebuffer,
                                       mDepthAttachment,

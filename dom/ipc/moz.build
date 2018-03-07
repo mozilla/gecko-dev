@@ -96,7 +96,6 @@ IPDL_SOURCES += [
     'PCrashReporter.ipdl',
     'PCycleCollectWithLogs.ipdl',
     'PDatePicker.ipdl',
-    'PDocumentRenderer.ipdl',
     'PFilePicker.ipdl',
     'PMemoryReportRequest.ipdl',
     'PPluginWidget.ipdl',

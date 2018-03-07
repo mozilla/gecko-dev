@@ -17,6 +17,7 @@
 #include "WebGLTransformFeedback.h"
 #include "WebGLUniformLocation.h"
 #include "WebGLValidateStrings.h"
+#include "WebGLObjectModel.h"
 
 namespace mozilla {
 
