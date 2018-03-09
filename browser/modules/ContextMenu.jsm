@@ -126,49 +126,19 @@ const messageListeners = {
                           node.form.enctype == ""));
     let title = node.ownerDocument.title;
     let description = PlacesUIUtils.getDescriptionFromDocument(node.ownerDocument);
-    let formData = [];
-
-    function escapeNameValuePair(aName, aValue, aIsFormUrlEncoded) {
-      if (aIsFormUrlEncoded) {
-        return escape(aName + "=" + aValue);
-      }
-
-      return escape(aName) + "=" + escape(aValue);
-    }
-
-    for (let el of node.form.elements) {
-      if (!el.type) // happens with fieldsets
-        continue;
-
-      if (el == node) {
-        formData.push((isURLEncoded) ? escapeNameValuePair(el.name, "%s", true) :
-                                       // Don't escape "%s", just append
-                                       escapeNameValuePair(el.name, "", false) + "%s");
-        continue;
-      }
-
-      let type = el.type.toLowerCase();
-
-      if (((el instanceof this.content.HTMLInputElement && el.mozIsTextField(true)) ||
-          type == "hidden" || type == "textarea") ||
-          ((type == "checkbox" || type == "radio") && el.checked)) {
-        formData.push(escapeNameValuePair(el.name, el.value, isURLEncoded));
-      } else if (el instanceof this.content.HTMLSelectElement && el.selectedIndex >= 0) {
-        for (let j = 0; j < el.options.length; j++) {
-          if (el.options[j].selected)
-            formData.push(escapeNameValuePair(el.name, el.options[j].value,
-                                              isURLEncoded));
-        }
-      }
-    }
-
+    
+    let formData = new node.ownerGlobal.FormData(node.form);
+    
     let postData;
-
-    if (isURLEncoded) {
-      postData = formData.join("&");
-    } else {
-      let separator = spec.includes("?") ? "&" : "?";
-      spec += separator + formData.join("&");
+    
+    let keyValSeparator = isURLEncoded ? "%3D" : "=";
+    for (let [key, val] of formData) {
+      if (key == node.name) {
+        //Specialcase this input:
+        spec += escape(key) + keyValSeparator + "%s";
+      } else {
+        spec += escape(key) + keyValSeparator + escape(val);
+      }
     }
 
     this.global.sendAsyncMessage("ContextMenu:SearchFieldBookmarkData:Result",
