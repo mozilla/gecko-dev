@@ -353,7 +353,7 @@
     },
     "it": {
       "default": {
-        "visibleDefaultEngines:": [
+        "visibleDefaultEngines": [
           "google", "bing", "amazon-it", "ddg", "hoepli", "wikipedia-it"
         ]
       }
