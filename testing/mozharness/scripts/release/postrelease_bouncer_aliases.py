@@ -98,8 +98,13 @@ class PostReleaseBouncerAliases(BaseScript, VirtualenvMixin, BuildbotMixin):
             if "alias" in info:
                 product_template = info["product-name"]
                 related_product = product_template % {"version": version}
-                self._update_bouncer_alias(tuxedo_server_url, auth,
-                                           related_product, info["alias"])
+                if isinstance(info['alias'], list):
+                    for alias in info["alias"]:
+                        self._update_bouncer_alias(tuxedo_server_url, auth,
+                                                   related_product, alias)
+                else:
+                    self._update_bouncer_alias(tuxedo_server_url, auth,
+                                               related_product, info["alias"])
 
 
 # __main__ {{{1
