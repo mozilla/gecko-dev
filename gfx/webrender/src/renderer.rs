@@ -1447,7 +1447,7 @@ impl Renderer {
 
         let config = FrameBuilderConfig {
             enable_scrollbars: options.enable_scrollbars,
-            default_font_render_mode,
+            default_font_render_mode: default_font_render_mode,
             debug: options.debug,
             dual_source_blending_is_enabled: true,
             dual_source_blending_is_supported: ext_dual_source_blending,
