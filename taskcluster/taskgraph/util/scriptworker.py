@@ -146,7 +146,7 @@ BEETMOVER_ACTION_SCOPES = {
     'all-candidates-tasks': 'beetmover:action:push-to-candidates',
     'all-push-tasks': 'beetmover:action:push-to-releases',
     'all-nightly-tasks': 'beetmover:action:push-to-nightly',
-    'default': 'beetmover:action:push-to-staging',
+    'default': 'beetmover:action:push-to-nightly',
 }
 
 
