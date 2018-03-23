@@ -30,5 +30,6 @@ check out the :doc:`how-to section <how-tos>`.
     cron
     try
     actions
+    versioncontrol
     how-tos
     reference
