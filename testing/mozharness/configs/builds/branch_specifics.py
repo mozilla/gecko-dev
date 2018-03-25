@@ -264,6 +264,11 @@ config = {
                 'update_channel': 'default',
             },
         },
+        "find_links": [
+            "http://pypi.pvt.build.mozilla.org/pub",
+            "http://pypi.pub.build.mozilla.org/pub",
+        ],
+        'pip_index': False,
     },
     'mozilla-aurora': {
         'repo_path': 'releases/mozilla-aurora',
