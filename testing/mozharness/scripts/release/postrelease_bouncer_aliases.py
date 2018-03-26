@@ -98,7 +98,7 @@ class PostReleaseBouncerAliases(BaseScript, VirtualenvMixin, BuildbotMixin):
             if "alias" in info:
                 product_template = info["product-name"]
                 related_product = product_template % {"version": version}
-                if isinstance(info['alias'], list):
+                if isinstance(info['alias'], (tuple, list)):
                     for alias in info["alias"]:
                         self._update_bouncer_alias(tuxedo_server_url, auth,
                                                    related_product, alias)
