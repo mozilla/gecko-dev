@@ -11,6 +11,7 @@
 #include "nsIUnicodeDecoder.h"
 #include "nsIUnicodeEncoder.h"
 #include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/CheckedInt.h"
 
 using mozilla::dom::EncodingUtils;
 
@@ -39,7 +40,12 @@ nsScriptableUnicodeConverter::ConvertFromUnicodeWithLength(const nsAString& aSrc
   const nsAFlatString& flatSrc = PromiseFlatString(aSrc);
   rv = mEncoder->GetMaxLength(flatSrc.get(), inLength, aOutLen);
   if (NS_SUCCEEDED(rv)) {
-    *_retval = (char*)malloc(*aOutLen+1);
+    mozilla::CheckedInt<int32_t> needed(*aOutLen);
+    needed += 1;
+    if (!needed.isValid()) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    *_retval = (char*)malloc(needed.value());
     if (!*_retval)
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -145,7 +151,13 @@ nsScriptableUnicodeConverter::ConvertFromByteArray(const uint8_t* aData,
                               inLength, &outLength);
   if (NS_SUCCEEDED(rv))
   {
-    char16_t* buf = (char16_t*)malloc((outLength+1) * sizeof(char16_t));
+    mozilla::CheckedInt<nsACString::size_type> needed(outLength);
+    needed += 1;
+    needed *= sizeof(char16_t);
+    if (!needed.isValid()) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    char16_t* buf = (char16_t*)malloc(needed.value());
     if (!buf)
       return NS_ERROR_OUT_OF_MEMORY;
 
