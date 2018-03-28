@@ -231,6 +231,7 @@ Downscaler::CommitRow()
     int32_t inLineToRead = filterOffset + mLinesInBuffer;
     MOZ_ASSERT(mCurrentInLine <= inLineToRead, "Reading past end of input");
     if (mCurrentInLine == inLineToRead) {
+      MOZ_RELEASE_ASSERT(mLinesInBuffer < mWindowCapacity, "Need more rows than capacity!");
       skia::ConvolveHorizontally(mRowBuffer.get(), *mXFilter,
                                  mWindow[mLinesInBuffer++], mHasAlpha,
                                  supports_sse2() || supports_mmi());
@@ -239,7 +240,7 @@ Downscaler::CommitRow()
     MOZ_ASSERT(mCurrentOutLine < mTargetSize.height,
                "Writing past end of output");
 
-    while (mLinesInBuffer == filterLength) {
+    while (mLinesInBuffer >= filterLength) {
       DownscaleInputLine();
 
       if (mCurrentOutLine == mTargetSize.height) {
@@ -340,9 +341,14 @@ Downscaler::DownscaleInputLine()
 
   // Shift the buffer. We're just moving pointers here, so this is cheap.
   mLinesInBuffer -= diff;
-  mLinesInBuffer = max(mLinesInBuffer, 0);
-  for (int32_t i = 0; i < mLinesInBuffer; ++i) {
-    swap(mWindow[i], mWindow[filterLength - mLinesInBuffer + i]);
+  mLinesInBuffer = min(max(mLinesInBuffer, 0), mWindowCapacity);
+
+  // If we already have enough rows to satisfy the filter, there is no need
+  // to swap as we won't be writing more before the next convolution.
+  if (filterLength > mLinesInBuffer) {
+    for (int32_t i = 0; i < mLinesInBuffer; ++i) {
+      swap(mWindow[i], mWindow[filterLength - mLinesInBuffer + i]);
+    }
   }
 }
 
