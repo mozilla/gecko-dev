@@ -109,6 +109,11 @@ SK_API extern void* sk_calloc(size_t size);
  */
 SK_API extern void* sk_calloc_throw(size_t size);
 
+// Performs a safe multiply count * elemSize, checking for overflow
+SK_API extern void* sk_calloc_throw(size_t count, size_t elemSize);
+SK_API extern void* sk_malloc_throw(size_t count, size_t elemSize);
+SK_API extern void* sk_realloc_throw(void* buffer, size_t count, size_t elemSize);
+
 // bzero is safer than memset, but we can't rely on it, so... sk_bzero()
 static inline void sk_bzero(void* buffer, size_t size) {
     // Please c.f. sk_careful_memcpy.  It's undefined behavior to call memset(null, 0, 0).
@@ -295,6 +300,7 @@ template <typename D, typename S> D SkTo(S s) {
 #define SK_MaxU32   0xFFFFFFFF
 #define SK_MinU32   0
 #define SK_NaN32    ((int) (1U << 31))
+#define SK_MaxSizeT SIZE_MAX
 
 /** Returns true if the value can be represented with signed 16bits
  */

@@ -8,7 +8,20 @@
 #include "SkMallocPixelRef.h"
 #include "SkBitmap.h"
 #include "SkReadBuffer.h"
+#include "SkSafeMath.h"
 #include "SkWriteBuffer.h"
+
+void* sk_calloc_throw(size_t count, size_t elemSize) {
+    return sk_calloc_throw(SkSafeMath::Mul(count, elemSize));
+}
+
+void* sk_malloc_throw(size_t count, size_t elemSize) {
+    return sk_malloc_throw(SkSafeMath::Mul(count, elemSize));
+}
+
+void* sk_realloc_throw(void* buffer, size_t count, size_t elemSize) {
+    return sk_realloc_throw(buffer, SkSafeMath::Mul(count, elemSize));
+}
 
 // assumes ptr was allocated via sk_malloc
 static void sk_free_releaseproc(void* ptr, void*) {
