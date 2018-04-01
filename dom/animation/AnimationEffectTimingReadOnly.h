@@ -11,6 +11,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/TimingParams.h"
+#include "mozilla/Move.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "nsCycleCollectionParticipant.h"
@@ -48,7 +49,7 @@ public:
   void GetEasing(nsString& aRetVal) const;
 
   const TimingParams& AsTimingParams() const { return mTiming; }
-  void SetTimingParams(const TimingParams& aTiming) { mTiming = aTiming; }
+  void SetTimingParams(const TimingParams& aTiming) { mTiming = mozilla::Move(aTiming); }
 
   virtual void Unlink() { }
 
