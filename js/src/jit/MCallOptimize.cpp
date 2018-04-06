@@ -280,14 +280,14 @@ IonBuilder::inlineNativeCall(CallInfo& callInfo, JSFunction* target)
         return inlineIsConstructing(callInfo);
       case InlinableNative::IntrinsicSubstringKernel:
         return inlineSubstringKernel(callInfo);
-      case InlinableNative::IntrinsicIsArrayIterator:
-        return inlineHasClass(callInfo, &ArrayIteratorObject::class_);
-      case InlinableNative::IntrinsicIsMapIterator:
-        return inlineHasClass(callInfo, &MapIteratorObject::class_);
-      case InlinableNative::IntrinsicIsSetIterator:
-        return inlineHasClass(callInfo, &SetIteratorObject::class_);
-      case InlinableNative::IntrinsicIsStringIterator:
-        return inlineHasClass(callInfo, &StringIteratorObject::class_);
+      case InlinableNative::IntrinsicGuardToArrayIterator:
+        return inlineGuardToClass(callInfo, &ArrayIteratorObject::class_);
+      case InlinableNative::IntrinsicGuardToMapIterator:
+        return inlineGuardToClass(callInfo, &MapIteratorObject::class_);
+      case InlinableNative::IntrinsicGuardToSetIterator:
+        return inlineGuardToClass(callInfo, &SetIteratorObject::class_);
+      case InlinableNative::IntrinsicGuardToStringIterator:
+        return inlineGuardToClass(callInfo, &StringIteratorObject::class_);
       case InlinableNative::IntrinsicIsListIterator:
         return inlineHasClass(callInfo, &ListIteratorObject::class_);
       case InlinableNative::IntrinsicDefineDataProperty:
@@ -296,10 +296,14 @@ IonBuilder::inlineNativeCall(CallInfo& callInfo, JSFunction* target)
         return inlineObjectHasPrototype(callInfo);
 
       // Map intrinsics.
+      case InlinableNative::IntrinsicGuardToMapObject:
+        return inlineGuardToClass(callInfo, &MapObject::class_);
       case InlinableNative::IntrinsicGetNextMapEntryForIterator:
         return inlineGetNextEntryForIterator(callInfo, MGetNextEntryForIterator::Map);
 
       // Set intrinsics.
+      case InlinableNative::IntrinsicGuardToSetObject:
+        return inlineGuardToClass(callInfo, &SetObject::class_);
       case InlinableNative::IntrinsicGetNextSetEntryForIterator:
         return inlineGetNextEntryForIterator(callInfo, MGetNextEntryForIterator::Set);
 
@@ -2213,6 +2217,37 @@ IonBuilder::inlineHasClass(CallInfo& callInfo,
             MDefinition* result = convertToBoolean(last);
             current->push(result);
         }
+    }
+
+    callInfo.setImplicitlyUsedUnchecked();
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineGuardToClass(CallInfo& callInfo, const Class* clasp)
+{
+    MOZ_ASSERT(!callInfo.constructing());
+    MOZ_ASSERT(callInfo.argc() == 1);
+
+    if (callInfo.getArg(0)->type() != MIRType::Object)
+        return InliningStatus_NotInlined;
+
+    if (getInlineReturnType() != MIRType::ObjectOrNull &&
+        getInlineReturnType() != MIRType::Object)
+    {
+        return InliningStatus_NotInlined;
+    }
+    
+    TemporaryTypeSet* types = callInfo.getArg(0)->resultTypeSet();
+    const Class* knownClass = types ? types->getKnownClass(constraints()) : nullptr;
+
+    if (knownClass && knownClass == clasp) {
+        current->push(callInfo.getArg(0));
+    } else {
+        MGuardToClass* guardToClass = MGuardToClass::New(alloc(), callInfo.getArg(0),
+                                                         clasp, getInlineReturnType());
+        current->add(guardToClass);
+        current->push(guardToClass);
     }
 
     callInfo.setImplicitlyUsedUnchecked();

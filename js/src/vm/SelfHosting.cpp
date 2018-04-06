@@ -189,6 +189,22 @@ intrinsic_IsInstanceOfBuiltin(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
+template<typename T>
+static bool
+intrinsic_GuardToBuiltin(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 1);
+    MOZ_ASSERT(args[0].isObject());
+
+    if (args[0].toObject().is<T>()) {
+        args.rval().setObject(args[0].toObject());
+        return true;
+    }
+    args.rval().setNull();
+    return true;
+}
+
 /**
  * Self-hosting intrinsic returning the original constructor for a builtin
  * the name of which is the first and only argument.
@@ -2301,18 +2317,18 @@ static const JSFunctionSpec intrinsic_functions[] = {
 
     JS_FN("_SetCanonicalName",       intrinsic_SetCanonicalName,        2,0),
 
-    JS_INLINABLE_FN("IsArrayIterator",
-                    intrinsic_IsInstanceOfBuiltin<ArrayIteratorObject>, 1,0,
-                    IntrinsicIsArrayIterator),
-    JS_INLINABLE_FN("IsMapIterator",
-                    intrinsic_IsInstanceOfBuiltin<MapIteratorObject>,   1,0,
-                    IntrinsicIsMapIterator),
-    JS_INLINABLE_FN("IsSetIterator",
-                    intrinsic_IsInstanceOfBuiltin<SetIteratorObject>,   1,0,
-                    IntrinsicIsSetIterator),
-    JS_INLINABLE_FN("IsStringIterator",
-                    intrinsic_IsInstanceOfBuiltin<StringIteratorObject>, 1,0,
-                    IntrinsicIsStringIterator),
+    JS_INLINABLE_FN("GuardToArrayIterator",
+                    intrinsic_GuardToBuiltin<ArrayIteratorObject>, 1,0,
+                    IntrinsicGuardToArrayIterator),
+    JS_INLINABLE_FN("GuardToMapIterator",
+                    intrinsic_GuardToBuiltin<MapIteratorObject>,   1,0,
+                    IntrinsicGuardToMapIterator),
+    JS_INLINABLE_FN("GuardToSetIterator",
+                    intrinsic_GuardToBuiltin<SetIteratorObject>,   1,0,
+                    IntrinsicGuardToSetIterator),
+    JS_INLINABLE_FN("GuardToStringIterator",
+                    intrinsic_GuardToBuiltin<StringIteratorObject>, 1,0,
+                    IntrinsicGuardToStringIterator),
     JS_INLINABLE_FN("IsListIterator",
                     intrinsic_IsInstanceOfBuiltin<ListIteratorObject>,  1,0,
                     IntrinsicIsListIterator),
@@ -2416,7 +2432,12 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("CallStarGeneratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<StarGeneratorObject>>, 2, 0),
 
+    JS_INLINABLE_FN("GuardToMapObject", intrinsic_GuardToBuiltin<MapObject>, 1, 0,
+          IntrinsicGuardToMapObject),
     JS_FN("IsWeakSet", intrinsic_IsInstanceOfBuiltin<WeakSetObject>, 1,0),
+
+    JS_INLINABLE_FN("GuardToSetObject", intrinsic_GuardToBuiltin<SetObject>, 1, 0,
+          IntrinsicGuardToSetObject),
     JS_FN("CallWeakSetMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<WeakSetObject>>, 2, 0),
 

@@ -7848,6 +7848,29 @@ class LHasClass : public LInstructionHelper<1, 1, 0>
     }
 };
 
+class LGuardToClass : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(GuardToClass);
+    explicit LGuardToClass(const LAllocation& lhs, const LDefinition& temp)
+    {
+        setOperand(0, lhs);
+        setTemp(0, temp);
+    }
+
+    const LAllocation* lhs() {
+        return getOperand(0);
+    }
+
+    const LDefinition* temp() {
+        return getTemp(0);
+    }
+
+    MGuardToClass* mir() const {
+        return mir_->toGuardToClass();
+    }
+};
+
 template<size_t Defs, size_t Ops>
 class LWasmSelectBase : public LInstructionHelper<Defs, Ops, 0>
 {
