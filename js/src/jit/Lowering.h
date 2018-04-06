@@ -304,6 +304,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitIsTypedArray(MIsTypedArray* ins) override;
     void visitIsObject(MIsObject* ins) override;
     void visitHasClass(MHasClass* ins) override;
+    void visitGuardToClass(MGuardToClass* ins) override;
     void visitObjectClassToString(MObjectClassToString* ins) override;
     void visitWasmAddOffset(MWasmAddOffset* ins) override;
     void visitWasmLoadTls(MWasmLoadTls* ins) override;

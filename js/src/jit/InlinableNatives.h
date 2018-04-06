@@ -29,11 +29,11 @@
                                     \
     _(Boolean)                      \
                                     \
-    _(IntlIsCollator)               \
-    _(IntlIsDateTimeFormat)         \
-    _(IntlIsNumberFormat)           \
-    _(IntlIsPluralRules)            \
-    _(IntlIsRelativeTimeFormat)     \
+    _(IntlGuardToCollator)          \
+    _(IntlGuardToDateTimeFormat)    \
+    _(IntlGuardToNumberFormat)      \
+    _(IntlGuardToPluralRules)       \
+    _(IntlGuardToRelativeTimeFormat) \
                                     \
     _(MathAbs)                      \
     _(MathFloor)                    \
@@ -132,15 +132,15 @@
     _(IntrinsicFinishBoundFunctionInit) \
     _(IntrinsicIsPackedArray)       \
                                     \
-    _(IntrinsicIsArrayIterator)     \
-    _(IntrinsicIsMapIterator)       \
-    _(IntrinsicIsSetIterator)       \
-    _(IntrinsicIsStringIterator)    \
+    _(IntrinsicGuardToArrayIterator) \
+    _(IntrinsicGuardToMapIterator)  \
+    _(IntrinsicGuardToSetIterator)  \
+    _(IntrinsicGuardToStringIterator) \
                                     \
-    _(IntrinsicIsMapObject)         \
+    _(IntrinsicGuardToMapObject)    \
     _(IntrinsicGetNextMapEntryForIterator) \
                                     \
-    _(IntrinsicIsSetObject)         \
+    _(IntrinsicGuardToSetObject)    \
     _(IntrinsicGetNextSetEntryForIterator) \
                                     \
     _(IntrinsicNewArrayIterator)    \
