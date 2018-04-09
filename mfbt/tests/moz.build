@@ -42,6 +42,7 @@ CppUnitTests([
     'TestSHA1',
     'TestSplayTree',
     'TestTemplateLib',
+    'TestTextUtils',
     'TestTuple',
     'TestTypedEnum',
     'TestTypeTraits',
