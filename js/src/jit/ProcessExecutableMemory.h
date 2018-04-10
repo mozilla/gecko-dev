@@ -17,6 +17,14 @@ namespace jit {
 // alignment though.
 static const size_t ExecutableCodePageSize = 64 * 1024;
 
+// Limit on the number of bytes of executable memory to prevent JIT spraying
+// attacks.
+#if JS_BITS_PER_WORD == 32
+static const size_t MaxCodeBytesPerProcess = 128 * 1024 * 1024;
+#else
+static const size_t MaxCodeBytesPerProcess = 1 * 1024 * 1024 * 1024;
+#endif
+
 enum class ProtectionSetting {
     Protected, // Not readable, writable, or executable.
     Writable,

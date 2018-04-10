@@ -181,6 +181,10 @@ class AssemblerBuffer
 
   protected:
     virtual Slice* newSlice(LifoAlloc& a) {
+        if (size() > MaxCodeBytesPerProcess - sizeof(Slice)) {
+            fail_oom();
+            return nullptr;
+        }
         Slice* tmp = static_cast<Slice*>(a.alloc(sizeof(Slice)));
         if (!tmp) {
             fail_oom();
