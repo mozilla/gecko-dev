@@ -13,10 +13,14 @@ import sys
 
 import mozinstall
 import pytest
-from mozbuild.base import MozbuildObject
 
 here = os.path.abspath(os.path.dirname(__file__))
-build = MozbuildObject.from_environment(cwd=here)
+
+try:
+    from mozbuild.base import MozbuildObject
+    build = MozbuildObject.from_environment(cwd=here)
+except ImportError:
+    build = None
 
 
 HARNESS_ROOT_NOT_FOUND = """
@@ -27,9 +31,10 @@ environment variable is required.
 
 def _get_test_harness(suite, install_dir):
     # Check if there is a local build
-    harness_root = os.path.join(build.topobjdir, '_tests', install_dir)
-    if os.path.isdir(harness_root):
-        return harness_root
+    if build:
+        harness_root = os.path.join(build.topobjdir, '_tests', install_dir)
+        if os.path.isdir(harness_root):
+            return harness_root
 
     if 'TEST_HARNESS_ROOT' in os.environ:
         harness_root = os.path.join(os.environ['TEST_HARNESS_ROOT'], suite)
@@ -87,3 +92,6 @@ def binary():
             return mozinstall.get_binary(bindir, app_name=app)
         except Exception:
             pass
+
+    if 'GECKO_BINARY_PATH' in os.environ:
+        return os.environ['GECKO_BINARY_PATH']
