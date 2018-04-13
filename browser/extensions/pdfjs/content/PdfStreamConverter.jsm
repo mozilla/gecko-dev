@@ -29,7 +29,8 @@ const MOZ_CENTRAL = JSON.parse('true');
 const PDFJS_EVENT_ID = 'pdf.js.message';
 const PDF_CONTENT_TYPE = 'application/pdf';
 const PREF_PREFIX = 'pdfjs';
-const PDF_VIEWER_WEB_PAGE = 'resource://pdf.js/web/viewer.html';
+const PDF_VIEWER_ORIGIN = "resource://pdf.js";
+const PDF_VIEWER_WEB_PAGE = "resource://pdf.js/web/viewer.html";
 const MAX_NUMBER_OF_PREFS = 50;
 const MAX_STRING_PREF_LENGTH = 128;
 
@@ -110,11 +111,15 @@ function log(aMsg) {
   dump(msg + '\n');
 }
 
-function getDOMWindow(aChannel) {
+function getDOMWindow(aChannel, aPrincipal) {
   var requestor = aChannel.notificationCallbacks ?
                   aChannel.notificationCallbacks :
                   aChannel.loadGroup.notificationCallbacks;
   var win = requestor.getInterface(Components.interfaces.nsIDOMWindow);
+  // Ensure the window wasn't navigated to something that is not PDF.js.
+  if (!win.document.nodePrincipal.equals(aPrincipal)) {
+    return null;
+  }
   return win;
 }
 
@@ -632,7 +637,7 @@ var RangedChromeActions = (function RangedChromeActionsClosure() {
           loaded: loaded,
           total: total,
           chunk: self.dataListener.readData()
-        }, '*');
+        }, PDF_VIEWER_ORIGIN);
       };
       this.dataListener.oncomplete = function () {
         self.dataListener = null;
@@ -646,7 +651,7 @@ var RangedChromeActions = (function RangedChromeActionsClosure() {
       pdfUrl: this.pdfUrl,
       length: this.contentLength,
       data: data
-    }, '*');
+    }, PDF_VIEWER_ORIGIN);
 
     return true;
   };
@@ -668,13 +673,13 @@ var RangedChromeActions = (function RangedChromeActionsClosure() {
           pdfjsLoadAction: 'range',
           begin: args.begin,
           chunk: args.chunk
-        }, '*');
+        }, PDF_VIEWER_ORIGIN);
       },
       onProgress: function RangedChromeActions_onProgress(evt) {
         domWindow.postMessage({
           pdfjsLoadAction: 'rangeProgress',
           loaded: evt.loaded,
-        }, '*');
+        }, PDF_VIEWER_ORIGIN);
       }
     });
   };
@@ -723,7 +728,7 @@ var StandardChromeActions = (function StandardChromeActionsClosure() {
         pdfjsLoadAction: 'progress',
         loaded: loaded,
         total: total
-      }, '*');
+      }, PDF_VIEWER_ORIGIN);
     };
 
     this.dataListener.oncomplete =
@@ -732,7 +737,7 @@ var StandardChromeActions = (function StandardChromeActionsClosure() {
         pdfjsLoadAction: 'complete',
         data: data,
         errorCode: errorCode
-      }, '*');
+      }, PDF_VIEWER_ORIGIN);
 
       self.dataListener = null;
       self.originalRequest = null;
@@ -977,10 +982,14 @@ PdfStreamConverter.prototype = {
         listener.onDataAvailable(aRequest, aContext, inputStream,
                                  offset, count);
       },
-      onStopRequest: function(request, context, statusCode) {
-        // We get the DOM window here instead of before the request since it
-        // may have changed during a redirect.
-        var domWindow = getDOMWindow(channel);
+      onStopRequest(request, context, statusCode) {
+        var domWindow = getDOMWindow(channel, resourcePrincipal);
+        if (!Components.isSuccessCode(statusCode) || !domWindow) {
+          // The request may have been aborted and the document may have been
+          // replaced with something that is not PDF.js, abort attaching.
+          listener.onStopRequest(aRequest, context, statusCode);
+          return;
+        }
         var actions;
         if (rangeRequest || streamRequest) {
           actions = new RangedChromeActions(
@@ -991,7 +1000,7 @@ PdfStreamConverter.prototype = {
             domWindow, contentDispositionFilename, aRequest, dataListener);
         }
         var requestListener = new RequestListener(actions);
-        domWindow.addEventListener(PDFJS_EVENT_ID, function(event) {
+        domWindow.document.addEventListener(PDFJS_EVENT_ID, function(event) {
           requestListener.receive(event);
         }, false, true);
         if (actions.supportsIntegratedFind()) {
