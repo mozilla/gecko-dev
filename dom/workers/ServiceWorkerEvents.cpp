@@ -948,10 +948,8 @@ ExtendableEvent::GetPromise()
   }
   JSContext* cx = jsapi.cx();
 
-  GlobalObject global(cx, globalObj->GetGlobalJSObject());
-
   ErrorResult result;
-  RefPtr<Promise> p = Promise::All(global, Move(mPromises), result);
+  RefPtr<Promise> p = Promise::All(cx, Move(mPromises), result);
   if (NS_WARN_IF(result.MaybeSetPendingException(cx))) {
     return nullptr;
   }
