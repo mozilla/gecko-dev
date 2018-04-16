@@ -35,7 +35,9 @@ CamerasSingleton::CamerasSingleton()
   : mCamerasMutex("CamerasSingleton::mCamerasMutex"),
     mCameras(nullptr),
     mCamerasChildThread(nullptr),
-    mFakeDeviceChangeEventThread(nullptr) {
+    mFakeDeviceChangeEventThread(nullptr),
+    mInShutdown(false)
+{
   LOG(("CamerasSingleton: %p", this));
 }
 
@@ -285,6 +287,7 @@ CamerasChild::NumberOfCapabilities(CaptureEngine aCapEngine,
   LOG((__PRETTY_FUNCTION__));
   LOG(("NumberOfCapabilities for %s", deviceUniqueIdUTF8));
   nsCString unique_id(deviceUniqueIdUTF8);
+  RefPtr<CamerasChild> deathGrip = this;
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine, nsCString>
     (this, &CamerasChild::SendNumberOfCapabilities, aCapEngine, unique_id);
@@ -321,6 +324,7 @@ int
 CamerasChild::EnsureInitialized(CaptureEngine aCapEngine)
 {
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> deathGrip = this;
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine>
     (this, &CamerasChild::SendEnsureInitialized, aCapEngine);
@@ -336,6 +340,7 @@ CamerasChild::GetCaptureCapability(CaptureEngine aCapEngine,
                                    webrtc::CaptureCapability& capability)
 {
   LOG(("GetCaptureCapability: %s %d", unique_idUTF8, capability_number));
+  RefPtr<CamerasChild> deathGrip = this;
   nsCString unique_id(unique_idUTF8);
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine, nsCString, unsigned int>
@@ -374,6 +379,7 @@ CamerasChild::GetCaptureDevice(CaptureEngine aCapEngine,
                                bool* scary)
 {
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> deathGrip = this;
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine, unsigned int>
     (this, &CamerasChild::SendGetCaptureDevice, aCapEngine, list_number);
@@ -413,6 +419,7 @@ CamerasChild::AllocateCaptureDevice(CaptureEngine aCapEngine,
                                     const nsACString& aOrigin)
 {
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> deathGrip = this;
   nsCString unique_id(unique_idUTF8);
   nsCString origin(aOrigin);
   nsCOMPtr<nsIRunnable> runnable =
@@ -444,6 +451,7 @@ CamerasChild::ReleaseCaptureDevice(CaptureEngine aCapEngine,
                                    const int capture_id)
 {
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> deathGrip = this;
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine, int>
     (this, &CamerasChild::SendReleaseCaptureDevice, aCapEngine, capture_id);
@@ -491,6 +499,7 @@ CamerasChild::StartCapture(CaptureEngine aCapEngine,
                            webrtcCaps.rawType,
                            webrtcCaps.codecType,
                            webrtcCaps.interlaced);
+  RefPtr<CamerasChild> deathGrip = this;
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine, int, CaptureCapability>
     (this, &CamerasChild::SendStartCapture, aCapEngine, capture_id, capCap);
@@ -502,6 +511,7 @@ int
 CamerasChild::StopCapture(CaptureEngine aCapEngine, const int capture_id)
 {
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> deathGrip = this;
   nsCOMPtr<nsIRunnable> runnable =
     mozilla::NewNonOwningRunnableMethod<CaptureEngine, int>
     (this, &CamerasChild::SendStopCapture, aCapEngine, capture_id);
@@ -567,6 +577,7 @@ CamerasChild::ShutdownParent()
     // Delete the parent actor.
     // CamerasChild (this) will remain alive and is only deleted by the
     // IPC layer when SendAllDone returns.
+    RefPtr<CamerasChild> deathGrip = this;
     nsCOMPtr<nsIRunnable> deleteRunnable =
       mozilla::NewNonOwningRunnableMethod(this, &CamerasChild::SendAllDone);
     CamerasSingleton::Thread()->Dispatch(deleteRunnable, NS_DISPATCH_NORMAL);
@@ -695,7 +706,7 @@ CamerasChild::~CamerasChild()
 {
   LOG(("~CamerasChild: %p", this));
 
-  {
+  if (!CamerasSingleton::InShutdown()) {
     OffTheBooksMutexAutoLock lock(CamerasSingleton::Mutex());
     // In normal circumstances we've already shut down and the
     // following does nothing. But on fatal IPC errors we will
