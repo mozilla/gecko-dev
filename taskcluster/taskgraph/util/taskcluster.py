@@ -180,9 +180,12 @@ def cancel_task(task_id, use_proxy=False):
 def status_task(task_id, use_proxy=False):
     """Gets the status of a task given a task_id. In testing mode, just logs that it would
     have retrieved status."""
-    resp = _do_request(get_task_url(task_id, use_proxy) + '/status')
-    status = resp.json().get("status", {}).get('state') or 'unknown'
-    return status
+    if testing:
+        logger.info('Would have gotten status for {}.'.format(task_id))
+    else:
+        resp = _do_request(get_task_url(task_id, use_proxy) + '/status')
+        status = resp.json().get("status", {}).get('state') or 'unknown'
+        return status
 
 
 def rerun_task(task_id):
