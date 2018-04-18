@@ -394,6 +394,10 @@ release-eme-free-repack-beetmover
 ------------------------------
 Moves the eme-free repacks to S3 buckets.
 
+release-eme-free-repack
+----------------------
+Generates customized versions of releases for eme-free repacks.
+
 repackage
 ---------
 Repackage tasks take a signed output and package them up into something suitable
