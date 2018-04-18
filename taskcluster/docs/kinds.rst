@@ -394,6 +394,10 @@ release-eme-free-repack-beetmover
 ------------------------------
 Moves the eme-free repacks to S3 buckets.
 
+release-partner-repack-chunking-dummy
+----------------------
+Chunks the partner repacks by locale.
+
 release-partner-repack-signing
 ------------------------------
 Internal signing of partner repacks.
@@ -401,6 +405,10 @@ Internal signing of partner repacks.
 release-partner-repack-repackage
 ------------------------------
 Repackaging of partner repacks.
+
+release-partner-repack-beetmover
+------------------------------
+Moves the partner repacks to S3 buckets.
 
 release-eme-free-repack
 ----------------------
@@ -414,6 +422,10 @@ release-eme-free-repack-repackage
 ------------------------------
 Repackaging of eme-free repacks.
 
+
+release-eme-free-repack-beetmover
+------------------------------
+Moves the eme-free repacks to S3 buckets.
 repackage
 ---------
 Repackage tasks take a signed output and package them up into something suitable
