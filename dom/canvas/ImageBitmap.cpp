@@ -435,9 +435,7 @@ private:
 static bool
 CheckSecurityForHTMLElements(bool aIsWriteOnly, bool aCORSUsed, nsIPrincipal* aPrincipal)
 {
-  MOZ_ASSERT(aPrincipal);
-
-  if (aIsWriteOnly) {
+  if (aIsWriteOnly || !aPrincipal) {
     return false;
   }
 
