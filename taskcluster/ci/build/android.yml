@@ -31,7 +31,6 @@ android-api-16/debug:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         custom-build-variant-cfg: api-16-debug
@@ -82,7 +81,6 @@ android-x86/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         custom-build-variant-cfg: x86
@@ -138,7 +136,6 @@ android-x86-nightly/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -185,7 +182,6 @@ android-api-16/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         custom-build-variant-cfg: api-16
@@ -232,7 +228,6 @@ android-api-16-without-google-play-services/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         custom-build-variant-cfg: api-16-without-google-play-services
@@ -284,7 +279,6 @@ android-api-16-nightly/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -331,7 +325,6 @@ android-aarch64/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         custom-build-variant-cfg: aarch64
@@ -382,7 +375,6 @@ android-aarch64-nightly/opt:
         actions: [get-secrets build multi-l10n update]
         config:
             - builds/releng_base_android_64_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true

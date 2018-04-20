@@ -164,7 +164,6 @@ linux64-devedition-nightly/opt:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -414,7 +413,6 @@ linux-devedition-nightly/opt:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -451,7 +449,6 @@ linux-nightly/opt:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -607,7 +604,6 @@ linux64-nightly/opt:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
-            - disable_signing.py
             - taskcluster_nightly.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
