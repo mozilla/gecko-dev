@@ -461,7 +461,7 @@ private:
   // (and deallocated) by SetPendingDOMException.
   union {
     Message* mMessage; // valid when IsErrorWithMessage()
-    JS::Value mJSException; // valid when IsJSException()
+    JS::UninitializedValue mJSException; // valid when IsJSException()
     DOMExceptionInfo* mDOMExceptionInfo; // valid when IsDOMException()
   };
 
