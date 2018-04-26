@@ -50,8 +50,8 @@ if test "$MOZ_UPDATE_CHANNEL" = "aurora"; then
   ACCEPTED_MAR_CHANNEL_IDS=firefox-mozilla-aurora
   MAR_CHANNEL_ID=firefox-mozilla-aurora
 else
-  ACCEPTED_MAR_CHANNEL_IDS=firefox-mozilla-release
-  MAR_CHANNEL_ID=firefox-mozilla-release
+  ACCEPTED_MAR_CHANNEL_IDS=firefox-mozilla-esr
+  MAR_CHANNEL_ID=firefox-mozilla-esr
 fi
 MOZ_PROFILE_MIGRATOR=1
 
