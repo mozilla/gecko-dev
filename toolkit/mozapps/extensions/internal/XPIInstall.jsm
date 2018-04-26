@@ -155,6 +155,7 @@ const RESTARTLESS_TYPES = new Set([
   "dictionary",
   "experiment",
   "webextension",
+  "webextension-dictionary",
   "webextension-theme",
 ]);
 
