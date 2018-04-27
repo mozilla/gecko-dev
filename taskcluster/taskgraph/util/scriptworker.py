@@ -78,6 +78,7 @@ BEETMOVER_SCOPE_ALIAS_TO_PROJECT = [[
         'mozilla-beta',
         'mozilla-release',
         'mozilla-esr60',
+        'comm-central',
     ])
 ], [
     'all-release-branches', set([
