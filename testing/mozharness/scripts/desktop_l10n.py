@@ -198,6 +198,7 @@ class DesktopSingleLocale(LocalesMixin, ReleaseMixin, MockMixin, BuildbotMixin,
                 'virtualenv_modules': [
                     'requests==2.8.1',
                     'PyHawk-with-a-single-extra-commit==0.1.5',
+                    'slugid',
                     'taskcluster==0.0.26',
                 ],
                 'virtualenv_path': 'venv',
