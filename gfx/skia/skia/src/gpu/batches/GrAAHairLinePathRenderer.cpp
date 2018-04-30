@@ -828,6 +828,13 @@ void AAHairlineBatch::onPrepareDraws(Target* target) const {
 
     int lineCount = lines.count() / 2;
     int conicCount = conics.count() / 3;
+    int quadAndConicCount = conicCount + quadCount;
+
+    static constexpr int kMaxLines = SK_MaxS32 / kLineSegNumVertices;
+    static constexpr int kMaxQuadsAndConics = SK_MaxS32 / kQuadNumVertices;
+    if (lineCount > kMaxLines || quadAndConicCount > kMaxQuadsAndConics) {
+        return;
+    }
 
     // do lines first
     if (lineCount) {
@@ -899,7 +906,7 @@ void AAHairlineBatch::onPrepareDraws(Target* target) const {
             ref_quads_index_buffer(target->resourceProvider()));
 
         size_t vertexStride = sizeof(BezierVertex);
-        int vertexCount = kQuadNumVertices * quadCount + kQuadNumVertices * conicCount;
+        int vertexCount = kQuadNumVertices * quadAndConicCount;
         void *vertices = target->makeVertexSpace(vertexStride, vertexCount,
                                                  &vertexBuffer, &firstVertex);
 

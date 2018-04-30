@@ -14,6 +14,7 @@
 #include "GrResourceProvider.h"
 #include "GrTypes.h"
 
+#include "SkSafeMath.h"
 #include "SkTraceEvent.h"
 
 #ifdef SK_DEBUG
@@ -335,7 +336,7 @@ void* GrVertexBufferAllocPool::makeSpace(size_t vertexSize,
     SkASSERT(startVertex);
 
     size_t offset = 0; // assign to suppress warning
-    void* ptr = INHERITED::makeSpace(vertexSize * vertexCount,
+    void* ptr = INHERITED::makeSpace(SkSafeMath::Mul(vertexSize, vertexCount),
                                      vertexSize,
                                      buffer,
                                      &offset);
@@ -360,7 +361,7 @@ void* GrIndexBufferAllocPool::makeSpace(int indexCount,
     SkASSERT(startIndex);
 
     size_t offset = 0; // assign to suppress warning
-    void* ptr = INHERITED::makeSpace(indexCount * sizeof(uint16_t),
+    void* ptr = INHERITED::makeSpace(SkSafeMath::Mul(indexCount, sizeof(uint16_t)),
                                      sizeof(uint16_t),
                                      buffer,
                                      &offset);
