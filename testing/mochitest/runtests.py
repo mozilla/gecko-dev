@@ -584,7 +584,7 @@ class SSLTunnel:
             config.write(
                 "websocketserver:%s:%s\n" %
                 (self.webServer, self.webSocketPort))
-            config.write("listen:*:%s:pgo server certificate\n" % self.sslPort)
+            config.write("listen:*:%s:pgoserver\n" % self.sslPort)
 
             for loc in locations:
                 if loc.scheme == "https" and "nocert" not in loc.options:
