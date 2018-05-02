@@ -9,6 +9,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/BufferList.h"
+#include "mozilla/Move.h"
 
 #include <stdint.h>
 
@@ -29,7 +30,35 @@ namespace JS {
 enum class StructuredCloneScope : uint32_t {
     SameProcessSameThread,
     SameProcessDifferentThread,
-    DifferentProcess
+
+    /**
+     * When writing, this means we're writing for an audience in a different
+     * process. Produce serialized data that can be sent to other processes,
+     * bitwise copied, or even stored as bytes in a database and read by later
+     * versions of Firefox years from now. The HTML5 spec refers to this as
+     * "ForStorage" as in StructuredSerializeForStorage, though we use
+     * DifferentProcess for IPC as well as storage.
+     *
+     * Transferable objects are limited to ArrayBuffers, whose contents are
+     * copied into the serialized data (rather than just writing a pointer).
+     */
+    DifferentProcess,
+
+    /**
+     * Handle a backwards-compatibility case with IndexedDB (bug 1434308): when
+     * reading, this means to treat legacy SameProcessSameThread data as if it
+     * were DifferentProcess.
+     *
+     * Do not use this for writing; use DifferentProcess instead.
+     */
+    DifferentProcessForIndexedDB,
+
+    /**
+     * Existing code wants to be able to create an uninitialized
+     * JSStructuredCloneData without knowing the scope, then populate it with
+     * data (at which point the scope *is* known.)
+     */
+    Unassigned
 };
 
 enum TransferableOwnership {
@@ -88,6 +117,10 @@ class CloneDataPolicy
 };
 
 } /* namespace JS */
+
+namespace js {
+template <typename T, typename AllocPolicy> struct BufferIterator;
+}
 
 /**
  * Read structured data from the reader r. This hook is used to read a value
@@ -188,49 +221,152 @@ enum OwnTransferablePolicy {
     NoTransferables
 };
 
-class MOZ_NON_MEMMOVABLE JS_PUBLIC_API(JSStructuredCloneData) :
-    public mozilla::BufferList<js::SystemAllocPolicy>
-{
-    typedef js::SystemAllocPolicy AllocPolicy;
-    typedef mozilla::BufferList<js::SystemAllocPolicy> BufferList;
+/**
+ * JSStructuredCloneData represents structured clone data together with the
+ * information needed to read/write/transfer/free the records within it, in the
+ * form of a set of callbacks.
+ */
+class MOZ_NON_MEMMOVABLE JS_PUBLIC_API(JSStructuredCloneData) {
+  public:
+    using BufferList = mozilla::BufferList<js::SystemAllocPolicy>;
+    using Iterator = BufferList::IterImpl;
 
-    static const size_t kInitialSize = 0;
-    static const size_t kInitialCapacity = 4096;
+  private:
     static const size_t kStandardCapacity = 4096;
+
+    BufferList bufList_;
+
+    // The (address space, thread) scope within which this clone is valid. Note
+    // that this must be either set during construction, or start out as
+    // Unassigned and transition once to something else.
+    JS::StructuredCloneScope scope_;
 
     const JSStructuredCloneCallbacks* callbacks_;
     void* closure_;
     OwnTransferablePolicy ownTransferables_;
 
-    void setOptionalCallbacks(const JSStructuredCloneCallbacks* callbacks,
-                              void* closure,
-                              OwnTransferablePolicy policy) {
-        callbacks_ = callbacks;
-        closure_ = closure;
-        ownTransferables_ = policy;
-    }
-
     friend struct JSStructuredCloneWriter;
     friend class JS_PUBLIC_API(JSAutoStructuredCloneBuffer);
+    template <typename T, typename AllocPolicy> friend struct js::BufferIterator;
 
-public:
-    explicit JSStructuredCloneData(AllocPolicy aAP = AllocPolicy())
-        : BufferList(kInitialSize, kInitialCapacity, kStandardCapacity, aAP)
+  public:
+    // The constructor must be infallible but SystemAllocPolicy is not, so both
+    // the initial size and initial capacity of the BufferList must be zero.
+    explicit JSStructuredCloneData(JS::StructuredCloneScope aScope)
+        : bufList_(0, 0, kStandardCapacity, js::SystemAllocPolicy())
+        , scope_(aScope)
+        , callbacks_(nullptr)
+        , closure_(nullptr)
+        , ownTransferables_(OwnTransferablePolicy::NoTransferables)
+    {}
+
+    // Steal the raw data from a BufferList. In this case, we don't know the
+    // scope and none of the callback info is assigned yet.
+    JSStructuredCloneData(BufferList&& buffers, JS::StructuredCloneScope aScope)
+        : bufList_(mozilla::Move(buffers))
+        , scope_(aScope)
         , callbacks_(nullptr)
         , closure_(nullptr)
         , ownTransferables_(OwnTransferablePolicy::NoTransferables)
     {}
     MOZ_IMPLICIT JSStructuredCloneData(BufferList&& buffers)
-        : BufferList(Move(buffers))
-        , callbacks_(nullptr)
-        , closure_(nullptr)
-        , ownTransferables_(OwnTransferablePolicy::NoTransferables)
+        : JSStructuredCloneData(mozilla::Move(buffers), JS::StructuredCloneScope::Unassigned)
     {}
     JSStructuredCloneData(JSStructuredCloneData&& other) = default;
     JSStructuredCloneData& operator=(JSStructuredCloneData&& other) = default;
-    ~JSStructuredCloneData();
+    ~JSStructuredCloneData() { discardTransferables(); }
 
-    using BufferList::BufferList;
+    void setCallbacks(const JSStructuredCloneCallbacks* callbacks,
+                      void* closure,
+                      OwnTransferablePolicy policy)
+    {
+        callbacks_ = callbacks;
+        closure_ = closure;
+        ownTransferables_ = policy;
+    }
+
+    JS::StructuredCloneScope scope() const { return scope_; }
+
+    void initScope(JS::StructuredCloneScope aScope) {
+        MOZ_ASSERT(Size() == 0, "initScope() of nonempty JSStructuredCloneData");
+        if (scope_ != JS::StructuredCloneScope::Unassigned)
+            MOZ_ASSERT(scope_ == aScope, "Cannot change scope after it has been initialized");
+        scope_ = aScope;
+    }
+
+    size_t Size() const { return bufList_.Size(); }
+
+    const Iterator Start() const { return bufList_.Iter(); }
+
+    bool Advance(Iterator& iter, size_t distance) const {
+        return iter.AdvanceAcrossSegments(bufList_, distance);
+    }
+
+    bool ReadBytes(Iterator& iter, char* buffer, size_t size) const {
+        return bufList_.ReadBytes(iter, buffer, size);
+    }
+
+    // Append new data to the end of the buffer.
+    bool AppendBytes(const char* data, size_t size) {
+        MOZ_ASSERT(scope_ != JS::StructuredCloneScope::Unassigned);
+        return bufList_.WriteBytes(data, size);
+    }
+
+    // Update data stored within the existing buffer. There must be at least
+    // 'size' bytes between the position of 'iter' and the end of the buffer.
+    bool UpdateBytes(Iterator& iter, const char* data, size_t size) const {
+        MOZ_ASSERT(scope_ != JS::StructuredCloneScope::Unassigned);
+        while (size > 0) {
+            size_t remaining = iter.RemainingInSegment();
+            size_t nbytes = std::min(remaining, size);
+            memcpy(iter.Data(), data, nbytes);
+            data += nbytes;
+            size -= nbytes;
+            iter.Advance(bufList_, nbytes);
+        }
+        return true;
+    }
+
+    void Clear() {
+        discardTransferables();
+        bufList_.Clear();
+    }
+
+    // Return a new read-only JSStructuredCloneData that "borrows" the contents
+    // of |this|. Its lifetime should not exceed the donor's. This is only
+    // allowed for DifferentProcess clones, so finalization of the borrowing
+    // clone will do nothing.
+    JSStructuredCloneData Borrow(Iterator& iter, size_t size, bool* success) const
+    {
+        MOZ_ASSERT(scope_ == JS::StructuredCloneScope::DifferentProcess);
+        return JSStructuredCloneData(bufList_.Borrow<js::SystemAllocPolicy>(iter, size, success),
+                                     scope_);
+    }
+
+    // Iterate over all contained data, one BufferList segment's worth at a
+    // time, and invoke the given FunctionToApply with the data pointer and
+    // size. The function should return a bool value, and this loop will exit
+    // with false if the function ever returns false.
+    template <typename FunctionToApply>
+    bool ForEachDataChunk(FunctionToApply&& function) const {
+        Iterator iter = bufList_.Iter();
+        while (!iter.Done()) {
+            if (!function(iter.Data(), iter.RemainingInSegment()))
+                return false;
+            iter.Advance(bufList_, iter.RemainingInSegment());
+        }
+        return true;
+    }
+
+    // Append the entire contents of other's bufList_ to our own.
+    bool Append(const JSStructuredCloneData& other) {
+        MOZ_ASSERT(scope_ == other.scope_);
+        return other.ForEachDataChunk([&](const char* data, size_t size) {
+            return AppendBytes(data, size);
+        });
+    }
+
+    void discardTransferables();
 };
 
 /** Note: if the *data contains transferable objects, it can be read only once. */
@@ -254,18 +390,29 @@ JS_PUBLIC_API(bool)
 JS_StructuredClone(JSContext* cx, JS::HandleValue v, JS::MutableHandleValue vp,
                    const JSStructuredCloneCallbacks* optionalCallbacks, void* closure);
 
-/** RAII sugar for JS_WriteStructuredClone. */
+/**
+ * The C-style API calls to read and write structured clones are fragile --
+ * they rely on the caller to properly handle ownership of the clone data, and
+ * the handling of the input data as well as the interpretation of the contents
+ * of the clone buffer are dependent on the callbacks passed in. If you
+ * serialize and deserialize with different callbacks, the results are
+ * questionable.
+ *
+ * JSAutoStructuredCloneBuffer wraps things up in an RAII class for data
+ * management, and uses the same callbacks for both writing and reading
+ * (serializing and deserializing).
+ */
 class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     const JS::StructuredCloneScope scope_;
     JSStructuredCloneData data_;
     uint32_t version_;
 
   public:
-    JSAutoStructuredCloneBuffer(JS::StructuredCloneScope scope,
+    JSAutoStructuredCloneBuffer(JS::StructuredCloneScope aScope,
                                 const JSStructuredCloneCallbacks* callbacks, void* closure)
-        : scope_(scope), version_(JS_STRUCTURED_CLONE_VERSION)
+        : scope_(aScope), data_(aScope), version_(JS_STRUCTURED_CLONE_VERSION)
     {
-        data_.setOptionalCallbacks(callbacks, closure, OwnTransferablePolicy::NoTransferables);
+        data_.setCallbacks(callbacks, closure, OwnTransferablePolicy::NoTransferables);
     }
 
     JSAutoStructuredCloneBuffer(JSAutoStructuredCloneBuffer&& other);
@@ -276,11 +423,9 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     JSStructuredCloneData& data() { return data_; }
     bool empty() const { return !data_.Size(); }
 
-    void clear(const JSStructuredCloneCallbacks* optionalCallbacks=nullptr, void* closure=nullptr);
+    void clear();
 
-    /** Copy some memory. It will be automatically freed by the destructor. */
-    bool copy(const JSStructuredCloneData& data, uint32_t version=JS_STRUCTURED_CLONE_VERSION,
-              const JSStructuredCloneCallbacks* callbacks=nullptr, void* closure=nullptr);
+    JS::StructuredCloneScope scope() const { return scope_; }
 
     /**
      * Adopt some memory. It will be automatically freed by the destructor.

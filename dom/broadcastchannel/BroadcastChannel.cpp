@@ -154,8 +154,8 @@ public:
 
     bool success;
     SerializedStructuredCloneBuffer& buffer = message.data();
-    auto iter = mData->BufferData().Iter();
-    buffer.data = mData->BufferData().Borrow<js::SystemAllocPolicy>(iter, mData->BufferData().Size(), &success);
+    auto iter = mData->BufferData().Start();
+    buffer.data = mData->BufferData().Borrow(iter, mData->BufferData().Size(), &success);
     if (NS_WARN_IF(!success)) {
       return NS_OK;
     }
