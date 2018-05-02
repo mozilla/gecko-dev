@@ -1592,10 +1592,10 @@ pref("reader.parse-node-limit", 0);
 // and because (normally) these errors are not persisted anywhere.
 pref("reader.errors.includeURLs", true);
 
-pref("dom.serviceWorkers.enabled", true);
+pref("dom.serviceWorkers.enabled", false);
 
 // Enable Push API.
-pref("dom.push.enabled", true);
+pref("dom.push.enabled", false);
 
 // These are the thumbnail width/height set in about:newtab.
 // If you change this, ENSURE IT IS THE SAME SIZE SET

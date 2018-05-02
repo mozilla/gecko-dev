@@ -13,6 +13,15 @@ const URL = EXAMPLE_URL.replace("http:", "https:");
 const TEST_URL = URL + "service-workers/status-codes.html";
 
 add_task(async function () {
+  await new Promise(done => {
+    let options = { "set": [
+      // Accept workers from mochitest's http.
+      ["dom.serviceWorkers.enabled", true],
+      ["dom.serviceWorkers.testing.enabled", true],
+    ]};
+    SpecialPowers.pushPrefEnv(options, done);
+  });
+
   let { tab, monitor } = await initNetMonitor(TEST_URL, true);
   info("Starting test... ");
 
