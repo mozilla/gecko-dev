@@ -15,6 +15,7 @@ job-defaults:
       by-project:
          mozilla-beta: scriptworker-prov-v1/bouncer-v1
          mozilla-release: scriptworker-prov-v1/bouncer-v1
+         mozilla-esr60: scriptworker-prov-v1/bouncer-v1
          default: scriptworker-prov-v1/bouncer-dev
    worker:
       implementation: bouncer-submission
@@ -24,6 +25,9 @@ job-defaults:
             - project:releng:bouncer:action:submission
             - project:releng:bouncer:server:production
          mozilla-release:
+            - project:releng:bouncer:action:submission
+            - project:releng:bouncer:server:production
+         mozilla-esr60:
             - project:releng:bouncer:action:submission
             - project:releng:bouncer:server:production
          default:
