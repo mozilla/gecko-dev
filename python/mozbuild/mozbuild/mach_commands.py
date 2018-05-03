@@ -1261,9 +1261,7 @@ class PackageFrontend(MachCommandBase):
         from taskgraph.generator import Kind
         from taskgraph.util.taskcluster import (
             get_artifact_url,
-            list_artifacts,
         )
-        import yaml
 
         self._set_log_level(verbose)
         # Normally, we'd use self.log_manager.enable_unstructured(),
