@@ -63,6 +63,8 @@ jobs:
                   - releases/checksums_firefox.py
                mozilla-beta:
                   - releases/checksums_firefox.py
+               mozilla-esr60:
+                  - releases/checksums_firefox.py
                maple:
                   - releases/dev_checksums_firefox.py
                default:
