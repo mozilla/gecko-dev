@@ -677,10 +677,6 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
         # TODO: consider getting rid of this as we should be default to stylo now
         env['STYLO_FORCE_ENABLED'] = '1'
 
-            if 'stylo' in platform and 'stylo_disabled' not in platform:
-                env['STYLO_FORCE_ENABLED'] = '1'
-            if 'stylo_disabled' in platform:
-                env['STYLO_FORCE_DISABLED'] = '1'
         # sets a timeout for how long talos should run without output
         output_timeout = self.config.get('talos_output_timeout', 3600)
         # run talos tests
