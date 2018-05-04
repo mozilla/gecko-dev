@@ -7466,7 +7466,6 @@ protected:
   State mState;
   bool mEnforcingQuota;
   const bool mDeleting;
-  bool mBlockedDatabaseOpen;
   bool mChromeWriteAccessAllowed;
   bool mFileHandleDisabled;
 
@@ -7485,9 +7484,20 @@ public:
   }
 #endif
 
+  bool
+  DatabaseFilePathIsKnown() const
+  {
+    AssertIsOnOwningThread();
+
+    return !mDatabaseFilePath.IsEmpty();
+  }
+
   const nsString&
   DatabaseFilePath() const
   {
+    AssertIsOnOwningThread();
+    MOZ_ASSERT(!mDatabaseFilePath.IsEmpty());
+
     return mDatabaseFilePath;
   }
 
@@ -7522,6 +7532,9 @@ protected:
 
   void
   WaitForTransactions();
+
+  void
+  CleanupMetadata();
 
   void
   FinishSendResults();
@@ -13683,6 +13696,11 @@ Factory::AllocPBackgroundIDBFactoryRequestParent(
     actor = new DeleteDatabaseOp(this, contentParent.forget(), *commonParams);
   }
 
+  gFactoryOps->AppendElement(actor);
+
+  // Balanced in CleanupMetadata() which is/must always called by SendResults().
+  IncreaseBusyCount();
+
   // Transfer ownership to IPDL.
   return actor.forget().take();
 }
@@ -17881,7 +17899,8 @@ QuotaClient::ShutdownWorkThreads()
 
   // This should release any IDB related quota objects or directory locks.
   MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() {
-    return (!gLiveDatabaseHashtable || !gLiveDatabaseHashtable->Count()) &&
+    return (!gFactoryOps || gFactoryOps->IsEmpty()) &&
+           (!gLiveDatabaseHashtable || !gLiveDatabaseHashtable->Count()) &&
            !mCurrentMaintenance;
   }));
 
@@ -18638,7 +18657,9 @@ Maintenance::BeginDatabaseMaintenance()
         for (uint32_t index = gFactoryOps->Length(); index > 0; index--) {
           RefPtr<FactoryOp>& existingOp = (*gFactoryOps)[index - 1];
 
-          MOZ_ASSERT(!existingOp->DatabaseFilePath().IsEmpty());
+          if (!existingOp->DatabaseFilePathIsKnown()) {
+            continue;
+          }
 
           if (existingOp->DatabaseFilePath() == aDatabasePath) {
             return false;
@@ -20673,7 +20694,6 @@ FactoryOp::FactoryOp(Factory* aFactory,
   , mState(State::Initial)
   , mEnforcingQuota(true)
   , mDeleting(aDeleting)
-  , mBlockedDatabaseOpen(false)
   , mChromeWriteAccessAllowed(false)
   , mFileHandleDisabled(false)
 {
@@ -20816,18 +20836,20 @@ FactoryOp::DirectoryOpen()
   MOZ_ASSERT(mState == State::DirectoryOpenPending);
   MOZ_ASSERT(mDirectoryLock);
   MOZ_ASSERT(!mDatabaseFilePath.IsEmpty());
-
-  // gFactoryOps could be null here if the child process crashed or something
-  // and that cleaned up the last Factory actor.
-  if (!gFactoryOps) {
-    return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
-  }
+  MOZ_ASSERT(gFactoryOps);
 
   // See if this FactoryOp needs to wait.
   bool delayed = false;
+  bool foundThis = false;
   for (uint32_t index = gFactoryOps->Length(); index > 0; index--) {
     RefPtr<FactoryOp>& existingOp = (*gFactoryOps)[index - 1];
-    if (MustWaitFor(*existingOp)) {
+
+    if (existingOp == this) {
+      foundThis = true;
+      continue;
+    }
+
+    if (foundThis && MustWaitFor(*existingOp)) {
       // Only one op can be delayed.
       MOZ_ASSERT(!existingOp->mDelayedOp);
       existingOp->mDelayedOp = this;
@@ -20835,10 +20857,6 @@ FactoryOp::DirectoryOpen()
       break;
     }
   }
-
-  // Adding this to the factory ops list will block any additional ops from
-  // proceeding until this one is done.
-  gFactoryOps->AppendElement(this);
 
   if (!delayed) {
     QuotaClient* quotaClient = QuotaClient::GetInstance();
@@ -20853,11 +20871,6 @@ FactoryOp::DirectoryOpen()
       }
     }
   }
-
-  mBlockedDatabaseOpen = true;
-
-  // Balanced in FinishSendResults().
-  IncreaseBusyCount();
 
   mState = State::DatabaseOpenPending;
   if (!delayed) {
@@ -20914,6 +20927,22 @@ FactoryOp::WaitForTransactions()
 }
 
 void
+FactoryOp::CleanupMetadata()
+{
+  AssertIsOnOwningThread();
+
+  if (mDelayedOp) {
+    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(mDelayedOp.forget()));
+  }
+
+  MOZ_ASSERT(gFactoryOps);
+  gFactoryOps->RemoveElement(this);
+
+  // Match the IncreaseBusyCount in AllocPBackgroundIDBFactoryRequestParent().
+  DecreaseBusyCount();
+}
+
+void
 FactoryOp::FinishSendResults()
 {
   AssertIsOnOwningThread();
@@ -20923,18 +20952,6 @@ FactoryOp::FinishSendResults()
   // Make sure to release the factory on this thread.
   RefPtr<Factory> factory;
   mFactory.swap(factory);
-
-  if (mBlockedDatabaseOpen) {
-    if (mDelayedOp) {
-      MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(mDelayedOp.forget()));
-    }
-
-    MOZ_ASSERT(gFactoryOps);
-    gFactoryOps->RemoveElement(this);
-
-    // Match the IncreaseBusyCount in DirectoryOpen().
-    DecreaseBusyCount();
-  }
 
   mState = State::Completed;
 }
@@ -22411,7 +22428,10 @@ OpenDatabaseOp::SendResults()
 
     // Make sure to release the database on this thread.
     mDatabase = nullptr;
+
+    CleanupMetadata();
   } else if (mDirectoryLock) {
+    // ConnectionClosedCallback will call CleanupMetadata().
     nsCOMPtr<nsIRunnable> callback = NewRunnableMethod(
       "dom::indexedDB::OpenDatabaseOp::ConnectionClosedCallback",
       this,
@@ -22420,6 +22440,8 @@ OpenDatabaseOp::SendResults()
     RefPtr<WaitForTransactionsHelper> helper =
       new WaitForTransactionsHelper(mDatabaseId, callback);
     helper->WaitForTransactions();
+  } else {
+    CleanupMetadata();
   }
 
   FinishSendResults();
@@ -22433,6 +22455,8 @@ OpenDatabaseOp::ConnectionClosedCallback()
   MOZ_ASSERT(mDirectoryLock);
 
   mDirectoryLock = nullptr;
+
+  CleanupMetadata();
 }
 
 void
@@ -23085,6 +23109,8 @@ DeleteDatabaseOp::SendResults()
   }
 
   mDirectoryLock = nullptr;
+
+  CleanupMetadata();
 
   FinishSendResults();
 }
