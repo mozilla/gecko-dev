@@ -25,84 +25,85 @@ registerCleanupFunction(() => {
   cleanup();
 });
 
-add_task(async function test_send_report_neterror() {
-  await testSendReportAutomatically(URL_BAD_CHAIN, "succeed", "neterror");
-  await testSendReportAutomatically(URL_NO_CERT, "nocert", "neterror");
-  await testSetAutomatic(URL_NO_CERT, "nocert", "neterror");
+add_task(function* test_send_report_neterror() {
+  yield testSendReportAutomatically(URL_BAD_CHAIN, "succeed", "neterror");
+  yield testSendReportAutomatically(URL_NO_CERT, "nocert", "neterror");
+  yield testSetAutomatic(URL_NO_CERT, "nocert", "neterror");
 });
 
-add_task(async function test_send_report_certerror() {
-  await testSendReportAutomatically(URL_BAD_CERT, "badcert", "certerror");
-  await testSetAutomatic(URL_BAD_CERT, "badcert", "certerror");
+
+add_task(function* test_send_report_certerror() {
+  yield testSendReportAutomatically(URL_BAD_CERT, "badcert", "certerror");
+  yield testSetAutomatic(URL_BAD_CERT, "badcert", "certerror");
 });
 
-add_task(async function test_send_disabled() {
+add_task(function* test_send_disabled() {
   Services.prefs.setBoolPref(PREF_REPORT_ENABLED, false);
   Services.prefs.setBoolPref(PREF_REPORT_AUTOMATIC, true);
   Services.prefs.setCharPref(PREF_REPORT_URL, "https://example.com/invalid");
 
   // Check with enabled=false but automatic=true.
-  await testSendReportDisabled(URL_NO_CERT, "neterror");
-  await testSendReportDisabled(URL_BAD_CERT, "certerror");
+  yield testSendReportDisabled(URL_NO_CERT, "neterror");
+  yield testSendReportDisabled(URL_BAD_CERT, "certerror");
 
   Services.prefs.setBoolPref(PREF_REPORT_AUTOMATIC, false);
 
   // Check again with both prefs false.
-  await testSendReportDisabled(URL_NO_CERT, "neterror");
-  await testSendReportDisabled(URL_BAD_CERT, "certerror");
+  yield testSendReportDisabled(URL_NO_CERT, "neterror");
+  yield testSendReportDisabled(URL_BAD_CERT, "certerror");
   cleanup();
 });
 
-async function testSendReportAutomatically(testURL, suffix, errorURISuffix) {
+function* testSendReportAutomatically(testURL, suffix, errorURISuffix) {
   Services.prefs.setBoolPref(PREF_REPORT_ENABLED, true);
   Services.prefs.setBoolPref(PREF_REPORT_AUTOMATIC, true);
   Services.prefs.setCharPref(PREF_REPORT_URL, URL_REPORTS + suffix);
 
   // Add a tab and wait until it's loaded.
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
+  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
   let browser = tab.linkedBrowser;
 
   // Load the page and wait for the error report submission.
   let promiseStatus = createReportResponseStatusPromise(URL_REPORTS + suffix);
   browser.loadURI(testURL);
-  await BrowserTestUtils.waitForErrorPage(browser);
+  yield promiseErrorPageLoaded(browser);
 
-  ok(!isErrorStatus(await promiseStatus),
+  ok(!isErrorStatus(yield promiseStatus),
      "SSL error report submitted successfully");
 
   // Check that we loaded the right error page.
-  await checkErrorPage(browser, errorURISuffix);
+  yield checkErrorPage(browser, errorURISuffix);
 
   // Cleanup.
   gBrowser.removeTab(tab);
   cleanup();
 }
 
-async function testSetAutomatic(testURL, suffix, errorURISuffix) {
+function* testSetAutomatic(testURL, suffix, errorURISuffix) {
   Services.prefs.setBoolPref(PREF_REPORT_ENABLED, true);
   Services.prefs.setBoolPref(PREF_REPORT_AUTOMATIC, false);
   Services.prefs.setCharPref(PREF_REPORT_URL, URL_REPORTS + suffix);
 
   // Add a tab and wait until it's loaded.
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
+  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
   let browser = tab.linkedBrowser;
 
   // Load the page.
   browser.loadURI(testURL);
-  await BrowserTestUtils.waitForErrorPage(browser);
+  yield promiseErrorPageLoaded(browser);
 
   // Check that we loaded the right error page.
-  await checkErrorPage(browser, errorURISuffix);
+  yield checkErrorPage(browser, errorURISuffix);
 
   let statusPromise = createReportResponseStatusPromise(URL_REPORTS + suffix);
 
   // Click the checkbox, enable automatic error reports.
-  await ContentTask.spawn(browser, null, async function() {
+  yield ContentTask.spawn(browser, null, function* () {
     content.document.getElementById("automaticallyReportInFuture").click();
   });
 
   // Wait for the error report submission.
-  await statusPromise;
+  yield statusPromise;
 
   let isAutomaticReportingEnabled = () =>
     Services.prefs.getBoolPref(PREF_REPORT_AUTOMATIC);
@@ -111,7 +112,7 @@ async function testSetAutomatic(testURL, suffix, errorURISuffix) {
   ok(isAutomaticReportingEnabled(), "automatic SSL report submission enabled");
 
   // Disable automatic error reports.
-  await ContentTask.spawn(browser, null, async function() {
+  yield ContentTask.spawn(browser, null, function* () {
     content.document.getElementById("automaticallyReportInFuture").click();
   });
 
@@ -123,20 +124,20 @@ async function testSetAutomatic(testURL, suffix, errorURISuffix) {
   cleanup();
 }
 
-async function testSendReportDisabled(testURL, errorURISuffix) {
+function* testSendReportDisabled(testURL, errorURISuffix) {
   // Add a tab and wait until it's loaded.
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
+  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
   let browser = tab.linkedBrowser;
 
   // Load the page.
   browser.loadURI(testURL);
-  await BrowserTestUtils.waitForErrorPage(browser);
+  yield promiseErrorPageLoaded(browser);
 
   // Check that we loaded the right error page.
-  await checkErrorPage(browser, errorURISuffix);
+  yield checkErrorPage(browser, errorURISuffix);
 
   // Check that the error reporting section is hidden.
-  await ContentTask.spawn(browser, null, async function() {
+  yield ContentTask.spawn(browser, null, function* () {
     let section = content.document.getElementById("certificateErrorReporting");
     Assert.equal(content.getComputedStyle(section).display, "none",
       "error reporting section should be hidden");
@@ -158,19 +159,16 @@ function createReportResponseStatusPromise(expectedURI) {
       let requestURI = subject.URI.spec;
       if (requestURI == expectedURI) {
         Services.obs.removeObserver(observer, "http-on-examine-response");
-        console.log(subject.responseStatus);
-        console.log(subject.URI);
-        console.log(requestURI);
         resolve(subject.responseStatus);
       }
     };
-    Services.obs.addObserver(observer, "http-on-examine-response");
+    Services.obs.addObserver(observer, "http-on-examine-response", false);
   });
 }
 
 function checkErrorPage(browser, suffix) {
-  return ContentTask.spawn(browser, { suffix }, async function(args) {
+  return ContentTask.spawn(browser, { suffix }, function* (args) {
     let uri = content.document.documentURI;
-    Assert.ok(uri.startsWith(`about:${args.suffix}`), `correct error page loaded: ${args.suffix}`);
+    Assert.ok(uri.startsWith(`about:${args.suffix}`), "correct error page loaded");
   });
 }
