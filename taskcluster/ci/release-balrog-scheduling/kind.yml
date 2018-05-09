@@ -36,7 +36,7 @@ jobs:
                mozilla-esr60: [806]
                default: []
       treeherder:
-         platform: linux64/opt
+         platform: firefox-release/opt
          symbol: Rel(BSFx)
          tier: 1
          kind: build
@@ -52,7 +52,7 @@ jobs:
                mozilla-beta: [10]
                default: []
       treeherder:
-         platform: linux64/opt
+         platform: devedition-release/opt
          symbol: Rel(BSDev)
          tier: 1
          kind: build
