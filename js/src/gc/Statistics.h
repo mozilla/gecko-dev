@@ -22,9 +22,6 @@
 using mozilla::Maybe;
 
 namespace js {
-
-class GCParallelTask;
-
 namespace gcstats {
 
 enum Phase : uint8_t {

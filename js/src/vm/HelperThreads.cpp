@@ -1144,7 +1144,7 @@ js::GCParallelTask::runFromMainThread(JSRuntime* rt)
     MOZ_ASSERT(state == NotStarted);
     MOZ_ASSERT(js::CurrentThreadCanAccessRuntime(rt));
     uint64_t timeStart = PRMJ_Now();
-    run();
+    runTask();
     duration_ = PRMJ_Now() - timeStart;
 }
 
@@ -1155,7 +1155,7 @@ js::GCParallelTask::runFromHelperThread(AutoLockHelperThreadState& locked)
         AutoUnlockHelperThreadState parallelSection(locked);
         gc::AutoSetThreadIsPerformingGC performingGC;
         uint64_t timeStart = PRMJ_Now();
-        run();
+        runTask();
         duration_ = PRMJ_Now() - timeStart;
     }
 

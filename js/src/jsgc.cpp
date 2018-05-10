@@ -2319,7 +2319,7 @@ ArenasToUpdate::getArenasToUpdate(AutoLockHelperThreadState& lock, unsigned maxL
     return { begin, last->next };
 }
 
-struct UpdatePointersTask : public GCParallelTask
+struct UpdatePointersTask : public GCParallelTaskHelper<UpdatePointersTask>
 {
     // Maximum number of arenas to update in one block.
 #ifdef DEBUG
@@ -2335,14 +2335,13 @@ struct UpdatePointersTask : public GCParallelTask
         arenas_.end = nullptr;
     }
 
-    ~UpdatePointersTask() override { join(); }
+    void run();
 
   private:
     JSRuntime* rt_;
     ArenasToUpdate* source_;
     ArenaListSegment arenas_;
 
-    virtual void run() override;
     bool getArenasToUpdate();
     void updateArenas();
 };
@@ -3165,7 +3164,6 @@ js::gc::BackgroundDecommitTask::run()
     AutoLockGC lock(runtime);
 
     for (Chunk* chunk : toDecommit) {
-
         // The arena list is not doubly-linked, so we have to work in the free
         // list order and not in the natural order.
         while (chunk->info.numArenasFreeCommitted) {
@@ -4830,7 +4828,8 @@ GCRuntime::endMarkingZoneGroup()
     marker.setMarkColorBlack();
 }
 
-class GCSweepTask : public GCParallelTask
+template <typename Derived>
+class GCSweepTask : public GCParallelTaskHelper<Derived>
 {
     GCSweepTask(const GCSweepTask&) = delete;
 
@@ -4840,13 +4839,13 @@ class GCSweepTask : public GCParallelTask
   public:
     explicit GCSweepTask(JSRuntime* rt) : runtime(rt) {}
     GCSweepTask(GCSweepTask&& other)
-      : GCParallelTask(mozilla::Move(other)),
+      : GCParallelTaskHelper<Derived>(mozilla::Move(other)),
         runtime(other.runtime)
     {}
 };
 
 // Causes the given WeakCache to be swept when run.
-class SweepWeakCacheTask : public GCSweepTask
+class SweepWeakCacheTask : public GCSweepTask<SweepWeakCacheTask>
 {
     JS::WeakCache<void*>& cache;
 
@@ -4858,15 +4857,15 @@ class SweepWeakCacheTask : public GCSweepTask
       : GCSweepTask(mozilla::Move(other)), cache(other.cache)
     {}
 
-    void run() override {
+    void run() {
         cache.sweep();
     }
 };
 
 #define MAKE_GC_SWEEP_TASK(name)                                              \
-    class name : public GCSweepTask {                                         \
-        void run() override;                                                  \
+    class name : public GCSweepTask<name> {                                   \
       public:                                                                 \
+        void run();                                                           \
         explicit name (JSRuntime* rt) : GCSweepTask(rt) {}                    \
     }
 MAKE_GC_SWEEP_TASK(SweepAtomsTask);
@@ -4918,7 +4917,8 @@ SweepMiscTask::run()
 }
 
 void
-GCRuntime::startTask(GCParallelTask& task, gcstats::Phase phase, AutoLockHelperThreadState& locked)
+GCRuntime::startTask(GCParallelTask& task, gcstats::Phase phase,
+                     AutoLockHelperThreadState& locked)
 {
     if (!task.startWithLockHeld(locked)) {
         AutoUnlockHelperThreadState unlock(locked);
@@ -4928,7 +4928,8 @@ GCRuntime::startTask(GCParallelTask& task, gcstats::Phase phase, AutoLockHelperT
 }
 
 void
-GCRuntime::joinTask(GCParallelTask& task, gcstats::Phase phase, AutoLockHelperThreadState& locked)
+GCRuntime::joinTask(GCParallelTask& task, gcstats::Phase phase,
+                    AutoLockHelperThreadState& locked)
 {
     gcstats::AutoPhase ap(stats, task, phase);
     task.joinWithLockHeld(locked);
