@@ -1900,7 +1900,8 @@ class Dictionary extends ExtensionData {
   async startup(reason) {
     this.dictionaries = {};
     for (let [lang, path] of Object.entries(this.startupData.dictionaries)) {
-      let {file} = Services.io.newURI(path, null, this.rootURI).QueryInterface(Ci.nsIFileURL);
+      let uri = Services.io.newURI(path.slice(0, -4) + ".aff", null, this.rootURI);
+      let {file} = uri.QueryInterface(Ci.nsIFileURL);
       this.dictionaries[lang] = file;
 
       spellCheck.addDictionary(lang, file);
