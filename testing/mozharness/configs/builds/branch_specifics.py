@@ -289,6 +289,11 @@ config = {
         'stage_ssh_key': 'trybld_dsa',
         'branch_supports_uploadsymbols': False,
         'use_clobberer': False,
+        "find_links": [
+            "http://pypi.pvt.build.mozilla.org/pub",
+            "http://pypi.pub.build.mozilla.org/pub",
+        ],
+        'pip_index': False,
     },
 
     ### project branches
