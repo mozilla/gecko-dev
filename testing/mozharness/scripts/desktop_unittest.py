@@ -28,7 +28,6 @@ from mozharness.base.errors import BaseErrorList
 from mozharness.base.log import INFO
 from mozharness.base.script import PreScriptAction
 from mozharness.base.vcs.vcsbase import MercurialScript
-from mozharness.mozilla.blob_upload import BlobUploadMixin, blobupload_config_options
 from mozharness.mozilla.buildbot import TBPL_EXCEPTION
 from mozharness.mozilla.mozbase import MozbaseMixin
 from mozharness.mozilla.structuredlog import StructuredOutputParser
@@ -47,7 +46,7 @@ SUITE_NO_E10S = ['xpcshell']
 
 
 # DesktopUnittest {{{1
-class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMixin,
+class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
                       CodeCoverageMixin):
     config_options = [
         [['--mochitest-suite', ], {
@@ -182,7 +181,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
             "help": "Tries to enable the WebRender compositor."}
          ],
     ] + copy.deepcopy(testing_config_options) + \
-        copy.deepcopy(blobupload_config_options) + \
         copy.deepcopy(code_coverage_config_options)
 
     def __init__(self, require_config_file=True):
@@ -538,7 +536,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, BlobUploadMixin, MozbaseMix
     # create_virtualenv is in VirtualenvMixin.
     # preflight_install is in TestingMixin.
     # install is in TestingMixin.
-    # upload_blobber_files is in BlobUploadMixin
 
     @PreScriptAction('download-and-extract')
     def _pre_download_and_extract(self, action):
