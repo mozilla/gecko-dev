@@ -21,7 +21,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import resolve_keyed_by, OptimizationSchema
-from taskgraph.util.treeherder import split_symbol, join_symbol
+from taskgraph.util.treeherder import split_symbol, join_symbol, add_suffix
 from taskgraph.util.platforms import platform_family
 from taskgraph.util.schema import (
     validate_schema,
@@ -772,9 +772,8 @@ def split_chunks(config, tests):
             chunked['this-chunk'] = this_chunk
 
             # add the chunk number to the TH symbol
-            group, symbol = split_symbol(chunked['treeherder-symbol'])
-            symbol += str(this_chunk)
-            chunked['treeherder-symbol'] = join_symbol(group, symbol)
+            chunked['treeherder-symbol'] = add_suffix(
+                chunked['treeherder-symbol'], this_chunk)
 
             yield chunked
 
