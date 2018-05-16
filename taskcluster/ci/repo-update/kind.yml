@@ -40,7 +40,7 @@ job-defaults:
 jobs:
    hsts-hpkp-blocklist:
       name: periodic_file_update
-      description: HSTS, HPKP, and Blocklist update
+      description: HSTS, HPKP, Blocklist and remote settings update
       run-on-projects: []  # Only run via cron
       treeherder:
          kind: build
@@ -54,6 +54,7 @@ jobs:
          docker-image: {in-tree: periodic-updates}
          max-run-time: 3600  # Sometimes takes ~40 minutes
          env:
+            DO_REMOTE_SETTINGS: "1"
             PRODUCT: firefox
             REVIEWERS: "mtabara, jlund"
          command:
@@ -68,6 +69,9 @@ jobs:
               type: file
             - name: 'public/build/blocklist.diff'
               path: '/home/worker/artifacts/blocklist.diff'
+              type: file
+            - name: 'public/build/remote-settings.diff'
+              path: '/home/worker/artifacts/remote-settings.diff'
               type: file
       scopes:
          - secrets:get:project/releng/gecko/build/level-{level}/arc-phabricator-token
