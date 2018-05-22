@@ -25,6 +25,7 @@ check({get x() { throw new Error("fail"); }});
 // Mismatched scopes.
 for (let [write_scope, read_scope] of [['SameProcessSameThread', 'SameProcessDifferentThread'],
                                        ['SameProcessSameThread', 'DifferentProcess'],
+                                       ['SameProcessDifferentThread', 'DifferentProcessForIndexedDB'],
                                        ['SameProcessDifferentThread', 'DifferentProcess']])
 {
   var ab = new ArrayBuffer(12);

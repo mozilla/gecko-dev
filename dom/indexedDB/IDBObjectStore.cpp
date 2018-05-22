@@ -73,7 +73,7 @@ struct IDBObjectStore::StructuredCloneWriteInfo
   uint64_t mOffsetToKeyProp;
 
   explicit StructuredCloneWriteInfo(IDBDatabase* aDatabase)
-    : mCloneBuffer(JS::StructuredCloneScope::SameProcessSameThread, nullptr,
+    : mCloneBuffer(JS::StructuredCloneScope::DifferentProcessForIndexedDB, nullptr,
                    nullptr)
     , mDatabase(aDatabase)
     , mOffsetToKeyProp(0)
@@ -1329,7 +1329,7 @@ IDBObjectStore::DeserializeValue(JSContext* aCx,
   // FIXME: Consider to use StructuredCloneHolder here and in other
   //        deserializing methods.
   if (!JS_ReadStructuredClone(aCx, aCloneReadInfo.mData, JS_STRUCTURED_CLONE_VERSION,
-                              JS::StructuredCloneScope::SameProcessSameThread,
+                              JS::StructuredCloneScope::DifferentProcessForIndexedDB,
                               aValue, &callbacks, &aCloneReadInfo)) {
     return false;
   }
@@ -1501,7 +1501,7 @@ private:
 
     if (!JS_ReadStructuredClone(aCx, mCloneReadInfo.mData,
                                 JS_STRUCTURED_CLONE_VERSION,
-                                JS::StructuredCloneScope::SameProcessSameThread,
+                                JS::StructuredCloneScope::DifferentProcessForIndexedDB,
                                 aValue, &callbacks, &mCloneReadInfo)) {
       return NS_ERROR_DOM_DATA_CLONE_ERR;
     }
@@ -1614,7 +1614,7 @@ private:
 
     if (!JS_ReadStructuredClone(aCx, mCloneReadInfo.mData,
                                 JS_STRUCTURED_CLONE_VERSION,
-                                JS::StructuredCloneScope::SameProcessSameThread,
+                                JS::StructuredCloneScope::DifferentProcessForIndexedDB,
                                 aValue, &callbacks, &mCloneReadInfo)) {
       return NS_ERROR_DOM_DATA_CLONE_ERR;
     }

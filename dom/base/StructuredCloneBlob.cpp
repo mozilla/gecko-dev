@@ -142,7 +142,7 @@ StructuredCloneBlob::ReadStructuredCloneInternal(JSContext* aCx, JSStructuredClo
     BlobImpls().AppendElements(&aHolder->BlobImpls()[blobOffset], blobCount);
   }
 
-  JSStructuredCloneData data;
+  JSStructuredCloneData data(mStructuredCloneScope);
   while (length) {
     size_t size;
     char* buffer = data.AllocateBytes(length, &size);
@@ -173,15 +173,9 @@ StructuredCloneBlob::WriteStructuredClone(JSContext* aCx, JSStructuredCloneWrite
 
   aHolder->BlobImpls().AppendElements(BlobImpls());
 
-  auto iter = data.Iter();
-  while (!iter.Done()) {
-    if (!JS_WriteBytes(aWriter, iter.Data(), iter.RemainingInSegment())) {
-      return false;
-    }
-    iter.Advance(data, iter.RemainingInSegment());
-  }
-
-  return true;
+  return data.ForEachDataChunk([&](const char* aData, size_t aSize) {
+      return JS_WriteBytes(aWriter, aData, aSize);
+  });
 }
 
 bool
