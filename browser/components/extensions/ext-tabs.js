@@ -304,7 +304,7 @@ this.tabs = class extends ExtensionAPI {
               // about the tab before we run the adoption logic in ext-browser.js.
               if (event.detail.insertedOnTabCreation) {
                 return;
-              }    
+              }
               needed.push("discarded");
             } else if (event.type == "TabBrowserDiscarded") {
               needed.push("discarded");
