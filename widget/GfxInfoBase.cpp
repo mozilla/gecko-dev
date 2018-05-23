@@ -47,6 +47,7 @@ using mozilla::MutexAutoLock;
 
 nsTArray<GfxDriverInfo>* GfxInfoBase::mDriverInfo;
 bool GfxInfoBase::mDriverInfoObserverInitialized;
+bool GfxInfoBase::mShutdownOccurred;
 
 // Observes for shutdown so that the child GfxDriverInfo list is freed.
 class ShutdownObserver : public nsIObserver
@@ -66,11 +67,17 @@ public:
     delete GfxInfoBase::mDriverInfo;
     GfxInfoBase::mDriverInfo = nullptr;
 
-    for (uint32_t i = 0; i < DeviceFamilyMax; i++)
+    for (uint32_t i = 0; i < DeviceFamilyMax; i++) {
       delete GfxDriverInfo::mDeviceFamilies[i];
+      GfxDriverInfo::mDeviceFamilies[i] = nullptr;
+    }
 
-    for (uint32_t i = 0; i < DeviceVendorMax; i++)
+    for (uint32_t i = 0; i < DeviceVendorMax; i++) {
       delete GfxDriverInfo::mDeviceVendors[i];
+      GfxDriverInfo::mDeviceVendors[i] = nullptr;
+    }
+
+    GfxInfoBase::mShutdownOccurred = true;
 
     return NS_OK;
   }
@@ -856,6 +863,13 @@ GfxInfoBase::GetFeatureStatusImpl(int32_t aFeature,
   if (*aStatus != nsIGfxInfo::FEATURE_STATUS_UNKNOWN) {
     // Terminate now with the status determined by the derived type (OS-specific
     // code).
+    return NS_OK;
+  }
+
+  if (mShutdownOccurred) {
+    // This is futile; we've already commenced shutdown and our blocklists have
+    // been deleted. We may want to look into resurrecting the blocklist instead
+    // but for now, just don't even go there.
     return NS_OK;
   }
 
