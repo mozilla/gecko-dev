@@ -5134,7 +5134,7 @@ ContentParent::RecvGetFilesRequest(const nsID& aUUID,
     RefPtr<FileSystemSecurity> fss = FileSystemSecurity::Get();
     if (NS_WARN_IF(!fss ||
                    !fss->ContentProcessHasAccessTo(ChildID(), aDirectoryPath))) {
-      return IPC_FAIL_NO_REASON(this);
+      return false;
     }
   }
 
