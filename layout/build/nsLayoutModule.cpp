@@ -108,6 +108,7 @@ using mozilla::dom::AudioChannelAgent;
 
 #include "nsScriptSecurityManager.h"
 #include "ContentPrincipal.h"
+#include "ExpandedPrincipal.h"
 #include "SystemPrincipal.h"
 #include "NullPrincipal.h"
 #include "nsNetCID.h"
@@ -491,6 +492,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(CSPService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsMixedContentBlocker)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(ContentPrincipal)
+NS_GENERIC_FACTORY_CONSTRUCTOR(ExpandedPrincipal)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(SystemPrincipal,
     nsScriptSecurityManager::SystemPrincipalSingletonConstructor)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(NullPrincipal, Init)
@@ -613,6 +615,7 @@ NS_DEFINE_NAMED_CID(NS_PARENTPROCESSMESSAGEMANAGER_CID);
 NS_DEFINE_NAMED_CID(NS_CHILDPROCESSMESSAGEMANAGER_CID);
 NS_DEFINE_NAMED_CID(NS_SCRIPTSECURITYMANAGER_CID);
 NS_DEFINE_NAMED_CID(NS_PRINCIPAL_CID);
+NS_DEFINE_NAMED_CID(NS_EXPANDEDPRINCIPAL_CID);
 NS_DEFINE_NAMED_CID(NS_SYSTEMPRINCIPAL_CID);
 NS_DEFINE_NAMED_CID(NS_NULLPRINCIPAL_CID);
 NS_DEFINE_NAMED_CID(THIRDPARTYUTIL_CID);
@@ -866,6 +869,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_CHILDPROCESSMESSAGEMANAGER_CID, false, nullptr, CreateChildMessageManager },
   { &kNS_SCRIPTSECURITYMANAGER_CID, false, nullptr, Construct_nsIScriptSecurityManager },
   { &kNS_PRINCIPAL_CID, false, nullptr, ContentPrincipalConstructor },
+  { &kNS_EXPANDEDPRINCIPAL_CID, false, nullptr, ExpandedPrincipalConstructor },
   { &kNS_SYSTEMPRINCIPAL_CID, false, nullptr, SystemPrincipalConstructor },
   { &kNS_NULLPRINCIPAL_CID, false, nullptr, NullPrincipalConstructor },
   { &kNS_DEVICE_SENSORS_CID, false, nullptr, nsDeviceSensorsConstructor },
@@ -978,6 +982,7 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
   { NS_CHILDPROCESSMESSAGEMANAGER_CONTRACTID, &kNS_CHILDPROCESSMESSAGEMANAGER_CID },
   { NS_SCRIPTSECURITYMANAGER_CONTRACTID, &kNS_SCRIPTSECURITYMANAGER_CID },
   { NS_PRINCIPAL_CONTRACTID, &kNS_PRINCIPAL_CID },
+  { NS_EXPANDEDPRINCIPAL_CONTRACTID, &kNS_EXPANDEDPRINCIPAL_CID },
   { NS_SYSTEMPRINCIPAL_CONTRACTID, &kNS_SYSTEMPRINCIPAL_CID },
   { NS_NULLPRINCIPAL_CONTRACTID, &kNS_NULLPRINCIPAL_CID },
   { NS_DEVICE_SENSORS_CONTRACTID, &kNS_DEVICE_SENSORS_CID },
