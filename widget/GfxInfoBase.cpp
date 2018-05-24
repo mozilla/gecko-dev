@@ -181,6 +181,9 @@ GetPrefNameForFeature(int32_t aFeature)
     case nsIGfxInfo::FEATURE_D3D11_KEYED_MUTEX:
       name = BLACKLIST_PREF_BRANCH "d3d11.keyed.mutex";
       break;
+    case nsIGfxInfo::FEATURE_WEBRENDER:
+      // no WebRender in 60
+      break;
     case nsIGfxInfo::FEATURE_DX_NV12:
       name = BLACKLIST_PREF_BRANCH "dx.nv12";
       break;
