@@ -857,6 +857,7 @@ gfxPlatform::Init()
 
     if (XRE_IsParentProcess()) {
       gfxVars::SetDXInterop2Blocked(IsDXInterop2Blocked());
+      gfxVars::SetDXNV12Blocked(IsDXNV12Blocked());
     }
 
     if (obs) {
@@ -871,6 +872,19 @@ gfxPlatform::IsDXInterop2Blocked()
   nsCString blockId;
   int32_t status;
   if (!NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DX_INTEROP2,
+                                              blockId, &status))) {
+    return true;
+  }
+  return status != nsIGfxInfo::FEATURE_STATUS_OK;
+}
+
+/* static*/ bool
+gfxPlatform::IsDXNV12Blocked()
+{
+  nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
+  nsCString blockId;
+  int32_t status;
+  if (!NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DX_NV12,
                                               blockId, &status))) {
     return true;
   }
