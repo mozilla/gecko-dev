@@ -422,7 +422,7 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     }
   }
 
-  mCacheStream.NotifyDataEnded(mLoadID, aStatus, true /*aReopenOnError*/);
+  mCacheStream.NotifyDataEnded(mLoadID, aStatus);
   return NS_OK;
 }
 
