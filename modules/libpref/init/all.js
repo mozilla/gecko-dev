@@ -403,7 +403,7 @@ pref("media.wmf.dxva.max-videos", 8);
 pref("media.wmf.low-latency.enabled", false);
 pref("media.wmf.skip-blacklist", false);
 pref("media.wmf.vp9.enabled", true);
-pref("media.wmf.amd.vp9.enabled", true);
+pref("media.wmf.amd.vp9.enabled", false);
 pref("media.wmf.amd.highres.enabled", true);
 pref("media.wmf.allow-unsupported-resolutions", false);
 pref("media.wmf.use-nv12-format", true);
