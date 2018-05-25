@@ -259,7 +259,9 @@ CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
             case BufferDescriptor::TYCbCrDescriptor: {
               const YCbCrDescriptor& ycbcr = desc.get_YCbCrDescriptor();
               reqSize =
-                ImageDataSerializer::ComputeYCbCrBufferSize(ycbcr.ySize(), ycbcr.cbCrSize());
+                ImageDataSerializer::ComputeYCbCrBufferSize(ycbcr.ySize(), ycbcr.cbCrSize(),
+                                                            ycbcr.yOffset(), ycbcr.cbOffset(),
+                                                            ycbcr.crOffset());
               break;
             }
             case BufferDescriptor::TRGBDescriptor: {
@@ -272,7 +274,7 @@ CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
               MOZ_CRASH("GFX: Bad descriptor");
           }
 
-          if (bufSize < reqSize) {
+          if (reqSize == 0 || bufSize < reqSize) {
             NS_ERROR("A client process gave a shmem too small to fit for its descriptor!");
             return nullptr;
           }
