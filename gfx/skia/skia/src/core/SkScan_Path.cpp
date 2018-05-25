@@ -591,16 +591,10 @@ static bool clip_to_limit(const SkRegion& orig, SkRegion* reduced) {
     return true;
 }
 
-/**
-  * Variants of SkScalarRoundToInt, identical to SkDScalarRoundToInt except when the input fraction
-  * is 0.5. When SK_RASTERIZE_EVEN_ROUNDING is enabled, we must bias the result before rounding to
-  * account for potential FDot6 rounding edge-cases.
-  */
-#ifdef SK_RASTERIZE_EVEN_ROUNDING
-static const double kRoundBias = 0.5 / SK_FDot6One;
-#else
-static const double kRoundBias = 0.0;
-#endif
+// Bias used for conservative rounding of float rects to int rects, to nudge the irects a little
+// larger, so we don't "think" a path's bounds are inside a clip, when (due to numeric drift in
+// the scan-converter) we might walk beyond the predicted limits.
+static const double kConservativeRoundBias = 0.5 + 1.5 / SK_FDot6One;
 
 /**
   * Round the value down. This is used to round the top and left of a rectangle,
@@ -608,8 +602,8 @@ static const double kRoundBias = 0.0;
   */
 static inline int round_down_to_int(SkScalar x) {
     double xx = x;
-    xx -= 0.5 + kRoundBias;
-    return (int)ceil(xx);
+    xx -= kConservativeRoundBias;
+    return pin_double_to_int(ceil(xx));
 }
 
 /**
@@ -618,8 +612,8 @@ static inline int round_down_to_int(SkScalar x) {
   */
 static inline int round_up_to_int(SkScalar x) {
     double xx = x;
-    xx += 0.5 + kRoundBias;
-    return (int)floor(xx);
+    xx += kConservativeRoundBias;
+    return pin_double_to_int(floor(xx));
 }
 
 /**
