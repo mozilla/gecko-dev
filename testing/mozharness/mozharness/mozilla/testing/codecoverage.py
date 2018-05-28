@@ -49,25 +49,21 @@ class CodeCoverageMixin(object):
     @property
     def code_coverage_enabled(self):
         try:
-            if self.config.get('code_coverage'):
-                return True
+            return bool(self.config.get('code_coverage'))
         except (AttributeError, KeyError, TypeError):
             return False
 
     @property
     def ccov_upload_disabled(self):
         try:
-            if self.config.get('disable_ccov_upload'):
-                return True
-            return False
+            return bool(self.config.get('disable_ccov_upload'))
         except (AttributeError, KeyError, TypeError):
             return False
 
     @property
     def jsd_code_coverage_enabled(self):
         try:
-            if self.config.get('jsd_code_coverage'):
-                return True
+            return bool(self.config.get('jsd_code_coverage'))
         except (AttributeError, KeyError, TypeError):
             return False
 
