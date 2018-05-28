@@ -1632,6 +1632,11 @@ ProcessHasSignalHandlers()
         return sHaveSignalHandlers;
     sTriedInstallSignalHandlers = true;
 
+#if defined (JS_CODEGEN_NONE)
+    // If there is no JIT, then there should be no Wasm signal handlers.
+    return false;
+#endif
+
 #if defined(ANDROID)
 # if !defined(__aarch64__)
     // Before Android 4.4 (SDK version 19), there is a bug
