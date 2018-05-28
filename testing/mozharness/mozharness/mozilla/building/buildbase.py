@@ -838,7 +838,7 @@ or run without that action (ie: --no-{action})"
             buildid = generate_build_ID()
 
         if c.get('is_automation') or os.environ.get("TASK_ID"):
-            self.set_property('buildid', buildid, write_to_file=True)
+            self.set_property('buildid', buildid)
 
         self.buildid = buildid
         return self.buildid
@@ -1120,7 +1120,7 @@ or run without that action (ie: --no-{action})"
                     self.info(pprint.pformat(build_props))
             for key, prop in build_props.iteritems():
                 if prop != 'UNKNOWN':
-                    self.set_property(key, prop, write_to_file=True)
+                    self.set_property(key, prop)
         else:
             self.info("No mach_build_properties.json found - not importing properties.")
 
@@ -1171,9 +1171,7 @@ or run without that action (ie: --no-{action})"
                 base_cmd + [prop['ini_name']], cwd=dirs['abs_obj_dir'],
                 halt_on_failure=halt_on_failure, env=env
             )
-            self.set_property(prop['prop_name'],
-                                       prop_val,
-                                       write_to_file=True)
+            self.set_property(prop['prop_name'], prop_val)
 
         if self.config.get('is_automation'):
             self.info("Verifying buildid from application.ini matches buildid "
@@ -1324,7 +1322,7 @@ or run without that action (ie: --no-{action})"
                          cwd=objdir, halt_on_failure=True,
                          output_parser=parser)
         for prop in parser.matches:
-            self.set_property(prop, parser.matches[prop], write_to_file=True)
+            self.set_property(prop, parser.matches[prop])
         upload_files_cmd = [
             'make',
             'echo-variable-UPLOAD_FILES',
