@@ -1037,6 +1037,9 @@ function shouldVerifySignedState(aAddon) {
   if (aAddon._installLocation.name == KEY_APP_SYSTEM_DEFAULTS)
     return false;
 
+  if (aAddon.location.scope & AppConstants.MOZ_UNSIGNED_SCOPES)
+    return false;
+
   // Otherwise only check signatures if signing is enabled and the add-on is one
   // of the signed types.
   return AddonSettings.ADDON_SIGNING && SIGNED_TYPES.has(aAddon.type);
