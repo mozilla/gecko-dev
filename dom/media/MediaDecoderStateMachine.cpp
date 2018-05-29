@@ -2835,6 +2835,10 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
 RefPtr<ShutdownPromise>
 MediaDecoderStateMachine::BeginShutdown()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mOutputStreamManager) {
+    mOutputStreamManager->Clear();
+  }
   return InvokeAsync(OwnerThread(), this, __func__,
                      &MediaDecoderStateMachine::Shutdown);
 }
@@ -3250,11 +3254,12 @@ MediaDecoderStateMachine::DumpDebugInfo()
 }
 
 void MediaDecoderStateMachine::AddOutputStream(ProcessedMediaStream* aStream,
+                                               TrackID aNextAvailableTrackID,
                                                bool aFinishWhenEnded)
 {
   MOZ_ASSERT(NS_IsMainThread());
   DECODER_LOG("AddOutputStream aStream=%p!", aStream);
-  mOutputStreamManager->Add(aStream, aFinishWhenEnded);
+  mOutputStreamManager->Add(aStream, aNextAvailableTrackID, aFinishWhenEnded);
   nsCOMPtr<nsIRunnable> r = NewRunnableMethod<bool>(
     this, &MediaDecoderStateMachine::SetAudioCaptured, true);
   OwnerThread()->Dispatch(r.forget());
@@ -3269,7 +3274,15 @@ void MediaDecoderStateMachine::RemoveOutputStream(MediaStream* aStream)
     nsCOMPtr<nsIRunnable> r = NewRunnableMethod<bool>(
       this, &MediaDecoderStateMachine::SetAudioCaptured, false);
     OwnerThread()->Dispatch(r.forget());
+
   }
+}
+
+TrackID
+MediaDecoderStateMachine::NextAvailableTrackIDFor(MediaStream* aOutputStream) const
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  return mOutputStreamManager->NextAvailableTrackIDFor(aOutputStream);
 }
 
 size_t

@@ -671,6 +671,11 @@ public:
     return mAudioCaptured;
   }
 
+  /**
+   * Ensures any MediaStreamTracks captured from a MediaDecoder are ended.
+   */
+  void EndPreCreatedCapturedDecoderTracks();
+
   void MozGetMetadata(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
                       ErrorResult& aRv);
 
@@ -811,13 +816,18 @@ protected:
     ~OutputMediaStream();
 
     RefPtr<DOMMediaStream> mStream;
+    TrackID mNextAvailableTrackID;
     bool mFinishWhenEnded;
     bool mCapturingAudioOnly;
     bool mCapturingDecoder;
     bool mCapturingMediaStream;
 
+    // The following members are keeping state for a captured MediaDecoder.
+    // Tracks that were created on main thread before MediaDecoder fed them
+    // to the MediaStreamGraph.
+    nsTArray<RefPtr<MediaStreamTrack>> mPreCreatedTracks;
+
     // The following members are keeping state for a captured MediaStream.
-    TrackID mNextAvailableTrackID;
     nsTArray<Pair<nsString, RefPtr<MediaInputPort>>> mTrackPorts;
   };
 
