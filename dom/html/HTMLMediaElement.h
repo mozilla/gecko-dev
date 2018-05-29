@@ -869,6 +869,7 @@ protected:
     ~OutputMediaStream();
 
     RefPtr<DOMMediaStream> mStream;
+    TrackID mNextAvailableTrackID;
     bool mFinishWhenEnded;
     bool mCapturingAudioOnly;
     bool mCapturingDecoder;
@@ -880,7 +881,6 @@ protected:
     nsTArray<RefPtr<MediaStreamTrack>> mPreCreatedTracks;
 
     // The following members are keeping state for a captured MediaStream.
-    TrackID mNextAvailableTrackID;
     nsTArray<Pair<nsString, RefPtr<MediaInputPort>>> mTrackPorts;
   };
 
