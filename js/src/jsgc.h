@@ -12,7 +12,6 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
 
 #include "js/GCAPI.h"
@@ -37,13 +36,13 @@ namespace gc {
 
 struct FinalizePhase;
 
-#define GCSTATES(D)                                                           \
-    D(NotActive)                                                              \
-    D(MarkRoots)                                                              \
-    D(Mark)                                                                   \
-    D(Sweep)                                                                  \
-    D(Finalize)                                                               \
-    D(Compact)                                                                \
+#define GCSTATES(D) \
+    D(NotActive) \
+    D(MarkRoots) \
+    D(Mark) \
+    D(Sweep) \
+    D(Finalize) \
+    D(Compact) \
     D(Decommit)
 enum class State {
 #define MAKE_STATE(name) name,
@@ -52,19 +51,19 @@ enum class State {
 };
 
 // Reasons we reset an ongoing incremental GC or perform a non-incremental GC.
-#define GC_ABORT_REASONS(D)                                                   \
-    D(None)                                                                   \
-    D(NonIncrementalRequested)                                                \
-    D(AbortRequested)                                                         \
-    D(KeepAtomsSet)                                                           \
-    D(IncrementalDisabled)                                                    \
-    D(ModeChange)                                                             \
-    D(MallocBytesTrigger)                                                     \
-    D(GCBytesTrigger)                                                         \
+#define GC_ABORT_REASONS(D) \
+    D(None) \
+    D(NonIncrementalRequested) \
+    D(AbortRequested) \
+    D(KeepAtomsSet) \
+    D(IncrementalDisabled) \
+    D(ModeChange) \
+    D(MallocBytesTrigger) \
+    D(GCBytesTrigger) \
     D(ZoneChange)
 enum class AbortReason {
 #define MAKE_REASON(name) name,
-GC_ABORT_REASONS(MAKE_REASON)
+    GC_ABORT_REASONS(MAKE_REASON)
 #undef MAKE_REASON
 };
 
@@ -75,15 +74,15 @@ GC_ABORT_REASONS(MAKE_REASON)
  * The AllocKind is available as MapTypeToFinalizeKind<SomeType>::kind.
  */
 template <typename T> struct MapTypeToFinalizeKind {};
-#define EXPAND_MAPTYPETOFINALIZEKIND(allocKind, traceKind, type, sizedType)     \
-    template <> struct MapTypeToFinalizeKind<type> {                            \
-        static const AllocKind kind = AllocKind::allocKind;                     \
+#define EXPAND_MAPTYPETOFINALIZEKIND(allocKind, traceKind, type, sizedType) \
+    template <> struct MapTypeToFinalizeKind<type> { \
+        static const AllocKind kind = AllocKind::allocKind; \
     };
 FOR_EACH_NONOBJECT_ALLOCKIND(EXPAND_MAPTYPETOFINALIZEKIND)
 #undef EXPAND_MAPTYPETOFINALIZEKIND
 
 template <typename T> struct ParticipatesInCC {};
-#define EXPAND_PARTICIPATES_IN_CC(_, type, addToCCKind)                                         \
+#define EXPAND_PARTICIPATES_IN_CC(_, type, addToCCKind) \
     template <> struct ParticipatesInCC<type> { static const bool value = addToCCKind; };
 JS_FOR_EACH_TRACEKIND(EXPAND_PARTICIPATES_IN_CC)
 #undef EXPAND_PARTICIPATES_IN_CC
@@ -249,28 +248,28 @@ GetGCKindSlots(AllocKind thingKind)
 {
     /* Using a switch in hopes that thingKind will usually be a compile-time constant. */
     switch (thingKind) {
-  case AllocKind::FUNCTION:
-  case AllocKind::OBJECT0:
-  case AllocKind::OBJECT0_BACKGROUND:
-      return 0;
-  case AllocKind::FUNCTION_EXTENDED:
-  case AllocKind::OBJECT2:
-  case AllocKind::OBJECT2_BACKGROUND:
-      return 2;
-  case AllocKind::OBJECT4:
-  case AllocKind::OBJECT4_BACKGROUND:
-      return 4;
-  case AllocKind::OBJECT8:
-  case AllocKind::OBJECT8_BACKGROUND:
-      return 8;
-  case AllocKind::OBJECT12:
-  case AllocKind::OBJECT12_BACKGROUND:
-      return 12;
-  case AllocKind::OBJECT16:
-  case AllocKind::OBJECT16_BACKGROUND:
-      return 16;
-  default:
-      MOZ_CRASH("Bad object alloc kind");
+      case AllocKind::FUNCTION:
+      case AllocKind::OBJECT0:
+      case AllocKind::OBJECT0_BACKGROUND:
+        return 0;
+      case AllocKind::FUNCTION_EXTENDED:
+      case AllocKind::OBJECT2:
+      case AllocKind::OBJECT2_BACKGROUND:
+        return 2;
+      case AllocKind::OBJECT4:
+      case AllocKind::OBJECT4_BACKGROUND:
+        return 4;
+      case AllocKind::OBJECT8:
+      case AllocKind::OBJECT8_BACKGROUND:
+        return 8;
+      case AllocKind::OBJECT12:
+      case AllocKind::OBJECT12_BACKGROUND:
+        return 12;
+      case AllocKind::OBJECT16:
+      case AllocKind::OBJECT16_BACKGROUND:
+        return 16;
+      default:
+        MOZ_CRASH("Bad object alloc kind");
     }
 }
 
@@ -528,10 +527,10 @@ class SortedArenaList
     static const size_t MinThingSize = 16;
 
     static_assert(ArenaSize <= 4096, "When increasing the Arena size, please consider how"\
-                  " this will affect the size of a SortedArenaList.");
+                                     " this will affect the size of a SortedArenaList.");
 
     static_assert(MinThingSize >= 16, "When decreasing the minimum thing size, please consider"\
-                  " how this will affect the size of a SortedArenaList.");
+                                      " how this will affect the size of a SortedArenaList.");
 
   private:
     // The maximum number of GC things that an arena can hold.
@@ -634,7 +633,7 @@ class ArenaLists
     enum BackgroundFinalizeStateEnum { BFS_DONE, BFS_RUN };
 
     typedef mozilla::Atomic<BackgroundFinalizeStateEnum, mozilla::SequentiallyConsistent>
-    BackgroundFinalizeState;
+        BackgroundFinalizeState;
 
     /* The current background finalization state, accessed atomically. */
     AllAllocKindArray<BackgroundFinalizeState> backgroundFinalizeState;
@@ -832,7 +831,7 @@ const size_t MAX_EMPTY_CHUNK_AGE = 4;
 
 } /* namespace gc */
 
-    class InterpreterFrame;
+class InterpreterFrame;
 
 extern void
 MarkCompartmentActive(js::InterpreterFrame* fp);
@@ -912,7 +911,7 @@ class GCHelperState
       : rt(rt),
         done(),
         state_(IDLE)
-        { }
+    { }
 
     void finish();
 
@@ -937,15 +936,10 @@ class GCHelperState
 };
 
 // A generic task used to dispatch work to the helper thread system.
-// Users should derive from GCParallelTask add what data they need.
+// Users should derive from GCParallelTask add what data they need and
+// override |run|.
 class GCParallelTask
 {
-  public:
-    using TaskFunc = void (*)(GCParallelTask*);
-
-  private:
-    TaskFunc func_;
-
     // The state of the parallel computation.
     enum TaskState {
         NotStarted,
@@ -962,24 +956,19 @@ class GCParallelTask
     // A flag to signal a request for early completion of the off-thread task.
     mozilla::Atomic<bool> cancel_;
 
-  public:
-    GCParallelTask(TaskFunc func)
-      : func_(func),
-        state(NotStarted),
-        duration_(0),
-        cancel_(false)
-        {}
+    virtual void run() = 0;
 
+  public:
+    GCParallelTask() : state(NotStarted), duration_(0) {}
     GCParallelTask(GCParallelTask&& other)
-      : func_(other.func_),
-        state(other.state),
+      : state(other.state),
         duration_(0),
         cancel_(false)
-        {}
+    {}
 
     // Derived classes must override this to ensure that join() gets called
     // before members get destructed.
-    ~GCParallelTask();
+    virtual ~GCParallelTask();
 
     // Time spent in the most recent invocation of this task.
     int64_t duration() const { return duration_; }
@@ -1008,32 +997,10 @@ class GCParallelTask
     bool isRunningWithLockHeld(const AutoLockHelperThreadState& locked) const;
     bool isRunning() const;
 
-    void runTask() {
-        func_(this);
-    }
-
     // This should be friended to HelperThread, but cannot be because it
     // would introduce several circular dependencies.
   public:
     void runFromHelperThread(AutoLockHelperThreadState& locked);
-};
-
-// CRTP template to handle cast to derived type when calling run().
-template <typename Derived>
-class GCParallelTaskHelper : public GCParallelTask
-{
-  public:
-    explicit GCParallelTaskHelper()
-      : GCParallelTask(&runTaskTyped)
-        {}
-    GCParallelTaskHelper(GCParallelTaskHelper&& other)
-      : GCParallelTask(mozilla::Move(other))
-    {}
-
-  private:
-    static void runTaskTyped(GCParallelTask* task) {
-        static_cast<Derived*>(task)->run();
-    }
 };
 
 typedef void (*IterateChunkCallback)(JSRuntime* rt, void* data, gc::Chunk* chunk);

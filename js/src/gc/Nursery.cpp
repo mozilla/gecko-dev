@@ -43,19 +43,19 @@ using mozilla::PodZero;
 
 static const uintptr_t CanaryMagicValue = 0xDEADB15D;
 
-struct js::Nursery::FreeMallocedBuffersTask : public GCParallelTaskHelper<FreeMallocedBuffersTask>
+struct js::Nursery::FreeMallocedBuffersTask : public GCParallelTask
 {
     explicit FreeMallocedBuffersTask(FreeOp* fop) : fop_(fop) {}
     bool init() { return buffers_.init(); }
     void transferBuffersToFree(MallocedBuffersSet& buffersToFree,
                                const AutoLockHelperThreadState& lock);
-    ~FreeMallocedBuffersTask() { join(); }
-
-    void run();
+    ~FreeMallocedBuffersTask() override { join(); }
 
   private:
     FreeOp* fop_;
     MallocedBuffersSet buffers_;
+
+    virtual void run() override;
 };
 
 struct js::Nursery::SweepAction
