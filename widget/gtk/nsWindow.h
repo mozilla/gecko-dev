@@ -456,6 +456,9 @@ private:
 
     void               UpdateClientOffsetForCSDWindow();
 
+    nsWindow*          GetTransientForWindowIfPopup();
+    bool               IsHandlingTouchSequence(GdkEventSequence* aSequence);
+
     GtkWidget          *mShell;
     MozContainer       *mContainer;
     GdkWindow          *mGdkWindow;
