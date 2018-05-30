@@ -3482,6 +3482,10 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
 RefPtr<ShutdownPromise>
 MediaDecoderStateMachine::BeginShutdown()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mOutputStreamManager) {
+    mOutputStreamManager->Clear();
+  }
   return InvokeAsync(OwnerThread(), this, __func__,
                      &MediaDecoderStateMachine::Shutdown);
 }
