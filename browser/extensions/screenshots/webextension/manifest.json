@@ -58,6 +58,7 @@
     "notifications",
     "clipboardWrite",
     "contextMenus",
+    "mozillaAddons",
     "<all_urls>",
     "https://screenshots.firefox.com/"
   ]
