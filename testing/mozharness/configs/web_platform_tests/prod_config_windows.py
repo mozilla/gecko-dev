@@ -24,10 +24,6 @@ config = {
         'hg': 'c:/mozilla-build/hg/hg',
     },
 
-    "default_blob_upload_servers": [
-         "https://blobupload.elasticbeanstalk.com",
-    ],
-
     "download_minidump_stackwalk": True,
 
     "verify_category": "web-platform",
