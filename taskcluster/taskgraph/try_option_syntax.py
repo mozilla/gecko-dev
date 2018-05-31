@@ -126,13 +126,11 @@ UNITTEST_PLATFORM_PRETTY_NAMES = {
         'linux32',
         'linux64',
         'linux64-asan',
-        'linux64-stylo-disabled',
         'linux64-stylo-sequential'
     ],
     'x64': [
         'linux64',
         'linux64-asan',
-        'linux64-stylo-disabled',
         'linux64-stylo-sequential'
     ],
     'Android 4.3': ['android-4.3-arm7-api-16'],

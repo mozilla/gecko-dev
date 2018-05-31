@@ -84,26 +84,6 @@ linux64-asan/opt:
     test-sets:
         - common-tests
 
-# Stylo disabled mode only runs a subset of tests.
-linux32-stylo-disabled/debug:
-    build-platform: linux/debug
-    test-sets:
-        - stylo-disabled-tests
-linux32-stylo-disabled/opt:
-    build-platform: linux/opt
-    test-sets:
-        - stylo-disabled-tests
-linux64-stylo-disabled/debug:
-    build-platform: linux64/debug
-    test-sets:
-        - stylo-disabled-tests
-        - devtools-tests
-linux64-stylo-disabled/opt:
-    build-platform: linux64/opt
-    test-sets:
-        - stylo-disabled-tests
-        - devtools-tests
-
 # Stylo sequential runs check memory and performance when using a single thread.
 linux64-stylo-sequential/opt:
     build-platform: linux64/opt
