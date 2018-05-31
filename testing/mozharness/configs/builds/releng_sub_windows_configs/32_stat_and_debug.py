@@ -10,7 +10,6 @@ config = {
     'debug_build': True,
     'tooltool_manifest_src': "browser/config/tooltool-manifests/win32/\
 releng.manifest",
-    'perfherder_extra_options': ['static-analysis'],
     #### 32 bit build specific #####
     'env': {
         'BINSCOPE': 'C:/Program Files (x86)/Microsoft/SDL BinScope/BinScope.exe',
