@@ -2080,7 +2080,7 @@ Engine.prototype = {
   },
 
   getAttr(name) {
-    return this._metaData[name] || undefined;
+    return (this._metaData && this._metaData[name]) || undefined;
   },
 
   // nsISearchEngine
