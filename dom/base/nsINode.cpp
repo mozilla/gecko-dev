@@ -1638,7 +1638,7 @@ GetNodeFromNodeOrString(const OwningNodeOrString& aNode,
  * https://dom.spec.whatwg.org/#converting-nodes-into-a-node for |prepend()|,
  * |append()|, |before()|, |after()|, and |replaceWith()| APIs.
  */
-static already_AddRefed<nsINode>
+MOZ_CAN_RUN_SCRIPT static already_AddRefed<nsINode>
 ConvertNodesOrStringsIntoNode(const Sequence<OwningNodeOrString>& aNodes,
                               nsIDocument* aDocument,
                               ErrorResult& aRv)
@@ -1721,8 +1721,8 @@ nsINode::Before(const Sequence<OwningNodeOrString>& aNodes,
   nsCOMPtr<nsINode> viablePreviousSibling =
     FindViablePreviousSibling(*this, aNodes);
 
-  nsCOMPtr<nsINode> node =
-    ConvertNodesOrStringsIntoNode(aNodes, OwnerDoc(), aRv);
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+  nsCOMPtr<nsINode> node = ConvertNodesOrStringsIntoNode(aNodes, doc, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -1744,8 +1744,8 @@ nsINode::After(const Sequence<OwningNodeOrString>& aNodes,
 
   nsCOMPtr<nsINode> viableNextSibling = FindViableNextSibling(*this, aNodes);
 
-  nsCOMPtr<nsINode> node =
-    ConvertNodesOrStringsIntoNode(aNodes, OwnerDoc(), aRv);
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+  nsCOMPtr<nsINode> node = ConvertNodesOrStringsIntoNode(aNodes, doc, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -1764,8 +1764,8 @@ nsINode::ReplaceWith(const Sequence<OwningNodeOrString>& aNodes,
 
   nsCOMPtr<nsINode> viableNextSibling = FindViableNextSibling(*this, aNodes);
 
-  nsCOMPtr<nsINode> node =
-    ConvertNodesOrStringsIntoNode(aNodes, OwnerDoc(), aRv);
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+  nsCOMPtr<nsINode> node = ConvertNodesOrStringsIntoNode(aNodes, doc, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -1820,8 +1820,8 @@ void
 nsINode::Prepend(const Sequence<OwningNodeOrString>& aNodes,
                  ErrorResult& aRv)
 {
-  nsCOMPtr<nsINode> node =
-    ConvertNodesOrStringsIntoNode(aNodes, OwnerDoc(), aRv);
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+  nsCOMPtr<nsINode> node = ConvertNodesOrStringsIntoNode(aNodes, doc, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -1834,8 +1834,8 @@ void
 nsINode::Append(const Sequence<OwningNodeOrString>& aNodes,
                  ErrorResult& aRv)
 {
-  nsCOMPtr<nsINode> node =
-    ConvertNodesOrStringsIntoNode(aNodes, OwnerDoc(), aRv);
+  nsCOMPtr<nsIDocument> doc = OwnerDoc();
+  nsCOMPtr<nsINode> node = ConvertNodesOrStringsIntoNode(aNodes, doc, aRv);
   if (aRv.Failed()) {
     return;
   }
