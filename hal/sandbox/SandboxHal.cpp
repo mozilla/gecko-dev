@@ -204,18 +204,6 @@ GetWakeLockInfo(const nsAString &aTopic, WakeLockInformation *aWakeLockInfo)
   Hal()->SendGetWakeLockInfo(nsString(aTopic), aWakeLockInfo);
 }
 
-void
-EnableSwitchNotifications(SwitchDevice aDevice)
-{
-  Hal()->SendEnableSwitchNotifications(aDevice);
-}
-
-void
-DisableSwitchNotifications(SwitchDevice aDevice)
-{
-  Hal()->SendDisableSwitchNotifications(aDevice);
-}
-
 bool
 EnableAlarm()
 {
@@ -277,7 +265,6 @@ class HalParent : public PHalParent
                 , public ISensorObserver
                 , public WakeLockObserver
                 , public ScreenConfigurationObserver
-                , public SwitchObserver
                 , public SystemClockChangeObserver
                 , public SystemTimezoneChangeObserver
 {
@@ -297,10 +284,6 @@ public:
     hal::UnregisterWakeLockObserver(this);
     hal::UnregisterSystemClockChangeObserver(this);
     hal::UnregisterSystemTimezoneChangeObserver(this);
-    for (int32_t switchDevice = SWITCH_DEVICE_UNKNOWN + 1;
-         switchDevice < NUM_SWITCH_DEVICE; ++switchDevice) {
-      hal::UnregisterSwitchObserver(SwitchDevice(switchDevice), this);
-    }
   }
 
   virtual mozilla::ipc::IPCResult
@@ -509,26 +492,6 @@ public:
     Unused << SendNotifyWakeLockChange(aWakeLockInfo);
   }
 
-  virtual mozilla::ipc::IPCResult
-  RecvEnableSwitchNotifications(const SwitchDevice& aDevice) override
-  {
-    // Content has no reason to listen to switch events currently.
-    hal::RegisterSwitchObserver(aDevice, this);
-    return IPC_OK();
-  }
-
-  virtual mozilla::ipc::IPCResult
-  RecvDisableSwitchNotifications(const SwitchDevice& aDevice) override
-  {
-    hal::UnregisterSwitchObserver(aDevice, this);
-    return IPC_OK();
-  }
-
-  void Notify(const SwitchEvent& aSwitchEvent) override
-  {
-    Unused << SendNotifySwitchChange(aSwitchEvent);
-  }
-
   void Notify(const int64_t& aClockDeltaMS) override
   {
     Unused << SendNotifySystemClockChange(aClockDeltaMS);
@@ -572,12 +535,6 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvNotifyScreenConfigurationChange(const ScreenConfiguration& aScreenConfiguration) override {
     hal::NotifyScreenConfigurationChange(aScreenConfiguration);
-    return IPC_OK();
-  }
-
-  virtual mozilla::ipc::IPCResult
-  RecvNotifySwitchChange(const mozilla::hal::SwitchEvent& aEvent) override {
-    hal::NotifySwitchChange(aEvent);
     return IPC_OK();
   }
 
