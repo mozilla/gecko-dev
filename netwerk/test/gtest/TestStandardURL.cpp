@@ -4,8 +4,11 @@
 #include "nsCOMPtr.h"
 #include "nsNetCID.h"
 #include "nsIURL.h"
+#include "nsIStandardURL.h"
 #include "nsString.h"
 #include "nsComponentManagerUtils.h"
+#include "nsIIPCSerializableURI.h"
+#include "mozilla/ipc/URIUtils.h"
 
 TEST(TestStandardURL, Simple) {
     nsCOMPtr<nsIURL> url( do_CreateInstance(NS_STANDARDURL_CONTRACTID) );
@@ -67,3 +70,16 @@ MOZ_GTEST_BENCH(TestStandardURL, Perf, [] {
         url->GetRef(out);
     }
 });
+
+TEST(TestStandardURL, Deserialize_Bug1392739)
+{
+  mozilla::ipc::StandardURLParams standard_params;
+  standard_params.urlType() = nsIStandardURL::URLTYPE_STANDARD;
+  standard_params.spec() = NS_LITERAL_CSTRING("");
+  standard_params.host() = mozilla::ipc::StandardURLSegment(4294967295, 1);
+
+  mozilla::ipc::URIParams params(standard_params);
+
+  nsCOMPtr<nsIIPCSerializableURI> url = do_CreateInstance(NS_STANDARDURL_CID);
+  ASSERT_EQ(url->Deserialize(params), false);
+}
