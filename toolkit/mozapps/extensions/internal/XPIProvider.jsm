@@ -150,7 +150,7 @@ const TOOLKIT_ID                      = "toolkit@mozilla.org";
 
 const XPI_SIGNATURE_CHECK_PERIOD      = 24 * 60 * 60;
 
-XPCOMUtils.defineConstant(this, "DB_SCHEMA", 24);
+XPCOMUtils.defineConstant(this, "DB_SCHEMA", 25);
 
 XPCOMUtils.defineLazyPreferenceGetter(this, "ALLOW_NON_MPC", PREF_ALLOW_NON_MPC);
 
@@ -1126,6 +1126,7 @@ const JSON_FIELDS = Object.freeze([
   "lastModifiedTime",
   "path",
   "runInSafeMode",
+  "signedState",
   "startupData",
   "type",
   "version",
@@ -1252,6 +1253,8 @@ class XPIState {
       enabled: this.enabled,
       lastModifiedTime: this.lastModifiedTime,
       path: this.relativePath,
+      signedState: this.signedState,
+      telemetryKey: this.telemetryKey,
       version: this.version,
     };
     if (this.type != "extension") {
@@ -1329,6 +1332,7 @@ class XPIState {
       this.dependencies = aDBAddon.dependencies;
       this.runInSafeMode = canRunInSafeMode(aDBAddon);
     }
+    this.signedState = aDBAddon.signedState;
 
     if (aUpdated || mustGetMod) {
       this.getModTime(this.file, aDBAddon.id);
