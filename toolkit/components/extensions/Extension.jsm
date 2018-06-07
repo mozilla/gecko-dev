@@ -493,6 +493,10 @@ class ExtensionData {
     };
   }
 
+  canUseExperiment(manifest) {
+    return this.experimentsAllowed && manifest.experiment_apis;
+  }
+
   // eslint-disable-next-line complexity
   async parseManifest() {
     let [manifest] = await Promise.all([
@@ -637,7 +641,7 @@ class ExtensionData {
         return manager.initModuleJSON([modules]);
       };
 
-      if (manifest.experiment_apis) {
+      if (this.canUseExperiment(manifest)) {
         let parentModules = {};
         let childModules = {};
 
@@ -1371,6 +1375,8 @@ class Extension extends ExtensionData {
 
   get isPrivileged() {
     return (this.addonData.signedState === AddonManager.SIGNEDSTATE_PRIVILEGED ||
+            this.addonData.signedState === AddonManager.SIGNEDSTATE_SYSTEM ||
+            this.addonData.builtIn ||
             (AppConstants.MOZ_ALLOW_LEGACY_EXTENSIONS &&
              this.addonData.temporarilyInstalled));
   }
