@@ -9,7 +9,6 @@
 
 #include "mozilla/RefPtr.h"
 #include "nsTArray.h"
-#include "TrackID.h"
 
 namespace mozilla {
 
@@ -22,13 +21,11 @@ class ProcessedMediaStream;
 class OutputStreamData {
 public:
   ~OutputStreamData();
-  void Init(OutputStreamManager* aOwner,
-            ProcessedMediaStream* aStream,
-            TrackID aNextAvailableTrackID);
+  void Init(OutputStreamManager* aOwner, ProcessedMediaStream* aStream);
 
-  // Connect the given input stream's audio and video tracks to mStream.
+  // Connect mStream to the input stream.
   // Return false is mStream is already destroyed, otherwise true.
-  bool Connect(MediaStream* aStream, TrackID aAudioTrackID, TrackID aVideoTrackID);
+  bool Connect(MediaStream* aStream);
   // Disconnect mStream from its input stream.
   // Return false is mStream is already destroyed, otherwise true.
   bool Disconnect();
@@ -37,16 +34,12 @@ public:
   bool Equals(MediaStream* aStream) const;
   // Return the graph mStream belongs to.
   MediaStreamGraph* Graph() const;
-  // The next TrackID that will not cause a collision in mStream.
-  TrackID NextAvailableTrackID() const;
 
 private:
   OutputStreamManager* mOwner;
   RefPtr<ProcessedMediaStream> mStream;
-  // mPort connects an input stream to our mStream.
-  nsTArray<RefPtr<MediaInputPort>> mPorts;
-  // For guaranteeing TrackID uniqueness in our mStream.
-  TrackID mNextAvailableTrackID = TRACK_INVALID;
+  // mPort connects our mStream to an input stream.
+  RefPtr<MediaInputPort> mPort;
 };
 
 class OutputStreamManager {
@@ -54,26 +47,18 @@ class OutputStreamManager {
 
 public:
   // Add the output stream to the collection.
-  void Add(ProcessedMediaStream* aStream,
-           TrackID aNextAvailableTrackID,
-           bool aFinishWhenEnded);
+  void Add(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
   // Remove the output stream from the collection.
   void Remove(MediaStream* aStream);
-  // Clear all output streams from the collection.
-  void Clear();
-  // The next TrackID that will not cause a collision in aOutputStream.
-  TrackID NextAvailableTrackIDFor(MediaStream* aOutputStream) const;
   // Return true if the collection empty.
   bool IsEmpty() const
   {
     MOZ_ASSERT(NS_IsMainThread());
     return mStreams.IsEmpty();
   }
-  // Connect the given input stream's tracks to all output streams.
-  void Connect(MediaStream* aStream,
-               TrackID aAudioTrackID,
-               TrackID aVideoTrackID);
-  // Disconnect the input stream to all output streams.
+  // Connect all output streams in the collection to the input stream.
+  void Connect(MediaStream* aStream);
+  // Disconnect all output streams from the input stream.
   void Disconnect();
   // Return the graph these streams belong to or null if empty.
   MediaStreamGraph* Graph() const
@@ -87,8 +72,6 @@ private:
   // Keep the input stream so we can connect the output streams that
   // are added after Connect().
   RefPtr<MediaStream> mInputStream;
-  TrackID mInputAudioTrackID = TRACK_INVALID;
-  TrackID mInputVideoTrackID = TRACK_INVALID;
   nsTArray<OutputStreamData> mStreams;
 };
 

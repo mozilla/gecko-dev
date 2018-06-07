@@ -170,14 +170,12 @@ MediaDecoder::SetVolume(double aVolume)
 
 void
 MediaDecoder::AddOutputStream(ProcessedMediaStream* aStream,
-                              TrackID aNextAvailableTrackID,
                               bool aFinishWhenEnded)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mDecoderStateMachine, "Must be called after Load().");
   AbstractThread::AutoEnter context(AbstractMainThread());
-  mDecoderStateMachine->AddOutputStream(
-    aStream, aNextAvailableTrackID, aFinishWhenEnded);
+  mDecoderStateMachine->AddOutputStream(aStream, aFinishWhenEnded);
 }
 
 void
@@ -187,15 +185,6 @@ MediaDecoder::RemoveOutputStream(MediaStream* aStream)
   MOZ_ASSERT(mDecoderStateMachine, "Must be called after Load().");
   AbstractThread::AutoEnter context(AbstractMainThread());
   mDecoderStateMachine->RemoveOutputStream(aStream);
-}
-
-TrackID
-MediaDecoder::NextAvailableTrackIDFor(MediaStream* aOutputStream) const
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mDecoderStateMachine, "Must be called after Load().");
-  AbstractThread::AutoEnter context(AbstractMainThread());
-  return mDecoderStateMachine->NextAvailableTrackIDFor(aOutputStream);
 }
 
 double

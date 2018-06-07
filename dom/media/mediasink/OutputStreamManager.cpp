@@ -13,41 +13,29 @@ OutputStreamData::~OutputStreamData()
 {
   MOZ_ASSERT(NS_IsMainThread());
   // Break the connection to the input stream if necessary.
-  for (RefPtr<MediaInputPort>& port : mPorts) {
-    port->Destroy();
+  if (mPort) {
+    mPort->Destroy();
   }
 }
 
 void
-OutputStreamData::Init(OutputStreamManager* aOwner,
-                       ProcessedMediaStream* aStream,
-                       TrackID aNextAvailableTrackID)
+OutputStreamData::Init(OutputStreamManager* aOwner, ProcessedMediaStream* aStream)
 {
   mOwner = aOwner;
   mStream = aStream;
-  mNextAvailableTrackID = aNextAvailableTrackID;
 }
 
 bool
-OutputStreamData::Connect(MediaStream* aStream,
-                          TrackID aInputAudioTrackID,
-                          TrackID aInputVideoTrackID)
+OutputStreamData::Connect(MediaStream* aStream)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mPorts.IsEmpty(), "Already connected?");
+  MOZ_ASSERT(!mPort, "Already connected?");
 
   if (mStream->IsDestroyed()) {
     return false;
   }
 
-  for (TrackID tid : {aInputAudioTrackID, aInputVideoTrackID}) {
-    if (tid == TRACK_NONE) {
-      continue;
-    }
-    MOZ_ASSERT(IsTrackIDExplicit(tid));
-    mPorts.AppendElement(mStream->AllocateInputPort(
-        aStream, tid, mNextAvailableTrackID++));
-  }
+  mPort = mStream->AllocateInputPort(aStream);
   return true;
 }
 
@@ -63,11 +51,11 @@ OutputStreamData::Disconnect()
     return false;
   }
 
-  // Disconnect any existing port.
-  for (RefPtr<MediaInputPort>& port : mPorts) {
-    port->Destroy();
+  // Disconnect the existing port if necessary.
+  if (mPort) {
+    mPort->Destroy();
+    mPort = nullptr;
   }
-  mPorts.Clear();
   return true;
 }
 
@@ -83,16 +71,8 @@ OutputStreamData::Graph() const
   return mStream->Graph();
 }
 
-TrackID
-OutputStreamData::NextAvailableTrackID() const
-{
-  return mNextAvailableTrackID;
-}
-
 void
-OutputStreamManager::Add(ProcessedMediaStream* aStream,
-                         TrackID aNextAvailableTrackID,
-                         bool aFinishWhenEnded)
+OutputStreamManager::Add(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
 {
   MOZ_ASSERT(NS_IsMainThread());
   // All streams must belong to the same graph.
@@ -104,12 +84,12 @@ OutputStreamManager::Add(ProcessedMediaStream* aStream,
   }
 
   OutputStreamData* p = mStreams.AppendElement();
-  p->Init(this, aStream, aNextAvailableTrackID);
+  p->Init(this, aStream);
 
   // Connect to the input stream if we have one. Otherwise the output stream
   // will be connected in Connect().
   if (mInputStream) {
-    p->Connect(mInputStream, mInputAudioTrackID, mInputVideoTrackID);
+    p->Connect(mInputStream);
   }
 }
 
@@ -126,35 +106,12 @@ OutputStreamManager::Remove(MediaStream* aStream)
 }
 
 void
-OutputStreamManager::Clear()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  mStreams.Clear();
-}
-
-TrackID
-OutputStreamManager::NextAvailableTrackIDFor(MediaStream* aOutputStream) const
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  for (const OutputStreamData& out : mStreams) {
-    if (out.Equals(aOutputStream)) {
-      return out.NextAvailableTrackID();
-    }
-  }
-  return TRACK_INVALID;
-}
-
-void
-OutputStreamManager::Connect(MediaStream* aStream,
-                             TrackID aAudioTrackID,
-                             TrackID aVideoTrackID)
+OutputStreamManager::Connect(MediaStream* aStream)
 {
   MOZ_ASSERT(NS_IsMainThread());
   mInputStream = aStream;
-  mInputAudioTrackID = aAudioTrackID;
-  mInputVideoTrackID = aVideoTrackID;
   for (int32_t i = mStreams.Length() - 1; i >= 0; --i) {
-    if (!mStreams[i].Connect(aStream, mInputAudioTrackID, mInputVideoTrackID)) {
+    if (!mStreams[i].Connect(aStream)) {
       // Probably the DOMMediaStream was GCed. Clean up.
       mStreams.RemoveElementAt(i);
     }
@@ -166,8 +123,6 @@ OutputStreamManager::Disconnect()
 {
   MOZ_ASSERT(NS_IsMainThread());
   mInputStream = nullptr;
-  mInputAudioTrackID = TRACK_INVALID;
-  mInputVideoTrackID = TRACK_INVALID;
   for (int32_t i = mStreams.Length() - 1; i >= 0; --i) {
     if (!mStreams[i].Disconnect()) {
       // Probably the DOMMediaStream was GCed. Clean up.
