@@ -408,6 +408,10 @@ release-eme-free-repack-beetmover
 ------------------------------
 Moves the eme-free repacks to S3 buckets.
 
+release-eme-free-repack-beetmover-checksums
+-------------------------------------------
+Moves the beetmover checksum for eme-free repacks to S3 buckets.
+
 release-partner-repack-chunking-dummy
 ----------------------
 Chunks the partner repacks by locale.
