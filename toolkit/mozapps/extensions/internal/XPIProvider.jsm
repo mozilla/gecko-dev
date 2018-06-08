@@ -4394,7 +4394,8 @@ var XPIProvider = {
         }
       }
 
-      let installLocation = aAddon._installLocation || null;
+      let installLocation = (aAddon._installLocation ||
+                             XPIProvider.installLocationsByName[aAddon.location.name]);
       let params = {
         id: aAddon.id,
         version: aAddon.version,
