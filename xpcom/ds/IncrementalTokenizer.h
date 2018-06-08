@@ -16,7 +16,7 @@ class nsIInputStream;
 
 namespace mozilla {
 
-class IncrementalTokenizer : public TokenizerBase<char>
+class IncrementalTokenizer : public TokenizerBase
 {
 public:
   /**
