@@ -59,7 +59,6 @@ add_task(async function test_proxy() {
   ExtensionAPIs.register("userinputtest", schemaUrl, apiUrl);
 
   let extension = ExtensionTestUtils.loadExtension({
-    isPrivileged: true,
     background() {
       browser.test.onMessage.addListener(async () => {
         try {
@@ -108,7 +107,6 @@ add_task(async function test_local() {
   });
 
   let extension = ExtensionTestUtils.loadExtension({
-    isPrivileged: true,
     background() {
       browser.test.onMessage.addListener(async () => {
         try {
