@@ -300,34 +300,6 @@ GetWakeLockInfo(const nsAString &aTopic, WakeLockInformation *aWakeLockInfo)
   Hal()->SendGetWakeLockInfo(nsString(aTopic), aWakeLockInfo);
 }
 
-void
-EnableSwitchNotifications(SwitchDevice aDevice)
-{
-  Hal()->SendEnableSwitchNotifications(aDevice);
-}
-
-void
-DisableSwitchNotifications(SwitchDevice aDevice)
-{
-  Hal()->SendDisableSwitchNotifications(aDevice);
-}
-
-SwitchState
-GetCurrentSwitchState(SwitchDevice aDevice)
-{
-  SwitchState state;
-  Hal()->SendGetCurrentSwitchState(aDevice, &state);
-  return state;
-}
-
-void
-NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState)
-{
-  Unused << aDevice;
-  Unused << aState;
-  NS_RUNTIMEABORT("Only the main process may notify switch state change.");
-}
-
 bool
 EnableAlarm()
 {
@@ -420,7 +392,6 @@ class HalParent : public PHalParent
                 , public ISensorObserver
                 , public WakeLockObserver
                 , public ScreenConfigurationObserver
-                , public SwitchObserver
                 , public SystemClockChangeObserver
                 , public SystemTimezoneChangeObserver
 {
@@ -440,10 +411,6 @@ public:
     hal::UnregisterWakeLockObserver(this);
     hal::UnregisterSystemClockChangeObserver(this);
     hal::UnregisterSystemTimezoneChangeObserver(this);
-    for (int32_t switchDevice = SWITCH_DEVICE_UNKNOWN + 1;
-         switchDevice < NUM_SWITCH_DEVICE; ++switchDevice) {
-      hal::UnregisterSwitchObserver(SwitchDevice(switchDevice), this);
-    }
   }
 
   virtual bool
@@ -771,34 +738,6 @@ public:
     Unused << SendNotifyWakeLockChange(aWakeLockInfo);
   }
 
-  virtual bool
-  RecvEnableSwitchNotifications(const SwitchDevice& aDevice) override
-  {
-    // Content has no reason to listen to switch events currently.
-    hal::RegisterSwitchObserver(aDevice, this);
-    return true;
-  }
-
-  virtual bool
-  RecvDisableSwitchNotifications(const SwitchDevice& aDevice) override
-  {
-    hal::UnregisterSwitchObserver(aDevice, this);
-    return true;
-  }
-
-  void Notify(const SwitchEvent& aSwitchEvent) override
-  {
-    Unused << SendNotifySwitchChange(aSwitchEvent);
-  }
-
-  virtual bool
-  RecvGetCurrentSwitchState(const SwitchDevice& aDevice, hal::SwitchState *aState) override
-  {
-    // Content has no reason to listen to switch events currently.
-    *aState = hal::GetCurrentSwitchState(aDevice);
-    return true;
-  }
-
   void Notify(const int64_t& aClockDeltaMS) override
   {
     Unused << SendNotifySystemClockChange(aClockDeltaMS);
@@ -865,12 +804,6 @@ public:
   virtual bool
   RecvNotifyScreenConfigurationChange(const ScreenConfiguration& aScreenConfiguration) override {
     hal::NotifyScreenConfigurationChange(aScreenConfiguration);
-    return true;
-  }
-
-  virtual bool
-  RecvNotifySwitchChange(const mozilla::hal::SwitchEvent& aEvent) override {
-    hal::NotifySwitchChange(aEvent);
     return true;
   }
 
