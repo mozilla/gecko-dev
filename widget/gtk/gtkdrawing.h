@@ -334,6 +334,10 @@ typedef enum {
    */
   MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE_RESTORE,
 
+  /* Client-side window decoration node. Available on GTK 3.20+. */
+  MOZ_GTK_WINDOW_DECORATION,
+  MOZ_GTK_WINDOW_DECORATION_SOLID,
+
   MOZ_GTK_WIDGET_NODE_COUNT
 } WidgetNodeType;
 
@@ -605,5 +609,18 @@ GetToolbarButtonMetrics(WidgetNodeType aWidgetType);
  */
 int
 GetGtkHeaderBarButtonLayout(WidgetNodeType* aButtonLayout, int aMaxButtonNums);
+
+/**
+ * Get size of CSD window extents of given GtkWindow.
+ *
+ * aGtkWindow      [IN]  Decorated window.
+ * aDecorationSize [OUT] Returns calculated (or estimated) decoration
+ *                       size of given aGtkWindow.
+ *
+ * returns:    True if we have extract decoration size (for GTK 3.20+)
+ *             False if we have only an estimation (for GTK+ before  3.20+)
+ */
+bool
+GetCSDDecorationSize(GtkWindow *aGtkWindow, GtkBorder* aDecorationSize);
 
 #endif

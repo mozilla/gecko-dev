@@ -375,8 +375,6 @@ public:
 
     virtual bool WidgetTypeSupportsAcceleration() override;
 
-    bool DoDrawTitlebar() const;
-
     typedef enum { CSD_SUPPORT_SYSTEM,    // CSD including shadows
                    CSD_SUPPORT_CLIENT,    // CSD without shadows
                    CSD_SUPPORT_NONE,      // WM does not support CSD at all
@@ -386,7 +384,7 @@ public:
      * Get the support of Client Side Decoration by checking
      * the XDG_CURRENT_DESKTOP environment variable.
      */
-    static CSDSupportLevel GetCSDSupportLevel();
+    static CSDSupportLevel GetSystemCSDSupportLevel();
 
 protected:
     virtual ~nsWindow();
@@ -456,6 +454,8 @@ private:
     nsIWidgetListener* GetListener();
     bool               IsComposited() const;
 
+    void               UpdateClientOffsetForCSDWindow();
+
     GtkWidget          *mShell;
     MozContainer       *mContainer;
     GdkWindow          *mGdkWindow;
@@ -492,9 +492,11 @@ private:
     // window. See bug 1225044.
     unsigned int mPendingConfigures;
 
-    bool               mIsCSDAvailable;
+    // Window titlebar rendering mode, CSD_SUPPORT_NONE if it's disabled
+    // for this window.
+    CSDSupportLevel    mCSDSupportLevel;
     // If true, draw our own window titlebar.
-    bool               mIsCSDEnabled;
+    bool               mDrawInTitlebar;
     // Draggable titlebar region maintained by UpdateWindowDraggingRegion
     LayoutDeviceIntRegion mDraggableRegion;
 
