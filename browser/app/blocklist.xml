@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<blocklist lastupdate="1520527480321" xmlns="http://www.mozilla.org/2006/addons-blocklist">
+<blocklist lastupdate="1528408770328" xmlns="http://www.mozilla.org/2006/addons-blocklist">
   <emItems>
     <emItem blockID="i334" id="{0F827075-B026-42F3-885D-98981EE7B1AE}">
       <prefs/>
@@ -2224,6 +2224,50 @@
       <versionRange minVersion="0" maxVersion="*" severity="3"/>
     </emItem>
     <emItem blockID="3d55fab0-ec1a-4bca-84c9-3b74f5d01509" id="/^.*extension.*@asdf\.pl$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="547037f2-97ae-435a-863c-efd7532668cd" id="{44685ba6-68b3-4895-879e-4efa29dfb578}">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="baf7f735-d6b6-410a-8cc8-25c60f7c57e2" id="adbeaver@adbeaver.org">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="1"/>
+    </emItem>
+    <emItem blockID="36f97298-8bef-4372-a548-eb829413bee9" id="/(__TEMPLATE__APPLICATION__@ruta-mapa\.com)|(application-3@findizer\.fr)|(application2@allo-pages\.fr)|(application2@bilan-imc\.fr)|(application2@lettres\.net)|(application2@search-maps-finder\.com)|(application-imcpeso@imc-peso\.com)|(application-meuimc@meu-imc\.com)|(application-us2@factorlove)|(application-us@misterdirections)|(application-us@yummmi\.es)|(application@amiouze\.fr)|(application@astrolignes\.com)|(application@blotyn\.com)|(application@bmi-result\.com)|(application@bmi-tw\.com)|(application@calcolo-bmi\.com)|(application@cartes-itineraires\.com)|(application@convertisseur\.pro)|(application@de-findizer\.fr)|(application@de-super-rezepte\.com)|(application@dermabeauty\.fr)|(application@dev\.squel\.v2)|(application@eu-my-drivingdirections\.com)|(application@fr-allo-pages\.fr)|(application@fr-catizz\.com)|(application@fr-mr-traduction\.com)|(application@good-recettes\.com)|(application@horaires\.voyage)|(application@imc-calcular\.com)|(application@imc-peso\.com)|(application@it-mio-percorso\.com)|(application@iti-maps\.fr)|(application@itineraire\.info)|(application@lbc-search\.com)|(application@les-pages\.com)|(application@lovincalculator\.com)|(application@lovintest\.com)|(application@masowe\.com)|(application@matchs\.direct)|(application@mein-bmi\.com)|(application@mes-resultats\.com)|(application@mestaf\.com)|(application@meu-imc\.com)|(application@mon-calcul-imc\.fr)|(application@mon-juste-poids\.com)|(application@mon-trajet\.com)|(application@my-drivingdirections\.com)|(application@people-show\.com)|(application@plans-reduc\.fr)|(application@point-meteo\.fr)|(application@poulixo\.com)|(application@quipage\.fr)|(application@quizdeamor\.com)|(application@quizdoamor\.com)|(application@quotient-retraite\.fr)|(application@recettes\.net)|(application@routenplaner-karten\.com)|(application@ruta-mapa\.com)|(application@satellite\.dev\.squel\.v2)|(application@search-bilan-imc\.fr)|(application@search-maps-finder\.com)|(application@slimness\.fr)|(application@start-bmi\.com)|(application@tests-moi\.com)|(application@tousmesjeux\.fr)|(application@toutlannuaire\.fr)|(application@tuto-diy\.com)|(application@ubersetzung-app\.com)|(application@uk-cookyummy\.com)|(application@uk-howlogin\.me)|(application@uk-myloap\.com)|(application@voyagevoyage\.co)|(application@wikimot\.fr)|(application@www\.plans-reduc\.fr)|(application@yummmi\.es)|(application@yummmies\.be)|(application@yummmies\.ch)|(application@yummmies\.fr)|(application@yummmies\.lu)|(application@zikplay\.fr)|(applicationY@search-maps-finder\.com)|(cmesapps@findizer\.fr)|(findizer-shopping@jetpack)|(\{8aaebb36-1488-4022-b7ec-29b790d12c17\})/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="1e5f5cb2-346c-422a-9aaa-29d8760949d2" id="{872f20ea-196e-4d11-8835-1cc4c877b1b8}">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="feb2d0d7-1b76-4dba-bf84-42873a92af5f" id="/^({6ecb9f49-90f0-43a1-8f8a-e809ea4f732b})|(@googledashboard)|(@smashdashboard)|(@smash_tv)|(@smash_mov)|(@smashmovs)|(@smashtvs)|(@FirefoxUpdate)|({92b9e511-ac81-4d47-9b8f-f92dc872447e})|({3c841114-da8c-44ea-8303-78264edfe60b})|({116a0754-20eb-4fe5-bd35-575867a0b89e})|({6e6ff0fd-4ae4-49ae-ac0c-e2527e12359b})|({f992ac88-79d3-4960-870e-92c342ed3491})|({6ecb9f49-90f0-43a1-8f8a-e809ea4f732b})|({a512297e-4d3a-468c-bd1a-f77bd093f925})|({08c28c16-9fb6-4b32-9868-db37c1668f94})|({b4ab1a1d-e137-4c59-94d5-4f509358a81d})|({feedf4f8-08c1-451f-a717-f08233a64ec9})$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="96b137e6-8cb5-44d6-9a34-4a4a76fb5e38" id="/^({b99ae7b1-aabb-4674-ba8f-14ed32d04e76})|({dfa77d38-f67b-4c41-80d5-96470d804d09})$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="3ab9f100-e253-4080-b3e5-652f842ddb7a" id="/((@extcorp\.[a-z]+)|(@brcorporation\.com)|(@brmodcorp\.com)|(@teset\.com)|(@modext\.tech)|(@ext?mod\.net)|(@browcorporation\.org)|(@omegacorporation\.org)|(@browmodule\.com)|(@corpext\.net)|({6b50ddac-f5e0-4d9e-945b-e4165bfea5d6})|({fab6484f-b8a7-4ba9-a041-0f948518b80c})|({b797035a-7f29-4ff5-bd19-77f1b5e464b1})|({0f612416-5c5a-4ec8-b482-eb546af9cac4}))$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="3a123214-b4b6-410c-a061-bbaf0d168d31" id="/^(({41c14ab8-9958-44bf-b74e-af54c1f169a6})|({78054cb2-e3e8-4070-a8ad-3fd69c8e4707})|({0089b179-8f3d-44d9-bb18-582843b0757a})|({f44ddcb4-4cc0-4866-92fa-eefda60c6720})|({1893d673-7953-4870-8069-baac49ce3335})|({fb28cac0-c2aa-4e0c-a614-cf3641196237})|({d7dee150-da14-45ba-afca-02c7a79ad805})|(RandomNameTest@RandomNameTest\.com )|(corpsearchengine@mail\.ru)|(support@work\.org))$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="cbfa5303-c1bf-49c8-87d8-259738a20064" id="@vkmad">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="0f0764d5-a290-428b-a5b2-3767e1d72c71" id="{38363d75-6591-4e8b-bf01-0270623d1b6c}">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="5afea853-d029-43f3-a387-64ce9980742a" id="/^(contactus@unzipper.com|{72dcff4e-48ce-41d8-a807-823adadbe0c9}|{dc7d2ecc-9cc3-40d7-93ed-ef6f3219bd6f}|{994db3d3-ccfe-449a-81e4-f95e2da76843}|{25aef460-43d5-4bd0-aa3d-0a46a41400e6}|{178e750c-ae27-4868-a229-04951dac57f7})$/">
       <prefs/>
       <versionRange minVersion="0" maxVersion="*" severity="3"/>
     </emItem>
