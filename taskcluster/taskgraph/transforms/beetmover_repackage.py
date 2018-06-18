@@ -201,7 +201,8 @@ def make_task_description(config, jobs):
         dependencies["repackage"] = job['grandparent-tasks']["repackage"]
 
         # If this isn't a direct dependency, it won't be in there.
-        if 'repackage-signing' not in dependencies:
+        if 'repackage-signing' not in dependencies and \
+                'repackage-signing-l10n' not in dependencies:
             repackage_signing_name = "repackage-signing"
             if job.get('locale'):
                 repackage_signing_name = "repackage-signing-l10n"
