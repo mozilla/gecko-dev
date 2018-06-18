@@ -269,6 +269,7 @@ const char* mozilla::dom::ContentPrefs::gEarlyPrefs[] = {
   "network.cookie.lifetimePolicy",
   "network.dns.disablePrefetch",
   "network.dns.disablePrefetchFromHTTPS",
+  "network.file.disable_unc_paths",
   "network.http.tailing.enabled",
   "network.jar.block-remote-files",
   "network.loadinfo.skip_type_assertion",

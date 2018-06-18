@@ -58,6 +58,7 @@
 #endif //  defined(MOZ_WIDGET_ANDROID)
 
 #include "mozilla/AbstractThread.h"
+#include "mozilla/FilePreferences.h"
 
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
@@ -707,6 +708,8 @@ XRE_InitChildProcess(int aArgc,
       // InitLoggingIfRequired may need access to prefs.
       mozilla::sandboxing::InitLoggingIfRequired(aChildData->ProvideLogFunction);
 #endif
+      mozilla::FilePreferences::InitDirectoriesWhitelist();
+      mozilla::FilePreferences::InitPrefs();
 
       OverrideDefaultLocaleIfNeeded();
 
