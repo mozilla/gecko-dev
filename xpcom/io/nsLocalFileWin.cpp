@@ -3074,6 +3074,7 @@ nsLocalFile::IsExecutable(bool* aResult)
       "scf",         // Windows explorer command
       "scr",
       "sct",
+      "settingcontent-ms",
       "shb",
       "shs",
       "url",
