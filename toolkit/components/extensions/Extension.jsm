@@ -1374,11 +1374,11 @@ class Extension extends ExtensionData {
   }
 
   get isPrivileged() {
-     return (this.addonData.signedState === AddonManager.SIGNEDSTATE_PRIVILEGED ||
-             this.addonData.signedState === AddonManager.SIGNEDSTATE_SYSTEM ||
-             this.addonData.builtIn ||
-             (AppConstants.MOZ_ALLOW_LEGACY_EXTENSIONS &&
-              this.addonData.temporarilyInstalled));
+    return (this.addonData.signedState === AddonManager.SIGNEDSTATE_PRIVILEGED ||
+            this.addonData.signedState === AddonManager.SIGNEDSTATE_SYSTEM ||
+            this.addonData.builtIn ||
+            (AppConstants.MOZ_ALLOW_LEGACY_EXTENSIONS &&
+             this.addonData.temporarilyInstalled));
   }
 
   get experimentsAllowed() {
