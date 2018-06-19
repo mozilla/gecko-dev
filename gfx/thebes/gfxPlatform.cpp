@@ -161,6 +161,7 @@ static Mutex* gGfxPlatformPrefsLock = nullptr;
 static qcms_profile *gCMSOutputProfile = nullptr;
 static qcms_profile *gCMSsRGBProfile = nullptr;
 
+static bool gCMSRGBTransformFailed = false;
 static qcms_transform *gCMSRGBTransform = nullptr;
 static qcms_transform *gCMSInverseRGBTransform = nullptr;
 static qcms_transform *gCMSRGBATransform = nullptr;
@@ -2061,7 +2062,7 @@ gfxPlatform::GetCMSsRGBProfile()
 qcms_transform *
 gfxPlatform::GetCMSRGBTransform()
 {
-    if (!gCMSRGBTransform) {
+    if (!gCMSRGBTransform && !gCMSRGBTransformFailed) {
         qcms_profile *inProfile, *outProfile;
         outProfile = GetCMSOutputProfile();
         inProfile = GetCMSsRGBProfile();
@@ -2072,6 +2073,9 @@ gfxPlatform::GetCMSRGBTransform()
         gCMSRGBTransform = qcms_transform_create(inProfile, QCMS_DATA_RGB_8,
                                               outProfile, QCMS_DATA_RGB_8,
                                              QCMS_INTENT_PERCEPTUAL);
+        if (!gCMSRGBTransform) {
+            gCMSRGBTransformFailed = true;
+        }
     }
 
     return gCMSRGBTransform;
