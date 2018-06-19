@@ -358,6 +358,8 @@ static const char contentSandboxRules[] = R"SANDBOX_LITERAL(
       (home-subpath "/Library/FontCollections")
       (home-subpath "/Library/Application Support/Adobe/CoreSync/plugins/livetype")
       (home-subpath "/Library/Application Support/FontAgent")
+      (home-subpath "/Library/Extensis/UTC") ; bug 1469657
+      (subpath "/Library/Extensis/UTC")      ; bug 1469657
       (regex #"\.fontvault/")
       (home-subpath "/FontExplorer X/Font Library")))
 )SANDBOX_LITERAL";
@@ -642,6 +644,8 @@ static const char flashPluginSandboxRules[] = R"SANDBOX_LITERAL(
       (home-subpath "/Library/FontCollections")
       (home-subpath "/Library/Application Support/Adobe/CoreSync/plugins/livetype")
       (home-subpath "/Library/Application Support/FontAgent")
+      (home-subpath "/Library/Extensis/UTC") ; bug 1469657
+      (subpath "/Library/Extensis/UTC")      ; bug 1469657
       (regex #"\.fontvault/")
       (home-subpath "/FontExplorer X/Font Library")))
 
