@@ -270,6 +270,7 @@ const char* mozilla::dom::ContentPrefs::gEarlyPrefs[] = {
   "network.dns.disablePrefetch",
   "network.dns.disablePrefetchFromHTTPS",
   "network.file.disable_unc_paths",
+  "network.file.path_blacklist",
   "network.http.tailing.enabled",
   "network.jar.block-remote-files",
   "network.loadinfo.skip_type_assertion",

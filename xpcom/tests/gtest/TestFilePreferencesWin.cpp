@@ -117,6 +117,10 @@ TEST(FilePreferencesWin, Normalization)
 
 TEST(FilePreferencesWin, AccessUNC)
 {
+  // gtest doesn't properly init Firefox, so we instantiate the whitelist here
+  // otherwise FilePreferences::IsBlockedUNCPath would always return false.
+  mozilla::FilePreferences::testing::AddDirectoryToWhitelist(NS_LITERAL_STRING("\\\\dummy"));
+
   nsCOMPtr<nsIFile> lf = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
 
   nsresult rv;
