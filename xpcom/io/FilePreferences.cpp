@@ -10,6 +10,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsString.h"
 
 namespace mozilla {
 namespace FilePreferences {
