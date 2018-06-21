@@ -578,7 +578,7 @@ ifdef MOZ_PROFILE_GENERATE
 endif
 else # !WINNT || GNU_CC
 	$(call EXPAND_CC_OR_CXX,$@) -o $@ $(COMPUTED_CXX_LDFLAGS) $(PGO_CFLAGS) $(PROGOBJS) $(RESFILE) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(STATIC_LIBS) $(MOZ_PROGRAM_LDFLAGS) $(SHARED_LIBS) $(OS_LIBS)
-	$(call CHECK_BINARY,$@)
+	$(call py_action,check_binary,--target $@)
 endif # WINNT && !GNU_CC
 
 ifdef ENABLE_STRIP
@@ -614,7 +614,7 @@ else
 endif # HOST_CPP_PROG_LINK
 endif
 ifndef CROSS_COMPILE
-	$(call CHECK_STDCXX,$@)
+	$(call py_action,check_binary,--host $@)
 endif
 
 #
@@ -637,7 +637,7 @@ ifdef MSMANIFEST_TOOL
 endif	# MSVC with manifest tool
 else
 	$(call EXPAND_CC_OR_CXX,$@) $(COMPUTED_CXX_LDFLAGS) $(PGO_CFLAGS) -o $@ $< $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(STATIC_LIBS) $(MOZ_PROGRAM_LDFLAGS) $(SHARED_LIBS) $(OS_LIBS)
-	$(call CHECK_BINARY,$@)
+	$(call py_action,check_binary,--target $@)
 endif # WINNT && !GNU_CC
 
 ifdef ENABLE_STRIP
@@ -659,7 +659,7 @@ else
 endif
 endif
 ifndef CROSS_COMPILE
-	$(call CHECK_STDCXX,$@)
+	$(call py_action,check_binary,--host $@)
 endif
 
 $(filter %.$(LIB_SUFFIX),$(LIBRARY)): $(OBJS) $(STATIC_LIBS_DEPS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
@@ -701,7 +701,7 @@ ifndef INCREMENTAL_LINKER
 	$(RM) $@
 endif
 	$(EXPAND_MKSHLIB) $(OBJS) $(RESFILE) $(LDFLAGS) $(STATIC_LIBS) $(RUST_STATIC_LIB_FOR_SHARED_LIB) $(SHARED_LIBS) $(EXTRA_DSO_LDOPTS) $(MOZ_GLUE_LDFLAGS) $(OS_LIBS)
-	$(call CHECK_BINARY,$@)
+	$(call py_action,check_binary,--target $@)
 
 ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
 ifdef MSMANIFEST_TOOL
