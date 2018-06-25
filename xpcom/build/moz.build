@@ -29,7 +29,7 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     EXPORTS += ['nsWindowsDllInterceptor.h']
     EXPORTS.mozilla += ['perfprobe.h']
     SOURCES += ['perfprobe.cpp']
-    if CONFIG['CC_TYPE'] != 'gcc':
+    if CONFIG['CC_TYPE'] not in ('gcc', 'clang'):
         SOURCES += [
             'PoisonIOInterposerBase.cpp',
             'PoisonIOInterposerWin.cpp',
