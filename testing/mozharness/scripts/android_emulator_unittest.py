@@ -212,7 +212,7 @@ class AndroidEmulatorTest(TestingMixin, EmulatorMixin, BaseScript, MozbaseMixin)
         tmp_file = tempfile.NamedTemporaryFile(mode='w')
         tmp_stdout = open(tmp_file.name, 'w')
         self.info("Trying to start the emulator with this command: %s" % ' '.join(command))
-        proc = subprocess.Popen(command, stdout=tmp_stdout, stderr=tmp_stdout, env=env)
+        proc = subprocess.Popen(command, stdout=tmp_stdout, stderr=tmp_stdout, env=env, bufsize=0)
         return {
             "process": proc,
             "tmp_file": tmp_file,
@@ -251,7 +251,7 @@ class AndroidEmulatorTest(TestingMixin, EmulatorMixin, BaseScript, MozbaseMixin)
 
     def _run_proc(self, cmd, quiet=False):
         self.info('Running %s' % subprocess.list2cmdline(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         out, err = p.communicate()
         if out and not quiet:
             self.info('%s' % str(out.strip()))
@@ -350,7 +350,7 @@ class AndroidEmulatorTest(TestingMixin, EmulatorMixin, BaseScript, MozbaseMixin)
         self.info("##### %s emulator log ends" % self.emulator["name"])
 
     def _kill_processes(self, process_name):
-        p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+        p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE, bufsize=0)
         out, err = p.communicate()
         self.info("Let's kill every process called %s" % process_name)
         for line in out.splitlines():
