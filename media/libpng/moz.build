@@ -66,4 +66,7 @@ FINAL_LIBRARY = 'gkmedias'
 AllowCompilerWarnings()
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
-    CFLAGS += ['-std=c89']
+    if CONFIG['OS_ARCH'] == 'WINNT':
+        CFLAGS += ['-std=gnu89']
+    else:
+        CFLAGS += ['-std=c89']
