@@ -279,7 +279,10 @@ nsresult nsComponentManagerImpl::Init() {
   RegisterModule(&kXPCOMModule, nullptr);
 
   for (uint32_t i = 0; i < sStaticModules->Length(); ++i) {
-    RegisterModule((*sStaticModules)[i], nullptr);
+    if ((*sStaticModules)[i]) { // On local Windows builds, the list may contain null
+                                // pointers from padding.
+      RegisterModule((*sStaticModules)[i], nullptr);
+    }
   }
 
   bool loadChromeManifests = (XRE_GetProcessType() != GeckoProcessType_GPU);
