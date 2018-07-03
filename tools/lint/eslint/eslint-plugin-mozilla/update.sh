@@ -49,10 +49,10 @@ tar cvz -f eslint-plugin-mozilla.tar.gz node_modules
 
 echo "Adding eslint-plugin-mozilla.tar.gz to tooltool..."
 rm -f manifest.tt
-../../../../python/mozbuild/mozbuild/action/tooltool.py add --visibility public --unpack eslint-plugin-mozilla.tar.gz --url="https://api.pub.build.mozilla.org/tooltool/"
+../../../../python/mozbuild/mozbuild/action/tooltool.py add --visibility public --unpack eslint-plugin-mozilla.tar.gz --url="https://tooltool.mozilla-releng.net/"
 
 echo "Uploading eslint-plugin-mozilla.tar.gz to tooltool..."
-../../../../python/mozbuild/mozbuild/action/tooltool.py upload --authentication-file=~/.tooltool-token --message "node_modules folder update for tools/lint/eslint/eslint-plugin-mozilla" --url="https://api.pub.build.mozilla.org/tooltool/"
+../../../../python/mozbuild/mozbuild/action/tooltool.py upload --authentication-file=~/.tooltool-token --message "node_modules folder update for tools/lint/eslint/eslint-plugin-mozilla" --url="https://tooltool.mozilla-releng.net/"
 
 echo "Cleaning up..."
 rm eslint-plugin-mozilla.tar.gz
