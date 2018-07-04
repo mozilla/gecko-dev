@@ -50,6 +50,13 @@ class AndroidEmulatorTest(TestingMixin, EmulatorMixin, BaseScript, MozbaseMixin)
          "default": None,
          "help": "Number of this chunk",
          }
+    ], [
+        ["--gpu-required"],
+        {"action": "store_true",
+         "dest": "gpu_required",
+         "default": False,
+         "help": "Run additional verification on modified tests using gpu instances.",
+         }
     ]] + copy.deepcopy(testing_config_options)
 
     app_name = None
