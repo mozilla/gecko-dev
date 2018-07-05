@@ -156,9 +156,10 @@ PluginProcessChild::CleanUp()
     // call XPCOM's shutdown but we need this event to be sent to avoid
     // leaking objects labeled as ClearOnShutdown.
     nsThreadManager::get().Shutdown();
-    mozilla::KillClearOnShutdown(ShutdownPhase::ShutdownFinal);
     NS_LogTerm();
 #endif
+
+    mozilla::KillClearOnShutdown(ShutdownPhase::ShutdownFinal);
 }
 
 } // namespace plugins
