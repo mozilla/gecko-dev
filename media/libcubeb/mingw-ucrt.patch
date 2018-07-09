@@ -1,0 +1,24 @@
+commit bf2c28189fb0489043cda6f41f5ae9b8515452a0
+Author: Jacek Caban <jacek@codeweavers.com>
+Date:   Mon Jun 25 22:47:19 2018 +0200
+
+    cubeb_winmm.c: Don't define __MSVCRT_VERSION__.
+    
+    This define was added as part of commit d2c45250 and is mingw-specific (only mingw uses __MSVCRT_VERSION__). I don't know why it was added, it shouldn't be needed.
+    
+    Recently mingw-w64 added support for UCRT-based toolchains. In this case __MSVCRT_VERSION__ is set to 0x1400 and should not really be changed. UCRT-based builds support a lot of stdio.h function by inline wrappers. Those can't be disabled just for one file as they are not exported by ucrtbase.dll.
+    
+    I found the problem while working on porting Firefox to clang+mingw-w64 toolchain that uses UCRT by default.
+
+diff --git a/src/cubeb_winmm.c b/src/cubeb_winmm.c
+index 40c80b3..fd5abe2 100644
+--- a/src/cubeb_winmm.c
++++ b/src/cubeb_winmm.c
+@@ -4,7 +4,6 @@
+  * This program is made available under an ISC-style license.  See the
+  * accompanying file LICENSE for details.
+  */
+-#define __MSVCRT_VERSION__ 0x0700
+ #undef WINVER
+ #define WINVER 0x0501
+ #undef WIN32_LEAN_AND_MEAN
