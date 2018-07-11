@@ -40,7 +40,6 @@ linux64/debug:
     test-sets:
         - common-tests
         - web-platform-tests
-        - reftest-stylo
         - mochitest-headless
 linux64/opt:
     build-platform: linux64/opt
@@ -48,7 +47,6 @@ linux64/opt:
         - common-tests
         - web-platform-tests
         - opt-only-tests
-        - reftest-stylo
         - desktop-screenshot-capture
         - talos
         - awsy

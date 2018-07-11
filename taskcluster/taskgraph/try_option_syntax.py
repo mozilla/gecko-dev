@@ -98,7 +98,6 @@ UNITTEST_ALIASES = {
     'reftest-no-accel': alias_matches(r'^(plain-)?reftest-no-accel.*$'),
     'reftests': alias_matches(r'^(plain-)?reftest.*$'),
     'reftests-e10s': alias_matches(r'^(plain-)?reftest-e10s.*$'),
-    'reftest-stylo': alias_matches(r'^(plain-)?reftest-stylo.*$'),
     'reftest-gpu': alias_matches(r'^(plain-)?reftest-gpu.*$'),
     'robocop': alias_prefix('robocop'),
     'web-platform-test': alias_prefix('web-platform-tests'),
