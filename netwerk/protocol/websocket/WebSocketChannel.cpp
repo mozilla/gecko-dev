@@ -1187,7 +1187,8 @@ WebSocketChannel::WebSocketChannel() :
   mDynamicOutputSize(0),
   mDynamicOutput(nullptr),
   mPrivateBrowsing(false),
-  mConnectionLogService(nullptr)
+  mConnectionLogService(nullptr),
+  mMutex("WebSocketChannel::mMutex")
 {
   MOZ_ASSERT(NS_IsMainThread(), "not main thread");
 
@@ -2209,7 +2210,7 @@ WebSocketChannel::PrimeNewOutgoingMessage()
       if (NS_FAILED(rv)) {
         LOG(("WebSocketChannel::PrimeNewOutgoingMessage(): "
              "GenerateRandomBytes failure %" PRIx32 "\n", static_cast<uint32_t>(rv)));
-        StopSession(rv);
+        AbortSession(rv);
         return;
       }
       memcpy(&mask, buffer, sizeof(mask));
@@ -2365,10 +2366,27 @@ WebSocketChannel::StopSession(nsresult reason)
   LOG(("WebSocketChannel::StopSession() %p [%" PRIx32 "]\n",
        this, static_cast<uint32_t>(reason)));
 
+  {
+    MutexAutoLock lock(mMutex);
+    if (mStopped) {
+      return;
+    }
+    mStopped = 1;
+  }
+
+  DoStopSession(reason);
+}
+
+void
+WebSocketChannel::DoStopSession(nsresult reason)
+{
+  LOG(("WebSocketChannel::DoStopSession() %p [%" PRIx32 "]\n",
+       this, static_cast<uint32_t>(reason)));
+
   // normally this should be called on socket thread, but it is ok to call it
   // from OnStartRequest before the socket thread machine has gotten underway
 
-  mStopped = 1;
+  MOZ_ASSERT(mStopped);
 
   if (!mOpenedHttpChannel) {
     // The HTTP channel information will never be used in this case
@@ -2439,7 +2457,7 @@ WebSocketChannel::StopSession(nsresult reason)
     // is set when the server close arrives without waiting for the timeout to
     // expire.
 
-    LOG(("WebSocketChannel::StopSession: Wait for Server TCP close"));
+    LOG(("WebSocketChannel::DoStopSession: Wait for Server TCP close"));
 
     nsresult rv;
     rv = NS_NewTimerWithCallback(getter_AddRefs(mLingeringCloseTimer),
@@ -2474,6 +2492,8 @@ WebSocketChannel::AbortSession(nsresult reason)
   LOG(("WebSocketChannel::AbortSession() %p [reason %" PRIx32 "] stopped = %d\n",
        this, static_cast<uint32_t>(reason), !!mStopped));
 
+  MOZ_ASSERT(NS_FAILED(reason), "reason must be a failure!");
+
   // normally this should be called on socket thread, but it is ok to call it
   // from the main thread before StartWebsocketData() has completed
 
@@ -2488,20 +2508,26 @@ WebSocketChannel::AbortSession(nsresult reason)
     return;
   }
 
-  if (mStopped)
-    return;
-  mStopped = 1;
+  {
+    MutexAutoLock lock(mMutex);
+    if (mStopped) {
+      return;
+    }
 
-  if (mTransport && reason != NS_BASE_STREAM_CLOSED && !mRequestedClose &&
-      !mClientClosed && !mServerClosed && mConnecting == NOT_CONNECTING) {
-    mRequestedClose = 1;
-    mStopOnClose = reason;
-    mSocketThread->Dispatch(
-      new OutboundEnqueuer(this, new OutboundMessage(kMsgTypeFin, nullptr)),
-                           nsIEventTarget::DISPATCH_NORMAL);
-  } else {
-    StopSession(reason);
+    if (mTransport && reason != NS_BASE_STREAM_CLOSED && !mRequestedClose &&
+        !mClientClosed && !mServerClosed && mDataStarted) {
+      mRequestedClose = 1;
+      mStopOnClose = reason;
+      mSocketThread->Dispatch(
+        new OutboundEnqueuer(this, new OutboundMessage(kMsgTypeFin, nullptr)),
+                             nsIEventTarget::DISPATCH_NORMAL);
+      return;
+    }
+
+    mStopped = 1;
   }
+
+  DoStopSession(reason);
 }
 
 // ReleaseSession is called on orderly shutdown
@@ -2512,8 +2538,6 @@ WebSocketChannel::ReleaseSession()
        this, !!mStopped));
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  if (mStopped)
-    return;
   StopSession(NS_OK);
 }
 
@@ -2955,9 +2979,19 @@ WebSocketChannel::StartWebsocketData()
       NS_DISPATCH_NORMAL);
   }
 
-  LOG(("WebSocketChannel::StartWebsocketData() %p", this));
-  MOZ_ASSERT(!mDataStarted, "StartWebsocketData twice");
-  mDataStarted = 1;
+  {
+    MutexAutoLock lock(mMutex);
+    LOG(("WebSocketChannel::StartWebsocketData() %p", this));
+    MOZ_ASSERT(!mDataStarted, "StartWebsocketData twice");
+
+    if (mStopped) {
+      LOG(("WebSocketChannel::StartWebsocketData channel already closed, not "
+           "starting data"));
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    mDataStarted = 1;
+  }
 
   rv = mSocketIn->AsyncWait(this, 0, 0, mSocketThread);
   if (NS_FAILED(rv)) {
@@ -3576,35 +3610,46 @@ WebSocketChannel::Close(uint16_t code, const nsACString & reason)
   LOG(("WebSocketChannel::Close() %p\n", this));
   MOZ_ASSERT(NS_IsMainThread(), "not main thread");
 
-  if (mRequestedClose) {
-    return NS_OK;
-  }
+  {
+    MutexAutoLock lock(mMutex);
 
-  // The API requires the UTF-8 string to be 123 or less bytes
-  if (reason.Length() > 123)
-    return NS_ERROR_ILLEGAL_VALUE;
-
-  mRequestedClose = 1;
-  mScriptCloseReason = reason;
-  mScriptCloseCode = code;
-
-  if (!mTransport || mConnecting != NOT_CONNECTING) {
-    nsresult rv;
-    if (code == CLOSE_GOING_AWAY) {
-      // Not an error: for example, tab has closed or navigated away
-      LOG(("WebSocketChannel::Close() GOING_AWAY without transport."));
-      rv = NS_OK;
-    } else {
-      LOG(("WebSocketChannel::Close() without transport - error."));
-      rv = NS_ERROR_NOT_CONNECTED;
+    if (mRequestedClose) {
+      return NS_OK;
     }
-    StopSession(rv);
-    return rv;
+
+    if (mStopped) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    // The API requires the UTF-8 string to be 123 or less bytes
+    if (reason.Length() > 123)
+      return NS_ERROR_ILLEGAL_VALUE;
+
+    mRequestedClose = 1;
+    mScriptCloseReason = reason;
+    mScriptCloseCode = code;
+
+    if (mDataStarted) {
+      return mSocketThread->Dispatch(
+        new OutboundEnqueuer(this, new OutboundMessage(kMsgTypeFin, nullptr)),
+                             nsIEventTarget::DISPATCH_NORMAL);
+    }
+
+    mStopped = 1;
   }
 
-  return mSocketThread->Dispatch(
-      new OutboundEnqueuer(this, new OutboundMessage(kMsgTypeFin, nullptr)),
-                           nsIEventTarget::DISPATCH_NORMAL);
+  nsresult rv;
+  if (code == CLOSE_GOING_AWAY) {
+    // Not an error: for example, tab has closed or navigated away
+    LOG(("WebSocketChannel::Close() GOING_AWAY without transport."));
+    rv = NS_OK;
+  } else {
+    LOG(("WebSocketChannel::Close() without transport - error."));
+    rv = NS_ERROR_NOT_CONNECTED;
+  }
+
+  DoStopSession(rv);
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -3979,13 +4024,11 @@ WebSocketChannel::OnInputStreamReady(nsIAsyncInputStream *aStream)
     }
 
     if (NS_FAILED(rv)) {
-      mTCPClosed = true;
       AbortSession(rv);
       return rv;
     }
 
     if (count == 0) {
-      mTCPClosed = true;
       AbortSession(NS_BASE_STREAM_CLOSED);
       return NS_OK;
     }
