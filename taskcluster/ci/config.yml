@@ -64,6 +64,7 @@ treeherder:
         'Snap': 'Snap image generation'
         'langpack': 'Langpack sigatures and uploads'
         'UV': 'Update verify'
+        'pipfu': 'pipfile update'
 
 index:
     products:
