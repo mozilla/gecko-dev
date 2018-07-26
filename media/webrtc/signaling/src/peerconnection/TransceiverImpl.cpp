@@ -240,7 +240,7 @@ TransceiverImpl::UpdateConduit()
   }
 
   mConduit->SetLocalCNAME(mJsepTransceiver->mSendTrack.GetCNAME().c_str());
-  mConduit->SetLocalMID(mJsepTransceiver->mTransport->mTransportId);
+  mConduit->SetLocalMID(mMid);
 
   nsresult rv;
 
