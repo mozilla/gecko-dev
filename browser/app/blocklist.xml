@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<blocklist lastupdate="1532424286908" xmlns="http://www.mozilla.org/2006/addons-blocklist">
+<blocklist lastupdate="1532705151926" xmlns="http://www.mozilla.org/2006/addons-blocklist">
   <emItems>
     <emItem blockID="i334" id="{0F827075-B026-42F3-885D-98981EE7B1AE}">
       <prefs/>
@@ -2285,6 +2285,22 @@
       <versionRange minVersion="0" maxVersion="*" severity="3"/>
     </emItem>
     <emItem blockID="c37c7c24-e738-4d06-888c-108b4d63b428" id="/^((\{39bd8607-0af4-4d6b-bd69-9a63c1825d3c\})|(\{273f0bce-33f4-45f6-ae03-df67df3864c2\})|(\{a77fc9b9-6ebb-418d-b0b6-86311c191158\})|(\{c6c4a718-cf91-4648-aa9b-170d66163cf2\})|(\{d371abec-84bb-481b-acbf-235639451127\})|(\{e63b262a-f9b8-4496-9c4b-9d3cbd6aea90\}))$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="f0713a5e-7208-484e-b3a0-4e6dc6a195be" id="{bee8b1f2-823a-424c-959c-f8f76c8b2306}">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="4.0.7.3" severity="1"/>
+    </emItem>
+    <emItem blockID="e04f98b5-4480-43a3-881d-e509e4e28cdc" id="{dd3d7613-0246-469d-bc65-2a3cc1668adc}">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="4.0.3" severity="1"/>
+    </emItem>
+    <emItem blockID="d664412d-ed08-4892-b247-b007a70856ff" id="/^((@asdfjhsdfuhw)|(@asdfsdfwe)|(@asdieieuss)|(@dghfghfgh)|(@difherk)|(@dsfgtftgjhrdf4)|(@fidfueir)|(@fsgergsdqtyy)|(@hjconsnfes)|(@isdifvdkf)|(@iweruewir)|(@oiboijdjfj)|(@safesearchavs)|(@safesearchavsext)|(@safesearchincognito)|(@safesearchscoutee)|(@sdfykhhhfg)|(@sdiosuff)|(@sdklsajd)|(@sduixcjksd)|(@sicognitores)|(@simtabtest)|(@sodiasudi)|(@test13)|(@test131)|(@test131ver)|(@test132)|(@test13s)|(@testmptys)|(\{ac4e5b0c-13c4-4bfd-a0c3-1e73c81e8bac\})|(\{e78785c3-ec49-44d2-8aac-9ec7293f4a8f\})|(general@filecheckerapp\.com)|(general@safesearch\.net))$/">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="d0a401cb-0c70-4784-8288-b06a88b2ae8a" id="{5834f62d-6164-4cdd-a0a3-c00c66ec9d13}">
       <prefs/>
       <versionRange minVersion="0" maxVersion="*" severity="3"/>
     </emItem>
