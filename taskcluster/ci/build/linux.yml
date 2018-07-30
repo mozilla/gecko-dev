@@ -3,6 +3,8 @@ linux64/opt:
     index:
         product: firefox
         job-name: linux64-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux64/opt
         symbol: B
@@ -61,6 +63,8 @@ linux64/pgo:
     index:
         product: firefox
         job-name: linux64-pgo
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux64/pgo
         symbol: B
@@ -119,6 +123,8 @@ linux64/debug:
     index:
         product: firefox
         job-name: linux64-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux64/debug
         symbol: B
@@ -146,6 +152,7 @@ linux64-devedition-nightly/opt:
     description: "Linux64 devedition Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: devedition
     index:
@@ -241,6 +248,8 @@ linux/opt:
     index:
         product: firefox
         job-name: linux-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux32/opt
         symbol: B
@@ -269,6 +278,8 @@ linux/debug:
     index:
         product: firefox
         job-name: linux-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux32/debug
         symbol: B
@@ -298,6 +309,8 @@ linux/pgo:
     index:
         product: firefox
         job-name: linux-pgo
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux32/pgo
         symbol: B
@@ -394,6 +407,7 @@ linux-devedition-nightly/opt:
     description: "Linux32 devedition Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: devedition
     index:
@@ -430,6 +444,7 @@ linux-nightly/opt:
     description: "Linux32 Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: firefox
     index:
@@ -459,7 +474,6 @@ linux-nightly/opt:
         - linux64-gcc
         - linux64-rust
         - linux64-sccache
-
 
 linux64-asan/opt:
     description: "Linux64 Opt ASAN"
@@ -586,6 +600,7 @@ linux64-nightly/opt:
     description: "Linux64 Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: firefox
     index:

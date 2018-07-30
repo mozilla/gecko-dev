@@ -221,6 +221,13 @@ lot of places. To support private artifacts, we've moved this to the
 ``artifact_prefix`` attribute. It will default to ``public/build`` but will be
 overrideable per-task.
 
+enable-full-crashsymbols
+========================
+In automation, full crashsymbol package generation is normally disabled.  For
+build kinds where the full crashsymbols should be enabled, set this attribute
+to True. The full symbol packages will then be generated and uploaded on
+release branches and on try.
+
 cron
 ====
 Indicates that a task is meant to be run via cron tasks, and should not be run

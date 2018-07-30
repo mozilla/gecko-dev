@@ -3,6 +3,8 @@ win32/debug:
     index:
         product: firefox
         job-name: win32-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-32/debug
         symbol: B
@@ -31,6 +33,8 @@ win32/opt:
     index:
         product: firefox
         job-name: win32-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-32/opt
         symbol: B
@@ -96,6 +100,8 @@ win32/pgo:
     index:
         product: firefox
         job-name: win32-pgo
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-32/pgo
         symbol: B
@@ -124,6 +130,8 @@ win64/debug:
     index:
         product: firefox
         job-name: win64-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-64/debug
         symbol: B
@@ -152,6 +160,8 @@ win64/opt:
     index:
         product: firefox
         job-name: win64-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-64/opt
         symbol: B
@@ -214,6 +224,7 @@ win32-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     stub-installer:
         by-project:
             default: false
@@ -256,6 +267,7 @@ win64-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: firefox
     treeherder:
@@ -288,6 +300,8 @@ win64/pgo:
     index:
         product: firefox
         job-name: win64-pgo
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-64/pgo
         symbol: B
@@ -584,6 +598,7 @@ win32-devedition-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     stub-installer:
         by-project:
             default: false
@@ -627,6 +642,7 @@ win64-devedition-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: devedition
     treeherder:
