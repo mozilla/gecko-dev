@@ -463,6 +463,12 @@ LCovCompartment::LCovCompartment()
     MOZ_ASSERT(alloc_.isEmpty());
 }
 
+LCovCompartment::~LCovCompartment()
+{
+    if (sources_)
+        sources_->~LCovSourceVector();
+}
+
 void
 LCovCompartment::collectCodeCoverageInfo(JSCompartment* comp, JSScript* script, const char* name)
 {
