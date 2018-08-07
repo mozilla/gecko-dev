@@ -20,8 +20,10 @@ public:
   static int32_t OSXVersionBugFix();
   static bool OnYosemiteOrLater();
   static bool OnElCapitanOrLater();
+  static bool OnSierraExactly();
   static bool OnSierraOrLater();
   static bool OnHighSierraOrLater();
+  static bool OnMojaveOrLater();
 
   static bool IsAtLeastVersion(int32_t aMajor, int32_t aMinor, int32_t aBugFix=0);
 
@@ -41,9 +43,10 @@ private:
   static int32_t mOSXVersion;
 };
 
-// C-callable helper for cairo-quartz-font.c
+// C-callable helper for cairo-quartz-font.c and SkFontHost_mac.cpp
 extern "C" {
-    bool Gecko_OnSierraOrLater();
+    bool Gecko_OnSierraExactly();
+    bool Gecko_OnHighSierraOrLater();
 }
 
 #endif // nsCocoaFeatures_h_
