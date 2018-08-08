@@ -74,35 +74,6 @@ class IDBObjectStore final
 
 public:
   struct StructuredCloneWriteInfo;
-  struct StructuredCloneInfo;
-
-  class MOZ_STACK_CLASS ValueWrapper final
-  {
-    JS::Rooted<JS::Value> mValue;
-    bool mCloned;
-
-  public:
-    ValueWrapper(JSContext* aCx, JS::Handle<JS::Value> aValue)
-      : mValue(aCx, aValue)
-      , mCloned(false)
-    {
-      MOZ_COUNT_CTOR(IDBObjectStore::ValueWrapper);
-    }
-
-    ~ValueWrapper()
-    {
-      MOZ_COUNT_DTOR(IDBObjectStore::ValueWrapper);
-    }
-
-    const JS::Rooted<JS::Value>&
-    Value() const
-    {
-      return mValue;
-    }
-
-    bool
-    Clone(JSContext* aCx);
-  };
 
   static already_AddRefed<IDBObjectStore>
   Create(IDBTransaction* aTransaction, const ObjectStoreSpec& aSpec);
@@ -209,10 +180,7 @@ public:
   {
     AssertIsOnOwningThread();
 
-    ValueWrapper valueWrapper(aCx, aValue);
-
-    return AddOrPut(aCx, valueWrapper, aKey, false, /* aFromCursor */ false,
-                    aRv);
+    return AddOrPut(aCx, aValue, aKey, false, /* aFromCursor */ false, aRv);
   }
 
   already_AddRefed<IDBRequest>
@@ -223,10 +191,7 @@ public:
   {
     AssertIsOnOwningThread();
 
-    ValueWrapper valueWrapper(aCx, aValue);
-
-    return AddOrPut(aCx, valueWrapper, aKey, true, /* aFromCursor */ false,
-                    aRv);
+    return AddOrPut(aCx, aValue, aKey, true, /* aFromCursor */ false, aRv);
   }
 
   already_AddRefed<IDBRequest>
@@ -367,7 +332,7 @@ private:
 
   nsresult
   GetAddInfo(JSContext* aCx,
-             ValueWrapper& aValueWrapper,
+             JS::Handle<JS::Value> aValue,
              JS::Handle<JS::Value> aKeyVal,
              StructuredCloneWriteInfo& aCloneWriteInfo,
              Key& aKey,
@@ -375,7 +340,7 @@ private:
 
   already_AddRefed<IDBRequest>
   AddOrPut(JSContext* aCx,
-           ValueWrapper& aValueWrapper,
+           JS::Handle<JS::Value> aValue,
            JS::Handle<JS::Value> aKey,
            bool aOverwrite,
            bool aFromCursor,
