@@ -61,6 +61,21 @@ nsresult
 BlobSet::AppendBlobImpl(BlobImpl* aBlobImpl)
 {
   NS_ENSURE_ARG_POINTER(aBlobImpl);
+
+  // If aBlobImpl is a MultipartBlobImpl, let's append the sub-blobImpls
+  // instead.
+  const nsTArray<RefPtr<BlobImpl>>* subBlobs = aBlobImpl->GetSubBlobImpls();
+  if (subBlobs) {
+    for (BlobImpl* subBlob : *subBlobs) {
+      nsresult rv = AppendBlobImpl(subBlob);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+    }
+
+    return NS_OK;
+  }
+
   mBlobImpls.AppendElement(aBlobImpl);
   return NS_OK;
 }
