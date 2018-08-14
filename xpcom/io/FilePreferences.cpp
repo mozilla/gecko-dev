@@ -20,15 +20,11 @@ namespace FilePreferences {
 
 static bool sBlockUNCPaths = false;
 typedef nsTArray<nsString> WinPaths;
-static StaticAutoPtr<WinPaths> sWhitelist;
 
 static WinPaths& PathWhitelist()
 {
-  if (!sWhitelist) {
-    sWhitelist = new nsTArray<nsString>();
-    ClearOnShutdown(&sWhitelist);
-  }
-  return *sWhitelist;
+  static WinPaths sPaths;
+  return sPaths;
 }
 
 #ifdef XP_WIN
@@ -261,9 +257,6 @@ private:
 bool IsBlockedUNCPath(const nsAString& aFilePath)
 {
   typedef TNormalizer<char16_t> Normalizer;
-  if (!sWhitelist) {
-    return false;
-  }
 
   if (!sBlockUNCPaths) {
     return false;
