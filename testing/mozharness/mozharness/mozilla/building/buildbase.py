@@ -1496,6 +1496,7 @@ or run without that action (ie: --no-{action})"
             'value': hits,
             'extraOptions': self.perfherder_resource_options(),
             'subtests': [],
+            'lowerIsBetter': False
         }
 
         yield {
