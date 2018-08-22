@@ -708,7 +708,7 @@ def enable_code_coverage(config, tests):
                 test['mozharness']['extra-options'].append('--no-upload-results')
                 test['mozharness']['extra-options'].append('--add-option')
                 test['mozharness']['extra-options'].append('--tptimeout,15000')
-        elif test['build-platform'] == 'linux64-jsdcov/opt':
+        elif 'jsdcov' in test['build-platform']:
             # Ensure we don't run on inbound/autoland/beta, but if the test is try only, ignore it
             if 'mozilla-central' in test['run-on-projects'] or \
                     test['run-on-projects'] == 'built-projects':
