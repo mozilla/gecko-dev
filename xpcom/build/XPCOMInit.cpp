@@ -108,6 +108,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports*, REFNSIID, void**);
 #include "nsSecurityConsoleMessage.h"
 #include "nsMessageLoop.h"
 #include "nss.h"
+#include "ssl.h"
 
 #include <locale.h>
 #include "mozilla/Services.h"
@@ -1008,6 +1009,7 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   // down, any remaining objects that could be holding NSS resources (should)
   // have been released, so we can safely shut down NSS.
   if (NSS_IsInitialized()) {
+    SSL_ClearSessionCache();
     // It would be nice to enforce that this succeeds, at least on debug builds.
     // This would alert us to NSS resource leaks. Unfortunately there are some
     // architectural roadblocks in the way. Some tests (e.g. pkix gtests) need

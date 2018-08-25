@@ -480,7 +480,6 @@ SocketListener.prototype = {
   async _setAdditionalSocketOptions() {
     if (this.encryption) {
       this._socket.serverCert = await cert.local.getOrCreate();
-      this._socket.setSessionCache(false);
       this._socket.setSessionTickets(false);
       let requestCert = Ci.nsITLSServerSocket.REQUEST_NEVER;
       this._socket.setRequestClientCertificate(requestCert);
