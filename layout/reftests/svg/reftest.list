@@ -188,7 +188,7 @@ random == dynamic-use-nested-01b.svg dynamic-use-nested-01-ref.svg
 == fallback-color-02a.svg fallback-color-02-ref.svg
 == fallback-color-02b.svg fallback-color-02-ref.svg
 == fallback-color-03.svg pass.svg
-fuzzy-if(skiaContent,1,2) == fallback-color-04.svg pass.svg
+fuzzy-if(skiaContent,1,2) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == fallback-color-04.svg pass.svg # Bug 1392106
 == fallback-color-05.svg fallback-color-05-ref.svg
 
 == filter-basic-01.svg pass.svg
@@ -497,7 +497,7 @@ random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) fuzzy-if(skiaContent,1,550)
 random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) fuzzy-if(skiaContent,1,550) == tspan-rotate-04.svg tspan-rotate-04-ref.svg # bug 1392106
 random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) fuzzy-if(skiaContent,1,550) == tspan-rotate-05.svg tspan-rotate-ref.svg # bug 1392106
 random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) fuzzy-if(skiaContent,1,550) == tspan-rotate-06.svg tspan-rotate-ref.svg # bug 1392106
-== tspan-rotate-07.svg tspan-rotate-07-ref.svg
+random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == tspan-rotate-07.svg tspan-rotate-07-ref.svg # Bug 1392106
 == tspan-rotate-textPath-01.svg tspan-rotate-textPath-01-ref.svg
 fuzzy-if(skiaContent,1,100) == tspan-xy-01.svg tspan-xy-ref.svg
 == tspan-xy-02.svg tspan-xy-ref.svg
