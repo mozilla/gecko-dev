@@ -133,6 +133,7 @@ public:
   virtual void SetDocumentCharset(NotNull<const Encoding*> aEncoding) override;
   virtual nsISupports *GetTarget() override;
   virtual bool IsScriptExecuting() override;
+  virtual void ContinueInterruptedParsingAsync() override;
 
   // nsIHTMLContentSink
   NS_IMETHOD OpenContainer(ElementType aNodeType) override;
@@ -177,6 +178,9 @@ protected:
   void NotifyInsert(nsIContent* aContent,
                     nsIContent* aChildContent);
   void NotifyRootInsertion();
+
+private:
+  void ContinueInterruptedParsingIfEnabled();
 };
 
 class SinkContext
@@ -1049,4 +1053,24 @@ bool
 HTMLContentSink::IsScriptExecuting()
 {
   return IsScriptExecutingImpl();
+}
+
+void
+HTMLContentSink::ContinueInterruptedParsingIfEnabled()
+{
+  if (mParser && mParser->IsParserEnabled()) {
+    static_cast<nsIParser*>(mParser.get())->ContinueInterruptedParsing();
+  }
+}
+
+void
+HTMLContentSink::ContinueInterruptedParsingAsync()
+{
+  nsCOMPtr<nsIRunnable> ev =
+    NewRunnableMethod("HTMLContentSink::ContinueInterruptedParsingIfEnabled",
+                      this,
+                      &HTMLContentSink::ContinueInterruptedParsingIfEnabled);
+
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(mHTMLDocument);
+  doc->Dispatch(mozilla::TaskCategory::Other, ev.forget());
 }
