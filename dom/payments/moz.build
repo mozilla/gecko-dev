@@ -10,10 +10,11 @@ DIRS += [
 
 EXPORTS += [
     'PaymentRequestData.h',
-    'PaymentRequestService.h',
+    'PaymentRequestService.h',\
 ]
 
 EXPORTS.mozilla.dom += [
+    'MerchantValidationEvent.h',
     'PaymentAddress.h',
     'PaymentMethodChangeEvent.h',
     'PaymentRequest.h',
@@ -24,6 +25,7 @@ EXPORTS.mozilla.dom += [
 
 UNIFIED_SOURCES += [
     'BasicCardPayment.cpp',
+    'MerchantValidationEvent.cpp',
     'PaymentActionRequest.cpp',
     'PaymentActionResponse.cpp',
     'PaymentAddress.cpp',
