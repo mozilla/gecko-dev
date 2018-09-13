@@ -59,7 +59,7 @@ class ClearKeySessionManager final : public RefCounted {
   void SetServerCertificate(uint32_t aPromiseId, const uint8_t* aServerCert,
                             uint32_t aServerCertSize);
 
-  cdm::Status Decrypt(const cdm::InputBuffer& aBuffer,
+  cdm::Status Decrypt(const cdm::InputBuffer_1& aBuffer,
                       cdm::DecryptedBlock* aDecryptedBlock);
 
   void DecryptingComplete();

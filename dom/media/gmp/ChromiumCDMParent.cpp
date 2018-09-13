@@ -808,7 +808,7 @@ RefPtr<MediaDataDecoder::InitPromise> ChromiumCDMParent::InitializeVideoDecoder(
         __func__);
   }
 
-  mMaxRefFrames = (aConfig.mCodec() == cdm::VideoDecoderConfig::kCodecH264)
+  mMaxRefFrames = (aConfig.mCodec() == cdm::VideoCodec::kCodecH264)
                       ? H264::HasSPS(aInfo.mExtraData)
                             ? H264::ComputeMaxRefFrames(aInfo.mExtraData)
                             : 16

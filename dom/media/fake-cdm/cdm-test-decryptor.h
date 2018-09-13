@@ -45,18 +45,18 @@ class FakeDecryptor : public cdm::ContentDecryptionModule_9 {
 
   void TimerExpired(void* aContext) override {}
 
-  cdm::Status Decrypt(const cdm::InputBuffer& aEncryptedBuffer,
+  cdm::Status Decrypt(const cdm::InputBuffer_1& aEncryptedBuffer,
                       cdm::DecryptedBlock* aDecryptedBuffer) override {
     return cdm::Status::kDecodeError;
   }
 
   cdm::Status InitializeAudioDecoder(
-      const cdm::AudioDecoderConfig& aAudioDecoderConfig) override {
+      const cdm::AudioDecoderConfig_1& aAudioDecoderConfig) override {
     return cdm::Status::kDecodeError;
   }
 
   cdm::Status InitializeVideoDecoder(
-      const cdm::VideoDecoderConfig& aVideoDecoderConfig) override {
+      const cdm::VideoDecoderConfig_1& aVideoDecoderConfig) override {
     return cdm::Status::kDecodeError;
   }
 
@@ -64,13 +64,14 @@ class FakeDecryptor : public cdm::ContentDecryptionModule_9 {
 
   void ResetDecoder(cdm::StreamType aDecoderType) override {}
 
-  cdm::Status DecryptAndDecodeFrame(const cdm::InputBuffer& aEncryptedBuffer,
+  cdm::Status DecryptAndDecodeFrame(const cdm::InputBuffer_1& aEncryptedBuffer,
                                     cdm::VideoFrame* aVideoFrame) override {
     return cdm::Status::kDecodeError;
   }
 
-  cdm::Status DecryptAndDecodeSamples(const cdm::InputBuffer& aEncryptedBuffer,
-                                      cdm::AudioFrames* aAudioFrame) override {
+  cdm::Status DecryptAndDecodeSamples(
+      const cdm::InputBuffer_1& aEncryptedBuffer,
+      cdm::AudioFrames* aAudioFrame) override {
     return cdm::Status::kDecodeError;
   }
 

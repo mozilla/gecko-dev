@@ -15,9 +15,10 @@ namespace mozilla {
 
 WidevineVideoFrame::WidevineVideoFrame()
     : mFormat(kUnknownVideoFormat),
-      mSize(0, 0),
+      mSize{0, 0},
       mBuffer(nullptr),
       mTimestamp(0) {
+  MOZ_ASSERT(mSize.height == 0 && mSize.width == 0, "Size should be zeroed");
   GMP_LOG("WidevineVideoFrame::WidevineVideoFrame() this=%p", this);
   memset(mPlaneOffsets, 0, sizeof(mPlaneOffsets));
   memset(mPlaneStrides, 0, sizeof(mPlaneStrides));
@@ -98,8 +99,10 @@ void WidevineVideoFrame::SetTimestamp(int64_t timestamp) {
 
 int64_t WidevineVideoFrame::Timestamp() const { return mTimestamp; }
 
-bool WidevineVideoFrame::InitToBlack(uint32_t aWidth, uint32_t aHeight,
+bool WidevineVideoFrame::InitToBlack(int32_t aWidth, int32_t aHeight,
                                      int64_t aTimeStamp) {
+  MOZ_ASSERT(aWidth >= 0 && aHeight >= 0,
+             "Frame dimensions should be positive");
   CheckedInt<size_t> ySizeChk = aWidth;
   ySizeChk *= aHeight;
   // If w*h didn't overflow, half of them won't.
@@ -118,7 +121,7 @@ bool WidevineVideoFrame::InitToBlack(uint32_t aWidth, uint32_t aHeight,
     mBuffer = nullptr;
   }
   SetFormat(VideoFormat::kI420);
-  SetSize(cdm::Size(aWidth, aHeight));
+  SetSize(cdm::Size{aWidth, aHeight});
   SetFrameBuffer(buffer);
   SetPlaneOffset(VideoFrame::kYPlane, 0);
   SetStride(VideoFrame::kYPlane, aWidth);

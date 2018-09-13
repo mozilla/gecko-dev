@@ -253,7 +253,7 @@ void ClearKeySessionManager::PersistentSessionDataLoaded(
     mKeyIds.insert(keyPair.mKey);
     keyPairs.push_back(keyPair);
 
-    KeyInformation keyInfo = KeyInformation();
+    KeyInformation keyInfo = {};
     keyInfo.key_id = &keyPairs.back().mKeyId[0];
     keyInfo.key_id_size = keyPair.mKeyId.size();
     keyInfo.status = KeyStatus::kUsable;
@@ -341,7 +341,7 @@ void ClearKeySessionManager::UpdateSession(uint32_t aPromiseId,
     mDecryptionManager->InitKey(keyPair.mKeyId, keyPair.mKey);
     mKeyIds.insert(keyPair.mKeyId);
 
-    KeyInformation keyInfo = KeyInformation();
+    KeyInformation keyInfo = {};
     keyInfo.key_id = &keyPair.mKeyId[0];
     keyInfo.key_id_size = keyPair.mKeyId.size();
     keyInfo.status = KeyStatus::kUsable;
@@ -529,7 +529,7 @@ void ClearKeySessionManager::SetServerCertificate(uint32_t aPromiseId,
                          nullptr /* message */, 0 /* messageLen */);
 }
 
-Status ClearKeySessionManager::Decrypt(const InputBuffer& aBuffer,
+Status ClearKeySessionManager::Decrypt(const InputBuffer_1& aBuffer,
                                        DecryptedBlock* aDecryptedBlock) {
   CK_LOGD("ClearKeySessionManager::Decrypt");
 

@@ -66,13 +66,13 @@ void ClearKeyCDM::TimerExpired(void* aContext) {
   assert(false);
 }
 
-Status ClearKeyCDM::Decrypt(const InputBuffer& aEncryptedBuffer,
+Status ClearKeyCDM::Decrypt(const InputBuffer_1& aEncryptedBuffer,
                             DecryptedBlock* aDecryptedBuffer) {
   return mSessionManager->Decrypt(aEncryptedBuffer, aDecryptedBuffer);
 }
 
 Status ClearKeyCDM::InitializeAudioDecoder(
-    const AudioDecoderConfig& aAudioDecoderConfig) {
+    const AudioDecoderConfig_1& aAudioDecoderConfig) {
   // Audio decoding is not supported by Clearkey because Widevine doesn't
   // support it and Clearkey's raison d'etre is to provide test coverage
   // for paths that Widevine will exercise in the wild.
@@ -80,7 +80,7 @@ Status ClearKeyCDM::InitializeAudioDecoder(
 }
 
 Status ClearKeyCDM::InitializeVideoDecoder(
-    const VideoDecoderConfig& aVideoDecoderConfig) {
+    const VideoDecoderConfig_1& aVideoDecoderConfig) {
 #ifdef ENABLE_WMF
   mVideoDecoder = new VideoDecoder(mHost);
   return mVideoDecoder->InitDecode(aVideoDecoderConfig);
@@ -106,7 +106,7 @@ void ClearKeyCDM::ResetDecoder(StreamType aDecoderType) {
 #endif
 }
 
-Status ClearKeyCDM::DecryptAndDecodeFrame(const InputBuffer& aEncryptedBuffer,
+Status ClearKeyCDM::DecryptAndDecodeFrame(const InputBuffer_1& aEncryptedBuffer,
                                           VideoFrame* aVideoFrame) {
 #ifdef ENABLE_WMF
   return mVideoDecoder->Decode(aEncryptedBuffer, aVideoFrame);
@@ -115,8 +115,8 @@ Status ClearKeyCDM::DecryptAndDecodeFrame(const InputBuffer& aEncryptedBuffer,
 #endif
 }
 
-Status ClearKeyCDM::DecryptAndDecodeSamples(const InputBuffer& aEncryptedBuffer,
-                                            AudioFrames* aAudioFrame) {
+Status ClearKeyCDM::DecryptAndDecodeSamples(
+    const InputBuffer_1& aEncryptedBuffer, AudioFrames* aAudioFrame) {
   // Audio decoding is not supported by Clearkey because Widevine doesn't
   // support it and Clearkey's raison d'etre is to provide test coverage
   // for paths that Widevine will exercise in the wild.

@@ -42,7 +42,7 @@ VideoDecoder::VideoDecoder(Host_9* aHost) : mHost(aHost), mHasShutdown(false) {
 
 VideoDecoder::~VideoDecoder() { CK_LOGD("VideoDecoder destroyed"); }
 
-Status VideoDecoder::InitDecode(const VideoDecoderConfig& aConfig) {
+Status VideoDecoder::InitDecode(const VideoDecoderConfig_1& aConfig) {
   CK_LOGD("VideoDecoder::InitDecode");
 
   if (!mDecoder) {
@@ -54,7 +54,7 @@ Status VideoDecoder::InitDecode(const VideoDecoderConfig& aConfig) {
   return Status::kSuccess;
 }
 
-Status VideoDecoder::Decode(const InputBuffer& aInputBuffer,
+Status VideoDecoder::Decode(const InputBuffer_1& aInputBuffer,
                             VideoFrame* aVideoFrame) {
   CK_LOGD("VideoDecoder::Decode");
   // If the input buffer we have been passed has a null buffer, it means we
@@ -219,7 +219,7 @@ VideoDecoder::SampleToVideoFrame(IMFSample* aSample, int32_t aPictureWidth,
   aVideoFrame->SetStride(VideoFrame::kUPlane, halfStride);
   aVideoFrame->SetStride(VideoFrame::kVPlane, halfStride);
 
-  aVideoFrame->SetSize(Size(aPictureWidth, aPictureHeight));
+  aVideoFrame->SetSize(Size{aPictureWidth, aPictureHeight});
 
   // Note: We allocate the minimal sized buffer required to send the
   // frame back over to the parent process. This is so that we request the
