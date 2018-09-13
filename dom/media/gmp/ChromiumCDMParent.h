@@ -105,10 +105,6 @@ class ChromiumCDMParent final : public PChromiumCDMParent,
   ipc::IPCResult RecvOnExpirationChange(
       const nsCString& aSessionId, const double& aSecondsSinceEpoch) override;
   ipc::IPCResult RecvOnSessionClosed(const nsCString& aSessionId) override;
-  ipc::IPCResult RecvOnLegacySessionError(const nsCString& aSessionId,
-                                          const uint32_t& aError,
-                                          const uint32_t& aSystemCode,
-                                          const nsCString& aMessage) override;
   ipc::IPCResult RecvDecrypted(const uint32_t& aId, const uint32_t& aStatus,
                                ipc::Shmem&& aData) override;
   ipc::IPCResult RecvDecryptFailed(const uint32_t& aId,
