@@ -377,8 +377,9 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvInit(
     const bool& aAllowDistinctiveIdentifier,
     const bool& aAllowPersistentState) {
   MOZ_ASSERT(IsOnMessageLoopThread());
-  GMP_LOG("ChromiumCDMChild::RecvInit(distinctiveId=%d, persistentState=%d)",
-          aAllowDistinctiveIdentifier, aAllowPersistentState);
+  GMP_LOG("ChromiumCDMChild::RecvInit(distinctiveId=%s, persistentState=%s)",
+          aAllowDistinctiveIdentifier ? "true" : "false",
+          aAllowPersistentState ? "true" : "false");
   mPersistentStateAllowed = aAllowPersistentState;
   if (mCDM) {
     mCDM->Initialize(aAllowDistinctiveIdentifier, aAllowPersistentState);
@@ -530,7 +531,11 @@ static void InitInputBuffer(const CDMInputBuffer& aBuffer,
   aInputBuffer.data = aBuffer.mData().get<uint8_t>();
   aInputBuffer.data_size = aBuffer.mData().Size<uint8_t>();
 
-  if (aBuffer.mIsEncrypted()) {
+  if (aBuffer.mEncryptionScheme() > GMPEncryptionScheme::kGMPEncryptionNone) {
+    // Cbcs is not yet supported, so we expect only cenc if the buffer us
+    // encrypted
+    MOZ_ASSERT(aBuffer.mEncryptionScheme() ==
+               GMPEncryptionScheme::kGMPEncryptionCenc);
     aInputBuffer.key_id = aBuffer.mKeyId().Elements();
     aInputBuffer.key_id_size = aBuffer.mKeyId().Length();
 

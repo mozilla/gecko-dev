@@ -208,7 +208,16 @@ bool ChromiumCDMParent::InitCDMInputBuffer(gmp::CDMInputBuffer& aBuffer,
   aBuffer = gmp::CDMInputBuffer(
       shmem, crypto.mKeyId, crypto.mIV, aSample->mTime.ToMicroseconds(),
       aSample->mDuration.ToMicroseconds(), crypto.mPlainSizes,
-      crypto.mEncryptedSizes, crypto.mValid);
+      crypto.mEncryptedSizes,
+      crypto.mValid ? GMPEncryptionScheme::kGMPEncryptionCenc
+                    : GMPEncryptionScheme::kGMPEncryptionNone);
+  MOZ_ASSERT(
+      aBuffer.mEncryptionScheme() == GMPEncryptionScheme::kGMPEncryptionNone ||
+          aBuffer.mEncryptionScheme() ==
+              GMPEncryptionScheme::kGMPEncryptionCenc,
+      "aBuffer should use either no encryption or cenc, other kinds are not "
+      "yet "
+      "supported");
   return true;
 }
 

@@ -48,6 +48,12 @@ struct ParamTraits<GMPBufferType>
                                       GMP_BufferInvalid> {};
 
 template <>
+struct ParamTraits<GMPEncryptionScheme>
+    : public ContiguousEnumSerializer<
+          GMPEncryptionScheme, GMPEncryptionScheme::kGMPEncryptionNone,
+          GMPEncryptionScheme::kGMPEncryptionInvalid> {};
+
+template <>
 struct ParamTraits<GMPSimulcastStream> {
   typedef GMPSimulcastStream paramType;
 
