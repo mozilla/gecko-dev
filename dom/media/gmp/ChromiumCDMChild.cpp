@@ -26,7 +26,7 @@ ChromiumCDMChild::ChromiumCDMChild(GMPContentChild* aPlugin)
   GMP_LOG("ChromiumCDMChild:: ctor this=%p", this);
 }
 
-void ChromiumCDMChild::Init(cdm::ContentDecryptionModule_9* aCDM,
+void ChromiumCDMChild::Init(cdm::ContentDecryptionModule_10* aCDM,
                             const nsCString& aStorageId) {
   MOZ_ASSERT(IsOnMessageLoopThread());
   mCDM = aCDM;
@@ -382,7 +382,9 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvInit(
           aAllowPersistentState ? "true" : "false");
   mPersistentStateAllowed = aAllowPersistentState;
   if (mCDM) {
-    mCDM->Initialize(aAllowDistinctiveIdentifier, aAllowPersistentState);
+    mCDM->Initialize(aAllowDistinctiveIdentifier, aAllowPersistentState,
+                     // We do not yet support hardware secure codecs
+                     false);
   }
   return IPC_OK();
 }
@@ -525,9 +527,24 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvGetStatusForPolicy(
   return IPC_OK();
 }
 
+static cdm::EncryptionScheme ConvertToCdmEncryptionScheme(
+    const GMPEncryptionScheme& aEncryptionScheme) {
+  switch (aEncryptionScheme) {
+    case GMPEncryptionScheme::kGMPEncryptionNone:
+      return cdm::EncryptionScheme::kUnencrypted;
+    case GMPEncryptionScheme::kGMPEncryptionCenc:
+      return cdm::EncryptionScheme::kCenc;
+    case GMPEncryptionScheme::kGMPEncryptionCbcs:
+      return cdm::EncryptionScheme::kCbcs;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Cannot convert invalid encryption scheme!");
+      return cdm::EncryptionScheme::kUnencrypted;
+  }
+}
+
 static void InitInputBuffer(const CDMInputBuffer& aBuffer,
                             nsTArray<cdm::SubsampleEntry>& aSubSamples,
-                            cdm::InputBuffer_1& aInputBuffer) {
+                            cdm::InputBuffer_2& aInputBuffer) {
   aInputBuffer.data = aBuffer.mData().get<uint8_t>();
   aInputBuffer.data_size = aBuffer.mData().Size<uint8_t>();
 
@@ -549,6 +566,8 @@ static void InitInputBuffer(const CDMInputBuffer& aBuffer,
     }
     aInputBuffer.subsamples = aSubSamples.Elements();
     aInputBuffer.num_subsamples = aSubSamples.Length();
+    aInputBuffer.encryption_scheme =
+        ConvertToCdmEncryptionScheme(aBuffer.mEncryptionScheme());
   }
   aInputBuffer.timestamp = aBuffer.mTimestamp();
 }
@@ -603,7 +622,7 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvDecrypt(
     return IPC_OK();
   }
 
-  cdm::InputBuffer_1 input = {};
+  cdm::InputBuffer_2 input = {};
   nsTArray<cdm::SubsampleEntry> subsamples;
   InitInputBuffer(aBuffer, subsamples, input);
 
@@ -642,7 +661,7 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvInitializeVideoDecoder(
     Unused << SendOnDecoderInitDone(cdm::kInitializationError);
     return IPC_OK();
   }
-  cdm::VideoDecoderConfig_1 config = {};
+  cdm::VideoDecoderConfig_2 config = {};
   config.codec = static_cast<cdm::VideoCodec>(aConfig.mCodec());
   config.profile = static_cast<cdm::VideoCodecProfile>(aConfig.mProfile());
   config.format = static_cast<cdm::VideoFormat>(aConfig.mFormat());
@@ -651,6 +670,8 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvInitializeVideoDecoder(
   nsTArray<uint8_t> extraData(aConfig.mExtraData());
   config.extra_data = extraData.Elements();
   config.extra_data_size = extraData.Length();
+  config.encryption_scheme =
+      ConvertToCdmEncryptionScheme(aConfig.mEncryptionScheme());
   cdm::Status status = mCDM->InitializeVideoDecoder(config);
   GMP_LOG("ChromiumCDMChild::RecvInitializeVideoDecoder() status=%u", status);
   Unused << SendOnDecoderInitDone(status);
@@ -704,7 +725,7 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvDecryptAndDecodeFrame(
   // on output.
   mFrameDurations.Insert(aBuffer.mTimestamp(), aBuffer.mDuration());
 
-  cdm::InputBuffer_1 input = {};
+  cdm::InputBuffer_2 input = {};
   nsTArray<cdm::SubsampleEntry> subsamples;
   InitInputBuffer(aBuffer, subsamples, input);
 
@@ -786,7 +807,7 @@ mozilla::ipc::IPCResult ChromiumCDMChild::RecvDrain() {
     return IPC_OK();
   }
   WidevineVideoFrame frame;
-  cdm::InputBuffer_1 sample = {};
+  cdm::InputBuffer_2 sample = {};
   cdm::Status rv = mCDM->DecryptAndDecodeFrame(sample, &frame);
   GMP_LOG("ChromiumCDMChild::RecvDrain();  DecryptAndDecodeFrame() rv=%d", rv);
   if (rv == cdm::kSuccess) {

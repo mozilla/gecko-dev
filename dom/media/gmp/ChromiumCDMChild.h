@@ -24,7 +24,7 @@ class ChromiumCDMChild : public PChromiumCDMChild,
 
   explicit ChromiumCDMChild(GMPContentChild* aPlugin);
 
-  void Init(cdm::ContentDecryptionModule_9* aCDM, const nsCString& aStorageId);
+  void Init(cdm::ContentDecryptionModule_10* aCDM, const nsCString& aStorageId);
 
   void TimerExpired(void* aContext);
 
@@ -118,7 +118,7 @@ class ChromiumCDMChild : public PChromiumCDMChild,
   void CallOnMessageLoopThread(const char* const, MethodType, ParamType&&...);
 
   GMPContentChild* mPlugin = nullptr;
-  cdm::ContentDecryptionModule_9* mCDM = nullptr;
+  cdm::ContentDecryptionModule_10* mCDM = nullptr;
 
   typedef SimpleMap<uint64_t> DurationMap;
   DurationMap mFrameDurations;
