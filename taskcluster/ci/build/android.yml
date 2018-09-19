@@ -30,7 +30,7 @@ android-api-16/debug:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -77,7 +77,7 @@ android-x86/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -128,7 +128,7 @@ android-x86-nightly/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
             - taskcluster_nightly.py
@@ -176,7 +176,7 @@ android-api-16/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -222,7 +222,7 @@ android-api-16-without-google-play-services/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -274,7 +274,7 @@ android-api-16-nightly/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
             - taskcluster_nightly.py
@@ -322,7 +322,7 @@ android-aarch64/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -373,7 +373,7 @@ android-aarch64-nightly/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
             - taskcluster_nightly.py

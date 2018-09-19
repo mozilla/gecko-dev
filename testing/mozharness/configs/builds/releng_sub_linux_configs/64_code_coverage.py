@@ -5,7 +5,6 @@ config = {
         'clobber',
         'build',
         'check-test',
-        'update',  # decided by query_is_nightly()
     ],
     'stage_platform': 'linux64-ccov',
     'enable_count_ctors': False,

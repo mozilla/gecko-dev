@@ -16,7 +16,7 @@ macosx64/debug:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -51,7 +51,7 @@ macosx64/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -83,7 +83,7 @@ macosx64-asan-fuzzing/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -116,7 +116,7 @@ macosx64-dmd/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -157,7 +157,7 @@ macosx64-devedition-nightly/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -192,7 +192,7 @@ macosx64-noopt/debug:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -227,7 +227,7 @@ macosx64-add-on-devel/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
@@ -267,7 +267,7 @@ macosx64-nightly/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build update]
+        actions: [get-secrets build]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_mac_64_cross_builds.py
