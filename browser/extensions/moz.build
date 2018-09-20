@@ -9,6 +9,7 @@ DIRS += [
     'aushelper',
     'followonsearch',
     'formautofill',
+    'jaws-esr',
     'onboarding',
     'pdfjs',
     'pocket',
