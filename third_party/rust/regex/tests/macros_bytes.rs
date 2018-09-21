@@ -2,11 +2,9 @@
 macro_rules! text { ($text:expr) => { $text.as_bytes() } }
 macro_rules! t { ($re:expr) => { text!($re) } }
 macro_rules! match_text { ($text:expr) => { $text.as_bytes() } }
+macro_rules! use_ { ($($path: tt)*) => { use regex::bytes::$($path)*; } }
 
 macro_rules! bytes { ($text:expr) => { $text } }
-macro_rules! b { ($text:expr) => { bytes!($text) } }
-
-// macro_rules! u { ($re:expr) => { concat!("(?u)", $re) } }
 
 macro_rules! no_expand {
     ($text:expr) => {{

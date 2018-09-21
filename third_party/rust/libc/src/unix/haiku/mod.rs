@@ -379,6 +379,7 @@ pub const RLIMIT_CPU: ::c_int = 1;
 pub const RLIMIT_DATA: ::c_int = 2;
 pub const RLIMIT_FSIZE: ::c_int = 3;
 pub const RLIMIT_NOFILE: ::c_int = 4;
+pub const RLIMIT_STACK: ::c_int = 5;
 pub const RLIMIT_AS: ::c_int = 6;
 // Haiku specific
 pub const RLIMIT_NOVMON: ::c_int = 7;
@@ -386,7 +387,7 @@ pub const RLIMIT_NLIMITS: ::c_int = 8;
 
 pub const RUSAGE_SELF: ::c_int = 0;
 
-pub const RTLD_LAXY: ::c_int = 0;
+pub const RTLD_LAZY: ::c_int = 0;
 
 pub const NCCS: usize = 11;
 
@@ -478,7 +479,17 @@ pub const SIGEV_NONE: ::c_int = 0;
 pub const SIGEV_SIGNAL: ::c_int = 1;
 pub const SIGEV_THREAD: ::c_int = 2;
 
+pub const EAI_AGAIN: ::c_int = 2;
+pub const EAI_BADFLAGS: ::c_int = 3;
+pub const EAI_FAIL: ::c_int = 4;
+pub const EAI_FAMILY: ::c_int = 5;
+pub const EAI_MEMORY: ::c_int = 6;
+pub const EAI_NODATA: ::c_int = 7;
+pub const EAI_NONAME: ::c_int = 8;
+pub const EAI_SERVICE: ::c_int = 9;
+pub const EAI_SOCKTYPE: ::c_int = 10;
 pub const EAI_SYSTEM: ::c_int = 11;
+pub const EAI_OVERFLOW: ::c_int = 14;
 
 pub const PROT_NONE: ::c_int = 0;
 pub const PROT_READ: ::c_int = 1;
@@ -606,7 +617,20 @@ pub const MADV_RANDOM: ::c_int = 3;
 pub const MADV_WILLNEED: ::c_int = 4;
 pub const MADV_DONTNEED: ::c_int = 5;
 
+// https://github.com/haiku/haiku/blob/master/headers/posix/net/if.h#L80
+pub const IFF_UP: ::c_int = 0x0001;
+pub const IFF_BROADCAST: ::c_int = 0x0002; // valid broadcast address
 pub const IFF_LOOPBACK: ::c_int = 0x0008;
+pub const IFF_POINTOPOINT: ::c_int = 0x0010; // point-to-point link
+pub const IFF_NOARP: ::c_int = 0x0040; // no address resolution
+pub const IFF_AUTOUP: ::c_int = 0x0080; // auto dial
+pub const IFF_PROMISC: ::c_int = 0x0100; // receive all packets
+pub const IFF_ALLMULTI: ::c_int = 0x0200; // receive all multicast packets
+pub const IFF_SIMPLEX: ::c_int = 0x0800; // doesn't receive own transmissions
+pub const IFF_LINK: ::c_int = 0x1000; // has link
+pub const IFF_AUTO_CONFIGURED: ::c_int = 0x2000;
+pub const IFF_CONFIGURING: ::c_int = 0x4000;
+pub const IFF_MULTICAST: ::c_int = 0x8000; // supports multicast
 
 pub const AF_UNSEC: ::c_int = 0;
 pub const AF_INET: ::c_int = 1;
@@ -622,22 +646,43 @@ pub const AF_UNIX: ::c_int = AF_LOCAL;
 pub const AF_BLUETOOTH: ::c_int = 10;
 pub const AF_MAX: ::c_int = 11;
 
+pub const IP_OPTIONS: ::c_int = 1;
+pub const IP_HDRINCL: ::c_int = 2;
+pub const IP_TOS: ::c_int = 3;
+pub const IP_TTL: ::c_int = 4;
+pub const IP_RECVOPTS: ::c_int = 5;
+pub const IP_RECVRETOPTS: ::c_int = 6;
+pub const IP_RECVDSTADDR: ::c_int = 7;
+pub const IP_RETOPTS: ::c_int = 8;
+pub const IP_MULTICAST_IF: ::c_int = 9;
 pub const IP_MULTICAST_TTL: ::c_int = 10;
 pub const IP_MULTICAST_LOOP: ::c_int = 11;
-pub const IP_TTL: ::c_int = 4;
-pub const IP_HDRINCL: ::c_int = 2;
 pub const IP_ADD_MEMBERSHIP: ::c_int = 12;
 pub const IP_DROP_MEMBERSHIP: ::c_int = 13;
+pub const IP_BLOCK_SOURCE: ::c_int = 14;
+pub const IP_UNBLOCK_SOURCE: ::c_int = 15;
+pub const IP_ADD_SOURCE_MEMBERSHIP: ::c_int = 16;
+pub const IP_DROP_SOURCE_MEMBERSHIP: ::c_int = 17;
 
 pub const TCP_NODELAY: ::c_int = 0x01;
 pub const TCP_MAXSEG: ::c_int = 0x02;
 pub const TCP_NOPUSH: ::c_int = 0x04;
 pub const TCP_NOOPT: ::c_int = 0x08;
 
+pub const IPV6_MULTICAST_IF: ::c_int = 24;
+pub const IPV6_MULTICAST_HOPS: ::c_int = 25;
 pub const IPV6_MULTICAST_LOOP: ::c_int = 26;
+pub const IPV6_UNICAST_HOPS: ::c_int = 27;
 pub const IPV6_JOIN_GROUP: ::c_int = 28;
 pub const IPV6_LEAVE_GROUP: ::c_int = 29;
 pub const IPV6_V6ONLY: ::c_int = 30;
+pub const IPV6_PKTINFO: ::c_int = 31;
+pub const IPV6_RECVPKTINFO: ::c_int = 32;
+pub const IPV6_HOPLIMIT: ::c_int = 33;
+pub const IPV6_REVCHOPLIMIT: ::c_int = 34;
+pub const IPV6_HOPOPTS: ::c_int = 35;
+pub const IPV6_DSTOPTS: ::c_int = 36;
+pub const IPV6_RTHDR: ::c_int = 37;
 
 pub const MSG_OOB: ::c_int = 0x0001;
 pub const MSG_PEEK: ::c_int = 0x0002;
@@ -678,7 +723,9 @@ pub const SA_ONESHOT: ::c_int = SA_RESETHAND;
 
 pub const FD_SETSIZE: usize = 1024;
 
+pub const RTLD_LOCAL: ::c_int = 0x0;
 pub const RTLD_NOW: ::c_int = 0x1;
+pub const RTLD_GLOBAL: ::c_int = 0x2;
 pub const RTLD_DEFAULT: *mut ::c_void = 0isize as *mut ::c_void;
 
 pub const BUFSIZ: ::c_uint = 8192;
@@ -1071,7 +1118,6 @@ extern {
     pub fn waitid(idtype: idtype_t, id: id_t, infop: *mut ::siginfo_t,
                   options: ::c_int) -> ::c_int;
 
-    pub fn fdopendir(fd: ::c_int) -> *mut ::DIR;
     pub fn glob(pattern: *const ::c_char,
                 flags: ::c_int,
                 errfunc: Option<extern fn(epath: *const ::c_char,
@@ -1099,6 +1145,7 @@ extern {
                     addrlen: *mut ::socklen_t) -> ::ssize_t;
     pub fn mkstemps(template: *mut ::c_char, suffixlen: ::c_int) -> ::c_int;
     pub fn futimes(fd: ::c_int, times: *const ::timeval) -> ::c_int;
+    pub fn lutimes(file: *const ::c_char, times: *const ::timeval) -> ::c_int;
     pub fn nl_langinfo(item: ::nl_item) -> *mut ::c_char;
 
     pub fn bind(socket: ::c_int, address: *const ::sockaddr,

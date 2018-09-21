@@ -4,7 +4,7 @@ rust:
   - stable
   - beta
   - nightly
-script:
-  - cargo build --verbose
-  - cargo test --verbose
-  - cargo doc
+script: ci/script.sh
+branches:
+  only:
+    - master

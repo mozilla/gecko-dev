@@ -1,5 +1,7 @@
 //! AArch64-specific definitions for 64-bit linux-like values
 
+use pthread_mutex_t;
+
 pub type c_long = i64;
 pub type c_ulong = u64;
 pub type c_char = u8;
@@ -67,6 +69,21 @@ s! {
         pub f_frsize: ::__fsword_t,
         pub f_flags: ::__fsword_t,
         pub f_spare: [::__fsword_t; 4],
+    }
+
+    pub struct statvfs {
+        pub f_bsize: ::c_ulong,
+        pub f_frsize: ::c_ulong,
+        pub f_blocks: ::fsblkcnt_t,
+        pub f_bfree: ::fsblkcnt_t,
+        pub f_bavail: ::fsblkcnt_t,
+        pub f_files: ::fsfilcnt_t,
+        pub f_ffree: ::fsfilcnt_t,
+        pub f_favail: ::fsfilcnt_t,
+        pub f_fsid: ::c_ulong,
+        pub f_flag: ::c_ulong,
+        pub f_namemax: ::c_ulong,
+        __f_spare: [::c_int; 6],
     }
 
     pub struct statvfs64 {
@@ -145,6 +162,7 @@ pub const O_DSYNC: ::c_int = 4096;
 pub const O_FSYNC: ::c_int = 0x101000;
 pub const O_NOATIME: ::c_int = 0o1000000;
 pub const O_PATH: ::c_int = 0o10000000;
+pub const O_TMPFILE: ::c_int = 0o20000000 | O_DIRECTORY;
 
 pub const MAP_GROWSDOWN: ::c_int = 0x0100;
 
@@ -370,6 +388,33 @@ pub const __SIZEOF_PTHREAD_CONDATTR_T: usize = 8;
 pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 48;
 pub const __SIZEOF_PTHREAD_MUTEXATTR_T: usize = 8;
 
+align_const! {
+    pub const PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP: ::pthread_mutex_t =
+        pthread_mutex_t {
+            size: [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0,
+            ],
+        };
+    pub const PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP: ::pthread_mutex_t =
+        pthread_mutex_t {
+            size: [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0,
+            ],
+        };
+    pub const PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP: ::pthread_mutex_t =
+        pthread_mutex_t {
+            size: [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0,
+            ],
+        };
+}
+
 pub const O_DIRECT: ::c_int = 0x10000;
 pub const O_DIRECTORY: ::c_int = 0x4000;
 pub const O_NOFOLLOW: ::c_int = 0x8000;
@@ -526,6 +571,7 @@ pub const SYS_epoll_ctl: ::c_long = 21;
 pub const SYS_epoll_pwait: ::c_long = 22;
 pub const SYS_dup: ::c_long = 23;
 pub const SYS_dup3: ::c_long = 24;
+pub const SYS_fcntl: ::c_long = 25;
 pub const SYS_inotify_init1: ::c_long = 26;
 pub const SYS_inotify_add_watch: ::c_long = 27;
 pub const SYS_inotify_rm_watch: ::c_long = 28;
@@ -558,6 +604,7 @@ pub const SYS_vhangup: ::c_long = 58;
 pub const SYS_pipe2: ::c_long = 59;
 pub const SYS_quotactl: ::c_long = 60;
 pub const SYS_getdents64: ::c_long = 61;
+pub const SYS_lseek: ::c_long = 62;
 pub const SYS_read: ::c_long = 63;
 pub const SYS_write: ::c_long = 64;
 pub const SYS_readv: ::c_long = 65;
@@ -573,6 +620,8 @@ pub const SYS_vmsplice: ::c_long = 75;
 pub const SYS_splice: ::c_long = 76;
 pub const SYS_tee: ::c_long = 77;
 pub const SYS_readlinkat: ::c_long = 78;
+pub const SYS_newfstatat: ::c_long = 79;
+pub const SYS_fstat: ::c_long = 80;
 pub const SYS_sync: ::c_long = 81;
 pub const SYS_fsync: ::c_long = 82;
 pub const SYS_fdatasync: ::c_long = 83;
@@ -714,6 +763,7 @@ pub const SYS_request_key: ::c_long = 218;
 pub const SYS_keyctl: ::c_long = 219;
 pub const SYS_clone: ::c_long = 220;
 pub const SYS_execve: ::c_long = 221;
+pub const SYS_mmap: ::c_long = 222;
 pub const SYS_swapon: ::c_long = 224;
 pub const SYS_swapoff: ::c_long = 225;
 pub const SYS_mprotect: ::c_long = 226;

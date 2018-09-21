@@ -151,11 +151,11 @@ impl DotAttributes for Function {
         if let Some(ref mangled) = self.mangled_name {
             let mangled: String =
                 mangled.chars().flat_map(|c| c.escape_default()).collect();
-            try!(writeln!(
+            writeln!(
                 out,
                 "<tr><td>mangled name</td><td>{}</td></tr>",
                 mangled
-            ));
+            )?;
         }
 
         Ok(())
@@ -193,7 +193,7 @@ impl Abi {
 
 impl quote::ToTokens for Abi {
     fn to_tokens(&self, tokens: &mut quote::Tokens) {
-        tokens.append(match *self {
+        tokens.append_all(match *self {
             Abi::C => quote! { "C" },
             Abi::Stdcall => quote! { "stdcall" },
             Abi::Fastcall => quote! { "fastcall" },
@@ -402,14 +402,27 @@ impl FunctionSig {
             let is_virtual = is_method && cursor.method_is_virtual();
             let is_static = is_method && cursor.method_is_static();
             if !is_static && !is_virtual {
-                let class = Item::parse(cursor.semantic_parent(), None, ctx)
+                let parent = cursor.semantic_parent();
+                let class = Item::parse(parent, None, ctx)
                     .expect("Expected to parse the class");
                 // The `class` most likely is not finished parsing yet, so use
                 // the unchecked variant.
                 let class = class.as_type_id_unchecked();
 
+                let class = if is_const {
+                    let const_class_id = ctx.next_item_id();
+                    ctx.build_const_wrapper(
+                        const_class_id,
+                        class,
+                        None,
+                        &parent.cur_type(),
+                    )
+                } else {
+                    class
+                };
+
                 let ptr =
-                    Item::builtin_type(TypeKind::Pointer(class), is_const, ctx);
+                    Item::builtin_type(TypeKind::Pointer(class), false, ctx);
                 args.insert(0, (Some("this".into()), ptr));
             } else if is_virtual {
                 let void = Item::builtin_type(TypeKind::Void, false, ctx);
@@ -422,11 +435,11 @@ impl FunctionSig {
         let ty_ret_type = if cursor.kind() == CXCursor_ObjCInstanceMethodDecl ||
             cursor.kind() == CXCursor_ObjCClassMethodDecl
         {
-            try!(ty.ret_type().or_else(|| cursor.ret_type()).ok_or(
+            ty.ret_type().or_else(|| cursor.ret_type()).ok_or(
                 ParseError::Continue,
-            ))
+            )?
         } else {
-            try!(ty.ret_type().ok_or(ParseError::Continue))
+            ty.ret_type().ok_or(ParseError::Continue)?
         };
         let ret = Item::from_ty_or_ref(ty_ret_type, cursor, None, ctx);
         let call_conv = ty.call_conv();
@@ -521,7 +534,7 @@ impl ClangSubItemParser for Function {
 
         // Grab the signature using Item::from_ty.
         let sig =
-            try!(Item::from_ty(&cursor.cur_type(), cursor, None, context));
+            Item::from_ty(&cursor.cur_type(), cursor, None, context)?;
 
         let mut name = cursor.spelling();
         assert!(!name.is_empty(), "Empty function name?");

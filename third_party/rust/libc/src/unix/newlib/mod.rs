@@ -238,34 +238,80 @@ s! {
         __size: [u64; 7]
     }
 
+    #[cfg_attr(all(feature = "align",
+                   target_pointer_width = "32",
+                   any(target_arch = "mips",
+                       target_arch = "arm",
+                       target_arch = "powerpc")),
+               repr(align(4)))]
+    #[cfg_attr(all(feature = "align",
+                   any(target_pointer_width = "64",
+                       not(any(target_arch = "mips",
+                               target_arch = "arm",
+                               target_arch = "powerpc")))),
+               repr(align(8)))]
     pub struct pthread_mutex_t { // Unverified
-        #[cfg(any(target_arch = "mips", target_arch = "arm",
-                  target_arch = "powerpc"))]
+        #[cfg(all(not(feature = "align"),
+                  any(target_arch = "mips",
+                      target_arch = "arm",
+                      target_arch = "powerpc")))]
         __align: [::c_long; 0],
-        #[cfg(not(any(target_arch = "mips", target_arch = "arm",
+        #[cfg(not(any(feature = "align",
+                      target_arch = "mips",
+                      target_arch = "arm",
                       target_arch = "powerpc")))]
         __align: [::c_longlong; 0],
         size: [u8; __SIZEOF_PTHREAD_MUTEX_T],
     }
 
+    #[cfg_attr(all(feature = "align",
+                   target_pointer_width = "32",
+                   any(target_arch = "mips",
+                       target_arch = "arm",
+                       target_arch = "powerpc")),
+               repr(align(4)))]
+    #[cfg_attr(all(feature = "align",
+                   any(target_pointer_width = "64",
+                       not(any(target_arch = "mips",
+                               target_arch = "arm",
+                               target_arch = "powerpc")))),
+               repr(align(8)))]
     pub struct pthread_rwlock_t { // Unverified
-        #[cfg(any(target_arch = "mips", target_arch = "arm",
-                  target_arch = "powerpc"))]
+        #[cfg(all(not(feature = "align"),
+                  any(target_arch = "mips",
+                      target_arch = "arm",
+                      target_arch = "powerpc")))]
         __align: [::c_long; 0],
-        #[cfg(not(any(target_arch = "mips", target_arch = "arm",
+        #[cfg(not(any(feature = "align",
+                      target_arch = "mips",
+                      target_arch = "arm",
                       target_arch = "powerpc")))]
         __align: [::c_longlong; 0],
         size: [u8; __SIZEOF_PTHREAD_RWLOCK_T],
     }
 
+    #[cfg_attr(all(feature = "align",
+                   any(target_pointer_width = "32",
+                       target_arch = "x86_64", target_arch = "powerpc64",
+                       target_arch = "mips64", target_arch = "s390x",
+                       target_arch = "sparc64")),
+               repr(align(4)))]
+    #[cfg_attr(all(feature = "align",
+                   not(any(target_pointer_width = "32",
+                           target_arch = "x86_64", target_arch = "powerpc64",
+                           target_arch = "mips64", target_arch = "s390x",
+                           target_arch = "sparc64"))),
+               repr(align(8)))]
     pub struct pthread_mutexattr_t { // Unverified
-        #[cfg(any(target_arch = "x86_64", target_arch = "powerpc64",
-                  target_arch = "mips64", target_arch = "s390x",
-                  target_arch = "sparc64"))]
-        __align: [::c_int; 0],
-        #[cfg(not(any(target_arch = "x86_64", target_arch = "powerpc64",
+        #[cfg(all(not(feature = "align"),
+                  any(target_arch = "x86_64", target_arch = "powerpc64",
                       target_arch = "mips64", target_arch = "s390x",
                       target_arch = "sparc64")))]
+        __align: [::c_int; 0],
+        #[cfg(all(not(feature = "align"),
+                  not(any(target_arch = "x86_64", target_arch = "powerpc64",
+                          target_arch = "mips64", target_arch = "s390x",
+                          target_arch = "sparc64"))))]
         __align: [::c_long; 0],
         size: [u8; __SIZEOF_PTHREAD_MUTEXATTR_T],
     }
@@ -275,12 +321,16 @@ s! {
         __pshared: ::c_int,
     }
 
+    #[cfg_attr(feature = "align", repr(align(8)))]
     pub struct pthread_cond_t { // Unverified
+        #[cfg(not(feature = "align"))]
         __align: [::c_longlong; 0],
         size: [u8; __SIZEOF_PTHREAD_COND_T],
     }
 
+    #[cfg_attr(feature = "align", repr(align(4)))]
     pub struct pthread_condattr_t { // Unverified
+        #[cfg(not(feature = "align"))]
         __align: [::c_int; 0],
         size: [u8; __SIZEOF_PTHREAD_CONDATTR_T],
     }
@@ -288,18 +338,17 @@ s! {
 }
 
 // unverified constants
-pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = pthread_mutex_t {
-    __align: [],
-    size: [0; __SIZEOF_PTHREAD_MUTEX_T],
-};
-pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = pthread_cond_t {
-    __align: [],
-    size: [0; __SIZEOF_PTHREAD_COND_T],
-};
-pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = pthread_rwlock_t {
-    __align: [],
-    size: [0; __SIZEOF_PTHREAD_RWLOCK_T],
-};
+align_const! {
+    pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = pthread_mutex_t {
+        size: [0; __SIZEOF_PTHREAD_MUTEX_T],
+    };
+    pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = pthread_cond_t {
+        size: [0; __SIZEOF_PTHREAD_COND_T],
+    };
+    pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = pthread_rwlock_t {
+        size: [0; __SIZEOF_PTHREAD_RWLOCK_T],
+    };
+}
 pub const NCCS: usize = 32;
 pub const __SIZEOF_PTHREAD_ATTR_T: usize = 56;
 pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 40;
@@ -517,6 +566,26 @@ pub const SOCK_CLOEXEC: ::c_int = O_CLOEXEC;
 
 pub const INET_ADDRSTRLEN: ::c_int = 16;
 
+// https://github.
+// com/bminor/newlib/blob/master/newlib/libc/sys/linux/include/net/if.h#L121
+pub const IFF_UP: ::c_int = 0x1; // interface is up
+pub const IFF_BROADCAST: ::c_int = 0x2; // broadcast address valid
+pub const IFF_DEBUG: ::c_int = 0x4; // turn on debugging
+pub const IFF_LOOPBACK: ::c_int = 0x8; // is a loopback net
+pub const IFF_POINTOPOINT: ::c_int = 0x10; // interface is point-to-point link
+pub const IFF_NOTRAILERS: ::c_int = 0x20; // avoid use of trailers
+pub const IFF_RUNNING: ::c_int = 0x40; // resources allocated
+pub const IFF_NOARP: ::c_int = 0x80; // no address resolution protocol
+pub const IFF_PROMISC: ::c_int = 0x100; // receive all packets
+pub const IFF_ALLMULTI: ::c_int = 0x200; // receive all multicast packets
+pub const IFF_OACTIVE: ::c_int = 0x400; // transmission in progress
+pub const IFF_SIMPLEX: ::c_int = 0x800; // can't hear own transmissions
+pub const IFF_LINK0: ::c_int = 0x1000; // per link layer defined bit
+pub const IFF_LINK1: ::c_int = 0x2000; // per link layer defined bit
+pub const IFF_LINK2: ::c_int = 0x4000; // per link layer defined bit
+pub const IFF_ALTPHYS: ::c_int = IFF_LINK2; // use alternate physical connection
+pub const IFF_MULTICAST: ::c_int = 0x8000; // supports multicast
+
 pub const IPPROTO_IP: ::c_int = 0;
 pub const IPPROTO_UDP: ::c_int = 17;
 pub const IPPROTO_TCP: ::c_int = 6;
@@ -659,6 +728,9 @@ cfg_if! {
     if #[cfg(target_arch = "arm")] {
         mod arm;
         pub use self::arm::*;
+    } else if #[cfg(target_arch = "aarch64")] {
+        mod aarch64;
+        pub use self::aarch64::*;
     } else {
         // Only tested on ARM so far. Other platforms might have different
         // definitions for types and constants.

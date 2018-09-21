@@ -80,7 +80,7 @@ macro_rules! link {
         }
 
         $(
-            #[cfg_attr(feature="clippy", allow(too_many_arguments))]
+            #[cfg_attr(feature="cargo-clippy", allow(too_many_arguments))]
             $(#[cfg($cfg)])*
             pub unsafe fn $name($($pname: $pty), *) $(-> $ret)* {
                 let f = with_library(|l| {
@@ -118,8 +118,8 @@ macro_rules! link {
             mod build;
 
             let file = try!(build::find_shared_library());
-            let library = libloading::Library::new(&file).map_err(|_| {
-                format!("the `libclang` shared library could not be opened: {}", file.display())
+            let library = libloading::Library::new(&file).map_err(|e| {
+                format!("the `libclang` shared library at {} could not be opened: {}", file.display(), e)
             });
             let mut library = SharedLibrary::new(try!(library));
             $(load::$name(&mut library);)+

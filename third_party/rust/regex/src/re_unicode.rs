@@ -22,8 +22,7 @@ use error::Error;
 use exec::{Exec, ExecNoSyncStr};
 use expand::expand_str;
 use re_builder::unicode::RegexBuilder;
-use re_plugin::Plugin;
-use re_trait::{self, RegularExpression, Locations, SubCapturesPosIter};
+use re_trait::{self, RegularExpression, SubCapturesPosIter};
 
 /// Escapes all regular expression meta characters in `text`.
 ///
@@ -70,6 +69,12 @@ impl<'t> Match<'t> {
             start: start,
             end: end,
         }
+    }
+}
+
+impl<'t> From<Match<'t>> for &'t str {
+    fn from(m: Match<'t>) -> &'t str {
+        m.as_str()
     }
 }
 
@@ -129,21 +134,7 @@ impl<'t> Match<'t> {
 /// assert_eq!(haystack.split(&re).collect::<Vec<_>>(), vec!["a", "b", "c"]);
 /// ```
 #[derive(Clone)]
-pub struct Regex(#[doc(hidden)] pub _Regex);
-
-#[derive(Clone)]
-#[doc(hidden)]
-pub enum _Regex {
-    // The representation of `Regex` is exported to support the `regex!`
-    // syntax extension. Do not rely on it.
-    //
-    // See the comments for the `internal` module in `lib.rs` for a more
-    // detailed explanation for what `regex!` requires.
-    #[doc(hidden)]
-    Dynamic(Exec),
-    #[doc(hidden)]
-    Plugin(Plugin),
-}
+pub struct Regex(Exec);
 
 impl fmt::Display for Regex {
     /// Shows the original regular expression.
@@ -162,7 +153,7 @@ impl fmt::Debug for Regex {
 #[doc(hidden)]
 impl From<Exec> for Regex {
     fn from(exec: Exec) -> Regex {
-        Regex(_Regex::Dynamic(exec))
+        Regex(exec)
     }
 }
 
@@ -251,16 +242,7 @@ impl Regex {
     /// # }
     /// ```
     pub fn find_iter<'r, 't>(&'r self, text: &'t str) -> Matches<'r, 't> {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => {
-                let it = exec.searcher_str().find_iter(text);
-                Matches(MatchesInner::Dynamic(it))
-            }
-            _Regex::Plugin(ref plug) => {
-                let it = plug.find_iter(text);
-                Matches(MatchesInner::Plugin(it))
-            }
-        }
+        Matches(self.0.searcher_str().find_iter(text))
     }
 
     /// Returns the capture groups corresponding to the leftmost-first
@@ -307,8 +289,8 @@ impl Regex {
     ///                .unwrap();
     /// let text = "Not my favorite movie: 'Citizen Kane' (1941).";
     /// let caps = re.captures(text).unwrap();
-    /// assert_eq!(&caps["title"], "Citizen Kane");
-    /// assert_eq!(&caps["year"], "1941");
+    /// assert_eq!(caps.name("title").unwrap().as_str(), "Citizen Kane");
+    /// assert_eq!(caps.name("year").unwrap().as_str(), "1941");
     /// assert_eq!(caps.get(0).unwrap().as_str(), "'Citizen Kane' (1941)");
     /// // You can also access the groups by name using the Index notation.
     /// // Note that this will panic on an invalid group name.
@@ -325,13 +307,13 @@ impl Regex {
     /// with a `usize`.
     ///
     /// The `0`th capture group is always unnamed, so it must always be
-    /// accessed with `at(0)` or `[0]`.
+    /// accessed with `get(0)` or `[0]`.
     pub fn captures<'t>(&self, text: &'t str) -> Option<Captures<'t>> {
-        let mut locs = self.locations();
-        self.read_captures_at(&mut locs, text, 0).map(|_| Captures {
+        let mut locs = self.capture_locations();
+        self.captures_read_at(&mut locs, text, 0).map(move |_| Captures {
             text: text,
-            locs: locs,
-            named_groups: NamedGroups::from_regex(self)
+            locs: locs.0,
+            named_groups: self.0.capture_name_idx().clone(),
         })
     }
 
@@ -364,16 +346,7 @@ impl Regex {
         &'r self,
         text: &'t str,
     ) -> CaptureMatches<'r, 't> {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => {
-                let it = exec.searcher_str().captures_iter(text);
-                CaptureMatches(CaptureMatchesInner::Dynamic(it))
-            }
-            _Regex::Plugin(ref plug) => {
-                let it = plug.captures_iter(text);
-                CaptureMatches(CaptureMatchesInner::Plugin(it))
-            }
-        }
+        CaptureMatches(self.0.searcher_str().captures_iter(text))
     }
 
     /// Returns an iterator of substrings of `text` delimited by a match of the
@@ -577,18 +550,19 @@ impl Regex {
         //      replacements inside the replacement string. We just push it
         //      at each match and be done with it.
         if let Some(rep) = rep.no_expansion() {
+            let mut it = self.find_iter(text).enumerate().peekable();
+            if it.peek().is_none() {
+                return Cow::Borrowed(text);
+            }
             let mut new = String::with_capacity(text.len());
             let mut last_match = 0;
-            for (i, m) in self.find_iter(text).enumerate() {
+            for (i, m) in it {
                 if limit > 0 && i >= limit {
                     break
                 }
                 new.push_str(&text[last_match..m.start()]);
                 new.push_str(&rep);
                 last_match = m.end();
-            }
-            if last_match == 0 {
-                return Cow::Borrowed(text);
             }
             new.push_str(&text[last_match..]);
             return Cow::Owned(new);
@@ -650,18 +624,12 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
     pub fn shortest_match_at(
         &self,
         text: &str,
         start: usize,
     ) -> Option<usize> {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => {
-                exec.searcher_str().shortest_match_at(text, start)
-            }
-            _Regex::Plugin(ref plug) => plug.shortest_match_at(text, start),
-        }
+        self.0.searcher_str().shortest_match_at(text, start)
     }
 
     /// Returns the same as is_match, but starts the search at the given
@@ -670,7 +638,6 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
     pub fn is_match_at(&self, text: &str, start: usize) -> bool {
         self.shortest_match_at(text, start).is_some()
     }
@@ -681,22 +648,32 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
     pub fn find_at<'t>(
         &self,
         text: &'t str,
         start: usize,
     ) -> Option<Match<'t>> {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => {
-                exec.searcher_str().find_at(text, start).map(|(s, e)| {
-                    Match::new(text, s, e)
-                })
-            }
-            _Regex::Plugin(ref plug) => {
-                plug.find_at(text, start).map(|(s, e)| Match::new(text, s, e))
-            }
-        }
+        self.0.searcher_str().find_at(text, start).map(|(s, e)| {
+            Match::new(text, s, e)
+        })
+    }
+
+    /// This is like `captures`, but uses
+    /// [`CaptureLocations`](struct.CaptureLocations.html)
+    /// instead of
+    /// [`Captures`](struct.Captures.html) in order to amortize allocations.
+    ///
+    /// To create a `CaptureLocations` value, use the
+    /// `Regex::capture_locations` method.
+    ///
+    /// This returns the overall match if this was successful, which is always
+    /// equivalence to the `0`th capture group.
+    pub fn captures_read<'t>(
+        &self,
+        locs: &mut CaptureLocations,
+        text: &'t str,
+    ) -> Option<Match<'t>> {
+        self.captures_read_at(locs, text, 0)
     }
 
     /// Returns the same as captures, but starts the search at the given
@@ -705,23 +682,31 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
-    pub fn read_captures_at<'t>(
+    pub fn captures_read_at<'t>(
         &self,
-        locs: &mut Locations,
+        locs: &mut CaptureLocations,
         text: &'t str,
         start: usize,
     ) -> Option<Match<'t>> {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => {
-                exec.searcher_str().read_captures_at(locs, text, start)
-                    .map(|(s, e)| Match::new(text, s, e))
-            }
-            _Regex::Plugin(ref plug) => {
-                plug.read_captures_at(locs, text, start)
-                    .map(|(s, e)| Match::new(text, s, e))
-            }
-        }
+        self.0
+            .searcher_str()
+            .captures_read_at(&mut locs.0, text, start)
+            .map(|(s, e)| Match::new(text, s, e))
+    }
+
+    /// An undocumented alias for `captures_read_at`.
+    ///
+    /// The `regex-capi` crate previously used this routine, so to avoid
+    /// breaking that crate, we continue to provide the name as an undocumented
+    /// alias.
+    #[doc(hidden)]
+    pub fn read_captures_at<'t>(
+        &self,
+        locs: &mut CaptureLocations,
+        text: &'t str,
+        start: usize,
+    ) -> Option<Match<'t>> {
+        self.captures_read_at(locs, text, start)
     }
 }
 
@@ -729,40 +714,32 @@ impl Regex {
 impl Regex {
     /// Returns the original string of this regex.
     pub fn as_str(&self) -> &str {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => &exec.regex_strings()[0],
-            _Regex::Plugin(ref plug) => &plug.original,
-        }
+        &self.0.regex_strings()[0]
     }
 
     /// Returns an iterator over the capture names.
     pub fn capture_names(&self) -> CaptureNames {
-        CaptureNames(match self.0 {
-            _Regex::Plugin(ref n) => _CaptureNames::Plugin(n.names.iter()),
-            _Regex::Dynamic(ref d) => {
-                _CaptureNames::Dynamic(d.capture_names().iter())
-            }
-        })
+        CaptureNames(self.0.capture_names().iter())
     }
 
     /// Returns the number of captures.
     pub fn captures_len(&self) -> usize {
-        match self.0 {
-            _Regex::Plugin(ref n) => n.names.len(),
-            _Regex::Dynamic(ref d) => d.capture_names().len()
-        }
+        self.0.capture_names().len()
     }
 
-    /// Returns an empty set of locations that can be reused in multiple calls
-    /// to `read_captures`.
+    /// Returns an empty set of capture locations that can be reused in
+    /// multiple calls to `captures_read` or `captures_read_at`.
+    pub fn capture_locations(&self) -> CaptureLocations {
+        CaptureLocations(self.0.searcher_str().locations())
+    }
+
+    /// An alias for `capture_locations` to preserve backward compatibility.
+    ///
+    /// The `regex-capi` crate uses this method, so to avoid breaking that
+    /// crate, we continue to export it as an undocumented API.
     #[doc(hidden)]
-    pub fn locations(&self) -> Locations {
-        match self.0 {
-            _Regex::Dynamic(ref exec) => {
-                exec.searcher_str().locations()
-            }
-            _Regex::Plugin(ref plug) => plug.locations(),
-        }
+    pub fn locations(&self) -> CaptureLocations {
+        CaptureLocations(self.0.searcher_str().locations())
     }
 }
 
@@ -772,30 +749,20 @@ impl Regex {
 /// whole matched region) is always unnamed.
 ///
 /// `'r` is the lifetime of the compiled regular expression.
-pub struct CaptureNames<'r>(_CaptureNames<'r>);
-
-enum _CaptureNames<'r> {
-    Plugin(::std::slice::Iter<'r, Option<&'static str>>),
-    Dynamic(::std::slice::Iter<'r, Option<String>>)
-}
+pub struct CaptureNames<'r>(::std::slice::Iter<'r, Option<String>>);
 
 impl<'r> Iterator for CaptureNames<'r> {
     type Item = Option<&'r str>;
 
     fn next(&mut self) -> Option<Option<&'r str>> {
-        match self.0 {
-            _CaptureNames::Plugin(ref mut i) => i.next().cloned(),
-            _CaptureNames::Dynamic(ref mut i) => {
-                i.next().as_ref().map(|o| o.as_ref().map(|s| s.as_ref()))
-            }
-        }
+        self.0
+            .next()
+            .as_ref()
+            .map(|slot| slot.as_ref().map(|name| name.as_ref()))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        match self.0 {
-            _CaptureNames::Plugin(ref i)  => i.size_hint(),
-            _CaptureNames::Dynamic(ref i) => i.size_hint(),
-        }
+        self.0.size_hint()
     }
 }
 
@@ -812,7 +779,7 @@ impl<'r, 't> Iterator for Split<'r, 't> {
     type Item = &'t str;
 
     fn next(&mut self) -> Option<&'t str> {
-        let text = self.finder.text();
+        let text = self.finder.0.text();
         match self.finder.next() {
             None => {
                 if self.last >= text.len() {
@@ -852,7 +819,7 @@ impl<'r, 't> Iterator for SplitN<'r, 't> {
         }
         self.n -= 1;
         if self.n == 0 {
-            let text = self.splits.finder.text();
+            let text = self.splits.finder.0.text();
             Some(&text[self.splits.last..])
         } else {
             self.splits.next()
@@ -860,56 +827,60 @@ impl<'r, 't> Iterator for SplitN<'r, 't> {
     }
 }
 
-enum NamedGroups {
-    Plugin(&'static [(&'static str, usize)]),
-    Dynamic(Arc<HashMap<String, usize>>),
-}
+/// CaptureLocations is a low level representation of the raw offsets of each
+/// submatch.
+///
+/// You can think of this as a lower level
+/// [`Captures`](struct.Captures.html), where this type does not support
+/// named capturing groups directly and it does not borrow the text that these
+/// offsets were matched on.
+///
+/// Primarily, this type is useful when using the lower level `Regex` APIs
+/// such as `read_captures`, which permits amortizing the allocation in which
+/// capture match locations are stored.
+///
+/// In order to build a value of this type, you'll need to call the
+/// `capture_locations` method on the `Regex` being used to execute the search.
+/// The value returned can then be reused in subsequent searches.
+#[derive(Clone, Debug)]
+pub struct CaptureLocations(re_trait::Locations);
 
-impl NamedGroups {
-    fn from_regex(regex: &Regex) -> NamedGroups {
-        match regex.0 {
-            _Regex::Plugin(ref plug) => NamedGroups::Plugin(&plug.groups),
-            _Regex::Dynamic(ref exec) => {
-                NamedGroups::Dynamic(exec.capture_name_idx().clone())
-            }
-        }
+/// A type alias for `CaptureLocations` for backwards compatibility.
+///
+/// Previously, we exported `CaptureLocations` as `Locations` in an
+/// undocumented API. To prevent breaking that code (e.g., in `regex-capi`),
+/// we continue re-exporting the same undocumented API.
+#[doc(hidden)]
+pub type Locations = CaptureLocations;
+
+impl CaptureLocations {
+    /// Returns the start and end positions of the Nth capture group. Returns
+    /// `None` if `i` is not a valid capture group or if the capture group did
+    /// not match anything. The positions returned are *always* byte indices
+    /// with respect to the original string matched.
+    #[inline]
+    pub fn get(&self, i: usize) -> Option<(usize, usize)> {
+        self.0.pos(i)
     }
 
-    fn pos(&self, name: &str) -> Option<usize> {
-        match *self {
-            NamedGroups::Plugin(groups) => {
-                groups.binary_search_by(|&(n, _)| n.cmp(name))
-                      .ok().map(|i| groups[i].1)
-            },
-            NamedGroups::Dynamic(ref groups) => {
-                groups.get(name).map(|i| *i)
-            },
-        }
+    /// Returns the total number of capturing groups.
+    ///
+    /// This is always at least `1` since every regex has at least `1`
+    /// capturing group that corresponds to the entire match.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
-    fn iter<'n>(&'n self) -> NamedGroupsIter<'n> {
-        match *self {
-            NamedGroups::Plugin(g) => NamedGroupsIter::Plugin(g.iter()),
-            NamedGroups::Dynamic(ref g) => NamedGroupsIter::Dynamic(g.iter()),
-        }
-    }
-}
-
-enum NamedGroupsIter<'n> {
-    Plugin(::std::slice::Iter<'static, (&'static str, usize)>),
-    Dynamic(::std::collections::hash_map::Iter<'n, String, usize>),
-}
-
-impl<'n> Iterator for NamedGroupsIter<'n> {
-    type Item = (&'n str, usize);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match *self {
-            NamedGroupsIter::Plugin(ref mut it) => it.next().map(|&v| v),
-            NamedGroupsIter::Dynamic(ref mut it) => {
-                it.next().map(|(s, i)| (s.as_ref(), *i))
-            }
-        }
+    /// An alias for the `get` method for backwards compatibility.
+    ///
+    /// Previously, we exported `get` as `pos` in an undocumented API. To
+    /// prevent breaking that code (e.g., in `regex-capi`), we continue
+    /// re-exporting the same undocumented API.
+    #[doc(hidden)]
+    #[inline]
+    pub fn pos(&self, i: usize) -> Option<(usize, usize)> {
+        self.get(i)
     }
 }
 
@@ -926,8 +897,8 @@ impl<'n> Iterator for NamedGroupsIter<'n> {
 /// `'t` is the lifetime of the matched text.
 pub struct Captures<'t> {
     text: &'t str,
-    locs: Locations,
-    named_groups: NamedGroups,
+    locs: re_trait::Locations,
+    named_groups: Arc<HashMap<String, usize>>,
 }
 
 impl<'t> Captures<'t> {
@@ -957,7 +928,7 @@ impl<'t> Captures<'t> {
     /// Returns the match for the capture group named `name`. If `name` isn't a
     /// valid capture group or didn't match anything, then `None` is returned.
     pub fn name(&self, name: &str) -> Option<Match<'t>> {
-        self.named_groups.pos(name).and_then(|i| self.get(i))
+        self.named_groups.get(name).and_then(|&i| self.get(i))
     }
 
     /// An iterator that yields all capturing matches in the order in which
@@ -972,8 +943,8 @@ impl<'t> Captures<'t> {
         }
     }
 
-    /// Expands all instances of `$name` in `text` to the corresponding capture
-    /// group `name`, and writes them to the `dst` buffer given.
+    /// Expands all instances of `$name` in `replacement` to the corresponding
+    /// capture group `name`, and writes them to the `dst` buffer given.
     ///
     /// `name` may be an integer corresponding to the index of the
     /// capture group (counted by order of opening parenthesis where `0` is the
@@ -1014,12 +985,12 @@ impl<'c, 't> fmt::Debug for CapturesDebug<'c, 't> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // We'd like to show something nice here, even if it means an
         // allocation to build a reverse index.
-        let slot_to_name: HashMap<usize, &str> =
+        let slot_to_name: HashMap<&usize, &String> =
             self.0.named_groups.iter().map(|(a, b)| (b, a)).collect();
         let mut map = f.debug_map();
         for (slot, m) in self.0.locs.iter().enumerate() {
             let m = m.map(|(s, e)| &self.0.text[s..e]);
-            if let Some(ref name) = slot_to_name.get(&slot) {
+            if let Some(name) = slot_to_name.get(&slot) {
                 map.entry(&name, &m);
             } else {
                 map.entry(&slot, &m);
@@ -1100,34 +1071,17 @@ impl<'c, 't> Iterator for SubCaptureMatches<'c, 't> {
 ///
 /// `'r` is the lifetime of the compiled regular expression and `'t` is the
 /// lifetime of the matched string.
-pub struct CaptureMatches<'r, 't>(CaptureMatchesInner<'r, 't>);
-
-enum CaptureMatchesInner<'r, 't> {
-    Dynamic(re_trait::CaptureMatches<'t, ExecNoSyncStr<'r>>),
-    Plugin(re_trait::CaptureMatches<'t, Plugin>),
-}
+pub struct CaptureMatches<'r, 't>(re_trait::CaptureMatches<'t, ExecNoSyncStr<'r>>);
 
 impl<'r, 't> Iterator for CaptureMatches<'r, 't> {
     type Item = Captures<'t>;
 
     fn next(&mut self) -> Option<Captures<'t>> {
-        match self.0 {
-            CaptureMatchesInner::Dynamic(ref mut it) => {
-                let named = it.regex().capture_name_idx().clone();
-                it.next().map(|locs| Captures {
-                    text: it.text(),
-                    locs: locs,
-                    named_groups: NamedGroups::Dynamic(named),
-                })
-            }
-            CaptureMatchesInner::Plugin(ref mut it) => {
-                it.next().map(|locs| Captures {
-                    text: it.text(),
-                    locs: locs,
-                    named_groups: NamedGroups::Plugin(it.regex().groups),
-                })
-            }
-        }
+        self.0.next().map(|locs| Captures {
+            text: self.0.text(),
+            locs: locs,
+            named_groups: self.0.regex().capture_name_idx().clone(),
+        })
     }
 }
 
@@ -1138,35 +1092,14 @@ impl<'r, 't> Iterator for CaptureMatches<'r, 't> {
 ///
 /// `'r` is the lifetime of the compiled regular expression and `'t` is the
 /// lifetime of the matched string.
-pub struct Matches<'r, 't>(MatchesInner<'r, 't>);
-
-enum MatchesInner<'r, 't> {
-    Dynamic(re_trait::Matches<'t, ExecNoSyncStr<'r>>),
-    Plugin(re_trait::Matches<'t, Plugin>),
-}
-
-impl<'r, 't> Matches<'r, 't> {
-    fn text(&self) -> &'t str {
-        match self.0 {
-            MatchesInner::Dynamic(ref it) => it.text(),
-            MatchesInner::Plugin(ref it) => it.text(),
-        }
-    }
-}
+pub struct Matches<'r, 't>(re_trait::Matches<'t, ExecNoSyncStr<'r>>);
 
 impl<'r, 't> Iterator for Matches<'r, 't> {
     type Item = Match<'t>;
 
     fn next(&mut self) -> Option<Match<'t>> {
-        let text = self.text();
-        match self.0 {
-            MatchesInner::Dynamic(ref mut it) => {
-                it.next().map(|(s, e)| Match::new(text, s, e))
-            }
-            MatchesInner::Plugin(ref mut it) => {
-                it.next().map(|(s, e)| Match::new(text, s, e))
-            }
-        }
+        let text = self.0.text();
+        self.0.next().map(|(s, e)| Match::new(text, s, e))
     }
 }
 
@@ -1174,7 +1107,8 @@ impl<'r, 't> Iterator for Matches<'r, 't> {
 ///
 /// In general, users of this crate shouldn't need to implement this trait,
 /// since implementations are already provided for `&str` and
-/// `FnMut(&Captures) -> String`, which covers most use cases.
+/// `FnMut(&Captures) -> String` (or any `FnMut(&Captures) -> T`
+/// where `T: AsRef<str>`), which covers most use cases.
 pub trait Replacer {
     /// Appends text to `dst` to replace the current match.
     ///
@@ -1195,6 +1129,46 @@ pub trait Replacer {
     fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, str>> {
         None
     }
+
+    /// Return a `Replacer` that borrows and wraps this `Replacer`.
+    ///
+    /// This is useful when you want to take a generic `Replacer` (which might
+    /// not be cloneable) and use it without consuming it, so it can be used
+    /// more than once.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use regex::{Regex, Replacer};
+    ///
+    /// fn replace_all_twice<R: Replacer>(
+    ///     re: Regex,
+    ///     src: &str,
+    ///     mut rep: R,
+    /// ) -> String {
+    ///     let dst = re.replace_all(src, rep.by_ref());
+    ///     let dst = re.replace_all(&dst, rep.by_ref());
+    ///     dst.into_owned()
+    /// }
+    /// ```
+    fn by_ref<'r>(&'r mut self) -> ReplacerRef<'r, Self> {
+        ReplacerRef(self)
+    }
+}
+
+/// By-reference adaptor for a `Replacer`
+///
+/// Returned by [`Replacer::by_ref`](trait.Replacer.html#method.by_ref).
+#[derive(Debug)]
+pub struct ReplacerRef<'a, R: ?Sized + 'a>(&'a mut R);
+
+impl<'a, R: Replacer + ?Sized + 'a> Replacer for ReplacerRef<'a, R> {
+    fn replace_append(&mut self, caps: &Captures, dst: &mut String) {
+        self.0.replace_append(caps, dst)
+    }
+    fn no_expansion(&mut self) -> Option<Cow<str>> {
+        self.0.no_expansion()
+    }
 }
 
 impl<'a> Replacer for &'a str {
@@ -1202,7 +1176,7 @@ impl<'a> Replacer for &'a str {
         caps.expand(*self, dst);
     }
 
-    fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, str>> {
+    fn no_expansion(&mut self) -> Option<Cow<str>> {
         match memchr(b'$', self.as_bytes()) {
             Some(_) => None,
             None => Some(Cow::Borrowed(*self)),
@@ -1210,13 +1184,13 @@ impl<'a> Replacer for &'a str {
     }
 }
 
-impl<F> Replacer for F where F: FnMut(&Captures) -> String {
+impl<F, T> Replacer for F where F: FnMut(&Captures) -> T, T: AsRef<str> {
     fn replace_append(&mut self, caps: &Captures, dst: &mut String) {
-        dst.push_str(&(*self)(caps));
+        dst.push_str((*self)(caps).as_ref());
     }
 }
 
-/// NoExpand indicates literal string replacement.
+/// `NoExpand` indicates literal string replacement.
 ///
 /// It can be used with `replace` and `replace_all` to do a literal string
 /// replacement without expanding `$name` to their corresponding capture
@@ -1231,7 +1205,7 @@ impl<'t> Replacer for NoExpand<'t> {
         dst.push_str(self.0);
     }
 
-    fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, str>> {
+    fn no_expansion(&mut self) -> Option<Cow<str>> {
         Some(Cow::Borrowed(self.0))
     }
 }

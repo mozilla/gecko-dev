@@ -249,6 +249,7 @@ pub const O_DSYNC: ::c_int = 4096;
 pub const O_FSYNC: ::c_int = 0x101000;
 pub const O_NOATIME: ::c_int = 0o1000000;
 pub const O_PATH: ::c_int = 0o10000000;
+pub const O_TMPFILE: ::c_int = 0o20000000 | O_DIRECTORY;
 
 pub const MAP_GROWSDOWN: ::c_int = 0x0100;
 
@@ -425,6 +426,10 @@ pub const F_GETOWN: ::c_int = 9;
 pub const F_SETOWN: ::c_int = 8;
 pub const F_SETLK: ::c_int = 6;
 pub const F_SETLKW: ::c_int = 7;
+
+pub const F_RDLCK: ::c_int = 0;
+pub const F_WRLCK: ::c_int = 1;
+pub const F_UNLCK: ::c_int = 2;
 
 pub const SFD_NONBLOCK: ::c_int = 0x0800;
 

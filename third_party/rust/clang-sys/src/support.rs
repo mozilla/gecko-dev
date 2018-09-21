@@ -63,12 +63,7 @@ impl Clang {
         let version = parse_version(&path);
         let c_search_paths = parse_search_paths(&path, "c", args);
         let cpp_search_paths = parse_search_paths(&path, "c++", args);
-        Clang {
-            path: path,
-            version: version,
-            c_search_paths: c_search_paths,
-            cpp_search_paths: cpp_search_paths,
-        }
+        Clang { path, version, c_search_paths, cpp_search_paths }
     }
 
     /// Returns a `clang` executable if one can be found.
@@ -148,7 +143,7 @@ fn run(executable: &str, arguments: &[&str]) -> Result<(String, String), String>
         let stdout = String::from_utf8_lossy(&o.stdout).into_owned();
         let stderr = String::from_utf8_lossy(&o.stderr).into_owned();
         (stdout, stderr)
-    }).map_err(|_| format!("could not run executable: `{}`", executable))
+    }).map_err(|e| format!("could not run executable `{}`: {}", executable, e))
 }
 
 /// Runs `clang`, returning the `stdout` and `stderr` output.

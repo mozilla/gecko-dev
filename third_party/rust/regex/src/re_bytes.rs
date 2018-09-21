@@ -21,7 +21,7 @@ use exec::{Exec, ExecNoSync};
 use expand::expand_bytes;
 use error::Error;
 use re_builder::bytes::RegexBuilder;
-use re_trait::{self, RegularExpression, Locations, SubCapturesPosIter};
+use re_trait::{self, RegularExpression, SubCapturesPosIter};
 
 /// Match represents a single match of a regex in a haystack.
 ///
@@ -209,9 +209,9 @@ impl Regex {
     /// let re = Regex::new(r"'([^']+)'\s+\((\d{4})\)").unwrap();
     /// let text = b"Not my favorite movie: 'Citizen Kane' (1941).";
     /// let caps = re.captures(text).unwrap();
-    /// assert_eq!(&caps[1], &b"Citizen Kane"[..]);
-    /// assert_eq!(&caps[2], &b"1941"[..]);
-    /// assert_eq!(&caps[0], &b"'Citizen Kane' (1941)"[..]);
+    /// assert_eq!(caps.get(1).unwrap().as_bytes(), &b"Citizen Kane"[..]);
+    /// assert_eq!(caps.get(2).unwrap().as_bytes(), &b"1941"[..]);
+    /// assert_eq!(caps.get(0).unwrap().as_bytes(), &b"'Citizen Kane' (1941)"[..]);
     /// // You can also access the groups by index using the Index notation.
     /// // Note that this will panic on an invalid index.
     /// assert_eq!(&caps[1], b"Citizen Kane");
@@ -232,9 +232,9 @@ impl Regex {
     ///                .unwrap();
     /// let text = b"Not my favorite movie: 'Citizen Kane' (1941).";
     /// let caps = re.captures(text).unwrap();
-    /// assert_eq!(&caps["title"], &b"Citizen Kane"[..]);
-    /// assert_eq!(&caps["year"], &b"1941"[..]);
-    /// assert_eq!(&caps[0], &b"'Citizen Kane' (1941)"[..]);
+    /// assert_eq!(caps.name("title").unwrap().as_bytes(), b"Citizen Kane");
+    /// assert_eq!(caps.name("year").unwrap().as_bytes(), b"1941");
+    /// assert_eq!(caps.get(0).unwrap().as_bytes(), &b"'Citizen Kane' (1941)"[..]);
     /// // You can also access the groups by name using the Index notation.
     /// // Note that this will panic on an invalid group name.
     /// assert_eq!(&caps["title"], b"Citizen Kane");
@@ -250,12 +250,12 @@ impl Regex {
     /// with a `usize`.
     ///
     /// The `0`th capture group is always unnamed, so it must always be
-    /// accessed with `at(0)` or `[0]`.
+    /// accessed with `get(0)` or `[0]`.
     pub fn captures<'t>(&self, text: &'t [u8]) -> Option<Captures<'t>> {
-        let mut locs = self.locations();
-        self.read_captures_at(&mut locs, text, 0).map(|_| Captures {
+        let mut locs = self.capture_locations();
+        self.captures_read_at(&mut locs, text, 0).map(move |_| Captures {
             text: text,
-            locs: locs,
+            locs: locs.0,
             named_groups: self.0.capture_name_idx().clone(),
         })
     }
@@ -494,18 +494,19 @@ impl Regex {
         mut rep: R,
     ) -> Cow<'t, [u8]> {
         if let Some(rep) = rep.no_expansion() {
+            let mut it = self.find_iter(text).enumerate().peekable();
+            if it.peek().is_none() {
+                return Cow::Borrowed(text);
+            }
             let mut new = Vec::with_capacity(text.len());
             let mut last_match = 0;
-            for (i, m) in self.find_iter(text).enumerate() {
+            for (i, m) in it {
                 if limit > 0 && i >= limit {
                     break
                 }
                 new.extend_from_slice(&text[last_match..m.start()]);
                 new.extend_from_slice(&rep);
                 last_match = m.end();
-            }
-            if last_match == 0 {
-                return Cow::Borrowed(text);
             }
             new.extend_from_slice(&text[last_match..]);
             return Cow::Owned(new);
@@ -567,7 +568,6 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
     pub fn shortest_match_at(
         &self,
         text: &[u8],
@@ -582,7 +582,6 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
     pub fn is_match_at(&self, text: &[u8], start: usize) -> bool {
         self.shortest_match_at(text, start).is_some()
     }
@@ -593,7 +592,6 @@ impl Regex {
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
     pub fn find_at<'t>(
         &self,
         text: &'t [u8],
@@ -603,21 +601,55 @@ impl Regex {
             .map(|(s, e)| Match::new(text, s, e))
     }
 
-    /// Returns the same as captures, but starts the search at the given
+    /// This is like `captures`, but uses
+    /// [`CaptureLocations`](struct.CaptureLocations.html)
+    /// instead of
+    /// [`Captures`](struct.Captures.html) in order to amortize allocations.
+    ///
+    /// To create a `CaptureLocations` value, use the
+    /// `Regex::capture_locations` method.
+    ///
+    /// This returns the overall match if this was successful, which is always
+    /// equivalence to the `0`th capture group.
+    pub fn captures_read<'t>(
+        &self,
+        locs: &mut CaptureLocations,
+        text: &'t [u8],
+    ) -> Option<Match<'t>> {
+        self.captures_read_at(locs, text, 0)
+    }
+
+    /// Returns the same as `captures_read`, but starts the search at the given
     /// offset and populates the capture locations given.
     ///
     /// The significance of the starting point is that it takes the surrounding
     /// context into consideration. For example, the `\A` anchor can only
     /// match when `start == 0`.
-    #[doc(hidden)]
-    pub fn read_captures_at<'t>(
+    pub fn captures_read_at<'t>(
         &self,
-        locs: &mut Locations,
+        locs: &mut CaptureLocations,
         text: &'t [u8],
         start: usize,
     ) -> Option<Match<'t>> {
-        self.0.searcher().read_captures_at(locs, text, start)
+        self.0
+            .searcher()
+            .captures_read_at(&mut locs.0, text, start)
             .map(|(s, e)| Match::new(text, s, e))
+    }
+
+    /// An undocumented alias for `captures_read_at`.
+    ///
+    /// The `regex-capi` crate previously used this routine, so to avoid
+    /// breaking that crate, we continue to provide the name as an undocumented
+    /// alias.
+    #[doc(hidden)]
+    pub fn read_captures_at<'t>(
+        &self,
+        locs: &mut CaptureLocations,
+        text: &'t [u8],
+        start: usize,
+    ) -> Option<Match<'t>> {
+        self.captures_read_at(locs, text, start)
     }
 }
 
@@ -638,11 +670,19 @@ impl Regex {
         self.0.capture_names().len()
     }
 
-    /// Returns an empty set of locations that can be reused in multiple calls
-    /// to `read_captures`.
+    /// Returns an empty set of capture locations that can be reused in
+    /// multiple calls to `captures_read` or `captures_read_at`.
+    pub fn capture_locations(&self) -> CaptureLocations {
+        CaptureLocations(self.0.searcher().locations())
+    }
+
+    /// An alias for `capture_locations` to preserve backward compatibility.
+    ///
+    /// The `regex-capi` crate uses this method, so to avoid breaking that
+    /// crate, we continue to export it as an undocumented API.
     #[doc(hidden)]
-    pub fn locations(&self) -> Locations {
-        self.0.searcher().locations()
+    pub fn locations(&self) -> CaptureLocations {
+        CaptureLocations(self.0.searcher().locations())
     }
 }
 
@@ -768,6 +808,63 @@ impl<'r> Iterator for CaptureNames<'r> {
     }
 }
 
+/// CaptureLocations is a low level representation of the raw offsets of each
+/// submatch.
+///
+/// You can think of this as a lower level
+/// [`Captures`](struct.Captures.html), where this type does not support
+/// named capturing groups directly and it does not borrow the text that these
+/// offsets were matched on.
+///
+/// Primarily, this type is useful when using the lower level `Regex` APIs
+/// such as `read_captures`, which permits amortizing the allocation in which
+/// capture match locations are stored.
+///
+/// In order to build a value of this type, you'll need to call the
+/// `capture_locations` method on the `Regex` being used to execute the search.
+/// The value returned can then be reused in subsequent searches.
+#[derive(Clone, Debug)]
+pub struct CaptureLocations(re_trait::Locations);
+
+/// A type alias for `CaptureLocations` for backwards compatibility.
+///
+/// Previously, we exported `CaptureLocations` as `Locations` in an
+/// undocumented API. To prevent breaking that code (e.g., in `regex-capi`),
+/// we continue re-exporting the same undocumented API.
+#[doc(hidden)]
+pub type Locations = CaptureLocations;
+
+impl CaptureLocations {
+    /// Returns the start and end positions of the Nth capture group. Returns
+    /// `None` if `i` is not a valid capture group or if the capture group did
+    /// not match anything. The positions returned are *always* byte indices
+    /// with respect to the original string matched.
+    #[inline]
+    pub fn get(&self, i: usize) -> Option<(usize, usize)> {
+        self.0.pos(i)
+    }
+
+    /// Returns the total number of capturing groups.
+    ///
+    /// This is always at least `1` since every regex has at least `1`
+    /// capturing group that corresponds to the entire match.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// An alias for the `get` method for backwards compatibility.
+    ///
+    /// Previously, we exported `get` as `pos` in an undocumented API. To
+    /// prevent breaking that code (e.g., in `regex-capi`), we continue
+    /// re-exporting the same undocumented API.
+    #[doc(hidden)]
+    #[inline]
+    pub fn pos(&self, i: usize) -> Option<(usize, usize)> {
+        self.get(i)
+    }
+}
+
 /// Captures represents a group of captured byte strings for a single match.
 ///
 /// The 0th capture always corresponds to the entire match. Each subsequent
@@ -781,7 +878,7 @@ impl<'r> Iterator for CaptureNames<'r> {
 /// `'t` is the lifetime of the matched text.
 pub struct Captures<'t> {
     text: &'t [u8],
-    locs: Locations,
+    locs: re_trait::Locations,
     named_groups: Arc<HashMap<String, usize>>,
 }
 
@@ -827,8 +924,8 @@ impl<'t> Captures<'t> {
         }
     }
 
-    /// Expands all instances of `$name` in `text` to the corresponding capture
-    /// group `name`, and writes them to the `dst` buffer given.
+    /// Expands all instances of `$name` in `replacement` to the corresponding
+    /// capture group `name`, and writes them to the `dst` buffer given.
     ///
     /// `name` may be an integer corresponding to the index of the
     /// capture group (counted by order of opening parenthesis where `0` is the
@@ -889,7 +986,7 @@ impl<'c, 't> fmt::Debug for CapturesDebug<'c, 't> {
         let mut map = f.debug_map();
         for (slot, m) in self.0.locs.iter().enumerate() {
             let m = m.map(|(s, e)| escape_bytes(&self.0.text[s..e]));
-            if let Some(ref name) = slot_to_name.get(&slot) {
+            if let Some(name) = slot_to_name.get(&slot) {
                 map.entry(&name, &m);
             } else {
                 map.entry(&slot, &m);
@@ -968,7 +1065,8 @@ impl<'c, 't> Iterator for SubCaptureMatches<'c, 't> {
 ///
 /// In general, users of this crate shouldn't need to implement this trait,
 /// since implementations are already provided for `&[u8]` and
-/// `FnMut(&Captures) -> Vec<u8>`, which covers most use cases.
+/// `FnMut(&Captures) -> Vec<u8>` (or any `FnMut(&Captures) -> T`
+/// where `T: AsRef<[u8]>`), which covers most use cases.
 pub trait Replacer {
     /// Appends text to `dst` to replace the current match.
     ///
@@ -989,6 +1087,46 @@ pub trait Replacer {
     fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, [u8]>> {
         None
     }
+
+    /// Return a `Replacer` that borrows and wraps this `Replacer`.
+    ///
+    /// This is useful when you want to take a generic `Replacer` (which might
+    /// not be cloneable) and use it without consuming it, so it can be used
+    /// more than once.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use regex::bytes::{Regex, Replacer};
+    ///
+    /// fn replace_all_twice<R: Replacer>(
+    ///     re: Regex,
+    ///     src: &[u8],
+    ///     mut rep: R,
+    /// ) -> Vec<u8> {
+    ///     let dst = re.replace_all(src, rep.by_ref());
+    ///     let dst = re.replace_all(&dst, rep.by_ref());
+    ///     dst.into_owned()
+    /// }
+    /// ```
+    fn by_ref<'r>(&'r mut self) -> ReplacerRef<'r, Self> {
+        ReplacerRef(self)
+    }
+}
+
+/// By-reference adaptor for a `Replacer`
+///
+/// Returned by [`Replacer::by_ref`](trait.Replacer.html#method.by_ref).
+#[derive(Debug)]
+pub struct ReplacerRef<'a, R: ?Sized + 'a>(&'a mut R);
+
+impl<'a, R: Replacer + ?Sized + 'a> Replacer for ReplacerRef<'a, R> {
+    fn replace_append(&mut self, caps: &Captures, dst: &mut Vec<u8>) {
+        self.0.replace_append(caps, dst)
+    }
+    fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, [u8]>> {
+        self.0.no_expansion()
+    }
 }
 
 impl<'a> Replacer for &'a [u8] {
@@ -996,7 +1134,7 @@ impl<'a> Replacer for &'a [u8] {
         caps.expand(*self, dst);
     }
 
-    fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, [u8]>> {
+    fn no_expansion(&mut self) -> Option<Cow<[u8]>> {
         match memchr(b'$', *self) {
             Some(_) => None,
             None => Some(Cow::Borrowed(*self)),
@@ -1004,13 +1142,13 @@ impl<'a> Replacer for &'a [u8] {
     }
 }
 
-impl<F> Replacer for F where F: FnMut(&Captures) -> Vec<u8> {
+impl<F, T> Replacer for F where F: FnMut(&Captures) -> T, T: AsRef<[u8]> {
     fn replace_append(&mut self, caps: &Captures, dst: &mut Vec<u8>) {
-        dst.extend_from_slice(&(*self)(caps));
+        dst.extend_from_slice((*self)(caps).as_ref());
     }
 }
 
-/// NoExpand indicates literal byte string replacement.
+/// `NoExpand` indicates literal byte string replacement.
 ///
 /// It can be used with `replace` and `replace_all` to do a literal byte string
 /// replacement without expanding `$name` to their corresponding capture
@@ -1025,7 +1163,7 @@ impl<'t> Replacer for NoExpand<'t> {
         dst.extend_from_slice(self.0);
     }
 
-    fn no_expansion<'r>(&'r mut self) -> Option<Cow<'r, [u8]>> {
+    fn no_expansion(&mut self) -> Option<Cow<[u8]>> {
         Some(Cow::Borrowed(self.0))
     }
 }

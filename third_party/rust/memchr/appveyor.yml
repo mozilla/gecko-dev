@@ -10,10 +10,11 @@ install:
   - SET PATH=%PATH%;C:\MinGW\bin
   - rustc -V
   - cargo -V
-
 build: false
-
 test_script:
   - cargo build --verbose
   - cargo test --verbose
   - cargo bench --verbose
+branches:
+  only:
+    - master

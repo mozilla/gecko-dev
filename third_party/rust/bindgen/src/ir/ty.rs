@@ -16,7 +16,6 @@ use clang::{self, Cursor};
 use parse::{ClangItemParser, ParseError, ParseResult};
 use std::borrow::Cow;
 use std::io;
-use std::mem;
 
 /// The base representation of a type in bindgen.
 ///
@@ -232,8 +231,6 @@ impl Type {
 
     /// What is the layout of this type?
     pub fn layout(&self, ctx: &BindgenContext) -> Option<Layout> {
-        use std::mem;
-
         self.layout.or_else(|| {
             match self.kind {
                 TypeKind::Comp(ref ci) => ci.layout(ctx),
@@ -242,8 +239,8 @@ impl Type {
                 TypeKind::Pointer(..) |
                 TypeKind::BlockPointer => {
                     Some(Layout::new(
-                        mem::size_of::<*mut ()>(),
-                        mem::align_of::<*mut ()>(),
+                        ctx.target_pointer_size(),
+                        ctx.target_pointer_size(),
                     ))
                 }
                 TypeKind::ResolvedTypeRef(inner) => {
@@ -423,20 +420,20 @@ impl DotAttributes for Type {
         W: io::Write,
     {
         if let Some(ref layout) = self.layout {
-            try!(writeln!(
+            writeln!(
                 out,
                 "<tr><td>size</td><td>{}</td></tr>
                            <tr><td>align</td><td>{}</td></tr>",
                 layout.size,
                 layout.align
-            ));
+            )?;
             if layout.packed {
-                try!(writeln!(out, "<tr><td>packed</td><td>true</td></tr>"));
+                writeln!(out, "<tr><td>packed</td><td>true</td></tr>")?;
             }
         }
 
         if self.is_const {
-            try!(writeln!(out, "<tr><td>const</td><td>true</td></tr>"));
+            writeln!(out, "<tr><td>const</td><td>true</td></tr>")?;
         }
 
         self.kind.dot_attributes(ctx, out)
@@ -543,7 +540,7 @@ impl TemplateParameters for Type {
     fn self_template_params(
         &self,
         ctx: &BindgenContext,
-    ) -> Option<Vec<TypeId>> {
+    ) -> Vec<TypeId> {
         self.kind.self_template_params(ctx)
     }
 }
@@ -552,13 +549,13 @@ impl TemplateParameters for TypeKind {
     fn self_template_params(
         &self,
         ctx: &BindgenContext,
-    ) -> Option<Vec<TypeId>> {
+    ) -> Vec<TypeId> {
         match *self {
             TypeKind::ResolvedTypeRef(id) => {
                 ctx.resolve_type(id).self_template_params(ctx)
             }
             TypeKind::Comp(ref comp) => comp.self_template_params(ctx),
-            TypeKind::TemplateAlias(_, ref args) => Some(args.clone()),
+            TypeKind::TemplateAlias(_, ref args) => args.clone(),
 
             TypeKind::Opaque |
             TypeKind::TemplateInstantiation(..) |
@@ -578,7 +575,7 @@ impl TemplateParameters for TypeKind {
             TypeKind::Alias(_) |
             TypeKind::ObjCId |
             TypeKind::ObjCSel |
-            TypeKind::ObjCInterface(_) => None,
+            TypeKind::ObjCInterface(_) => vec![],
         }
     }
 }
@@ -594,17 +591,6 @@ pub enum FloatKind {
     LongDouble,
     /// A `__float128`.
     Float128,
-}
-
-impl FloatKind {
-    /// If this type has a known size, return it (in bytes).
-    pub fn known_size(&self) -> usize {
-        match *self {
-            FloatKind::Float => mem::size_of::<f32>(),
-            FloatKind::Double | FloatKind::LongDouble => mem::size_of::<f64>(),
-            FloatKind::Float128 => mem::size_of::<f64>() * 2,
-        }
-    }
 }
 
 /// The different kinds of types that we can parse.
@@ -818,7 +804,7 @@ impl Type {
                     // trying to see if it has a valid return type.
                     if ty.ret_type().is_some() {
                         let signature =
-                            try!(FunctionSig::from_ty(ty, &location, ctx));
+                            FunctionSig::from_ty(ty, &location, ctx)?;
                         TypeKind::Function(signature)
                     // Same here, with template specialisations we can safely
                     // assume this is a Comp(..)
@@ -1122,7 +1108,7 @@ impl Type {
                 CXType_FunctionNoProto |
                 CXType_FunctionProto => {
                     let signature =
-                        try!(FunctionSig::from_ty(ty, &location, ctx));
+                        FunctionSig::from_ty(ty, &location, ctx)?;
                     TypeKind::Function(signature)
                 }
                 CXType_Typedef => {
@@ -1208,6 +1194,7 @@ impl Type {
         };
 
         let name = if name.is_empty() { None } else { Some(name) };
+
         let is_const = ty.is_const();
 
         let ty = Type::new(name, layout, kind, is_const);

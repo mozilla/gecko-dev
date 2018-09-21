@@ -46,6 +46,13 @@ s! {
         pub ifi_reserved1: u32,
         pub ifi_reserved2: u32,
     }
+
+    pub struct bpf_hdr {
+        pub bh_tstamp: ::timeval32,
+        pub bh_caplen: ::uint32_t,
+        pub bh_datalen: ::uint32_t,
+        pub bh_hdrlen: ::c_ushort,
+    }
 }
 
 pub const __PTHREAD_MUTEX_SIZE__: usize = 56;
@@ -56,5 +63,3 @@ pub const __PTHREAD_RWLOCKATTR_SIZE__: usize = 16;
 
 pub const TIOCTIMESTAMP: ::c_ulong = 0x40107459;
 pub const TIOCDCDTIMESTAMP: ::c_ulong = 0x40107458;
-
-pub const FIONREAD: ::c_ulong = 0x4004667f;

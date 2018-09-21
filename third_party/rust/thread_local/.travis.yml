@@ -5,7 +5,7 @@ rust:
 - nightly
 - beta
 - stable
-- 1.9.0
+- 1.21.0
 
 before_script:
 - |

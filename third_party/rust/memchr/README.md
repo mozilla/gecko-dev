@@ -20,7 +20,7 @@ memchr links to the standard library by default, but you can disable the
 
 ```toml
 [dependencies]
-memchr = { version = "1.0", default-features = false }
+memchr = { version = "2", default-features = false }
 ```
 
 ### Performance

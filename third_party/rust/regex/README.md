@@ -11,16 +11,17 @@ by [RE2](https://github.com/google/re2).
 [![Build status](https://ci.appveyor.com/api/projects/status/github/rust-lang/regex?svg=true)](https://ci.appveyor.com/project/rust-lang-libs/regex)
 [![Coverage Status](https://coveralls.io/repos/github/rust-lang/regex/badge.svg?branch=master)](https://coveralls.io/github/rust-lang/regex?branch=master)
 [![](http://meritbadge.herokuapp.com/regex)](https://crates.io/crates/regex)
+[![Rust](https://img.shields.io/badge/rust-1.20%2B-blue.svg?maxAge=3600)](https://github.com/rust-lang/regex)
 
 ### Documentation
 
-[Module documentation with examples](https://doc.rust-lang.org/regex).
-The module documentation also include a comprehensive description of the syntax
-supported.
+[Module documentation with examples](https://docs.rs/regex).
+The module documentation also includes a comprehensive description of the
+syntax supported.
 
 Documentation with examples for the various matching functions and iterators
 can be found on the
-[`Regex` type](https://doc.rust-lang.org/regex/regex/struct.Regex.html).
+[`Regex` type](https://docs.rs/regex/*/regex/struct.Regex.html).
 
 ### Usage
 
@@ -28,7 +29,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-regex = "0.2"
+regex = "1"
 ```
 
 and this to your crate root:
@@ -188,53 +189,46 @@ assert!(!matches.matched(5));
 assert!(matches.matched(6));
 ```
 
-### Usage: `regex!` compiler plugin
+### Usage: enable SIMD optimizations
 
-**WARNING**: The `regex!` compiler plugin is orders of magnitude slower than
-the normal `Regex::new(...)` usage. You should not use the compiler plugin
-unless you have a very special reason for doing so. The performance difference
-may be the temporary, but the path forward at this point isn't clear.
-
-The `regex!` compiler plugin will compile your regexes at compile time. **This
-only works with a nightly compiler.**
-
-Here is a small example:
-
-```rust
-#![feature(plugin)]
-
-#![plugin(regex_macros)]
-extern crate regex;
-
-fn main() {
-    let re = regex!(r"(\d{4})-(\d{2})-(\d{2})");
-    let caps = re.captures("2010-03-14").unwrap();
-
-    assert_eq!("2010", caps[1]);
-    assert_eq!("03", caps[2]);
-    assert_eq!("14", caps[3]);
-}
-```
-
-Notice that we never `unwrap` the result of `regex!`. This is because your
-*program* won't compile if the regex doesn't compile. (Try `regex!("(")`.)
+SIMD optimizations are enabled automatically on Rust stable 1.27 and newer.
+For nightly versions of Rust, this requires a recent version with the SIMD
+features stabilized.
 
 
 ### Usage: a regular expression parser
 
 This repository contains a crate that provides a well tested regular expression
-parser and abstract syntax. It provides no facilities for compilation or
-execution. This may be useful if you're implementing your own regex engine or
-otherwise need to do analysis on the syntax of a regular expression. It is
-otherwise not recommended for general use.
+parser, abstract syntax and a high-level intermediate representation for
+convenient analysis. It provides no facilities for compilation or execution.
+This may be useful if you're implementing your own regex engine or otherwise
+need to do analysis on the syntax of a regular expression. It is otherwise not
+recommended for general use.
 
-[Documentation for `regex-syntax` with
-examples](https://doc.rust-lang.org/regex/regex_syntax/index.html).
+[Documentation `regex-syntax`.](https://docs.rs/regex-syntax)
 
-# License
 
-`regex` is primarily distributed under the terms of both the MIT license and
-the Apache License (Version 2.0), with portions covered by various BSD-like
-licenses.
+### Minimum Rust version policy
 
-See LICENSE-APACHE, and LICENSE-MIT for details.
+This crate's minimum supported `rustc` version is `1.20.0`.
+
+The current **tentative** policy is that the minimum Rust version required
+to use this crate can be increased in minor version updates. For example, if
+regex 1.0 requires Rust 1.20.0, then regex 1.0.z for all values of `z` will
+also require Rust 1.20.0 or newer. However, regex 1.y for `y > 0` may require a
+newer minimum version of Rust.
+
+In general, this crate will be conservative with respect to the minimum
+supported version of Rust.
+
+
+### License
+
+This project is licensed under either of
+
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+   http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+   http://opensource.org/licenses/MIT)
+
+at your option.
