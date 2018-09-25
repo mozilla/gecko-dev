@@ -27,6 +27,7 @@ flake8:
         - testing/mozharness/configs
         - testing/mozharness/mozfile
         - testing/mozharness/mozharness/mozilla/mar.py
+        - testing/mozharness/mozharness/mozilla/tooltool.py
         - testing/mozharness/mozinfo
         - testing/mozharness/scripts
         - testing/remotecppunittests.py
