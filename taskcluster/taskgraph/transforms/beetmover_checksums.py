@@ -14,16 +14,12 @@ from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope,
                                          get_worker_type_for_scope)
+from voluptuous import Optional, Required
 from taskgraph.transforms.task import task_description_schema
-from voluptuous import Any, Required, Optional
 
 # Voluptuous uses marker objects as dictionary *keys*, but they are not
 # comparable, so we cast all of the keys back to regular strings
 task_description_schema = {str(k): v for k, v in task_description_schema.schema.iteritems()}
-
-taskref_or_string = Any(
-    basestring,
-    {Required('task-reference'): basestring})
 
 beetmover_checksums_description_schema = schema.extend({
     Required('depname', default='build'): basestring,

@@ -7,16 +7,15 @@ Transform the beetmover task into an actual task description.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from voluptuous import Optional, Required
 from taskgraph.loader.single_dep import schema
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.transforms.task import task_description_schema
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope,
                                          get_worker_type_for_scope)
 from taskgraph.util.taskcluster import get_artifact_prefix
-from taskgraph.transforms.task import task_description_schema
-from voluptuous import Any, Required, Optional
-
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
 # need to be transfered to S3, please be aware you also need to follow-up
@@ -111,11 +110,6 @@ UPSTREAM_SOURCE_ARTIFACTS = [
 task_description_schema = {str(k): v for k, v in task_description_schema.schema.iteritems()}
 
 transforms = TransformSequence()
-
-# shortcut for a string where task references are allowed
-taskref_or_string = Any(
-    basestring,
-    {Required('task-reference'): basestring})
 
 beetmover_description_schema = schema.extend({
     # depname is used in taskref's to identify the taskID of the unsigned things
