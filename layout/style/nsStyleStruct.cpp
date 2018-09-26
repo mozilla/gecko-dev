@@ -3758,13 +3758,6 @@ nsStyleDisplay::FinishStyle(
   if (mShapeOutside.GetType() == StyleShapeSourceType::Image) {
     const UniquePtr<nsStyleImage>& shapeImage = mShapeOutside.GetShapeImage();
     if (shapeImage) {
-      // Bug 1434963: The CORS mode should instead be set when the
-      // ImageValue is created, in both Gecko and Stylo. That will
-      // avoid doing a mutation here.
-      if (shapeImage->GetType() == eStyleImageType_Image) {
-        shapeImage->GetImageRequest()->GetImageValue()->SetCORSMode(
-          CORSMode::CORS_ANONYMOUS);
-      }
       const nsStyleImage* oldShapeImage =
         (aOldStyle &&
          aOldStyle->mShapeOutside.GetType() == StyleShapeSourceType::Image)

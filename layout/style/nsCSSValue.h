@@ -107,16 +107,20 @@ protected:
   // Construct with a base URI; this will create the actual URI lazily from
   // aString and aExtraData.
   URLValueData(const nsAString& aString,
-               already_AddRefed<URLExtraData> aExtraData);
+               already_AddRefed<URLExtraData> aExtraData,
+               CORSMode aCORSMode);
   URLValueData(ServoRawOffsetArc<RustString> aString,
-               already_AddRefed<URLExtraData> aExtraData);
+               already_AddRefed<URLExtraData> aExtraData,
+               CORSMode aCORSMode);
   // Construct with the actual URI.
   URLValueData(already_AddRefed<PtrHolder<nsIURI>> aURI,
                const nsAString& aString,
-               already_AddRefed<URLExtraData> aExtraData);
+               already_AddRefed<URLExtraData> aExtraData,
+               CORSMode aCORSMode);
   URLValueData(already_AddRefed<PtrHolder<nsIURI>> aURI,
                ServoRawOffsetArc<RustString> aString,
-               already_AddRefed<URLExtraData> aExtraData);
+               already_AddRefed<URLExtraData> aExtraData,
+               CORSMode aCORSMode);
 
 public:
   // Returns true iff all fields of the two URLValueData objects are equal.
@@ -205,16 +209,11 @@ protected:
   // confused by the non-standard-layout packing of the variable up into
   // URLValueData.
   bool mLoadedImage = false;
-  CORSMode mCORSMode = CORSMode::CORS_NONE;
+  const CORSMode mCORSMode;
 
   virtual ~URLValueData();
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-
-public:
-  void SetCORSMode(CORSMode aCORSMode) {
-    mCORSMode = aCORSMode;
-  }
 
 private:
   URLValueData(const URLValueData& aOther) = delete;
@@ -234,7 +233,7 @@ struct URLValue final : public URLValueData
   // This constructor is safe to call from any thread.
   URLValue(ServoRawOffsetArc<RustString> aString,
            already_AddRefed<URLExtraData> aExtraData)
-    : URLValueData(aString, Move(aExtraData)) {}
+    : URLValueData(aString, Move(aExtraData), CORSMode::CORS_NONE) {}
 
   URLValue(const URLValue&) = delete;
   URLValue& operator=(const URLValue&) = delete;
