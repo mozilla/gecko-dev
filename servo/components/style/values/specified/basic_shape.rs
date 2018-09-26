@@ -50,18 +50,41 @@ pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 /// The specified value of `Polygon`
 pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
-impl<ReferenceBox, ImageOrUrl> Parse for ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
-where
-    ReferenceBox: Parse,
-    ImageOrUrl: Parse,
-{
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(ShapeSource::None)
+impl Parse for ClippingShape {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+            return Ok(ShapeSource::ImageOrUrl(url));
         }
 
-        if let Ok(image_or_url) = input.try(|i| ImageOrUrl::parse(context, i)) {
-            return Ok(ShapeSource::ImageOrUrl(image_or_url))
+        Self::parse_common(context, input)
+    }
+}
+
+impl Parse for FloatAreaShape {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(image) = input.try(|i| Image::parse_with_cors_anonymous(context, i)) {
+            return Ok(ShapeSource::ImageOrUrl(image));
+        }
+
+        Self::parse_common(context, input)
+    }
+}
+
+impl<ReferenceBox, ImageOrUrl> ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
+where
+    ReferenceBox: Parse,
+{
+    fn parse_common<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(ShapeSource::None)
         }
 
         fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
