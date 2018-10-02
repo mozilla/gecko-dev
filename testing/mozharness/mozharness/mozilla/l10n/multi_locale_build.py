@@ -85,7 +85,6 @@ class MultiLocaleBuild(LocalesMixin, MercurialScript):
 
     # pull_locale_source() defined in LocalesMixin.
 
-
     def add_locales(self):
         dirs = self.query_abs_dirs()
         locales = self.query_locales()
@@ -146,6 +145,7 @@ class MultiLocaleBuild(LocalesMixin, MercurialScript):
 
         """
         return self.run_command(**kwargs)
+
 
 # __main__ {{{1
 if __name__ == '__main__':
