@@ -3650,7 +3650,7 @@ def CreateBindingJSObject(descriptor, properties):
         if descriptor.interface.getExtendedAttribute('OverrideBuiltins'):
             create = dedent(
                 """
-                aObject->mExpandoAndGeneration.expando.setUndefined();
+                MOZ_ASSERT(aObject->mExpandoAndGeneration.expando.isUndefined());
                 JS::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
                 creator.CreateProxyObject(aCx, &sClass.mBase, DOMProxyHandler::getInstance(),
                                           proto, aObject, expandoValue, aReflector);
