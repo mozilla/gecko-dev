@@ -55,7 +55,7 @@ enum QuotedName { eQuotedName, eUnquotedName };
  */
 
 struct FontFamilyName final {
-  FontFamilyName() : mType(eFamily_named) {}
+  FontFamilyName() : mType(eFamily_none) {}
 
   // named font family - e.g. Helvetica
   explicit FontFamilyName(const nsAString& aFamilyName,
