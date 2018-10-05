@@ -267,6 +267,9 @@ static const DllBlockInfo sWindowsDllBlocklist[] = {
   // Old versions of G DATA, bug 1043775
   { "gdkbfltdll64.dll", MAKE_VERSION(1, 0, 14141, 240) },
 
+  // NVIDIA nView Desktop Management causes crashes, bug 1465787
+  { "nviewh64.dll", MAKE_VERSION(6, 14, 10, 14847) },
+
   { nullptr, 0 }
 };
 
