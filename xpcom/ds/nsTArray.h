@@ -393,6 +393,17 @@ protected:
   typename ActualAlloc::ResultTypeProxy EnsureCapacity(size_type aCapacity,
                                                        size_type aElemSize);
 
+  // Extend the storage to accommodate aCount extra elements.
+  // @param aLength The current size of the array.
+  // @param aCount The number of elements to add.
+  // @param aElemSize The size of an array element.
+  // @return False if insufficient memory is available or the new length
+  //   would overflow; true otherwise.
+  template<typename ActualAlloc>
+  typename ActualAlloc::ResultTypeProxy ExtendCapacity(size_type aLength,
+                                                       size_type aCount,
+                                                       size_type aElemSize);
+
   // Tries to resize the storage to the minimum required amount. If this fails,
   // the array is left as-is.
   // @param aElemSize  The size of an array element.
@@ -1683,8 +1694,8 @@ public:
 protected:
   template<typename ActualAlloc = Alloc>
   elem_type* AppendElements(size_type aCount) {
-    if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
-          Length() + aCount, sizeof(elem_type)))) {
+    if (!ActualAlloc::Successful(this->template ExtendCapacity<ActualAlloc>(
+          Length(), aCount, sizeof(elem_type)))) {
       return nullptr;
     }
     elem_type* elems = Elements() + Length();
@@ -2207,6 +2218,7 @@ nsTArray_Impl<E, Alloc>::InsertElementAt(index_type aIndex) -> elem_type*
     InvalidArrayIndex_CRASH(aIndex, Length());
   }
 
+  // Length() + 1 is guaranteed to not overflow, so EnsureCapacity is OK.
   if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
         Length() + 1, sizeof(elem_type)))) {
     return nullptr;
@@ -2227,6 +2239,7 @@ nsTArray_Impl<E, Alloc>::InsertElementAt(index_type aIndex, Item&& aItem) -> ele
     InvalidArrayIndex_CRASH(aIndex, Length());
   }
 
+  // Length() + 1 is guaranteed to not overflow, so EnsureCapacity is OK.
   if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
          Length() + 1, sizeof(elem_type)))) {
     return nullptr;
@@ -2243,8 +2256,8 @@ template<class Item, typename ActualAlloc>
 auto
 nsTArray_Impl<E, Alloc>::AppendElements(const Item* aArray, size_type aArrayLen) -> elem_type*
 {
-  if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
-        Length() + aArrayLen, sizeof(elem_type)))) {
+  if (!ActualAlloc::Successful(this->template ExtendCapacity<ActualAlloc>(
+        Length(), aArrayLen, sizeof(elem_type)))) {
     return nullptr;
   }
   index_type len = Length();
@@ -2266,8 +2279,8 @@ nsTArray_Impl<E, Alloc>::AppendElements(nsTArray_Impl<Item, Allocator>&& aArray)
 
   index_type len = Length();
   index_type otherLen = aArray.Length();
-  if (!Alloc::Successful(this->template EnsureCapacity<Alloc>(
-        len + otherLen, sizeof(elem_type)))) {
+  if (!Alloc::Successful(this->template ExtendCapacity<Alloc>(
+        len, otherLen, sizeof(elem_type)))) {
     return nullptr;
   }
   copy_type::MoveNonOverlappingRegion(Elements() + len, aArray.Elements(), otherLen,
@@ -2283,6 +2296,7 @@ template<class Item, typename ActualAlloc>
 auto
 nsTArray_Impl<E, Alloc>::AppendElement(Item&& aItem) -> elem_type*
 {
+  // Length() + 1 is guaranteed to not overflow, so EnsureCapacity is OK.
   if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
          Length() + 1, sizeof(elem_type)))) {
     return nullptr;
