@@ -97,7 +97,7 @@ android-x86-nightly/opt:
     attributes:
         nightly: true
         enable-full-crashsymbols: true
-    shipping-phase: promote
+    shipping-phase: build
     shipping-product: fennec
     index:
         product: mobile
@@ -243,7 +243,7 @@ android-api-16-nightly/opt:
     attributes:
         nightly: true
         enable-full-crashsymbols: true
-    shipping-phase: promote
+    shipping-phase: build
     shipping-product: fennec
     index:
         product: mobile
@@ -342,7 +342,7 @@ android-aarch64-nightly/opt:
     attributes:
         nightly: true
         enable-full-crashsymbols: true
-    shipping-phase: promote
+    shipping-phase: build
     shipping-product: fennec
     index:
         product: mobile
