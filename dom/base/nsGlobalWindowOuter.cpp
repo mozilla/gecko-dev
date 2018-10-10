@@ -1773,6 +1773,8 @@ nsGlobalWindowOuter::SetNewDocument(nsIDocument* aDocument,
   nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
   NS_ASSERTION(!aState || wsh, "What kind of weird state are you giving me here?");
 
+  bool handleDocumentOpen = false;
+
   JS::Rooted<JSObject*> newInnerGlobal(cx);
   if (reUseInnerWindow) {
     // We're reusing the current inner window.
@@ -1856,6 +1858,7 @@ nsGlobalWindowOuter::SetNewDocument(nsIDocument* aDocument,
 
     if (currentInner && currentInner->GetWrapperPreserveColor()) {
       if (oldDoc == aDocument) {
+        handleDocumentOpen = true;
         // Make a copy of the old window's performance object on document.open.
         // Note that we have to force eager creation of it here, because we need
         // to grab the current document channel and whatnot before that changes.
@@ -1872,7 +1875,7 @@ nsGlobalWindowOuter::SetNewDocument(nsIDocument* aDocument,
       // Don't free objects on our current inner window if it's going to be
       // held in the bfcache.
       if (!currentInner->IsFrozen()) {
-        currentInner->FreeInnerObjects();
+        currentInner->FreeInnerObjects(handleDocumentOpen);
       }
     }
 

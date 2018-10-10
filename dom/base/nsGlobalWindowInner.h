@@ -1090,7 +1090,7 @@ protected:
   virtual ~nsGlobalWindowInner();
   void CleanUp();
 
-  void FreeInnerObjects();
+  void FreeInnerObjects(bool aForDocumentOpen = false);
   nsGlobalWindowInner *CallerInnerWindow();
 
   // Only to be called on an inner window.
