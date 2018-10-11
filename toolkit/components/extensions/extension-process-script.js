@@ -203,16 +203,25 @@ DocumentManager = {
   // Script loading
 
   injectExtensionScripts(extension) {
+    if (!extension.contentScripts.length) {
+      return;
+    }
     for (let window of this.enumerateWindows()) {
       let runAt = {document_start: [], document_end: [], document_idle: []};
 
+      let innerWindowID;
       for (let script of extension.contentScripts) {
         if (script.matchesWindow(window)) {
+          innerWindowID = innerWindowID || getInnerWindowID(window);
           runAt[script.runAt].push(script);
         }
       }
 
-      let inject = matcher => contentScripts.get(matcher).injectInto(window);
+      let inject = matcher => {
+        if (getInnerWindowID(window) === innerWindowID && extension.active) {
+          return contentScripts.get(matcher).injectInto(window);
+        }
+      };
       let injectAll = matchers => Promise.all(matchers.map(inject));
 
       // Intentionally using `.then` instead of `await`, we only need to

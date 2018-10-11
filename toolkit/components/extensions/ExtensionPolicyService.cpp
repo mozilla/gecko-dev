@@ -340,6 +340,11 @@ ExtensionPolicyService::CheckWindow(nsPIDOMWindowOuter* aWindow)
 void
 ExtensionPolicyService::CheckContentScripts(const DocInfo& aDocInfo, bool aIsPreload)
 {
+  nsCOMPtr<nsPIDOMWindowInner> win;
+  if (!aIsPreload) {
+    win = aDocInfo.GetWindow()->GetCurrentInnerWindow();
+  }
+
   for (auto iter = mExtensions.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<WebExtensionPolicy> policy = iter.Data();
 
@@ -348,6 +353,9 @@ ExtensionPolicyService::CheckContentScripts(const DocInfo& aDocInfo, bool aIsPre
         if (aIsPreload) {
           ProcessScript().PreloadContentScript(script);
         } else {
+          if (!win->IsCurrentInnerWindow()) {
+            break;
+          }
           ProcessScript().LoadContentScript(script, aDocInfo.GetWindow());
         }
       }
