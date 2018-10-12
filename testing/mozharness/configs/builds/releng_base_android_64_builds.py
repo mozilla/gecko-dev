@@ -52,7 +52,6 @@ config = {
 
 
     #########################################################################
-    'base_name': 'Android 2.3 %(branch)s',
     'platform': 'android',
     'stage_platform': 'android',
     'enable_max_vsize': False,

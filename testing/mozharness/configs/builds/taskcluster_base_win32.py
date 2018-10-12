@@ -1,7 +1,6 @@
 import os
 
 config = {
-    'base_name': 'WINNT_5.2_%(branch)s',
     'platform': 'win32',
     'env': {
         'BINSCOPE': os.path.join(
