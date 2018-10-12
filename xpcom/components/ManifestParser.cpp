@@ -71,6 +71,7 @@ struct ManifestDirective
   bool isContract;
 };
 static const ManifestDirective kParsingTable[] = {
+  // clang-format off
   {
     "manifest",         1, false, false, true, true, false,
     &nsComponentManagerImpl::ManifestManifest, nullptr,
@@ -125,6 +126,7 @@ static const ManifestDirective kParsingTable[] = {
     "resource",         2, false, true, true, true, true,
     nullptr, &nsChromeRegistry::ManifestResource,
   }
+  // clang-format on
 };
 
 static const char kWhitespace[] = "\t ";

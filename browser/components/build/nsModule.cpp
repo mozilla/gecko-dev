@@ -65,6 +65,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsSessionStoreUtils)
 NS_DEFINE_NAMED_CID(NS_SESSIONSTOREUTILS_CID);
 
 static const mozilla::Module::CIDEntry kBrowserCIDs[] = {
+    // clang-format off
     { &kNS_BROWSERDIRECTORYPROVIDER_CID, false, nullptr, DirectoryProviderConstructor },
 #if defined(XP_WIN)
     { &kNS_SHELLSERVICE_CID, false, nullptr, nsWindowsShellServiceConstructor },
@@ -80,9 +81,11 @@ static const mozilla::Module::CIDEntry kBrowserCIDs[] = {
 #endif
     { &kNS_SESSIONSTOREUTILS_CID, false, nullptr, nsSessionStoreUtilsConstructor },
     { nullptr }
+    // clang-format on
 };
 
 static const mozilla::Module::ContractIDEntry kBrowserContracts[] = {
+    // clang-format off
     { NS_BROWSERDIRECTORYPROVIDER_CONTRACTID, &kNS_BROWSERDIRECTORYPROVIDER_CID },
 #if defined(XP_WIN)
     { NS_SHELLSERVICE_CONTRACTID, &kNS_SHELLSERVICE_CID },
@@ -112,6 +115,7 @@ static const mozilla::Module::ContractIDEntry kBrowserContracts[] = {
     { NS_SHELLSERVICE_CONTRACTID, &kNS_SHELLSERVICE_CID },
 #endif
     { nullptr }
+    // clang-format on
 };
 
 static const mozilla::Module::CategoryEntry kBrowserCategories[] = {

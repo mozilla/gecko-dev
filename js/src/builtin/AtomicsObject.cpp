@@ -970,6 +970,7 @@ js::FutexThread::wake(WakeReason reason)
 }
 
 const JSFunctionSpec AtomicsMethods[] = {
+    // clang-format off
     JS_INLINABLE_FN("compareExchange",    atomics_compareExchange,    4,0, AtomicsCompareExchange),
     JS_INLINABLE_FN("load",               atomics_load,               2,0, AtomicsLoad),
     JS_INLINABLE_FN("store",              atomics_store,              3,0, AtomicsStore),
@@ -983,6 +984,7 @@ const JSFunctionSpec AtomicsMethods[] = {
     JS_FN("wait",                         atomics_wait,               4,0),
     JS_FN("wake",                         atomics_wake,               3,0),
     JS_FS_END
+    // clang-format on
 };
 
 JSObject*

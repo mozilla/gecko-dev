@@ -39,6 +39,7 @@ using namespace mozilla::dom;
 // Thanks to Mark Pilgrim and Sam Ruby for the initial whitelist
 //
 nsStaticAtom** const kElementsHTML[] = {
+  // clang-format off
   &nsGkAtoms::a,
   &nsGkAtoms::abbr,
   &nsGkAtoms::acronym,
@@ -151,9 +152,11 @@ nsStaticAtom** const kElementsHTML[] = {
   &nsGkAtoms::video,
   &nsGkAtoms::wbr,
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kAttributesHTML[] = {
+  // clang-format off
   &nsGkAtoms::abbr,
   &nsGkAtoms::accept,
   &nsGkAtoms::acceptcharset,
@@ -259,9 +262,11 @@ nsStaticAtom** const kAttributesHTML[] = {
   &nsGkAtoms::width,
   &nsGkAtoms::wrap,
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kPresAttributesHTML[] = {
+  // clang-format off
   &nsGkAtoms::align,
   &nsGkAtoms::background,
   &nsGkAtoms::bgcolor,
@@ -278,9 +283,11 @@ nsStaticAtom** const kPresAttributesHTML[] = {
   &nsGkAtoms::valign,
   &nsGkAtoms::vspace,
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kURLAttributesHTML[] = {
+  // clang-format off
   &nsGkAtoms::action,
   &nsGkAtoms::href,
   &nsGkAtoms::src,
@@ -288,9 +295,11 @@ nsStaticAtom** const kURLAttributesHTML[] = {
   &nsGkAtoms::cite,
   &nsGkAtoms::background,
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kElementsSVG[] = {
+  // clang-format off
   &nsGkAtoms::a, // a
   &nsGkAtoms::circle, // circle
   &nsGkAtoms::clipPath, // clipPath
@@ -368,9 +377,11 @@ nsStaticAtom** const kElementsSVG[] = {
   &nsGkAtoms::view, // view
   // vkern
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kAttributesSVG[] = {
+  // clang-format off
   // accent-height
   &nsGkAtoms::accumulate, // accumulate
   &nsGkAtoms::additive, // additive
@@ -601,14 +612,18 @@ nsStaticAtom** const kAttributesSVG[] = {
   &nsGkAtoms::z, // z
   &nsGkAtoms::zoomAndPan, // zoomAndPan
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kURLAttributesSVG[] = {
+  // clang-format off
   &nsGkAtoms::href,
   nullptr
+  // clang-format on
 };
 
 nsStaticAtom** const kElementsMathML[] = {
+   // clang-format off
    &nsGkAtoms::abs_, // abs
    &nsGkAtoms::_and, // and
    &nsGkAtoms::annotation_, // annotation
@@ -804,10 +819,12 @@ nsStaticAtom** const kElementsMathML[] = {
    &nsGkAtoms::vector_, // vector
    &nsGkAtoms::vectorproduct_, // vectorproduct
    &nsGkAtoms::xor_, // xor
-  nullptr
+   nullptr
+   // clang-format on
 };
 
 nsStaticAtom** const kAttributesMathML[] = {
+   // clang-format off
    &nsGkAtoms::accent_, // accent
    &nsGkAtoms::accentunder_, // accentunder
    &nsGkAtoms::actiontype_, // actiontype
@@ -922,16 +939,19 @@ nsStaticAtom** const kAttributesMathML[] = {
    &nsGkAtoms::voffset_, // voffset
    &nsGkAtoms::width, // width
    &nsGkAtoms::xref_, // xref
-  nullptr
+   nullptr
+   // clang-format on
 };
 
 nsStaticAtom** const kURLAttributesMathML[] = {
+  // clang-format off
   &nsGkAtoms::href,
   &nsGkAtoms::src,
   &nsGkAtoms::cdgroup_,
   &nsGkAtoms::altimg_,
   &nsGkAtoms::definitionURL_,
   nullptr
+  // clang-format on
 };
 
 nsTHashtable<nsRefPtrHashKey<nsAtom>>* nsTreeSanitizer::sElementsHTML = nullptr;

@@ -777,6 +777,7 @@ nsEditingCommandTableConstructor(nsISupports *aOuter, REFNSIID aIID,
 }
 
 static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
+  // clang-format off
   XPCONNECT_CIDENTRIES
 #ifdef DEBUG
   { &kNS_LAYOUT_DEBUGGER_CID, false, nullptr, CreateNewLayoutDebugger },
@@ -892,9 +893,11 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kTEXT_INPUT_PROCESSOR_CID, false, nullptr, TextInputProcessorConstructor },
   { &kNS_SCRIPTERROR_CID, false, nullptr, nsScriptErrorConstructor },
   { nullptr }
+  // clang-format on
 };
 
 static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
+  // clang-format off
   XPCONNECT_CONTRACTS
   { "@mozilla.org/layout/xul-boxobject;1", &kNS_BOXOBJECT_CID },
 #ifdef MOZ_XUL
@@ -1025,6 +1028,7 @@ static const mozilla::Module::CategoryEntry kLayoutCategories[] = {
   { "profile-after-change", "PresentationService", PRESENTATION_SERVICE_CONTRACTID },
   { "profile-after-change", "Notification Telemetry Service", NOTIFICATIONTELEMETRYSERVICE_CONTRACTID },
   { nullptr }
+  // clang-format on
 };
 
 static void

@@ -55,6 +55,7 @@ using namespace js::unicode;
  *  stop if you found the best shift
  */
 const CharacterInfo unicode::js_charinfo[] = {
+    // clang-format off
     { 0, 0, 0 },
     { 0, 0, 1 },
     { 0, 0, 4 },
@@ -223,9 +224,11 @@ const CharacterInfo unicode::js_charinfo[] = {
     { 0, 928, 2 },
     { 64608, 0, 2 },
     { 26672, 0, 2 },
+    // clang-format on
 };
 
 const uint8_t unicode::index1[] = {
+    // clang-format off
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,
      18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,
      36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,
@@ -283,9 +286,11 @@ const uint8_t unicode::index1[] = {
      94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,  94,
      94,  94,  94,  94,  94,  94,  26,  26,  26,  26,  26, 162,  26, 163, 164, 165, 166, 167,
      26,  26,  26,  26, 168, 169, 170, 171, 172, 173,  26, 174, 175, 176, 177, 178,
+     // clang-format on
 };
 
 const uint8_t unicode::index2[] = {
+      // clang-format off
       0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   2,   2,   2,   2,   2,   2,
@@ -923,9 +928,11 @@ const uint8_t unicode::index2[] = {
       5,   5,   5,   5,   0,   0,   5,   5,   5,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
+      // clang-format on
 };
 
 const CodepointsWithSameUpperCaseInfo unicode::js_codepoints_with_same_upper_info[] = {
+    // clang-format off
     { 0, 0, 0 },
     { 32, 0, 0 },
     { 32, 232, 0 },
@@ -1060,9 +1067,11 @@ const CodepointsWithSameUpperCaseInfo unicode::js_codepoints_with_same_upper_inf
     { 23254, 0, 0 },
     { 23275, 0, 0 },
     { 928, 0, 0 },
+    // clang-format on
 };
 
 const uint8_t unicode::codepoints_with_same_upper_index1[] = {
+     // clang-format off
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0,   0,   0,  10,  11,  12,  13,  14,
      15,  16,  17,  18,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -1120,9 +1129,11 @@ const uint8_t unicode::codepoints_with_same_upper_index1[] = {
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  44,   0,   0,   0,
+      // clang-format on
 };
 
 const uint8_t unicode::codepoints_with_same_upper_index2[] = {
+      // clang-format off
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -1283,9 +1294,11 @@ const uint8_t unicode::codepoints_with_same_upper_index2[] = {
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
       1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   0,   0,   0,   0,   0,
+      // clang-format on
 };
 
 const FoldingInfo unicode::js_foldinfo[] = {
+    // clang-format off
     { 0, 0, 0, 0 },
     { 32, 0, 0, 0 },
     { 32, 8415, 0, 0 },
@@ -1498,9 +1511,11 @@ const FoldingInfo unicode::js_foldinfo[] = {
     { 928, 0, 0, 0 },
     { 0, 64608, 0, 0 },
     { 26672, 0, 0, 0 },
+    // clang-format on
 };
 
 const uint8_t unicode::folding_index1[] = {
+     // clang-format off
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,   0,   0,  11,  12,  13,  14,  15,
      16,  17,  18,  19,  20,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -1558,9 +1573,11 @@ const uint8_t unicode::folding_index1[] = {
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  50,  51,   0,   0,
+      // clang-format on
 };
 
 const uint8_t unicode::folding_index2[] = {
+      // clang-format off
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -1746,11 +1763,13 @@ const uint8_t unicode::folding_index2[] = {
       4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+      // clang-format off
 };
 
 bool
 js::unicode::IsIdentifierStartNonBMP(uint32_t codePoint)
 {
+    // clang-format off
     if (codePoint >= 0x10000 && codePoint <= 0x1000B) // LINEAR B SYLLABLE B008 A .. LINEAR B SYLLABLE B046 JE
         return true;
     if (codePoint >= 0x1000D && codePoint <= 0x10026) // LINEAR B SYLLABLE B036 JO .. LINEAR B SYLLABLE B032 QO
@@ -2676,6 +2695,7 @@ js::unicode::IsIdentifierPartNonBMP(uint32_t codePoint)
     if (codePoint >= 0xE0100 && codePoint <= 0xE01EF) // VARIATION SELECTOR-17 .. VARIATION SELECTOR-256
         return true;
     return false;
+    // clang-format on
 }
 
 bool
@@ -2736,6 +2756,7 @@ size_t
 js::unicode::LengthUpperCaseSpecialCasing(char16_t ch)
 {
     switch(ch) {
+      // clang-format off
       case 0x00DF: return 2; // LATIN SMALL LETTER SHARP S
       case 0x0149: return 2; // LATIN SMALL LETTER N PRECEDED BY APOSTROPHE (LATIN SMALL LETTER APOSTROPHE N)
       case 0x01F0: return 2; // LATIN SMALL LETTER J WITH CARON (LATIN SMALL LETTER J HACEK)
@@ -2838,6 +2859,7 @@ js::unicode::LengthUpperCaseSpecialCasing(char16_t ch)
       case 0xFB15: return 2; // ARMENIAN SMALL LIGATURE MEN INI
       case 0xFB16: return 2; // ARMENIAN SMALL LIGATURE VEW NOW
       case 0xFB17: return 2; // ARMENIAN SMALL LIGATURE MEN XEH
+      // clang-format on
     }
 
     MOZ_ASSERT_UNREACHABLE("Bad character input.");
@@ -3287,6 +3309,7 @@ js::unicode::AppendUpperCaseSpecialCasing(char16_t ch, char16_t* elements, size_
  * - 97..122: a..z
  */
 const bool unicode::js_isidstart[] = {
+// clang-format off
 /*       0     1     2     3     4     5     6     7     8     9  */
 /*  0 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
 /*  1 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
@@ -3301,6 +3324,7 @@ const bool unicode::js_isidstart[] = {
 /* 10 */ true, true, true, true, true, true, true, true, true, true,
 /* 11 */ true, true, true, true, true, true, true, true, true, true,
 /* 12 */ true, true, true, ____, ____, ____, ____, ____,
+// clang-format on
 };
 
 /*
@@ -3312,6 +3336,7 @@ const bool unicode::js_isidstart[] = {
  * - 97..122: a..z
  */
 const bool unicode::js_isident[] = {
+// clang-format off
 /*       0     1     2     3     4     5     6     7     8     9  */
 /*  0 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
 /*  1 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
@@ -3326,10 +3351,12 @@ const bool unicode::js_isident[] = {
 /* 10 */ true, true, true, true, true, true, true, true, true, true,
 /* 11 */ true, true, true, true, true, true, true, true, true, true,
 /* 12 */ true, true, true, ____, ____, ____, ____, ____,
+// clang-format on
 };
 
 /* Whitespace chars: '\t', '\n', '\v', '\f', '\r', ' '. */
 const bool unicode::js_isspace[] = {
+// clang-format of
 /*       0     1     2     3     4     5     6     7     8     9  */
 /*  0 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, true,
 /*  1 */ true, true, true, true, ____, ____, ____, ____, ____, ____,
@@ -3344,6 +3371,7 @@ const bool unicode::js_isspace[] = {
 /* 10 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
 /* 11 */ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
 /* 12 */ ____, ____, ____, ____, ____, ____, ____, ____,
+// clang-format on
 };
 
 #undef ____

@@ -66,6 +66,7 @@ private:
 nsresult
 NS_NewContentDocumentLoaderFactory(nsIDocumentLoaderFactory** aResult);
 
+// clang-format off
 #ifdef MOZ_WEBM
 #define CONTENTDLF_WEBM_CATEGORIES \
     { "Gecko-Content-Viewers", VIDEO_WEBM, "@mozilla.org/content/document-loader-factory;1" }, \
@@ -99,7 +100,7 @@ NS_NewContentDocumentLoaderFactory(nsIDocumentLoaderFactory** aResult);
     { "Gecko-Content-Viewers", TEXT_VTT, "@mozilla.org/content/document-loader-factory;1" }, \
     { "Gecko-Content-Viewers", APPLICATION_WAPXHTML_XML, "@mozilla.org/content/document-loader-factory;1" }, \
     CONTENTDLF_WEBM_CATEGORIES
-
+// clang-format on
 
 #endif
 

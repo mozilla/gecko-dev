@@ -100,11 +100,14 @@ SVGFEColorMatrixElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
        type == SVG_FECOLORMATRIX_TYPE_SATURATE ||
        type == SVG_FECOLORMATRIX_TYPE_HUE_ROTATE)) {
     descr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_MATRIX);
-    static const float identityMatrix[] =
-      { 1, 0, 0, 0, 0,
+    static const float identityMatrix[] = {
+      // clang-format off
+        1, 0, 0, 0, 0,
         0, 1, 0, 0, 0,
         0, 0, 1, 0, 0,
-        0, 0, 0, 1, 0 };
+        0, 0, 0, 1, 0
+      // clang-format on
+    };
     descr.Attributes().Set(eColorMatrixValues, identityMatrix, 20);
   } else {
     descr.Attributes().Set(eColorMatrixType, type);

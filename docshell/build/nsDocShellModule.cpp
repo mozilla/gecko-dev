@@ -138,6 +138,7 @@ NS_DEFINE_NAMED_CID(NS_LOADCONTEXT_CID);
 NS_DEFINE_NAMED_CID(NS_PRIVATELOADCONTEXT_CID);
 
 const mozilla::Module::CIDEntry kDocShellCIDs[] = {
+  // clang-format off
   { &kNS_DOCSHELL_CID, false, nullptr, nsDocShellConstructor },
   { &kNS_DEFAULTURIFIXUP_CID, false, nullptr, nsDefaultURIFixupConstructor },
   { &kNS_WEBNAVIGATION_INFO_CID, false, nullptr, nsWebNavigationInfoConstructor },
@@ -169,9 +170,11 @@ const mozilla::Module::CIDEntry kDocShellCIDs[] = {
   { &kNS_LOADCONTEXT_CID, false, nullptr, mozilla::CreateTestLoadContext },
   { &kNS_PRIVATELOADCONTEXT_CID, false, nullptr, mozilla::CreatePrivateTestLoadContext },
   { nullptr }
+  // clang-format on
 };
 
 const mozilla::Module::ContractIDEntry kDocShellContracts[] = {
+  // clang-format off
   { "@mozilla.org/docshell;1", &kNS_DOCSHELL_CID },
   { NS_URIFIXUP_CONTRACTID, &kNS_DEFAULTURIFIXUP_CID },
   { NS_WEBNAVIGATION_INFO_CONTRACTID, &kNS_WEBNAVIGATION_INFO_CID },
@@ -231,6 +234,7 @@ const mozilla::Module::ContractIDEntry kDocShellContracts[] = {
   { NS_LOADCONTEXT_CONTRACTID, &kNS_LOADCONTEXT_CID },
   { NS_PRIVATELOADCONTEXT_CONTRACTID, &kNS_PRIVATELOADCONTEXT_CID },
   { nullptr }
+  // clang-format on
 };
 
 static const mozilla::Module kDocShellModule = {

@@ -431,6 +431,7 @@ const JSPropertySpec MapObject::properties[] = {
 };
 
 const JSFunctionSpec MapObject::methods[] = {
+    // clang-format off
     JS_FN("get", get, 1, 0),
     JS_FN("has", has, 1, 0),
     JS_FN("set", set, 2, 0),
@@ -444,6 +445,7 @@ const JSFunctionSpec MapObject::methods[] = {
     JS_SELF_HOSTED_FN("entries", "MapEntries", 0, 0),
     JS_SELF_HOSTED_SYM_FN(iterator, "MapEntries", 0, 0),
     JS_FS_END
+    // clang-format on
 };
 
 const JSPropertySpec MapObject::staticProperties[] = {
@@ -1257,6 +1259,7 @@ const JSPropertySpec SetObject::properties[] = {
 };
 
 const JSFunctionSpec SetObject::methods[] = {
+    // clang-format off
     JS_FN("has", has, 1, 0),
     JS_FN("add", add, 1, 0),
     JS_FN("delete", delete_, 1, 0),
@@ -1269,6 +1272,7 @@ const JSFunctionSpec SetObject::methods[] = {
     JS_SELF_HOSTED_FN("keys", "SetValues", 0, 0),
     JS_SELF_HOSTED_SYM_FN(iterator, "SetValues", 0, 0),
     JS_FS_END
+    // clang-format on
 };
 
 const JSPropertySpec SetObject::staticProperties[] = {

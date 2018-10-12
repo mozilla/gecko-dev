@@ -2187,6 +2187,7 @@ intrinsic_PromiseResolve(JSContext* cx, unsigned argc, Value* vp)
 // Additionally, a set of C++-implemented helper functions is defined on the
 // self-hosting global.
 static const JSFunctionSpec intrinsic_functions[] = {
+    // clang-format off
     JS_INLINABLE_FN("std_Array",                 array_construct,              1,0, Array),
     JS_FN("std_Array_join",                      array_join,                   1,0),
     JS_INLINABLE_FN("std_Array_push",            array_push,                   1,0, ArrayPush),
@@ -2599,6 +2600,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("PromiseResolve", intrinsic_PromiseResolve, 2, 0),
 
     JS_FS_END
+    // clang-format on
 };
 
 void
