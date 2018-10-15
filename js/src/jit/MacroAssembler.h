@@ -411,6 +411,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     void Push(RegisterOrSP reg);
 #endif
 
+    // clang-format off
     //{{{ check_macroassembler_decl_style
   public:
     // ===============================================================
@@ -2018,6 +2019,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     void speculationBarrier() PER_SHARED_ARCH;
 
     //}}} check_macroassembler_decl_style
+    // clang-format on
   public:
 
     // Emits a test of a value against all types in a TypeSet. A scratch
@@ -2682,6 +2684,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     Vector<ObjectGroup*, 0, SystemAllocPolicy> pendingObjectGroupReadBarriers_;
 };
 
+// clang-format off
 //{{{ check_macroassembler_style
 inline uint32_t
 MacroAssembler::framePushed() const
@@ -2710,6 +2713,7 @@ MacroAssembler::implicitPop(uint32_t bytes)
     adjustFrame(-int32_t(bytes));
 }
 //}}} check_macroassembler_style
+// clang-format on
 
 static inline Assembler::DoubleCondition
 JSOpToDoubleCondition(JSOp op)

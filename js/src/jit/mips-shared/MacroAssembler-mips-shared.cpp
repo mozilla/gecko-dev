@@ -1471,6 +1471,7 @@ MacroAssemblerMIPSShared::asMasm() const
     return *static_cast<const MacroAssembler*>(this);
 }
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // MacroAssembler high-level usage.
@@ -2846,3 +2847,5 @@ MacroAssembler::atomicEffectOpJS(Scalar::Type arrayType, const Synchronization& 
     atomicEffectOp(arrayType, sync, op, value, mem, valueTemp, offsetTemp, maskTemp);
 }
 
+//}}} check_macroassembler_style
+// clang-format on

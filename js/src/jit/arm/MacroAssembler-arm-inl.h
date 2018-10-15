@@ -12,6 +12,7 @@
 namespace js {
 namespace jit {
 
+// clang-format off
 //{{{ check_macroassembler_style
 
 void
@@ -2318,6 +2319,7 @@ MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Address boundsCh
 }
 
 //}}} check_macroassembler_style
+// clang-format on
 // ===============================================================
 
 void

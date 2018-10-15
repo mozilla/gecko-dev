@@ -12,6 +12,7 @@
 namespace js {
 namespace jit {
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // Move instructions
@@ -1312,6 +1313,7 @@ MacroAssembler::clampIntToUint8(Register reg)
 }
 
 //}}} check_macroassembler_style
+// clang-format on
 // ===============================================================
 
 } // namespace jit

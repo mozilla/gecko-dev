@@ -412,6 +412,7 @@ MacroAssembler::Push(RegisterOrSP reg)
     adjustFrame(sizeof(intptr_t));
 }
 
+// clang-format off
 //{{{ check_macroassembler_style
 // ===============================================================
 // MacroAssembler high-level usage.
@@ -1873,6 +1874,7 @@ MacroAssembler::speculationBarrier()
 }
 
 //}}} check_macroassembler_style
+// clang-format off
 
 } // namespace jit
 } // namespace js
