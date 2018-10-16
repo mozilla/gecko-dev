@@ -14,37 +14,21 @@ namespace mozilla {
 namespace plugins {
 namespace PluginUtilsWin {
 
+class AudioNotification;
 typedef nsTHashtable<nsPtrHashKey<PluginModuleParent>> PluginModuleSet;
 StaticMutex sMutex;
 
 class AudioDeviceChangedRunnable : public Runnable
 {
 public:
-  explicit AudioDeviceChangedRunnable(const PluginModuleSet* aAudioNotificationSet,
-                                      NPAudioDeviceChangeDetailsIPC aChangeDetails) :
-    Runnable("AudioDeviceChangedRunnable")
-    , mChangeDetails(aChangeDetails)
-    , mAudioNotificationSet(aAudioNotificationSet)
-  {}
+  explicit AudioDeviceChangedRunnable(AudioNotification* aAudioNotification,
+                                      NPAudioDeviceChangeDetailsIPC aChangeDetails);
 
-  NS_IMETHOD Run() override
-  {
-    StaticMutexAutoLock lock(sMutex);
-    PLUGIN_LOG_DEBUG(("Notifying %d plugins of audio device change.",
-                                            mAudioNotificationSet->Count()));
-
-    for (auto iter = mAudioNotificationSet->ConstIter(); !iter.Done(); iter.Next()) {
-      PluginModuleParent* pluginModule = iter.Get()->GetKey();
-      if(!pluginModule->SendNPP_SetValue_NPNVaudioDeviceChangeDetails(mChangeDetails)) {
-        return NS_ERROR_FAILURE;
-      }
-    }
-    return NS_OK;
-  }
+  NS_IMETHOD Run() override;
 
 protected:
   NPAudioDeviceChangeDetailsIPC mChangeDetails;
-  const PluginModuleSet* mAudioNotificationSet;
+  AudioNotification* mAudioNotification;
 };
 
 class AudioNotification final : public IMMNotificationClient
@@ -83,7 +67,7 @@ public:
 
     // Make sure that plugin is notified on the main thread.
     RefPtr<AudioDeviceChangedRunnable> runnable =
-      new AudioDeviceChangedRunnable(&mAudioNotificationSet, changeDetails);
+      new AudioDeviceChangedRunnable(this, changeDetails);
     NS_DispatchToMainThread(runnable);
     return S_OK;
   }
@@ -180,6 +164,11 @@ public:
     return !mAudioNotificationSet.IsEmpty();
   }
 
+  const PluginModuleSet* GetModuleSet() const
+  {
+    return &mAudioNotificationSet;
+  }
+
 private:
   bool mIsRegistered;   // only used to make sure that Unregister is called before destroying a Valid instance.
   LONG mRefCt;
@@ -233,6 +222,33 @@ RegisterForAudioDeviceChanges(PluginModuleParent* aModuleParent, bool aShouldReg
     }
   }
   return NS_OK;
+}
+
+AudioDeviceChangedRunnable::AudioDeviceChangedRunnable(AudioNotification* aAudioNotification,
+                                                       NPAudioDeviceChangeDetailsIPC aChangeDetails) :
+  Runnable("AudioDeviceChangedRunnable")
+  , mChangeDetails(aChangeDetails)
+  , mAudioNotification(aAudioNotification)
+{
+  // We increment the AudioNotification ref-count here -- the runnable will
+  // decrement it when it is done with us.
+  mAudioNotification->AddRef();
+}
+
+NS_IMETHODIMP
+AudioDeviceChangedRunnable::Run()
+{
+  StaticMutexAutoLock lock(sMutex);
+  PLUGIN_LOG_DEBUG(("Notifying %d plugins of audio device change.",
+                    mAudioNotification->GetModuleSet()->Count()));
+
+  bool success = true;
+  for (auto iter = mAudioNotification->GetModuleSet()->ConstIter(); !iter.Done(); iter.Next()) {
+    PluginModuleParent* pluginModule = iter.Get()->GetKey();
+    success &= pluginModule->SendNPP_SetValue_NPNVaudioDeviceChangeDetails(mChangeDetails);
+  }
+  mAudioNotification->Release();
+  return success ? NS_OK : NS_ERROR_FAILURE;
 }
 
 }   // namespace PluginUtilsWin
