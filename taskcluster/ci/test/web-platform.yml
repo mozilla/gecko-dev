@@ -19,8 +19,8 @@ web-platform-tests:
     treeherder-symbol: W(wpt)
     chunks:
         by-test-platform:
-            macosx64/opt: 5
-            macosx64/debug: 10
+            macosx64.*/opt: 8
+            macosx64/debug: 16
             windows10-64-ccov/debug: 15
             default: 12
     max-run-time: 7200
@@ -43,8 +43,8 @@ web-platform-tests-headless:
     treeherder-symbol: W(wptH)
     chunks:
         by-test-platform:
-            macosx64/opt: 5
-            macosx64/debug: 10
+            macosx64.*/opt: 8
+            macosx64/debug: 16
             default: 12
     e10s:
         by-test-platform:
