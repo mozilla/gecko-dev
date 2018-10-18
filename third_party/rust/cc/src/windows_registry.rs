@@ -65,6 +65,10 @@ pub fn find_tool(target: &str, tool: &str) -> Option<Tool> {
         return impl_::find_msbuild(target);
     }
 
+    if tool.contains("devenv") {
+        return impl_::find_devenv(target);
+    }
+
     // If VCINSTALLDIR is set, then someone's probably already run vcvars and we
     // should just find whatever that indicates.
     if env::var_os("VCINSTALLDIR").is_some() {
@@ -325,6 +329,7 @@ mod impl_ {
             tool.libs.push(sdk_lib.join("um").join(sub));
             let sdk_include = sdk.join("include").join(&version);
             tool.include.push(sdk_include.join("um"));
+            tool.include.push(sdk_include.join("cppwinrt"));
             tool.include.push(sdk_include.join("winrt"));
             tool.include.push(sdk_include.join("shared"));
         } else if let Some(sdk) = get_sdk81_dir() {
@@ -518,8 +523,8 @@ mod impl_ {
             ("i586", X86_64) | ("i686", X86_64) => vec![("amd64_x86", "amd64"), ("", "")],
             ("x86_64", X86) => vec![("x86_amd64", "")],
             ("x86_64", X86_64) => vec![("amd64", "amd64"), ("x86_amd64", "")],
-            ("arm", X86) => vec![("x86_arm", "")],
-            ("arm", X86_64) => vec![("amd64_arm", "amd64"), ("x86_arm", "")],
+            ("arm", X86) | ("thumbv7a", X86) => vec![("x86_arm", "")],
+            ("arm", X86_64) | ("thumbv7a", X86_64) => vec![("amd64_arm", "amd64"), ("x86_arm", "")],
             _ => vec![],
         }
     }
@@ -529,7 +534,7 @@ mod impl_ {
         match arch {
             "i586" | "i686" => Some("x86"),
             "x86_64" => Some("x64"),
-            "arm" => Some("arm"),
+            "arm" | "thumbv7a" => Some("arm"),
             "aarch64" => Some("arm64"),
             _ => None,
         }
@@ -541,7 +546,7 @@ mod impl_ {
         match arch {
             "i586" | "i686" => Some(""),
             "x86_64" => Some("amd64"),
-            "arm" => Some("arm"),
+            "arm" | "thumbv7a" => Some("arm"),
             "aarch64" => Some("arm64"),
             _ => None,
         }
@@ -619,6 +624,26 @@ mod impl_ {
                 .is_ok(),
             _ => false,
         }
+    }
+
+    pub fn find_devenv(target: &str) -> Option<Tool> {
+        find_devenv_vs15(&target)
+    }
+
+    fn find_devenv_vs15(target: &str) -> Option<Tool> {
+        let key = r"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7";
+        LOCAL_MACHINE
+            .open(key.as_ref())
+            .ok()
+            .and_then(|key| key.query_str("15.0").ok())
+            .map(|path| {
+                let path = PathBuf::from(path).join(r"Common7\IDE\devenv.exe");
+                let mut tool = Tool::new(path);
+                if target.contains("x86_64") {
+                    tool.env.push(("Platform".into(), "X64".into()));
+                }
+                tool
+            })
     }
 
     // see http://stackoverflow.com/questions/328017/path-to-msbuild
