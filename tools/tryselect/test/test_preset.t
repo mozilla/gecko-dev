@@ -73,9 +73,10 @@ Test preset with fuzzy subcommand
   Pushed via `mach try fuzzy`
   Calculated try_task_config.json:
   {
-    "tasks":[
-      "build-baz"
-    ]
+      "tasks": [
+          "build-baz"
+      ],
+      "version": 1
   }
   
   $ ./mach try fuzzy $testargs --preset baz
@@ -85,9 +86,10 @@ Test preset with fuzzy subcommand
   Pushed via `mach try fuzzy`
   Calculated try_task_config.json:
   {
-    "tasks":[
-      "build-baz"
-    ]
+      "tasks": [
+          "build-baz"
+      ],
+      "version": 1
   }
   
   $ ./mach try $testargs --preset baz
@@ -97,9 +99,10 @@ Test preset with fuzzy subcommand
   Pushed via `mach try fuzzy`
   Calculated try_task_config.json:
   {
-    "tasks":[
-      "build-baz"
-    ]
+      "tasks": [
+          "build-baz"
+      ],
+      "version": 1
   }
   
   $ ./mach try fuzzy $testargs --list-presets
