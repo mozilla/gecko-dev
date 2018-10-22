@@ -13,7 +13,7 @@ linux64/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -41,7 +41,7 @@ linux64-dmd/opt:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -72,7 +72,7 @@ linux64/pgo:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         options: [enable-pgo]
         config:
             - builds/releng_base_firefox.py
@@ -102,7 +102,7 @@ linux64-fuzzing/debug:
             PERFHERDER_EXTRA_OPTIONS: fuzzing
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -133,7 +133,7 @@ linux64/debug:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -168,7 +168,7 @@ linux64-devedition-nightly/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -202,7 +202,7 @@ linux64-base-toolchains/opt:
             PERFHERDER_EXTRA_OPTIONS: base-toolchains
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -231,7 +231,7 @@ linux64-base-toolchains/debug:
             PERFHERDER_EXTRA_OPTIONS: base-toolchains
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -263,7 +263,7 @@ linux/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
@@ -293,7 +293,7 @@ linux/debug:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
@@ -325,7 +325,7 @@ linux/pgo:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         options: [enable-pgo]
         config:
             - builds/releng_base_firefox.py
@@ -357,7 +357,7 @@ linux-rusttests/opt:
             PERFHERDER_EXTRA_OPTIONS: rusttests
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
@@ -392,7 +392,7 @@ linux-rusttests/debug:
             PERFHERDER_EXTRA_OPTIONS: rusttests
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
@@ -430,7 +430,7 @@ linux-devedition-nightly/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
@@ -469,7 +469,7 @@ linux-nightly/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_32_builds.py
@@ -499,7 +499,7 @@ linux64-asan/opt:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -531,7 +531,7 @@ linux64-asan-fuzzing/opt:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -562,7 +562,7 @@ linux64-asan-reporter/opt:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -593,7 +593,7 @@ linux64-asan/debug:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -628,7 +628,7 @@ linux64-nightly/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -657,7 +657,7 @@ linux64-noopt/debug:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -691,7 +691,7 @@ linux64-rusttests/opt:
             PERFHERDER_EXTRA_OPTIONS: rusttests
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -725,7 +725,7 @@ linux64-rusttests/debug:
             PERFHERDER_EXTRA_OPTIONS: rusttests
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -758,7 +758,7 @@ linux64-jsdcov/opt:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -787,7 +787,7 @@ linux64-ccov/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -816,7 +816,7 @@ linux64-add-on-devel/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -846,7 +846,7 @@ linux64-stylo-only/opt:
         max-run-time: 7200
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
@@ -876,7 +876,7 @@ linux64-stylo-only/debug:
         max-run-time: 3600
     run:
         using: mozharness
-        actions: [get-secrets build check-test]
+        actions: [get-secrets, build, check-test]
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_linux_64_builds.py
