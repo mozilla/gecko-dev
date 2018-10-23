@@ -23,6 +23,7 @@ win32/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
             - builds/taskcluster_sub_win32/debug.py
+        mozconfig-variant: debug
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -52,7 +53,8 @@ win32/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/opt.py
+        extra-config:
+            stage_platform: win32
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -80,9 +82,9 @@ win32-dmd/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/opt.py
         extra-config:
-            mozconfig_variant: 'opt-dmd'
+            stage_platform: win32
+        mozconfig-variant: 'opt-dmd'
     run-on-projects: []
     toolchains:
         - win64-clang-cl
@@ -113,7 +115,8 @@ win32/pgo:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/opt.py
+        extra-config:
+            stage_platform: win32
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -144,6 +147,7 @@ win64/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/debug.py
+        mozconfig-variant: debug
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -173,7 +177,8 @@ win64/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/opt.py
+        extra-config:
+            stage_platform: win64
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -195,15 +200,16 @@ win64-dmd/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
     run:
         using: mozharness
+        actions: [build]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/opt.py
         extra-config:
-            mozconfig_variant: 'opt-dmd'
+            stage_platform: win64
+        mozconfig-variant: opt-dmd
     run-on-projects: []
     toolchains:
         - win64-clang-cl
@@ -246,8 +252,9 @@ win32-nightly/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/opt.py
             - taskcluster_nightly.py
+        extra-config:
+            stage_platform: win32
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -282,8 +289,9 @@ win64-nightly/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/opt.py
             - taskcluster_nightly.py
+        extra-config:
+            stage_platform: win64
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -313,7 +321,8 @@ win64/pgo:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/opt.py
+        extra-config:
+            stage_platform: win64
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -341,7 +350,9 @@ win32-add-on-devel/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/addondevel.py
+        extra-config:
+            stage_platform: win32-add-on-devel
+        mozconfig-variant: add-on-devel
     run-on-projects: ['mozilla-beta', 'mozilla-release', 'mozilla-esr45']
     toolchains:
         - win64-clang-cl
@@ -370,7 +381,9 @@ win64-add-on-devel/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/addondevel.py
+        extra-config:
+            stage_platform: win64-on-devel
+        mozconfig-variant: add-on-devel
     run-on-projects: ['mozilla-beta', 'mozilla-release', 'mozilla-esr45']
     toolchains:
         - win64-clang-cl
@@ -400,6 +413,7 @@ win64-noopt/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/noopt_debug.py
+        mozconfig-variant: noopt-debug
     run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
@@ -429,6 +443,7 @@ win32-noopt/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
             - builds/taskcluster_sub_win32/noopt_debug.py
+        mozconfig-variant: noopt-debug
     run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
@@ -458,7 +473,10 @@ win32-rusttests/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/rusttests_opt.py
+        extra-config:
+            stage_platform: win32-rusttests
+            artifact_flag_build_variant_in_try: null
+        mozconfig-variant: rusttests
     run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
@@ -489,6 +507,7 @@ win64-rusttests/opt:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/rusttests_opt.py
+        mozconfig-variant: rusttests
     run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
@@ -518,6 +537,7 @@ win64-ccov/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/ccov_debug.py
+        mozconfig-variant: code-coverage
     run-on-projects: []
     toolchains:
         - win64-clang-cl
@@ -548,6 +568,7 @@ win64-asan/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/asan_debug.py
+        mozconfig-variant: debug-asan
     run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
@@ -577,7 +598,9 @@ win64-asan/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/asan_opt.py
+        extra-config:
+            stage_platform: win64-asan
+        mozconfig-variant: nightly-asan
     run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
@@ -619,9 +642,10 @@ win32-devedition-nightly/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win32.py
-            - builds/taskcluster_sub_win32/opt.py
             - taskcluster_nightly.py
-        custom-build-variant-cfg: devedition
+        extra-config:
+            stage_platform: win32-devedition
+        mozconfig-variant: devedition
     run-on-projects: ['mozilla-beta']
     toolchains:
         - win64-clang-cl
@@ -656,9 +680,10 @@ win64-devedition-nightly/opt:
             - builds/releng_base_firefox.py
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
-            - builds/taskcluster_sub_win64/opt.py
             - taskcluster_nightly.py
-        custom-build-variant-cfg: devedition
+        extra-config:
+            stage_platform: win64-devedition
+        mozconfig-variant: devedition
     run-on-projects: ['mozilla-beta']
     toolchains:
         - win64-clang-cl
@@ -687,6 +712,7 @@ win32-mingw32/opt:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_32_mingw_builds.py
+        mozconfig-variant: mingw32
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -719,7 +745,7 @@ win32-mingw32/debug:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_32_mingw_builds.py
-            - builds/releng_sub_windows_configs/32_mingw_debug.py
+        mozconfig-variant: mingw32-debug
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -752,6 +778,7 @@ win64-mingw32/opt:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_64_mingw_builds.py
+        mozconfig-variant: mingw32
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -784,7 +811,7 @@ win64-mingw32/debug:
         config:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_64_mingw_builds.py
-            - builds/releng_sub_windows_configs/64_mingw_debug.py
+        mozconfig-variant: mingw32-debug
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -818,6 +845,7 @@ win32-mingwclang/opt:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_32_mingw_builds.py
             - builds/releng_sub_windows_configs/32_mingwclang.py
+        mozconfig-variant: mingwclang
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -851,7 +879,7 @@ win32-mingwclang/debug:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_32_mingw_builds.py
             - builds/releng_sub_windows_configs/32_mingwclang.py
-            - builds/releng_sub_windows_configs/32_mingwclang_debug.py
+        mozconfig-variant: mingwclang-debug
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -885,6 +913,7 @@ win64-mingwclang/opt:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_64_mingw_builds.py
             - builds/releng_sub_windows_configs/64_mingwclang.py
+        mozconfig-variant: mingwclang
         need-xvfb: false
     toolchains:
         - mingw32-rust
@@ -918,7 +947,7 @@ win64-mingwclang/debug:
             - builds/releng_base_firefox.py
             - builds/releng_base_windows_64_mingw_builds.py
             - builds/releng_sub_windows_configs/64_mingwclang.py
-            - builds/releng_sub_windows_configs/64_mingwclang_debug.py
+        mozconfig-variant: mingwclang-debug
         need-xvfb: false
     toolchains:
         - mingw32-rust
