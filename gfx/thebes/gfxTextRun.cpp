@@ -1744,7 +1744,10 @@ void gfxFontGroup::AddPlatformFont(const nsAString& aName,
 }
 
 void gfxFontGroup::AddFamilyToFontList(gfxFontFamily* aFamily) {
-  NS_ASSERTION(aFamily, "trying to add a null font family to fontlist");
+  if (!aFamily) {
+      MOZ_ASSERT_UNREACHABLE("don't try to add a null font family!");
+      return;
+  }
   AutoTArray<gfxFontEntry*, 4> fontEntryList;
   bool needsBold;
   aFamily->FindAllFontsForStyle(mStyle, fontEntryList, needsBold);
