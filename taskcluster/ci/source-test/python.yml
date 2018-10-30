@@ -117,6 +117,16 @@ mozlint:
         files-changed:
             - 'python/mozlint/**'
 
+mozrelease:
+    description: python/mozrelease unit tests
+    treeherder:
+        symbol: py(release)
+    run:
+        mach: python-test --subsuite mozrelease
+    when:
+        files-changed:
+            - 'python/mozrelease/**'
+
 mozterm:
     description: python/mozterm unit tests
     treeherder:
