@@ -29,6 +29,7 @@ flake8:
         - testing/mozharness/mozharness
         - testing/mozharness/mozinfo
         - testing/mozharness/scripts
+        - testing/mozharness/test
         - testing/remotecppunittests.py
         - testing/runcppunittests.py
         - testing/talos/
