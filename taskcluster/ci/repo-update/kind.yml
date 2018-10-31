@@ -62,7 +62,7 @@ jobs:
          env:
             DO_REMOTE_SETTINGS: "1"
             PRODUCT: firefox
-            REVIEWERS: "mtabara, jlund"
+            REVIEWERS: "ryanvm"
          command:
             - /runme.sh
          taskcluster-proxy: true
