@@ -66,6 +66,7 @@
 #include "mozilla/ServoRestyleManager.h"
 #include "mozilla/SizeOfState.h"
 #include "mozilla/StyleAnimationValue.h"
+#include "mozilla/StylePrefs.h"
 #include "mozilla/SystemGroup.h"
 #include "mozilla/ServoMediaList.h"
 #include "mozilla/Telemetry.h"
@@ -281,13 +282,25 @@ Gecko_GetNextStyleChild(RawGeckoStyleChildrenIteratorBorrowedMut aIterator)
 }
 
 bool
-Gecko_IsPrivateBrowsingEnabled(const nsIDocument* aDoc)
+Gecko_VisitedStylesEnabled(const nsIDocument* aDoc)
 {
   MOZ_ASSERT(aDoc);
   MOZ_ASSERT(NS_IsMainThread());
 
+  if (!StylePrefs::sVisitedLinksEnabled) {
+    return false;
+  }
+
+  if (aDoc->IsBeingUsedAsImage()) {
+    return false;
+  }
+
   nsILoadContext* loadContext = aDoc->GetLoadContext();
-  return loadContext && loadContext->UsePrivateBrowsing();
+  if (loadContext && loadContext->UsePrivateBrowsing()) {
+    return false;
+  }
+
+  return true;
 }
 
 EventStates::ServoType

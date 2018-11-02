@@ -1312,6 +1312,16 @@ ServoRestyleManager::ContentStateChanged(nsIContent* aContent,
     return;
   }
 
+  const EventStates kVisitedAndUnvisited =
+    NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED;
+  if (aChangedBits.HasAllStates(kVisitedAndUnvisited) &&
+      !Gecko_VisitedStylesEnabled(aElement->OwnerDoc())) {
+    aChangedBits &= ~kVisitedAndUnvisited;
+    if (aChangedBits.IsEmpty()) {
+      return;
+    }
+  }
+
   nsChangeHint changeHint;
   ContentStateChangedInternal(aElement, aChangedBits, &changeHint);
 
