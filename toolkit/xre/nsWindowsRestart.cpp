@@ -17,7 +17,9 @@
 
 // Needed for CreateEnvironmentBlock
 #include <userenv.h>
+#ifndef __MINGW32__
 #pragma comment(lib, "userenv.lib")
+#endif
 
 /**
  * Get the length that the string will take and takes into account the
