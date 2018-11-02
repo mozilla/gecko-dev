@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 // This module is for 32 bit Visual C x86 and clangcl
-#if !defined(LIBYUV_DISABLE_X86) && defined(_M_IX86)
+#if !defined(LIBYUV_DISABLE_X86) && defined(_M_IX86) && defined(_MSC_VER)
 
 __declspec(naked) uint32
     SumSquareError_SSE2(const uint8* src_a, const uint8* src_b, int count) {
