@@ -125,7 +125,7 @@ var LightweightThemeManager = {
   },
 
   get currentThemeForDisplay() {
-    var data = _substituteDefaulThemeIfNeeded(this.currentTheme);
+    var data = _substituteDefaultThemeIfNeeded(this.currentTheme);
 
     if (data && PERSIST_ENABLED) {
       for (let key in PERSIST_FILES) {
@@ -212,7 +212,7 @@ var LightweightThemeManager = {
   },
 
   previewTheme(aData) {
-    aData = _substituteDefaulThemeIfNeeded(aData);
+    aData = _substituteDefaultThemeIfNeeded(aData);
 
     let cancel = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
     cancel.data = false;
@@ -893,7 +893,7 @@ function _notifyWindows(aThemeData) {
                                JSON.stringify({theme: aThemeData}));
 }
 
-function _substituteDefaulThemeIfNeeded(aThemeData) {
+function _substituteDefaultThemeIfNeeded(aThemeData) {
   if (!aThemeData || aThemeData.id == DEFAULT_THEME_ID) {
     if (_fallbackThemeData) {
       return _fallbackThemeData;
