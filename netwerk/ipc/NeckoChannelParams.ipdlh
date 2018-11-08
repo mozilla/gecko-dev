@@ -102,6 +102,7 @@ struct LoadInfoArgs
   bool                        isPreflight;
   bool                        loadTriggeredFromExternal;
   bool                        serviceWorkerTaintingSynthesized;
+  bool                        isFromProcessingFrameAttributes;
 };
 
 /**

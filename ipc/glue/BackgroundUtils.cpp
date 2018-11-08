@@ -432,7 +432,8 @@ LoadInfoToLoadInfoArgs(nsILoadInfo *aLoadInfo,
       aLoadInfo->GetForcePreflight(),
       aLoadInfo->GetIsPreflight(),
       aLoadInfo->GetLoadTriggeredFromExternal(),
-      aLoadInfo->GetServiceWorkerTaintingSynthesized()
+      aLoadInfo->GetServiceWorkerTaintingSynthesized(),
+      aLoadInfo->GetIsFromProcessingFrameAttributes()
       );
 
   return NS_OK;
@@ -536,7 +537,7 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
       loadInfoArgs.controller().get_IPCServiceWorkerDescriptor()));
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo =
+  RefPtr<mozilla::LoadInfo> loadInfo =
     new mozilla::LoadInfo(loadingPrincipal,
                           triggeringPrincipal,
                           principalToInherit,
@@ -577,6 +578,10 @@ LoadInfoArgsToLoadInfo(const OptionalLoadInfoArgs& aOptionalLoadInfoArgs,
                           loadInfoArgs.loadTriggeredFromExternal(),
                           loadInfoArgs.serviceWorkerTaintingSynthesized()
                           );
+
+  if (loadInfoArgs.isFromProcessingFrameAttributes()) {
+    loadInfo->SetIsFromProcessingFrameAttributes();
+  }
 
    loadInfo.forget(outLoadInfo);
    return NS_OK;

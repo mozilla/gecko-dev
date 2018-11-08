@@ -26,7 +26,6 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOCSHELLLOADINFO
-
 protected:
   virtual ~nsDocShellLoadInfo();
 
@@ -56,6 +55,10 @@ protected:
   nsString mSrcdocData;
   nsCOMPtr<nsIDocShell> mSourceDocShell;
   nsCOMPtr<nsIURI> mBaseURI;
+
+  // This will be true if this load is triggered by attribute changes.
+  // See nsILoadInfo.isFromProcessingFrameAttributes
+  bool mIsFromProcessingFrameAttributes;
 };
 
 #endif /* nsDocShellLoadInfo_h__ */

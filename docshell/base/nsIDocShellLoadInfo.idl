@@ -155,6 +155,12 @@ interface nsIDocShellLoadInfo : nsISupports
      * URI as this information isn't embedded in the load's URI.
      */
     attribute nsIURI baseURI;
+
+    /**
+     * This will be true if this load is triggered by attribute changes.
+     * See nsILoadInfo.isFromProcessingFrameAttributes
+     */
+    attribute boolean isFromProcessingFrameAttributes;
 };
 
 %{C++
