@@ -214,7 +214,7 @@ NewEmptyScopeData(JSContext* cx, uint32_t length = 0)
 }
 
 static bool
-XDRBindingName(XDRState<XDR_ENCODE>* xdr, BindingName* bindingName)
+XDRTrailingName(XDRState<XDR_ENCODE>* xdr, BindingName* bindingName, const uint32_t* length)
 {
     JSContext* cx = xdr->cx();
 
@@ -232,7 +232,7 @@ XDRBindingName(XDRState<XDR_ENCODE>* xdr, BindingName* bindingName)
 }
 
 static bool
-XDRBindingName(XDRState<XDR_DECODE>* xdr, BindingName* bindingName)
+XDRTrailingName(XDRState<XDR_DECODE>* xdr, void* bindingName, uint32_t* length)
 {
     JSContext* cx = xdr->cx();
 
@@ -247,7 +247,8 @@ XDRBindingName(XDRState<XDR_DECODE>* xdr, BindingName* bindingName)
     if (hasAtom && !XDRAtom(xdr, &atom))
         return false;
 
-    *bindingName = BindingName(atom, closedOver);
+    new (bindingName) BindingName(atom, closedOver);
+    ++*length;
 
     return true;
 }
@@ -282,11 +283,13 @@ Scope::XDRSizedBindingNames(XDRState<mode>* xdr, Handle<ConcreteScope*> scope,
         data.set(NewEmptyScopeData<ConcreteScope>(cx, length).release());
         if (!data)
             return false;
-        data->length = length;
     }
 
     for (uint32_t i = 0; i < length; i++) {
-        if (!XDRBindingName(xdr, &data->names[i])) {
+        if (mode == XDR_DECODE) {
+            MOZ_ASSERT(i == data->length, "must be decoding at the end");
+        }
+        if (!XDRTrailingName(xdr, &data->names[i], &data->length)) {
             if (mode == XDR_DECODE) {
                 DeleteScopeData(data.get());
                 data.set(nullptr);
@@ -295,6 +298,7 @@ Scope::XDRSizedBindingNames(XDRState<mode>* xdr, Handle<ConcreteScope*> scope,
             return false;
         }
     }
+    MOZ_ASSERT(data->length == length);
 
     return true;
 }
@@ -1254,6 +1258,21 @@ GenerateWasmName(JSContext* cx, const char (&prefix)[ArrayLength], uint32_t inde
     return sb.finishAtom();
 }
 
+static void
+InitializeTrailingName(BindingName* trailingNames, size_t i, JSAtom* name)
+{
+    void* trailingName = &trailingNames[i];
+    new (trailingName) BindingName(name, false);
+}
+
+template<class Data>
+static void
+InitializeNextTrailingName(const Rooted<UniquePtr<Data>>& data, JSAtom* name)
+{
+    InitializeTrailingName(data->names, data->length, name);
+    data->length++;
+}
+
 /* static */ WasmInstanceScope*
 WasmInstanceScope::create(JSContext* cx, WasmInstanceObject* instance)
 {
@@ -1274,27 +1293,25 @@ WasmInstanceScope::create(JSContext* cx, WasmInstanceObject* instance)
         if (!data)
             return nullptr;
 
-        size_t nameIndex = 0;
         if (instance->instance().memory()) {
-            RootedAtom name(cx, GenerateWasmName(cx, "memory", /* index = */ 0));
-            if (!name)
+            JSAtom* wasmName = GenerateWasmName(cx, "memory", /* index = */ 0);
+            if (!wasmName)
                 return nullptr;
-            data->names[nameIndex] = BindingName(name, false);
-            nameIndex++;
+
+            InitializeNextTrailingName(data, wasmName);
         }
         for (size_t i = 0; i < globalsCount; i++) {
-            RootedAtom name(cx, GenerateWasmName(cx, "global", i));
-            if (!name)
+            JSAtom* wasmName = GenerateWasmName(cx, "global", i);
+            if (!wasmName)
                 return nullptr;
-            data->names[nameIndex] = BindingName(name, false);
-            nameIndex++;
+
+            InitializeNextTrailingName(data, wasmName);
         }
-        MOZ_ASSERT(nameIndex == namesCount);
+        MOZ_ASSERT(data->length == namesCount);
 
         data->instance.init(instance);
         data->memoriesStart = 0;
         data->globalsStart = globalsStart;
-        data->length = namesCount;
 
         Rooted<Scope*> enclosingScope(cx, &cx->global()->emptyGlobalScope());
 
@@ -1341,14 +1358,16 @@ WasmFunctionScope::create(JSContext* cx, HandleScope enclosing, uint32_t funcInd
     if (!data)
         return nullptr;
 
-    data->funcIndex = funcIndex;
-    data->length = namesCount;
     for (size_t i = 0; i < namesCount; i++) {
-        RootedAtom name(cx, GenerateWasmName(cx, "var", i));
-        if (!name)
+        JSAtom* wasmName = GenerateWasmName(cx, "var", i);
+        if (!wasmName)
             return nullptr;
-        data->names[i] = BindingName(name, false);
+
+        InitializeNextTrailingName(data, wasmName);
     }
+    MOZ_ASSERT(data->length == namesCount);
+
+    data->funcIndex = funcIndex;
 
     Scope* scope = Scope::create(cx, ScopeKind::WasmFunction, enclosing, /* envShape = */ nullptr);
     if (!scope)

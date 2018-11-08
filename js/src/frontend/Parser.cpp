@@ -19,9 +19,14 @@
 
 #include "frontend/Parser.h"
 
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/Casting.h"
+#include "mozilla/Move.h"
 #include "mozilla/Range.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/TypeTraits.h"
+
+#include <memory>
 
 #include "jsapi.h"
 #include "jstypes.h"
@@ -50,11 +55,13 @@
 using namespace js;
 using namespace js::gc;
 
+using mozilla::AssertedCast;
+using mozilla::Forward;
 using mozilla::Maybe;
 using mozilla::Move;
 using mozilla::Nothing;
-using mozilla::PodCopy;
 using mozilla::PodZero;
+using mozilla::PointerRangeSize;
 using mozilla::Some;
 
 using JS::AutoGCRooter;
@@ -1726,6 +1733,59 @@ NewEmptyBindingData(JSContext* cx, LifoAlloc& alloc, uint32_t numBindings)
     return bindings;
 }
 
+namespace detail {
+
+template<class Data>
+static MOZ_ALWAYS_INLINE BindingName*
+InitializeIndexedBindings(Data* data, BindingName* start, BindingName* cursor)
+{
+    return cursor;
+}
+
+template<class Data, typename UnsignedInteger, typename... Step>
+static MOZ_ALWAYS_INLINE BindingName*
+InitializeIndexedBindings(Data* data, BindingName* start, BindingName* cursor,
+                          UnsignedInteger Data::* field, const Vector<BindingName>& bindings,
+                          Step&&... step)
+{
+    data->*field = AssertedCast<UnsignedInteger>(PointerRangeSize(start, cursor));
+
+    BindingName* newCursor = std::uninitialized_copy(bindings.begin(), bindings.end(), cursor);
+
+    return InitializeIndexedBindings(data, start, newCursor, mozilla::Forward<Step>(step)...);
+}
+
+} // namespace detail
+
+// Initialize |data->trailingNames| bindings, then set |data->length| to the
+// count of bindings added (which must equal |count|).
+//
+// First, |firstBindings| are added to |data->trailingNames|.  Then any "steps"
+// present are performed first to last.  Each step is 1) a pointer to a member
+// of |data| to be set to the current number of bindings added, and 2) a vector
+// of |BindingName|s to then copy into |data->trailingNames|.  (Thus each
+// |data| member field indicates where the corresponding vector's names start.)
+template<class Data, typename... Step>
+static MOZ_ALWAYS_INLINE void
+InitializeBindingData(Data* data, uint32_t count,
+                      const Vector<BindingName>& firstBindings,
+                      Step&&... step)
+{
+    MOZ_ASSERT(data->length == 0, "data shouldn't be filled yet");
+
+    BindingName* start = &data->names[0];
+    BindingName* cursor =
+        std::uninitialized_copy(firstBindings.begin(), firstBindings.end(), start);
+
+#ifdef DEBUG
+    BindingName* end =
+#endif
+        detail::InitializeIndexedBindings(data, start, cursor, mozilla::Forward<Step>(step)...);
+
+    MOZ_ASSERT(PointerRangeSize(start, end) == count);
+    data->length = count;
+}
+
 Maybe<GlobalScope::Data*>
 NewGlobalScopeData(JSContext* context, ParseContext::Scope& scope, LifoAlloc& alloc, ParseContext* pc)
 {
@@ -1770,23 +1830,11 @@ NewGlobalScopeData(JSContext* context, ParseContext::Scope& scope, LifoAlloc& al
             return Nothing();
 
         // The ordering here is important. See comments in GlobalScope.
-        BindingName* start = bindings->names;
-        BindingName* cursor = start;
-
-        PodCopy(cursor, funs.begin(), funs.length());
-        cursor += funs.length();
-
-        bindings->varStart = cursor - start;
-        PodCopy(cursor, vars.begin(), vars.length());
-        cursor += vars.length();
-
-        bindings->letStart = cursor - start;
-        PodCopy(cursor, lets.begin(), lets.length());
-        cursor += lets.length();
-
-        bindings->constStart = cursor - start;
-        PodCopy(cursor, consts.begin(), consts.length());
-        bindings->length = numBindings;
+        InitializeBindingData(bindings, numBindings,
+                              funs,
+                              &GlobalScope::Data::varStart, vars,
+                              &GlobalScope::Data::letStart, lets,
+                              &GlobalScope::Data::constStart, consts);
     }
 
     return Some(bindings);
@@ -1842,23 +1890,11 @@ NewModuleScopeData(JSContext* context, ParseContext::Scope& scope, LifoAlloc& al
             return Nothing();
 
         // The ordering here is important. See comments in ModuleScope.
-        BindingName* start = bindings->names;
-        BindingName* cursor = start;
-
-        PodCopy(cursor, imports.begin(), imports.length());
-        cursor += imports.length();
-
-        bindings->varStart = cursor - start;
-        PodCopy(cursor, vars.begin(), vars.length());
-        cursor += vars.length();
-
-        bindings->letStart = cursor - start;
-        PodCopy(cursor, lets.begin(), lets.length());
-        cursor += lets.length();
-
-        bindings->constStart = cursor - start;
-        PodCopy(cursor, consts.begin(), consts.length());
-        bindings->length = numBindings;
+        InitializeBindingData(bindings, numBindings,
+                              imports,
+                              &ModuleScope::Data::varStart, vars,
+                              &ModuleScope::Data::letStart, lets,
+                              &ModuleScope::Data::constStart, consts);
     }
 
     return Some(bindings);
@@ -1898,17 +1934,11 @@ NewEvalScopeData(JSContext* context, ParseContext::Scope& scope, LifoAlloc& allo
         if (!bindings)
             return Nothing();
 
-        BindingName* start = bindings->names;
-        BindingName* cursor = start;
-
         // Keep track of what vars are functions. This is only used in BCE to omit
         // superfluous DEFVARs.
-        PodCopy(cursor, funs.begin(), funs.length());
-        cursor += funs.length();
-
-        bindings->varStart = cursor - start;
-        PodCopy(cursor, vars.begin(), vars.length());
-        bindings->length = numBindings;
+        InitializeBindingData(bindings, numBindings,
+                              funs,
+                              &EvalScope::Data::varStart, vars);
     }
 
     return Some(bindings);
@@ -1996,19 +2026,10 @@ NewFunctionScopeData(JSContext* context, ParseContext::Scope& scope, bool hasPar
             return Nothing();
 
         // The ordering here is important. See comments in FunctionScope.
-        BindingName* start = bindings->names;
-        BindingName* cursor = start;
-
-        PodCopy(cursor, positionalFormals.begin(), positionalFormals.length());
-        cursor += positionalFormals.length();
-
-        bindings->nonPositionalFormalStart = cursor - start;
-        PodCopy(cursor, formals.begin(), formals.length());
-        cursor += formals.length();
-
-        bindings->varStart = cursor - start;
-        PodCopy(cursor, vars.begin(), vars.length());
-        bindings->length = numBindings;
+        InitializeBindingData(bindings, numBindings,
+                              positionalFormals,
+                              &FunctionScope::Data::nonPositionalFormalStart, formals,
+                              &FunctionScope::Data::varStart, vars);
     }
 
     return Some(bindings);
@@ -2043,12 +2064,7 @@ NewVarScopeData(JSContext* context, ParseContext::Scope& scope, LifoAlloc& alloc
         if (!bindings)
             return Nothing();
 
-        // The ordering here is important. See comments in FunctionScope.
-        BindingName* start = bindings->names;
-        BindingName* cursor = start;
-
-        PodCopy(cursor, vars.begin(), vars.length());
-        bindings->length = numBindings;
+        InitializeBindingData(bindings, numBindings, vars);
     }
 
     return Some(bindings);
@@ -2097,15 +2113,9 @@ NewLexicalScopeData(JSContext* context, ParseContext::Scope& scope, LifoAlloc& a
             return Nothing();
 
         // The ordering here is important. See comments in LexicalScope.
-        BindingName* cursor = bindings->names;
-        BindingName* start = cursor;
-
-        PodCopy(cursor, lets.begin(), lets.length());
-        cursor += lets.length();
-
-        bindings->constStart = cursor - start;
-        PodCopy(cursor, consts.begin(), consts.length());
-        bindings->length = numBindings;
+        InitializeBindingData(bindings, numBindings,
+                              lets,
+                              &LexicalScope::Data::constStart, consts);
     }
 
     return Some(bindings);
