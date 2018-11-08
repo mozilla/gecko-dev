@@ -144,11 +144,6 @@ HTMLSelectElement::HTMLSelectElement(already_AddRefed<mozilla::dom::NodeInfo>& a
                     NS_EVENT_STATE_VALID);
 }
 
-HTMLSelectElement::~HTMLSelectElement()
-{
-  mOptions->DropReference();
-}
-
 // ISupports
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLSelectElement)
