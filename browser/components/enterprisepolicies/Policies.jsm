@@ -985,7 +985,8 @@ let ChromeURLBlockPolicy = {
         aContentType == Ci.nsIContentPolicy.TYPE_DOCUMENT &&
         aRequestOrigin &&
         aRequestOrigin.spec == "chrome://browser/content/browser.xul" &&
-        aContentLocation.host != "mochitests") {
+        aContentLocation.host != "mochitests" &&
+        aContentLocation.host != "devtools") {
       return Ci.nsIContentPolicy.REJECT_REQUEST;
     }
     return Ci.nsIContentPolicy.ACCEPT;
