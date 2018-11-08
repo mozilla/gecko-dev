@@ -116,6 +116,7 @@ class TextureD3D : public TextureImpl
                        GLenum format,
                        GLenum type,
                        const gl::PixelUnpackState &unpack,
+                       gl::Buffer *unpackBuffer,
                        const uint8_t *pixels,
                        ptrdiff_t layerOffset);
     gl::Error setCompressedImageImpl(const gl::Context *context,
@@ -220,6 +221,7 @@ class TextureD3D_2D : public TextureD3D
                           GLenum format,
                           GLenum type,
                           const gl::PixelUnpackState &unpack,
+                          gl::Buffer *unpackBuffer,
                           const uint8_t *pixels) override;
 
     gl::Error setCompressedImage(const gl::Context *context,
@@ -356,6 +358,7 @@ class TextureD3D_Cube : public TextureD3D
                           GLenum format,
                           GLenum type,
                           const gl::PixelUnpackState &unpack,
+                          gl::Buffer *unpackBuffer,
                           const uint8_t *pixels) override;
 
     gl::Error setCompressedImage(const gl::Context *context,
@@ -493,6 +496,7 @@ class TextureD3D_3D : public TextureD3D
                           GLenum format,
                           GLenum type,
                           const gl::PixelUnpackState &unpack,
+                          gl::Buffer *unpackBuffer,
                           const uint8_t *pixels) override;
 
     gl::Error setCompressedImage(const gl::Context *context,
@@ -607,6 +611,7 @@ class TextureD3D_2DArray : public TextureD3D
                           GLenum format,
                           GLenum type,
                           const gl::PixelUnpackState &unpack,
+                          gl::Buffer *unpackBuffer,
                           const uint8_t *pixels) override;
 
     gl::Error setCompressedImage(const gl::Context *context,
@@ -718,6 +723,7 @@ class TextureD3D_External : public TextureD3D
                           GLenum format,
                           GLenum type,
                           const gl::PixelUnpackState &unpack,
+                          gl::Buffer *unpackBuffer,
                           const uint8_t *pixels) override;
 
     gl::Error setCompressedImage(const gl::Context *context,
@@ -815,6 +821,7 @@ class TextureD3D_2DMultisample : public TextureD3D
                           GLenum format,
                           GLenum type,
                           const gl::PixelUnpackState &unpack,
+                          gl::Buffer *unpackBuffer,
                           const uint8_t *pixels) override;
 
     gl::Error setCompressedImage(const gl::Context *context,

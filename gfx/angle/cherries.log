@@ -1,3 +1,30 @@
+commit f474fbb607e046d66d56b497b93151de61cbefab
+Author: Jeff Gilbert <jgilbert@mozilla.com>
+Date:   Thu Oct 25 14:00:07 2018 -0700
+
+    Modifications to build with new `gn`.
+    
+    Change-Id: Ia43fd33239b6c1418a6b8f04841f0bc7336e3bf5
+
+commit 2e911f9425dffeef9daa75cc809ff7ec5f463463
+Author: Jeff Gilbert <jgilbert@mozilla.com>
+Date:   Tue Oct 30 14:29:00 2018 -0700
+
+    Pass unpack buffer as explicit parameter to texSubImage.
+    
+    This allows us to override it in the incomplete texture init. Any
+    back-end that used incomplete textures was vulnerable to a bug where
+    the unpack buffer would be used to initialize the incomplete texture.
+    
+    Cherry-picked to the chromium/3538 branch cleanly.
+    Then cherry-picked to moz/firefox-60 messily:
+    - Skipped renderer/gl and /vulkan changes.
+    
+    Bug: chromium:880906
+    Change-Id: Iead2a8c57674e8962915902d6d5896f44fe8ca88
+    Reviewed-on: https://chromium-review.googlesource.com/1227033
+    Reviewed-by: Jamie Madill <jmadill@chromium.org>
+
 commit 7edc21933ef15d10e5790e6bfb7f9fd62f13be58
 Author: Frank Henigman <fjhenigman@chromium.org>
 Date:   Wed Feb 28 15:47:13 2018 -0500

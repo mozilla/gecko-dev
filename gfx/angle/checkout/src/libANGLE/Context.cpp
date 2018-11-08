@@ -3364,8 +3364,9 @@ void Context::texSubImage2D(GLenum target,
     Box area(xoffset, yoffset, 0, width, height, 1);
     Texture *texture =
         getTargetTexture(IsCubeMapTextureTarget(target) ? GL_TEXTURE_CUBE_MAP : target);
-    handleError(texture->setSubImage(this, mGLState.getUnpackState(), target, level, area, format,
-                                     type, reinterpret_cast<const uint8_t *>(pixels)));
+    gl::Buffer *unpackBuffer = mGLState.getTargetBuffer(gl::BufferBinding::PixelUnpack);
+    handleError(texture->setSubImage(this, mGLState.getUnpackState(), unpackBuffer, target, level,
+                                     area, format, type, reinterpret_cast<const uint8_t *>(pixels)));
 }
 
 void Context::texSubImage3D(GLenum target,
@@ -3390,8 +3391,10 @@ void Context::texSubImage3D(GLenum target,
 
     Box area(xoffset, yoffset, zoffset, width, height, depth);
     Texture *texture = getTargetTexture(target);
-    handleError(texture->setSubImage(this, mGLState.getUnpackState(), target, level, area, format,
-                                     type, reinterpret_cast<const uint8_t *>(pixels)));
+    gl::Buffer *unpackBuffer = mGLState.getTargetBuffer(gl::BufferBinding::PixelUnpack);
+    handleError(texture->setSubImage(this, mGLState.getUnpackState(), unpackBuffer, target, level,
+                                     area, format, type,
+                                     reinterpret_cast<const uint8_t *>(pixels)));
 }
 
 void Context::compressedTexImage2D(GLenum target,
