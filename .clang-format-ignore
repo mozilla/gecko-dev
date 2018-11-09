@@ -20,6 +20,7 @@ js/src/vm/Opcodes.h
 layout/style/nsCSSPropAliasList.h
 # Ignored because of bug 1342657
 layout/style/nsCSSPropList.h
+layout/style/ServoArcTypeList.h
 media/mtransport/test/.*
 mfbt/tests/.*
 storage/test/.*
