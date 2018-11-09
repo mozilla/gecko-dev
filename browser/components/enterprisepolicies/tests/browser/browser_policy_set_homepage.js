@@ -7,29 +7,39 @@ registerCleanupFunction(function restore_pref_values() {
   // option from this policy was not used. In this case, it won't
   // be tracked nor restored by the PoliciesPrefTracker.
   Services.prefs.clearUserPref("browser.startup.homepage");
-  Services.prefs.clearUserPref("browser.startup.page");
 });
 
-async function check_homepage({expectedURL, expectedPageVal = 1, locked = false}) {
-  is(gHomeButton.getHomePage(),
-     expectedURL, "Homepage URL should match expected");
-  is(Services.prefs.getIntPref("browser.startup.page", -1), expectedPageVal,
-     "Pref page value should match expected");
-  is(Services.prefs.prefIsLocked("browser.startup.homepage"), locked,
-     "Lock status of browser.startup.homepage should match expected");
-  is(Services.prefs.prefIsLocked("browser.startup.page"), locked,
-     "Lock status of browser.startup.page should match expected");
+async function check_homepage({expectedURL, expectedPageVal = -1, locked = false}) {
+  if (expectedURL) {
+    is(gHomeButton.getHomePage(),
+       expectedURL, "Homepage URL should match expected");
+    is(Services.prefs.prefIsLocked("browser.startup.homepage"), locked,
+       "Lock status of browser.startup.homepage should match expected");
+  }
+  if (expectedPageVal != -1) {
+    is(Services.prefs.getIntPref("browser.startup.page", -1), expectedPageVal,
+       "Pref page value should match expected");
+    is(Services.prefs.prefIsLocked("browser.startup.page"), locked,
+       "Lock status of browser.startup.page should match expected");
+  }
 
   // Test that UI is disabled when the Locked property is enabled
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:preferences");
   await ContentTask.spawn(tab.linkedBrowser, {expectedURL, expectedPageVal, locked},
                           // eslint-disable-next-line no-shadow
                           async function({expectedURL, expectedPageVal, locked}) {
-    let startupPageRadioGroup = content.document.getElementById("browserStartupPage");
-    is(startupPageRadioGroup.disabled, locked,
-       "Disabled status of start page radio group should match expected");
-    is(startupPageRadioGroup.value, expectedPageVal,
-       "Value of start page radio group should match expected");
+    if (expectedPageVal != -1) {
+      let startupPageRadioGroup = content.document.getElementById("browserStartupPage");
+      is(startupPageRadioGroup.disabled, locked,
+         "Disabled status of start page radio group should match expected");
+      is(startupPageRadioGroup.value, expectedPageVal,
+         "Value of start page radio group should match expected");
+    }
+
+    if (!expectedURL) {
+      // If only StartPage was changed, no need to check these
+      return;
+    }
 
     let homepageTextbox = content.document.getElementById("browserHomePage");
     // Unfortunately this test does not work because the new UI does not fill
@@ -77,6 +87,7 @@ add_task(async function homepage_test_repeat_same_policy_value() {
   });
   await check_homepage({expectedURL: "http://example2.com/",
                        expectedPageVal: 3});
+  Services.prefs.clearUserPref("browser.startup.page");
 });
 
 add_task(async function homepage_test_different_policy_value() {
@@ -142,4 +153,75 @@ add_task(async function homepage_test_locked() {
   });
   await check_homepage({expectedURL: "http://example4.com/|http://example5.com/|http://example6.com/",
                        locked: true});
+});
+
+add_task(async function homepage_test_startpage_homepage() {
+  await setupPolicyEngineWithJson({
+    "policies": {
+      "Homepage": {
+        "URL": "http://example7.com/",
+        "StartPage": "homepage",
+      },
+    },
+  });
+  await check_homepage({expectedURL: "http://example7.com/", expectedPageVal: 1});
+});
+
+add_task(async function homepage_test_startpage_homepage_locked() {
+  await setupPolicyEngineWithJson({
+    "policies": {
+      "Homepage": {
+        "URL": "http://example8.com/",
+        "StartPage": "homepage",
+        "Locked": true,
+      },
+    },
+  });
+  await check_homepage({expectedURL: "http://example8.com/", expectedPageVal: 1, locked: true});
+});
+
+add_task(async function homepage_test_startpage_none() {
+  await setupPolicyEngineWithJson({
+    "policies": {
+      "Homepage": {
+        "StartPage": "none",
+      },
+    },
+  });
+  await check_homepage({expectedPageVal: 0});
+});
+
+add_task(async function homepage_test_startpage_none_locked() {
+  await setupPolicyEngineWithJson({
+    "policies": {
+      "Homepage": {
+        "StartPage": "none",
+        "Locked": true,
+      },
+    },
+  });
+  await check_homepage({expectedPageVal: 0, locked: true});
+});
+
+add_task(async function homepage_test_startpage_restore() {
+  await setupPolicyEngineWithJson({
+    "policies": {
+      "Homepage": {
+        "StartPage": "previous-session",
+      },
+    },
+  });
+  await check_homepage({expectedPageVal: 3});
+});
+
+add_task(async function homepage_test_startpage_restore_locked() {
+  await setupPolicyEngineWithJson({
+    "policies": {
+      "Homepage": {
+        "StartPage": "previous-session",
+        "Locked": true,
+      },
+    },
+  });
+  await check_homepage({expectedPageVal: 3, locked: true});
 });
