@@ -675,6 +675,13 @@
       }
     },
 
+    "RequestedLocales": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+
     "SanitizeOnShutdown": {
       "description": "Clears ALL browser data on shutdown.",
       "first_available": "60.0",
