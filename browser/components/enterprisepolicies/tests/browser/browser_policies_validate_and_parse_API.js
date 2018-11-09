@@ -325,3 +325,54 @@ add_task(async function test_required_vs_nonrequired_properties() {
   ok(!valid, "Object is not valid since the required property is missing");
   is(parsed, null, "Nothing was returned as parsed");
 });
+
+add_task(async function test_patternProperties() {
+  let schema = {
+    type: "object",
+    properties: {
+      "S-bool-property": { "type": "boolean" },
+    },
+    patternProperties: {
+      "^S-": { "type": "string" },
+      "^N-": { "type": "number" },
+      "^B-": { "type": "boolean" },
+    },
+  };
+
+  let valid, parsed;
+  [valid, parsed] = PoliciesValidator.validateAndParseParameters({
+    "S-string": "test",
+    "N-number": 5,
+    "B-boolean": true,
+    "S-bool-property": false,
+  }, schema);
+
+  ok(valid, "Object is valid");
+  is(parsed["S-string"], "test", "parsedProperty is correct");
+  is(parsed["N-number"], 5, "parsedProperty is correct");
+  is(parsed["B-boolean"], true, "parsedProperty is correct");
+  is(parsed["S-bool-property"], false, "property is correct");
+
+  [valid, parsed] = PoliciesValidator.validateAndParseParameters({
+    "N-string": "test",
+  }, schema);
+
+  ok(!valid, "Object is not valid since there is a type mismatch");
+
+  [valid, parsed] = PoliciesValidator.validateAndParseParameters({
+    "S-number": 5,
+  }, schema);
+
+  ok(!valid, "Object is not valid since there is a type mismatch");
+
+  schema = {
+    type: "object",
+    patternProperties: {
+      "[": {" type": "string" },
+    },
+  };
+
+  Assert.throws(() => {
+    [valid, parsed] = PoliciesValidator.validateAndParseParameters({}, schema);
+  }, /Invalid property pattern/, "Checking that invalid property patterns throw");
+});
